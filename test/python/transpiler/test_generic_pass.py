@@ -37,7 +37,6 @@ class TestGenericPass(QiskitTestCase):
         with self.assertRaises(TranspilerUnknownOption):
             tp_pass.set(not_an_option=False)
 
-
     def test_is_TP_or_AP(self):
         """ Passes have isTransformationPass and isAnalysisPass properties."""
         tp_pass = DummyTP()

@@ -16,7 +16,7 @@ from qiskit import QISKitError
 class PassManager():
     """ A PassManager schedules the passes """
 
-    def __init__(self, ignore_requires=None, ignore_preserves=None, pass_idempotence=None):
+    def __init__(self, ignore_requires=None, ignore_preserves=None, idempotence=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
@@ -25,7 +25,7 @@ class PassManager():
                 default setting in the pass is False.
             ignore_preserves (bool): The schedule ignores the preserves field in the passes.  The
                 default setting in the pass is False.
-            pass_idempotence (bool): The schedule considers every pass idempotent.
+            idempotence (bool): The schedule considers every pass idempotent.
                  The default setting in the pass is True.
         """
 
@@ -35,7 +35,7 @@ class PassManager():
         self.valid_passes = set()
         self.pass_options = {'ignore_requires': ignore_requires,
                              'ignore_preserves': ignore_preserves,
-                             'idempotence': pass_idempotence}
+                             'idempotence': idempotence}
 
     def __getitem__(self, key):
         return self.property_set[key]

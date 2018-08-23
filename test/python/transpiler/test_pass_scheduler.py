@@ -193,7 +193,7 @@ class TestUseCases(QiskitTestCase):
     def test_pass_idempotence_pm(self):
         """ A pass manager that considers every pass as not idempotent, allows the immediate
         repetition of a pass"""
-        passmanager = PassManager(pass_idempotence=False)
+        passmanager = PassManager(idempotence=False)
         passmanager.add_pass(PassA_TP_NR_NP())
         passmanager.add_pass(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
         passmanager.add_pass(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
@@ -228,5 +228,19 @@ class TestUseCases(QiskitTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
+    def test_pass_option_precedence(self):
+        """ The precedence of options for a pass is:
+         - The pass
+         - The pass set
+         - The pass manager option
+        """
+        passmanager = PassManager(idempotence=True, ignore_preserves=False, ignore_requires=True)
+        tp_pass = DummyTP()
+        tp_pass.set(idempotence=False)
+        passmanager.add_pass(tp_pass, idempotence=True, ignore_preserves=True)
+        the_pass_in_the_workinglist = passmanager.working_list.list_of_items[0].passes[0]
+        self.assertFalse(the_pass_in_the_workinglist.idempotence)
+        self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
+        self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
 if __name__ == '__main__':
     unittest.main()
