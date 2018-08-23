@@ -12,6 +12,7 @@
 import unittest.mock
 from ._dummy_passes import DummyAP, DummyTP
 from ..common import QiskitTestCase
+from qiskit.transpiler import TranspilerUnknownOption
 
 class TestGenericPass(QiskitTestCase):
     """ Passes have common caracteristics defined in BasePass."""
@@ -29,6 +30,13 @@ class TestGenericPass(QiskitTestCase):
         self.assertFalse(tp_pass.idempotence)
         self.assertTrue(tp_pass.ignore_requires)
         self.assertTrue(tp_pass.ignore_preserves)
+
+    def test_pass_unknown_option(self):
+        """ An option in a pass should be in the set of allowed options. """
+        tp_pass = DummyTP()
+        with self.assertRaises(TranspilerUnknownOption):
+            tp_pass.set(not_an_option=False)
+
 
     def test_is_TP_or_AP(self):
         """ Passes have isTransformationPass and isAnalysisPass properties."""

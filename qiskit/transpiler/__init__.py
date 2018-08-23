@@ -9,8 +9,8 @@
 
 from ._passmanager import PassManager
 from ._propertyset import PropertySet
-from ._transpilererror import TranspilerError
-from ._fencedobjs import FencedDAGCircuit, FencedPropertySet, TranspilerAccessError
+from ._transpilererror import TranspilerError, TranspilerAccessError, TranspilerUnknownOption
+from ._fencedobjs import FencedDAGCircuit, FencedPropertySet
 from ._basepasses import AnalysisPass, TransformationPass
 
 # pylint: disable=redefined-builtin

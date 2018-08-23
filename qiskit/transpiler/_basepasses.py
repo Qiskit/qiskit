@@ -9,7 +9,7 @@
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-
+from ._transpilererror import TranspilerUnknownOption
 
 class BasePass(ABC):
     """Base class for transpiler passes."""
@@ -41,10 +41,15 @@ class BasePass(ABC):
         """
         Sets a pass. `pass_.set(arg=value) equivalent to `pass_.arg = value`
         Args:
+            TranspilerUnknownOption
             **kwargs (dict): arguments=value to set
-        Returns:
+        Raises:
             dict: current settings
         """
+        for option in kwargs.keys():
+            if option not in self._defaults:
+                raise TranspilerUnknownOption("The option %s cannot be set in the pass %s",
+                                              option, self.name)
         self._settings = kwargs
 
     @abstractmethod

@@ -8,6 +8,7 @@
 """ Fenced objects are Object Proxies for raising  TranspilerAccessError when they are modified."""
 
 import wrapt
+from ._transpilererror import TranspilerAccessError
 
 class FencedPropertySet(wrapt.ObjectProxy):
     """ A property set that cannot be written (via __setitem__) """
@@ -19,12 +20,3 @@ class FencedDAGCircuit(wrapt.ObjectProxy):
     def _remove_op_node(self, *_args, **_kwargs):
         raise TranspilerAccessError("An AnalysisPass should not modify DAGCircuit: _remove_op_node"
                                     "forbidden")
-
-class TranspilerAccessError(Exception):
-    """ Exception of access error in the transpiler passes. """
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-    def __str__(self):
-        return self.message
