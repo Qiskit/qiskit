@@ -16,6 +16,7 @@ import functools
 import jsonschema
 
 from qiskit.backends import BaseJob, JobStatus, JobError
+from qiskit import QISKitError
 from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class LocalJob(BaseJob):
         try:
             jsonschema.validate(self._qobj.as_dict(), schema)
         except jsonschema.ValidationError as validation_error:
-            raise ValueError(validation_error)
+            raise QISKitError(str(validation_error))
 
     def submit(self):
         """Submit the job to the backend for running """

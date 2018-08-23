@@ -8,10 +8,12 @@
 """QOBj test."""
 import unittest
 import json
+import copy
 import jsonschema
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader)
 from qiskit.backends.local import localjob
 from qiskit.backends.ibmq import IBMQBackend
+from qiskit import QISKitError
 from ._mockutils import FakeBackend, DummySimulator
 from .common import QiskitTestCase, Path
 
@@ -45,6 +47,9 @@ class TestQobj(QiskitTestCase):
                 ]}
             ],
         }
+
+        self.bad_qobj = copy.deepcopy(self.valid_qobj)
+        self.bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
 
     def test_as_dict(self):
         """Test conversion to dict of a Qobj based on the individual elements."""
@@ -91,20 +96,17 @@ class TestQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
 
-    def test_ibmqobj_raises_when_sending_bad_qobj(self):
-        """Test IBMQobj is denied resource request access when invalid."""
-        bad_qobj = self.valid_qobj
-        bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
-
+    def test_localjob_raises_error_when_sending_bad_qobj(self):
+        """Test localjob is denied resource request access when given an invalid Qobj instance."""
         local_backend = FakeBackend()
-        bad_qobj.header = QobjHeader(backend_name=local_backend.name)
-        # test access denial against a local backend
-        with self.assertRaises(ValueError):
-            localjob.LocalJob(None, bad_qobj)
+        self.bad_qobj.header = QobjHeader(backend_name=local_backend.name)
+        with self.assertRaises(QISKitError):
+            localjob.LocalJob(None, self.bad_qobj)
 
+    def test_ibmqobj_raises_error_when_sending_bad_qobj(self):
+        """Test IBMQobj is denied resource request access when given an invalid Qobj instance."""
         config = DummySimulator.DEFAULT_CONFIGURATION
         non_local_backend = IBMQBackend(config)
-        bad_qobj.header = QobjHeader(backend_name=non_local_backend.name)
-        # test access denial against a non-local backend
-        with self.assertRaises(ValueError):
-            non_local_backend.run(bad_qobj)
+        self.bad_qobj.header = QobjHeader(backend_name=non_local_backend.name)
+        with self.assertRaises(QISKitError):
+            non_local_backend.run(self.bad_qobj)

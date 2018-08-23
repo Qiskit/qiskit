@@ -10,9 +10,6 @@
 This module is used for connecting to the Quantum Experience.
 """
 import logging
-import os
-import json
-import jsonschema
 
 from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
@@ -20,7 +17,6 @@ from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends import JobStatus
-from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
@@ -61,20 +57,6 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-
-        # verify the QObj is valid before making requests for computing resources
-        sdk = qiskit_path[0]
-        # Schemas path:     qiskit/backends/schemas
-        schemas_path = os.path.join(sdk, 'schemas')
-        schema_file_path = os.path.join(schemas_path, 'qobj_schema.json')
-
-        with open(schema_file_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
-        try:
-            jsonschema.validate(qobj.as_dict(), schema)
-        except jsonschema.ValidationError as validation_error:
-            raise ValueError(validation_error)
 
         job = IBMQJob(self._api, not self.configuration['simulator'], qobj=qobj)
         job.submit()

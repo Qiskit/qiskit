@@ -19,6 +19,8 @@ import contextlib
 import json
 import datetime
 import numpy
+import os
+import jsonschema
 
 from IBMQuantumExperience import ApiError
 
@@ -27,6 +29,8 @@ from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._result import Result
+from qiskit import QISKitError
+from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +140,21 @@ class IBMQJob(BaseJob):
         """
         super().__init__()
         self._job_data = None
+
         if qobj is not None:
+            # load the schema for an expected QObj
+            sdk = qiskit_path[0]
+            # Schemas path:     qiskit/backends/schemas
+            schemas_path = os.path.join(sdk, 'schemas')
+            schema_file_path = os.path.join(schemas_path, 'qobj_schema.json')
+            with open(schema_file_path, 'r') as schema_file:
+                schema = json.load(schema_file)
+            # verify the QObj is valid before making requests for computing resources
+            try:
+                jsonschema.validate(qobj.as_dict(), schema)
+            except jsonschema.ValidationError as validation_error:
+                raise QISKitError(str(validation_error))
+
             # TODO: No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
             self._job_data = {
@@ -146,6 +164,7 @@ class IBMQJob(BaseJob):
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
+
         self._future_captured_exception = None
         self._api = api
         self._id = job_id
