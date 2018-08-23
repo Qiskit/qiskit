@@ -65,6 +65,14 @@ class BasePass(ABC):
         """
         raise NotImplementedError
 
+    @property
+    def isTransformationPass(self):
+        return isinstance(self, TransformationPass)
+
+    @property
+    def isAnalysisPass(self):
+        return isinstance(self, AnalysisPass)
+
 
 class AnalysisPass(BasePass):
     """ An analysis pass: change property set, not DAG. """

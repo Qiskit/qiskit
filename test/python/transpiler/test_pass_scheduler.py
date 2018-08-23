@@ -207,10 +207,7 @@ class TestUseCases(QiskitTestCase):
         """ A single pass that is not idempotent. """
         passmanager = PassManager()
         pass_a = PassA_TP_NR_NP()
-        self.assertTrue(pass_a.idempotence)   # By default, passes are idempotent
-
         pass_a.idempotence = False  # Set idempotence as False
-        self.assertFalse(pass_a.idempotence)
 
         passmanager.add_pass(pass_a)
         passmanager.add_pass(pass_a)            # Normally removed for optimization, not here.
