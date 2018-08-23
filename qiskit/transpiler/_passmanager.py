@@ -14,13 +14,15 @@ from qiskit import QISKitError
 
 class PassManager():
     """ A PassManager schedules the passes """
-    def __init__(self, ignore_requests=False):
+    def __init__(self, ignore_requests=False, ignore_preserves=False):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            ignore_requests (bool): The schedule ignores the request field in the passes.
-            Default: False
+            ignore_requests (bool): (Default: False) The schedule ignores the request field in the
+            passes.
+            ignore_preserves (bool): (Default: False) The schedule ignores the preserves field in
+            the passes.
         """
 
         self.working_list = WorkingList()
@@ -28,6 +30,7 @@ class PassManager():
         self.ro_property_set = FencedPropertySet(self.property_set)
         self.valid_passes = set()
         self.ignore_requests = ignore_requests
+        self.ignore_preserves = ignore_preserves
 
     def __getitem__(self, key):
         return self.property_set[key]
@@ -94,7 +97,10 @@ class PassManager():
 
     def _update_valid_passes(self, pass_):
         if not isinstance(pass_, AnalysisPass):  # Analysis passes preserve all
-            self.valid_passes.intersection_update(set(pass_.preserves))
+            if self.ignore_preserves:
+                self.valid_passes.clear()
+            else:
+                self.valid_passes.intersection_update(set(pass_.preserves))
         self.valid_passes.add(pass_)
 
 

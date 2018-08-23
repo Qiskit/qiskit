@@ -293,7 +293,8 @@ class TestUseCases(QiskitTestCase):
                                    TranspilerAccessError)
 
     def test_ignore_request_pm(self):
-        """ A single chain of passes, with Requests and Preserves."""
+        """ A pass manager that ignores requests does not run the passes decleared in the 'requests'
+        field of the passes."""
         passmanager = PassManager(ignore_requests=True)
         passmanager.add_pass(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
         passmanager.add_pass(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
@@ -303,6 +304,23 @@ class TestUseCases(QiskitTestCase):
                                                      'run transformation pass PassB_TP_RA_PA',
                                                      'run transformation pass PassD_TP_NR_NP',
                                                      'argument [1, 2]',
+                                                     'run transformation pass PassB_TP_RA_PA'])
+
+    def test_ignore_preserves_pm(self):
+        """ A pass manager that ignores preserves does not record the passes decleared in the
+        'preserves' field of the passes as valid passes."""
+        passmanager = PassManager(ignore_preserves=True)
+        passmanager.add_pass(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.add_pass(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.add_pass(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
+        passmanager.add_pass(PassB_TP_RA_PA())
+        self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassC_TP_RA_PA',
+                                                     'run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassB_TP_RA_PA',
+                                                     'run transformation pass PassD_TP_NR_NP',
+                                                     'argument [1, 2]',
+                                                     'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
 
