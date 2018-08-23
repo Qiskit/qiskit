@@ -323,6 +323,19 @@ class TestUseCases(QiskitTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
+    def test_pass_idempotence_pm(self):
+        """ A pass manager that considers every pass as not idempotent, allows the immediate
+        repetition of a pass"""
+        passmanager = PassManager(pass_idempotence=False)
+        passmanager.add_pass(PassA_TP_NR_NP())
+        passmanager.add_pass(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
+        passmanager.add_pass(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
+                                                # not here
+        self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassB_TP_RA_PA'])
+
 
 if __name__ == '__main__':
     unittest.main()

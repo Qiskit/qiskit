@@ -14,15 +14,17 @@ from qiskit import QISKitError
 
 class PassManager():
     """ A PassManager schedules the passes """
-    def __init__(self, ignore_requests=False, ignore_preserves=False):
+    def __init__(self, ignore_requests=False, ignore_preserves=False, pass_idempotence=True):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
             ignore_requests (bool): (Default: False) The schedule ignores the request field in the
-            passes.
+                passes.
             ignore_preserves (bool): (Default: False) The schedule ignores the preserves field in
-            the passes.
+                the passes.
+            pass_idempotence (bool): (Default: True) The schedule considers every pass idempotent.
+                Therefore, two o more consecutive identical passes are optimized to one.
         """
 
         self.working_list = WorkingList()
@@ -31,6 +33,7 @@ class PassManager():
         self.valid_passes = set()
         self.ignore_requests = ignore_requests
         self.ignore_preserves = ignore_preserves
+        self.pass_idempotence = pass_idempotence
 
     def __getitem__(self, key):
         return self.property_set[key]
@@ -101,7 +104,9 @@ class PassManager():
                 self.valid_passes.clear()
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
-        self.valid_passes.add(pass_)
+
+        if self.pass_idempotence:
+            self.valid_passes.add(pass_)
 
 
 class WorkingList():
