@@ -7,29 +7,11 @@
 
 # pylint: disable=invalid-name
 
-"""Tranpiler testing"""
+"""BasePass and generic pass testing"""
 
 import unittest.mock
-import logging
-
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile, TransformationPass, AnalysisPass, \
-    TranspilerAccessError
+from ._dummy_passes import DummyAP, DummyTP
 from ..common import QiskitTestCase
-
-
-class DummyTP(TransformationPass):
-    """ A dummy transformation pass."""
-    def run(self, dag, property_set=None):
-        super().run(dag, property_set)
-        pass
-
-class DummyAP(AnalysisPass):
-    """ A dummy analysis pass."""
-    def run(self, dag, property_set=None):
-        super().run(dag, property_set)
-        pass
 
 class TestGenericPass(QiskitTestCase):
     """ Passes have common caracteristics defined in BasePass."""
