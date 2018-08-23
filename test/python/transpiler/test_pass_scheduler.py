@@ -203,6 +203,14 @@ class TestUseCases(QiskitTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
+    def test_pass_idempotence_passset(self):
+        """ A pass set that is not idempotent. """
+        passmanager = PassManager()
+        passmanager.add_pass([PassA_TP_NR_NP(), PassB_TP_RA_PA()], idempotence=False)
+        self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassA_TP_NR_NP',
+                                                     'run transformation pass PassB_TP_RA_PA'])
+
     def test_pass_idempotence_single_pass(self):
         """ A single pass that is not idempotent. """
         passmanager = PassManager()
