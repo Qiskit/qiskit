@@ -18,8 +18,8 @@ import pprint
 import contextlib
 import json
 import datetime
-import numpy
 import os
+import numpy
 import jsonschema
 
 from IBMQuantumExperience import ApiError
@@ -132,6 +132,9 @@ class IBMQJob(BaseJob):
             job_id (String): The job ID of an already submitted job.
             backend_name(String): The name of the backend that run the job.
             creation_date(String): When the job was run.
+
+        Raises:
+            QISKitError: if the input Qobj is invalid
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``

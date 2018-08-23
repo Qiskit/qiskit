@@ -51,9 +51,6 @@ class IBMQBackend(BaseBackend):
         Args:
             qobj (dict): description of job
 
-        Raises:
-            ValueError: if qobj is invalid
-
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
