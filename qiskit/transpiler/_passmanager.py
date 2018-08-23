@@ -105,7 +105,7 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
-        if self.pass_idempotence:
+        if self.pass_idempotence and pass_.idempotence:
             self.valid_passes.add(pass_)
 
 

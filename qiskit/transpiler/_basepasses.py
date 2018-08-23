@@ -23,6 +23,9 @@ class BasePass(ABC):
 
     def __init__(self, *args, **kwargs):
         self._hash = hash(self.name + str(sorted(args)) + str(OrderedDict(kwargs)))
+        self.idempotence = True
+        self.ignore_requires = False
+        self.ignore_preserves = False
         super().__init__()
 
     def __eq__(self, other):
@@ -30,6 +33,25 @@ class BasePass(ABC):
 
     def __hash__(self):
         return self._hash
+
+    def set(self, idempotence=None,
+            ignore_requires=None,
+            ignore_preserves=None):
+        """
+        Sets a pass. `pass_.set(arg=value) equivalent to `pass_.arg = value`
+        Args:
+            idempotence (bool): Set idempotence for this pass.
+            ignore_requires (bool): Set if the requires field should be ignored for this pass.
+            ignore_preserves (bool): Set if the preserves field should be ignored for this pass
+        """
+        if idempotence is not None:
+            self.idempotence = idempotence
+
+        if ignore_requires is not None:
+            self.ignore_requires = ignore_requires
+
+        if ignore_preserves is not None:
+            self.ignore_preserves = ignore_preserves
 
     @abstractmethod
     def run(self, dag, property_set=None):
