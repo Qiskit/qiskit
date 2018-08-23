@@ -162,7 +162,7 @@ class TestUseCases(QiskitTestCase):
     def test_ignore_request_pm(self):
         """ A pass manager that ignores requests does not run the passes decleared in the 'requests'
         field of the passes."""
-        passmanager = PassManager(ignore_requests=True)
+        passmanager = PassManager(ignore_requires=True)
         passmanager.add_pass(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
         passmanager.add_pass(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
         passmanager.add_pass(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
@@ -213,6 +213,8 @@ class TestUseCases(QiskitTestCase):
         passmanager.add_pass(pass_a)            # Normally removed for optimization, not here.
         passmanager.add_pass(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
                                                 # not here
+        passmanager.add_pass(PassA_TP_NR_NP())  # This is not run because is idempotent and it was
+                                                # already ran as PassB requirment.
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
