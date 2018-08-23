@@ -13,13 +13,12 @@ from qiskit.transpiler._basepasses import TransformationPass
 class CXCancellation(TransformationPass):
     """Cancel back-to-back 'cx' gates in dag."""
 
-    def run(self, dag, property_set):
+    def run(self, dag):
         """
         Run one pass of cx cancellation on the circuit
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on.
-            property_set (PropertySet): the property set with info from other passes.
         """
         cx_runs = dag.collect_runs(["cx"])
         for cx_run in cx_runs:

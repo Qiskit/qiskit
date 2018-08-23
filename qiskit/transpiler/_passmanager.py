@@ -106,9 +106,11 @@ class PassManager():
         # Run the pass itself, if not already ran (exists in valid_passes)
         if not pass_ in self.valid_passes:
             if pass_.isTransformationPass:
-                pass_.run(dag, self.ro_property_set)
+                pass_.property_set = self.ro_property_set
+                pass_.run(dag)
             elif pass_.isAnalysisPass:
-                pass_.run(FencedDAGCircuit(dag), self.property_set)
+                pass_.property_set = self.property_set
+                pass_.run(FencedDAGCircuit(dag))
             else:
                 raise Exception("I dont know how to handle this type of pass")
 

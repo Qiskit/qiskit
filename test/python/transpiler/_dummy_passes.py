@@ -23,14 +23,14 @@ logger = "LocalLogger"
 class DummyTP(TransformationPass):
     """ A dummy transformation pass."""
 
-    def run(self, dag, property_set):
+    def run(self, dag):
         logging.getLogger(logger).info('run transformation pass %s', self.name)
 
 
 class DummyAP(AnalysisPass):
     """ A dummy analysis pass."""
 
-    def run(self, dag, property_set):
+    def run(self, dag):
         logging.getLogger(logger).info('run analysis pass %s', self.name)
 
 
@@ -74,8 +74,8 @@ class PassD_TP_NR_NP(DummyTP):
         super().__init__()
         self.argument1 = argument1
 
-    def run(self, dag, property_set):
-        super().run(dag, property_set)
+    def run(self, dag):
+        super().run(dag)
         logging.getLogger(logger).info('argument %s', self.argument1)
 
 
@@ -90,10 +90,10 @@ class PassE_AP_NR_NP(DummyAP):
         super().__init__()
         self.argument1 = argument1
 
-    def run(self, dag, property_set):
-        super().run(dag, property_set)
-        property_set['property'] = self.argument1
-        logging.getLogger(logger).info('set property as %s', property_set['property'])
+    def run(self, dag):
+        super().run(dag)
+        self.property_set['property'] = self.argument1
+        logging.getLogger(logger).info('set property as %s', self.property_set['property'])
 
 
 class PassF_reduce_dag_property(DummyTP):
@@ -103,8 +103,8 @@ class PassF_reduce_dag_property(DummyTP):
     NP: No Preserves
     """
 
-    def run(self, dag, property_set):
-        super().run(dag, property_set)
+    def run(self, dag):
+        super().run(dag)
         if not hasattr(dag, 'property'):
             dag.property = 8
         dag.property = round(dag.property * 0.8)
@@ -118,12 +118,12 @@ class PassG_calculates_dag_property(DummyAP):
     NP: No Preserves
     """
 
-    def run(self, dag, property_set):
-        super().run(dag, property_set)
+    def run(self, dag):
+        super().run(dag)
         prop = dag.property
-        property_set['property'] = prop
+        self.property_set['property'] = prop
         logging.getLogger(logger).info('set property as %s (from dag.property)',
-                                       property_set['property'])
+                                       self.property_set['property'])
 
 
 class PassH_Bad_TP(DummyTP):
@@ -132,10 +132,10 @@ class PassH_Bad_TP(DummyTP):
     NP: No Preserves
     """
 
-    def run(self, dag, property_set):
-        super().run(dag, property_set)
-        property_set['property'] = "value"
-        logging.getLogger(logger).info('set property as %s', property_set['property'])
+    def run(self, dag):
+        super().run(dag)
+        self.property_set['property'] = "value"
+        logging.getLogger(logger).info('set property as %s', self.property_set['property'])
 
 
 class PassI_Bad_AP(DummyAP):
@@ -144,8 +144,8 @@ class PassI_Bad_AP(DummyAP):
     NP: No Preserves
     """
 
-    def run(self, dag, property_set):
-        super().run(dag, property_set)
+    def run(self, dag):
+        super().run(dag)
         cx_runs = dag.collect_runs(["cx"])
         logging.getLogger(logger).info('cx_runs: %s', cx_runs)
         dag._remove_op_node(cx_runs.pop()[0])

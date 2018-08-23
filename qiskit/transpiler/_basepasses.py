@@ -53,12 +53,11 @@ class BasePass(ABC):
         self._settings = kwargs
 
     @abstractmethod
-    def run(self, dag, property_set=None):
+    def run(self, dag):
         """
         Run a pass on the DAGCircuit. This is implemented by the pass developer.
         Args:
             dag:
-            property_set:
         Raises:
             NotImplementedError
         """

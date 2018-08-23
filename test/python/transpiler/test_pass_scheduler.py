@@ -242,5 +242,6 @@ class TestUseCases(QiskitTestCase):
         self.assertFalse(the_pass_in_the_workinglist.idempotence)
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
+
 if __name__ == '__main__':
     unittest.main()
