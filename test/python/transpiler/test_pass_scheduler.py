@@ -256,12 +256,20 @@ class TestUseCases(QiskitTestCase):
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 2 (from dag.property)'])
 
-    def test_do_not_repeat(self):
+    def test_do_not_repeat_based_on_preservation(self):
         """ When a pass is still a valid pass (because following passes preserved it), it should not
         run again"""
         self.passmanager.add_pass([PassB_TP_RA_PA(), PassA_TP_NR_NP(), PassB_TP_RA_PA()])
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassB_TP_RA_PA'])
+
+    def test_do_not_repeat_based_on_idempotence(self):
+        """ By default, passes are idempotent. Therefore, repetition can be optimized to a single
+        execution"""
+        self.passmanager.add_pass(PassA_TP_NR_NP())
+        self.passmanager.add_pass([PassA_TP_NR_NP(), PassA_TP_NR_NP()])
+        self.passmanager.add_pass(PassA_TP_NR_NP())
+        self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP'])
 
     def test_fenced_property_set(self):
         self.passmanager.add_pass(PassH_Bad_TP())
@@ -283,6 +291,19 @@ class TestUseCases(QiskitTestCase):
                                    ['run analysis pass PassI_Bad_AP',
                                     'cx_runs: {(5, 6, 7, 8)}'],
                                    TranspilerAccessError)
+
+    def test_ignore_request_pm(self):
+        """ A single chain of passes, with Requests and Preserves."""
+        passmanager = PassManager(ignore_requests=True)
+        passmanager.add_pass(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.add_pass(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.add_pass(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
+        passmanager.add_pass(PassB_TP_RA_PA())
+        self.assertScheduler(self.dag, passmanager, ['run transformation pass PassC_TP_RA_PA',
+                                                     'run transformation pass PassB_TP_RA_PA',
+                                                     'run transformation pass PassD_TP_NR_NP',
+                                                     'argument [1, 2]',
+                                                     'run transformation pass PassB_TP_RA_PA'])
 
 
 if __name__ == '__main__':

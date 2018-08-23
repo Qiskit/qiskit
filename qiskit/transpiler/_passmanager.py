@@ -14,12 +14,20 @@ from qiskit import QISKitError
 
 class PassManager():
     """ A PassManager schedules the passes """
-    def __init__(self):
-        """Initialize an empty PassManager object (with no passes scheduled)."""
+    def __init__(self, ignore_requests=False):
+        """
+        Initialize an empty PassManager object (with no passes scheduled).
+
+        Args:
+            ignore_requests (bool): The schedule ignores the request field in the passes.
+            Default: False
+        """
+
         self.working_list = WorkingList()
         self.property_set = PropertySet()
         self.ro_property_set = FencedPropertySet(self.property_set)
         self.valid_passes = set()
+        self.ignore_requests = ignore_requests
 
     def __getitem__(self, key):
         return self.property_set[key]
@@ -68,8 +76,9 @@ class PassManager():
         """
 
         # First, do the requires of pass_
-        for required_pass in pass_.requires:
-            self._do_pass(required_pass, dag)
+        if not self.ignore_requests:
+            for required_pass in pass_.requires:
+                self._do_pass(required_pass, dag)
 
         # Run the pass itself, if not already ran (exists in valid_passes)
         if not pass_ in self.valid_passes:
