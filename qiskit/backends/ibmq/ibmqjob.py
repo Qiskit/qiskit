@@ -425,7 +425,9 @@ class IBMQJob(BaseJob):
                 raise JobTimeoutError(
                     "Timeout waiting for the job being submitted: {}".format(ex)
                 )
-
+            if (submit_info is None
+                    and self._future_captured_exception is not None):
+                raise self._future_captured_exception
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
                 self._api_error_msg = str(submit_info['error'])
