@@ -427,6 +427,8 @@ class IBMQJob(BaseJob):
                 )
             if (submit_info is None
                     and self._future_captured_exception is not None):
+                # pylint can't see if catch of None type
+                # pylint: disable=raising-bad-type
                 raise self._future_captured_exception
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
