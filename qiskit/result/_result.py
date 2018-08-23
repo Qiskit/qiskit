@@ -37,57 +37,31 @@ class ExperimentResult(object):
 
     @property
     def counts(self):
-        """Return counts."""
+        """Histogram of the memory over the indicated shots."""
         return self.data['counts']
 
     @property
     def snapshots(self):
-        """Return snapshots."""
+        """Collection of all snapshots of simulator state."""
         return self.data['snapshots']
 
     @property
     def statevector(self):
-        """Return statevector."""
+        """Vector of amplitudes describing the simulator state."""
         return self.data['statevector']
 
     @property
     def unitary(self):
-        """Return unitary."""
+        """Unitary matrix describing the complete evolution of the circuit."""
         return self.data['unitary']
 
 
 class Result(object):
-    """Result Class.
-
-    Class internal properties.
-
-    Methods to process the quantum program after it has been run
-
-    Internal::
-
-        result = {
-            "job_id": --job-id (string),
-                      #This string links the result with the job that computes it,
-                      #it should be issued by the backend it is run on.
-            "status": --status (string),
-            "result":
-                [
-                    {
-                    "data":
-                        {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                        "counts": {'00000': XXXX, '00001': XXXXX},
-                        "time"  : xx.xxxxxxxx
-                        },
-                    "status": --status (string)--
-                    },
-                    ...
-                ]
-            }
-    """
+    """Keep the results for a collection of experiments sent in a ``Qobj``
+    instance."""
 
     def __init__(self, qobj_result, experiment_names=None):
         """
-
         Args:
             qobj_result (qobj.Result): schema-conformant Result.
             experiment_names (list): temporary list of circuit names

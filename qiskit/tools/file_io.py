@@ -15,7 +15,6 @@ import os
 import numpy
 from sympy import Basic
 
-import qiskit
 from qiskit.result._utils import result_from_old_style_dict
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseBackend
