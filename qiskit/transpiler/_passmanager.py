@@ -12,28 +12,30 @@ from functools import partial
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
 from qiskit import QISKitError
 
+
 class PassManager():
     """ A PassManager schedules the passes """
-    def __init__(self, ignore_requires=False, ignore_preserves=False, pass_idempotence=True):
+
+    def __init__(self, ignore_requires=None, ignore_preserves=None, pass_idempotence=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            ignore_requires (bool): (Default: False) The schedule ignores the request field in the
-                passes.
-            ignore_preserves (bool): (Default: False) The schedule ignores the preserves field in
-                the passes.
-            pass_idempotence (bool): (Default: True) The schedule considers every pass idempotent.
-                Therefore, two o more consecutive identical passes are optimized to one.
+            ignore_requires (bool): The schedule ignores the request field in the passes. The
+                default setting in the pass is False.
+            ignore_preserves (bool): The schedule ignores the preserves field in the passes.  The
+                default setting in the pass is False.
+            pass_idempotence (bool): The schedule considers every pass idempotent.
+                 The default setting in the pass is True.
         """
 
         self.working_list = WorkingList()
         self.property_set = PropertySet()
         self.ro_property_set = FencedPropertySet(self.property_set)
         self.valid_passes = set()
-        self.ignore_requires = ignore_requires
-        self.ignore_preserves = ignore_preserves
-        self.pass_idempotence = pass_idempotence
+        self.pass_options = {'ignore_requires': ignore_requires,
+                             'ignore_preserves': ignore_preserves,
+                             'idempotence': pass_idempotence}
 
     def __getitem__(self, key):
         return self.property_set[key]
@@ -41,7 +43,15 @@ class PassManager():
     def __setitem__(self, key, value):
         self.property_set[key] = value
 
-    def add_pass(self, pass_or_list_of_passes, do_while=None, condition=None):
+    def _join_options(self, passset_options, pass_options):
+        # Remove Nones
+        passmanager_level = {k: v for k, v in self.pass_options.items() if v is not None}
+        passset_level = {k: v for k, v in passset_options.items() if v is not None}
+        pass_level = {k: v for k, v in pass_options.items() if v is not None}
+        return {**passmanager_level, **passset_level, **pass_level }
+
+    def add_pass(self, pass_or_list_of_passes, do_while=None, condition=None,
+                 idempotence=None, ignore_requires=None, ignore_preserves=None):
         """
         Args:
             pass_or_list_of_passes (pass instance or list):
@@ -54,11 +64,18 @@ class PassManager():
         Raises:
             QISKitError: if pass_or_list_of_passes is not a proper pass.
         """
+
+        passset_options = {'idempotence': idempotence,
+                           'ignore_requires': ignore_requires,
+                           'ignore_preserves': ignore_preserves}
+
         if isinstance(pass_or_list_of_passes, BasePass):
             pass_or_list_of_passes = [pass_or_list_of_passes]
 
         for pass_ in pass_or_list_of_passes:
-            if not isinstance(pass_, BasePass):
+            if isinstance(pass_, BasePass):
+                pass_.set(**self._join_options(passset_options, pass_._settings))
+            else:
                 raise QISKitError('%s is not a pass instance' % pass_.__class__)
 
         if do_while:
@@ -82,7 +99,7 @@ class PassManager():
         """
 
         # First, do the requires of pass_
-        if not self.ignore_requires:
+        if not pass_.ignore_requires:
             for required_pass in pass_.requires:
                 self._do_pass(required_pass, dag)
 
@@ -100,12 +117,12 @@ class PassManager():
 
     def _update_valid_passes(self, pass_):
         if not pass_.isAnalysisPass:  # Analysis passes preserve all
-            if self.ignore_preserves:
+            if pass_.ignore_preserves:
                 self.valid_passes.clear()
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
-        if self.pass_idempotence and pass_.idempotence:
+        if pass_.idempotence:
             self.valid_passes.add(pass_)
 
 
