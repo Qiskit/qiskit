@@ -11,8 +11,7 @@
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile
-from qiskit.backends.local import LocalProvider
+from qiskit import compile, get_backend
 from .common import QiskitTestCase
 
 
@@ -24,8 +23,7 @@ class TestResult(QiskitTestCase):
 
         Do two 2Q circuits: on 1st do nothing, and on 2nd do X on the first qubit.
         """
-        provider = LocalProvider()
-        backend = provider.get_backend('local_qasm_simulator_cpp')
+        backend = get_backend('local_qasm_simulator')
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc1 = QuantumCircuit(q, c)
@@ -44,8 +42,7 @@ class TestResult(QiskitTestCase):
 
     def test_average_data(self):
         """Test average_data."""
-        provider = LocalProvider()
-        backend = provider.get_backend('local_qasm_simulator_cpp')
+        backend = get_backend('local_qasm_simulator')
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c, name="qc")
@@ -69,8 +66,7 @@ class TestResult(QiskitTestCase):
 
     def test_combine_results(self):
         """Test combining two results."""
-        provider = LocalProvider()
-        backend = provider.get_backend('local_qasm_simulator_cpp')
+        backend = get_backend('local_qasm_simulator')
         q = QuantumRegister(1)
         c = ClassicalRegister(1)
         qc1 = QuantumCircuit(q, c)
