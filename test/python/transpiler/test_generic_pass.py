@@ -40,11 +40,11 @@ class TestGenericPass(QiskitTestCase):
     def test_is_TP_or_AP(self):
         """ Passes have isTransformationPass and isAnalysisPass properties."""
         tp_pass = DummyTP()
-        self.assertTrue(tp_pass.isTransformationPass)
-        self.assertFalse(tp_pass.isAnalysisPass)
+        self.assertTrue(tp_pass.is_TransformationPass)
+        self.assertFalse(tp_pass.is_AnalysisPass)
         ap_pass = DummyAP()
-        self.assertFalse(ap_pass.isTransformationPass)
-        self.assertTrue(ap_pass.isAnalysisPass)
+        self.assertFalse(ap_pass.is_TransformationPass)
+        self.assertTrue(ap_pass.is_AnalysisPass)
 
     def test_pass_diff_args(self):
         """ Passes instances with different arguments are differnt """

@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,super-init-not-called
 
 """Dummy passes used by Tranpiler testing"""
 
@@ -13,12 +13,13 @@ import logging
 
 from qiskit.transpiler import TransformationPass, AnalysisPass
 
-__all__=['DummyTP', 'DummyAP',
-         'PassA_TP_NR_NP', 'PassB_TP_RA_PA', 'PassC_TP_RA_PA', 'PassD_TP_NR_NP', 'PassE_AP_NR_NP',
-         'PassF_reduce_dag_property', 'PassG_calculates_dag_property', 'PassH_Bad_TP',
-         'PassI_Bad_AP']
+__all__ = ['DummyTP', 'DummyAP',
+           'PassA_TP_NR_NP', 'PassB_TP_RA_PA', 'PassC_TP_RA_PA', 'PassD_TP_NR_NP', 'PassE_AP_NR_NP',
+           'PassF_reduce_dag_property', 'PassG_calculates_dag_property', 'PassH_Bad_TP',
+           'PassI_Bad_AP']
 
 logger = "LocalLogger"
+
 
 class DummyTP(TransformationPass):
     """ A dummy transformation pass."""

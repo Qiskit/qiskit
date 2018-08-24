@@ -6,11 +6,11 @@
 
 """PassManager class for the transpiler."""
 
+from functools import partial
 from ._propertyset import PropertySet
 from ._basepasses import BasePass
-from functools import partial
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
-from qiskit import QISKitError
+from ._transpilererror import TranspilerError
 
 
 class PassManager():
@@ -48,7 +48,7 @@ class PassManager():
         passmanager_level = {k: v for k, v in self.pass_options.items() if v is not None}
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
         pass_level = {k: v for k, v in pass_options.items() if v is not None}
-        return {**passmanager_level, **passset_level, **pass_level }
+        return {**passmanager_level, **passset_level, **pass_level}
 
     def add_pass(self, pass_or_list_of_passes, do_while=None, condition=None,
                  idempotence=None, ignore_requires=None, ignore_preserves=None):
@@ -62,7 +62,7 @@ class PassManager():
                callable returns True.
                Default: lambda x: True # i.e. pass_or_list_of_passes runs
         Raises:
-            QISKitError: if pass_or_list_of_passes is not a proper pass.
+            TranspilerError: if pass_or_list_of_passes is not a proper pass.
         """
 
         passset_options = {'idempotence': idempotence,
@@ -76,7 +76,7 @@ class PassManager():
             if isinstance(pass_, BasePass):
                 pass_.set(**self._join_options(passset_options, pass_._settings))
             else:
-                raise QISKitError('%s is not a pass instance' % pass_.__class__)
+                raise TranspilerError('%s is not a pass instance' % pass_.__class__)
 
         if do_while:
             do_while = partial(do_while, self.fenced_property_set)
@@ -87,6 +87,11 @@ class PassManager():
         self.working_list.add(pass_or_list_of_passes, do_while, condition)
 
     def run_passes(self, dag):
+        """Run all the passes on the dag.
+
+        Args:
+            dag (DAGCircuit): dag circuit to transform via all the registered passes
+        """
         for pass_ in self.working_list:
             self._do_pass(pass_, dag)
 
@@ -96,6 +101,8 @@ class PassManager():
         Args:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag in which the pass is ran.
+        Raises:
+            TranspilerError: If the pass is not a proper pass instance.
         """
 
         # First, do the requires of pass_
@@ -105,20 +112,20 @@ class PassManager():
 
         # Run the pass itself, if not already ran (exists in valid_passes)
         if not pass_ in self.valid_passes:
-            if pass_.isTransformationPass:
+            if pass_.is_TransformationPass:
                 pass_.property_set = self.fenced_property_set
                 pass_.run(dag)
-            elif pass_.isAnalysisPass:
+            elif pass_.is_AnalysisPass:
                 pass_.property_set = self.property_set
                 pass_.run(FencedDAGCircuit(dag))
             else:
-                raise Exception("I dont know how to handle this type of pass")
+                raise TranspilerError("I dont know how to handle this type of pass")
 
             # update the valid_passes property
             self._update_valid_passes(pass_)
 
     def _update_valid_passes(self, pass_):
-        if not pass_.isAnalysisPass:  # Analysis passes preserve all
+        if not pass_.is_AnalysisPass:  # Analysis passes preserve all
             if pass_.ignore_preserves:
                 self.valid_passes.clear()
             else:
@@ -129,11 +136,23 @@ class PassManager():
 
 
 class WorkingList():
+    """
+    A working list is the way that a pass manager organize the things to do.
+    """
     def __init__(self):
         self.list_of_items = []
 
     def add(self, passes, do_while=None, condition=None):
+        """
+        Populates the working list with passes.
+        Args:
+            passes (list): a list of passes to add to the working list.
+            do_while (callable): The list of passes is run until this callable returns False.
+            condition (callable): The list of passes is run if the callable returns True.
 
+        Returns:
+
+        """
         if condition:
             self.list_of_items.append(WorkItemConditional(passes, do_while, condition))
         elif do_while:
@@ -148,6 +167,8 @@ class WorkingList():
 
 
 class WorkItem():
+    """This class is a base class for multiple types of working list. When you iterate on it, it
+    returns the next pass to run. """
     def __init__(self, passes):
         self.passes = passes
 
@@ -157,7 +178,8 @@ class WorkItem():
 
 
 class WorkItemDoWhile(WorkItem):
-    def __init__(self, passes, do_while):
+    """This type of working list item implements a set of passes in a do while loop. """
+    def __init__(self, passes, do_while):  # pylint: disable=super-init-not-called
         self.working_list = WorkingList()
         self.working_list.add(passes)
         self.do_while = do_while
@@ -171,7 +193,8 @@ class WorkItemDoWhile(WorkItem):
 
 
 class WorkItemConditional(WorkItem):
-    def __init__(self, passes, do_while, condition):
+    """This type of working list item implements a set of passes under certain condition. """
+    def __init__(self, passes, do_while, condition):  # pylint: disable=super-init-not-called
         self.working_list = WorkingList()
         self.working_list.add(passes, do_while)
         self.condition = condition

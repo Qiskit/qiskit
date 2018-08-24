@@ -12,27 +12,34 @@ from collections import OrderedDict
 from ._transpilererror import TranspilerUnknownOption
 
 
-class metaPass(type):
+class MetaPass(type):
+    """
+    Enforces the creation of some fields in the pass while allowing passes to override __init__
+    """
+
     def __call__(cls, *args, **kwargs):
+        """ Called with __init__"""
         obj = type.__call__(cls, *args, **kwargs)
         obj._hash = hash(cls.__name__ +
                          str(args) +
                          str(OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))))
         obj._defaults = {
-                    "idempotence": True,
-                    "ignore_requires": False,
-                    "ignore_preserves": False
-                }
+            "idempotence": True,
+            "ignore_requires": False,
+            "ignore_preserves": False
+        }
         obj._settings = {}
         return obj
 
 
-class BasePass(metaclass=metaPass):
+class BasePass(metaclass=MetaPass):
     """Base class for transpiler passes."""
 
     requires = []  # List of passes that requires
     preserves = []  # List of passes that preserves
-    property_set = None
+    property_set = {}
+    _defaults = {}
+    _settings = {}
     _hash = None
 
     def __init__(self):
@@ -40,6 +47,7 @@ class BasePass(metaclass=metaPass):
 
     @property
     def name(self):
+        """ The name of the pass. """
         return self.__class__.__name__
 
     def __eq__(self, other):
@@ -51,16 +59,17 @@ class BasePass(metaclass=metaPass):
     def set(self, **kwargs):
         """
         Sets a pass. `pass_.set(arg=value) equivalent to `pass_.arg = value`
+
         Args:
-            TranspilerUnknownOption
             **kwargs (dict): arguments=value to set
+
         Raises:
-            dict: current settings
+            TranspilerUnknownOption: If you try to set an option that is not supported.
         """
-        for option in kwargs.keys():
+        for option in kwargs:
             if option not in self._defaults:
-                raise TranspilerUnknownOption("The option %s cannot be set in the pass %s",
-                                              option, self.name)
+                raise TranspilerUnknownOption("The option %s cannot be set in the pass %s" %
+                                              (option, self.name))
         self._settings = kwargs
 
     @abstractmethod
@@ -68,39 +77,56 @@ class BasePass(metaclass=metaPass):
         """
         Run a pass on the DAGCircuit. This is implemented by the pass developer.
         Args:
-            dag:
+            dag (DAGCircuit): The dag in which the pass is run.
         Raises:
-            NotImplementedError
+            NotImplementedError: Because YOU have to implement this :)
         """
         raise NotImplementedError
 
     @property
     def idempotence(self):
+        """ A pass is idempotent when run several time is equivalent to run it once. In math terms,
+        when `run(run(dag)) == run(dag)`. By default, the passes are idempotent. This allows to
+        optimize the transpiler process when sequence of passes are repeated or when passes are
+        preserves.
+        """
         return self._settings.get('idempotence', self._defaults['idempotence'])
 
     @property
     def ignore_requires(self):
+        """ The `pass.requires` attribute declares the passes that are necessary to run before this
+        pass. The defaut is `False`. If `ignore_requires` is set to `True`, then the attribute is
+        ignored.
+        """
         return self._settings.get('ignore_requires', self._defaults['ignore_requires'])
 
     @property
     def ignore_preserves(self):
+        """ The `pass.preserves` attribute declares the passes that are not modified by this pass.
+        The default is `False`. If `ignore_preserves` is set to `True`, then the attribute is
+        ignored and some optimizations will be disabled.
+        """
         return self._settings.get('ignore_preserves', self._defaults['ignore_preserves'])
 
-
     @property
-    def isTransformationPass(self):
+    def is_TransformationPass(self):  # pylint: disable=invalid-name
+        """ If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
+        but cannot modified the property set (but it can be read). """
         return isinstance(self, TransformationPass)
 
     @property
-    def isAnalysisPass(self):
+    def is_AnalysisPass(self):  # pylint: disable=invalid-name
+        """ If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
+        the results of that analysis in the property set. Modifications on the DAG are not allowed
+        by this kind of pass. """
         return isinstance(self, AnalysisPass)
 
 
-class AnalysisPass(BasePass):
+class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """ An analysis pass: change property set, not DAG. """
     pass
 
 
-class TransformationPass(BasePass):
+class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """ A transformation pass: change DAG, not property set. """
     pass

@@ -24,8 +24,10 @@ from qiskit import QISKitError
 class TranspilerError(QISKitError):
     """Exceptions raised during transpilation"""
 
+
 class TranspilerAccessError(QISKitError):
     """ Exception of access error in the transpiler passes. """
+
 
 class TranspilerUnknownOption(QISKitError):
     """ A pass cannot be configure with that option"""
