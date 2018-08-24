@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=redefined-builtin
+
 """QOBj test."""
 import unittest
 import json
@@ -91,6 +93,7 @@ class TestQobj(QiskitTestCase):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
 
     def test_change_qobj_after_compile(self):
+        """Test modifying Qobj parameters after compile."""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         qc1 = QuantumCircuit(qr, cr)

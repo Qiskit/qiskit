@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-docstring, redefined-builtin
 
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit

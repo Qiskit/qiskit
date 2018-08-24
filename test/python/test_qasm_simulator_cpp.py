@@ -13,7 +13,6 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
-from matplotlib.backends.backend_pdf import PdfPages
 from qiskit import qasm, unroll
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,

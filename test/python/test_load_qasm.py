@@ -16,6 +16,8 @@
 # =============================================================================
 
 
+"""Test cases for the load_qasm_file and load_qasm_string method."""
+
 from qiskit import QISKitError
 from qiskit.wrapper import load_qasm_file, load_qasm_string
 from .common import QiskitTestCase, Path

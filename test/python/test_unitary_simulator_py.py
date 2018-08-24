@@ -8,9 +8,6 @@
 # pylint: disable=missing-docstring
 # pylint: disable=redefined-builtin
 
-import cProfile
-import io
-import pstats
 import unittest
 import numpy as np
 
@@ -19,11 +16,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
 from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
-from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
-
-
-DO_PROFILING = False
 
 
 class LocalUnitarySimulatorTest(QiskitTestCase):
@@ -120,40 +113,6 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         norm2 = np.trace(np.dot(np.transpose(np.conj(unitaryreal2)), unitary2))
         self.assertAlmostEqual(norm1, 4)
         self.assertAlmostEqual(norm2, 4)
-
-    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
-    def test_profile_unitary_simulator(self):
-        """Profile randomly generated circuits.
-
-        Writes profile results to <this_module>.prof as well as recording
-        to the log file.
-
-        number of circuits = 100.
-        number of operations/circuit in [1, 40]
-        number of qubits in [1, 5]
-        """
-        n_circuits = 100
-        max_depth = 40
-        max_qubits = 5
-        backend = UnitarySimulatorPy()
-        profile = cProfile.Profile()
-        random_circuit_generator = RandomQasmGenerator(seed=self.seed,
-                                                       max_depth=max_depth,
-                                                       max_qubits=max_qubits)
-        random_circuit_generator.add_circuits(n_circuits, do_measure=False)
-        random_circuits = random_circuit_generator.get_circuits()
-        qobj = compile(random_circuits, backend)
-        profile.enable()
-        result = backend.run(qobj).result()
-        profile.disable()
-        sout = io.StringIO()
-        profile_stats = pstats.Stats(profile, stream=sout).sort_stats('cumulative')
-        self.log.info('------- start profiling UnitarySimulatorPy -----------')
-        profile_stats.print_stats()
-        self.log.info(sout.getvalue())
-        self.log.info('------- stop profiling UnitarySimulatorPy -----------')
-        sout.close()
-        profile.dump_stats(self.moduleName + '.prof')
 
 
 if __name__ == '__main__':
