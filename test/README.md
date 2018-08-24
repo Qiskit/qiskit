@@ -3,7 +3,7 @@
 The purpose of this testing framework is to provide assurances regarding the correctness, quality and efficiency of Qiskit-Terra.
 
 
-## Directory Structure
+## 
 ======================
 
 

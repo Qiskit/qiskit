@@ -1,29 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# Copyright 2018, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-class TestSimulatorPerformance(QiskitTestCase):
+class TestQasmSimulatorCppPerformance(QiskitTestCase):
     """
-    Test job_processor module.
+    Test qasm simulator module.
     """
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if DO_PROFILING:
-            cls.pdf = PdfPages(cls.moduleName + '.pdf')
+        cls.pdf = PdfPages(cls.moduleName + '.pdf')
 
     @classmethod
     def tearDownClass(cls):
-        if DO_PROFILING:
-            cls.pdf.close()
+        cls.pdf.close()
 
-    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
-    def profile_nqubit_speed_grow_depth(self):
+    def test_performance_nqubit_speed_grow_depth(self):
         """Simulation time vs the number of qubits
 
         where the circuit depth is 10x the number of simulated
@@ -99,8 +96,7 @@ class TestSimulatorPerformance(QiskitTestCase):
             axes.legend()
         self.pdf.savefig(fig)
 
-    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
-    def test_profile_nqubit_speed_constant_depth(self):
+    def test_performance_nqubit_speed_constant_depth(self):
         """Simulation time vs the number of qubits
 
         where the circuit depth is fixed at 40. Also creates a pdf file
