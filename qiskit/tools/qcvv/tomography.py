@@ -13,9 +13,9 @@ Quantum Tomography Module
 Description:
     This module contains functions for performing quantum state and quantum
     process tomography. This includes:
-    - Functions for generating a set of circuits in a QuantumProgram to
+    - Functions for generating a set of circuits to
       extract tomographically complete sets of measurement data.
-    - Functions for generating a tomography data set from the QuantumProgram
+    - Functions for generating a tomography data set from the
       results after the circuits have been executed on a backend.
     - Functions for reconstructing a quantum state, or quantum process
       (Choi-matrix) from tomography data sets.
@@ -34,9 +34,7 @@ Workflow:
     - `tomography_set`, `state_tomography_set`, and `process_tomography_set`
        all generates data structures for tomography experiments.
     - `create_tomography_circuits` generates the quantum circuits specified
-       in a `tomography_set` and adds them to a `QuantumProgram` for perform
-       state tomography of the output of a state preparation circuit, or
-       process tomography of a circuit.
+       in a `tomography_set` for performing state tomography of the output
     - `tomography_data` extracts the results after executing the tomography
        circuits and returns it in a data structure used by fitters for state
        reconstruction.
