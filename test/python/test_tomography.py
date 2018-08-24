@@ -129,7 +129,7 @@ def _test_circuits_1qubit():
     circuits = {}
     qr = QuantumRegister(1, name='qr')
     cr = ClassicalRegister(1, name='cr')
-    
+
     # Test Circuits Z eigenstate
     tmp = QuantumCircuit(qr, cr, name='Zp')
     circuits['Zp'] = tmp
