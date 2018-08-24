@@ -31,7 +31,7 @@ class PassManager():
 
         self.working_list = WorkingList()
         self.property_set = PropertySet()
-        self.ro_property_set = FencedPropertySet(self.property_set)
+        self.fenced_property_set = FencedPropertySet(self.property_set)
         self.valid_passes = set()
         self.pass_options = {'ignore_requires': ignore_requires,
                              'ignore_preserves': ignore_preserves,
@@ -79,10 +79,10 @@ class PassManager():
                 raise QISKitError('%s is not a pass instance' % pass_.__class__)
 
         if do_while:
-            do_while = partial(do_while, self.property_set)
+            do_while = partial(do_while, self.fenced_property_set)
 
         if condition:
-            condition = partial(condition, self.property_set)
+            condition = partial(condition, self.fenced_property_set)
 
         self.working_list.add(pass_or_list_of_passes, do_while, condition)
 
@@ -106,7 +106,7 @@ class PassManager():
         # Run the pass itself, if not already ran (exists in valid_passes)
         if not pass_ in self.valid_passes:
             if pass_.isTransformationPass:
-                pass_.property_set = self.ro_property_set
+                pass_.property_set = self.fenced_property_set
                 pass_.run(dag)
             elif pass_.isAnalysisPass:
                 pass_.property_set = self.property_set
