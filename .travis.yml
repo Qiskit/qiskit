@@ -33,7 +33,8 @@ stage_generic: &stage_generic
     - mkdir out && cd out && cmake $CMAKE_FLAGS ..
   script:
     # Compile the executables and run the tests.
-    - make && ARGS="-V" make test
+    - make
+    - PYTHONPATH=. python -m unittest test.python.test_ibmqjob_states.TestIBMQJob
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -134,78 +135,78 @@ jobs:
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      <<: *stage_linux_no_compile
-      script: make style VERBOSE="" && make lint VERBOSE=""
+    # - stage: lint and pure python test
+    #   <<: *stage_linux_no_compile
+    #   script: make style VERBOSE="" && make lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
 
-    # "test" stage
-    ###########################################################################
-    # GNU/Linux, Python 3.5
-    - stage: test
-      <<: *stage_linux
+    # # "test" stage
+    # ###########################################################################
+    # # GNU/Linux, Python 3.5
+    # - stage: test
+    #   <<: *stage_linux
 
-    # GNU/Linux, Python 3.6
-    - stage: test
-      <<: *stage_linux
-      python: 3.6
+    # # GNU/Linux, Python 3.6
+    # - stage: test
+    #   <<: *stage_linux
+    #   python: 3.6
 
-    # GNU/Linux, Python 3.7
-    - stage: test
-      <<: *stage_linux
-      # Compiling Python 3.7 requires an Ubuntu Xenial distribution
-      # and sudo set to true
-      # Fix when this is solved:
-      # https://github.com/travis-ci/travis-ci/issues/9815
-      dist: xenial
-      python: 3.7
-      sudo: true
+    # # GNU/Linux, Python 3.7
+    # - stage: test
+    #   <<: *stage_linux
+    #   # Compiling Python 3.7 requires an Ubuntu Xenial distribution
+    #   # and sudo set to true
+    #   # Fix when this is solved:
+    #   # https://github.com/travis-ci/travis-ci/issues/9815
+    #   dist: xenial
+    #   python: 3.7
+    #   sudo: true
 
-    # OSX, Python 3.6.5 (via pyenv)
-    - stage: test
-      <<: *stage_osx
+    # # OSX, Python 3.6.5 (via pyenv)
+    # - stage: test
+    #   <<: *stage_osx
 
-    # OSX, Python 3.7 (via pyenv)
-    - stage: test
-      <<: *stage_osx_python3_7
+    # # OSX, Python 3.7 (via pyenv)
+    # - stage: test
+    #   <<: *stage_osx_python3_7
 
-    # "ibmq" stage
-    ###########################################################################
-    # GNU/Linux, Python 3.6, against IBM Q
-    - stage: ibmq
-      <<: *stage_linux
-      if: branch = master and repo = Qiskit/qiskit-terra and type = push
-      python: 3.6
-      env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
+    # # "ibmq" stage
+    # ###########################################################################
+    # # GNU/Linux, Python 3.6, against IBM Q
+    # - stage: ibmq
+    #   <<: *stage_linux
+    #   if: branch = master and repo = Qiskit/qiskit-terra and type = push
+    #   python: 3.6
+    #   env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
 
-    # "deploy" stage.
-    ###########################################################################
-    # github pages documentation update (GNU/Linux, Python 3.5)
-    - stage: deploy doc and pypi
-      <<: *stage_linux_no_compile
-      if: branch = stable and repo = Qiskit/qiskit-terra and type = push
-      script: cd ..
-      deploy:
-        <<: *deploy_ghpages
+    # # "deploy" stage.
+    # ###########################################################################
+    # # github pages documentation update (GNU/Linux, Python 3.5)
+    # - stage: deploy doc and pypi
+    #   <<: *stage_linux_no_compile
+    #   if: branch = stable and repo = Qiskit/qiskit-terra and type = push
+    #   script: cd ..
+    #   deploy:
+    #     <<: *deploy_ghpages
 
-    # GNU/Linux, Python 3.5
-    - stage: deploy doc and pypi
-      <<: *stage_linux
-      if: branch = stable and repo = Qiskit/qiskit-terra and type = push
-      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
-      script: cd ..
-      deploy:
-        <<: *deploy_pypi
+    # # GNU/Linux, Python 3.5
+    # - stage: deploy doc and pypi
+    #   <<: *stage_linux
+    #   if: branch = stable and repo = Qiskit/qiskit-terra and type = push
+    #   install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
+    #   script: cd ..
+    #   deploy:
+    #     <<: *deploy_pypi
 
-    # OSX, Python 3.latest (brew does not support versions)
-    - stage: deploy doc and pypi
-      <<: *stage_osx
-      if: branch = stable and repo = Qiskit/qiskit-terra and type = push
-      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
-      script: cd ..
-      deploy:
-        <<: *deploy_pypi
-        distributions: "bdist_wheel"
+    # # OSX, Python 3.latest (brew does not support versions)
+    # - stage: deploy doc and pypi
+    #   <<: *stage_osx
+    #   if: branch = stable and repo = Qiskit/qiskit-terra and type = push
+    #   install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
+    #   script: cd ..
+    #   deploy:
+    #     <<: *deploy_pypi
+    #     distributions: "bdist_wheel"
