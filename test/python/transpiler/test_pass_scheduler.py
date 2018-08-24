@@ -10,12 +10,13 @@
 """Tranpiler testing"""
 
 import unittest.mock
-import logging
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager, transpile, TranspilerAccessError
-from ._dummy_passes import *
+from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, PassD_TP_NR_NP,\
+    PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, PassH_Bad_TP, \
+    PassI_Bad_AP
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
@@ -86,6 +87,7 @@ class TestUseCases(QiskitTestCase):
                                                           'set property as False'])
 
     def test_do_while_until_fixed_point(self):
+        """ A pass set with a do_while parameter that checks for a fixed point. """
         self.passmanager.add_pass([
             PassF_reduce_dag_property(),
             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
@@ -139,14 +141,17 @@ class TestUseCases(QiskitTestCase):
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP'])
 
     def test_fenced_property_set(self):
+        """ Transformation passes are not allowed to modified the property set. """
         self.passmanager.add_pass(PassH_Bad_TP())
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassH_Bad_TP'],
                                    TranspilerAccessError)
 
     def test_fenced_dag(self):
+        """ Analysis passes are not allowed to modified the DAG. """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
+        # pylint: disable=no-member
         circ.cx(qr[0], qr[1])
         circ.cx(qr[0], qr[1])
         circ.cx(qr[1], qr[0])
@@ -215,7 +220,7 @@ class TestUseCases(QiskitTestCase):
         """ A single pass that is not idempotent. """
         passmanager = PassManager()
         pass_a = PassA_TP_NR_NP()
-        pass_a.set(idempotence = False)  # Set idempotence as False
+        pass_a.set(idempotence=False)  # Set idempotence as False
 
         passmanager.add_pass(pass_a)
         passmanager.add_pass(pass_a)            # Normally removed for optimization, not here.
