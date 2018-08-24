@@ -526,6 +526,9 @@ def create_tomography_circuits(circuit, qreg, creg, tomoset):
     Returns:
         list: A list of quantum tomography circuits for the input circuit.
 
+    Raises:
+        QISKitError: if circuit is not a valid QuantumCircuit
+
     Example:
         For a tomography set  specififying state tomography of qubit-0 prepared
         by a circuit 'circ' this would return:
@@ -921,6 +924,9 @@ def build_wigner_circuits(circuit, phis, thetas, qubits,
 
     Returns:
         list: A list of names of the added wigner function circuits.
+
+    Raises:
+        QISKitError: if circuit is not a valid QuantumCircuit.
     """
 
     if not isinstance(circuit, QuantumCircuit):
@@ -928,7 +934,6 @@ def build_wigner_circuits(circuit, phis, thetas, qubits,
 
     tomography_circuits = []
     points = len(phis[0])
-    name = circuit.name
     for point in range(points):
         label = '_wigner_phase_point'
         label += str(point)
