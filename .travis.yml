@@ -33,7 +33,7 @@ stage_generic: &stage_generic
     - mkdir out && cd out && cmake $CMAKE_FLAGS ..
   script:
     # Compile the executables and run the tests.
-    - make
+    - make && cd ..
     - PYTHONPATH=. python -m unittest test.python.test_ibmqjob_states.TestIBMQJob
 
 stage_linux: &stage_linux
