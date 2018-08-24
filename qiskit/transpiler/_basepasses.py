@@ -32,6 +32,8 @@ class BasePass(metaclass=metaPass):
 
     requires = []  # List of passes that requires
     preserves = []  # List of passes that preserves
+    property_set = None
+    _hash = None
 
     def __init__(self):
         pass
