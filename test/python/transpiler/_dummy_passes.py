@@ -70,9 +70,9 @@ class PassD_TP_NR_NP(DummyTP):
     NP: No Preserves
     """
 
-    def __init__(self, argument1):
-        super().__init__()
+    def __init__(self, argument1=None, argument2=None):
         self.argument1 = argument1
+        self.argument2 = argument2
 
     def run(self, dag):
         super().run(dag)

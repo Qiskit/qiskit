@@ -7,29 +7,38 @@
 
 """This module implements the base pass."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections import OrderedDict
 from ._transpilererror import TranspilerUnknownOption
 
-class BasePass(ABC):
+
+class metaPass(type):
+    def __call__(cls, *args, **kwargs):
+        obj = type.__call__(cls, *args, **kwargs)
+        obj._hash = hash(cls.__name__ +
+                         str(args) +
+                         str(OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))))
+        obj._defaults = {
+                    "idempotence": True,
+                    "ignore_requires": False,
+                    "ignore_preserves": False
+                }
+        obj._settings = {}
+        return obj
+
+
+class BasePass(metaclass=metaPass):
     """Base class for transpiler passes."""
 
     requires = []  # List of passes that requires
     preserves = []  # List of passes that preserves
 
+    def __init__(self):
+        pass
+
     @property
     def name(self):
         return self.__class__.__name__
-
-    def __init__(self, *args, **kwargs):
-        self._hash = hash(self.name + str(sorted(args)) + str(OrderedDict(kwargs)))
-        self._defaults = {
-            "idempotence": True,
-            "ignore_requires": False,
-            "ignore_preserves": False
-        }
-        self._settings = {}
-        super().__init__()
 
     def __eq__(self, other):
         return self._hash == hash(other)
