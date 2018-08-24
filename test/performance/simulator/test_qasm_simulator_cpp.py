@@ -6,7 +6,21 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-class TestQasmSimulatorCppPerformance(QiskitTestCase):
+import cProfile
+import io
+import pstats
+
+from matplotlib.backends.backend_pdf import PdfPages
+from qiskit import qasm, unroll
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import compile
+from qiskit.backends.local.qasm_simulator_py import QasmSimulatorPy
+
+from test.performance._random_circuit_generator import RandomCircuitGenerator
+from test.python.common import QiskitTestCase
+
+
+class TestPerformanceQasmSimulatorCpp(QiskitTestCase):
     """
     Test qasm simulator module.
     """
@@ -58,7 +72,7 @@ class TestQasmSimulatorCppPerformance(QiskitTestCase):
             j, timed_out = 0, False
             while j < qubit_range_max and not timed_out:
                 n_qubits = n_qubit_list[j]
-                random_circuit_generator = RandomQasmGenerator(seed=seed,
+                random_circuit_generator = RandomCircuitGenerator(seed=seed,
                                                                max_depth=n_qubits * 10,
                                                                min_depth=n_qubits * 10,
                                                                max_qubits=n_qubits,
@@ -136,7 +150,7 @@ class TestQasmSimulatorCppPerformance(QiskitTestCase):
             j, timed_out = 0, False
             while j < qubit_range_max and not timed_out:
                 n_qubits = n_qubit_list[j]
-                random_circuits = RandomQasmGenerator(seed,
+                random_circuits = RandomCircuitGenerator(seed,
                                                       min_qubits=n_qubits,
                                                       max_qubits=n_qubits,
                                                       min_depth=min_depth,

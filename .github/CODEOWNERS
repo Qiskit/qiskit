@@ -15,6 +15,7 @@
 # /doc       @jaygambetta @ajavadia @atilag @diego-plan9
 # /examples  @jaygambetta @ajavadia @atilag @diego-plan9
 # /src       @chriseclectic @ajavadia @atilag @diego-plan9
+#/test      @diego-plan9 @mtreinish @ewinston @ajavadia @1ucian0 @delapuente
 
 # qiskit folders
 # qiskit/qasm/*        @1ucian0 @ajavadia @ewinston @atilag @delapuente @diego-plan9
