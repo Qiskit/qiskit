@@ -34,7 +34,7 @@ stage_generic: &stage_generic
   script:
     # Compile the executables and run the tests.
     - make && cd ..
-    - PYTHONPATH=. python -m unittest test.python.test_ibmqjob_states.TestIBMQJob
+    - PYTHONPATH=. python -m unittest test.python.test_ibmqjob.TestIBMQJob
 
 stage_linux: &stage_linux
   <<: *stage_generic
