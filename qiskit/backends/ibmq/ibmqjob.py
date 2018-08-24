@@ -168,7 +168,7 @@ class IBMQJob(BaseJob):
         self._api_error_msg = None
 
     # pylint: disable=arguments-differ
-    def result(self, timeout=None, wait=5):
+    def result(self, timeout=60, wait=5):
         """Return the result from the job.
 
         Args:

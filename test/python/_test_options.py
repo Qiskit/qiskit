@@ -67,7 +67,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
         set_flag(flag)
 
     if _is_ci_fork_pull_request():
-        set_flag('skip_online')
+        pass #set_flag('skip_online')
 
     print('QISKIT_TESTS: %s' % tests_options)
     return tests_options
