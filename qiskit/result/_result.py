@@ -70,9 +70,6 @@ class Result(object):
         self.job_id = qobj_result.job_id
         self.status = _status_or_success(qobj_result)
 
-        # TODO: not part of the specs, but used by ibmqjob.
-        self.error_message = getattr(qobj_result, 'error_message', None)
-
         # TODO: this needs to use qobj_result.header instead of experiment_names
         if experiment_names:
             self.results = OrderedDict(
@@ -237,7 +234,7 @@ class Result(object):
                 error occurred while fetching the data.
         """
         if self._is_error():
-            raise QISKitError(str(self.error_message or self.status))
+            raise QISKitError(str(self.status))
 
         if isinstance(key, QuantumCircuit):
             key = key.name

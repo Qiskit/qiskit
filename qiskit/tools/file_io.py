@@ -238,13 +238,6 @@ def _old_style_dict_from_result(result):
     Returns:
         dict: a dictionary with the format previous to Qobj's Result.
     """
-    if result.get_status() in ['ERROR', 'SUCCESS = False']:
-        return {
-            'job_id': result.job_id,
-            'status': result.status,
-            'result': result.error_message
-        }
-
     return {
         'job_id': result.job_id,
         'status': result.status,

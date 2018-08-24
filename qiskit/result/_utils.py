@@ -24,18 +24,9 @@ def result_from_old_style_dict(result_dict, experiment_names=None):
     Returns:
         Result: a Result intance.
     """
-    if isinstance(result_dict['result'], str):
-        # TODO: this is extremely brittle - is needed for dealing with the error
-        # results from ibmqjob.py. Those should return something that conforms
-        # to the schema.
-        experiment_results = []
-        result_dict['success'] = False
-        # `error_message` is not part of the spec.
-        result_dict['error_message'] = result_dict['result']
-    else:
-        # Prepare the experiment results.
-        experiment_results = [qobj.ExperimentResult(**kwargs) for
-                              kwargs in result_dict['result']]
+    # Prepare the experiment results.
+    experiment_results = [qobj.ExperimentResult(**kwargs) for
+                          kwargs in result_dict['result']]
     del result_dict['result']
 
     # TODO: simulators return `backend`, ibmq seems to return `backend_name`.

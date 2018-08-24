@@ -393,11 +393,8 @@ class IBMQJob(BaseJob):
             time.sleep(wait)
 
         if self._cancelled:
-            return result_from_old_style_dict({
-                'id': self._id,
-                'status': 'CANCELLED',
-                'result': 'job cancelled'
-            })
+            raise JobError(
+                'Job result impossible to retrieve. The job was cancelled.')
 
         job_data = self._api.get_job(self._id)
         job_result_list = []
