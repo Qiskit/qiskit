@@ -11,16 +11,14 @@
 
 import unittest
 from unittest.mock import patch
-from functools import partial
 from io import StringIO
 from scipy import linalg as la
 import numpy as np
 
 from qiskit.tools.apps.optimization import make_Hamiltonian, Hamiltonian_from_file, group_paulis, \
-    eval_hamiltonian, trial_circuit_ry, trial_circuit_ryrz, SPSA_calibration, SPSA_optimization, \
-    print_pauli_list_grouped, Energy_Estimate
+        trial_circuit_ry, print_pauli_list_grouped, Energy_Estimate
 from qiskit.tools.apps.fermion import parity_set, update_set, flip_set, fermionic_maps, \
-    two_qubit_reduction
+        two_qubit_reduction
 from qiskit.tools.qi.pauli import Pauli
 
 from .common import QiskitTestCase
