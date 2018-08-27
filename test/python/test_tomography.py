@@ -13,7 +13,8 @@ import unittest
 
 import numpy as np
 
-from qiskit import QuantumProgram
+from qiskit import execute
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.qcvv import tomography as tomo
 from .common import QiskitTestCase
 
@@ -41,27 +42,27 @@ class TestTomography(QiskitTestCase):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0])
         # Get test circuits
-        qprogram, qr, cr = _test_circuits_1qubit()
+        circuits, qr, cr = _test_circuits_1qubit()
         # Test simulation and fitting
         shots = 2000
         threshold = 1e-2
-        rho = _tomography_test_data(qprogram, 'Zp', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Zp'], qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [1, 0], threshold))
-        rho = _tomography_test_data(qprogram, 'Zm', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Zm'], qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [0, 1], threshold))
-        rho = _tomography_test_data(qprogram, 'Xp', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Xp'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(rho, [1 / np.sqrt(2), 1 / np.sqrt(2)],
                                  threshold))
-        rho = _tomography_test_data(qprogram, 'Xm', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Xm'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(rho, [1 / np.sqrt(2), -1 / np.sqrt(2)],
                                  threshold))
-        rho = _tomography_test_data(qprogram, 'Yp', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Yp'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(rho, [1 / np.sqrt(2), 1j / np.sqrt(2)],
                                  threshold))
-        rho = _tomography_test_data(qprogram, 'Ym', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Ym'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(rho, [1 / np.sqrt(2), -1j / np.sqrt(2)],
                                  threshold))
@@ -70,30 +71,30 @@ class TestTomography(QiskitTestCase):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0, 1])
         # Get test circuits
-        qprogram, qr, cr = _test_circuits_2qubit()
+        circuits, qr, cr = _test_circuits_2qubit()
         shots = 2000
         threshold = 1e-2
         # Test simulation and fitting
-        rho = _tomography_test_data(qprogram, 'Bell', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['Bell'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(rho, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)],
                                  threshold))
-        rho = _tomography_test_data(qprogram, 'X1Id0', qr, cr, tomo_set, shots)
+        rho = _tomography_test_data(circuits['X1Id0'], qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [0, 0, 1, 0], threshold))
 
     def test_process_tomography_1qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0])
         # Get test circuits
-        qprogram, qr, cr = _test_circuits_1qubit()
+        circuits, qr, cr = _test_circuits_1qubit()
         # Test simulation and fitting
         shots = 2000
         threshold = 1e-2
-        choi = _tomography_test_data(qprogram, 'Zp', qr, cr, tomo_set, shots)
+        choi = _tomography_test_data(circuits['Zp'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(choi, [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)],
                                  threshold))
-        choi = _tomography_test_data(qprogram, 'Xp', qr, cr, tomo_set, shots)
+        choi = _tomography_test_data(circuits['Xp'], qr, cr, tomo_set, shots)
         self.assertTrue(
             _tomography_test_fit(choi, [0.5, 0.5, 0.5, -0.5], threshold))
 
@@ -101,21 +102,20 @@ class TestTomography(QiskitTestCase):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0, 1])
         # Get test circuits
-        qprogram, qr, cr = _test_circuits_2qubit()
+        circuits, qr, cr = _test_circuits_2qubit()
         # Test simulation and fitting
         shots = 1000
         threshold = 0.015
         ref_x1_id0 = np.array(
             [0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0]) / 2
-        choi = _tomography_test_data(qprogram, 'X1Id0', qr, cr, tomo_set, shots)
+        choi = _tomography_test_data(circuits['X1Id0'], qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(choi, ref_x1_id0, threshold))
 
 
-def _tomography_test_data(qprogram, name, qr, cr, tomoset, shots):
-    tomo.create_tomography_circuits(qprogram, name, qr, cr, tomoset)
-    result = qprogram.execute(tomo.tomography_circuit_names(tomoset, name),
-                              shots=shots, seed=42, timeout=180)
-    data = tomo.tomography_data(result, name, tomoset)
+def _tomography_test_data(circuit, qr, cr, tomoset, shots):
+    tomo_circs = tomo.create_tomography_circuits(circuit, qr, cr, tomoset)
+    result = execute(tomo_circs, 'local_qasm_simulator', shots=shots, seed=42).result()
+    data = tomo.tomography_data(result, circuit.name, tomoset)
     return tomo.fit_tomography_data(data)
 
 
@@ -126,43 +126,51 @@ def _tomography_test_fit(fitted_rho, ref_state_vector, threshold=1e-2):
 
 
 def _test_circuits_1qubit():
-    qprogram = QuantumProgram()
-    qr = qprogram.create_quantum_register('qr', 1)
-    cr = qprogram.create_classical_register('cr', 1)
+    circuits = {}
+    qr = QuantumRegister(1, name='qr')
+    cr = ClassicalRegister(1, name='cr')
 
     # Test Circuits Z eigenstate
-    circ = qprogram.create_circuit('Zp', [qr], [cr])
-    circ = qprogram.create_circuit('Zm', [qr], [cr])
-    circ.x(qr[0])
+    tmp = QuantumCircuit(qr, cr, name='Zp')
+    circuits['Zp'] = tmp
+    tmp = QuantumCircuit(qr, cr, name='Zm')
+    tmp.x(qr[0])
+    circuits['Zm'] = tmp
     # Test Circuits X eigenstate
-    circ = qprogram.create_circuit('Xp', [qr], [cr])
-    circ.h(qr[0])
-    circ = qprogram.create_circuit('Xm', [qr], [cr])
-    circ.h(qr[0])
-    circ.z(qr[0])
+    tmp = QuantumCircuit(qr, cr, name='Xp')
+    tmp.h(qr[0])
+    circuits['Xp'] = tmp
+    tmp = QuantumCircuit(qr, cr, name='Xm')
+    tmp.h(qr[0])
+    tmp.z(qr[0])
+    circuits['Xm'] = tmp
     # Test Circuits Y eigenstate
-    circ = qprogram.create_circuit('Yp', [qr], [cr])
-    circ.h(qr[0])
-    circ.s(qr[0])
-    circ = qprogram.create_circuit('Ym', [qr], [cr])
-    circ.h(qr[0])
-    circ.s(qr[0])
-    circ.z(qr[0])
-    return qprogram, qr, cr
+    tmp = QuantumCircuit(qr, cr, name='Yp')
+    tmp.h(qr[0])
+    tmp.s(qr[0])
+    circuits['Yp'] = tmp
+    tmp = QuantumCircuit(qr, cr, name='Ym')
+    tmp.h(qr[0])
+    tmp.s(qr[0])
+    tmp.z(qr[0])
+    circuits['Ym'] = tmp
+    return circuits, qr, cr
 
 
 def _test_circuits_2qubit():
-    qprogram = QuantumProgram()
-    qr = qprogram.create_quantum_register('qr', 2)
-    cr = qprogram.create_classical_register('cr', 2)
+    circuits = {}
+    qr = QuantumRegister(2, name='qr')
+    cr = ClassicalRegister(2, name='cr')
 
     # Test Circuits Bell state
-    circ = qprogram.create_circuit('Bell', [qr], [cr])
-    circ.h(qr[0])
-    circ.cx(qr[0], qr[1])
-    circ = qprogram.create_circuit('X1Id0', [qr], [cr])
-    circ.x(qr[1])
-    return qprogram, qr, cr
+    tmp = QuantumCircuit(qr, cr, name='Bell')
+    tmp.h(qr[0])
+    tmp.cx(qr[0], qr[1])
+    circuits['Bell'] = tmp
+    tmp = QuantumCircuit(qr, cr, name='X1Id0')
+    tmp.x(qr[1])
+    circuits['X1Id0'] = tmp
+    return circuits, qr, cr
 
 
 if __name__ == '__main__':
