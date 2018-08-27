@@ -148,5 +148,5 @@
         "discriminator",
         "buffer"
     ],
-    "type": "object",
+    "type": "object"
 }
