@@ -966,7 +966,6 @@
             }
         }
     },
-    "description": "OpenQuantum quantum object data structure for running experiments",
     "oneOf": [
         {
             "allOf": [
