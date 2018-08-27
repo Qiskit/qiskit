@@ -239,7 +239,7 @@
                                 "minItems": 1,
                                 "description": "Array of dimension n_channels [d->u->m] x n_registers. Latency (in units of dt) to do a conditional operation on channel n from register slot m",
                                 "items": {"type": "array", "minItems": 1, "items": {"type": "number"}}}
-                            }}},
+                            }},
         "gateconfig": {
             "type": "object",
             "required": ["name","parameters","qasm_def"],
