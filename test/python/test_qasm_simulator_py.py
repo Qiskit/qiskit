@@ -5,45 +5,24 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-docstring,redefined-builtin
 from sys import version_info
-import cProfile
-import io
-import pstats
-import shutil
-import time
 import unittest
 
-from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-from qiskit import (qasm, unroll, transpiler,
-                    ClassicalRegister, QuantumRegister, QuantumCircuit)
+from qiskit import qasm, unroll
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import compile
 from qiskit.backends.local.qasm_simulator_py import QasmSimulatorPy
 from qiskit.qobj import Qobj, QobjHeader, QobjItem, QobjConfig, QobjExperiment
 
-from ._random_qasm_generator import RandomQasmGenerator
 from .common import QiskitTestCase
-
-
-DO_PROFILING = False
 
 
 class TestLocalQasmSimulatorPy(QiskitTestCase):
     """Test local_qasm_simulator_py."""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        if DO_PROFILING:
-            cls.pdf = PdfPages(cls.moduleName + '.pdf')
-
-    @classmethod
-    def tearDownClass(cls):
-        if DO_PROFILING:
-            cls.pdf.close()
-
     def setUp(self):
-        self.qprogram = None
         self.seed = 88
         qasm_filename = self._get_resource_path('qasm/example.qasm')
         unroller = unroll.Unroller(qasm.Qasm(filename=qasm_filename).parse(),
@@ -172,8 +151,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
         backend = QasmSimulatorPy()
-        qobj = transpiler.compile(circuit, backend=backend, shots=shots,
-                                  seed=self.seed)
+        qobj = compile(circuit, backend=backend, shots=shots, seed=self.seed)
         results = backend.run(qobj).result()
         data = results.get_counts('teleport')
         alice = {
@@ -197,204 +175,6 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
         error = abs(alice_ratio - bob_ratio) / alice_ratio
         self.log.info('test_teleport: relative error = %s', error)
         self.assertLess(error, 0.05)
-
-    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
-    def profile_qasm_simulator(self):
-        """Profile randomly generated circuits.
-
-        Writes profile results to <this_module>.prof as well as recording
-        to the log file.
-
-        number of circuits = 100.
-        number of operations/circuit in [1, 40]
-        number of qubits in [1, 5]
-        """
-        seed = 88
-        shots = 1024
-        n_circuits = 100
-        min_depth = 1
-        max_depth = 40
-        min_qubits = 1
-        max_qubits = 5
-        profile = cProfile.Profile()
-        random_circuits = RandomQasmGenerator(seed,
-                                              min_qubits=min_qubits,
-                                              max_qubits=max_qubits,
-                                              min_depth=min_depth,
-                                              max_depth=max_depth)
-        random_circuits.add_circuits(n_circuits)
-        self.qprogram = random_circuits.get_program()
-        profile.enable()
-        self.qprogram.execute(self.qprogram.get_circuit_names(),
-                              backend='local_qasm_simulator_py',
-                              shots=shots)
-        profile.disable()
-        sout = io.StringIO()
-        stats = pstats.Stats(profile, stream=sout).sort_stats('cumulative')
-        self.log.info('------- start profiling QasmSimulatorPy -----------')
-        stats.print_stats()
-        self.log.info(sout.getvalue())
-        self.log.info('------- stop profiling QasmSimulatorPy -----------')
-        sout.close()
-        profile.dump_stats(self.moduleName + '.prof')
-
-    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
-    def profile_nqubit_speed_grow_depth(self):
-        """simulation time vs the number of qubits
-
-        where the circuit depth is 10x the number of simulated
-        qubits. Also creates a pdf file with this module name showing a
-        plot of the results. Compilation is not included in speed.
-        """
-        import matplotlib.pyplot as plt
-        from matplotlib.ticker import MaxNLocator
-        qubit_range_max = 15
-        n_qubit_list = range(1, qubit_range_max + 1)
-        n_circuits = 10
-        shots = 1024
-        seed = 88
-        max_time = 30  # seconds; timing stops when simulation time exceeds this number
-        fmt_str1 = 'profile_nqubit_speed::nqubits:{0}, backend:{1}, elapsed_time:{2:.2f}'
-        fmt_str2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
-        fmt_str3 = 'minDepth={minDepth}, maxDepth={maxDepth}, num circuits={nCircuits},' \
-                   'shots={shots}'
-        backend_list = ['local_qasm_simulator_py', 'local_unitary_simulator_py']
-        if shutil.which('qasm_simulator'):
-            backend_list.append('local_qasm_simulator_cpp')
-        else:
-            self.log.info('profile_nqubit_speed::\"qasm_simulator\" executable'
-                          'not in path...skipping')
-        fig = plt.figure(0)
-        plt.clf()
-        axes = fig.add_axes((0.1, 0.25, 0.8, 0.6))
-        for _, backend in enumerate(backend_list):
-            elapsed_time = np.zeros(len(n_qubit_list))
-            if backend == 'local_unitary_simulator_py':
-                do_measure = False
-            else:
-                do_measure = True
-            j, timed_out = 0, False
-            while j < qubit_range_max and not timed_out:
-                n_qubits = n_qubit_list[j]
-                random_circuits = RandomQasmGenerator(seed,
-                                                      min_qubits=n_qubits,
-                                                      max_qubits=n_qubits,
-                                                      min_depth=n_qubits * 10,
-                                                      max_depth=n_qubits * 10)
-                random_circuits.add_circuits(n_circuits, do_measure=do_measure)
-                program = random_circuits.get_program()
-                c_names = program.get_circuit_names()
-                qobj = program.compile(c_names, backend=backend, shots=shots,
-                                       seed=seed)
-                start = time.perf_counter()
-                results = program.run(qobj)
-                stop = time.perf_counter()
-                elapsed_time[j] = stop - start
-                if elapsed_time[j] > max_time:
-                    timed_out = True
-                self.log.info(fmt_str1.format(n_qubits, backend, elapsed_time[j]))
-                if backend != 'local_unitary_simulator_py':
-                    for name in c_names:
-                        log_str = fmt_str2.format(
-                            backend, name, len(program.get_circuit(name)),
-                            results.get_data(name))
-                        self.log.info(log_str)
-                j += 1
-            axes.xaxis.set_major_locator(MaxNLocator(integer=True))
-            if backend == 'local_unitary_simulator_py':
-                axes.plot(n_qubit_list[:j], elapsed_time[:j], label=backend, marker='o')
-            else:
-                axes.plot(n_qubit_list[:j], elapsed_time[:j]/shots, label=backend,
-                          marker='o')
-            axes.set_yscale('log', basey=10)
-            axes.set_xlabel('number of qubits')
-            axes.set_ylabel('process time/shot')
-            axes.set_title('profile_nqubit_speed_grow_depth')
-            fig.text(0.1, 0.05,
-                     fmt_str3.format(minDepth='10*nQubits', maxDepth='10*nQubits',
-                                     nCircuits=n_circuits, shots=shots))
-            axes.legend()
-        self.pdf.savefig(fig)
-
-    @unittest.skipIf(not DO_PROFILING, "skipping simulator profiling.")
-    def profile_nqubit_speed_constant_depth(self):
-        """simulation time vs the number of qubits
-
-        where the circuit depth is fixed at 40. Also creates a pdf file
-        with this module name showing a plot of the results. Compilation
-        is not included in speed.
-        """
-        import matplotlib.pyplot as plt
-        from matplotlib.ticker import MaxNLocator
-        qubit_range_max = 15
-        n_qubit_list = range(1, qubit_range_max + 1)
-        max_depth = 40
-        min_depth = 40
-        n_circuits = 10
-        shots = 1024
-        seed = 88
-        max_time = 30  # seconds; timing stops when simulation time exceeds this number
-        fmt_str1 = 'profile_nqubit_speed::nqubits:{0}, backend:{1},' \
-                   'elapsed_time:{2:.2f}'
-        fmt_str2 = 'backend:{0}, circuit:{1}, numOps:{2}, result:{3}'
-        fmt_str3 = 'minDepth={minDepth}, maxDepth={maxDepth},' \
-                   'num circuits={nCircuits}, shots={shots}'
-        backend_list = ['local_qasm_simulator_py', 'local_unitary_simulator_py']
-        if shutil.which('qasm_simulator'):
-            backend_list.append('local_qasm_simulator_cpp')
-        else:
-            self.log.info('profile_nqubit_speed::\"qasm_simulator\" executable'
-                          'not in path...skipping')
-        fig = plt.figure(0)
-        plt.clf()
-        axes = fig.add_axes((0.1, 0.2, 0.8, 0.6))
-        for _, backend in enumerate(backend_list):
-            elapsed_time = np.zeros(len(n_qubit_list))
-            if backend == 'local_unitary_simulator_py':
-                do_measure = False
-            else:
-                do_measure = True
-            j, timed_out = 0, False
-            while j < qubit_range_max and not timed_out:
-                n_qubits = n_qubit_list[j]
-                random_circuits = RandomQasmGenerator(seed,
-                                                      min_qubits=n_qubits,
-                                                      max_qubits=n_qubits,
-                                                      min_depth=min_depth,
-                                                      max_depth=max_depth)
-                random_circuits.add_circuits(n_circuits, do_measure=do_measure)
-                qprogram = random_circuits.get_program()
-                cnames = qprogram.get_circuit_names()
-                qobj = qprogram.compile(cnames, backend=backend, shots=shots, seed=seed)
-                start = time.perf_counter()
-                results = qprogram.run(qobj)
-                stop = time.perf_counter()
-                elapsed_time[j] = stop - start
-                if elapsed_time[j] > max_time:
-                    timed_out = True
-                self.log.info(fmt_str1.format(n_qubits, backend, elapsed_time[j]))
-                if backend != 'local_unitary_simulator_py':
-                    for name in cnames:
-                        log_str = fmt_str2.format(
-                            backend, name, len(qprogram.get_circuit(name)),
-                            results.get_data(name))
-                        self.log.info(log_str)
-                j += 1
-            axes.xaxis.set_major_locator(MaxNLocator(integer=True))
-            if backend == 'local_unitary_simulator_py':
-                axes.plot(n_qubit_list[:j], elapsed_time[:j], label=backend, marker='o')
-            else:
-                axes.plot(n_qubit_list[:j], elapsed_time[:j]/shots, label=backend,
-                          marker='o')
-            axes.set_yscale('log', basey=10)
-            axes.set_xlabel('number of qubits')
-            axes.set_ylabel('process time/shot')
-            axes.set_title('profile_nqubit_speed_constant_depth')
-            fig.text(0.1, 0.05,
-                     fmt_str3.format(minDepth=min_depth, maxDepth=max_depth,
-                                     nCircuits=n_circuits, shots=shots))
-            axes.legend()
-        self.pdf.savefig(fig)
 
 
 if __name__ == '__main__':
