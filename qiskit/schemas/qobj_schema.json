@@ -701,7 +701,7 @@
                 }
             }
         },
-        "qobjlevel0": {
+        "qobj_qasm": {
             "properties": {
                 "config": {
                     "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",
@@ -885,7 +885,7 @@
             ],
             "type": "object"
         },
-        "qobjlevel12": {
+        "qobj_openpulse": {
             "properties": {
                 "config": {
                     "properties": {
@@ -970,7 +970,7 @@
         {
             "allOf": [
                 {
-                    "$ref": "#/definitions/qobjlevel0"
+                    "$ref": "#/definitions/qobj_qasm"
                 },
                 {
                     "properties": {
@@ -1004,10 +1004,10 @@
         {
             "allOf": [
                 {
-                    "$ref": "#/definitions/qobjlevel0"
+                    "$ref": "#/definitions/qobj_qasm"
                 },
                 {
-                    "$ref": "#/definitions/qobjlevel12"
+                    "$ref": "#/definitions/qobj_openpulse"
                 }
             ]
         }
