@@ -188,7 +188,6 @@ class IBMQBackend(BaseBackend):
             IBMQBackendValueError: status keyword value unrecognized
         """
         backend_name = self.configuration['name']
-        # _api.get_jobs filter ignores backend_name filter so we need to set it
         api_filter = {'backend.name': backend_name}
         if status:
             if isinstance(status, str):
