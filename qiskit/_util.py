@@ -8,14 +8,12 @@
 
 """Common utilities for QISKit."""
 
-import os
 import logging
 import re
 import sys
 import platform
 import warnings
 from collections import UserDict
-import multiprocessing
 import psutil
 
 API_NAME = 'IBMQuantumExperience'
@@ -160,6 +158,7 @@ def _parse_ibmq_credentials(url, hub=None, group=None, project=None):
             "0.6+. Please use the new URL format provided in the q-console.",
             DeprecationWarning)
     return url
+
 
 def local_hardware_info():
     """Basic hardware information about the local machine.
