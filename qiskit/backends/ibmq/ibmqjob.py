@@ -421,11 +421,14 @@ class IBMQJob(BaseJob):
                 raise JobError("You have to submit before asking for status or results!")
             try:
                 submit_info = self._future.result(timeout=timeout)
+                if self._future_captured_exception is not None:
+                    # pylint can't see if catch of None type
+                    # pylint: disable=raising-bad-type
+                    raise self._future_captured_exception
             except TimeoutError as ex:
                 raise JobTimeoutError(
                     "Timeout waiting for the job being submitted: {}".format(ex)
                 )
-
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
                 self._api_error_msg = str(submit_info['error'])
