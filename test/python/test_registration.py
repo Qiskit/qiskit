@@ -50,7 +50,7 @@ class TestWrapperCredentials(QiskitTestCase):
         self.assertEqual(provider._proxies, {'http': 'foo'})
 
     def test_store_credentials_overwrite(self):
-        """Test overwritind qiskitrc credentials."""
+        """Test overwriting qiskitrc credentials."""
         with custom_qiskitrc():
             qiskit.wrapper.store_credentials('QISKITRC_TOKEN', hub='HUB')
             # Attempt overwriting.
