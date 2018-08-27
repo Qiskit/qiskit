@@ -49,7 +49,7 @@ def compile(circuits, backend,
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        Qobj: the Qobj to be run on the backends
+        QobjExperiment: Experiment to be wrapped in a Qobj.
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
@@ -141,27 +141,37 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     final_dags = parallel_map(_transpile_dags_parallel, values,
                               task_kwargs={'basis_gates': basis_gates,
                                            'coupling_map': coupling_map,
-                                           'get_layout': True,
                                            'seed': seed,
                                            'pass_manager': pass_manager})
     return final_dags
 
 
-def _transpile_dags_parallel(value, **kwargs):
+def _transpile_dags_parallel(value, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+                             seed=None, pass_manager=None):
     """Helper function for transpiling in parallel (if available).
 
-    Here value is the list pair [dag, initial_layout].
+    Args:
+        value (tuple[DAGCircuit,dict]): Tuple of DAG and intial_layout.
+        basis_gates (str): a comma seperated string for the target basis gates
+        coupling_map (list): A graph of coupling
+        seed (int): random seed for the swap mapper
+        pass_manager (PassManager): pass manager instance for the tranpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
+    Returns:
+        DAGCircuit: DAG circuit after going through transpilation.
     """
     dag = value[0]
     initial_layout = value[1]
     final_dag, final_layout = transpile(
         dag,
-        basis_gates=kwargs['basis_gates'],
-        coupling_map=kwargs['coupling_map'],
+        basis_gates=basis_gates,
+        coupling_map=coupling_map,
         initial_layout=initial_layout,
-        get_layout=kwargs['get_layout'],
-        seed=kwargs['seed'],
-        pass_manager=kwargs['pass_manager'])
+        get_layout=True,
+        seed=seed,
+        pass_manager=pass_manager)
     final_dag.layout = [[k, v]
                         for k, v in final_layout.items()] if final_layout else None
     return final_dag
@@ -230,6 +240,15 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
 def _dags_2_qobj_parallel(dag, config=None, basis_gates=None,
                           coupling_map=None):
     """Helper function for dags to qobj in parallel (if available).
+
+    Args:
+        dag (DAGCircuit): DAG to compile
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (list[str])): basis gates for the experiment
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+
+    Returns:
+        Qobj: Qobj to be run on the backends
     """
     json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
     # Step 3a: create the Experiment based on json_circuit

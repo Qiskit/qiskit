@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=import-error
 # Copyright 2017, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
@@ -13,9 +12,11 @@ import os
 import logging
 import re
 import sys
+import platform
 import warnings
 from collections import UserDict
 import multiprocessing
+import psutil
 
 API_NAME = 'IBMQuantumExperience'
 logger = logging.getLogger(__name__)
@@ -160,89 +161,6 @@ def _parse_ibmq_credentials(url, hub=None, group=None, project=None):
             DeprecationWarning)
     return url
 
-
-def _mac_hardware_info():
-    """Returns system info on OSX.
-    """
-    info = dict()
-    results = dict()
-    for line in [l.split(':') for l in os.popen('sysctl hw').readlines()[1:]]:
-        info[line[0].strip(' "').replace(' ', '_').lower().strip('hw.')] = \
-            line[1].strip('.\n ')
-    results.update({'cpus': int(info['physicalcpu'])})
-    results.update({'cpu_freq': int(
-        float(os.popen('sysctl -n machdep.cpu.brand_string')
-              .readlines()[0].split('@')[1][:-4])*1000)})
-    results.update({'memsize': int(int(info['memsize']) / (1024 ** 2))})
-    # add OS information
-    results.update({'os': 'Mac OSX'})
-    return results
-
-
-def _linux_hardware_info():
-    """Returns system info on Linux.
-    """
-    results = {}
-    # get cpu number
-    sockets = 0
-    cores_per_socket = 0
-    frequency = 0.0
-    for line in [l.split(':') for l in open("/proc/cpuinfo").readlines()]:
-        if line[0].strip() == "physical id":
-            sockets = max(sockets, int(line[1].strip())+1)
-        if line[0].strip() == "cpu cores":
-            cores_per_socket = int(line[1].strip())
-        if line[0].strip() == "cpu MHz":
-            frequency = float(line[1].strip()) / 1000.
-    results.update({'cpus': sockets * cores_per_socket})
-    # get cpu frequency directly (bypasses freq scaling)
-    try:
-        file = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-        line = open(file).readlines()[0]
-        frequency = float(line.strip('\n')) / 1000000.
-    except IOError:
-        pass
-    results.update({'cpu_freq': frequency})
-
-    # get total amount of memory
-    mem_info = dict()
-    for line in [l.split(':') for l in open("/proc/meminfo").readlines()]:
-        mem_info[line[0]] = line[1].strip('.\n ').strip('kB')
-    results.update({'memsize': int(mem_info['MemTotal']) / 1024})
-    # add OS information
-    results.update({'os': 'Linux'})
-    return results
-
-
-def _win_hardware_info():
-    """Returns system info on Windows.
-    """
-    from comtypes.client import CoGetObject
-
-    results = {'os': 'Windows'}
-    winmgmts_root = CoGetObject("winmgmts:root\\cimv2")
-    cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
-    ncpus = 0
-    freq = 0
-
-    for cpu in cpus:
-        ncpus += int(cpu.Properties_['NumberOfCores'].Value)
-        if not freq:
-            freq = int(cpu.Properties_['MaxClockSpeed'].Value)
-    results.update({'cpu_freq': freq})
-    ncpus = int(multiprocessing.cpu_count())
-    results.update({'cpus': ncpus})
-    mem = winmgmts_root.ExecQuery("Select * from Win32_ComputerSystem")
-    tot_mem = 0
-
-    for item in mem:
-        tot_mem += int(item.Properties_['TotalPhysicalMemory'].Value)
-    tot_mem = int(tot_mem / 1024**2)
-    results.update({'memsize': tot_mem})
-
-    return results
-
-
 def local_hardware_info():
     """Basic hardware information about the local machine.
 
@@ -253,12 +171,7 @@ def local_hardware_info():
         dict: The hardware information.
 
     """
-    if sys.platform == 'darwin':
-        out = _mac_hardware_info()
-    elif sys.platform == 'win32':
-        out = _win_hardware_info()
-    elif sys.platform in ['linux', 'linux2']:
-        out = _linux_hardware_info()
-    else:
-        out = {}
-    return out
+    results = {'os': platform.system()}
+    results['memory'] = psutil.virtual_memory().total / (1024**3)
+    results['cpus'] = psutil.cpu_count(logical=False)
+    return results

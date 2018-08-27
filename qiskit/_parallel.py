@@ -52,7 +52,7 @@ from qiskit._util import local_hardware_info
 CPU_COUNT = local_hardware_info()['cpus']
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
+def parallel_map(task, values, task_args=None, task_kwargs=None,
                  num_processes=CPU_COUNT):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -78,6 +78,10 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     Raises:
         QISKitError: If user interupts via keyboard.
     """
+    if task_args is None:
+        task_args = tuple()
+    if task_kwargs is None:
+        task_kwargs = {}
 
     def _callback(x):  # pylint: disable=W0613
         pass
