@@ -36,18 +36,10 @@
     "tags": ["credits_required","readable_hamiltonian","all_meas"],
     "n_uchannels": 2,
     "hamiltonian": {
-        "type": "object",
-        "required": ["h_latex"],
-        "properties": {
-            "h_latex": "H = \\sum_{i}^{N} D_i(t) \\sigma_i^{X} +\\sum_{i}^{N} 2\\pi \\nu_i \\sigma_i^{+}\\sigma_i^{-}",
-            "h_str": ["__SUM[i,0,N,_X{i}_||_D{i}_]","__SUM[i,0,N,2*pi*_v{i}_*_O{i}_]"],
-            "vars": {
-                "type": "object",
-                "description": "Variables in the h_str"},
-            "osc": {
-                "type": "object",
-                "description": "Number of levels for each oscillator mode"}
-            }
+        "h_latex": "H = \\sum_{i}^{N} D_i(t) \\sigma_i^{X} +\\sum_{i}^{N} 2\\pi \\nu_i \\sigma_i^{+}\\sigma_i^{-}",
+        "h_str": ["__SUM[i,0,N,_X{i}_||_D{i}_]","__SUM[i,0,N,2*pi*_v{i}_*_O{i}_]"],
+        "vars": {},
+        "osc": {}
         },
     "u_channel_lo": [[{"q": 0, "scale": [0,1]}],[{"q": 1, "scale": [1.0,0]}, {"q": 2, "scale": [-1.0,0]}]],
     "meas_levels": [0,1,2],
