@@ -930,7 +930,7 @@
                             "minItems": 1,
                             "type": "array"
                         },
-                        "rep_rate": {
+                        "rep_time": {
                             "minimum": 1,
                             "type": "integer"
                         }
@@ -942,7 +942,7 @@
                         "meas_return",
                         "qubit_lo_freq",
                         "meas_lo_freq",
-                        "rep_rate"
+                        "rep_time"
                     ]
                 },
                 "experiments": {
