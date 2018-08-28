@@ -5,15 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name, redefined-builtin
+
 
 """Compiler Test."""
 
 import unittest
-import qiskit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpiler
 from qiskit import Result
 from qiskit.qobj import Qobj
-from qiskit.wrapper import register, available_backends, get_backend, execute, least_busy
+from qiskit.wrapper import register, available_backends, get_backend, compile, execute, least_busy
 from qiskit._qiskiterror import QISKitError
 from .common import requires_qe_access, QiskitTestCase
 
@@ -44,9 +46,9 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
@@ -63,15 +65,15 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2)
-        clbit_reg = qiskit.ClassicalRegister(2)
-        qubit_reg2 = qiskit.QuantumRegister(2)
-        clbit_reg2 = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qubit_reg2 = QuantumRegister(2)
+        clbit_reg2 = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
+        qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend)
 
@@ -85,9 +87,9 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
@@ -103,13 +105,13 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
+        qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend)
         result = backend.run(qobj).result()
@@ -122,9 +124,9 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2)
-        clbit_reg = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg)
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
@@ -139,13 +141,13 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        qubit_reg = qiskit.QuantumRegister(2)
-        clbit_reg = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg)
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+        qc_extra = QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
         job = execute([qc, qc_extra], backend)
         results = job.result()
@@ -161,9 +163,9 @@ class TestCompiler(QiskitTestCase):
         backend = least_busy(available_backends())
         backend = get_backend(backend)
 
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
@@ -183,13 +185,13 @@ class TestCompiler(QiskitTestCase):
         backend = least_busy(available_backends())
         backend = get_backend(backend)
 
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
+        qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend)
 
@@ -205,9 +207,9 @@ class TestCompiler(QiskitTestCase):
         register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
@@ -225,13 +227,13 @@ class TestCompiler(QiskitTestCase):
         register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
-        qubit_reg = qiskit.QuantumRegister(2, name='q')
-        clbit_reg = qiskit.ClassicalRegister(2, name='c')
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg, name="extra")
+        qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         qobj = transpiler.compile([qc, qc_extra], backend, seed=TestCompiler.seed)
         job = backend.run(qobj)
@@ -247,9 +249,9 @@ class TestCompiler(QiskitTestCase):
         register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
-        qubit_reg = qiskit.QuantumRegister(2)
-        clbit_reg = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg)
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
@@ -267,13 +269,13 @@ class TestCompiler(QiskitTestCase):
         register(qe_token, qe_url)
         backend = available_backends({'local': False, 'simulator': True})[0]
         backend = get_backend(backend)
-        qubit_reg = qiskit.QuantumRegister(2)
-        clbit_reg = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg)
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
-        qc_extra = qiskit.QuantumCircuit(qubit_reg, clbit_reg)
+        qc_extra = QuantumCircuit(qubit_reg, clbit_reg)
         qc_extra.measure(qubit_reg, clbit_reg)
         job = execute([qc, qc_extra], backend, seed=TestCompiler.seed)
         results = job.result()
@@ -283,9 +285,9 @@ class TestCompiler(QiskitTestCase):
         """Test mapping works in previous failed case.
         """
         backend = FakeBackEnd()
-        qr = qiskit.QuantumRegister(name='qr', size=11)
-        cr = qiskit.ClassicalRegister(name='qc', size=11)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = QuantumRegister(name='qr', size=11)
+        cr = ClassicalRegister(name='qc', size=11)
+        circuit = QuantumCircuit(qr, cr)
         circuit.u3(1.564784764685993, -1.2378965763410095, 2.9746763177861713, qr[3])
         circuit.u3(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, qr[5])
         circuit.cx(qr[5], qr[3])
@@ -349,11 +351,11 @@ class TestCompiler(QiskitTestCase):
         """Test mapping works for multiple qregs.
         """
         backend = FakeBackEnd()
-        qr = qiskit.QuantumRegister(3, name='qr')
-        qr2 = qiskit.QuantumRegister(1, name='qr2')
-        qr3 = qiskit.QuantumRegister(4, name='qr3')
-        cr = qiskit.ClassicalRegister(3, name='cr')
-        qc = qiskit.QuantumCircuit(qr, qr2, qr3, cr)
+        qr = QuantumRegister(3, name='qr')
+        qr2 = QuantumRegister(1, name='qr2')
+        qr3 = QuantumRegister(4, name='qr3')
+        cr = ClassicalRegister(3, name='cr')
+        qc = QuantumCircuit(qr, qr2, qr3, cr)
         qc.h(qr[0])
         qc.cx(qr[0], qr2[0])
         qc.cx(qr[1], qr3[2])
@@ -369,9 +371,9 @@ class TestCompiler(QiskitTestCase):
         """Test compiler doesn't change circuit already matching backend coupling
         """
         backend = FakeBackEnd()
-        qr = qiskit.QuantumRegister(16)
-        cr = qiskit.ClassicalRegister(16)
-        qc = qiskit.QuantumCircuit(qr, cr)
+        qr = QuantumRegister(16)
+        cr = ClassicalRegister(16)
+        qc = QuantumCircuit(qr, cr)
         qc.h(qr[1])
         qc.x(qr[2])
         qc.x(qr[3])
@@ -393,9 +395,9 @@ class TestCompiler(QiskitTestCase):
         backend = FakeBackEnd()
         circuits = []
         for _ in range(2):
-            qr = qiskit.QuantumRegister(2)
-            cr = qiskit.ClassicalRegister(2)
-            circuit = qiskit.QuantumCircuit(qr, cr)
+            qr = QuantumRegister(2)
+            cr = ClassicalRegister(2)
+            circuit = QuantumCircuit(qr, cr)
             circuit.h(qr[0])
             circuit.cx(qr[0], qr[1])
             circuit.measure(qr, cr)
@@ -403,6 +405,128 @@ class TestCompiler(QiskitTestCase):
 
         qobj = transpiler.compile(circuits, backend)
         self.assertIsInstance(qobj, Qobj)
+
+    def test_example_multiple_compile(self):
+        """Test a toy example compiling multiple circuits.
+
+        Pass if the results are correct.
+        """
+        backend = get_backend('local_qasm_simulator')
+        coupling_map = [[0, 1], [0, 2],
+                        [1, 2],
+                        [3, 2], [3, 4],
+                        [4, 2]]
+
+        q = QuantumRegister(5)
+        c = ClassicalRegister(5)
+        bell = QuantumCircuit(q, c)
+        ghz = QuantumCircuit(q, c)
+        # Create a GHZ state
+        ghz.h(q[0])
+        for i in range(4):
+            ghz.cx(q[i], q[i+1])
+        # Insert a barrier before measurement
+        ghz.barrier()
+        # Measure all of the qubits in the standard basis
+        for i in range(5):
+            ghz.measure(q[i], c[i])
+        # Create a Bell state
+        bell.h(q[0])
+        bell.cx(q[0], q[1])
+        bell.barrier()
+        bell.measure(q[0], c[0])
+        bell.measure(q[1], c[1])
+        shots = 2048
+        bell_qobj = compile(bell, backend='local_qasm_simulator',
+                            shots=shots, seed=10)
+        ghz_qobj = compile(ghz, backend='local_qasm_simulator',
+                           shots=shots, coupling_map=coupling_map,
+                           seed=10)
+        bell_result = backend.run(bell_qobj).result()
+        ghz_result = backend.run(ghz_qobj).result()
+
+        threshold = 0.04 * shots
+        counts_bell = bell_result.get_counts()
+        target_bell = {'00000': shots / 2, '00011': shots / 2}
+        self.assertDictAlmostEqual(counts_bell, target_bell, threshold)
+
+        counts_ghz = ghz_result.get_counts()
+        target_ghz = {'00000': shots / 2, '11111': shots / 2}
+        self.assertDictAlmostEqual(counts_ghz, target_ghz, threshold)
+
+    def test_compile_coupling_map(self):
+        """Test compile_coupling_map.
+        If all correct should return data with the same stats. The circuit may
+        be different.
+        """
+        backend = get_backend('local_qasm_simulator')
+
+        q = QuantumRegister(3, 'q')
+        c = ClassicalRegister(3, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        qc.cx(q[0], q[2])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        shots = 1024
+        coupling_map = [[0, 1], [1, 2]]
+        initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
+                          ("q", 2): ("q", 2)}
+        qobj = compile(qc, backend=backend, shots=shots,
+                       coupling_map=coupling_map,
+                       initial_layout=initial_layout, seed=88)
+        job = backend.run(qobj)
+        result = job.result()
+        qasm_to_check = qc.qasm()
+        self.assertEqual(len(qasm_to_check), 160)
+
+        counts = result.get_counts(qc)
+        target = {'000': shots / 2, '111': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_example_swap_bits(self):
+        """Test a toy example swapping a set bit around.
+
+        Uses the mapper. Pass if results are correct.
+        """
+        coupling_map = [[0, 1], [0, 8], [1, 2], [1, 9], [2, 3], [2, 10],
+                        [3, 4], [3, 11], [4, 5], [4, 12], [5, 6], [5, 13],
+                        [6, 7], [6, 14], [7, 15], [8, 9], [9, 10], [10, 11],
+                        [11, 12], [12, 13], [13, 14], [14, 15]]
+
+        n = 3  # make this at least 3
+        q = QuantumRegister(n)
+        r = QuantumRegister(n)
+        ans = ClassicalRegister(2*n)
+        qc = QuantumCircuit(q, r, ans)
+        # Set the first bit of q
+        qc.x(q[0])
+        # Swap the set bit
+        qc.swap(q[0], q[n-1])
+        qc.swap(q[n-1], r[n-1])
+        qc.swap(r[n-1], q[1])
+        qc.swap(q[1], r[1])
+        # Insert a barrier before measurement
+        qc.barrier()
+        # Measure all of the qubits in the standard basis
+        for j in range(n):
+            qc.measure(q[j], ans[j])
+            qc.measure(r[j], ans[j+n])
+        # First version: no mapping
+        result = execute(qc, backend='local_qasm_simulator',
+                         coupling_map=None, shots=1024,
+                         seed=14).result()
+        self.assertEqual(result.get_counts(qc),
+                         {'010000': 1024})
+        # Second version: map to coupling graph
+        result = execute(qc, backend='local_qasm_simulator',
+                         coupling_map=coupling_map, shots=1024,
+                         seed=14).result()
+        self.assertEqual(result.get_counts(qc),
+                         {'010000': 1024})
 
 
 if __name__ == '__main__':
