@@ -5,12 +5,11 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
+"""Test Qiskit Unroller class."""
 
 from sys import version_info
 import unittest
 
-from qiskit import QuantumProgram
 from qiskit import qasm
 from qiskit.unroll import Unroller, DagUnroller, DAGBackend, JsonBackend
 from .common import QiskitTestCase
@@ -21,12 +20,12 @@ class UnrollerTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 42
-        self.qprogram = QuantumProgram()
 
     @unittest.skipIf(version_info.minor == 5, "Python 3.5 dictionaries don't preserve \
                                                insertion order, so we need to skip this \
                                                test, until fixed")
     def test_execute(self):
+        """Test DagUnroller.execute()"""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend()).execute()
         dag_unroller = DagUnroller(dag_circuit,
@@ -58,6 +57,7 @@ measure q[0] -> c[0];
                                                insertion order, so we need to skip this \
                                                test, until fixed")
     def test_execute_with_basis(self):
+        """Test unroller.execute() to a gate basis."""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend(["cx", "u1", "u2", "u3"])).execute()
         dag_unroller = DagUnroller(dag_circuit,
@@ -94,6 +94,7 @@ measure q[0] -> c[0];
         self.assertEqual(unroller_dag_circuit.qasm(), expected_result)
 
     def test_expand_gates(self):
+        """Test DagUnroller.expand_gates()"""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend()).execute()
         dag_unroller = DagUnroller(dag_circuit, DAGBackend())
@@ -121,6 +122,7 @@ measure r[2] -> d[2];
         self.assertEqual(expanded_dag_circuit.qasm(), expected_result)
 
     def test_expand_gates_with_basis(self):
+        """Test DagUnroller.expand_gates() to a gate basis."""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend(["cx", "u1", "u2", "u3"])).execute()
         dag_unroller = DagUnroller(dag_circuit, DAGBackend())
@@ -160,6 +162,7 @@ measure r[2] -> d[2];
     # them usually fails.
     @unittest.skip("Temporary skipping")
     def test_from_dag_to_json(self):
+        """Test DagUnroller with JSON backend."""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend()).execute()
         dag_unroller = DagUnroller(dag_circuit, JsonBackend())
@@ -199,6 +202,7 @@ measure r[2] -> d[2];
     # them usually fails.
     @unittest.skip("Temporary skipping")
     def test_from_dag_to_json_with_basis(self):
+        """Test DagUnroller with JSON backend and a basis."""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
         dag_circuit = Unroller(ast, DAGBackend(["cx", "u1", "u2", "u3"])).execute()
         dag_unroller = DagUnroller(dag_circuit, JsonBackend(["cx", "u1", "u2", "u3"]))
