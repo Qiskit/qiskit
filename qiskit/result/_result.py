@@ -57,8 +57,7 @@ class ExperimentResult(object):
 
 
 class Result(object):
-    """Keep the results for a collection of experiments sent in a ``Qobj``
-    instance."""
+    """Results for a collection of experiments sent in a ``Qobj`` instance."""
 
     def __init__(self, qobj_result, experiment_names=None):
         """
@@ -131,7 +130,7 @@ class Result(object):
         return self.status
 
     def circuit_statuses(self):
-        """Return statuses of all circuits
+        """Return statuses of all circuits.
 
         Returns:
             list(str): List of status result strings.
@@ -410,7 +409,9 @@ class Result(object):
         return temp
 
     def get_qubitpol_vs_xval(self, nqubits, xvals_dict=None):
-        """Compute the polarization of each qubit for all circuits and pull out each circuits
+        """Compute the polarization of each qubit for all circuits.
+
+        Compute the polarization of each qubit for all circuits and pull out each circuits
         xval into an array. Assumes that each circuit has the same number of qubits and that
         all qubits are measured.
 

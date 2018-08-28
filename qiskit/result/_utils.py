@@ -55,8 +55,15 @@ def result_from_old_style_dict(result_dict, experiment_names=None):
 
 
 def copy_qasm_from_qobj_into_result(qobj_, result):
-    """Find the QASMs belonging to the Qobj experiments and copy them
-    into the corresponding result entries."""
+    """Copy QASMs belonging to the Qobj experiment into a Result.
+
+    Find the QASMs belonging to the Qobj experiments and copy them
+    into the corresponding result entries.
+
+    Args:
+        qobj_ (qobj): Qobj
+        result (qiskit.Result): Result (modified in-place).
+    """
     for experiment in qobj_.experiments:
         name = experiment.header.name
         qasm = getattr(experiment.header, 'compiled_circuit_qasm', None)

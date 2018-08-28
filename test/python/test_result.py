@@ -34,6 +34,7 @@ class TestQiskitResult(QiskitTestCase):
 
     def test_qubitpol(self):
         """Test the results of the qubitpol function in Results.
+
         Do two 2Q circuits: on 1st do nothing, and on 2nd do X on the first qubit.
         """
         qr = qiskit.QuantumRegister(2)
@@ -73,7 +74,6 @@ class TestQiskitResult(QiskitTestCase):
 
     def test_extend_result(self):
         """Test extending a Result instance is possible."""
-
         result1, result2 = (self._result1, self._result2)
         counts1 = result1.get_counts(self._qc1.name)
         counts2 = result2.get_counts(self._qc2.name)
@@ -88,7 +88,6 @@ class TestQiskitResult(QiskitTestCase):
 
     def test_combine_results(self):
         """Test combining results in a new Result instance is possible."""
-
         result1, result2 = (self._result1, self._result2)
         counts1 = result1.get_counts(self._qc1.name)
         counts2 = result2.get_counts(self._qc2.name)

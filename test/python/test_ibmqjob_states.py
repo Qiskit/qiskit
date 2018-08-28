@@ -205,8 +205,9 @@ class TestIBMQJobStates(JobTestCase):
             executor.submit(_auto_progress_api, self._current_api)
 
         with self.assertRaises(JobError):
-            result = job.result()
-            self.assertEqual(job.status(), JobStatus.CANCELLED)
+            job.result()
+
+        self.assertEqual(job.status(), JobStatus.CANCELLED)
 
     def test_block_on_result_waiting_until_exception(self):
         from concurrent.futures import ThreadPoolExecutor
