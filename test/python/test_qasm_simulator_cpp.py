@@ -13,10 +13,8 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
-import qiskit
-from qiskit import ClassicalRegister
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+from qiskit import qasm, unroll
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
                                                       cx_error_matrix,
                                                       x90_error_matrix)
@@ -37,9 +35,9 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
         self.qasm_filename = self._get_resource_path('qasm/example.qasm')
         with open(self.qasm_filename, 'r') as qasm_file:
             self.qasm_text = qasm_file.read()
-            self.qasm_ast = qiskit.qasm.Qasm(data=self.qasm_text).parse()
-            self.qasm_be = qiskit.unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
-            self.qasm_circ = qiskit.unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
+            self.qasm_ast = qasm.Qasm(data=self.qasm_text).parse()
+            self.qasm_be = unroll.CircuitBackend(['u1', 'u2', 'u3', 'id', 'cx'])
+            self.qasm_circ = unroll.Unroller(self.qasm_ast, self.qasm_be).execute()
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
         qc = QuantumCircuit(qr, cr)

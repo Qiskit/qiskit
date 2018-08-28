@@ -11,18 +11,15 @@
 
 import unittest
 from unittest.mock import patch
-from functools import partial
 from io import StringIO
 from scipy import linalg as la
 import numpy as np
 
 from qiskit.tools.apps.optimization import make_Hamiltonian, Hamiltonian_from_file, group_paulis, \
-    eval_hamiltonian, trial_circuit_ry, trial_circuit_ryrz, SPSA_calibration, SPSA_optimization, \
-    print_pauli_list_grouped, Energy_Estimate
+        trial_circuit_ry, print_pauli_list_grouped, Energy_Estimate
 from qiskit.tools.apps.fermion import parity_set, update_set, flip_set, fermionic_maps, \
-    two_qubit_reduction
+        two_qubit_reduction
 from qiskit.tools.qi.pauli import Pauli
-from qiskit import QuantumProgram
 
 from .common import QiskitTestCase
 
@@ -55,90 +52,6 @@ class TestQuantumOptimization(QiskitTestCase):
         qasm_txt = trial_circuit.qasm()
         self.log.info(qasm_txt)
         self.assertEqual(len(qasm_txt), 564)
-
-    def test_optimization_of_H2_at_bond_length(self):
-        """From chemistry tutorial, but shorter.
-
-        https://github.com/QISKit/qiskit-tutorial/blob/master/\
-        4_applications/quantum_chemistry.ipynb#Optimization-of-H2-at-bond-length but shorter."""
-        n = 2
-        m = 6
-        device = 'local_statevector_simulator'
-
-        np.random.seed(42)
-        initial_theta = np.random.randn(2 * n * m)
-        entangler_map = {
-            0: [1]}  # the map of two-qubit gates with control at key and target at values
-        shots = 1
-        max_trials = 1
-        ham_name = self._get_resource_path("../performance/H2/H2Equilibrium.txt")
-
-        # Exact Energy
-        pauli_list = Hamiltonian_from_file(ham_name)
-        H = make_Hamiltonian(pauli_list)
-        exact = np.amin(la.eig(H)[0]).real
-        self.log.info('The exact ground state energy is: %s', exact)
-        self.assertEqual(exact, -1.8572746704950902)
-
-        # Optimization
-        Q_program = QuantumProgram()
-
-        def cost_function(Q_program, H, n, m, entangler_map, shots, device, theta):
-            # pylint: disable=missing-docstring
-            return eval_hamiltonian(Q_program, H,
-                                    trial_circuit_ryrz(n, m, theta, entangler_map, None, False),
-                                    shots, device).real
-
-        initial_c = 0.01
-        target_update = 2 * np.pi * 0.1
-
-        expected_stout = ("calibration step # 0 of 1\n"
-                          "calibrated SPSA_parameters[0] is 2.5459894")
-        with patch('sys.stdout', new=StringIO()) as fakeOutput:
-            SPSA_params = SPSA_calibration(partial(cost_function, Q_program, H, n, m, entangler_map,
-                                                   shots, device), initial_theta, initial_c,
-                                           target_update, 1)
-        self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
-
-        expected_stout = ("objective function at theta+ for step # 0\n"
-                          "-1.0909948\n"
-                          "objective function at theta- for step # 0\n"
-                          "-1.0675805\n"
-                          "Final objective function is: -1.2619548")
-        with patch('sys.stdout', new=StringIO()) as fakeOutput:
-            output = SPSA_optimization(
-                partial(cost_function, Q_program, H, n, m, entangler_map, shots, device),
-                initial_theta, SPSA_params, max_trials)
-
-        self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
-
-        output1 = np.array([-2.48391736629, 2.84236721813, -2.3329429812, 4.50366137571,
-                            -3.21478489403, -3.21476847625, 4.55984433481, -2.21319679015,
-                            2.51115713337, 3.52319156289, 2.51721382649, 2.51490176573,
-                            3.22259379087, 1.06735127465, 1.25571368679, 2.41834399006,
-                            1.96780039897, 3.2948788519, 2.07260744378, -4.39293522064,
-                            -1.51498275038, 2.75485521882, 3.04815972399, 1.55588333309])
-        output4 = np.array([0.486714153011, -0.128264301171, 0.637688538101, 1.53302985641,
-                            -0.244153374723, -0.244136956949, 1.58921281551, 0.757434729153,
-                            -0.459474385935, 0.552560043586, -0.453417692812, -0.45572975357,
-                            0.251962271566, -1.90328024466, -1.71491783251, -0.552287529241,
-                            -1.00283112033, 0.324247332595, -0.898024075521, -1.42230370134,
-                            1.45564876892, -0.215776300487, 0.0775282046879, -1.41474818621])
-        output5 = np.array([0.506714153011, -0.148264301171, 0.657688538101, 1.51302985641,
-                            -0.224153374723, -0.224136956949, 1.56921281551, 0.777434729153,
-                            -0.479474385935, 0.532560043586, -0.473417692812, -0.47572975357,
-                            0.231962271566, -1.92328024466, -1.73491783251, -0.572287529241,
-                            -1.02283112033, 0.304247332595, -0.918024075521, -1.40230370134,
-                            1.47564876892, -0.235776300487, 0.0575282046879, -1.43474818621])
-
-        self.assertEqual(6, len(output))
-        np.testing.assert_almost_equal(-1.2619547992193472, output[0])
-        self.assertEqual(output1.all(), output[1].all())
-        np.testing.assert_almost_equal([-1.0909948471209499], output[2])
-        np.testing.assert_almost_equal([-1.0675805189515357], output[3])
-        self.assertEqual(1, len(output[4]))
-        self.assertEqual(output4.all(), output[4][0].all())
-        self.assertEqual(output5.all(), output[5][0].all())
 
     def test_group_paulis(self):
         """ qiskit.tools.apps.optimization.group_paulis function"""
@@ -175,29 +88,6 @@ class TestQuantumOptimization(QiskitTestCase):
             print_pauli_list_grouped(pauli_list_grouped)
 
         self.assertMultiLineEqual(fakeOutput.getvalue().strip(), expected_stout)
-
-    def test_eval_hamiltonian_pauli_list(self):
-        """
-        Test of trial_circuit_ry and eval_hamiltonian with a pauli list
-        """
-        ham_name = self._get_resource_path("../performance/H2/H2Equilibrium.txt")
-        pauli_list = Hamiltonian_from_file(ham_name)
-        n = 2
-        m = 6
-        device = 'local_statevector_simulator'
-
-        theta = np.array([-0.607547697211, -0.126136414606, - 0.684606358705, 0.928714748593,
-                          -1.84440103405, -0.467002424077, 2.29249034315, 0.488810054396,
-                          0.710266990661, 1.05553444322, 0.0540731003458, 0.257953416342,
-                          0.588281649703, 0.885244238613, -1.01700702421, -0.133693031283,
-                          -0.438185501332, 0.493443494428, -0.199009119848, -1.27498360732,
-                          0.293494154438, 0.108950311827, 0.031726785859, 1.27263986303])
-        entangler_map = {0: [1]}
-
-        energy = eval_hamiltonian(QuantumProgram(), pauli_list,
-                                  trial_circuit_ry(n, m, theta, entangler_map, None, False), 1,
-                                  device)
-        np.testing.assert_almost_equal(-0.45295043823057191 + 3.3552033732997923e-18j, energy)
 
 
 class TestHamiltonian(QiskitTestCase):

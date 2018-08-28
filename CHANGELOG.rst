@@ -39,9 +39,11 @@ Changed
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 - Q network hub/group/project credentials replaced by new url format. (#740)
 - ``Jobs`` API simplification and breaking changes. (#686)
+- Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
 
 Removed
 -------
+- Removed the QuantumProgram class. (#724)
 
 Fixed
 -----

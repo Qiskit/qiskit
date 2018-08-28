@@ -13,9 +13,9 @@ Quantum Tomography Module
 Description:
     This module contains functions for performing quantum state and quantum
     process tomography. This includes:
-    - Functions for generating a set of circuits in a QuantumProgram to
+    - Functions for generating a set of circuits to
       extract tomographically complete sets of measurement data.
-    - Functions for generating a tomography data set from the QuantumProgram
+    - Functions for generating a tomography data set from the
       results after the circuits have been executed on a backend.
     - Functions for reconstructing a quantum state, or quantum process
       (Choi-matrix) from tomography data sets.
@@ -34,9 +34,7 @@ Workflow:
     - `tomography_set`, `state_tomography_set`, and `process_tomography_set`
        all generates data structures for tomography experiments.
     - `create_tomography_circuits` generates the quantum circuits specified
-       in a `tomography_set` and adds them to a `QuantumProgram` for perform
-       state tomography of the output of a state preparation circuit, or
-       process tomography of a circuit.
+       in a `tomography_set` for performing state tomography of the output
     - `tomography_data` extracts the results after executing the tomography
        circuits and returns it in a data structure used by fitters for state
        reconstruction.
@@ -51,6 +49,7 @@ from re import match
 
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit import QISKitError
 from qiskit.tools.qi.qi import vectorize, devectorize, outer
 
@@ -500,7 +499,7 @@ def tomography_circuit_names(tomo_set, name=''):
 ###############################################################################
 
 
-def create_tomography_circuits(qp, name, qreg, creg, tomoset):
+def create_tomography_circuits(circuit, qreg, creg, tomoset):
     """
     Add tomography measurement circuits to a QuantumProgram.
 
@@ -516,8 +515,8 @@ def create_tomography_circuits(qp, name, qreg, creg, tomoset):
     quantum program.
 
     Args:
-        qp (QuantumProgram): A quantum program to store the circuits.
-        name (string): The name of the base circuit to be appended.
+        circuit (QuantumCircuit): The circuit to be appended with tomography
+                                  state preparation and/or measurements.
         qreg (QuantumRegister): the quantum register containing qubits to be
                                 measured.
         creg (ClassicalRegister): the classical register containing bits to
@@ -525,7 +524,10 @@ def create_tomography_circuits(qp, name, qreg, creg, tomoset):
         tomoset (tomography_set): the dict of tomography configurations.
 
     Returns:
-        list: A list of names of the added quantum state tomography circuits.
+        list: A list of quantum tomography circuits for the input circuit.
+
+    Raises:
+        QISKitError: if circuit is not a valid QuantumCircuit
 
     Example:
         For a tomography set  specififying state tomography of qubit-0 prepared
@@ -547,33 +549,34 @@ def create_tomography_circuits(qp, name, qreg, creg, tomoset):
         ```
     """
 
-    dics = tomoset['circuits']
-    labels = tomography_circuit_names(tomoset, name)
-    circuit = qp.get_circuit(name)
+    if not isinstance(circuit, QuantumCircuit):
+        raise QISKitError('Input circuit must be a QuantumCircuit object')
 
+    dics = tomoset['circuits']
+    labels = tomography_circuit_names(tomoset, circuit.name)
+    tomography_circuits = []
     for label, conf in zip(labels, dics):
         tmp = circuit
         # Add prep circuits
         if 'prep' in conf:
-            prep = qp.create_circuit('tmp_prep', [qreg], [creg])
+            prep = QuantumCircuit(qreg, creg, name='tmp_prep')
             for qubit, op in conf['prep'].items():
                 tomoset['prep_basis'].prep_gate(prep, qreg[qubit], op)
                 prep.barrier(qreg[qubit])
             tmp = prep + tmp
-            del qp._QuantumProgram__quantum_program['tmp_prep']
         # Add measurement circuits
-        meas = qp.create_circuit('tmp_meas', [qreg], [creg])
+        meas = QuantumCircuit(qreg, creg, name='tmp_meas')
         for qubit, op in conf['meas'].items():
             meas.barrier(qreg[qubit])
             tomoset['meas_basis'].meas_gate(meas, qreg[qubit], op)
             meas.measure(qreg[qubit], creg[qubit])
         tmp = tmp + meas
-        del qp._QuantumProgram__quantum_program['tmp_meas']
-        # Add tomography circuit
-        qp.add_circuit(label, tmp)
+        # Add label to the circuit
+        tmp.name = label
+        tomography_circuits.append(tmp)
 
-    logger.info('>> created tomography circuits for "%s"', name)
-    return labels
+    logger.info('>> created tomography circuits for "%s"', circuit.name)
+    return tomography_circuits
 
 
 ###############################################################################
@@ -901,113 +904,16 @@ def __wizard(rho, epsilon=None):
     return rho_wizard
 
 
-###############################################################################
-# DEPRECIATED r0.3 TOMOGRAPHY FUNCTIONS
-#
-# The following functions are here for backwards compatability with the
-# r0.3 QISKit notebooks, but will be removed in the following release.
-###############################################################################
-
-
-def build_state_tomography_circuits(Q_program,
-                                    name,
-                                    qubits,
-                                    qreg,
-                                    creg,
-                                    meas_basis='Pauli',
-                                    silent=False):
-    """Depreciated function: Use `create_tomography_circuits` function instead.
-    """
-    # pylint: disable=unused-argument
-    tomoset = tomography_set(qubits, meas_basis)
-    logger.warning(
-        'WARNING: `build_state_tomography_circuits` is depreciated. '
-        'Use `tomography_set` and `create_tomography_circuits` instead')
-
-    return create_tomography_circuits(
-        Q_program, name, qreg, creg, tomoset)
-
-
-def build_process_tomography_circuits(Q_program,
-                                      name,
-                                      qubits,
-                                      qreg,
-                                      creg,
-                                      prep_basis='SIC',
-                                      meas_basis='Pauli'):
-    """Depreciated function: Use `create_tomography_circuits` function instead.
-    """
-
-    logger.warning(
-        'WARNING: `build_process_tomography_circuits` is depreciated. '
-        'Use `tomography_set` and `create_tomography_circuits` instead')
-
-    tomoset = tomography_set(qubits, meas_basis, prep_basis)
-    return create_tomography_circuits(
-        Q_program, name, qreg, creg, tomoset)
-
-
-def state_tomography_circuit_names(name, qubits, meas_basis='Pauli'):
-    """Depreciated function: Use `tomography_circuit_names` function instead.
-    """
-
-    logger.warning(
-        'WARNING: `state_tomography_circuit_names` is depreciated. '
-        'Use `tomography_set` and `tomography_circuit_names` instead')
-    tomoset = tomography_set(qubits, meas_basis=meas_basis)
-    return tomography_circuit_names(tomoset, name)
-
-
-def process_tomography_circuit_names(name,
-                                     qubits,
-                                     prep_basis='SIC',
-                                     meas_basis='Pauli'):
-    """Depreciated function: Use `tomography_circuit_names` function instead.
-    """
-
-    logger.warning(
-        'WARNING: `process_tomography_circuit_names` is depreciated. '
-        'Use `tomography_set` and `tomography_circuit_names` instead')
-    tomoset = tomography_set(
-        qubits, meas_basis=meas_basis, prep_basis=prep_basis)
-    return tomography_circuit_names(tomoset, name)
-
-
-def state_tomography_data(Q_result, name, meas_qubits, meas_basis='Pauli'):
-    """Depreciated function: Use `tomography_data` function instead."""
-
-    logger.warning(
-        'WARNING: `state_tomography_data` is depreciated. '
-        'Use `tomography_set` and `tomography_data` instead')
-    tomoset = tomography_set(meas_qubits, meas_basis=meas_basis)
-    return tomography_data(Q_result, name, tomoset)
-
-
-def process_tomography_data(Q_result,
-                            name,
-                            meas_qubits,
-                            prep_basis='SIC',
-                            meas_basis='Pauli'):
-    """Depreciated function: Use `tomography_data` function instead."""
-
-    logger.warning(
-        'WARNING: `process_tomography_data` is depreciated. '
-        'Use `tomography_set` and `tomography_data` instead')
-    tomoset = tomography_set(
-        meas_qubits, meas_basis=meas_basis, prep_basis=prep_basis)
-    return tomography_data(Q_result, name, tomoset)
-
-
 ###############################################################
 # Wigner function tomography
 ###############################################################
 
-def build_wigner_circuits(q_program, name, phis, thetas, qubits,
+def build_wigner_circuits(circuit, phis, thetas, qubits,
                           qreg, creg):
     """Create the circuits to rotate to points in phase space
     Args:
-        q_program (QuantumProgram): A quantum program to store the circuits.
-        name (string): The name of the base circuit to be appended.
+        circuit (QuantumCircuit): The circuit to be appended with tomography
+                                  state preparation and/or measurements.
         phis (np.matrix[[complex]]): phis
         thetas (np.matrix[[complex]]): thetas
         qubits (list[int]): a list of the qubit indexes of qreg to be measured.
@@ -1018,26 +924,31 @@ def build_wigner_circuits(q_program, name, phis, thetas, qubits,
 
     Returns:
         list: A list of names of the added wigner function circuits.
-    """
-    orig = q_program.get_circuit(name)
-    labels = []
-    points = len(phis[0])
 
+    Raises:
+        QISKitError: if circuit is not a valid QuantumCircuit.
+    """
+
+    if not isinstance(circuit, QuantumCircuit):
+        raise QISKitError('Input circuit must be a QuantumCircuit object')
+
+    tomography_circuits = []
+    points = len(phis[0])
     for point in range(points):
         label = '_wigner_phase_point'
         label += str(point)
-        circuit = q_program.create_circuit(label, [qreg], [creg])
-
+        tmp_circ = QuantumCircuit(qreg, creg, name=label)
         for qubit, _ in enumerate(qubits):
-            circuit.u3(thetas[qubit][point], 0,
-                       phis[qubit][point], qreg[qubits[qubit]])
-            circuit.measure(qreg[qubits[qubit]], creg[qubits[qubit]])
+            tmp_circ.u3(thetas[qubit][point], 0,
+                        phis[qubit][point], qreg[qubits[qubit]])
+            tmp_circ.measure(qreg[qubits[qubit]], creg[qubits[qubit]])
+        # Add to original circuit
+        tmp_circ = circuit + tmp_circ
+        tmp_circ.name = circuit.name + label
+        tomography_circuits.append(tmp_circ)
 
-        q_program.add_circuit(name + label, orig + circuit)
-        labels.append(name + label)
-
-    logger.info('>> Created Wigner function circuits for "%s"', name)
-    return labels
+    logger.info('>> Created Wigner function circuits for "%s"', circuit.name)
+    return tomography_circuits
 
 
 def wigner_data(q_result, meas_qubits, labels, shots=None):
