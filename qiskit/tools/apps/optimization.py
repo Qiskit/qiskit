@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=unused-import,invalid-name
 
 # Copyright 2018, IBM.
 #
