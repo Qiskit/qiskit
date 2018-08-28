@@ -8,16 +8,12 @@
 """This module implements the job class used for LocalBackend objects."""
 
 from concurrent import futures
-import json
 import logging
-import os
 import sys
 import functools
-import jsonschema
 
 from qiskit.backends import BaseJob, JobStatus, JobError
-from qiskit import QISKitError
-from qiskit import __path__ as qiskit_path
+from qiskit.qobj import validate_qobj_against_schema
 
 logger = logging.getLogger(__name__)
 
@@ -59,20 +55,7 @@ class LocalJob(BaseJob):
         self._qobj = qobj
         self._backend_name = qobj.header.backend_name
         self._future = None
-
-        # verify the QObj is valid before making requests for computing resources
-        sdk = qiskit_path[0]
-        # Schemas path:     qiskit/backends/schemas
-        schemas_path = os.path.join(sdk, 'schemas')
-        schema_file_path = os.path.join(schemas_path, 'qobj_schema.json')
-
-        with open(schema_file_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
-        try:
-            jsonschema.validate(self._qobj.as_dict(), schema)
-        except jsonschema.ValidationError as validation_error:
-            raise QISKitError(str(validation_error))
+        validate_qobj_against_schema(qobj)
 
     def submit(self):
         """Submit the job to the backend for running """

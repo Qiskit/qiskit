@@ -18,9 +18,7 @@ import pprint
 import contextlib
 import json
 import datetime
-import os
 import numpy
-import jsonschema
 
 from IBMQuantumExperience import ApiError
 
@@ -29,8 +27,7 @@ from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit._result import Result
-from qiskit import QISKitError
-from qiskit import __path__ as qiskit_path
+from qiskit.qobj import validate_qobj_against_schema
 
 logger = logging.getLogger(__name__)
 
@@ -145,18 +142,7 @@ class IBMQJob(BaseJob):
         self._job_data = None
 
         if qobj is not None:
-            # load the schema for an expected QObj
-            sdk = qiskit_path[0]
-            # Schemas path:     qiskit/backends/schemas
-            schemas_path = os.path.join(sdk, 'schemas')
-            schema_file_path = os.path.join(schemas_path, 'qobj_schema.json')
-            with open(schema_file_path, 'r') as schema_file:
-                schema = json.load(schema_file)
-            # verify the QObj is valid before making requests for computing resources
-            try:
-                jsonschema.validate(qobj.as_dict(), schema)
-            except jsonschema.ValidationError as validation_error:
-                raise QISKitError(str(validation_error))
+            validate_qobj_against_schema(qobj)
 
             # TODO: No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
