@@ -5,10 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=redefined-builtin
+
 """QOBj test."""
 import unittest
 import json
 import jsonschema
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import compile
 from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction)
 from .common import QiskitTestCase, Path
 
@@ -87,3 +91,35 @@ class TestQobj(QiskitTestCase):
         for qobj_class, (qobj, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
+
+    def test_change_qobj_after_compile(self):
+        """Test modifying Qobj parameters after compile."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.cx(qr[0], qr[1])
+        qc1.cx(qr[0], qr[2])
+        qc2.h(qr)
+        qc1.measure(qr, cr)
+        qc2.measure(qr, cr)
+        circuits = [qc1, qc2]
+        shots = 1024
+        backend = 'local_qasm_simulator'
+        config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
+        qobj1 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
+        qobj1.experiments[0].config.shots = 50
+        qobj1.experiments[0].config.xvals = [1, 1, 1]
+        config['shots'] = 1000
+        config['xvals'][0] = 'only for qobj2'
+        qobj2 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
+        self.assertTrue(qobj1.experiments[0].config.shots == 50)
+        self.assertTrue(qobj1.experiments[1].config.shots == 1)
+        self.assertTrue(qobj1.experiments[0].config.xvals == [1, 1, 1])
+        self.assertTrue(qobj1.experiments[1].config.xvals == [1, 2, 3, 4])
+        self.assertTrue(qobj1.config.shots == 1024)
+        self.assertTrue(qobj2.experiments[0].config.shots == 1000)
+        self.assertTrue(qobj2.experiments[1].config.shots == 1000)
+        self.assertTrue(qobj2.experiments[0].config.xvals == ['only for qobj2', 2, 3, 4])
+        self.assertTrue(qobj2.experiments[1].config.xvals == ['only for qobj2', 2, 3, 4])

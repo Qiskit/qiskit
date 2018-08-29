@@ -15,7 +15,8 @@
 # limitations under the License.
 # =============================================================================
 
-# pylint: disable=missing-docstring
+
+"""Test cases for the load_qasm_file and load_qasm_string method."""
 
 from qiskit import QISKitError
 from qiskit.wrapper import load_qasm_file, load_qasm_string
@@ -34,10 +35,6 @@ class LoadQasmTest(QiskitTestCase):
         """Test load_qasm_file and get_circuit.
 
         If all is correct we should get the qasm file loaded in _qasm_file_path
-
-        Previously:
-            Libraries:
-                from qiskit.wrapper import load_qasm_file
         """
         q_circuit = load_qasm_file(self.qasm_file_path)
         qasm_string = q_circuit.qasm()
@@ -74,11 +71,6 @@ measure b[3] -> d[3];
         """Test fail_load_qasm_file.
 
         If all is correct we should get a QISKitError
-
-        Previously:
-            Libraries:
-                from qiskit import QISKitError
-                from qiskit.wrapper import load_qasm_file
         """
         self.assertRaises(QISKitError,
                           load_qasm_file, "", name=None)
@@ -87,11 +79,6 @@ measure b[3] -> d[3];
         """Test fail_load_qasm_string.
 
         If all is correct we should get a QISKitError
-
-        Previously:
-            Libraries:
-                from qiskit import QISKitError
-                from qiskit.wrapper import load_qasm_string
         """
         self.assertRaises(QISKitError,
                           load_qasm_string, "", name=None)
@@ -100,10 +87,6 @@ measure b[3] -> d[3];
         """Test load_qasm_text and get_circuit.
 
         If all is correct we should get the qasm file loaded from the string
-
-        Previously:
-            Libraries:
-                from qiskit import QuantumProgram
         """
         qasm_string = "// A simple 8 qubit example\nOPENQASM 2.0;\n"
         qasm_string += "include \"qelib1.inc\";\nqreg a[4];\n"
