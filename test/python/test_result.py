@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring,broad-except,redefined-builtin
+# pylint: disable=missing-docstring,broad-except,redefined-builtin
 
 """Test Qiskit Result class."""
 
@@ -24,13 +24,13 @@ class TestResult(QiskitTestCase):
         Do two 2Q circuits: on 1st do nothing, and on 2nd do X on the first qubit.
         """
         backend = get_backend('local_qasm_simulator')
-        q = QuantumRegister(2)
-        c = ClassicalRegister(2)
-        qc1 = QuantumCircuit(q, c)
-        qc2 = QuantumCircuit(q, c)
-        qc2.x(q[0])
-        qc1.measure(q, c)
-        qc2.measure(q, c)
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc2.x(qr[0])
+        qc1.measure(qr, cr)
+        qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         xvals_dict = {circuits[0].name: 0, circuits[1].name: 1}
         qobj = compile(circuits, backend)
@@ -43,13 +43,13 @@ class TestResult(QiskitTestCase):
     def test_average_data(self):
         """Test average_data."""
         backend = get_backend('local_qasm_simulator')
-        q = QuantumRegister(2)
-        c = ClassicalRegister(2)
-        qc = QuantumCircuit(q, c, name="qc")
-        qc.h(q[0])
-        qc.cx(q[0], q[1])
-        qc.measure(q[0], c[0])
-        qc.measure(q[1], c[1])
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, name="qc")
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
         shots = 10000
         qobj = compile(qc, backend, shots=shots)
         job = backend.run(qobj)
@@ -67,13 +67,13 @@ class TestResult(QiskitTestCase):
     def test_combine_results(self):
         """Test combining two results."""
         backend = get_backend('local_qasm_simulator')
-        q = QuantumRegister(1)
-        c = ClassicalRegister(1)
-        qc1 = QuantumCircuit(q, c)
-        qc2 = QuantumCircuit(q, c)
-        qc1.measure(q[0], c[0])
-        qc2.x(q[0])
-        qc2.measure(q[0], c[0])
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.measure(qr[0], cr[0])
+        qc2.x(qr[0])
+        qc2.measure(qr[0], cr[0])
         qobj1 = compile(qc1, backend)
         qobj2 = compile(qc2, backend)
         job1 = backend.run(qobj1)
