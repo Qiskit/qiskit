@@ -83,9 +83,6 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     if task_kwargs is None:
         task_kwargs = {}
 
-    def _callback(x):  # pylint: disable=W0613
-        pass
-
     # len(values) == 1
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
@@ -96,8 +93,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         try:
             pool = Pool(processes=num_processes)
 
-            async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                          _callback) for value in values]
+            async_res = [pool.apply_async(task, (value,) + task_args,
+                                          task_kwargs) for value in values]
 
             while not all([item.ready() for item in async_res]):
                 for item in async_res:
