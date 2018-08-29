@@ -20,4 +20,4 @@
 qiskit/qasm/*        @1ucian0 @ajavadia @ewinston @atilag @delapuente @diego-plan9
 qiskit/tools/*       @antoniomezzacapo @chriseclectic @ajavadia @ewinston @atilag @delapuente @diego-plan9
 qiskit/schemas/*     @jaygambetta @ajavadia @ewinston @atilag @delapuente @diego-plan9 @dcmckayibm
-qiskit/transpiler/*  @1ucian0 @ajavadia @delapuente @nonhermitian
+qiskit/transpiler/*  @1ucian0 @ajavadia @delapuente @atilag @diego-plan9 @nonhermitian
