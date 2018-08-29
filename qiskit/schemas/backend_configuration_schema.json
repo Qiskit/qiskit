@@ -58,7 +58,8 @@
                 "basis_gates": {
                     "type": "array",
                     "description": "List of basis gates names on the backend",
-                    "items": {"type": "string"}
+                    "items": {"type": "string"},
+                    "minItems": 1
                     },
                 "coupling_map": {
                     "type": "array",
@@ -69,7 +70,8 @@
                 "gates": {
                     "type": "array",
                     "description": "List of basis gates on the backend",
-                    "items": {"$ref": "#/definitions/gateconfig"}
+                    "items": {"$ref": "#/definitions/gateconfig"},
+                    "minItems": 1
                     },
                 "local": {
                     "type": "boolean",
