@@ -34,7 +34,7 @@ class TestQiskitResult(QiskitTestCase):
 
     def test_local_result_fields(self):
         """Test components of a result from a local simulator."""
-        self.assertTrue(self._result1.backend_name.startswith('local_qasm_simulator'))
+        self.assertIn('qasm_simulator', self._result1.backend_name)
         self.assertIsInstance(self._result1.job_id, str)
         self.assertEqual(self._result1.status, 'COMPLETED')
         self.assertEqual(self._result1.circuit_statuses(), ['DONE'])
