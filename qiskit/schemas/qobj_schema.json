@@ -257,7 +257,10 @@
                 "memory": {"type": "array"},
                 "name": {"type": "string"},
                 "params": {"type": "array"},
-                "conditional": {"type": "integer", "minimum": 0}
+                "conditional": {"oneOf": [
+                    {"type": "integer", "minimum": 0},
+                    {"type": "object"}
+                ]}
             },
             "oneOf": [
                 {
@@ -372,21 +375,15 @@
                 }
                 },
                 {
-                "title": "snapshot",
-                "required": ["label","type"],
+                "title": "Simulator extensions shells",
                 "properties": {
-                    "name": {"enum": ["snapshot"]},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "label": {"type": "string"},
-                    "type": {"type": "string"},
-                    "texparams": {"maxItems": 0}
+                    "name": {"enum": ["snapshot", "noise", "wait", "save", "load"]}
                 }
                 },
                 {
-                "title": "noise",
+                "title": "Other extension shells",
                 "properties": {
-                    "name": {"enum": ["noise"]}
+                    "name": {"enum": ["rzz"]}
                 }
                 },
                 {"$ref": "#/definitions/bfunc"},
