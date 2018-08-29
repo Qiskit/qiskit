@@ -71,7 +71,7 @@ class StatusMagic(Magics):
                         _status_msg += ' (%s)' % job_var._queue_position
                     status.value = header % (_status_msg)
 
-            status.value = _header % (_status_msg)
+            status.value = header % (_status_msg)
             # Explicitly stop the thread just to be safe.
             sys.exit()
 
@@ -89,8 +89,8 @@ class StatusMagic(Magics):
                 idx_str = '[%s]' % idx
             else:
                 idx_str = ''
-            _header = "<p style='{style}'>Job Status {idx}: %s </p>".format(idx=idx_str,
-                                                                            style=_style)
+            _header = "<p style='{style}'>Job Status {id}: %s </p>".format(id=idx_str,
+                                                                           style=_style)
             _status = widgets.HTML(
                 value=_header % job_var.status().value)
 
