@@ -27,7 +27,7 @@ class StatusMagic(Magics):
         '-i',
         '--interval',
         type=float,
-        default=1,
+        default=2,
         help='Interval for status check.'
     )
     def qiskit_job_status(self, line='', cell=None):  # pylint: disable=W0613
@@ -48,41 +48,56 @@ class StatusMagic(Magics):
         for _line in _split_lines:
             if len(_line) == 2:
                 _line_var = _line[0]
-                if isinstance(self.shell.user_ns[_line_var], qiskit.backends.basejob.BaseJob):
-                    _jobs.append(_line_var)
+                # Check corner case where expression with equals is commented out
+                if '#' not in _line_var:
+                    if isinstance(self.shell.user_ns[_line_var], qiskit.backends.basejob.BaseJob):
+                        _jobs.append(_line_var)
         # Must have one job class
         if not any(_jobs):
             raise Exception(
                 "Cell just contain at least one 'job=qiskit.execute(...)' expression")
-        # Cannot have more than one job class
-        elif len(_jobs) != 1:
-            raise Exception("Cell can have only a single job class instance.")
 
-        _job_var = self.shell.user_ns[_jobs[0]]
-
-        _style = "font-size:16px;"
-        _header = "<p style='{style}'>Job Status: %s </p>".format(style=_style)
-        status = widgets.HTML(
-            value=_header % _job_var.status().value)
-        display(status)
-
-        def _checker(status):
-            _status_name = _job_var.status().name
-            while _status_name != 'DONE':
+        def _checker(job_var, status, header):
+            _status_name = job_var.status().name
+            while _status_name not in ['DONE', 'CANCELLED']:
                 time.sleep(args.interval)
-                _status = _job_var.status()
+                _status = job_var.status()
                 _status_name = _status.name
                 _status_msg = _status.value
                 if _status_name == 'ERROR':
                     break
                 else:
                     if _status_name == 'QUEUED':
-                        _status_msg += ' (%s)' % _job_var._queue_position
-                    status.value = _header % _status_msg
+                        _status_msg += ' (%s)' % job_var._queue_position
+                    status.value = header % (_status_msg)
 
-            status.value = _header % _status_msg
+            status.value = _header % (_status_msg)
             # Explicitly stop the thread just to be safe.
             sys.exit()
 
-        thread = threading.Thread(target=_checker, args=(status,))
-        thread.start()
+        # List index of job if checking status of multiple jobs.
+        _multi_job = False
+        if len(_jobs) > 1:
+            _multi_job = True
+
+        _job_checkers = []
+        # Loop over every BaseJob that was found.
+        for idx, job in enumerate(_jobs):
+            job_var = self.shell.user_ns[job]
+            _style = "font-size:16px;"
+            if _multi_job:
+                idx_str = '[%s]' % idx
+            else:
+                idx_str = ''
+            _header = "<p style='{style}'>Job Status {idx}: %s </p>".format(idx=idx_str,
+                                                                            style=_style)
+            _status = widgets.HTML(
+                value=_header % job_var.status().value)
+
+            thread = threading.Thread(target=_checker, args=(job_var, _status, _header))
+            thread.start()
+            _job_checkers.append(_status)
+
+        # Group all HTML widgets into single vertical layout
+        box = widgets.VBox(_job_checkers)
+        display(box)
