@@ -118,7 +118,7 @@ class UnrollerBackend(object):
         """Drop the current condition."""
         raise BackendError("Backend drop_condition unimplemented")
 
-    def start_gate(self, name, args, qubits, nested_scope=None):
+    def start_gate(self, name, args, qubits, nested_scope=None, extra_fields=None):
         """Begin a custom gate.
 
         name is name string.
@@ -126,6 +126,8 @@ class UnrollerBackend(object):
         qubits is list of (regname, idx) tuples.
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
+        extra_fields is a dictionary allowing the extension or overriding of
+        the gate instruction properties.
         """
         raise BackendError("Backend start_gate unimplemented")
 
