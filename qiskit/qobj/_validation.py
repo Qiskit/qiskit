@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# Copyright 2018, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
@@ -9,6 +9,7 @@
 
 import json
 import os
+import logging
 import jsonschema
 
 from qiskit import QISKitError
@@ -17,26 +18,66 @@ from qiskit import __path__ as qiskit_path
 _SCHEMAS = {}
 
 
+logger = logging.getLogger(__name__)
+
+
 def _load_qobj_schema():
-    """Loads the QObj schema for use in future validations.
-    """
+    """Loads the QObj schema for use in future validations."""
     if 'qobj' not in _SCHEMAS:
         sdk = qiskit_path[0]
-        # Schemas path:     qiskit/backends/schemas
-        schemas_path = os.path.join(sdk, 'schemas')
-        schema_file_path = os.path.join(schemas_path, 'qobj_schema.json')
+        schema_file_path = os.path.join(sdk, 'schemas', 'qobj_schema.json')
         with open(schema_file_path, 'r') as schema_file:
             _SCHEMAS['qobj'] = json.load(schema_file)
+
     return _SCHEMAS['qobj']
 
 
 def validate_qobj_against_schema(qobj):
-    """Validates a QObj against a schema.
-    """
+    """Validates a QObj against a schema."""
     qobj_schema = _load_qobj_schema()
 
-    # verify the QObj is valid against the schema
     try:
         jsonschema.validate(qobj.as_dict(), qobj_schema)
-    except jsonschema.ValidationError as validation_error:
-        raise QISKitError(str(validation_error))
+    except jsonschema.ValidationError as err:
+        newerr = QobjValidationError(
+            'Qobj failed validation. Set Qiskit log level to DEBUG for further information.')
+        newerr.__cause__ = None
+        logger.debug('%s', _format_causes(err))
+        raise newerr
+
+
+def _format_causes(err, level=0):
+    lines = []
+
+    def _print(string):
+        lines.append(_pad(string))
+
+    def _pad(string):
+        padding = '  ' * level
+        padded_lines = [padding + line for line in string.split('\n')]
+        return '\n'.join(padded_lines)
+
+    def _format_path(path):
+        def _format(item):
+            if isinstance(item, str):
+                return '.{}'.format(item)
+            else:
+                return '[{}]'.format(item)
+
+        return ''.join(['<root>'] + list(map(_format, path)))
+
+    _print('\'{}\' failed @ \'{}\' because of:'.format(
+        err.validator, _format_path(err.absolute_path)))
+
+    if not err.context:
+        _print(str(err.message))
+    else:
+        for suberr in err.context:
+            lines.append(_format_causes(suberr, level+1))
+
+    return '\n'.join(lines)
+
+
+class QobjValidationError(QISKitError):
+    """Represents an error during Qobj validation."""
+    pass

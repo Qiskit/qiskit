@@ -13,11 +13,11 @@ import json
 import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import QISKitError, compile
+from qiskit import compile
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
-from qiskit.qobj import QobjHeader
+from qiskit.qobj import QobjHeader, QobjValidationError
 from qiskit.backends.local import localjob
-from qiskit.backends.ibmq import IBMQBackend
+from qiskit.backends.ibmq import IBMQBackend, ibmqjob
 from ._mockutils import FakeBackend, DummySimulator
 from .common import QiskitTestCase, Path
 
@@ -102,18 +102,24 @@ class TestQobj(QiskitTestCase):
 
     def test_localjob_raises_error_when_sending_bad_qobj(self):
         """Test localjob is denied resource request access when given an invalid Qobj instance."""
-        local_backend = FakeBackend()
-        self.bad_qobj.header = QobjHeader(backend_name=local_backend.name)
-        with self.assertRaises(QISKitError):
-            localjob.LocalJob(None, self.bad_qobj)
+
+        backend = FakeBackend()
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name)
+
+        with self.assertRaises(QobjValidationError):
+            job = localjob.LocalJob(_nop, self.bad_qobj)
+            job.submit()
 
     def test_ibmqobj_raises_error_when_sending_bad_qobj(self):
         """Test IBMQobj is denied resource request access when given an invalid Qobj instance."""
-        config = DummySimulator.DEFAULT_CONFIGURATION
-        non_local_backend = IBMQBackend(config)
-        self.bad_qobj.header = QobjHeader(backend_name=non_local_backend.name)
-        with self.assertRaises(QISKitError):
-            non_local_backend.run(self.bad_qobj)
+
+        backend = FakeBackend()
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name)
+
+        api_stub = {}
+        with self.assertRaises(QobjValidationError):
+            job = ibmqjob.IBMQJob(api_stub, 'True', self.bad_qobj)
+            job.submit()
 
     def test_change_qobj_after_compile(self):
         """Test modifying Qobj parameters after compile."""
@@ -146,3 +152,7 @@ class TestQobj(QiskitTestCase):
         self.assertTrue(qobj2.experiments[1].config.shots == 1000)
         self.assertTrue(qobj2.experiments[0].config.xvals == ['only for qobj2', 2, 3, 4])
         self.assertTrue(qobj2.experiments[1].config.xvals == ['only for qobj2', 2, 3, 4])
+
+
+def _nop():
+    pass

@@ -55,13 +55,13 @@ class LocalJob(BaseJob):
         self._qobj = qobj
         self._backend_name = qobj.header.backend_name
         self._future = None
-        validate_qobj_against_schema(qobj)
 
     def submit(self):
         """Submit the job to the backend for running """
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
+        validate_qobj_against_schema(self._qobj)
         self._future = self._executor.submit(self._fn, self._qobj)
 
     @requires_submit

@@ -18,10 +18,3 @@ class QobjType(str, Enum):
     """
     QASM = 'QASM'
     PULSE = 'PULSE'
-
-
-class QobjValidationError(QISKitError):
-    """
-    Represents an error during Qobj validation.
-    """
-    pass
