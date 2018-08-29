@@ -138,7 +138,7 @@
                         }
                     },
                     "_constraints": "sum(x[1] for x in clbit_labels) == number_of_clbits"
-                    
+
                     },
                 "config": {
                     "title": "Qobj-level configuration",
@@ -147,11 +147,11 @@
                     "required": ["shots","memory_slots"],
                     "properties": {
                         "memory_slots": {
-                            "type": "integer", 
+                            "type": "integer",
                             "minimum": 0,
                             "description": "The number of measurement slots in the classical memory on the backend."},
                         "shots": {
-                            "type": "integer", 
+                            "type": "integer",
                             "minimum": 1,
                             "description": "Number of repetitions of each experiment"},
                         "max_credits": {"type": "integer", "default": 3},
@@ -246,7 +246,7 @@
                 },
                 {"$ref": "#/definitions/bfunc"},
                 {"$ref": "#/definitions/copy"}
-            ] 
+            ]
         },
         "openqasm_instructions": {
             "type": "object",
@@ -257,9 +257,10 @@
                 "memory": {"type": "array"},
                 "name": {"type": "string"},
                 "params": {"type": "array"},
-                "conditional": {"type": "integer", "minimum": 0}        
+                "conditional": {"type": "integer", "minimum": 0}
             },
-            "oneOf": [{		
+            "oneOf": [
+                {
                     "title": "3-param 1Q op",
                     "required": ["qubits", "params"],
                     "properties": {
@@ -291,10 +292,10 @@
                     "register": {"maxItems": 0},
                     "params": {"minItems": 1, "maxItems": 1},
                     "texparams": {"minItems": 1, "maxItems": 1}
-                }			
+                }
                 }, {
                 "title": "2-param 1Q op",
-                "required": ["qubits", "params"],				
+                "required": ["qubits", "params"],
                 "properties": {
                     "name": {"enum": ["u2"]},
                     "qubits": {"minItems": 1, "maxItems": 1},
@@ -302,7 +303,7 @@
                     "register": {"maxItems": 0},
                     "params": {"minItems": 2, "maxItems": 2},
                     "texparams": {"minItems": 2, "maxItems": 2}
-                }			
+                }
                 }, {
                 "title": "fixed 2Q gate",
                 "required": ["qubits"],
@@ -375,17 +376,23 @@
                 "required": ["label","type"],
                 "properties": {
                     "name": {"enum": ["snapshot"]},
-                    "memory": {"maxItems": 0},               
+                    "memory": {"maxItems": 0},
                     "register": {"maxItems": 0},
                     "label": {"type": "string"},
                     "type": {"type": "string"},
                     "texparams": {"maxItems": 0}
                 }
                 },
+                {
+                "title": "noise",
+                "properties": {
+                    "name": {"enum": ["noise"]}
+                }
+                },
                 {"$ref": "#/definitions/bfunc"},
                 {"$ref": "#/definitions/copy"}
             ]
-        }        
+        }
     },
     "oneOf": [
     {"allOf": [{"$ref": "#/definitions/qobjlevel0"},
@@ -464,6 +471,6 @@
                     }
                 }
             }}]}
-            ]           
+            ]
 }
 
