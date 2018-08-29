@@ -12,8 +12,8 @@ import unittest
 from numpy import array_equal
 
 import qiskit
-from qiskit.wrapper import execute
-from .common import QiskitTestCase
+from qiskit.wrapper import execute, register, available_backends
+from .common import QiskitTestCase, requires_qe_access
 
 
 class TestQiskitResult(QiskitTestCase):
@@ -31,6 +31,24 @@ class TestQiskitResult(QiskitTestCase):
         self.backend = 'local_qasm_simulator'
         self._result1 = execute(self._qc1, self.backend).result()
         self._result2 = execute(self._qc2, self.backend).result()
+
+    def test_local_result_fields(self):
+        """Test components of a result from a local simulator."""
+        self.assertTrue(self._result1.backend_name.startswith('local_qasm_simulator'))
+        self.assertIsInstance(self._result1.job_id, str)
+        self.assertEqual(self._result1.status, 'COMPLETED')
+        self.assertEqual(self._result1.circuit_statuses(), ['DONE'])
+
+    @requires_qe_access
+    def test_remote_result_fields(self, qe_token, qe_url):
+        """Test components of a result from a remote simulator."""
+        register(qe_token, qe_url)
+        remote_backend = available_backends({'local': False, 'simulator': True})[0]
+        remote_result = execute(self._qc1, remote_backend).result()
+        self.assertEqual(remote_result.backend_name, remote_backend)
+        self.assertIsInstance(remote_result.job_id, str)
+        self.assertEqual(remote_result.status, 'COMPLETED')
+        self.assertEqual(remote_result.circuit_statuses(), ['DONE'])
 
     def test_qubitpol(self):
         """Test the results of the qubitpol function in Results.

@@ -415,7 +415,7 @@ class IBMQJob(BaseJob):
             'status': job_data['status'],
             'used_credits': job_data.get('usedCredits'),
             'result': job_result_list,
-            'backend_name': self.backend_name,
+            'backend_name': self.backend_name(),
             'success': job_data['status'] == 'DONE'
         }, [circuit_result['name'] for circuit_result in job_data['qasms']])
 

@@ -136,7 +136,7 @@ class Result(object):
             list(str): List of status result strings.
         """
         return [experiment_result.status for
-                experiment_result in self.results]
+                experiment_result in self.results.values()]
 
     def get_circuit_status(self, icircuit):
         """Return the status of circuit at index icircuit.
