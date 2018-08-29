@@ -25,7 +25,11 @@ def _load_qobj_schema():
     """Loads the QObj schema for use in future validations."""
     if 'qobj' not in _SCHEMAS:
         sdk = qiskit_path[0]
-        schema_file_path = os.path.join(sdk, 'schemas', 'qobj_schema.json')
+        # TODO: `transitional_qobj_schema.json` should be replaced with
+        # `qobj_schema.json` once we can ensure Qiskit unrollers are emitting
+        # valid Qobj structures and the Json Schema extension mechanism is in
+        # place.
+        schema_file_path = os.path.join(sdk, 'schemas', 'transitional_qobj_schema.json')
         with open(schema_file_path, 'r') as schema_file:
             _SCHEMAS['qobj'] = json.load(schema_file)
 
@@ -61,8 +65,8 @@ def _format_causes(err, level=0):
         def _format(item):
             if isinstance(item, str):
                 return '.{}'.format(item)
-            else:
-                return '[{}]'.format(item)
+
+            return '[{}]'.format(item)
 
         return ''.join(['<root>'] + list(map(_format, path)))
 

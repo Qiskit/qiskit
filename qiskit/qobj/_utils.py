@@ -9,8 +9,6 @@
 
 from enum import Enum
 
-from qiskit import QISKitError
-
 
 class QobjType(str, Enum):
     """

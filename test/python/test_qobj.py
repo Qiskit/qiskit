@@ -17,8 +17,8 @@ from qiskit import compile
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, QobjValidationError
 from qiskit.backends.local import localjob
-from qiskit.backends.ibmq import IBMQBackend, ibmqjob
-from ._mockutils import FakeBackend, DummySimulator
+from qiskit.backends.ibmq import ibmqjob
+from ._mockutils import FakeBackend
 from .common import QiskitTestCase, Path
 
 
