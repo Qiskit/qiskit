@@ -5,465 +5,1011 @@
     "version": "1.0.0",
     "definitions": {
         "bfunc": {
-            "type": "object",
-            "required": ["mask","relation","val"],
             "properties": {
-                "name": {"enum": ["bfunc"]},
-                "mask": {"type": "string"},
-                "relation": {"type": "string"},
-                "val": {"type": "string"},
-                "register": {"type": "integer", "minimum": 0},
-                "memory": {"type": "integer", "minimum": 0}
-            }
-        },
-        "copy": {
-            "type": "object",
-            "required": ["register_orig","register_copy"],
-            "properties": {
-                "name": {"enum": ["copy"]},
-                "register_orig": {"type": "integer", "minimum": 0},
-                "register_copy": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}}
-            }
+                "mask": {
+                    "type": "string"
+                },
+                "memory": {
+                    "minimum": 0,
+                    "type": "integer"
+                },
+                "name": {
+                    "enum": [
+                        "bfunc"
+                    ]
+                },
+                "register": {
+                    "minimum": 0,
+                    "type": "integer"
+                },
+                "relation": {
+                    "type": "string"
+                },
+                "val": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "mask",
+                "relation",
+                "val"
+            ],
+            "type": "object"
         },
         "complex": {
             "description": "JSON representation of a complex number",
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 2,
             "items": {
                 "type": "number"
-            }
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
         },
         "complex_array": {
             "description": "JSON representation of a complex vector",
-            "type": "array",
-            "minItems": 1,
             "items": {
                 "$ref": "#/definitions/complex"
-            }
+            },
+            "minItems": 1,
+            "type": "array"
         },
         "complex_matrix": {
             "description": "JSON representaiton of a complex matrix",
-            "type": "array",
-            "minItems": 1,
             "items": {
                 "$ref": "#/definitions/complex_array"
-            }
+            },
+            "minItems": 1,
+            "type": "array"
         },
-        "qobjlevel0": {
-            "type": "object",
-            "required": ["qobj_id","schema_version","type","experiments","config","header"],
+        "copy": {
             "properties": {
-                "qobj_id": {
-                    "type": "string",
-                    "description": "User generated qobj ID"
+                "name": {
+                    "enum": [
+                        "copy"
+                    ]
+                },
+                "register_copy": {
+                    "items": {
+                        "minimum": 0,
+                        "type": "integer"
                     },
-                "schema_version": {
-                    "type": "string",
-                    "description": "Schema version used to compile the qobj"
-                    },
-                "type": {
-                    "type": "string",
-                    "enum": ["QASM","PULSE"],
-                    "description": "Type of instruction set used for the experiment, QASM or PULSE"
-                    },
-                "experiments": {
-                    "type": "array",
-                    "description": "List of experiments to run",
-                    "minItems": 1
-                    },
-                "header": {
-                    "type": "object",
-                    "description": "QObj metadata that does not affect how the experiments are run on the backend. Carried through to the result.",
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "register_orig": {
+                    "minimum": 0,
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "register_orig",
+                "register_copy"
+            ],
+            "type": "object"
+        },
+        "openpulse_instructions": {
+            "oneOf": [
+                {
                     "properties": {
-                        "backend_name": {
-                            "type": "string",
-                            "description": "The backend this set of experiments was generated for. It may also be able to execute on other backends."
-                        },
-                        "backend_version": {
-                            "type": "string",
-                            "description": "The backend version this set of experiments was generated for. "
-                        },
-                        "qubit_labels": {
-                            "title": "Map physical qubits to qregs (for QASM)",
-                            "description": "A list of length n_qubits (from backend.configuration), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
-                            "examples": [
-                                [["q", 0], ["q", 1], ["r", 0], ["r", 1], ["r", 2]],
-                                [["q", 2], null, ["q", 1], null, ["q", 0]]
-                            ],
-                            "type": "array",
-                            "minItems": 1,
-                            "items": {
-                                "type": ["array", "null"],
-                                "minItems": 2,
-                                "maxItems": 2,
-                                "items": [
-                                    {
-                                        "title": "qreg",
-                                        "type": "string",
-                                        "minLength": 1
-                                    },
-                                    {
-                                        "title": "qubit number",
-                                        "description": "The qubit number within the qreg",
-                                        "type": "integer",
-                                        "minimum": 0
-                                    }]
+                        "name": {
+                            "not": {
+                                "enum": [
+                                    "pv",
+                                    "fc",
+                                    "acquire"
+                                ]
                             }
-                        },
-                        "clbit_labels": {
-                            "title": "Map physical clbits to register_slots (for QASM)",
-                            "description": "A list of pairs [clreg_name, size], to allocate the next size contiguous clbits to clreg clreg_name. The sum of the size-s should equal register_slots",
-                            "examples": [
-                                [["c", 2], ["d", 3]]
-                            ],
-                            "type": "array",
-                            "minItems": 1,
-                            "uniqueItems": true,
-                            "items": [{
-                                "type": "array",
-                                "minItems": 2,
-                                "maxItems": 2,
-                                "items": [{
-                                    "title": "clreg",
-                                    "type": "string",
-                                    "minLength": 1
-                                }, {
-                                "title": "size",
-                                "description": "Size of the clreg",
-                                "type": "integer",
-                                "minimum": 1
-                                }]
-                            }]
                         }
                     },
-                    "_constraints": "sum(x[1] for x in clbit_labels) == number_of_clbits"
-                    
-                    },
-                "config": {
-                    "title": "Qobj-level configuration",
-                    "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",
-                    "type": "object",
-                    "required": ["shots","memory_slots"],
+                    "required": [
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Standard pulse"
+                },
+                {
                     "properties": {
-                        "memory_slots": {
-                            "type": "integer", 
-                            "minimum": 0,
-                            "description": "The number of measurement slots in the classical memory on the backend."},
-                        "shots": {
-                            "type": "integer", 
-                            "minimum": 1,
-                            "description": "Number of repetitions of each experiment"},
-                        "max_credits": {"type": "integer", "default": 3},
-                        "seed": {"type": "integer", "default": 1}
-                    }
+                        "name": {
+                            "enum": [
+                                "pv"
+                            ]
+                        },
+                        "val": {
+                            "items": {
+                                "type": "number"
+                            },
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "type": "array"
+                        }
+                    },
+                    "required": [
+                        "val",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Persistent value pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "fc"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "discriminators": {
+                            "type": "array"
+                        },
+                        "duration": {
+                            "type": "number"
+                        },
+                        "kernels": {
+                            "type": "array"
+                        },
+                        "memory_slot": {
+                            "items": {
+                                "minimum": 0,
+                                "type": "integer"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        },
+                        "name": {
+                            "enum": [
+                                "acquire"
+                            ]
+                        },
+                        "qubits": {
+                            "items": {
+                                "minimum": 0,
+                                "type": "integer"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        },
+                        "register_slot": {
+                            "items": {
+                                "minimum": 0,
+                                "type": "integer"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        }
+                    },
+                    "required": [
+                        "t0",
+                        "duration",
+                        "qubits",
+                        "memory_slot"
+                    ],
+                    "title": "Acquisition"
+                },
+                {
+                    "properties": {
+                        "label": {
+                            "type": "string"
+                        },
+                        "name": {
+                            "enum": [
+                                "snapshot"
+                            ]
+                        },
+                        "type": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "t0",
+                        "label",
+                        "type"
+                    ],
+                    "title": "snapshot"
+                },
+                {
+                    "$ref": "#/definitions/bfunc"
+                },
+                {
+                    "$ref": "#/definitions/copy"
                 }
-            }
+            ],
+            "properties": {
+                "ch": {
+                    "type": "string"
+                },
+                "conditional": {
+                    "minimum": 0,
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "params": {
+                    "type": "array"
+                },
+                "t0": {
+                    "minimum": 0,
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "type": "object"
+        },
+        "openqasm_instructions": {
+            "oneOf": [
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "u3",
+                                "U"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 3,
+                            "minItems": 3
+                        },
+                        "qubits": {
+                            "maxItems": 1
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 3,
+                            "minItems": 3
+                        }
+                    },
+                    "required": [
+                        "qubits",
+                        "params"
+                    ],
+                    "title": "3-param 1Q op"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "reset",
+                                "id",
+                                "h",
+                                "s",
+                                "sdg",
+                                "t",
+                                "tdg",
+                                "x",
+                                "y",
+                                "z"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 0
+                        },
+                        "qubits": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        }
+                    },
+                    "required": [
+                        "qubits"
+                    ],
+                    "title": "fixed 1Q op"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "u1",
+                                "rx",
+                                "ry",
+                                "rz"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        },
+                        "qubits": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        }
+                    },
+                    "required": [
+                        "qubits",
+                        "params"
+                    ],
+                    "title": "1-param 1Q op"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "u2"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 2,
+                            "minItems": 2
+                        },
+                        "qubits": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 2,
+                            "minItems": 2
+                        }
+                    },
+                    "required": [
+                        "qubits",
+                        "params"
+                    ],
+                    "title": "2-param 1Q op"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "cx",
+                                "CX",
+                                "cy",
+                                "cz",
+                                "ch",
+                                "swap"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 0
+                        },
+                        "qubits": {
+                            "description": "[control, target]",
+                            "maxItems": 2,
+                            "minItems": 2
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        }
+                    },
+                    "required": [
+                        "qubits"
+                    ],
+                    "title": "fixed 2Q gate"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "cu1",
+                                "crz"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        },
+                        "qubits": {
+                            "description": "[control, target]",
+                            "maxItems": 2,
+                            "minItems": 2
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 1,
+                            "minItems": 1
+                        }
+                    },
+                    "required": [
+                        "qubits",
+                        "params"
+                    ],
+                    "title": "1-param 2Q controlled gate"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "cu3"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 3,
+                            "minItems": 3
+                        },
+                        "qubits": {
+                            "description": "[control, target]",
+                            "maxItems": 2,
+                            "minItems": 2
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 3,
+                            "minItems": 3
+                        }
+                    },
+                    "required": [
+                        "qubits",
+                        "params"
+                    ],
+                    "title": "3-param 2Q controlled gate"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "ccx"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 0
+                        },
+                        "qubits": {
+                            "description": "[control, control, target]",
+                            "maxItems": 3,
+                            "minItems": 3
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        }
+                    },
+                    "required": [
+                        "qubits"
+                    ],
+                    "title": "fixed 3Q doubly controlled gate"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "minItems": 1
+                        },
+                        "name": {
+                            "enum": [
+                                "measure"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 0
+                        },
+                        "qubits": {
+                            "minItems": 1
+                        },
+                        "register": {
+                            "minItems": 1
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        }
+                    },
+                    "required": [
+                        "qubits",
+                        "memory"
+                    ],
+                    "title": "measurement"
+                },
+                {
+                    "properties": {
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "barrier"
+                            ]
+                        },
+                        "params": {
+                            "maxItems": 0
+                        },
+                        "qubits": {
+                            "minItems": 1
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        }
+                    },
+                    "required": [
+                        "qubits"
+                    ],
+                    "title": "barrier"
+                },
+                {
+                    "properties": {
+                        "label": {
+                            "type": "string"
+                        },
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "snapshot"
+                            ]
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        },
+                        "type": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "label",
+                        "type"
+                    ],
+                    "title": "snapshot"
+                },
+                {
+                    "$ref": "#/definitions/bfunc"
+                },
+                {
+                    "$ref": "#/definitions/copy"
+                }
+            ],
+            "properties": {
+                "conditional": {
+                    "minimum": 0,
+                    "type": "integer"
+                },
+                "memory": {
+                    "type": "array"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "params": {
+                    "type": "array"
+                },
+                "qubits": {
+                    "type": "array"
+                },
+                "register": {
+                    "type": "array"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "type": "object"
+        },
+        "pulse": {
+            "properties": {
+                "name": {
+                    "description": "Pulse name",
+                    "type": "string"
+                },
+                "samples": {
+                    "$ref": "#/definitions/complex_array"
+                }
+            },
+            "required": [
+                "name",
+                "samples"
+            ],
+            "type": "object"
+        },
+        "pulse_library": {
+            "description": "Pulse library for the backend to use",
+            "items": {
+                "$ref": "#/definitions/pulse"
+            },
+            "type": "array"
         },
         "qobjexp": {
-            "type": "object",
             "description": "Quantum experiment",
-            "required": ["instructions"],
             "properties": {
+                "config": {
+                    "description": "Configuration options that apply to specific experiments in this qobj. Overwrites qobj level configuration.",
+                    "properties": {},
+                    "title": "Experiment level configuration",
+                    "type": "object"
+                },
                 "header": {
-                    "type": "object",
                     "description": "Experiment metadata that does not affect how the experiment is run on the backend. Carried through to the result.",
                     "properties": {
                         "name": {
-                            "type": "string",
-                            "description": "Experiment name."
+                            "description": "Experiment name.",
+                            "type": "string"
                         }
-                    }
                     },
-                "config": {
-                    "title": "Experiment level configuration",
-                    "description": "Configuration options that apply to specific experiments in this qobj. Overwrites qobj level configuration.",
-                    "type": "object",
-                    "properties": {}
+                    "type": "object"
                 },
                 "instructions": {
-                    "type": "array",
+                    "description": "List of experiment instructions.",
                     "minItems": 1,
-                    "description": "List of experiment instructions."}
+                    "type": "array"
                 }
-        },
-        "openpulse_instructions": {
-            "type": "object",
-            "required": ["name"],
-            "properties": {
-                "name": {"type": "string"},
-                "t0": {"type": "integer", "minimum": 0},
-                "ch": {"type": "string"},
-                "params": {"type": "array"},
-                "conditional": {"type": "integer", "minimum": 0}
             },
-            "oneOf": [
-                {"title": "Standard pulse",
-                "required": ["t0", "ch"],
-                "properties": {
-                    "name": {"not": {"enum": ["pv","fc","acquire"]}}}},
-                {
-                "title": "Persistent value pulse",
-                "required": ["val", "t0", "ch"],
-                "properties": {
-                    "name": {"enum": ["pv"]},
-                    "val": {
-                        "type": "array",
-                        "minItems": 2,
-                        "maxItems": 2,
-                        "items": {"type": "number"}}
-                }
-                },
-                {
-                "title": "Frame change pulse",
-                "required": ["phase", "t0", "ch"],
-                "properties": {
-                    "name": {"enum": ["fc"]},
-                    "phase": {"type": "number"}
-                }
-                },
-                {
-                "title": "Acquisition",
-                "required": ["t0","duration","qubits","memory_slot"],
-                "properties": {
-                    "name": {"enum": ["acquire"]},
-                    "duration": {"type": "number"},
-                    "qubits": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
-                    "memory_slot": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
-                    "register_slot": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
-                    "kernels": {"type": "array"},
-                    "discriminators": {"type": "array"}
-                }
-                },
-                {
-                    "title": "snapshot",
-                    "required": ["t0","label","type"],
-                    "properties": {
-                        "name": {"enum": ["snapshot"]},
-                        "label": {"type": "string"},
-                        "type": {"type": "string"}
-                    }
-                },
-                {"$ref": "#/definitions/bfunc"},
-                {"$ref": "#/definitions/copy"}
-            ] 
+            "required": [
+                "instructions"
+            ],
+            "type": "object"
         },
-        "openqasm_instructions": {
-            "type": "object",
-            "required": ["name"],
+        "qobjinstructions": {
             "properties": {
-                "qubits": {"type": "array"},
-                "register": {"type": "array"},
-                "memory": {"type": "array"},
-                "name": {"type": "string"},
-                "params": {"type": "array"},
-                "conditional": {"type": "integer", "minimum": 0}        
-            },
-            "oneOf": [{		
-                    "title": "3-param 1Q op",
-                    "required": ["qubits", "params"],
-                    "properties": {
-                        "name": {"enum": ["u3", "U"]},
-                        "qubits": {"maxItems": 1},
-                        "register": {"maxItems": 0},
-                        "memory": {"maxItems": 0},
-                        "params": {"minItems": 3, "maxItems": 3},
-                        "texparams": {"minItems": 3, "maxItems": 3}
-                    }
-                }, {
-                "title": "fixed 1Q op",
-                "required": ["qubits"],
-                "properties": {
-                    "name": {"enum": ["reset", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z"]},
-                    "qubits": {"minItems": 1, "maxItems": 1},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"maxItems": 0},
-                    "texparams": {"maxItems": 0}
-                }
-                }, {
-                "title": "1-param 1Q op",
-                "required": ["qubits", "params"],
-                "properties": {
-                    "name": {"enum": ["u1", "rx", "ry", "rz"]},
-                    "qubits": {"minItems": 1, "maxItems": 1},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"minItems": 1, "maxItems": 1},
-                    "texparams": {"minItems": 1, "maxItems": 1}
-                }			
-                }, {
-                "title": "2-param 1Q op",
-                "required": ["qubits", "params"],				
-                "properties": {
-                    "name": {"enum": ["u2"]},
-                    "qubits": {"minItems": 1, "maxItems": 1},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"minItems": 2, "maxItems": 2},
-                    "texparams": {"minItems": 2, "maxItems": 2}
-                }			
-                }, {
-                "title": "fixed 2Q gate",
-                "required": ["qubits"],
-                "properties": {
-                    "name": {"enum": ["cx", "CX", "cy", "cz", "ch", "swap"]},
-                    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"maxItems": 0},
-                    "texparams": {"maxItems": 0}
-                }
-                }, {
-                "title": "1-param 2Q controlled gate",
-                "required": ["qubits", "params"],
-                "properties": {
-                    "name": {"enum": ["cu1", "crz"]},
-                    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"minItems": 1, "maxItems": 1},
-                    "texparams": {"minItems": 1, "maxItems": 1}
-                }
-                }, {
-                "title": "3-param 2Q controlled gate",
-                "required": ["qubits", "params"],
-                "properties": {
-                    "name": {"enum": ["cu3"]},
-                    "qubits": {"description": "[control, target]", "minItems": 2, "maxItems": 2},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"minItems": 3, "maxItems": 3},
-                    "texparams": {"minItems":3, "maxItems": 3}
-                }
-                }, {
-                "title": "fixed 3Q doubly controlled gate",
-                "required": ["qubits"],
-                "properties": {
-                    "name": {"enum": ["ccx"]},
-                    "qubits": {"description": "[control, control, target]", "minItems": 3, "maxItems": 3},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"maxItems": 0},
-                    "texparams": {"maxItems": 0}
-                }
-                }, {
-                "title": "measurement",
-                "required": ["qubits", "memory"],
-                "properties": {
-                    "name": {"enum": ["measure"]},
-                    "qubits": {"minItems": 1, "maxItems": 1},
-                    "memory": {"minItems": 1, "maxItems": 1},
-                    "register": {"minItems": 1, "maxItems": 1},
-                    "params": {"maxItems": 0},
-                    "texparams": {"maxItems": 0}
-                }
-                }, {
-                "title": "barrier",
-                "required": ["qubits"],
-                "properties": {
-                    "name": {"enum": ["barrier"]},
-                    "qubits": {"minItems": 1},
-                    "memory": {"maxItems": 0},
-                    "register": {"maxItems": 0},
-                    "params": {"maxItems": 0},
-                    "texparams": {"maxItems": 0}
-                }
-                },
-                {
-                "title": "snapshot",
-                "required": ["label","type"],
-                "properties": {
-                    "name": {"enum": ["snapshot"]},
-                    "memory": {"maxItems": 0},               
-                    "register": {"maxItems": 0},
-                    "label": {"type": "string"},
-                    "type": {"type": "string"},
-                    "texparams": {"maxItems": 0}
-                }
-                },
-                {"$ref": "#/definitions/bfunc"},
-                {"$ref": "#/definitions/copy"}
-            ]
-        }        
-    },
-    "oneOf": [
-    {"allOf": [{"$ref": "#/definitions/qobjlevel0"},
-    {
-    "properties": {
-            "type": {
-                "enum": [ "QASM" ]},
-            "experiments": {
-                "items": {
-                    "allOf": [
-                    {"$ref": "#/definitions/qobjexp"},
-                    {"properties": {
-                        "instructions": {
-                            "items": {"$ref": "#definitions/openqasm_instructions"}
-                            }
-                        }
-                    }]
+                "instructions": {
+                    "items": {
+                        "$ref": "#/definitions/openpulse_instructions"
                     }
                 }
             }
-    }]},
-    {"allOf": [{"$ref": "#/definitions/qobjlevel0"},
-    {
-    "properties": {
-            "type": {
-                "enum": [ "PULSE" ]},
-            "config": {
-                "required": ["meas_level", "pulse_library", "memory_slot_size", "meas_return", "qubit_lo_freq", "meas_lo_freq", "rep_rate"],
-                "properties": {
-                    "meas_level": {"enum": [0,1,2]},
-                    "pulse_library": {
-                        "type": "array",
-                        "description": "Pulse library for the backend to use",
-                        "items": {
-                            "type": "object",
-                            "required": ["name","samples"],
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "description": "Pulse name"},
-                                "samples": {"$ref": "#/definitions/complex_array"}
-                            }}
-                    },
-                    "memory_slot_size": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "default": 1,
-                        "description": "Size of each memory slot. For measurement level 0 (raw) this sets the length of each measurement acquisition"
+        },
+        "qobj_qasm": {
+            "properties": {
+                "config": {
+                    "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",
+                    "properties": {
+                        "max_credits": {
+                            "default": 3,
+                            "type": "integer"
                         },
-                    "meas_return": {
-                        "enum": ["single","avg"],
-                        "description": "Return each shot of data or average over the shots"},
-                    "qubit_lo_freq": {
-                        "type": "array",
-                        "description": "Qubit drive LO frequencies",
-                        "minItems": 1,
-                        "items": {"type": "number", "minimum": 0}},
-                    "meas_lo_freq": {
-                        "type": "array",
-                        "description": "Measurement LO frequencies",
-                        "minItems": 1,
-                        "items": {"type": "number", "minimum": 0}},
-                    "rep_rate": {"type": "integer", "minimum": 1}
-                    }
-                },
-            "experiments": {
-                "items": {
-                    "allOf": [
-                    {"$ref": "#/definitions/qobjexp"},
-                    {"properties": {
-                        "instructions": {
-                            "items": {"$ref": "#/definitions/openpulse_instructions"}
-                            }
+                        "memory_slots": {
+                            "description": "The number of measurement slots in the classical memory on the backend.",
+                            "minimum": 0,
+                            "type": "integer"
+                        },
+                        "seed": {
+                            "default": 1,
+                            "type": "integer"
+                        },
+                        "shots": {
+                            "description": "Number of repetitions of each experiment",
+                            "minimum": 1,
+                            "type": "integer"
                         }
-                    }]
+                    },
+                    "required": [
+                        "shots",
+                        "memory_slots"
+                    ],
+                    "title": "Qobj-level configuration",
+                    "type": "object"
+                },
+                "experiments": {
+                    "description": "List of experiments to run",
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "header": {
+                    "_constraints": "sum(x[1] for x in clbit_labels) == number_of_clbits",
+                    "description": "QObj metadata that does not affect how the experiments are run on the backend. Carried through to the result.",
+                    "properties": {
+                        "backend_name": {
+                            "description": "The backend this set of experiments was generated for. It may also be able to execute on other backends.",
+                            "type": "string"
+                        },
+                        "backend_version": {
+                            "description": "The backend version this set of experiments was generated for. ",
+                            "type": "string"
+                        },
+                        "clbit_labels": {
+                            "description": "A list of pairs [clreg_name, size], to allocate the next size contiguous clbits to clreg clreg_name. The sum of the size-s should equal register_slots",
+                            "examples": [
+                                [
+                                    [
+                                        "c",
+                                        2
+                                    ],
+                                    [
+                                        "d",
+                                        3
+                                    ]
+                                ]
+                            ],
+                            "items": [
+                                {
+                                    "items": [
+                                        {
+                                            "minLength": 1,
+                                            "title": "clreg",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "description": "Size of the clreg",
+                                            "minimum": 1,
+                                            "title": "size",
+                                            "type": "integer"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                }
+                            ],
+                            "minItems": 1,
+                            "title": "Map physical clbits to register_slots (for QASM)",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "qubit_labels": {
+                            "description": "A list of length n_qubits (from backend.configuration), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
+                            "examples": [
+                                [
+                                    [
+                                        "q",
+                                        0
+                                    ],
+                                    [
+                                        "q",
+                                        1
+                                    ],
+                                    [
+                                        "r",
+                                        0
+                                    ],
+                                    [
+                                        "r",
+                                        1
+                                    ],
+                                    [
+                                        "r",
+                                        2
+                                    ]
+                                ],
+                                [
+                                    [
+                                        "q",
+                                        2
+                                    ],
+                                    null,
+                                    [
+                                        "q",
+                                        1
+                                    ],
+                                    null,
+                                    [
+                                        "q",
+                                        0
+                                    ]
+                                ]
+                            ],
+                            "items": {
+                                "items": [
+                                    {
+                                        "minLength": 1,
+                                        "title": "qreg",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "description": "The qubit number within the qreg",
+                                        "minimum": 0,
+                                        "title": "qubit number",
+                                        "type": "integer"
+                                    }
+                                ],
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": [
+                                    "array",
+                                    "null"
+                                ]
+                            },
+                            "minItems": 1,
+                            "title": "Map physical qubits to qregs (for QASM)",
+                            "type": "array"
+                        }
+                    },
+                    "type": "object"
+                },
+                "qobj_id": {
+                    "description": "User generated qobj ID",
+                    "type": "string"
+                },
+                "schema_version": {
+                    "description": "Schema version used to compile the qobj",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type of instruction set used for the experiment, QASM or PULSE",
+                    "enum": [
+                        "QASM",
+                        "PULSE"
+                    ],
+                    "type": "string"
+                }
+            },
+            "required": [
+                "qobj_id",
+                "schema_version",
+                "type",
+                "experiments",
+                "config",
+                "header"
+            ],
+            "type": "object"
+        },
+        "qobj_openpulse": {
+            "properties": {
+                "config": {
+                    "properties": {
+                        "meas_level": {
+                            "enum": [
+                                0,
+                                1,
+                                2
+                            ]
+                        },
+                        "meas_lo_freq": {
+                            "description": "Measurement LO frequencies",
+                            "items": {
+                                "minimum": 0,
+                                "type": "number"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        },
+                        "meas_return": {
+                            "description": "Return each shot of data or average over the shots",
+                            "enum": [
+                                "single",
+                                "avg"
+                            ]
+                        },
+                        "memory_slot_size": {
+                            "default": 1,
+                            "description": "Size of each memory slot. For measurement level 0 (raw) this sets the length of each measurement acquisition",
+                            "minimum": 0,
+                            "type": "integer"
+                        },
+                        "pulse_library": {
+                            "$ref": "#/definitions/pulse_library"
+                        },
+                        "qubit_lo_freq": {
+                            "description": "Qubit drive LO frequencies",
+                            "items": {
+                                "minimum": 0,
+                                "type": "number"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        },
+                        "rep_time": {
+                            "minimum": 1,
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "meas_level",
+                        "pulse_library",
+                        "memory_slot_size",
+                        "meas_return",
+                        "qubit_lo_freq",
+                        "meas_lo_freq",
+                        "rep_time"
+                    ]
+                },
+                "experiments": {
+                    "items": {
+                        "allOf": [
+                            {
+                                "$ref": "#/definitions/qobjexp"
+                            },
+                            {
+                                "$ref": "#/definitions/qobjinstructions"
+                            }
+                        ]
+                    },
+                    "type": "array"
+                },
+                "type": {
+                    "enum": [
+                        "PULSE"
+                    ]
+                }
+            }
+        }
+    },
+    "oneOf": [
+        {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/qobj_qasm"
+                },
+                {
+                    "properties": {
+                        "experiments": {
+                            "items": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/definitions/qobjexp"
+                                    },
+                                    {
+                                        "properties": {
+                                            "instructions": {
+                                                "items": {
+                                                    "$ref": "#definitions/openqasm_instructions"
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "type": {
+                            "enum": [
+                                "QASM"
+                            ]
+                        }
                     }
                 }
-            }}]}
-            ]           
+            ]
+        },
+        {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/qobj_qasm"
+                },
+                {
+                    "$ref": "#/definitions/qobj_openpulse"
+                }
+            ]
+        }
+    ]
 }
-
