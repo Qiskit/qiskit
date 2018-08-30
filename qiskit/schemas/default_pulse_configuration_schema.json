@@ -4,109 +4,149 @@
     "description": "Default OpenPulse backend configuration",
     "version": "1.0.0",
     "definitions": {
+        "cmd_def": {
+            "description": "OpenPulse command definition schema. Defines QASM commands in terms of pulses.",
+            "properties": {
+                "name": {
+                    "description": "QASM command name",
+                    "type": "string"
+                },
+                "qubits": {
+                    "description": "Qubits to which this command def applies",
+                    "items": {
+                        "minimum": 0,
+                        "type": "integer"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "sequence": {
+                    "description": "Sequence of pulse instructions",
+                    "items": {
+                        "type": "object"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "type": "object"
+        },
         "complex": {
             "description": "JSON representation of a complex number",
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 2,
             "items": {
                 "type": "number"
-            }
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
         },
         "complex_array": {
             "description": "JSON representation of a complex vector",
-            "type": "array",
-            "minItems": 1,
             "items": {
                 "$ref": "#/definitions/complex"
-            }
+            },
+            "minItems": 1,
+            "type": "array"
         },
         "complex_matrix": {
             "description": "JSON representaiton of a complex matrix",
-            "type": "array",
-            "minItems": 1,
             "items": {
                 "$ref": "#/definitions/complex_array"
-            }
+            },
+            "minItems": 1,
+            "type": "array"
         },
-        "cmd_def": {
-            "description": "OpenPulse command definition schema. Defines QASM commands in terms of pulses.",
-            "type": "object",
-            "required": ["name"],
+        "discriminator": {
+            "description": "Default measurement kernel",
             "properties": {
                 "name": {
-                    "type": "string",
-                    "description": "QASM command name"
+                    "type": "string"
                 },
-                "qubits": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Qubits to which this command def applies", 
-                    "items": {"type": "integer", "minimum": 0}
-                },
-                "sequence": {
-                    "type": "array",
-                    "description": "Sequence of pulse instructions",
-                    "items": {"type": "object"}
-                }
-            }
-        }
-    },
-    "type": "object",
-    "required": ["qubit_freq_est","meas_freq_est","pulse_library","meas_kernel","discriminator","buffer"],
-    "properties": {
-        "qubit_freq_est": {
-            "type": "array",
-            "description": "Backend calibrated qubit frequencies",
-            "minItems": 1,
-            "items": {"type": "number"}},
-        "meas_freq_est": {
-            "type": "array",
-            "description": "Backend calibrated qubit frequencies",
-            "minItems": 1,
-            "items": {"type": "number"}},
-        "buffer": {
-            "type": "integer",
-            "description": "Default buffer time between pulses",
-            "minimum": 0,
-            "default": 1
-        },
-        "cmd_def": {
-            "type": "array",
-            "description": "Backend calibrated QASM to Pulse definitions",
-            "items": {"$ref": "#/definitions/cmd_def"}
-        },
-        "pulse_library": {
-            "type": "array",
-            "description": "Backend pulse library",
-            "items": {
-                "type": "object",
-                "required": ["name","samples"],
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Pulse name"},
-                    "samples": {"$ref": "#/definitions/complex_array"}
-                    }
-                }
-        },
-        "meas_kernel": {
-            "type": "object",
-            "description": "Default measurement kernel",
-            "properties": {
-                "name": {"type": "string"},
-                "params": {"type": "array"}
+                "params": {
+                    "type": "array"
                 }
             },
-        "discriminator": {
-            "type": "object",
+            "type": "object"
+        },
+        "meas_kernel": {
             "description": "Default measurement kernel",
             "properties": {
-                "name": {"type": "string"},
-                "params": {"type": "array"}
+                "name": {
+                    "type": "string"
+                },
+                "params": {
+                    "type": "array"
                 }
-            }
-        
-   }
+            },
+            "type": "object"
+        }
+    },
+    "properties": {
+        "buffer": {
+            "default": 1,
+            "description": "Default buffer time between pulses",
+            "minimum": 0,
+            "type": "integer"
+        },
+        "cmd_def": {
+            "description": "Backend calibrated QASM to Pulse definitions",
+            "items": {
+                "$ref": "#/definitions/cmd_def"
+            },
+            "type": "array"
+        },
+        "discriminator": {
+            "$ref": "#/definitions/discriminator"
+        },
+        "meas_freq_est": {
+            "description": "Backend calibrated qubit frequencies",
+            "items": {
+                "type": "number"
+            },
+            "minItems": 1,
+            "type": "array"
+        },
+        "meas_kernel": {
+            "$ref": "#/definitions/meas_kernel"
+        },
+        "pulse_library": {
+            "description": "Backend pulse library",
+            "items": {
+                "properties": {
+                    "name": {
+                        "description": "Pulse name",
+                        "type": "string"
+                    },
+                    "samples": {
+                        "$ref": "#/definitions/complex_array"
+                    }
+                },
+                "required": [
+                    "name",
+                    "samples"
+                ],
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "qubit_freq_est": {
+            "description": "Backend calibrated qubit frequencies",
+            "items": {
+                "type": "number"
+            },
+            "minItems": 1,
+            "type": "array"
+        }
+    },
+    "required": [
+        "qubit_freq_est",
+        "meas_freq_est",
+        "pulse_library",
+        "meas_kernel",
+        "discriminator",
+        "buffer"
+    ],
+    "type": "object"
 }
-
