@@ -50,8 +50,18 @@ class StatusMagic(Magics):
                 line_var = spline[0]
                 # Check corner case where expression with equals is commented out
                 if '#' not in line_var:
-                    if isinstance(self.shell.user_ns[line_var], qiskit.backends.basejob.BaseJob):
-                        jobs.append(line_var)
+                    # The line var is a list or array, but we cannot parse the index
+                    # so just iterate over the whole array for jobs.
+                    if '[' in line_var:
+                        line_var = line_var.split('[')[0]
+                        for item in self.shell.user_ns[line_var]:
+                            if isinstance(item, qiskit.backends.basejob.BaseJob):
+                                jobs.append(item)
+                    else:
+                        if isinstance(self.shell.user_ns[line_var],
+                                      qiskit.backends.basejob.BaseJob):
+                            jobs.append(self.shell.user_ns[line_var])
+
         # Must have one job class
         if not any(jobs):
             raise Exception(
@@ -82,8 +92,7 @@ class StatusMagic(Magics):
 
         job_checkers = []
         # Loop over every BaseJob that was found.
-        for idx, job in enumerate(jobs):
-            job_var = self.shell.user_ns[job]
+        for idx, job_var in enumerate(jobs):
             style = "font-size:16px;"
             if multi_job:
                 idx_str = '[%s]' % idx
