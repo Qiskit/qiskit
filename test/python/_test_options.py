@@ -11,6 +11,7 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(format='Testing: %(message)s')
 
 
 def get_test_options(option_var='QISKIT_TESTS'):
@@ -59,17 +60,17 @@ def get_test_options(option_var='QISKIT_TESTS'):
         if flag in dependency_solvers:
             dependency_solvers[flag]()
 
-    flag_string = os.getenv(option_var, '')
-    for flag in flag_string.split(','):
-        if flag and flag not in tests_options:
+    flag_string = os.getenv(option_var, None)
+    flags = flag_string.split(',') if flag_string else []
+    for flag in flags:
+        if flag not in tests_options:
             logger.error('Testing option "%s" unknown.', flag)
-
         set_flag(flag)
 
     if _is_ci_fork_pull_request():
         set_flag('skip_online')
 
-    print('QISKIT_TESTS: %s' % tests_options)
+    logger.warn(tests_options)
     return tests_options
 
 
