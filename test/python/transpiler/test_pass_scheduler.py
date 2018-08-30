@@ -14,12 +14,13 @@ import unittest.mock
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager, transpile, TranspilerAccessError
-from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, PassD_TP_NR_NP,\
-    PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, PassH_Bad_TP, \
-    PassI_Bad_AP
+from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
+    PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
+    PassH_Bad_TP, PassI_Bad_AP
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
+
 
 class TestUseCases(QiskitTestCase):
     """ The pass manager schedules passes in, sometimes, tricky ways. These tests combine passes in
@@ -202,7 +203,7 @@ class TestUseCases(QiskitTestCase):
         passmanager.add_pass(PassA_TP_NR_NP())
         passmanager.add_pass(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
         passmanager.add_pass(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
-                                                # not here
+        # not here
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
@@ -223,11 +224,11 @@ class TestUseCases(QiskitTestCase):
         pass_a.set(idempotence=False)  # Set idempotence as False
 
         passmanager.add_pass(pass_a)
-        passmanager.add_pass(pass_a)            # Normally removed for optimization, not here.
+        passmanager.add_pass(pass_a)  # Normally removed for optimization, not here.
         passmanager.add_pass(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
-                                                # not here
+        # not here
         passmanager.add_pass(PassA_TP_NR_NP())  # This is not run because is idempotent and it was
-                                                # already ran as PassB requirment.
+        # already ran as PassB requirment.
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',

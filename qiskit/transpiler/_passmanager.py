@@ -111,7 +111,7 @@ class PassManager():
                 self._do_pass(required_pass, dag)
 
         # Run the pass itself, if not already ran (exists in valid_passes)
-        if not pass_ in self.valid_passes:
+        if pass_ not in self.valid_passes:
             if pass_.is_TransformationPass:
                 pass_.property_set = self.fenced_property_set
                 pass_.run(dag)
@@ -139,6 +139,7 @@ class WorkingList():
     """
     A working list is the way that a pass manager organize the things to do.
     """
+
     def __init__(self):
         self.list_of_items = []
 
@@ -169,6 +170,7 @@ class WorkingList():
 class WorkItem():
     """This class is a base class for multiple types of working list. When you iterate on it, it
     returns the next pass to run. """
+
     def __init__(self, passes):
         self.passes = passes
 
@@ -179,6 +181,7 @@ class WorkItem():
 
 class WorkItemDoWhile(WorkItem):
     """This type of working list item implements a set of passes in a do while loop. """
+
     def __init__(self, passes, do_while):  # pylint: disable=super-init-not-called
         self.working_list = WorkingList()
         self.working_list.add(passes)
@@ -194,6 +197,7 @@ class WorkItemDoWhile(WorkItem):
 
 class WorkItemConditional(WorkItem):
     """This type of working list item implements a set of passes under certain condition. """
+
     def __init__(self, passes, do_while, condition):  # pylint: disable=super-init-not-called
         self.working_list = WorkingList()
         self.working_list.add(passes, do_while)

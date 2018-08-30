@@ -14,6 +14,7 @@ from qiskit.transpiler import TranspilerUnknownOption
 from ._dummy_passes import DummyAP, DummyTP, PassD_TP_NR_NP
 from ..common import QiskitTestCase
 
+
 class TestGenericPass(QiskitTestCase):
     """ Passes have common caracteristics defined in BasePass."""
 
@@ -21,9 +22,9 @@ class TestGenericPass(QiskitTestCase):
         """ Passes can be set via `set`."""
         tp_pass = DummyTP()
 
-        self.assertTrue(tp_pass.idempotence)        # By default, passes are idempotent
+        self.assertTrue(tp_pass.idempotence)  # By default, passes are idempotent
         self.assertFalse(tp_pass.ignore_preserves)  # By default, passes do not ignore preserves
-        self.assertFalse(tp_pass.ignore_requires)   # By default, passes do not ignore requires
+        self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
 
         tp_pass.set(idempotence=False, ignore_preserves=True, ignore_requires=True)
 
