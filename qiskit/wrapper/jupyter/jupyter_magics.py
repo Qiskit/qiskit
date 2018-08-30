@@ -36,31 +36,38 @@ class StatusMagic(Magics):
         args = magic_arguments.parse_argstring(self.qiskit_job_status, line)
         # Split cell lines to get LHS variables
         cell_lines = cell.split('\n')
-        split_lines = []
+        line_vars = []
         for cline in cell_lines:
-            split_lines.append(cline.replace(' ', '').split('='))
+            if '=' in cline and '==' not in cline:
+                line_vars.append(cline.replace(' ', '').split('=')[0])
+            elif '.append(' in cline:
+                line_vars.append(cline.replace(' ', '').split('(')[0])
 
         # Execute the cell
         self.shell.ex(cell)
 
         # Look for all vars that are BaseJob instances
         jobs = []
-        for spline in split_lines:
-            if len(spline) == 2:
-                line_var = spline[0]
-                # Check corner case where expression with equals is commented out
-                if '#' not in line_var:
-                    # The line var is a list or array, but we cannot parse the index
-                    # so just iterate over the whole array for jobs.
-                    if '[' in line_var:
-                        line_var = line_var.split('[')[0]
-                        for item in self.shell.user_ns[line_var]:
-                            if isinstance(item, qiskit.backends.basejob.BaseJob):
-                                jobs.append(item)
-                    else:
-                        if isinstance(self.shell.user_ns[line_var],
-                                      qiskit.backends.basejob.BaseJob):
-                            jobs.append(self.shell.user_ns[line_var])
+        for var in line_vars:
+            iter_var = False
+            if '#' not in var:
+                # The line var is a list or array, but we cannot parse the index
+                # so just iterate over the whole array for jobs.
+                if '[' in var:
+                    var = var.split('[')[0]
+                    iter_var = True
+                elif '.append' in var:
+                    var = var.split('.append')[0]
+                    iter_var = True
+
+                if iter_var:
+                    for item in self.shell.user_ns[var]:
+                        if isinstance(item, qiskit.backends.basejob.BaseJob):
+                            jobs.append(item)
+                else:
+                    if isinstance(self.shell.user_ns[var],
+                                  qiskit.backends.basejob.BaseJob):
+                        jobs.append(self.shell.user_ns[var])
 
         # Must have one job class
         if not any(jobs):
