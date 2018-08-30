@@ -70,7 +70,7 @@ class TestCircuit(QiskitTestCase):
 include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
-creg c[3];
+creg cr[3];
 u1(0.300000000000000) qr1[0];
 u2(0.200000000000000,0.100000000000000) qr2[0];
 u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
@@ -80,13 +80,13 @@ cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];
 h qr2[1];
-if(c==0) x qr2[1];
-if(c==1) y qr1[0];
-if(c==2) z qr1[0];
+if(cr==0) x qr2[1];
+if(cr==1) y qr1[0];
+if(cr==2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
-measure qr1[0] -> c[0];
-measure qr2[0] -> c[1];
-measure qr2[1] -> c[2];\n"""
+measure qr1[0] -> cr[0];
+measure qr2[0] -> cr[1];
+measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
 
