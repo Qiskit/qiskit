@@ -5,12 +5,12 @@ Programming interface
 ---------------------
 
 The *qiskit* directory is the main Python module and contains the
-programming interface objects :py:class:`QuantumProgram <qiskit.QuantumProgram>`,
+programming interface objects:
 :py:class:`QuantumRegister <qiskit.QuantumRegister>`,
 :py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
 and :py:class:`QuantumCircuit <qiskit.QuantumCircuit>`.
 
-At the highest level, users construct a *QuantumProgram* to create,
+At the highest level, users construct a *QuantumCircuit* to create,
 modify, compile, and execute a collection of quantum circuits. Each
 *QuantumCircuit* has a set of data registers, each of type
 *QuantumRegister* or *ClassicalRegister*. Methods of these objects are
@@ -104,9 +104,8 @@ family of "`qiskit.*`" loggers, and abides by the standard convention for the lo
 +--------------+----------------------------------------------+
 
 
-For convenience, :py:class:`QuantumProgram <qiskit.QuantumProgram>` provides two convenience
-methods (:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` and
-:py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`) that modify the handlers
+For convenience, two methods are provided in :py:mod<`qiskit_logging.py`>: (:py:func:<`set_qiskit_logger()>` and
+:py:func:<`unset_qiskit_logger`>) that modify the handlers
 and the level of the `qiskit` logger. Using these methods might interfere with the global
 logging setup of your environment - please take it into consideration if developing an
 application on top of the SDK.

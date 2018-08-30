@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=unused-import,invalid-name
 
-# Copyright 2017, IBM.
+# Copyright 2018, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
-
-# pylint: disable=unused-import,invalid-name
 
 """
 These are tools that are used in the classical optimization and chemistry
 tutorials
 """
-import uuid
 import copy
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import execute
 from qiskit.extensions.standard import h, ry, barrier, cz, x, y, z
 from qiskit.tools.qi.pauli import Pauli, label_to_pauli
 
@@ -50,6 +49,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
                 optimization in the + direction
             theta_minus_save : array of stored variables of obj_fun along the
                 optimization in the - direction
+        list[QuantumCircuit]: the circuits used in optimization
     """
 
     theta_plus_save = []
@@ -58,6 +58,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
     cost_minus_save = []
     theta = initial_theta
     theta_best = np.zeros(initial_theta.shape)
+    circuits = []
     for k in range(max_trials):
         # SPSA Paramaters
         a_spsa = float(SPSA_parameters[0]) / np.power(k + 1 +
@@ -70,8 +71,8 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
         theta_plus = theta + c_spsa * delta
         theta_minus = theta - c_spsa * delta
         # cost fuction for the two directions
-        cost_plus = obj_fun(theta_plus)
-        cost_minus = obj_fun(theta_minus)
+        cost_plus, circuits_plus = obj_fun(theta_plus)
+        cost_minus, circuits_minus = obj_fun(theta_minus)
         # derivative estimate
         g_spsa = (cost_plus - cost_minus) * delta / (2.0 * c_spsa)
         # updated theta
@@ -86,15 +87,19 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
             theta_minus_save.append(theta_minus)
             cost_plus_save.append(cost_plus)
             cost_minus_save.append(cost_minus)
+        # record circuits ran
+        circuits += circuits_plus
+        circuits += circuits_minus
 
         if k >= max_trials - last_avg:
             theta_best += theta / last_avg
 
     # final cost update
-    cost_final = obj_fun(theta_best)
+    cost_final, circuits_final = obj_fun(theta_best)
+    circuits += circuits_final
     print('Final objective function is: %.7f' % cost_final)
     return [cost_final, theta_best, cost_plus_save, cost_minus_save,
-            theta_plus_save, theta_minus_save]
+            theta_plus_save, theta_minus_save], circuits
 
 
 def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
@@ -111,6 +116,7 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
             the calibration.
     Returns:
         numpy.array: An array of 5 SPSA_parameters to use in the optimization.
+        list[QuantumCircuit]: the circuits used in calibration
     """
 
     SPSA_parameters = np.zeros((5))
@@ -119,21 +125,24 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
     SPSA_parameters[3] = 0.101
     SPSA_parameters[4] = 0
     delta_obj = 0
+    circuits = []
     for i in range(stat):
         if i % 5 == 0:
             print('calibration step # ' + str(i) + ' of ' + str(stat))
 
         delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
-        obj_plus = obj_fun(initial_theta + initial_c * delta)
-        obj_minus = obj_fun(initial_theta - initial_c * delta)
+        obj_plus, circuits_plus = obj_fun(initial_theta + initial_c * delta)
+        obj_minus, circuits_minus = obj_fun(initial_theta - initial_c * delta)
         delta_obj += np.absolute(obj_plus - obj_minus) / stat
+        circuits += circuits_plus
+        circuits += circuits_minus
 
     SPSA_parameters[0] = target_update * 2 / delta_obj \
         * SPSA_parameters[1] * (SPSA_parameters[4] + 1)
 
     print('calibrated SPSA_parameters[0] is %.7f' % SPSA_parameters[0])
 
-    return SPSA_parameters
+    return SPSA_parameters, circuits
 
 
 def measure_pauli_z(data, pauli):
@@ -261,13 +270,11 @@ def print_pauli_list_grouped(pauli_list_grouped):
         print('\n')
 
 
-def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
+def eval_hamiltonian(hamiltonian, input_circuit, shots, device):
     """Calculates the average value of a Hamiltonian on a state created by the
      input circuit
 
     Args:
-        Q_program (QuantumProgram): QuantumProgram object used to run the
-            input circuit.
         hamiltonian (array or matrix or list): a representation of the
             Hamiltonian or observables to be measured. If it is a list, it is
             a list of Pauli operators grouped into tpb sets.
@@ -279,20 +286,14 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
         float: Average value of the Hamiltonian or observable.
     """
     energy = 0
+    circuits = []
 
     if 'statevector' in device:
+        circuits.append(input_circuit)
         # Hamiltonian is not a pauli_list grouped into tpb sets
         if not isinstance(hamiltonian, list):
-            circuit = ['c' + str(uuid.uuid4())]    # unique random circuit for no collision
-            Q_program.add_circuit(circuit[0], input_circuit)
-            result = Q_program.execute(circuit, device, shots=shots,
-                                       config={"data": ["statevector"]})
-            statevector = result.get_data(circuit[0]).get('statevector')
-            if statevector is None:
-                statevector = result.get_data(
-                    circuit[0]).get('statevector')
-                if statevector:
-                    statevector = statevector[0]
+            result = execute(circuits, device, shots=shots).result()
+            statevector = result.get_statevector()
             # Diagonal Hamiltonian represented by 1D array
             if (hamiltonian.shape[0] == 1 or
                     np.shape(np.shape(np.array(hamiltonian))) == (1,)):
@@ -303,12 +304,6 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                                   np.dot(hamiltonian, statevector))
         # Hamiltonian represented by a Pauli list
         else:
-            circuits = []
-            circuits_labels = []
-            circuits.append(input_circuit)
-            # Trial circuit w/o the final rotations
-            circuits_labels.append('circuit_label0' + str(uuid.uuid4()))
-            Q_program.add_circuit(circuits_labels[0], circuits[0])
             # Execute trial circuit with final rotations for each Pauli in
             # hamiltonian and store from circuits[1] on
             n_qubits = input_circuit.regs['q'].size
@@ -323,33 +318,25 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                         circuits[i].z(q[j])
                     elif p[1].v[j] == 1 and p[1].w[j] == 1:
                         circuits[i].y(q[j])
-
-                circuits_labels.append('circuit_label' + str(i) + str(uuid.uuid4()))
-                Q_program.add_circuit(circuits_labels[i], circuits[i])
                 i += 1
-            result = Q_program.execute(circuits_labels, device, shots=shots)
+            result = execute(circuits, device, shots=shots).result()
             # no Pauli final rotations
-            statevector_0 = result.get_data(
-                circuits_labels[0])['statevector']
+            statevector_0 = result.get_statevector(circuits[0])
             i = 1
             for p in hamiltonian:
-                statevector_i = result.get_data(
-                    circuits_labels[i])['statevector']
+                statevector_i = result.get_statevector(circuits[i])
                 # inner product with final rotations of (i-1)-th Pauli
                 energy += p[0] * np.inner(np.conjugate(statevector_0),
                                           statevector_i)
                 i += 1
     # finite number of shots and hamiltonian grouped in tpb sets
     else:
-        circuits = []
-        circuits_labels = []
         n = int(len(hamiltonian[0][0][1].v))
         q = QuantumRegister(n, "q")
         c = ClassicalRegister(n, "c")
         i = 0
         for tpb_set in hamiltonian:
             circuits.append(copy.deepcopy(input_circuit))
-            circuits_labels.append('tpb_circuit_' + str(i) + str(uuid.uuid4()))
             for j in range(n):
                 # Measure X
                 if tpb_set[0][1].v[j] == 0 and tpb_set[0][1].w[j] == 1:
@@ -359,16 +346,15 @@ def eval_hamiltonian(Q_program, hamiltonian, input_circuit, shots, device):
                     circuits[i].s(q[j]).inverse()
                     circuits[i].h(q[j])
                 circuits[i].measure(q[j], c[j])
-            Q_program.add_circuit(circuits_labels[i], circuits[i])
             i += 1
-        result = Q_program.execute(circuits_labels, device, shots=shots)
+        result = execute(circuits, device, shots=shots).result()
         for j, _ in enumerate(hamiltonian):
             for k, _ in enumerate(hamiltonian[j]):
                 energy += hamiltonian[j][k][0] *\
-                    measure_pauli_z(result.get_counts(
-                        circuits_labels[j]), hamiltonian[j][k][1])
+                    measure_pauli_z(result.get_counts(circuits[j]),
+                                    hamiltonian[j][k][1])
 
-    return energy
+    return energy, circuits
 
 
 def trial_circuit_ry(n, m, theta, entangler_map, meas_string=None,
