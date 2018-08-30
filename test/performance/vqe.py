@@ -20,22 +20,22 @@ from functools import partial
 
 # import qiskit modules
 from qiskit import mapper
-from qiskit import QuantumProgram
 from qiskit import QISKitError
 
 # import optimization tools
 from qiskit.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization, SPSA_calibration
 from qiskit.tools.apps.optimization import Hamiltonian_from_file, make_Hamiltonian
 from qiskit.tools.apps.optimization import eval_hamiltonian, group_paulis
+from qiskit import get_backend
 
 
-def cost_function(qp, H, n_qubits, depth, entangler_map, shots, device, theta):
+def cost_function(H, n_qubits, depth, entangler_map, shots, device, theta):
     trial_circuit = trial_circuit_ryrz(n_qubits, depth, theta, entangler_map,
                                        meas_string=None, measurement=False)
 
-    energy = eval_hamiltonian(qp, H, trial_circuit, shots, device).real
+    energy, circuits = eval_hamiltonian(H, trial_circuit, shots, device)
 
-    return energy
+    return energy.real, circuits
 
 
 def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
@@ -68,12 +68,13 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
 
     # Optimization
     device = 'local_qasm_simulator'
-    qp = QuantumProgram()
+    if shots == 1:
+        device = 'local_statevector_simulator'
 
-    if shots != 1:
+    if 'statevector' not in device:
         H = group_paulis(pauli_list)
 
-    entangler_map = qp.get_backend_configuration(device)['coupling_map']
+    entangler_map = get_backend(device).configuration['coupling_map']
 
     if entangler_map == 'all-to-all':
         entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}
@@ -85,12 +86,14 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     target_update = 2 * np.pi * 0.1                         # aimed update on first trial
     save_step = 20                                          # print optimization trajectory
 
-    cost = partial(cost_function, qp, H, n_qubits, depth, entangler_map, shots, device)
+    cost = partial(cost_function, H, n_qubits, depth, entangler_map, shots, device)
 
-    SPSA_params = SPSA_calibration(cost, initial_theta, initial_c, target_update, stat=25)
-    output = SPSA_optimization(cost, initial_theta, SPSA_params, max_trials, save_step, last_avg=1)
+    SPSA_params, circuits_cal = SPSA_calibration(cost, initial_theta, initial_c,
+                                                 target_update, stat=25)
+    output, circuits_opt = SPSA_optimization(cost, initial_theta, SPSA_params, max_trials,
+                                             save_step, last_avg=1)
 
-    return qp
+    return circuits_cal + circuits_opt
 
 
 if __name__ == '__main__':
@@ -103,12 +106,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     tstart = time.time()
-    qp = vqe(args.molecule, args.depth, args.max_trials, args.shots)
+    circuits = vqe(args.molecule, args.depth, args.max_trials, args.shots)
     tend = time.time()
 
-    all_circuits = list(qp.get_circuit_names())
-    avg = sum(qp.get_qasm(c).count("\n") for c in all_circuits) / len(all_circuits)
+    avg = sum(c.qasm().count("\n") for c in circuits) / len(circuits)
 
-    print("---- Number of circuits: {}".format(len(all_circuits)))
+    print("---- Number of circuits: {}".format(len(circuits)))
     print("---- Avg circuit size: {}".format(avg))
     print("---- Elapsed time: {}".format(tend - tstart))
