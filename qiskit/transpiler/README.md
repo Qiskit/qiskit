@@ -78,8 +78,32 @@ gate u0(gamma) q { U(0,0,0) q; }
 
 For this reason, the identity of a pass is given by its name and parameters.
 
+### Fixed point
+There are cases when one or more passes have to run until a condition is fulfilled.
+
+```
+pm = PassManager()
+pm.add_pass([CxCancellation(), HCancellation(), CalculateDepth()],
+                do_while=lambda property_set: not property_set.fixed_point('depth'))
+```
+The control argument `do_while` will run these passes until the callable returns `False`. In this example, `CalculateDepth` is an analysis pass that updates the property `depth` in the property set.
+
+### Conditional 
+The pass manager developer can avoid one or more passes by making them conditional (to a property in the property set)
+
+```
+pm.add_pass(LayoutMapper(coupling_map))
+pm.add_pass(CheckIfMapped(coupling_map))
+pm.add_pass(SwapMapper(coupling_map),
+                condition=lambda property_set: not property_set['is_mapped'])
+``` 
+
+The `CheckIfMapped` is an analysis pass that updates the property `is_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary. 
+
 ### Missbehaving passes
-* The enforcement of this does not need to be strict and it's implemented in [`._fencedobjs`](https://github.com/Qiskit/qiskit-terra/compare/master...1ucian0:transpiler?expand=1#diff-4622ec7af357a91db2367fd25ab1ca53)
+To help the pass developer discipline, if an analysis pass attempt to modify the dag or if a transformation pass tries to set a property in the property manager, a `TranspilerAccessError` raises.
+
+The enforcement of this does not attempt to be strict.
 
 ## Next Steps
 
