@@ -31,7 +31,7 @@ Regarding passes dependencies, the architecture features two kinds of dependenci
 - `preserves` are passes that are not invalidated by the current pass.
 - Analysis passes preserve all.
 - The `preserves` and `requires` lists are passes with arguments.
-- Passes are described not just by their name, but also by their parameters. This is because, for example, `UnRoller` is different, depending on the `basis_gates` argument. Unrolling using some basis gates is totally different than unrolling to different gates. And a PassManager might use both.
+- Passes are described not just by their name, but also by their parameters (see Use cases, pass identity)
 
 
 
@@ -55,6 +55,28 @@ The sequence of passes to execute in this case is:
 4. `Mapper`
 1. `ToffoliDecompose`, because `Mapper` did not preserved `ToffoliDecompose` and is require by `CxCancellation`
 2. `CxCancellation`
+
+### Pass identity
+A pass behavior can be heavily influenced by its parameters. For example, unrolling using some basis gates is totally different than unrolling to different gates. And a PassManager might use both.
+
+```
+pm.add_pass(Unroller(basis_gates=['cx','id','u0','u1','u2','u3']))
+pm.add_pass(...)
+pm.add_pass(Unroller(basis_gates=['U','CX']))
+```
+
+where (from `qelib1.inc`):
+
+```
+gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }
+gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }
+gate u1(lambda) q { U(0,0,lambda) q; }
+gate cx c,t { CX c,t; }
+gate id a { U(0,0,0) a; }
+gate u0(gamma) q { U(0,0,0) q; }
+```
+
+For this reason, the identity of a pass is given by its name and parameters.
 
 ### Missbehaving passes
 * The enforcement of this does not need to be strict and it's implemented in [`._fencedobjs`](https://github.com/Qiskit/qiskit-terra/compare/master...1ucian0:transpiler?expand=1#diff-4622ec7af357a91db2367fd25ab1ca53)
