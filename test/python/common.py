@@ -269,7 +269,7 @@ def _get_credentials(test_object, test_options):
 
     Args:
         test_object (QiskitTestCase): The test object asking for credentials
-        test_options (list): List of options after QISKIT_TESTS was parsed by get_test_options.
+        test_options (dict): Options after QISKIT_TESTS was parsed by get_test_options.
 
     Returns:
         dict: Credentials in a dictionary
