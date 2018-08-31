@@ -72,7 +72,7 @@ class StatusMagic(Magics):
         # Must have one job class
         if not any(jobs):
             raise Exception(
-                "Cell just contain at least one 'job=qiskit.execute(...)' expression")
+                "Cell must contain at least one variable of BaseJob type.")
 
         def _checker(job_var, status, header):
             job_status_name = job_var.status().name
