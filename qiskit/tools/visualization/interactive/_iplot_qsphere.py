@@ -113,7 +113,7 @@ def iplot_qsphere(rho, options=None):
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                angles = np.angle(state[i])
+                angles = (np.angle(state[i]) + 2 * np.pi) % (2 * np.pi)
                 qpoint = {
                     'x': xvalue,
                     'y': yvalue,
@@ -161,9 +161,7 @@ def n_choose_k(n, k):
     """
     if n == 0:
         return 0
-    return reduce(lambda x, y: x * y[0] / y[1],
-                  zip(range(n - k + 1, n + 1),
-                      range(1, k + 1)), 1)
+    return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1), range(1, k + 1)), 1)
 
 
 def bit_string_index(text):
