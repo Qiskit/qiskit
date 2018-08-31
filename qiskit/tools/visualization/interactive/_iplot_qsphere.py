@@ -161,7 +161,9 @@ def n_choose_k(n, k):
     """
     if n == 0:
         return 0
-    return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1), range(1, k + 1)), 1)
+    return reduce(lambda x, y: x * y[0] / y[1],
+                  zip(range(n - k + 1, n + 1),
+                      range(1, k + 1)), 1)
 
 
 def bit_string_index(text):
