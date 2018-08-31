@@ -49,16 +49,16 @@ def get_test_options(option_var='QISKIT_TESTS'):
         'rec': lambda: turn_false('skip_online') and turn_false('run_slow')
     }
 
-    def set_flag(flag):
+    def set_flag(flag_):
         """
         Set the flag to True and flip all the flags that need to be rewritten.
 
         Args:
-            flag (str): Option to be True
+            flag_ (str): Option to be True
         """
-        tests_options[flag] = True
-        if flag in dependency_solvers:
-            dependency_solvers[flag]()
+        tests_options[flag_] = True
+        if flag_ in dependency_solvers:
+            dependency_solvers[flag_]()
 
     flag_string = os.getenv(option_var, None)
     flags = flag_string.split(',') if flag_string else []
