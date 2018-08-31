@@ -70,7 +70,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     if _is_ci_fork_pull_request():
         set_flag('skip_online')
 
-    logger.warn(tests_options)
+    logger.debug(tests_options)
     return tests_options
 
 
