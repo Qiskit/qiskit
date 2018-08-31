@@ -8,7 +8,6 @@
         "description": "Sample pulse experiment"
         },
     "config": {
-        "pulse_prop": "test",
         "shots": 1024,
         "memory_slots": 3,
         "meas_return": "avg",
