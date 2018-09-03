@@ -1373,7 +1373,7 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmqx5%22%7D%7D
+    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmq_qasm_simulator%22%7D%7D
   response:
     body: {string: '[]'}
     headers:
@@ -1402,7 +1402,7 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmqx5%22%7D%7D
+    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmq_qasm_simulator%22%7D%7D
   response:
     body: {string: '[]'}
     headers:
@@ -1431,7 +1431,7 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmqx5%22%7D%7D
+    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmq_qasm_simulator%22%7D%7D
   response:
     body: {string: '[]'}
     headers:
@@ -1460,7 +1460,7 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmqx5%22%7D%7D
+    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmq_qasm_simulator%22%7D%7D
   response:
     body: {string: '[]'}
     headers:
@@ -1489,7 +1489,7 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmqx5%22%7D%7D
+    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+5%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%22creationDate%22%3A+%7B%22lt%22%3A+%222017-01-01T00%3A00%3A00.00%22%7D%2C+%22backend.name%22%3A+%22ibmq_qasm_simulator%22%7D%7D
   response:
     body: {string: '[]'}
     headers:
