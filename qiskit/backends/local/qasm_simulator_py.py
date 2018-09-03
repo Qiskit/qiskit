@@ -78,7 +78,7 @@ from collections import Counter
 
 import numpy as np
 
-from qiskit._result import Result, copy_qasm_from_qobj_into_result
+from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from ._simulatorerror import SimulatorError
@@ -294,7 +294,9 @@ class QasmSimulatorPy(BaseBackend):
                   'time_taken': (end - start)}
 
         copy_qasm_from_qobj_into_result(qobj, result)
-        return Result(result)
+
+        return result_from_old_style_dict(
+            result, [circuit.header.name for circuit in qobj.experiments])
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.
