@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name, redefined-builtin
+# pylint: disable=redefined-builtin
 
 
 """Compiler Test."""
@@ -417,25 +417,25 @@ class TestCompiler(QiskitTestCase):
                         [3, 2], [3, 4],
                         [4, 2]]
 
-        q = QuantumRegister(5)
-        c = ClassicalRegister(5)
-        bell = QuantumCircuit(q, c)
-        ghz = QuantumCircuit(q, c)
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
+        bell = QuantumCircuit(qr, cr)
+        ghz = QuantumCircuit(qr, cr)
         # Create a GHZ state
-        ghz.h(q[0])
+        ghz.h(qr[0])
         for i in range(4):
-            ghz.cx(q[i], q[i+1])
+            ghz.cx(qr[i], qr[i+1])
         # Insert a barrier before measurement
         ghz.barrier()
         # Measure all of the qubits in the standard basis
         for i in range(5):
-            ghz.measure(q[i], c[i])
+            ghz.measure(qr[i], cr[i])
         # Create a Bell state
-        bell.h(q[0])
-        bell.cx(q[0], q[1])
+        bell.h(qr[0])
+        bell.cx(qr[0], qr[1])
         bell.barrier()
-        bell.measure(q[0], c[0])
-        bell.measure(q[1], c[1])
+        bell.measure(qr[0], cr[0])
+        bell.measure(qr[1], cr[1])
         shots = 2048
         bell_qobj = compile(bell, backend='local_qasm_simulator',
                             shots=shots, seed=10)
@@ -461,26 +461,26 @@ class TestCompiler(QiskitTestCase):
         """
         backend = get_backend('local_qasm_simulator')
 
-        q = QuantumRegister(3, 'q')
-        c = ClassicalRegister(3, 'c')
-        qc = QuantumCircuit(q, c)
-        qc.h(q[0])
-        qc.cx(q[0], q[1])
-        qc.cx(q[0], q[2])
-        qc.measure(q[0], c[0])
-        qc.measure(q[1], c[1])
-        qc.measure(q[2], c[2])
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(3, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[0], qr[2])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        qc.measure(qr[2], cr[2])
         shots = 1024
         coupling_map = [[0, 1], [1, 2]]
-        initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
-                          ("q", 2): ("q", 2)}
+        initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
+                          ("qr", 2): ("q", 2)}
         qobj = compile(qc, backend=backend, shots=shots,
                        coupling_map=coupling_map,
                        initial_layout=initial_layout, seed=88)
         job = backend.run(qobj)
         result = job.result()
         qasm_to_check = qc.qasm()
-        self.assertEqual(len(qasm_to_check), 160)
+        self.assertEqual(len(qasm_to_check), 173)
 
         counts = result.get_counts(qc)
         target = {'000': shots / 2, '111': shots / 2}
@@ -498,23 +498,23 @@ class TestCompiler(QiskitTestCase):
                         [11, 12], [12, 13], [13, 14], [14, 15]]
 
         n = 3  # make this at least 3
-        q = QuantumRegister(n)
-        r = QuantumRegister(n)
+        qr0 = QuantumRegister(n)
+        qr1 = QuantumRegister(n)
         ans = ClassicalRegister(2*n)
-        qc = QuantumCircuit(q, r, ans)
-        # Set the first bit of q
-        qc.x(q[0])
+        qc = QuantumCircuit(qr0, qr1, ans)
+        # Set the first bit of qr0
+        qc.x(qr0[0])
         # Swap the set bit
-        qc.swap(q[0], q[n-1])
-        qc.swap(q[n-1], r[n-1])
-        qc.swap(r[n-1], q[1])
-        qc.swap(q[1], r[1])
+        qc.swap(qr0[0], qr0[n-1])
+        qc.swap(qr0[n-1], qr1[n-1])
+        qc.swap(qr1[n-1], qr0[1])
+        qc.swap(qr0[1], qr1[1])
         # Insert a barrier before measurement
         qc.barrier()
         # Measure all of the qubits in the standard basis
         for j in range(n):
-            qc.measure(q[j], ans[j])
-            qc.measure(r[j], ans[j+n])
+            qc.measure(qr0[j], ans[j])
+            qc.measure(qr1[j], ans[j+n])
         # First version: no mapping
         result = execute(qc, backend='local_qasm_simulator',
                          coupling_map=None, shots=1024,
