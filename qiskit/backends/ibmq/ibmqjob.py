@@ -130,9 +130,6 @@ class IBMQJob(BaseJob):
             backend_name(String): The name of the backend that run the job.
             creation_date(String): When the job was run.
 
-        Raises:
-            QISKitError: if the input Qobj is invalid
-
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
             will ignore ``job_id`` and will create an instance representing
@@ -337,6 +334,9 @@ class IBMQJob(BaseJob):
         Raises:
             JobError: If we have already submitted the job.
         """
+        # TODO: Validation against the schema should be done here and not
+        # during initiliazation. Once done, we should document that the method
+        # can raise QobjValidationError.
         if self._future is not None or self._id is not None:
             raise JobError("We have already submitted the job!")
 

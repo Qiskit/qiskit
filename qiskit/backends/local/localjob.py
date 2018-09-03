@@ -57,7 +57,14 @@ class LocalJob(BaseJob):
         self._future = None
 
     def submit(self):
-        """Submit the job to the backend for running """
+        """Submit the job to the backend for execution.
+
+        Raises:
+            QobjValidationError: if the JSON serialization of the Qobj passed
+            during construction does not validate against the Qobj schema.
+
+            JobError: if trying to re-submit the job.
+        """
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
