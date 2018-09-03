@@ -27,6 +27,7 @@ from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result._utils import result_from_old_style_dict
+from qiskit.qobj import validate_qobj_against_schema
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +137,10 @@ class IBMQJob(BaseJob):
         """
         super().__init__()
         self._job_data = None
+
         if qobj is not None:
+            validate_qobj_against_schema(qobj)
+
             # TODO: No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
             self._job_data = {
@@ -146,6 +150,7 @@ class IBMQJob(BaseJob):
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
+
         self._future_captured_exception = None
         self._api = api
         self._id = job_id
@@ -329,6 +334,9 @@ class IBMQJob(BaseJob):
         Raises:
             JobError: If we have already submitted the job.
         """
+        # TODO: Validation against the schema should be done here and not
+        # during initiliazation. Once done, we should document that the method
+        # can raise QobjValidationError.
         if self._future is not None or self._id is not None:
             raise JobError("We have already submitted the job!")
 

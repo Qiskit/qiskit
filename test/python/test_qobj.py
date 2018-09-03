@@ -10,10 +10,15 @@
 """QOBj test."""
 import unittest
 import json
+import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.qobj import (Qobj, QobjConfig, QobjExperiment, QobjInstruction)
+from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
+from qiskit.qobj import QobjHeader, QobjValidationError
+from qiskit.backends.local import localjob
+from qiskit.backends.ibmq import ibmqjob
+from ._mockutils import FakeBackend
 from .common import QiskitTestCase, Path
 
 
@@ -47,6 +52,9 @@ class TestQobj(QiskitTestCase):
             ],
         }
 
+        self.bad_qobj = copy.deepcopy(self.valid_qobj)
+        self.bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
+
     def test_as_dict(self):
         """Test conversion to dict of a Qobj based on the individual elements."""
         self.valid_qobj._version = '67890'  # private member variables shouldn't appear in the dict
@@ -54,9 +62,9 @@ class TestQobj(QiskitTestCase):
 
     def test_as_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
-        file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
+        schema_file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
 
-        with open(file_path, 'r') as schema_file:
+        with open(schema_file_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
         try:
@@ -92,6 +100,27 @@ class TestQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
 
+    def test_localjob_raises_error_when_sending_bad_qobj(self):
+        """Test localjob is denied resource request access when given an invalid Qobj instance."""
+
+        backend = FakeBackend()
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name)
+
+        with self.assertRaises(QobjValidationError):
+            job = localjob.LocalJob(_nop, self.bad_qobj)
+            job.submit()
+
+    def test_ibmqobj_raises_error_when_sending_bad_qobj(self):
+        """Test IBMQobj is denied resource request access when given an invalid Qobj instance."""
+
+        backend = FakeBackend()
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name)
+
+        api_stub = {}
+        with self.assertRaises(QobjValidationError):
+            job = ibmqjob.IBMQJob(api_stub, 'True', self.bad_qobj)
+            job.submit()
+
     def test_change_qobj_after_compile(self):
         """Test modifying Qobj parameters after compile."""
         qr = QuantumRegister(3)
@@ -123,3 +152,7 @@ class TestQobj(QiskitTestCase):
         self.assertTrue(qobj2.experiments[1].config.shots == 1000)
         self.assertTrue(qobj2.experiments[0].config.xvals == ['only for qobj2', 2, 3, 4])
         self.assertTrue(qobj2.experiments[1].config.xvals == ['only for qobj2', 2, 3, 4])
+
+
+def _nop():
+    pass
