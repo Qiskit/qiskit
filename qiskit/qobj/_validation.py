@@ -36,7 +36,7 @@ def _load_qobj_schema():
         # `qobj_schema.json` once we can ensure Qiskit unrollers are emitting
         # valid Qobj structures and the Json Schema extension mechanism is in
         # place.
-        schema_file_path = os.path.join(sdk, 'schemas', 'transitional_qobj_schema.json')
+        schema_file_path = os.path.join(sdk, 'schemas', 'qobj_schema.json')
         with open(schema_file_path, 'r') as schema_file:
             _SCHEMAS['qobj'] = json.load(schema_file)
 
