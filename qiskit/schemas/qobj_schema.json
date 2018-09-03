@@ -329,6 +329,7 @@
                         "name": {
                             "enum": [
                                 "u1",
+                                "u0",
                                 "rx",
                                 "ry",
                                 "rz"
@@ -431,7 +432,8 @@
                         "name": {
                             "enum": [
                                 "cu1",
-                                "crz"
+                                "crz",
+                                "rzz"
                             ]
                         },
                         "params": {
@@ -497,7 +499,8 @@
                         },
                         "name": {
                             "enum": [
-                                "ccx"
+                                "ccx",
+                                "cswap"
                             ]
                         },
                         "params": {
