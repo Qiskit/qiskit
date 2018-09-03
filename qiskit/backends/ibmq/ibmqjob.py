@@ -26,7 +26,7 @@ from qiskit.qobj import qobj_to_dict
 from qiskit.transpiler import transpile
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
-from qiskit._result import Result
+from qiskit.result._utils import result_from_old_style_dict
 
 logger = logging.getLogger(__name__)
 
@@ -183,14 +183,35 @@ class IBMQJob(BaseJob):
         """
         self._wait_for_submission()
         try:
-            this_result = self._wait_for_job(timeout=timeout, wait=wait)
+            job_data = self._wait_for_job(timeout=timeout, wait=wait)
         except ApiError as api_err:
             raise JobError(str(api_err))
 
         if self._is_device and self.status() == JobStatus.DONE:
-            _reorder_bits(this_result)
+            _reorder_bits(job_data)
 
-        return this_result
+        # Build the Result.
+        job_result_list = []
+        for circuit_result in job_data['qasms']:
+            this_result = {'data': circuit_result['data'],
+                           'name': circuit_result.get('name'),
+                           'compiled_circuit_qasm': circuit_result.get('qasm'),
+                           'status': circuit_result['status'],
+                           'success': circuit_result['status'] == 'DONE',
+                           'shots': job_data['shots']}
+            if 'metadata' in circuit_result:
+                this_result['metadata'] = circuit_result['metadata']
+
+            job_result_list.append(this_result)
+
+        return result_from_old_style_dict({
+            'id': self._id,
+            'status': job_data['status'],
+            'used_credits': job_data.get('usedCredits'),
+            'result': job_result_list,
+            'backend_name': self.backend_name(),
+            'success': job_data['status'] == 'DONE'
+        }, [circuit_result['name'] for circuit_result in job_data['qasms']])
 
     def cancel(self):
         """Attempt to cancel a job.
@@ -375,7 +396,7 @@ class IBMQJob(BaseJob):
             wait (float): seconds between queries
 
         Returns:
-            Result: A result object.
+            dict: A dict with the contents of the API request.
 
         Raises:
             JobTimeoutError: if the job does not return results before a specified timeout.
@@ -393,26 +414,10 @@ class IBMQJob(BaseJob):
             time.sleep(wait)
 
         if self._cancelled:
-            return Result({'id': self._id, 'status': 'CANCELLED',
-                           'result': 'job cancelled'})
+            raise JobError(
+                'Job result impossible to retrieve. The job was cancelled.')
 
-        job_data = self._api.get_job(self._id)
-        job_result_list = []
-        for circuit_result in job_data['qasms']:
-            this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
-                           'compiled_circuit_qasm': circuit_result.get('qasm'),
-                           'status': circuit_result['status']}
-            if 'metadata' in circuit_result:
-                this_result['metadata'] = circuit_result['metadata']
-
-            job_result_list.append(this_result)
-
-        return Result({'id': self._id,
-                       'status': job_data['status'],
-                       'used_credits': job_data.get('usedCredits'),
-                       'result': job_result_list,
-                       'backend_name': self.backend_name})
+        return self._api.get_job(self._id)
 
     def _wait_for_submission(self, timeout=60):
         """Waits for the request to return a job ID"""
@@ -435,13 +440,19 @@ class IBMQJob(BaseJob):
                 raise JobError(str(submit_info['error']))
 
 
-def _reorder_bits(result):
+def _reorder_bits(job_data):
     """Temporary fix for ibmq backends.
 
     For every ran circuit, get reordering information from qobj
     and apply reordering on result.
+
+    Args:
+        job_data (dict): dict with the bare contents of the API.get_job request.
+
+    Raises:
+            JobError: raised if the creg sizes don't add up in result header.
     """
-    for circuit_result in result._result['result']:
+    for circuit_result in job_data['qasms']:
         if 'metadata' in circuit_result:
             circ = circuit_result['metadata'].get('compiled_circuit')
         else:
