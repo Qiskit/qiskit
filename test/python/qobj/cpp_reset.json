@@ -2,6 +2,7 @@
     "qobj_id": "test_reset",
     "config": {
         "shots": 1,
+        "memory_slots": 1,
         "seed": 1
     },
     "header": {"backend_name": "local_qasm_simulator_cpp"},
@@ -19,6 +20,8 @@
                 {"name": "snapshot", "params": [0]},
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 }
@@ -38,6 +41,8 @@
                 {"name": "snapshot", "params": [0]},
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 }
@@ -57,6 +62,8 @@
                 {"name": "snapshot", "params": [0]},
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 }
@@ -76,6 +83,8 @@
                 {"name": "snapshot", "params": [0]},
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 }

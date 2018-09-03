@@ -22,7 +22,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
-from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader
+from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.baseprovider import BaseProvider
@@ -145,7 +145,9 @@ def new_fake_qobj():
         config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
         header=QobjHeader(backend_name=backend.name),
         experiments=[QobjExperiment(
-            instructions=[],
+            instructions=[
+                QobjInstruction(name='barrier', qubits=[1])
+            ],
             header=QobjExperimentHeader(compiled_circuit_qasm='fake-code'),
             config=QobjItem(seed=123456)
         )]
