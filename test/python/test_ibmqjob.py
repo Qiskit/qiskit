@@ -287,7 +287,7 @@ class TestIBMQJob(JobTestCase):
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
-            self.log.info('match #%d: %s', i, job.result()._result['status'])
+            self.log.info('match #%d: %s', i, job.result().status)
             self.assertTrue(job.status() is JobStatus.DONE)
 
     @requires_qe_access
@@ -306,8 +306,8 @@ class TestIBMQJob(JobTestCase):
         for i, job in enumerate(job_list):
             self.log.info('match #%d', i)
             result = job.result()
-            self.assertTrue(any(cresult['data']['counts']['00'] < 500
-                                for cresult in result._result['result']))
+            self.assertTrue(any(cresult.data['counts']['00'] < 500
+                                for cresult in result.results.values()))
             for circuit_name in result.get_names():
                 self.log.info('\tcircuit_name: %s', circuit_name)
                 if circuit_name:
