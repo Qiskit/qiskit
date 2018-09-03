@@ -168,8 +168,9 @@ class TestIBMQJobStates(JobTestCase):
         self.wait_for_initialization(job)
         job.cancel()
         self._current_api.progress()
-        self.assertEqual(job.result().get_status(), 'CANCELLED')
-        self.assertEqual(job.status(), JobStatus.CANCELLED)
+        with self.assertRaises(JobError):
+            job.result().get_status()
+            self.assertEqual(job.status(), JobStatus.CANCELLED)
 
     def test_errored_result(self):
         job = self.run_with_api(ThrowingGetJobAPI())
@@ -203,8 +204,9 @@ class TestIBMQJobStates(JobTestCase):
         with ThreadPoolExecutor() as executor:
             executor.submit(_auto_progress_api, self._current_api)
 
-        result = job.result()
-        self.assertEqual(result.get_status(), 'CANCELLED')
+        with self.assertRaises(JobError):
+            job.result()
+
         self.assertEqual(job.status(), JobStatus.CANCELLED)
 
     def test_block_on_result_waiting_until_exception(self):
