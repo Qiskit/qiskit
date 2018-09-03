@@ -73,7 +73,7 @@ class TestBitReordering(QiskitTestCase):
         circuit.cx(qr0[0], qr2[0])
         circuit.x(qr1[1])
         circuit.h(qr2[0])
-        circuit.ccx(qr2[0], qr1[1], qr1[0])
+        circuit.cx(qr2[0], qr1[0])
         circuit.barrier()
         circuit.measure(qr0[0], cr2[0])
         circuit.measure(qr0[1], cr0[1])
