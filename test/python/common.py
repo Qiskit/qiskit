@@ -193,7 +193,7 @@ class JobTestCase(QiskitTestCase):
         status."""
         waited = 0
         wait = 0.1
-        while job.status['status'] == JobStatus.INITIALIZING:
+        while job.status()['status'] == JobStatus.INITIALIZING:
             time.sleep(wait)
             waited += wait
             if waited > timeout:
@@ -202,7 +202,7 @@ class JobTestCase(QiskitTestCase):
     def assertStatus(self, job, status):
         """Assert the intenal job status is the expected one and also tests
         if the shorthand method for that status returns `True`."""
-        self.assertEqual(job.status['status'], status)
+        self.assertEqual(job.status()['status'], status)
         if status == JobStatus.CANCELLED:
             self.assertTrue(job.cancelled)
         elif status == JobStatus.DONE:

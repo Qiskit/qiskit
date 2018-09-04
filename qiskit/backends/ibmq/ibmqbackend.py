@@ -55,11 +55,10 @@ class IBMQBackend(BaseBackend):
             IBMQJob: an instance derived from BaseJob
         """
 
-        job = IBMQJob(self._api, not self.configuration['simulator'], qobj=qobj)
+        job = IBMQJob(self._api, not self.configuration()['simulator'], qobj=qobj)
         job.submit()
         return job
 
-    @property
     def calibration(self):
         """Return the online backend calibrations.
 
@@ -72,7 +71,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If a configuration for the backend can't be found.
         """
         try:
-            backend_name = self.configuration['name']
+            backend_name = self.configuration()['name']
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
@@ -89,7 +88,6 @@ class IBMQBackend(BaseBackend):
 
         return calibrations_edit
 
-    @property
     def parameters(self):
         """Return the online backend parameters.
 
@@ -100,7 +98,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If parameters for the backend can't be found.
         """
         try:
-            backend_name = self.configuration['name']
+            backend_name = self.configuration()['name']
             parameters = self._api.backend_parameters(backend_name)
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
@@ -117,7 +115,6 @@ class IBMQBackend(BaseBackend):
 
         return parameters_edit
 
-    @property
     def status(self):
         """Return the online backend status.
 
@@ -128,7 +125,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If status for the backend can't be found.
         """
         try:
-            backend_name = self.configuration['name']
+            backend_name = self.configuration()['name']
             status = self._api.backend_status(backend_name)
             # FIXME a hack to rename the key. Needs to be fixed in api
             status['name'] = status['backend']
@@ -188,7 +185,7 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendValueError: status keyword value unrecognized
         """
-        backend_name = self.configuration['name']
+        backend_name = self.configuration()['name']
         api_filter = {'backend.name': backend_name}
         if status:
             if isinstance(status, str):
