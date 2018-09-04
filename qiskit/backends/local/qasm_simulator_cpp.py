@@ -18,7 +18,7 @@ import platform
 
 import numpy as np
 
-from qiskit._result import Result, copy_qasm_from_qobj_into_result
+from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from qiskit.qobj import qobj_to_dict
@@ -80,7 +80,9 @@ class QasmSimulatorCpp(BaseBackend):
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
         copy_qasm_from_qobj_into_result(qobj, result)
-        return Result(result)
+
+        return result_from_old_style_dict(
+            result, [circuit.header.name for circuit in qobj.experiments])
 
     def _validate(self, qobj):
         for experiment in qobj.experiments:
@@ -144,7 +146,9 @@ class CliffordSimulatorCpp(BaseBackend):
             qobj['config'] = {'simulator': 'clifford'}
 
         result = run(qobj, self._configuration['exe'])
-        return Result(result)
+
+        return result_from_old_style_dict(
+            result, [circuit.header.name for circuit in qobj.experiments])
 
     def _validate(self):
         return

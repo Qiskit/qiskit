@@ -86,7 +86,7 @@ import time
 
 import numpy as np
 
-from qiskit._result import Result, copy_qasm_from_qobj_into_result
+from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
@@ -174,10 +174,12 @@ class UnitarySimulatorPy(BaseBackend):
                   'job_id': job_id,
                   'result': result_list,
                   'status': 'COMPLETED',
-                  'sucsess': True,
+                  'success': True,
                   'time_taken': (end - start)}
         copy_qasm_from_qobj_into_result(qobj, result)
-        return Result(result)
+
+        return result_from_old_style_dict(
+            result, [circuit.header.name for circuit in qobj.experiments])
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate.
@@ -222,4 +224,6 @@ class UnitarySimulatorPy(BaseBackend):
                 return result
         result['data']['unitary'] = self._unitary_state
         result['status'] = 'DONE'
+        result['success'] = True
+        result['shots'] = 1
         return result

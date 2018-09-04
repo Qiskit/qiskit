@@ -253,6 +253,20 @@
             "oneOf": [
                 {
                     "properties": {
+                        "name": {
+                            "enum": [
+                                "snapshot",
+                                "wait",
+                                "noise",
+                                "save",
+                                "load"
+                            ]
+                        }
+                    },
+                    "title": "Simulator instructions"
+                },
+                {
+                    "properties": {
                         "memory": {
                             "maxItems": 0
                         },
@@ -329,6 +343,7 @@
                         "name": {
                             "enum": [
                                 "u1",
+                                "u0",
                                 "rx",
                                 "ry",
                                 "rz"
@@ -431,7 +446,8 @@
                         "name": {
                             "enum": [
                                 "cu1",
-                                "crz"
+                                "crz",
+                                "rzz"
                             ]
                         },
                         "params": {
@@ -497,7 +513,8 @@
                         },
                         "name": {
                             "enum": [
-                                "ccx"
+                                "ccx",
+                                "cswap"
                             ]
                         },
                         "params": {
@@ -578,35 +595,6 @@
                     "title": "barrier"
                 },
                 {
-                    "properties": {
-                        "label": {
-                            "type": "string"
-                        },
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "snapshot"
-                            ]
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 0
-                        },
-                        "type": {
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "label",
-                        "type"
-                    ],
-                    "title": "snapshot"
-                },
-                {
                     "$ref": "#/definitions/bfunc"
                 },
                 {
@@ -615,8 +603,16 @@
             ],
             "properties": {
                 "conditional": {
-                    "minimum": 0,
-                    "type": "integer"
+                    "oneOf": [
+                        {
+                            "minimum": 0,
+                            "type": "integer"
+                        },
+                        {
+                            "type": "object"
+                        }
+                    ]
+
                 },
                 "memory": {
                     "type": "array"
