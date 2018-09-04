@@ -4,6 +4,49 @@ Release history
 Release notes
 *************
 
+Qiskit SDK 0.6.0
+================
+
+This release features the new Qobj format and introduces some breaking changes
+
+Upgrading to 0.6.0
+------------------
+
+Backend API changes
+^^^^^^^^^^^^^^^^^^^
+
+Members :attr:`~qiskit.backends.BaseBackend.configuration`, :attr:`~qiskit.backends.BaseBackend.calibration`,
+:attr:`~qiskit.backends.BaseBackend.parameters`,
+:attr:`~qiskit.backends.BaseBackend.status`,
+:attr:`~qiskit.backends.BaseBackend.name` are no longer properties but
+methods.
+
+``BaseJob`` and ``IBMQJob`` API changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* creating a :class:`~qiskit.backends.BaseJob` instance no longer send it
+  to the backend. Now, you need to call :meth:`~qiskit.backends.BaseJob.submit`
+  explicitely.
+
+* the :meth:`~qiskit.backends.BaseJob.status` method is used to check the status
+  of a job instead of the property with the same name of previous versions. The
+  method returns a member of the :class:`~qiskit.backends.JobStatus`
+  enumeration.
+
+* properties for checking each individual state (``queued``, ``running``,
+  ``validating``, ``done`` and ``cancelled``) no longer exist. If you
+  want to check the job state, use the identity comparison::
+
+    from qiskit.backends import JobStatus
+
+    job = execute(circuit, backend)
+    if job.status is JobStatus.RUNNING:
+        handle_job(job)
+
+* consult the new documentation of the :class:`~qiskit.backends.ibmq.IBMQJob`
+  class to get further insight in how to use the simplified API.
+
+
 Qiskit SDK 0.5.0
 ================
 
@@ -62,7 +105,7 @@ to being deprecated:
     register(token, url)
     backends = available_backends()
     backend = get_backend('ibmqx4')
-    print(backend.status)
+    print(backend.status())
 
 * methods for **compiling and executing programs**:
 
