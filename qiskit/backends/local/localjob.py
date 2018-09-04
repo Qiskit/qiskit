@@ -118,7 +118,6 @@ class LocalJob(BaseJob):
                 self.__class__.__name__))
         return _status
 
-    @property
     def backend_name(self):
         """
         Return backend name used for this job

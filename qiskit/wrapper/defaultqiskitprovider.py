@@ -52,7 +52,7 @@ class DefaultQISKitProvider(BaseProvider):
                     e.g. {'local': False, 'simulator': False, 'operational': True}
 
                 2) callable: BaseBackend -> bool
-                    e.g. lambda x: x.configuration['n_qubits'] > 5
+                    e.g. lambda x: x.configuration()['n_qubits'] > 5
 
         Returns:
             list[BaseBackend]: a list of backend instances available
@@ -72,11 +72,11 @@ class DefaultQISKitProvider(BaseProvider):
                 # e.g. {'n_qubits': 5, 'operational': True}
                 for key, value in filters.items():
                     backends = [instance for instance in backends
-                                if instance.configuration.get(key) == value
-                                or instance.status.get(key) == value]
+                                if instance.configuration().get(key) == value
+                                or instance.status().get(key) == value]
             elif callable(filters):
                 # acceptor filter: accept or reject a specific backend
-                # e.g. lambda x: x.configuration['n_qubits'] > 5
+                # e.g. lambda x: x.configuration()['n_qubits'] > 5
                 accepted_backends = []
                 for backend in backends:
                     try:
@@ -197,7 +197,7 @@ class DefaultQISKitProvider(BaseProvider):
             regular available names, nor groups, nor deprecated, nor alias names
         """
         resolved_name = ""
-        available = [b.name for b in self.available_backends(filters=None)]
+        available = [b.name() for b in self.available_backends(filters=None)]
         grouped = self.grouped_backend_names()
         deprecated = self.deprecated_backend_names()
         aliased = self.aliased_backend_names()

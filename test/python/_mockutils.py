@@ -47,7 +47,7 @@ class DummyProvider(BaseProvider):
         filters = filters or {}
         for key, value in filters.items():
             backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
+                        if instance.configuration().get(key) == value}
         return list(backends.values())
 
 
@@ -143,7 +143,7 @@ def new_fake_qobj():
     return Qobj(
         qobj_id='test-id',
         config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
-        header=QobjHeader(backend_name=backend.name),
+        header=QobjHeader(backend_name=backend.name()),
         experiments=[QobjExperiment(
             instructions=[
                 QobjInstruction(name='barrier', qubits=[1])
@@ -156,5 +156,7 @@ def new_fake_qobj():
 
 class FakeBackend():
     """Fakes qiskit.backends.basebackend.BaseBackend instances."""
-    def __init__(self):
-        self.name = 'test-backend'
+
+    def name(self):
+        """Return the name of the backend."""
+        return 'test-backend'

@@ -61,7 +61,7 @@ def compile(circuits, backend,
     # 1. do all circuits have same coupling map?
     # 2. do all circuit have the same basis set?
     # 3. do they all have same registers etc?
-    backend_conf = backend.configuration
+    backend_conf = backend.configuration()
     backend_name = backend_conf['name']
     # Check for valid parameters for the experiments.
     if hpc is not None and \
@@ -84,7 +84,7 @@ def compile(circuits, backend,
     # TODO: move this inside mapper pass.
     initial_layouts = []
     for dag in dags:
-        if (initial_layout is None and not backend.configuration['simulator']
+        if (initial_layout is None and not backend.configuration()['simulator']
                 and not _matches_coupling_map(dag, coupling_map)):
             _initial_layout = _pick_best_layout(dag, backend)
         initial_layouts.append(_initial_layout)
@@ -364,11 +364,11 @@ def _best_subset(backend, n_qubits):
     elif n_qubits <= 0:
         raise QISKitError('Number of qubits <= 0.')
 
-    device_qubits = backend.configuration['n_qubits']
+    device_qubits = backend.configuration()['n_qubits']
     if n_qubits > device_qubits:
         raise QISKitError('Number of qubits greater than device.')
 
-    cmap = np.asarray(backend.configuration['coupling_map'])
+    cmap = np.asarray(backend.configuration()['coupling_map'])
     data = np.ones_like(cmap[:, 0])
     sp_cmap = sp.coo_matrix((data, (cmap[:, 0], cmap[:, 1])),
                             shape=(device_qubits, device_qubits)).tocsr()
