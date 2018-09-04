@@ -41,7 +41,7 @@ Changed
 - Q network hub/group/project credentials replaced by new url format. (#740)
 - Breaking change: ``Jobs`` API simplification. (#686)
 - Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
-- Breaking change: ``BaseBackend`` API changed, properties are now methods (#)
+- Breaking change: ``BaseBackend`` API changed, properties are now methods (#858)
 
 Removed
 -------
