@@ -9,7 +9,8 @@
 
 from types import SimpleNamespace
 
-from ._utils import QobjValidationError, QobjType
+from ._validation import QobjValidationError
+from ._utils import QobjType
 
 # Current version of the Qobj schema.
 QOBJ_VERSION = '1.0.0'

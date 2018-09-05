@@ -113,7 +113,7 @@ def iplot_qsphere(rho, options=None):
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                angles = np.angle(state[i])
+                angles = (np.angle(state[i]) + 2 * np.pi) % (2 * np.pi)
                 qpoint = {
                     'x': xvalue,
                     'y': yvalue,
