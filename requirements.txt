@@ -1,4 +1,5 @@
 jsonschema>=2.6,<2.7
+requests>=2.19.0
 IBMQuantumExperience>=2.0.1
 matplotlib>=2.1
 networkx>=2.0
