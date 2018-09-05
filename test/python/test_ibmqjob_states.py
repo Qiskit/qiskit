@@ -168,8 +168,9 @@ class TestIBMQJobStates(JobTestCase):
         self.wait_for_initialization(job)
         job.cancel()
         self._current_api.progress()
-        self.assertEqual(job.result().get_status(), 'CANCELLED')
-        self.assertEqual(job.status(), JobStatus.CANCELLED)
+        with self.assertRaises(JobError):
+            job.result().get_status()
+            self.assertEqual(job.status(), JobStatus.CANCELLED)
 
     def test_errored_result(self):
         job = self.run_with_api(ThrowingGetJobAPI())
@@ -203,8 +204,9 @@ class TestIBMQJobStates(JobTestCase):
         with ThreadPoolExecutor() as executor:
             executor.submit(_auto_progress_api, self._current_api)
 
-        result = job.result()
-        self.assertEqual(result.get_status(), 'CANCELLED')
+        with self.assertRaises(JobError):
+            job.result()
+
         self.assertEqual(job.status(), JobStatus.CANCELLED)
 
     def test_block_on_result_waiting_until_exception(self):
@@ -255,21 +257,6 @@ class TestIBMQJobStates(JobTestCase):
                         self.assertTrue(self._current_api.get_job.called)
                     else:
                         self.assertFalse(self._current_api.get_job.called)
-
-    def wait_for_initialization(self, job, timeout=1):
-        """Waits until the job progress from `INITIALIZING` to a different
-        status.
-        """
-        waited = 0
-        wait = 0.1
-        while job.status() == JobStatus.INITIALIZING:
-            time.sleep(wait)
-            waited += wait
-            if waited > timeout:
-                self.fail(
-                    msg="The JOB is still initializing after timeout ({}s)"
-                    .format(timeout)
-                )
 
     def run_with_api(self, api):
         """Creates a new `IBMQJob` instance running with the provided API

@@ -169,13 +169,13 @@ This simulator can also be used as a backend for the Qiskit Python SDK.  This is
 backend = 'local_qasm_simulator'
 shots = <int>
 config = <dict>
-results = QuantumProgram.execute(circs,
+results = qiskit.execute(circs,
                 backend=backend,
                 shots=shots,
                 config=config)
 ```
 
-You can check the backend was successfully added using the `available_backends` method of the `QuantumProgram` class. If successful the returned list will include `local_qasm_simulator_cpp` and `local_clifford_simulator_cpp`.
+You can check the backend was successfully added using the `qiskit.available_backends()` method. If successful the returned list will include `local_qasm_simulator_cpp`.
 
 ### Simulator output
 

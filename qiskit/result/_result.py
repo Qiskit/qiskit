@@ -11,45 +11,69 @@
 
 import logging
 import copy
+from collections import OrderedDict
+
 import numpy
-from ._qiskiterror import QISKitError
-from ._quantumcircuit import QuantumCircuit
+
+from qiskit import QISKitError, QuantumCircuit
 
 
 logger = logging.getLogger(__name__)
 
 
+class ExperimentResult(object):
+    """Container for the results of a single experiment."""
+
+    def __init__(self, qobj_result_experiment):
+        """
+
+        Args:
+            qobj_result_experiment (qobj.ExperimentResult): schema-conformant
+                experiment result.
+        """
+        self.compiled_circuit_qasm = ''
+        self.status = _status_or_success(qobj_result_experiment)
+        self.data = qobj_result_experiment.data
+
+    @property
+    def counts(self):
+        """Histogram of the memory over the indicated shots."""
+        return self.data['counts']
+
+    @property
+    def snapshots(self):
+        """Collection of all snapshots of simulator state."""
+        return self.data['snapshots']
+
+    @property
+    def statevector(self):
+        """Vector of amplitudes describing the simulator state."""
+        return self.data['statevector']
+
+    @property
+    def unitary(self):
+        """Unitary matrix describing the complete evolution of the circuit."""
+        return self.data['unitary']
+
+
 class Result(object):
-    """ Result Class.
+    """Results for a collection of experiments sent in a ``Qobj`` instance."""
 
-    Class internal properties.
+    def __init__(self, qobj_result, experiment_names=None):
+        """
+        Args:
+            qobj_result (qobj.Result): schema-conformant Result.
+            experiment_names (list): temporary list of circuit names
+        """
+        self.backend_name = qobj_result.backend_name
+        self.job_id = qobj_result.job_id
+        self.status = _status_or_success(qobj_result)
 
-    Methods to process the quantum program after it has been run
-
-    Internal::
-
-        result = {
-            "job_id": --job-id (string),
-                      #This string links the result with the job that computes it,
-                      #it should be issued by the backend it is run on.
-            "status": --status (string),
-            "result":
-                [
-                    {
-                    "data":
-                        {  #### DATA CAN BE A DIFFERENT DICTIONARY FOR EACH BACKEND ####
-                        "counts": {'00000': XXXX, '00001': XXXXX},
-                        "time"  : xx.xxxxxxxx
-                        },
-                    "status": --status (string)--
-                    },
-                    ...
-                ]
-            }
-    """
-
-    def __init__(self, qobj_result):
-        self._result = qobj_result
+        # TODO: this needs to use qobj_result.header instead of experiment_names
+        if experiment_names:
+            self.results = OrderedDict(
+                zip(experiment_names,
+                    [ExperimentResult(i) for i in qobj_result.results]))
 
     def __str__(self):
         """Get the status of the run.
@@ -57,13 +81,13 @@ class Result(object):
         Returns:
             string: the status of the results.
         """
-        return self._result['status']
+        return self.status
 
     def __getitem__(self, i):
-        return self._result['result'][i]
+        return list(self.results.values())[i]
 
     def __len__(self):
-        return len(self._result['result'])
+        return len(self.results)
 
     def __iadd__(self, other):
         """Append a Result object to current Result object.
@@ -75,16 +99,16 @@ class Result(object):
         Raises:
             QISKitError: if the Results cannot be combined.
         """
-        # todo: reevaluate if moving equality to Backend themselves (part of
-        # a bigger problem - backend instances will not persist between
-        # sessions)
-        this_backend = self._result.get('backend_name')
-        other_backend = other._result.get('backend_name')
-        if this_backend == other_backend:
-            self._result['result'] += other._result['result']
-            return self
-        else:
+        this_backend = self.backend_name
+        other_backend = other.backend_name
+        if this_backend != other_backend:
             raise QISKitError('Result objects from different backends cannot be combined.')
+
+        if self._is_error() or other._is_error():
+            raise QISKitError('Can not combine a failed result with another result.')
+
+        self.results.update(other.results)
+        return self
 
     def __add__(self, other):
         """Combine Result objects.
@@ -94,25 +118,25 @@ class Result(object):
         Returns:
             Result: A new Result object consisting of combined objects.
         """
-        ret = copy.deepcopy(self)
-        ret += other
-        return ret
+        copy_of_self = copy.deepcopy(self)
+        copy_of_self += other
+        return copy_of_self
 
     def _is_error(self):
-        return self._result['status'] == 'ERROR'
+        return self.status in ('ERROR', 'SUCCESS = False')
 
     def get_status(self):
         """Return whole result status."""
-        return self._result['status']
+        return self.status
 
     def circuit_statuses(self):
-        """Return statuses of all circuits
+        """Return statuses of all circuits.
 
         Returns:
             list(str): List of status result strings.
         """
-        return [circuit_result['status']
-                for circuit_result in self._result['result']]
+        return [experiment_result.status for
+                experiment_result in self.results.values()]
 
     def get_circuit_status(self, icircuit):
         """Return the status of circuit at index icircuit.
@@ -122,7 +146,7 @@ class Result(object):
         Returns:
             string: the status of the circuit.
         """
-        return self._result['result'][icircuit]['status']
+        return self[icircuit].status
 
     def get_job_id(self):
         """Return the job id assigned by the api if this is a remote job.
@@ -130,7 +154,7 @@ class Result(object):
         Returns:
             string: a string containing the job id.
         """
-        return self._result['job_id']
+        return self.job_id
 
     def get_ran_qasm(self, name):
         """Get the ran qasm for the named circuit and backend.
@@ -144,12 +168,9 @@ class Result(object):
             QISKitError: if the circuit was not found.
         """
         try:
-            for exp_result in self._result['result']:
-                if exp_result.get('name') == name:
-                    return exp_result['compiled_circuit_qasm']
+            return self.results[name].compiled_circuit_qasm
         except KeyError:
-            pass
-        raise QISKitError('No  qasm for circuit "{0}"'.format(name))
+            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
 
     def get_data(self, circuit=None):
         """Get the data of circuit name.
@@ -190,33 +211,41 @@ class Result(object):
         Raises:
             QISKitError: if there is no data for the circuit, or an unhandled
                 error occurred while fetching the data.
-            Exception: if a handled error occurred while fetching the data.
+        """
+        try:
+            return self._get_experiment(circuit).data
+        except (KeyError, TypeError):
+            raise QISKitError('No data for circuit "{0}"'.format(circuit))
+
+    def _get_experiment(self, key=None):
+        """Return an experiment from a given key.
+
+        Args:
+            key (str or QuantumCircuit or None): reference to a quantum circuit
+                If None and there is only one circuit available, returns
+                that one.
+
+        Returns:
+            ExperimentResult: an Experiment.
+
+        Raises:
+            QISKitError: if there is no data for the circuit, or an unhandled
+                error occurred while fetching the data.
         """
         if self._is_error():
-            exception = self._result['result']
-            if isinstance(exception, BaseException):
-                raise exception
-            else:
-                raise QISKitError(str(exception))
-        if isinstance(circuit, QuantumCircuit):
-            circuit = circuit.name
+            raise QISKitError(str(self.status))
 
-        if circuit is None:
-            if len(self._result['result']) == 1:
-                return self._result['result'][0]['data']
-            else:
+        if isinstance(key, QuantumCircuit):
+            key = key.name
+        elif key is None:
+            if len(self.results) != 1:
                 raise QISKitError("You have to select a circuit when there is more than "
                                   "one available")
+            else:
+                key = list(self.results.keys())[0]
+        key = str(key)
 
-        if not isinstance(circuit, str):
-            circuit = str(circuit)
-        try:
-            for circuit_result in self._result['result']:
-                if circuit_result.get('name') == circuit:
-                    return circuit_result['data']
-        except (KeyError, TypeError):
-            pass
-        raise QISKitError('No data for circuit "{0}"'.format(circuit))
+        return self.results[key]
 
     def get_counts(self, circuit=None):
         """Get the histogram data of circuit name.
@@ -236,7 +265,7 @@ class Result(object):
             QISKitError: if there are no counts for the circuit.
         """
         try:
-            return self.get_data(circuit)['counts']
+            return self._get_experiment(circuit).counts
         except KeyError:
             raise QISKitError('No counts for circuit "{0}"'.format(circuit))
 
@@ -258,7 +287,7 @@ class Result(object):
             QISKitError: if there is no statevector for the circuit.
         """
         try:
-            return self.get_data(circuit)['statevector']
+            return self._get_experiment(circuit).statevector
         except KeyError:
             raise QISKitError('No statevector for circuit "{0}"'.format(circuit))
 
@@ -280,7 +309,7 @@ class Result(object):
             QISKitError: if there is no unitary for the circuit.
         """
         try:
-            return self.get_data(circuit)['unitary']
+            return self._get_experiment(circuit).unitary
         except KeyError:
             raise QISKitError('No unitary for circuit "{0}"'.format(circuit))
 
@@ -303,7 +332,7 @@ class Result(object):
             QISKitError: if there are no snapshots for the circuit.
         """
         try:
-            return self.get_data(circuit)['snapshots']
+            return self._get_experiment(circuit).snapshots
         except KeyError:
             raise QISKitError('No snapshots for circuit "{0}"'.format(circuit))
 
@@ -354,7 +383,7 @@ class Result(object):
         Returns:
             List: A list of circuit names.
         """
-        return [c.get('name') for c in self._result['result']]
+        return list(self.results.keys())
 
     def average_data(self, name, observable):
         """Compute the mean value of an diagonal observable.
@@ -380,7 +409,9 @@ class Result(object):
         return temp
 
     def get_qubitpol_vs_xval(self, nqubits, xvals_dict=None):
-        """Compute the polarization of each qubit for all circuits and pull out each circuits
+        """Compute the polarization of each qubit for all circuits.
+
+        Compute the polarization of each qubit for all circuits and pull out each circuits
         xval into an array. Assumes that each circuit has the same number of qubits and that
         all qubits are measured.
 
@@ -393,7 +424,7 @@ class Result(object):
             qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
             xvals: mx1 array of the circuit xvals
         """
-        ncircuits = len(self._result['result'])
+        ncircuits = len(self.results)
         # Is this the best way to get the number of qubits?
         qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
         xvals = numpy.zeros([ncircuits], dtype=float)
@@ -409,32 +440,19 @@ class Result(object):
                     z_dicts[-1][new_key] = 1
 
         # go through each circuit and for eqch qubit and apply the operators using "average_data"
-        for circuit_ind in range(ncircuits):
-            circuit_name = self._result['result'][circuit_ind]['name']
+        for i, (circuit_name, _) in enumerate(self.results.items()):
             if xvals_dict:
-                xvals[circuit_ind] = xvals_dict[circuit_name]
+                xvals[i] = xvals_dict[circuit_name]
             for qubit_ind in range(nqubits):
-                qubitpol[circuit_ind, qubit_ind] = self.average_data(
+                qubitpol[i, qubit_ind] = self.average_data(
                     circuit_name, z_dicts[qubit_ind])
 
         return qubitpol, xvals
 
 
-def copy_qasm_from_qobj_into_result(qobj, result):
-    """Find the QASMs belonging to the Qobj experiments and copy them
-    into the corresponding result entries."""
-    for experiment in qobj.experiments:
-        name = experiment.header.name
-        qasm = getattr(experiment.header, 'compiled_circuit_qasm', None)
-        experiment_result = _find_experiment_result(result, name)
-        if qasm and experiment_result:
-            experiment_result['compiled_circuit_qasm'] = qasm
-
-
-def _find_experiment_result(result, name):
-    for experiment_result in result['result']:
-        if experiment_result['name'] == name:
-            return experiment_result
-
-    logger.warning('No result found for experiment %s', name)
-    return None
+def _status_or_success(obj):
+    """Return obj.status or build it from obj.success."""
+    # TODO: this is needed because "status" is not a required argument
+    # in the schema.
+    return getattr(obj, 'status',
+                   'SUCCESS = {}'.format(obj.success))

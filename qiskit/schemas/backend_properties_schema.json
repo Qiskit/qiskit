@@ -4,22 +4,50 @@
     "description": "OpenQuantum backend properties schema",
     "version": "1.0.0",
     "definitions": {
-        "nduv": {
-            "description": "Recorded parameter as a name-date-unit-value",
-            "type": "object",
-            "required": [
-                "name",
-                "date",
-                "unit",
-                "value"
-            ],
+        "gate": {
             "properties": {
-                "name": {
+                "gate": {
                     "type": "string"
                 },
+                "parameters": {
+                    "items": {
+                        "$ref": "#/definitions/nduv"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "qubits": {
+                    "items": {
+                        "type": "number"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                }
+            },
+            "required": [
+                "qubits",
+                "gate",
+                "parameters"
+            ],
+            "type": "object"
+        },
+        "general_parameters": {
+            "description": "General system parameters",
+            "items": {
+                "$ref": "#/definitions/nduv"
+            },
+            "minItems": 0,
+            "type": "array"
+        },
+        "nduv": {
+            "description": "Recorded parameter as a name-date-unit-value",
+            "properties": {
                 "date": {
-                    "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "unit": {
                     "type": "string"
@@ -27,10 +55,56 @@
                 "value": {
                     "type": "number"
                 }
-            }
+            },
+            "required": [
+                "name",
+                "date",
+                "unit",
+                "value"
+            ],
+            "type": "object"
         }
     },
-    "type": "object",
+    "description": "OpenQuantum backend properties schema",
+    "properties": {
+        "backend_name": {
+            "description": "Backend name",
+            "type": "string"
+        },
+        "backend_version": {
+            "description": "Backend version in the form X.X.X",
+            "pattern": "[0-9]+.[0-9]+.[0-9]+$",
+            "type": "string"
+        },
+        "gates": {
+            "description": "System gate parameters",
+            "items": {
+                "$ref": "#/definitions/gate"
+            },
+            "minItems": 1,
+            "type": "array"
+        },
+        "general": {
+            "$ref": "#/definitions/general_parameters"
+        },
+        "last_update_date": {
+            "description": "Last date/time that a property was updated.",
+            "format": "date-time",
+            "type": "string"
+        },
+        "qubits": {
+            "description": "System qubit parameters",
+            "items": {
+                "items": {
+                    "$ref": "#/definitions/nduv"
+                },
+                "minItems": 1,
+                "type": "array"
+            },
+            "minItems": 1,
+            "type": "array"
+        }
+    },
     "required": [
         "backend_name",
         "backend_version",
@@ -39,73 +113,6 @@
         "gates",
         "general"
     ],
-    "properties": {
-        "backend_name": {
-            "type": "string",
-            "description": "Backend name"
-            },
-        "backend_version": {
-            "type": "string",
-            "pattern": "[0-9]+.[0-9]+.[0-9]+$",
-            "description": "Backend version in the form X.X.X"
-            },
-        "last_update_date": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Last date/time that a property was updated."
-        },
-        "qubits": {
-            "description": "System qubit parameters",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                        "$ref": "#/definitions/nduv"
-                    }           
-                }
-        },
-        "gates": {
-            "description": "System gate parameters",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "required": [
-                    "qubits",
-                    "gate",
-                    "parameters"
-                ],
-                "properties": {
-                    "qubits": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "number"
-                            }
-                        },
-                    "gate": {
-                        "type": "string"
-                    },
-                    "parameters": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "$ref": "#/definitions/nduv"
-                            }
-                    }                    
-                }
-            }
-        },
-        "general": {
-            "description": "General system parameters",
-            "type": "array",
-            "minItems": 0,
-            "items": {
-                "$ref": "#/definitions/nduv"
-                }
-            }   
-        
-    }
+    "type": "object",
+    "version": "1.0.0"
 }

@@ -22,7 +22,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
-from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader
+from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.baseprovider import BaseProvider
@@ -47,7 +47,7 @@ class DummyProvider(BaseProvider):
         filters = filters or {}
         for key, value in filters.items():
             backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration.get(key) == value}
+                        if instance.configuration().get(key) == value}
         return list(backends.values())
 
 
@@ -74,7 +74,9 @@ class DummySimulator(BaseBackend):
         self.time_alive = time_alive
 
     def run(self, qobj):
-        return DummyJob(self.run_job, qobj)
+        job = DummyJob(self.run_job, qobj)
+        job.submit()
+        return job
 
     # pylint: disable=unused-argument
     def run_job(self, qobj):
@@ -87,13 +89,17 @@ class DummySimulator(BaseBackend):
 
 
 class DummyJob(BaseJob):
-    """dummy simulator job"""
+    """Dummy simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
     def __init__(self, fn, qobj):
         super().__init__()
         self._qobj = qobj
-        self._future = self._executor.submit(fn, qobj)
+        self._future = None
+        self._future_callback = fn
+
+    def submit(self):
+        self._future = self._executor.submit(self._future_callback, self._qobj)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
@@ -143,9 +149,11 @@ def new_fake_qobj():
     return Qobj(
         qobj_id='test-id',
         config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
-        header=QobjHeader(backend_name=backend.name),
+        header=QobjHeader(backend_name=backend.name()),
         experiments=[QobjExperiment(
-            instructions=[],
+            instructions=[
+                QobjInstruction(name='barrier', qubits=[1])
+            ],
             header=QobjExperimentHeader(compiled_circuit_qasm='fake-code'),
             config=QobjItem(seed=123456)
         )]
@@ -154,5 +162,7 @@ def new_fake_qobj():
 
 class FakeBackend():
     """Fakes qiskit.backends.basebackend.BaseBackend instances."""
-    def __init__(self):
-        self.name = 'test-backend'
+
+    def name(self):
+        """Return the name of the backend."""
+        return 'test-backend'

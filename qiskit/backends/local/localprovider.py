@@ -90,7 +90,7 @@ class LocalProvider(BaseProvider):
         for backend_cls in SDK_STANDARD_BACKENDS:
             try:
                 backend_instance = cls._get_backend_instance(backend_cls)
-                backend_name = backend_instance.configuration['name']
+                backend_name = backend_instance.configuration()['name']
                 ret[backend_name] = backend_instance
             except QISKitError as e:
                 # Ignore backends that could not be initialized.
@@ -120,7 +120,7 @@ class LocalProvider(BaseProvider):
 
         # Verify that the instance has a minimal valid configuration.
         try:
-            _ = backend_instance.configuration['name']
+            _ = backend_instance.configuration()['name']
         except (LookupError, TypeError):
             raise QISKitError('Backend %s has an invalid configuration')
 

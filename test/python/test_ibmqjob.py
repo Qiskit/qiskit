@@ -34,8 +34,8 @@ def _least_busy(backends):
         BaseBackend: least busy backend instance.
     """
     return min([b for b in backends if
-                b.status['operational'] and 'pending_jobs' in b.status],
-               key=lambda b: b.status['pending_jobs'])
+                b.status()['operational'] and 'pending_jobs' in b.status()],
+               key=lambda b: b.status()['pending_jobs'])
 
 
 class TestIBMQJob(JobTestCase):
@@ -95,10 +95,10 @@ class TestIBMQJob(JobTestCase):
     def test_run_device(self, qe_token, qe_url):
         provider = IBMQProvider(qe_token, qe_url)
         backends = [backend for backend in provider.available_backends()
-                    if not backend.configuration['simulator']]
-        self.log.info('devices: %s', [b.name for b in backends])
+                    if not backend.configuration()['simulator']]
+        self.log.info('devices: %s', [b.name() for b in backends])
         backend = _least_busy(backends)
-        self.log.info('using backend: %s', backend.name)
+        self.log.info('using backend: %s', backend.name())
         qobj = transpiler.compile(self._qc, backend)
         shots = qobj.config.shots
         job = backend.run(qobj)
@@ -125,7 +125,7 @@ class TestIBMQJob(JobTestCase):
         provider = IBMQProvider(qe_token, qe_url)
         IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)
         backend = provider.get_backend('ibmq_qasm_simulator')
-        self.log.info('submitting to backend %s', backend.name)
+        self.log.info('submitting to backend %s', backend.name())
         num_qubits = 16
         qr = QuantumRegister(num_qubits, 'qr')
         cr = ClassicalRegister(num_qubits, 'cr')
@@ -173,9 +173,9 @@ class TestIBMQJob(JobTestCase):
     def test_run_async_device(self, qe_token, qe_url):
         provider = IBMQProvider(qe_token, qe_url)
         backends = [backend for backend in provider.available_backends()
-                    if not backend.configuration['simulator']]
+                    if not backend.configuration()['simulator']]
         backend = _least_busy(backends)
-        self.log.info('submitting to backend %s', backend.name)
+        self.log.info('submitting to backend %s', backend.name())
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
         cr = ClassicalRegister(num_qubits, 'cr')
@@ -228,7 +228,7 @@ class TestIBMQJob(JobTestCase):
         self.wait_for_initialization(job, timeout=5)
         can_cancel = job.cancel()
         self.assertTrue(can_cancel)
-        self.assertStatus(job, JobStatus.CANCELLED)
+        self.assertTrue(job.status() is JobStatus.CANCELLED)
 
     @requires_qe_access
     def test_job_id(self, qe_token, qe_url):
@@ -255,7 +255,7 @@ class TestIBMQJob(JobTestCase):
         start_time = time.time()
         job_list = backend.jobs(limit=5, skip=0)
         self.log.info('time to get jobs: %0.3f s', time.time() - start_time)
-        self.log.info('found %s jobs on backend %s', len(job_list), backend.name)
+        self.log.info('found %s jobs on backend %s', len(job_list), backend.name())
         for job in job_list:
             self.log.info('status: %s', job.status())
             self.assertTrue(isinstance(job.id(), str))
@@ -275,7 +275,7 @@ class TestIBMQJob(JobTestCase):
     def test_retrieve_job_error(self, qe_token, qe_url):
         provider = IBMQProvider(qe_token, qe_url)
         backends = [backend for backend in provider.available_backends()
-                    if not backend.configuration['simulator']]
+                    if not backend.configuration()['simulator']]
         backend = _least_busy(backends)
         self.assertRaises(IBMQBackendError, backend.retrieve_job, 'BAD_JOB_ID')
 
@@ -287,7 +287,7 @@ class TestIBMQJob(JobTestCase):
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
-            self.log.info('match #%d: %s', i, job.result()._result['status'])
+            self.log.info('match #%d: %s', i, job.result().status)
             self.assertTrue(job.status() is JobStatus.DONE)
 
     @requires_qe_access
@@ -306,8 +306,8 @@ class TestIBMQJob(JobTestCase):
         for i, job in enumerate(job_list):
             self.log.info('match #%d', i)
             result = job.result()
-            self.assertTrue(any(cresult['data']['counts']['00'] < 500
-                                for cresult in result._result['result']))
+            self.assertTrue(any(cresult.data['counts']['00'] < 500
+                                for cresult in result.results.values()))
             for circuit_name in result.get_names():
                 self.log.info('\tcircuit_name: %s', circuit_name)
                 if circuit_name:
