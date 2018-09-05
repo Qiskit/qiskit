@@ -24,14 +24,17 @@ class FakeBackEnd(object):
     """A fake backend.
     """
 
-    def __init__(self):
+    def configuration(self):
+        """Return a make up configuration for a fake QX5 device."""
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
                     [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
                     [15, 2], [15, 14]]
-        self.configuration = {'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
-                              'simulator': False, 'n_qubits': 16,
-                              'coupling_map': qx5_cmap}
+        return {
+            'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
+            'simulator': False, 'n_qubits': 16,
+            'coupling_map': qx5_cmap
+        }
 
 
 class TestCompiler(QiskitTestCase):
@@ -387,7 +390,7 @@ class TestCompiler(QiskitTestCase):
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
             if operation.name == 'cx':
-                self.assertIn(operation.qubits, backend.configuration['coupling_map'])
+                self.assertIn(operation.qubits, backend.configuration()['coupling_map'])
 
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
