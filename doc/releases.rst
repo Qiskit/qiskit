@@ -105,7 +105,7 @@ to being deprecated:
     register(token, url)
     backends = available_backends()
     backend = get_backend('ibmqx4')
-    print(backend.status())
+    print(backend.status)
 
 * methods for **compiling and executing programs**:
 
