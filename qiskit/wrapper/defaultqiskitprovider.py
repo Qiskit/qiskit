@@ -17,6 +17,31 @@ from qiskit.backends.local.localprovider import LocalProvider
 logger = logging.getLogger(__name__)
 
 
+def _qiskit_supported_providers():
+    """Get the providers supported by the Qiskit team.
+
+    Returns:
+        list[class]: list of provider classes.
+    """
+    supported_providers = [LocalProvider]
+
+    # Add Qiskit-supported backends (sympy, projectq).
+    try:
+        from qiskit.backends.sympy import SympyProvider
+
+        supported_providers.append(SympyProvider)
+    except ImportError:
+        pass
+    try:
+        from qiskit.backends.projectq import ProjectQProvider
+
+        supported_providers.append(ProjectQProvider)
+    except ImportError:
+        pass
+
+    return supported_providers
+
+
 class DefaultQISKitProvider(BaseProvider):
     """
     Meta-provider that aggregates several providers.
@@ -25,7 +50,7 @@ class DefaultQISKitProvider(BaseProvider):
         super().__init__()
 
         # List of providers.
-        self.providers = [LocalProvider()]
+        self.providers = [cls() for cls in _qiskit_supported_providers()]
 
     def get_backend(self, name):
         name = self.resolve_backend_name(name)
