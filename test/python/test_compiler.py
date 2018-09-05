@@ -25,6 +25,7 @@ class FakeBackEnd(object):
     """
 
     def configuration(self):
+        """Return a make up configuration for a fake QX5 device."""
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
                     [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],

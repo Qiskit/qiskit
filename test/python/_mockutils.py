@@ -74,7 +74,9 @@ class DummySimulator(BaseBackend):
         self.time_alive = time_alive
 
     def run(self, qobj):
-        return DummyJob(self.run_job, qobj)
+        job = DummyJob(self.run_job, qobj)
+        job.submit()
+        return job
 
     # pylint: disable=unused-argument
     def run_job(self, qobj):
@@ -87,13 +89,17 @@ class DummySimulator(BaseBackend):
 
 
 class DummyJob(BaseJob):
-    """dummy simulator job"""
+    """Dummy simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
     def __init__(self, fn, qobj):
         super().__init__()
         self._qobj = qobj
-        self._future = self._executor.submit(fn, qobj)
+        self._future = None
+        self._future_callback = fn
+
+    def submit(self):
+        self._future = self._executor.submit(self._future_callback, self._qobj)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
