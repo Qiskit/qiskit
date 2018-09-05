@@ -190,29 +190,18 @@ class JobTestCase(QiskitTestCase):
 
     def wait_for_initialization(self, job, timeout=1):
         """Waits until the job progress from `INITIALIZING` to a different
-        status."""
+        status.
+        """
         waited = 0
         wait = 0.1
-        while job.status()['status'] == JobStatus.INITIALIZING:
+        while job.status() is JobStatus.INITIALIZING:
             time.sleep(wait)
             waited += wait
             if waited > timeout:
-                self.fail(msg="The JOB is still initializing after timeout ({}s)".format(timeout))
-
-    def assertStatus(self, job, status):
-        """Assert the intenal job status is the expected one and also tests
-        if the shorthand method for that status returns `True`."""
-        self.assertEqual(job.status()['status'], status)
-        if status == JobStatus.CANCELLED:
-            self.assertTrue(job.cancelled)
-        elif status == JobStatus.DONE:
-            self.assertTrue(job.done)
-        elif status == JobStatus.VALIDATING:
-            self.assertTrue(job.validating)
-        elif status == JobStatus.RUNNING:
-            self.assertTrue(job.running)
-        elif status == JobStatus.QUEUED:
-            self.assertTrue(job.queued)
+                self.fail(
+                    msg="The JOB is still initializing after timeout ({}s)"
+                    .format(timeout)
+                )
 
 
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):

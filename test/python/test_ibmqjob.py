@@ -228,7 +228,7 @@ class TestIBMQJob(JobTestCase):
         self.wait_for_initialization(job, timeout=5)
         can_cancel = job.cancel()
         self.assertTrue(can_cancel)
-        self.assertStatus(job, JobStatus.CANCELLED)
+        self.assertTrue(job.status() is JobStatus.CANCELLED)
 
     @requires_qe_access
     def test_job_id(self, qe_token, qe_url):
