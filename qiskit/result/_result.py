@@ -69,11 +69,14 @@ class Result(object):
         self.job_id = qobj_result.job_id
         self.status = _status_or_success(qobj_result)
 
-        # TODO: this needs to use qobj_result.header instead of experiment_names
         if experiment_names:
             self.results = OrderedDict(
                 zip(experiment_names,
                     [ExperimentResult(i) for i in qobj_result.results]))
+        else:
+            self.results = OrderedDict(
+                (qobj_exp_result.header.get('name'), ExperimentResult(qobj_exp_result))
+                for qobj_exp_result in qobj_result.results)
 
     def __str__(self):
         """Get the status of the run.
@@ -171,45 +174,6 @@ class Result(object):
             return self.results[name].compiled_circuit_qasm
         except KeyError:
             raise QISKitError('No  qasm for circuit "{0}"'.format(name))
-
-    def get_data(self, circuit=None):
-        """Get the data of circuit name.
-
-        The data format will depend on the backend. For a real device it
-        will be for the form::
-
-            "counts": {'00000': XXXX, '00001': XXXX},
-            "time"  : xx.xxxxxxxx
-
-        for the qasm simulators of 1 shot::
-
-            'statevector': array([ XXX,  ..., XXX]),
-            'classical_state': 0
-
-        for the qasm simulators of n shots::
-
-            'counts': {'0000': XXXX, '1001': XXXX}
-
-        for the unitary simulators::
-
-            'unitary': np.array([[ XX + XXj
-                                   ...
-                                   XX + XX]
-                                 ...
-                                 [ XX + XXj
-                                   ...
-                                   XX + XXj]]
-
-        Args:
-            circuit (str or QuantumCircuit or None): reference to a quantum circuit
-                If None and there is only one circuit available, returns
-                that one.
-
-        Returns:
-            dict: A dictionary of data for the different backends.
-
-        Raises:
-                error occurred while fetching the data.
 
     def get_data(self, circuit=None):
         """Get the data of circuit name.
@@ -478,7 +442,7 @@ class Result(object):
                 if new_key[nqubits-qubit_ind-1] == '1':
                     z_dicts[-1][new_key] = 1
 
-        # go through each circuit and for eqch qubit and apply the operators using "average_data"
+        # go through each circuit and for each qubit and apply the operators using "average_data"
         for i, (circuit_name, _) in enumerate(self.results.items()):
             if xvals_dict:
                 xvals[i] = xvals_dict[circuit_name]
