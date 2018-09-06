@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 from ._error import VisualizationError
 
 
-
 def plot_histogram(data, number_to_keep=False, legend=None, options=None):
     """Plot a histogram of data.
 
