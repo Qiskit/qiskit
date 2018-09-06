@@ -7,35 +7,109 @@ Release notes
 Qiskit SDK 0.6.0
 ================
 
-This release features the new Qobj format and introduces some breaking changes
+This release includes a redesign of internal components centered around a new,
+formal communication format (``Qobj``), along with long awaited features to
+improve the user experience as a whole. The highlights, compared to the 0.5
+release, are:
+
+* performance improvements centered in the circuit transpilation: the basis for
+  a more flexible and modular architecture have been set, including
+  paralellization of the circuit compilation and numerous optimizations.
+* new options for handling credentials and authentication for the IBM Q
+  backends, aimed at simplifying the process and supporting automatic load of
+  the user token.
+* a revamp of the visualization utilities: stylish interactive visualizations
+  are now available for Jupyter users, along with refinements for the circuit
+  drawer (including a matplotlib-based version).
+* improvements for inter-operability (based on the ``Qobj`` specification) and
+  extensibility (facilities for extending Qiskit with new backends in a seamless
+  way).
 
 Upgrading to 0.6.0
 ------------------
 
+Please note that some backwards-incompatible changes have been introduced
+during this release - the following notes contain information on how to adapt to
+the new changes.
+
+Removal of ``QuantumProgram``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As hinted during the 0.5 release, the deprecation of the  ``QuantumProgram``
+class has now been completed and is no longer available, in favor of working
+with the individual components (:class:`~qiskit.backends.basebackend.BaseJob`,
+:class:`~qiskit._quantumcircuit.QuantumCircuit`,
+:class:`~qiskit._classicalregister.ClassicalRegister`,
+:class:`~qiskit._quantumregister.QuantumRegister`,
+:mod:`~qiskit.wrapper`) directly.
+
+Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
+:doc:`quickstart` examples for details about the ::
+
+
+  from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+  from qiskit import available_backends, execute
+
+  q = QuantumRegister(2)
+  c = ClassicalRegister(2)
+  qc = QuantumCircuit(q, c)
+
+  qc.h(q[0])
+  qc.cx(q[0], q[1])
+  qc.measure(q, c)
+
+  print("Local backends: ", available_backends({'local': True}))
+
+  job_sim = execute(qc, "local_qasm_simulator")
+  sim_result = job_sim.result()
+
+  print("simulation: ", sim_result)
+  print(sim_result.get_counts(qc))
+
+IBM Q Authentication and `Qconfig.py`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+TODO
+
 Backend API changes
 ^^^^^^^^^^^^^^^^^^^
 
-Members :attr:`~qiskit.backends.BaseBackend.configuration`, :attr:`~qiskit.backends.BaseBackend.calibration`,
-:attr:`~qiskit.backends.BaseBackend.parameters`,
-:attr:`~qiskit.backends.BaseBackend.status`,
-:attr:`~qiskit.backends.BaseBackend.name` are no longer properties but
-methods.
+A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and its
+subclasses are no longer properties, but methods, and as a result they need to
+be invoked as functions:
+:attr:`~qiskit.backends.basebackend.BaseBackend.configuration`,
+:attr:`~qiskit.backends.basebackend.BaseBackend.calibration`,
+:attr:`~qiskit.backends.basebackend.BaseBackend.parameters`,
+:attr:`~qiskit.backends.basebackend.BaseBackend.status`,
+:attr:`~qiskit.backends.basebackend.BaseBackend.name`.
+
+=====================  ==========
+Qiskit 0.5             Qiskit 0.6
+=====================  ==========
+backend.configuration  backend.configuration()
+backend.calibration    backend.calibration()
+backend.parameters     backend.parameters()
+backend.status         backend.status()
+backend.name           backend.name()
+=====================  ==========
 
 ``BaseJob`` and ``IBMQJob`` API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* creating a :class:`~qiskit.backends.BaseJob` instance no longer send it
-  to the backend. Now, you need to call :meth:`~qiskit.backends.BaseJob.submit`
-  explicitely.
+* creating a :class:`~qiskit.backends.basejob.BaseJob` instance no longer
+  submits to the backend automatically. Now, you need to call
+  :meth:`~qiskit.backends.basejob.BaseJob.submit`
+  explicitly.
 
-* the :meth:`~qiskit.backends.BaseJob.status` method is used to check the status
-  of a job instead of the property with the same name of previous versions. The
-  method returns a member of the :class:`~qiskit.backends.JobStatus`
-  enumeration.
+* the :meth:`~qiskit.backends.basejob.BaseJob.status` method is used to
+  check the status of a job ,instead of the property with the same name of
+  previous versions. The method returns a member of the
+  :class:`~qiskit.backends.jobstatus.JobStatus` enumeration.
 
 * properties for checking each individual state (``queued``, ``running``,
   ``validating``, ``done`` and ``cancelled``) no longer exist. If you
-  want to check the job state, use the identity comparison::
+  want to check the job state, use the identity comparison against
+  ``job.status``::
 
     from qiskit.backends import JobStatus
 
@@ -43,8 +117,19 @@ methods.
     if job.status is JobStatus.RUNNING:
         handle_job(job)
 
-* consult the new documentation of the :class:`~qiskit.backends.ibmq.IBMQJob`
-  class to get further insight in how to use the simplified API.
+Please consult the new documentation of the
+:class:`~qiskit.backends.ibmq.ibmqjob.IBMQJob` class to get further insight in
+how to use the simplified API.
+
+Tomography API
+^^^^^^^^^^^^^^
+
+TODO
+
+Interactive visualizations
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+TODO
 
 
 Qiskit SDK 0.5.0
@@ -72,6 +157,8 @@ during this release as a result of the ongoing development. While some of these
 features will continue to be supported during a period of time before being
 fully deprecated, it is recommended to update your programs in order to prepare
 for the new versions and take advantage of the new functionality.
+
+.. _quantum-program-0-5:
 
 ``QuantumProgram`` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
