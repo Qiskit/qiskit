@@ -23,6 +23,11 @@ class BaseJob(ABC):
         pass
 
     @abstractmethod
+    def submit(self):
+        """Submit the job to the backend."""
+        pass
+
+    @abstractmethod
     def result(self):
         """Return backend result"""
         pass
@@ -34,5 +39,5 @@ class BaseJob(ABC):
 
     @abstractmethod
     def status(self):
-        """Get backend status dictionary"""
+        """Return one of the values of ``JobStatus``"""
         pass

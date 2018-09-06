@@ -104,7 +104,7 @@ class TestQobj(QiskitTestCase):
         """Test localjob is denied resource request access when given an invalid Qobj instance."""
 
         backend = FakeBackend()
-        self.bad_qobj.header = QobjHeader(backend_name=backend.name)
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(QobjValidationError):
             job = localjob.LocalJob(_nop, self.bad_qobj)
@@ -114,7 +114,7 @@ class TestQobj(QiskitTestCase):
         """Test IBMQobj is denied resource request access when given an invalid Qobj instance."""
 
         backend = FakeBackend()
-        self.bad_qobj.header = QobjHeader(backend_name=backend.name)
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         api_stub = {}
         with self.assertRaises(QobjValidationError):

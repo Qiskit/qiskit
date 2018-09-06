@@ -258,21 +258,6 @@ class TestIBMQJobStates(JobTestCase):
                     else:
                         self.assertFalse(self._current_api.get_job.called)
 
-    def wait_for_initialization(self, job, timeout=1):
-        """Waits until the job progress from `INITIALIZING` to a different
-        status.
-        """
-        waited = 0
-        wait = 0.1
-        while job.status() == JobStatus.INITIALIZING:
-            time.sleep(wait)
-            waited += wait
-            if waited > timeout:
-                self.fail(
-                    msg="The JOB is still initializing after timeout ({}s)"
-                    .format(timeout)
-                )
-
     def run_with_api(self, api):
         """Creates a new `IBMQJob` instance running with the provided API
         object.

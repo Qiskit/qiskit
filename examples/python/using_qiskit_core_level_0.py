@@ -74,10 +74,10 @@ try:
         interval = 10
         while not job_exp.done:
             print('Status @ {} seconds'.format(interval * lapse))
-            print(job_exp.status)
+            print(job_exp.status())
             time.sleep(interval)
             lapse += 1
-        print(job_exp.status)
+        print(job_exp.status())
         exp_result = job_exp.result()
 
         # Show the results
