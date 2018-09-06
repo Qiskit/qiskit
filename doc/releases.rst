@@ -70,7 +70,7 @@ IBM Q Authentication and `Qconfig.py`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The managing of credentials for authenticating when using the QE devices has
-been expanded, and there are new options that can be used for convenience::
+been expanded, and there are new options that can be used for convenience:
 
 1. store your credentials in disk once, and automatically load them in future
    sessions. This provides a one-off mechanism::
@@ -89,7 +89,7 @@ been expanded, and there are new options that can be used for convenience::
 
 Additionally, the previous method of having a `Qconfig.py` file in the program
 folder and passing the credentials explicitly is still supported. Please check
-the :ref:`_qconfig-setup` section for more details about combining and using
+the :ref:`qconfig-setup` section for more details about combining and using
 the different authentication options.
 
 Backend API changes
