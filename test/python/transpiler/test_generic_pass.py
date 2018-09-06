@@ -22,13 +22,11 @@ class TestGenericPass(QiskitTestCase):
         """ Passes can be set via `set`."""
         tp_pass = DummyTP()
 
-        self.assertTrue(tp_pass.idempotence)  # By default, passes are idempotent
         self.assertFalse(tp_pass.ignore_preserves)  # By default, passes do not ignore preserves
         self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
 
-        tp_pass.set(idempotence=False, ignore_preserves=True, ignore_requires=True)
+        tp_pass.set(ignore_preserves=True, ignore_requires=True)
 
-        self.assertFalse(tp_pass.idempotence)
         self.assertTrue(tp_pass.ignore_requires)
         self.assertTrue(tp_pass.ignore_preserves)
 
