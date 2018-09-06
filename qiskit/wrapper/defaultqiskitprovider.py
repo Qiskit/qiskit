@@ -26,6 +26,8 @@ def _qiskit_supported_providers():
     supported_providers = [LocalProvider]
 
     # Add Qiskit-supported backends.
+    # TODO: once the backends are available as packages, they will not need to
+    # be imported conditionally.
     try:
         from qiskit.backends.sympy import SympyProvider
         supported_providers.append(SympyProvider)

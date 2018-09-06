@@ -33,7 +33,7 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-# Allow extending this namespace. Please note that currently this import needs
+# Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
