@@ -83,7 +83,7 @@ class LocalJob(BaseJob):
             timeout (float): number of seconds to wait for results.
 
         Returns:
-            Result: Result object
+            qiskit.Result: Result object
 
         Raises:
             concurrent.futures.TimeoutError: if timeout occurred.
