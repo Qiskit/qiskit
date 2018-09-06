@@ -16,7 +16,7 @@ from ._transpilererror import TranspilerError
 class PassManager():
     """ A PassManager schedules the passes """
 
-    def __init__(self, ignore_requires=None, ignore_preserves=None, idempotence=None):
+    def __init__(self, ignore_requires=None, ignore_preserves=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
@@ -25,8 +25,6 @@ class PassManager():
                 default setting in the pass is False.
             ignore_preserves (bool): The schedule ignores the preserves field in the passes.  The
                 default setting in the pass is False.
-            idempotence (bool): The schedule considers every pass idempotent.
-                 The default setting in the pass is True.
         """
 
         self.working_list = WorkingList()
@@ -34,8 +32,7 @@ class PassManager():
         self.fenced_property_set = FencedPropertySet(self.property_set)
         self.valid_passes = set()
         self.pass_options = {'ignore_requires': ignore_requires,
-                             'ignore_preserves': ignore_preserves,
-                             'idempotence': idempotence}
+                             'ignore_preserves': ignore_preserves}
 
     def __getitem__(self, key):
         return self.property_set[key]
@@ -51,7 +48,7 @@ class PassManager():
         return {**passmanager_level, **passset_level, **pass_level}
 
     def add_pass(self, pass_or_list_of_passes, do_while=None, condition=None,
-                 idempotence=None, ignore_requires=None, ignore_preserves=None):
+                 ignore_requires=None, ignore_preserves=None):
         """
         Args:
             pass_or_list_of_passes (pass instance or list):
@@ -65,8 +62,7 @@ class PassManager():
             TranspilerError: if pass_or_list_of_passes is not a proper pass.
         """
 
-        passset_options = {'idempotence': idempotence,
-                           'ignore_requires': ignore_requires,
+        passset_options = {'ignore_requires': ignore_requires,
                            'ignore_preserves': ignore_preserves}
 
         if isinstance(pass_or_list_of_passes, BasePass):
@@ -131,8 +127,7 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
-        if pass_.idempotence:
-            self.valid_passes.add(pass_)
+        self.valid_passes.add(pass_)
 
 
 class WorkingList():

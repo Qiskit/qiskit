@@ -23,11 +23,8 @@ class MetaPass(type):
         obj._hash = hash(cls.__name__ +
                          str(args) +
                          str(OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))))
-        obj._defaults = {
-            "idempotence": True,
-            "ignore_requires": False,
-            "ignore_preserves": False
-        }
+        obj._defaults = {"ignore_requires": False,
+                         "ignore_preserves": False}
         obj._settings = {}
         return obj
 
@@ -82,15 +79,6 @@ class BasePass(metaclass=MetaPass):
             NotImplementedError: Because YOU have to implement this :)
         """
         raise NotImplementedError
-
-    @property
-    def idempotence(self):
-        """ A pass is idempotent when run several time is equivalent to run it once. In math terms,
-        when `run(run(dag)) == run(dag)`. By default, the passes are idempotent. This allows to
-        optimize the transpiler process when sequence of passes are repeated or when passes are
-        preserves.
-        """
-        return self._settings.get('idempotence', self._defaults['idempotence'])
 
     @property
     def ignore_requires(self):
