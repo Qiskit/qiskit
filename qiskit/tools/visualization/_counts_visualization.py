@@ -12,17 +12,21 @@ Visualization functions for measurement counts.
 """
 
 from collections import Counter
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+from ._error import VisualizationError
+
 
 
 def plot_histogram(data, number_to_keep=False, legend=None, options=None):
     """Plot a histogram of data.
 
     Args:
-        data (list or dict): This is either a list of dictionaries containing:
-            values to represent (ex {'001': 130})
+        data (list or dict): This is either a list of dictionaries or a single
+            dict containing the values to represent (ex {'001': 130})
         number_to_keep (int): DEPRECATED the number of terms to plot and rest
             is made into a single bar called other values
         legend(list): A list of strings to use for labels of the data.
@@ -32,21 +36,28 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
             - number_to_keep (integer): groups max values
             - show_legend (bool): show legend of graph content
     Raises:
-        Exception: When legend is provided and the length doesn't match the
-            input data
+        VisualizationError: When legend is provided and the length doesn't
+            match the input data
     """
     if options is None:
         options = {}
 
+    if number_to_keep is not False:
+        warnings.warn("number_to_keep has been deprecated, use the options "
+                      "dictionary and set a number_to_keep key instead",
+                      DeprecationWarning)
+
     if isinstance(data, dict):
         data = [data]
         if legend and len(legend) != 1:
-            raise Exception("Length of legendL %s doesn't match number of "
-                            "input executions: %s" % (len(legend), 1))
+            raise VisualizationError("Length of legendL %s doesn't match "
+                                     "number of input executions: %s" % (
+                                         len(legend), 1))
     else:
         if legend and len(legend) != len(data):
-            raise Exception("Length of legendL %s doesn't match number of "
-                            "input executions: %s" % (len(legend), len(data)))
+            raise VisualizationError("Length of legendL %s doesn't match "
+                                     "number of input executions: %s" % (
+                                         len(legend), len(data)))
 
     _, ax = plt.subplots()
     for item, execution in enumerate(data):

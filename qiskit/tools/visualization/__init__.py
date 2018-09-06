@@ -11,6 +11,7 @@ import sys
 
 from ._circuit_visualization import circuit_drawer, plot_circuit, generate_latex_source,\
     latex_circuit_drawer, matplotlib_circuit_drawer, qx_color_scheme
+from ._error import VisualizationError
 
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     import requests
