@@ -15,7 +15,7 @@ release, are:
 * performance improvements centered in the circuit transpilation: the basis for
   a more flexible and modular architecture have been set, including
   paralellization of the circuit compilation and numerous optimizations.
-* new options for handling credentials and authentication for the IBM Q
+* new options for handling credentials and authentication for the QE
   backends, aimed at simplifying the process and supporting automatic load of
   the user token.
 * a revamp of the visualization utilities: stylish interactive visualizations
@@ -69,7 +69,28 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 IBM Q Authentication and `Qconfig.py`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
+The managing of credentials for authenticating when using the QE devices has
+been expanded, and there are new options that can be used for convenience::
+
+1. store your credentials in disk once, and automatically load them in future
+   sessions. This provides a one-off mechanism::
+
+     from qiskit import store credentials
+     store_credentials('MY_API_TOKEN')
+
+   afterwards, your credentials can be automatically read from disk by not
+   passing any parameters to :meth:`~qiskit.wrapper._wrapper.register`::
+
+     from qiskit import register
+     register()
+
+2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
+   ``register()`` call will automatically load the credentials from them.
+
+Additionally, the previous method of having a `Qconfig.py` file in the program
+folder and passing the credentials explicitly is still supported. Please check
+the :ref:`_qconfig-setup` section for more details about combining and using
+the different authentication options.
 
 Backend API changes
 ^^^^^^^^^^^^^^^^^^^
