@@ -178,7 +178,7 @@ class ResultEncoder(json.JSONEncoder):
         elif isinstance(o, BaseBackend):
             # TODO: replace when the deprecation is completed (see also note in
             # Result.__iadd__).
-            return o.configuration['name']
+            return o.configuration()['name']
 
         return json.JSONEncoder.default(self, o)
 

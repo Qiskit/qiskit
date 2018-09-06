@@ -57,7 +57,7 @@ class TestBackends(QiskitTestCase):
         """
         ibmq_provider = IBMQProvider(qe_token, qe_url)
         remote = ibmq_provider.available_backends()
-        remote = [r for r in remote if not r.configuration['simulator']]
+        remote = [r for r in remote if not r.configuration()['simulator']]
         self.log.info(remote)
         self.assertTrue(remote)
 
@@ -69,7 +69,7 @@ class TestBackends(QiskitTestCase):
         """
         ibmq_provider = IBMQProvider(qe_token, qe_url)
         remote = ibmq_provider.available_backends()
-        remote = [r for r in remote if r.configuration['simulator']]
+        remote = [r for r in remote if r.configuration()['simulator']]
         self.log.info(remote)
         self.assertTrue(remote)
 
@@ -80,7 +80,7 @@ class TestBackends(QiskitTestCase):
         """
         local_provider = DefaultQISKitProvider()
         backend = local_provider.get_backend(name='local_qasm_simulator_py')
-        self.assertEqual(backend.configuration['name'], 'local_qasm_simulator_py')
+        self.assertEqual(backend.configuration()['name'], 'local_qasm_simulator_py')
 
     def test_local_backend_status(self):
         """Test backend_status.
@@ -92,7 +92,7 @@ class TestBackends(QiskitTestCase):
 
         local_provider = DefaultQISKitProvider()
         backend = local_provider.get_backend(name='local_qasm_simulator')
-        status = backend.status
+        status = backend.status()
         schema_path = self._get_resource_path(
             'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
         with open(schema_path, 'r') as schema_file:
@@ -113,8 +113,8 @@ class TestBackends(QiskitTestCase):
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
-            self.log.info(backend.status)
-            status = backend.status
+            self.log.info(backend.status())
+            status = backend.status()
             schema_path = self._get_resource_path(
                 'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
@@ -129,7 +129,7 @@ class TestBackends(QiskitTestCase):
         local_provider = LocalProvider()
         local_backends = local_provider.available_backends()
         for backend in local_backends:
-            configuration = backend.configuration
+            configuration = backend.configuration()
             schema_path = self._get_resource_path(
                 'deprecated/backends/backend_configuration_schema_old_py.json',
                 path=Path.SCHEMAS)
@@ -147,7 +147,7 @@ class TestBackends(QiskitTestCase):
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
-            configuration = backend.configuration
+            configuration = backend.configuration()
             schema_path = self._get_resource_path(
                 'deprecated/backends/backend_configuration_schema_old_py.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
@@ -162,7 +162,7 @@ class TestBackends(QiskitTestCase):
         local_provider = LocalProvider()
         local_backends = local_provider.available_backends()
         for backend in local_backends:
-            calibration = backend.calibration
+            calibration = backend.calibration()
             # FIXME test against schema and decide what calibration
             # is for a simulator
             self.assertEqual(len(calibration), 0)
@@ -177,10 +177,10 @@ class TestBackends(QiskitTestCase):
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
-            calibration = backend.calibration
+            calibration = backend.calibration()
             # FIXME test against schema and decide what calibration
             # is for a simulator
-            if backend.configuration['simulator']:
+            if backend.configuration()['simulator']:
                 self.assertEqual(len(calibration), 0)
             else:
                 self.assertEqual(len(calibration), 4)
@@ -193,7 +193,7 @@ class TestBackends(QiskitTestCase):
         local_provider = LocalProvider()
         local_backends = local_provider.available_backends()
         for backend in local_backends:
-            parameters = backend.parameters
+            parameters = backend.parameters()
             # FIXME test against schema and decide what parameters
             # is for a simulator
             self.assertEqual(len(parameters), 0)
@@ -208,11 +208,11 @@ class TestBackends(QiskitTestCase):
         remotes = ibmq_provider.available_backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
-            self.log.info(backend.name)
-            parameters = backend.parameters
+            self.log.info(backend.name())
+            parameters = backend.parameters()
             # FIXME test against schema and decide what parameters
             # is for a simulator
-            if backend.configuration['simulator']:
+            if backend.configuration()['simulator']:
                 self.assertEqual(len(parameters), 0)
             else:
                 self.assertTrue(all(key in parameters for key in (

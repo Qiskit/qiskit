@@ -47,18 +47,14 @@ class IBMQJob(BaseJob):
     backend.
 
     Creating a ``Job`` instance does not imply running it. You need to do it in
-    separate steps:
-
-    .. highlight::
+    separate steps::
 
         job = IBMQJob(...)
         job.submit() # It won't block.
 
     An error while submitting a job will cause the next call to ``status()`` to
     raise. If submitting the job successes, you can inspect the job's status by
-    using ``status()``. Status can be one of ``JobStatus`` members:
-
-    .. highlight::
+    using ``status()``. Status can be one of ``JobStatus`` members::
 
         from qiskit.backends.jobstatus import JobStatus
 
@@ -79,9 +75,7 @@ class IBMQJob(BaseJob):
 
     The ``submit()`` and ``status()`` methods are examples of non-blocking API.
     ``Job`` instances also have `id()` and ``result()`` methods which will
-    block:
-
-    .. highlight::
+    block::
 
         job = IBMQJob(...)
         job.submit()
