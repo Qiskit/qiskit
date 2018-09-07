@@ -208,27 +208,26 @@ class IBMQJob(BaseJob):
     def _result_from_api_response(api_response):
         # Build the Result.
         experiment_results = []
-        if 'result' in api_response:  # qobj job
-            job_result = api_response['result']
-            for resultobj in job_result['results']:
-                qobj_exp_result_args = [resultobj.get(arg) for arg in
-                                        QobjExperimentResult.REQUIRED_ARGS]
-                qobj_exp_result_kwargs = {key: value for (key, value) in
-                                          resultobj.items() if key not in
-                                          QobjExperimentResult.REQUIRED_ARGS}
+        job_result = api_response['result']
+        for resultobj in job_result['results']:
+            qobj_exp_result_args = [resultobj.get(arg) for arg in
+                                    QobjExperimentResult.REQUIRED_ARGS]
+            qobj_exp_result_kwargs = {key: value for (key, value) in
+                                      resultobj.items() if key not in
+                                      QobjExperimentResult.REQUIRED_ARGS}
 
-                qobj_exp_result = QobjExperimentResult(*qobj_exp_result_args,
-                                                       **qobj_exp_result_kwargs)
-                experiment_results.append(qobj_exp_result)
-            qobj_result_args = [job_result.get(arg) for arg in
-                                QobjResult.REQUIRED_ARGS]
-            qobj_result_kwargs = {key: value for (key, value) in
-                                  job_result.items() if key not in
-                                  QobjResult.REQUIRED_ARGS}
-            qobj_result = QobjResult(*qobj_result_args, **qobj_result_kwargs)
-            # replace job_result list of dict with list of Qobj ExperimentResult
-            qobj_result.results = experiment_results
-            return Result(qobj_result)
+            qobj_exp_result = QobjExperimentResult(*qobj_exp_result_args,
+                                                   **qobj_exp_result_kwargs)
+            experiment_results.append(qobj_exp_result)
+        qobj_result_args = [job_result.get(arg) for arg in
+                            QobjResult.REQUIRED_ARGS]
+        qobj_result_kwargs = {key: value for (key, value) in
+                              job_result.items() if key not in
+                              QobjResult.REQUIRED_ARGS}
+        qobj_result = QobjResult(*qobj_result_args, **qobj_result_kwargs)
+        # replace job_result list of dict with list of Qobj ExperimentResult
+        qobj_result.results = experiment_results
+        return Result(qobj_result)
 
     def cancel(self):
         """Attempt to cancel a job.
