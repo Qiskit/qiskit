@@ -38,8 +38,8 @@ import qiskit.extensions.quantum_initializer
 # Python build since using pyenv
 try:
     from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
-except ImportError as expt:
-    pass
+except (ImportError, RuntimeError) as expt:
+    print("Error: {0}".format(expt))
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports.
