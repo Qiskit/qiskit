@@ -8,8 +8,5 @@ ply>=3.10
 scipy>=0.19
 sympy>=1.0
 pillow>=4.2.1
-<<<<<<< HEAD
 vcrpy
 psutil>=5.4.4
-=======
->>>>>>> master
