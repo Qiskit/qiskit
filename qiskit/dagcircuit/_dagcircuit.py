@@ -1330,11 +1330,17 @@ class DAGCircuit:
         return summary
 
     @staticmethod
-    def fromQuantumCircuit(circuit):
-        """Returns a DAGCircuit object from a QuantumCircuit
+    def fromQuantumCircuit(circuit, expand_gates=True):
+        """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
-        None of the gates are expanded, i.e. the gates that are defined in the
-        circuit are included in the gate basis.
+        Args:
+            circuit (QuantumCircuit): the input circtuit.
+            expand_gates (bool): if ``False``, none of the gates are expanded,
+                i.e. the gates that are defined in the circuit are included in
+                the DAG basis.
+
+        Return:
+            DAGCircuit: the DAG representing the input circuit.
         """
         dagcircuit = DAGCircuit()
         dagcircuit.name = circuit.name
@@ -1367,10 +1373,12 @@ class DAGCircuit:
             # TODO: generate definitions and nodes for CompositeGates,
             # for now simply drop their instructions into the DAG
             instruction_list = []
-            if isinstance(main_instruction, CompositeGate):
+            is_composite = isinstance(main_instruction, CompositeGate)
+            if is_composite and expand_gates:
                 instruction_list = main_instruction.instruction_list()
             else:
                 instruction_list.append(main_instruction)
+
             for instruction in instruction_list:
                 # Add OpenQASM built-in gates on demand
                 if instruction.name in builtins:
@@ -1390,7 +1398,15 @@ class DAGCircuit:
                     control = None
                 else:
                     control = (instruction.control[0].name, instruction.control[1])
-                dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
+
+                if is_composite and not expand_gates:
+                    is_inverse = instruction.inverse_flag
+                    name = instruction.name if not is_inverse else instruction.inverse_name
+
+                else:
+                    name = instruction.name
+
+                dagcircuit.apply_operation_back(name, qargs, cargs,
                                                 instruction.param,
                                                 control)
         return dagcircuit
