@@ -229,7 +229,7 @@ class IBMQJob(BaseJob):
             # replace job_result list of dict with list of Qobj ExperimentResult
             qobj_result.results = experiment_results
             return Result(qobj_result)
-        
+
     def cancel(self):
         """Attempt to cancel a job.
 
@@ -437,6 +437,9 @@ class IBMQJob(BaseJob):
 
 
 class IBMQJobPreQobj(IBMQJob):
+    """
+    Subclass of IBMQJob for handling pre-qobj jobs.
+    """
 
     def _submit_callback(self):
         """Submit old style qasms job to IBM-Q. Can remove when all devices
@@ -480,6 +483,9 @@ class IBMQJobPreQobj(IBMQJob):
         self._id = submit_info.get('id')
         return submit_info
 
+    # pylint disable since this version of the function signature will hopefully
+    # be removed later
+    # pylint: disable=arguments-differ
     @staticmethod
     def _result_from_api_response(api_response, job_id, backend_name, is_device,
                                   job_status):
@@ -508,29 +514,6 @@ class IBMQJobPreQobj(IBMQJob):
             'success': api_response['status'] == 'DONE'
         }, [circuit_result['name'] for circuit_result in api_response['qasms']])
 
-        job_result_list = []
-        for circuit_result in api_response['qasms']:
-            this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
-                           'compiled_circuit_qasm': circuit_result.get('qasm'),
-                           'status': circuit_result['status'],
-                           'success': circuit_result['status'] == 'DONE',
-                           'shots': api_response['shots']}
-            if 'metadata' in circuit_result:
-                this_result['metadata'] = circuit_result['metadata']
-
-            job_result_list.append(this_result)
-
-        return result_from_old_style_dict({
-            'id': job_id,
-            'status': api_response['status'],
-            'used_credits': api_response.get('usedCredits'),
-            'result': job_result_list,
-            'backend_name': backend_name,
-            'success': api_response['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in api_response['qasms']])
-        
-
 
 def _result_from_api_response(api_response, job_id=None, backend_name=None,
                               is_device=None):
@@ -544,19 +527,22 @@ def _result_from_api_response(api_response, job_id=None, backend_name=None,
         backend_name (str): backend name (for pre-qobj results)
         is_device (bool): whether backend is a real device
 
+    Raises:
+        JobError: api response doesn't have 'result' or 'qasms' record
+
     Returns:
-        Result object
+        Result: qiskit.result.Result object
     """
     if 'result' in api_response:
-        return IBMQJob.result_from_api_response(api_response)
-
-    if 'qasms' in api_response:
+        return IBMQJob._result_from_api_response(api_response)
+    elif 'qasms' in api_response:
         if is_device:
             _reorder_bits(api_response)
-            return IBMQJobPreQobj.result_from_api_response(api_response, job_id,
-                                                           backend_name,
-                                                           is_device)
-    raise JobError('unrecognized job data from API ({})'.format(job_id))
+        return IBMQJobPreQobj._result_from_api_response(api_response, job_id,
+                                                        backend_name,
+                                                        is_device)
+    else:
+        raise JobError('unrecognized job data from API ({})'.format(job_id))
 
 def _reorder_bits(job_data):
     """Temporary fix for ibmq backends.

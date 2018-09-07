@@ -237,7 +237,7 @@ class IBMQBackend(BaseBackend):
         else:
             raise IBMQBackendError('unrecognised job record from API')
         return job_class
-        
+
     def retrieve_job(self, job_id):
         """Attempt to get the specified job by job_id
 
