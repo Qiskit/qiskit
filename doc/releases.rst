@@ -12,16 +12,16 @@ formal communication format (``Qobj``), along with long awaited features to
 improve the user experience as a whole. The highlights, compared to the 0.5
 release, are:
 
-* performance improvements centered in the circuit transpilation: the basis for
+* Performance improvements centered in the circuit transpilation: the basis for
   a more flexible and modular architecture have been set, including
   paralellization of the circuit compilation and numerous optimizations.
-* new options for handling credentials and authentication for the QE
-  backends, aimed at simplifying the process and supporting automatic load of
-  the user token.
-* a revamp of the visualization utilities: stylish interactive visualizations
+* New options for handling credentials and authentication for the IBM Q
+  backends, aimed at simplifying the process and supporting automatic loading
+  of user credentials.
+* A revamp of the visualization utilities: stylish interactive visualizations
   are now available for Jupyter users, along with refinements for the circuit
   drawer (including a matplotlib-based version).
-* improvements for inter-operability (based on the ``Qobj`` specification) and
+* Improvements for inter-operability (based on the ``Qobj`` specification) and
   extensibility (facilities for extending Qiskit with new backends in a seamless
   way).
 
@@ -44,7 +44,7 @@ with the individual components (:class:`~qiskit.backends.basebackend.BaseJob`,
 :mod:`~qiskit.wrapper`) directly.
 
 Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
-:doc:`quickstart` examples for details about the ::
+:doc:`quickstart` examples for details about the transition ::
 
 
   from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
@@ -92,26 +92,24 @@ folder and passing the credentials explicitly is still supported. Please check
 the :ref:`qconfig-setup` section for more details about combining and using
 the different authentication options.
 
-Backend API changes
-^^^^^^^^^^^^^^^^^^^
+Backend and Job API changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and its
-subclasses are no longer properties, but methods, and as a result they need to
-be invoked as functions:
-:attr:`~qiskit.backends.basebackend.BaseBackend.configuration`,
-:attr:`~qiskit.backends.basebackend.BaseBackend.calibration`,
-:attr:`~qiskit.backends.basebackend.BaseBackend.parameters`,
-:attr:`~qiskit.backends.basebackend.BaseBackend.status`,
-:attr:`~qiskit.backends.basebackend.BaseBackend.name`.
+A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and 
+:class:`~qiskit.backends.basejob.BaseJob` are no longer properties, 
+but methods, and as a result they need to be invoked as functions:
 
 =====================  ==========
 Qiskit 0.5             Qiskit 0.6
 =====================  ==========
 backend.configuration  backend.configuration()
-backend.calibration    backend.calibration()
-backend.parameters     backend.parameters()
+backend.calibration    backend.properties()
+backend.parameters     
 backend.status         backend.status()
 backend.name           backend.name()
+=====================  ==========
+job.status             job.status()
+                       job.queue_position()
 =====================  ==========
 
 ``BaseJob`` and ``IBMQJob`` API changes
@@ -123,7 +121,7 @@ backend.name           backend.name()
   explicitly.
 
 * the :meth:`~qiskit.backends.basejob.BaseJob.status` method is used to
-  check the status of a job ,instead of the property with the same name of
+  check the status of a job, instead of the property with the same name of
   previous versions. The method returns a member of the
   :class:`~qiskit.backends.jobstatus.JobStatus` enumeration.
 
