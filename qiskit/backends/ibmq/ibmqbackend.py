@@ -68,14 +68,16 @@ class IBMQBackend(BaseBackend):
             dict: The calibration of the backend.
 
         Raises:
-            LookupError: If a configuration for the backend can't be found.
+            LookupError: If a calibration for the backend can't be found.
+
+        :deprecated: will be removed after 0.6
         """
         try:
-            backend_name = self.configuration()['name']
+            backend_name = self.name()
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name in ('ibmq_qasm_simulator', 'ibmqx_qasm_simulator'):
+            if backend_name == 'ibmq_qasm_simulator':
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
@@ -96,9 +98,11 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             LookupError: If parameters for the backend can't be found.
+
+        :deprecated: will be removed after 0.6
         """
         try:
-            backend_name = self.configuration()['name']
+            backend_name = self.name()
             parameters = self._api.backend_parameters(backend_name)
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
@@ -114,6 +118,21 @@ class IBMQBackend(BaseBackend):
             parameters_edit[new_key] = vals
 
         return parameters_edit
+
+    def properties(self):
+        """Return the online backend properties.
+
+        The return is via QX API call.
+
+        Returns:
+            dict: The properties of the backend.
+
+        Raises:
+            LookupError: If properties for the backend can't be found.
+        """
+        # FIXME: make this an actual call to api for getting properties
+        # for now this api endpoint does not exist.
+        return {**self.calibration(), **self.parameters()}
 
     def status(self):
         """Return the online backend status.
