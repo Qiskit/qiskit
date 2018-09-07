@@ -15,7 +15,7 @@ from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobDeprecated
+from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
 from qiskit.backends import JobStatus
 
 logger = logging.getLogger(__name__)
@@ -57,8 +57,9 @@ class IBMQBackend(BaseBackend):
         if self.configuration().get('allow_q_object'):
             job_class = IBMQJob
         else:
-            job_class = IBMQJobDeprecated
+            job_class = IBMQJobPreQobj
         job = job_class(self._api, not self.configuration()['simulator'], qobj=qobj)
+        job.submit()
         return job
 
     def calibration(self):
@@ -232,7 +233,7 @@ class IBMQBackend(BaseBackend):
         if 'result' in job_info:
             job_class = IBMQJob
         elif 'qasms' in job_info:
-            job_class = IBMQJobDeprecated
+            job_class = IBMQJobPreQobj
         else:
             raise IBMQBackendError('unrecognised job record from API')
         return job_class

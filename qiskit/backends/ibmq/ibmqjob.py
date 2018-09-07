@@ -191,11 +191,21 @@ class IBMQJob(BaseJob):
             job_data = self._wait_for_job(timeout=timeout, wait=wait)
         except ApiError as api_err:
             raise JobError(str(api_err))
+        if 'result' in job_data:
+            return IBMQJob._result_from_api_response(job_data)
+        elif 'qasms' in job_data:
+            if self._is_device:
+                _reorder_bits(job_data)
+            return IBMQJobPreQobj._result_from_api_response(job_data,
+                                                            self.id(),
+                                                            self.backend_name(),
+                                                            self._is_device,
+                                                            self.status())
+        else:
+            raise JobError('unrecognized job data from API ({})'.format(self._id))
 
-        return _result_from_api_response(self, job_data)
-
-
-    def _result_from_api_response(self, api_response):
+    @staticmethod
+    def _result_from_api_response(api_response):
         # Build the Result.
         experiment_results = []
         if 'result' in api_response:  # qobj job
@@ -426,7 +436,7 @@ class IBMQJob(BaseJob):
                 raise JobError(str(submit_info['error']))
 
 
-class IBMQJobDeprecated(IBMQJob):
+class IBMQJobPreQobj(IBMQJob):
 
     def _submit_callback(self):
         """Submit old style qasms job to IBM-Q. Can remove when all devices
@@ -471,32 +481,32 @@ class IBMQJobDeprecated(IBMQJob):
         return submit_info
 
     @staticmethod
-    def _result_from_api_response(job, api_reponse):
-        elif 'qasms' in api_response:  # old-style qasms job
-            if self._is_device and self.status() == JobStatus.DONE:
-                _reorder_bits(api_response)
+    def _result_from_api_response(api_response, job_id, backend_name, is_device,
+                                  job_status):
+        # Build the Result.
+        experiment_results = []
+        if is_device and job_status == JobStatus.DONE:
+            _reorder_bits(api_response)
 
-            for circuit_result in api_response['qasms']:
-                this_result = {'data': circuit_result['data'],
-                               'name': circuit_result.get('name'),
-                               'compiled_circuit_qasm': circuit_result.get('qasm'),
-                               'status': circuit_result['status'],
-                               'success': circuit_result['status'] == 'DONE',
-                               'shots': api_response['shots']}
-                if 'metadata' in circuit_result:
-                    this_result['metadata'] = circuit_result['metadata']
-                experiment_results.append(this_result)
+        for circuit_result in api_response['qasms']:
+            this_result = {'data': circuit_result['data'],
+                           'name': circuit_result.get('name'),
+                           'compiled_circuit_qasm': circuit_result.get('qasm'),
+                           'status': circuit_result['status'],
+                           'success': circuit_result['status'] == 'DONE',
+                           'shots': api_response['shots']}
+            if 'metadata' in circuit_result:
+                this_result['metadata'] = circuit_result['metadata']
+            experiment_results.append(this_result)
 
-            return result_from_old_style_dict({
-                'id': self._id,
-                'status': api_response['status'],
-                'used_credits': api_response.get('usedCredits'),
-                'result': experiment_results,
-                'backend_name': self.backend_name(),
-                'success': api_response['status'] == 'DONE'
-            }, [circuit_result['name'] for circuit_result in api_response['qasms']])
-        else:
-            raise JobError('unrecognized job data from API ({})'.format(self._id))
+        return result_from_old_style_dict({
+            'id': job_id,
+            'status': api_response['status'],
+            'used_credits': api_response.get('usedCredits'),
+            'result': experiment_results,
+            'backend_name': backend_name,
+            'success': api_response['status'] == 'DONE'
+        }, [circuit_result['name'] for circuit_result in api_response['qasms']])
 
         job_result_list = []
         for circuit_result in api_response['qasms']:
@@ -512,17 +522,17 @@ class IBMQJobDeprecated(IBMQJob):
             job_result_list.append(this_result)
 
         return result_from_old_style_dict({
-            'id': self._id,
+            'id': job_id,
             'status': api_response['status'],
             'used_credits': api_response.get('usedCredits'),
             'result': job_result_list,
-            'backend_name': self.backend_name(),
+            'backend_name': backend_name,
             'success': api_response['status'] == 'DONE'
         }, [circuit_result['name'] for circuit_result in api_response['qasms']])
         
 
 
-def _result_from_api_response(job, api_response, job_id=None, backend_name=None,
+def _result_from_api_response(api_response, job_id=None, backend_name=None,
                               is_device=None):
     """
     Decides whether job_data is in pre-qobj format and returns appropriate
@@ -537,17 +547,16 @@ def _result_from_api_response(job, api_response, job_id=None, backend_name=None,
     Returns:
         Result object
     """
-    if 'result' in response:
-        return IBMQjob.result_from_api_response(response)
+    if 'result' in api_response:
+        return IBMQJob.result_from_api_response(api_response)
 
-    if 'qasms' in response:
+    if 'qasms' in api_response:
         if is_device:
-            _reorder_bits(response)
-            return IBMQJobDeprecated.result_from_api_response(response, job_id,
-                                                              backend_name,
-                                                              is_device)
-    raise JobError('Unrecognized result type...')
-
+            _reorder_bits(api_response)
+            return IBMQJobPreQobj.result_from_api_response(api_response, job_id,
+                                                           backend_name,
+                                                           is_device)
+    raise JobError('unrecognized job data from API ({})'.format(job_id))
 
 def _reorder_bits(job_data):
     """Temporary fix for ibmq backends.
