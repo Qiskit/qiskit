@@ -43,6 +43,15 @@ Changed
 - Breaking change: ``Jobs`` API simplification. (#686)
 - Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
 - Breaking change: ``BaseBackend`` API changed, properties are now methods (#858)
+- When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
+  notebook if there is network connectivity the interactive plots will be used
+  by default (#862, #866)
+
+Deprecated
+----------
+- The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
+  deprecated. A field of the same name should be used in the ``option``
+  dictionary kwarg instead. (#866)
 
 Removed
 -------
