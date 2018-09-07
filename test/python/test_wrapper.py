@@ -11,10 +11,12 @@
 import logging
 import unittest
 
+from qiskit import compile
 import qiskit.wrapper
 from qiskit import QISKitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.ibmq import IBMQProvider
+from qiskit.qobj import Qobj
 from qiskit.wrapper import registered_providers, execute
 from ._mockutils import DummyProvider
 from .common import QiskitTestCase, requires_qe_access
@@ -140,6 +142,18 @@ class TestWrapper(QiskitTestCase):
             with self.subTest(backend_name=backend_name):
                 result = execute(self.circuit, 'local_qasm_simulator').result()
                 self.assertIsNotNone(result.get_ran_qasm(self.circuit.name))
+
+    def test_qobj_to_quantum_circuit(self):
+        """Check that qobj_to_quantum_circuit's result matches the qobj ini."""
+        backend = 'local_qasm_simulator'
+        qobj_in = compile(self.circuit, backend, skip_transpiler=True)
+        out_circuit = qiskit.wrapper.qobj_to_quantum_circuit(qobj_in)
+        self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
+
+    def test_qobj_to_quantum_circuit_with_qobj_no_qasm(self):
+        """Verify that qobj_to_quantum_circuit returns None without QASM."""
+        qobj = Qobj('abc123', {}, {}, {})
+        self.assertIsNone(qiskit.wrapper.qobj_to_quantum_circuit(qobj))
 
 
 if __name__ == '__main__':
