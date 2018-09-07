@@ -33,6 +33,9 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
+# Import circuit drawing methods by default
+from qiskit.tools.visualization import circuit_drawer
+
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports.
 __path__ = pkgutil.extend_path(__path__, __name__)
