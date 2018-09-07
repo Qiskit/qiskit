@@ -66,8 +66,8 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
   print("simulation: ", sim_result)
   print(sim_result.get_counts(qc))
 
-IBM Q Authentication and `Qconfig.py`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IBM Q Authentication and ``Qconfig.py``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The managing of credentials for authenticating when using the QE devices has
 been expanded, and there are new options that can be used for convenience:
@@ -87,7 +87,7 @@ been expanded, and there are new options that can be used for convenience:
 2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
    ``register()`` call will automatically load the credentials from them.
 
-Additionally, the previous method of having a `Qconfig.py` file in the program
+Additionally, the previous method of having a ``Qconfig.py`` file in the program
 folder and passing the credentials explicitly is still supported. Please check
 the :ref:`qconfig-setup` section for more details about combining and using
 the different authentication options.
@@ -99,29 +99,24 @@ A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and
 :class:`~qiskit.backends.basejob.BaseJob` are no longer properties, 
 but methods, and as a result they need to be invoked as functions:
 
-=====================  ==========
+=====================  ========================
 Qiskit 0.5             Qiskit 0.6
-=====================  ==========
+=====================  ========================
 backend.name           backend.name()
 backend.status         backend.status()
 backend.configuration  backend.configuration()
 backend.calibration    backend.properties()
-backend.parameters     
-=====================  ==========
+backend.parameters
+---------------------  ------------------------
 job.status             job.status()
 job.cancelled          job.queue_position()
 job.running
 job.queued
 job.done
-=====================  ==========
+=====================  ========================
 
 ``BaseJob`` and ``IBMQJob`` API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* creating a :class:`~qiskit.backends.basejob.BaseJob` instance no longer
-  submits to the backend automatically. Now, you need to call
-  :meth:`~qiskit.backends.basejob.BaseJob.submit`
-  explicitly.
 
 * the :meth:`~qiskit.backends.basejob.BaseJob.status` method is used to
   check the status of a job, instead of the property with the same name of
@@ -141,7 +136,9 @@ job.done
 
 Please consult the new documentation of the
 :class:`~qiskit.backends.ibmq.ibmqjob.IBMQJob` class to get further insight in
-how to use the simplified API.
+how to use the simplified API. If using the jobs at the lowest level, please
+check the changes in :class:`~qiskit.backends.basejob.BaseJob` (most notably,
+creating an instance no longer submits the job to the backend automatically).
 
 Better Jupyter tools
 ^^^^^^^^^^^^^^^^^^^^
@@ -154,7 +151,7 @@ connection exists.
 
 Secondly, the new release provides Jupyter cell magics for keeping track of the progress of your code.
 Use ``%%qiskit_job_status`` to keep track of the status of submitted jobs to IBMQ backends.
-Use ```` to keep track of the progress of compilation/execution.
+Use ``%%qiskit_progress_bar`` to keep track of the progress of compilation/execution.
 
 
 Qiskit SDK 0.5.0
