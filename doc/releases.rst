@@ -102,14 +102,17 @@ but methods, and as a result they need to be invoked as functions:
 =====================  ==========
 Qiskit 0.5             Qiskit 0.6
 =====================  ==========
+backend.name           backend.name()
+backend.status         backend.status()
 backend.configuration  backend.configuration()
 backend.calibration    backend.properties()
 backend.parameters     
-backend.status         backend.status()
-backend.name           backend.name()
 =====================  ==========
 job.status             job.status()
-                       job.queue_position()
+job.cancelled          job.queue_position()
+job.running
+job.queued
+job.done
 =====================  ==========
 
 ``BaseJob`` and ``IBMQJob`` API changes
@@ -140,15 +143,18 @@ Please consult the new documentation of the
 :class:`~qiskit.backends.ibmq.ibmqjob.IBMQJob` class to get further insight in
 how to use the simplified API.
 
-Tomography API
-^^^^^^^^^^^^^^
+Better Jupyter tools
+^^^^^^^^^^^^^^^^^^^^
+The new release contains improvements to the user experience while using Jupyter notebooks.
 
-TODO
+First, new interactive visualizations of counts histograms and quantum states are provided:
+:meth:`~qiskit.tools.visualization.plot_histogram` and :meth:`~qiskit.tools.visualization.plot_state`.
+These methods will default to the new interactive kind when the environment is Jupyter and internet
+connection exists.
 
-Interactive visualizations
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-TODO
+Secondly, the new release provides Jupyter cell magics for keeping track of the progress of your code.
+Use ``%%qiskit_job_status`` to keep track of the status of submitted jobs to IBMQ backends.
+Use ```` to keep track of the progress of compilation/execution.
 
 
 Qiskit SDK 0.5.0
