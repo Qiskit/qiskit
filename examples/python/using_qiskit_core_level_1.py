@@ -53,10 +53,8 @@ try:
     my_backend = get_backend(my_backend_name)
     print("(Local QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration())
-    print("(Local QASM Simulator calibration) ")
-    pprint.pprint(my_backend.calibration())
-    print("(Local QASM Simulator parameters) ")
-    pprint.pprint(my_backend.parameters())
+    print("(Local QASM Simulator properties) ")
+    pprint.pprint(my_backend.properties())
 
 
     # Compiling the job
@@ -89,12 +87,10 @@ try:
 
         my_backend = get_backend(least_busy_device)
 
-        print("(with Configuration) ")
+        print("(with configuration) ")
         pprint.pprint(my_backend.configuration())
-        print("(with calibration) ")
-        pprint.pprint(my_backend.calibration())
-        print("(with parameters) ")
-        pprint.pprint(my_backend.parameters())
+        print("(with properties) ")
+        pprint.pprint(my_backend.properties())
 
         # Compiling the job
         # I want to make it so the compile is only done once and the needing

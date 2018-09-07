@@ -9,6 +9,7 @@
 
 This module is used for connecting to the Quantum Experience.
 """
+import warnings
 import logging
 
 from IBMQuantumExperience import ApiError
@@ -70,8 +71,13 @@ class IBMQBackend(BaseBackend):
         Raises:
             LookupError: If a calibration for the backend can't be found.
 
-        :deprecated: will be removed after 0.6
+        :deprecated: will be removed after 0.7
         """
+        warnings.warn(
+                "Backends will no longer return a calibration dictionary, "
+                "use backend.properties() instead.",
+                DeprecationWarning)
+
         try:
             backend_name = self.name()
             calibrations = self._api.backend_calibration(backend_name)
@@ -99,8 +105,13 @@ class IBMQBackend(BaseBackend):
         Raises:
             LookupError: If parameters for the backend can't be found.
 
-        :deprecated: will be removed after 0.6
+        :deprecated: will be removed after 0.7
         """
+        warnings.warn(
+                "Backends will no longer return a parameters dictionary, "
+                "use backend.properties() instead.",
+                DeprecationWarning)
+
         try:
             backend_name = self.name()
             parameters = self._api.backend_parameters(backend_name)
@@ -130,9 +141,12 @@ class IBMQBackend(BaseBackend):
         Raises:
             LookupError: If properties for the backend can't be found.
         """
-        # FIXME: make this an actual call to api for getting properties
+        # FIXME: make this an actual call to _api.backend_properties
         # for now this api endpoint does not exist.
-        return {**self.calibration(), **self.parameters()}
+        warnings.simplefilter("ignore")
+        properties = {**self.calibration(), **self.parameters()}
+        warnings.simplefilter("default")
+        return properties
 
     def status(self):
         """Return the online backend status.
