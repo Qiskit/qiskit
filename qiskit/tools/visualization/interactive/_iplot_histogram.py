@@ -64,12 +64,9 @@ def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
             legend (list): A list of strings to use for labels of the data.
                 The number of entries must match the length of data.
             options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
                     - slider (bool): activate slider
                     - number_to_keep (integer): groups max values
                     - show_legend (bool): show legend of graph content
-                    - sort (string): Could be 'asc' or 'desc'
         Raises:
             VisualizationError: When legend is provided and the length doesn't
                 match the input data.
