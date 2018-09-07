@@ -11,7 +11,6 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='Testing: %(message)s')
 
 
 def get_test_options(option_var='QISKIT_TESTS'):
