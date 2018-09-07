@@ -192,10 +192,14 @@ class IBMQJob(BaseJob):
         except ApiError as api_err:
             raise JobError(str(api_err))
 
+        return _result_from_api_response(self, job_data)
+
+
+    def _result_from_api_response(self, api_response):
         # Build the Result.
         experiment_results = []
-        if 'result' in job_data:  # qobj job
-            job_result = job_data['result']
+        if 'result' in api_response:  # qobj job
+            job_result = api_response['result']
             for resultobj in job_result['results']:
                 qobj_exp_result_args = [resultobj.get(arg) for arg in
                                         QobjExperimentResult.REQUIRED_ARGS]
@@ -215,54 +219,7 @@ class IBMQJob(BaseJob):
             # replace job_result list of dict with list of Qobj ExperimentResult
             qobj_result.results = experiment_results
             return Result(qobj_result)
-        elif 'qasms' in job_data:  # old-style qasms job
-            if self._is_device and self.status() == JobStatus.DONE:
-                _reorder_bits(job_data)
-
-            for circuit_result in job_data['qasms']:
-                this_result = {'data': circuit_result['data'],
-                               'name': circuit_result.get('name'),
-                               'compiled_circuit_qasm': circuit_result.get('qasm'),
-                               'status': circuit_result['status'],
-                               'success': circuit_result['status'] == 'DONE',
-                               'shots': job_data['shots']}
-                if 'metadata' in circuit_result:
-                    this_result['metadata'] = circuit_result['metadata']
-                experiment_results.append(this_result)
-
-            return result_from_old_style_dict({
-                'id': self._id,
-                'status': job_data['status'],
-                'used_credits': job_data.get('usedCredits'),
-                'result': experiment_results,
-                'backend_name': self.backend_name(),
-                'success': job_data['status'] == 'DONE'
-            }, [circuit_result['name'] for circuit_result in job_data['qasms']])
-        else:
-            raise JobError('unrecognized job data from API ({})'.format(self._id))
-
-        job_result_list = []
-        for circuit_result in job_data['qasms']:
-            this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
-                           'compiled_circuit_qasm': circuit_result.get('qasm'),
-                           'status': circuit_result['status'],
-                           'success': circuit_result['status'] == 'DONE',
-                           'shots': job_data['shots']}
-            if 'metadata' in circuit_result:
-                this_result['metadata'] = circuit_result['metadata']
-
-            job_result_list.append(this_result)
-
-        return result_from_old_style_dict({
-            'id': self._id,
-            'status': job_data['status'],
-            'used_credits': job_data.get('usedCredits'),
-            'result': job_result_list,
-            'backend_name': self.backend_name(),
-            'success': job_data['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in job_data['qasms']])
-
+        
     def cancel(self):
         """Attempt to cancel a job.
 
@@ -384,13 +341,9 @@ class IBMQJob(BaseJob):
         # can raise QobjValidationError.
         if self._future is not None or self._id is not None:
             raise JobError("We have already submitted the job!")
+        self._future = self._executor.submit(self._submit_callback)
 
-        if self._backend_allows_qobj:
-            self._future = self._executor.submit(self._submit_qobj_callback)
-        else:
-            self._future = self._executor.submit(self._submit_qasms_callback)
-
-    def _submit_qobj_callback(self):
+    def _submit_callback(self):
         """Submit qobj job to IBM-Q.
 
         Returns:
@@ -400,48 +353,6 @@ class IBMQJob(BaseJob):
 
         try:
             submit_info = self._api.run_job(self._qobj, backend=backend_name)
-        # pylint: disable=broad-except
-        except Exception as err:
-            # Undefined error during submission:
-            # Capture and keep it for raising it when calling status().
-            self._future_captured_exception = err
-            return None
-
-        # Error in the job after submission:
-        # Transition to the `ERROR` final state.
-        if 'error' in submit_info:
-            self._status = JobStatus.ERROR
-            self._api_error_msg = str(submit_info['error'])
-            return submit_info
-
-        # Submisssion success.
-        self._creation_date = submit_info.get('creationDate')
-        self._status = JobStatus.QUEUED
-        self._id = submit_info.get('id')
-        return submit_info
-
-    def _submit_qasms_callback(self):
-        """Submit old style qasms job to IBM-Q. Can remove when all devices
-        understand Qobj.
-
-        Returns:
-            dict: A dictionary with the response of the submitted job
-        """
-        api_jobs = []
-        circuits = self._job_data['circuits']
-        for circuit in circuits:
-            job = _create_api_job_from_circuit(circuit)
-            api_jobs.append(job)
-
-        hpc_camel_cased = _format_hpc_parameters(self._job_data['hpc'])
-        seed = self._job_data['seed']
-        shots = self._job_data['shots']
-        max_credits = self._job_data['max_credits']
-
-        try:
-            submit_info = self._api.run_job(api_jobs, backend=self._backend_name,
-                                            shots=shots, max_credits=max_credits,
-                                            seed=seed, hpc=hpc_camel_cased)
         # pylint: disable=broad-except
         except Exception as err:
             # Undefined error during submission:
@@ -513,6 +424,129 @@ class IBMQJob(BaseJob):
                 self._status = JobStatus.ERROR
                 self._api_error_msg = str(submit_info['error'])
                 raise JobError(str(submit_info['error']))
+
+
+class IBMQJobDeprecated(IBMQJob):
+
+    def _submit_callback(self):
+        """Submit old style qasms job to IBM-Q. Can remove when all devices
+        understand Qobj.
+
+        Returns:
+            dict: A dictionary with the response of the submitted job
+        """
+        api_jobs = []
+        circuits = self._job_data['circuits']
+        for circuit in circuits:
+            job = _create_api_job_from_circuit(circuit)
+            api_jobs.append(job)
+
+        hpc_camel_cased = _format_hpc_parameters(self._job_data['hpc'])
+        seed = self._job_data['seed']
+        shots = self._job_data['shots']
+        max_credits = self._job_data['max_credits']
+
+        try:
+            submit_info = self._api.run_job(api_jobs, backend=self._backend_name,
+                                            shots=shots, max_credits=max_credits,
+                                            seed=seed, hpc=hpc_camel_cased)
+        # pylint: disable=broad-except
+        except Exception as err:
+            # Undefined error during submission:
+            # Capture and keep it for raising it when calling status().
+            self._future_captured_exception = err
+            return None
+
+        # Error in the job after submission:
+        # Transition to the `ERROR` final state.
+        if 'error' in submit_info:
+            self._status = JobStatus.ERROR
+            self._api_error_msg = str(submit_info['error'])
+            return submit_info
+
+        # Submisssion success.
+        self._creation_date = submit_info.get('creationDate')
+        self._status = JobStatus.QUEUED
+        self._id = submit_info.get('id')
+        return submit_info
+
+    @staticmethod
+    def _result_from_api_response(job, api_reponse):
+        elif 'qasms' in api_response:  # old-style qasms job
+            if self._is_device and self.status() == JobStatus.DONE:
+                _reorder_bits(api_response)
+
+            for circuit_result in api_response['qasms']:
+                this_result = {'data': circuit_result['data'],
+                               'name': circuit_result.get('name'),
+                               'compiled_circuit_qasm': circuit_result.get('qasm'),
+                               'status': circuit_result['status'],
+                               'success': circuit_result['status'] == 'DONE',
+                               'shots': api_response['shots']}
+                if 'metadata' in circuit_result:
+                    this_result['metadata'] = circuit_result['metadata']
+                experiment_results.append(this_result)
+
+            return result_from_old_style_dict({
+                'id': self._id,
+                'status': api_response['status'],
+                'used_credits': api_response.get('usedCredits'),
+                'result': experiment_results,
+                'backend_name': self.backend_name(),
+                'success': api_response['status'] == 'DONE'
+            }, [circuit_result['name'] for circuit_result in api_response['qasms']])
+        else:
+            raise JobError('unrecognized job data from API ({})'.format(self._id))
+
+        job_result_list = []
+        for circuit_result in api_response['qasms']:
+            this_result = {'data': circuit_result['data'],
+                           'name': circuit_result.get('name'),
+                           'compiled_circuit_qasm': circuit_result.get('qasm'),
+                           'status': circuit_result['status'],
+                           'success': circuit_result['status'] == 'DONE',
+                           'shots': api_response['shots']}
+            if 'metadata' in circuit_result:
+                this_result['metadata'] = circuit_result['metadata']
+
+            job_result_list.append(this_result)
+
+        return result_from_old_style_dict({
+            'id': self._id,
+            'status': api_response['status'],
+            'used_credits': api_response.get('usedCredits'),
+            'result': job_result_list,
+            'backend_name': self.backend_name(),
+            'success': api_response['status'] == 'DONE'
+        }, [circuit_result['name'] for circuit_result in api_response['qasms']])
+        
+
+
+def _result_from_api_response(job, api_response, job_id=None, backend_name=None,
+                              is_device=None):
+    """
+    Decides whether job_data is in pre-qobj format and returns appropriate
+    job instance
+
+    Args:
+        api_response (dict): dict with the bare contents of the API.get_job request.
+        job_id (str): job identity on frontend (for pre-qobj results)
+        backend_name (str): backend name (for pre-qobj results)
+        is_device (bool): whether backend is a real device
+
+    Returns:
+        Result object
+    """
+    if 'result' in response:
+        return IBMQjob.result_from_api_response(response)
+
+    if 'qasms' in response:
+        if is_device:
+            _reorder_bits(response)
+            return IBMQJobDeprecated.result_from_api_response(response, job_id,
+                                                              backend_name,
+                                                              is_device)
+    raise JobError('Unrecognized result type...')
 
 
 def _reorder_bits(job_data):

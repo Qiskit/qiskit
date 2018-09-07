@@ -15,7 +15,7 @@ from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
 from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobDeprecated
 from qiskit.backends import JobStatus
 
 logger = logging.getLogger(__name__)
@@ -54,9 +54,11 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        job = IBMQJob(self._api, not self.configuration()['simulator'], qobj=qobj,
-                      backend_allows_qobj=self.configuration().get('allow_q_object'))
-        job.submit()
+        if self.configuration().get('allow_q_object'):
+            job_class = IBMQJob
+        else:
+            job_class = IBMQJobDeprecated
+        job = job_class(self._api, not self.configuration()['simulator'], qobj=qobj)
         return job
 
     def calibration(self):
@@ -213,19 +215,28 @@ class IBMQBackend(BaseBackend):
                                            filter=api_filter)
         job_list = []
         for job_info in job_info_list:
+            job_class = self._job_info_to_job_class(job_info)
             is_device = not bool(self._configuration.get('simulator'))
             if 'header' in job_info:
                 backend_name = job_info['header'].get('backend_name')
             elif 'backend' in job_info:  # old style job_info
                 backend_name = job_info['backend'].get('name')
-            job = IBMQJob(self._api, is_device,
-                          job_id=job_info.get('id'),
-                          backend_name=backend_name,
-                          creation_date=job_info.get('creationDate'),
-                          backend_allows_qobj=self.configuration().get('allows_q_object'))
+            job = job_class(self._api, is_device,
+                            job_id=job_info.get('id'),
+                            backend_name=backend_name,
+                            creation_date=job_info.get('creationDate'))
             job_list.append(job)
         return job_list
 
+    def _job_info_to_job_class(self, job_info):
+        if 'result' in job_info:
+            job_class = IBMQJob
+        elif 'qasms' in job_info:
+            job_class = IBMQJobDeprecated
+        else:
+            raise IBMQBackendError('unrecognised job record from API')
+        return job_class
+        
     def retrieve_job(self, job_id):
         """Attempt to get the specified job by job_id
 
@@ -246,12 +257,12 @@ class IBMQBackend(BaseBackend):
         except ApiError as ex:
             raise IBMQBackendError('Failed to get job "{}":{}'
                                    .format(job_id, str(ex)))
+        job_class = self._job_info_to_job_class(job_info)
         is_device = not bool(self._configuration.get('simulator'))
-        job = IBMQJob(self._api, is_device,
-                      job_id=job_info.get('id'),
-                      backend_name=job_info.get('backend').get('name'),
-                      creation_date=job_info.get('creationDate'),
-                      backend_allows_qobj=self.configuration().get('allows_q_object'))
+        job = job_class(self._api, is_device,
+                        job_id=job_info.get('id'),
+                        backend_name=job_info.get('backend').get('name'),
+                        creation_date=job_info.get('creationDate'))
         return job
 
 
