@@ -11,7 +11,6 @@ Base register reference object.
 import re
 import logging
 import itertools
-import warnings
 
 from ._qiskiterror import QISKitError, QISKitIndexError
 

@@ -73,10 +73,8 @@ class IBMQBackend(BaseBackend):
 
         :deprecated: will be removed after 0.7
         """
-        warnings.warn(
-                "Backends will no longer return a calibration dictionary, "
-                "use backend.properties() instead.",
-                DeprecationWarning)
+        warnings.warn("Backends will no longer return a calibration dictionary, "
+                      "use backend.properties() instead.", DeprecationWarning)
 
         try:
             backend_name = self.name()
@@ -107,10 +105,8 @@ class IBMQBackend(BaseBackend):
 
         :deprecated: will be removed after 0.7
         """
-        warnings.warn(
-                "Backends will no longer return a parameters dictionary, "
-                "use backend.properties() instead.",
-                DeprecationWarning)
+        warnings.warn("Backends will no longer return a parameters dictionary, "
+                      "use backend.properties() instead.", DeprecationWarning)
 
         try:
             backend_name = self.name()
