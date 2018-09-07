@@ -34,7 +34,12 @@ import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
 # Import circuit drawing methods by default
-from qiskit.tools.visualization import circuit_drawer
+# This is wrapped in a try because the Travis tests fail due to non-framework
+# Python build since using pyenv
+try:
+    from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
+except ImportError as expt:
+    QISKitError(expt)
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports.

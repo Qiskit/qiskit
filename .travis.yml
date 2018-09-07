@@ -64,14 +64,10 @@ stage_osx: &stage_osx
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
       brew install gcc@6
       brew link --overwrite gcc@6
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-      bash miniconda.sh -b -p $HOME/miniconda
-      export PATH="$HOME/miniconda/bin:$PATH"
-      hash -r
-      conda config --set always_yes yes --set changeps1 no
-      conda create -q -n test-environment python=3.6.5
-      source activate test-environment
-      conda install matplotlib
+      brew upgrade pyenv
+      pyenv install 3.6.5
+      virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
+      source venv/bin/activate
     fi
 
 stage_osx_python3_7: &stage_osx_python3_7
@@ -83,16 +79,12 @@ stage_osx_python3_7: &stage_osx_python3_7
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
       brew install gcc@6
       brew link --overwrite gcc@6
+      brew upgrade pyenv
       brew install freetype
       brew install pkg-config
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-      bash miniconda.sh -b -p $HOME/miniconda
-      export PATH="$HOME/miniconda/bin:$PATH"
-      hash -r
-      conda config --set always_yes yes --set changeps1 no
-      conda create -q -n test-environment python=3.7.0
-      source activate test-environment
-      conda install matplotlib
+      pyenv install 3.7.0
+      virtualenv --python ~/.pyenv/versions/3.7.0/bin/python venv
+      source venv/bin/activate
     fi
 
 stage_linux_no_compile: &stage_linux_no_compile
