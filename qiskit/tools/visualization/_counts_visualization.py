@@ -36,7 +36,7 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
             - show_legend (bool): show legend of graph content
     Raises:
         VisualizationError: When legend is provided and the length doesn't
-            match the input data
+            match the input data.
     """
     if options is None:
         options = {}
@@ -48,15 +48,11 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
 
     if isinstance(data, dict):
         data = [data]
-        if legend and len(legend) != 1:
-            raise VisualizationError("Length of legendL %s doesn't match "
-                                     "number of input executions: %s" % (
-                                         len(legend), 1))
-    else:
-        if legend and len(legend) != len(data):
-            raise VisualizationError("Length of legendL %s doesn't match "
-                                     "number of input executions: %s" % (
-                                         len(legend), len(data)))
+
+    if legend and len(legend) != len(data):
+        raise VisualizationError("Length of legendL (%s) doesn't match "
+                                 "number of input executions: %s" %
+                                 (len(legend), len(data)))
 
     _, ax = plt.subplots()
     for item, execution in enumerate(data):

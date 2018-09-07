@@ -14,6 +14,8 @@ import sys
 import time
 import re
 import numpy as np
+from .._error import VisualizationError
+
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -69,8 +71,8 @@ def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
                     - show_legend (bool): show legend of graph content
                     - sort (string): Could be 'asc' or 'desc'
         Raises:
-            Exception: When legend is provided and the length doesn't match the
-                input data
+            VisualizationError: When legend is provided and the length doesn't
+                match the input data.
     """
 
     # HTML
@@ -124,13 +126,11 @@ def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
     data_to_plot = []
     if isinstance(data, dict):
         data = [data]
-        if legend and len(legend) != 1:
-            raise Exception("Length of legendL %s doesn't match number of "
-                            "input executions: %s" % (len(legend), 1))
-    else:
-        if legend and len(legend) != len(data):
-            raise Exception("Length of legendL %s doesn't match number of "
-                            "input executions: %s" % (len(legend), len(data)))
+
+    if legend and len(legend) != len(data):
+        raise VisualizationError("Length of legendL (%s) doesn't match number "
+                                 "of input executions: %s" %
+                                 (len(legend), len(data)))
 
     for item, execution in enumerate(data):
         exec_data = process_data(execution, options['number_to_keep'])
