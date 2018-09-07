@@ -137,6 +137,7 @@ class IBMQBackend(BaseBackend):
         Raises:
             LookupError: If properties for the backend can't be found.
         """
+<<<<<<< HEAD
         # FIXME: make this an actual call to _api.backend_properties
         # for now this api endpoint does not exist.
         warnings.simplefilter("ignore")
@@ -146,6 +147,11 @@ class IBMQBackend(BaseBackend):
         properties = calibration
         warnings.simplefilter("default")
         return properties
+=======
+        # FIXME: make this an actual call to api for getting properties
+        # for now this api endpoint does not exist.
+        return {**self.calibration(), **self.parameters()}
+>>>>>>> adding backend.properties and deprecating calibration/parameters
 
     def status(self):
         """Return the online backend status.
