@@ -71,6 +71,7 @@ stage_osx: &stage_osx
       conda config --set always_yes yes --set changeps1 no
       conda create -q -n test-environment python=3.6.5
       source activate test-environment
+      conda install matplotlib
     fi
 
 stage_osx_python3_7: &stage_osx_python3_7
@@ -91,6 +92,7 @@ stage_osx_python3_7: &stage_osx_python3_7
       conda config --set always_yes yes --set changeps1 no
       conda create -q -n test-environment python=3.7.0
       source activate test-environment
+      conda install matplotlib
     fi
 
 stage_linux_no_compile: &stage_linux_no_compile
