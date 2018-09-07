@@ -50,18 +50,14 @@ class BaseBackend(ABC):
 
     def calibration(self):
         """Return backend calibration"""
-        warnings.warn(
-                "Backends will no longer return a calibration dictionary,"
-                "use backend.properties() instead.",
-                DeprecationWarning)
+        warnings.warn("Backends will no longer return a calibration dictionary,"
+                      "use backend.properties() instead.", DeprecationWarning)
         return {}
 
     def parameters(self):
         """Return backend parameters"""
-        warnings.warn(
-                "Backends will no longer return a parameters dictionary, "
-                "use backend.properties() instead.",
-                DeprecationWarning)
+        warnings.warn("Backends will no longer return a parameters dictionary, "
+                      "use backend.properties() instead.", DeprecationWarning)
         return {}
 
     def properties(self):
