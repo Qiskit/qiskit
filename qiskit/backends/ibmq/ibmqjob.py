@@ -544,6 +544,7 @@ def _result_from_api_response(api_response, job_id=None, backend_name=None,
     else:
         raise JobError('unrecognized job data from API ({})'.format(job_id))
 
+
 def _reorder_bits(job_data):
     """Temporary fix for ibmq backends.
 
