@@ -4,6 +4,29 @@
     "description": "QISKit device backend configuration",
     "version": "1.0.0",
     "definitions": {
+      "hamiltonian": {
+          "type": "object",
+          "description": "Hamiltonian of the backend",
+          "required": ["h_latex"],
+          "properties": {
+              "h_latex": {
+                  "type": "string",
+                  "description": "The Hamiltonian in latex form"
+                  },
+              "h_str": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "The Hamiltonian in machine readable form"
+                },
+                "vars": {
+                    "type": "object",
+                    "description": "Variables in the h_str"},
+                "osc": {
+                    "type": "object",
+                    "description": "Number of levels for each oscillator mode"}
+                }
+
+          },
         "coreconfig": {
             "type": "object",
             "required": ["backend_name", "backend_version", "n_qubits", "basis_gates", "gates", "local", "simulator", "conditional"],
@@ -35,8 +58,8 @@
                 "basis_gates": {
                     "type": "array",
                     "description": "List of basis gates names on the backend",
-                    "minItems": 1,
-                    "items": {"type": "string"}
+                    "items": {"type": "string"},
+                    "minItems": 1
                     },
                 "coupling_map": {
                     "type": "array",
@@ -46,15 +69,9 @@
                     },
                 "gates": {
                     "type": "array",
-                    "description": "List of basis gate configuration data structures",
-                    "minItems": 1,
-                    "items": {"$ref": "#/definitions/gateconfig"}
-                    },
-                "gates": {
-                    "type": "array",
                     "description": "List of basis gates on the backend",
-                    "minItems": 1,
-                    "items": {"$ref": "#/definitions/gateconfig"}
+                    "items": {"$ref": "#/definitions/gateconfig"},
+                    "minItems": 1
                     },
                 "local": {
                     "type": "boolean",
@@ -116,6 +133,115 @@
                     }
                 }
             },
+            "openpulse_config":{
+                "required": ["open_pulse","n_uchannels","hamiltonian","u_channel_lo",
+                            "meas_levels","qubit_lo_range","meas_lo_range","dt","dtm","rep_times",
+                            "meas_kernels","discriminators"],
+                "properties": {
+                            "open_pulse": {
+                                "enum": [ true ],
+                                "description": "The backend supports openPulse (true/false)"},
+                            "n_uchannels": {
+                                "type": "integer",
+                                "description": "Number of additional control channels",
+                                "minimum": 0},
+                            "hamiltonian": {
+                                "type": "object",
+                                "required": ["h_latex"],
+                                "description": "Hamiltonian of the backend",
+                                "properties": {
+                                    "h_latex": {
+                                        "type": "string",
+                                        "description": "The Hamiltonian in latex form"
+                                        },
+                                    "h_str": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "The Hamiltonian in machine readable form"
+                                      },
+                                    "vars": {
+                                          "type": "object",
+                                          "description": "Variables in the h_str"},
+                                    "osc": {
+                                        "type": "object",
+                                        "description": "Number of levels for each oscillator mode"}
+                                      }
+                                    },
+                            "u_channel_lo": {
+                                "type": "array",
+                                "minItems": 0,
+                                "description": "Relationship of the U Channel LO's in terms of the qubit LO's",
+                                "items": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "q": {"type": "integer"},
+                                            "scale": {"$ref": "#/definitions/complexnumber"}
+                                            }}
+                                        }
+                                    },
+                            "meas_levels": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxitems": 3,
+                                "description": "Available measurement levels on the backend",
+                                "items": {"type": "integer", "minimum": 0, "maximum": 2}},
+                            "qubit_lo_range": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Frequency range for the qubit LO",
+                                "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                            "meas_lo_range": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Frequency range for the measurement LO",
+                                "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                            "dt": {
+                                "type": "number",
+                                "description": "Time discretization for the drive and U channels",
+                                "minimum": 0},
+                            "dtm": {
+                                "type": "number",
+                                "description": "Time discretization for the measurement channels",
+                                "minimum": 0},
+                            "rep_times": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Available experiment repetition rates",
+                                "items": {"type": "number", "minimum": 0}},
+                            "meas_map": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Grouping of measurement which are multiplexed",
+                                "items": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}}},
+                            "channel_bandwidth": {
+                                "type": "array",
+                                "minItems": 2,
+                                "description": "Bandwidth of all channels (qubit,measurement and U)",
+                                "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                            "meas_kernels": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Available measurement kernels",
+                                "items": {"type": "string"}},
+                            "discriminators": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Available discriminators",
+                                "items": {"type": "string"}},
+                            "acquisition_latency": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Array of dimension n_qubits x n_registers. Latency (in units of dt) to write a measurement result from qubit n into register slot m.",
+                                "items": {"type": "array", "minItems": 1, "items": {"type": "integer"}}},
+                            "conditional_latency": {
+                                "type": "array",
+                                "minItems": 1,
+                                "description": "Array of dimension n_channels [d->u->m] x n_registers. Latency (in units of dt) to do a conditional operation on channel n from register slot m",
+                                "items": {"type": "array", "minItems": 1, "items": {"type": "number"}}}
+                            }},
         "gateconfig": {
             "type": "object",
             "required": ["name","parameters","qasm_def"],
@@ -164,115 +290,7 @@
     },
     "oneOf": [
     {"allOf": [{"$ref": "#/definitions/coreconfig"},
-    {
-    "required": ["open_pulse","n_uchannels","hamiltonian","u_channel_lo",
-                "meas_levels","qubit_lo_range","meas_lo_range","dt","dtm","rep_rates",
-                "meas_kernels","discriminators"],
-    "properties": {
-                "open_pulse": {
-                    "enum": [ true ],
-                    "description": "The backend supports openPulse (true/false)"},
-                "n_uchannels": {
-                    "type": "integer",
-                    "description": "Number of additional control channels",
-                    "minimum": 0},
-                "hamiltonian": {
-                    "type": "object",
-                    "required": ["h_latex"],
-                    "description": "Hamiltonian of the backend",
-                    "properties": {
-                        "h_latex": {
-                            "type": "string",
-                            "description": "The Hamiltonian in latex form"
-                            },
-                        "h_str": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "The Hamiltonian in machine readable form"
-                          },
-                        "vars": {
-                              "type": "object",
-                              "description": "Variables in the h_str"},
-                        "osc": {
-                            "type": "object",
-                            "description": "Number of levels for each oscillator mode"}
-                          }
-                        },
-                "u_channel_lo": {
-                    "type": "array",
-                    "minItems": 0,
-                    "description": "Relationship of the U Channel LO's in terms of the qubit LO's",
-                    "items": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "q": {"type": "integer"},
-                                "scale": {"$ref": "#/definitions/complexnumber"}
-                                }}
-                            }
-                        },
-                "meas_levels": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxitems": 3,
-                    "description": "Available measurement levels on the backend",
-                    "items": {"type": "integer", "minimum": 0, "maximum": 2}},
-                "qubit_lo_range": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Frequency range for the qubit LO",
-                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
-                "meas_lo_range": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Frequency range for the measurement LO",
-                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
-                "dt": {
-                    "type": "number",
-                    "description": "Time discretization for the drive and U channels",
-                    "minimum": 0},
-                "dtm": {
-                    "type": "number",
-                    "description": "Time discretization for the measurement channels",
-                    "minimum": 0},
-                "rep_rates": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Available experiment repetition rates",
-                    "items": {"type": "number", "minimum": 0}},
-                "meas_map": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Grouping of measurement which are multiplexed",
-                    "items": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}}},
-                "channel_bandwidth": {
-                    "type": "array",
-                    "minItems": 2,
-                    "description": "Bandwidth of all channels (qubit,measurement and U)",
-                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
-                "meas_kernels": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Available measurement kernels",
-                    "items": {"type": "string"}},
-                "discriminators": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Available discriminators",
-                    "items": {"type": "string"}},
-                "acquisition_latency": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Array of dimension n_qubits x n_registers. Latency (in units of dt) to write a measurement result from qubit n into register slot m.",
-                    "items": {"type": "array", "minItems": 1, "items": {"type": "integer"}}},
-                "conditional_latency": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Array of dimension n_channels [d->u->m] x n_registers. Latency (in units of dt) to do a conditional operation on channel n from register slot m",
-                    "items": {"type": "array", "minItems": 1, "items": {"type": "number"}}}
-                }}]},
+    {"$ref": "#/definitions/openpulse_config"}]},
     {"allOf": [{"$ref": "#/definitions/coreconfig"},
     {
     "required": ["open_pulse"],

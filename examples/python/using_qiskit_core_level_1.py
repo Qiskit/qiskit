@@ -48,15 +48,15 @@ try:
     print("(Local Backends)")
     for backend_name in available_backends({'local': True}):
         backend = get_backend(backend_name)
-        print(backend.status)
+        print(backend.status())
     my_backend_name = 'local_qasm_simulator'
     my_backend = get_backend(my_backend_name)
     print("(Local QASM Simulator configuration) ")
-    pprint.pprint(my_backend.configuration)
+    pprint.pprint(my_backend.configuration())
     print("(Local QASM Simulator calibration) ")
-    pprint.pprint(my_backend.calibration)
+    pprint.pprint(my_backend.calibration())
     print("(Local QASM Simulator parameters) ")
-    pprint.pprint(my_backend.parameters)
+    pprint.pprint(my_backend.parameters())
 
 
     # Compiling the job
@@ -80,7 +80,7 @@ try:
         print("\n(Remote Backends)")
         for backend_name in available_backends({'local': False}):
             backend = get_backend(backend_name)
-            s = backend.status
+            s = backend.status()
             print(s)
 
         # select least busy available device and execute.
@@ -90,11 +90,11 @@ try:
         my_backend = get_backend(least_busy_device)
 
         print("(with Configuration) ")
-        pprint.pprint(my_backend.configuration)
+        pprint.pprint(my_backend.configuration())
         print("(with calibration) ")
-        pprint.pprint(my_backend.calibration)
+        pprint.pprint(my_backend.calibration())
         print("(with parameters) ")
-        pprint.pprint(my_backend.parameters)
+        pprint.pprint(my_backend.parameters())
 
         # Compiling the job
         # I want to make it so the compile is only done once and the needing

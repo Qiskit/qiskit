@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-import,invalid-name
+# pylint: disable=unused-import
 
 """Test Qiskit's QuantumCircuit class."""
 
@@ -48,8 +48,8 @@ class TestCircuit(QiskitTestCase):
         """
         qr1 = QuantumRegister(1, 'qr1')
         qr2 = QuantumRegister(2, 'qr2')
-        c = ClassicalRegister(3, 'c')
-        qc = QuantumCircuit(qr1, qr2, c)
+        cr = ClassicalRegister(3, 'cr')
+        qc = QuantumCircuit(qr1, qr2, cr)
         qc.u1(0.3, qr1[0])
         qc.u2(0.2, 0.1, qr2[0])
         qc.u3(0.3, 0.2, 0.1, qr2[1])
@@ -59,18 +59,18 @@ class TestCircuit(QiskitTestCase):
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
         qc.h(qr2[1])
-        qc.x(qr2[1]).c_if(c, 0)
-        qc.y(qr1[0]).c_if(c, 1)
-        qc.z(qr1[0]).c_if(c, 2)
+        qc.x(qr2[1]).c_if(cr, 0)
+        qc.y(qr1[0]).c_if(cr, 1)
+        qc.z(qr1[0]).c_if(cr, 2)
         qc.barrier(qr1, qr2)
-        qc.measure(qr1[0], c[0])
-        qc.measure(qr2[0], c[1])
-        qc.measure(qr2[1], c[2])
+        qc.measure(qr1[0], cr[0])
+        qc.measure(qr2[0], cr[1])
+        qc.measure(qr2[1], cr[2])
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
-creg c[3];
+creg cr[3];
 u1(0.300000000000000) qr1[0];
 u2(0.200000000000000,0.100000000000000) qr2[0];
 u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
@@ -80,13 +80,13 @@ cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];
 h qr2[1];
-if(c==0) x qr2[1];
-if(c==1) y qr1[0];
-if(c==2) z qr1[0];
+if(cr==0) x qr2[1];
+if(cr==1) y qr1[0];
+if(cr==2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
-measure qr1[0] -> c[0];
-measure qr2[0] -> c[1];
-measure qr2[1] -> c[2];\n"""
+measure qr1[0] -> cr[0];
+measure qr2[0] -> cr[1];
+measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
 

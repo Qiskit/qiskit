@@ -14,6 +14,8 @@ import sys
 import time
 import re
 import numpy as np
+from .._error import VisualizationError
+
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -48,17 +50,19 @@ def process_data(data, number_to_keep):
     return result
 
 
-def iplot_histogram(executions_results, options=None):
+def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
     """ Create a histogram representation.
 
         Graphical representation of the input array using a vertical bars
         style graph.
 
         Args:
-            executions_results (array): Array of dictionaries containing
-                    - data (dict): values to represent (ex. {'001' : 130})
-                    - name (string): name to show in the legend
-                    - device (string): Could be 'real' or 'simulated'
+            data (list or dict):  This is either a list of dicts or a single
+                dict containing the values to represent (ex. {'001' : 130})
+            number_to_keep (int): DEPRECATED the number of terms to plot and
+                rest is made into a single bar called other values
+            legend (list): A list of strings to use for labels of the data.
+                The number of entries must match the length of data.
             options (dict): Representation settings containing
                     - width (integer): graph horizontal size
                     - height (integer): graph vertical size
@@ -66,6 +70,9 @@ def iplot_histogram(executions_results, options=None):
                     - number_to_keep (integer): groups max values
                     - show_legend (bool): show legend of graph content
                     - sort (string): Could be 'asc' or 'desc'
+        Raises:
+            VisualizationError: When legend is provided and the length doesn't
+                match the input data.
     """
 
     # HTML
@@ -111,12 +118,26 @@ def iplot_histogram(executions_results, options=None):
         options['show_legend'] = 1
 
     if 'number_to_keep' not in options:
-        options['number_to_keep'] = 0
+        if number_to_keep is False:
+            options['number_to_keep'] = 0
+        elif number_to_keep:
+            options['number_to_keep'] = number_to_keep
 
     data_to_plot = []
-    for execution in executions_results:
-        data = process_data(execution['data'], options['number_to_keep'])
-        data_to_plot.append({'data': data})
+    if isinstance(data, dict):
+        data = [data]
+
+    if legend and len(legend) != len(data):
+        raise VisualizationError("Length of legendL (%s) doesn't match number "
+                                 "of input executions: %s" %
+                                 (len(legend), len(data)))
+
+    for item, execution in enumerate(data):
+        exec_data = process_data(execution, options['number_to_keep'])
+        out_dict = {'data': exec_data}
+        if legend:
+            out_dict['name'] = legend[item]
+        data_to_plot.append(out_dict)
 
     html = html_template.substitute({
         'divNumber': div_number

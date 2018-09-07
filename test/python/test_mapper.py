@@ -23,24 +23,30 @@ from .common import QiskitTestCase
 class FakeQX4BackEnd(object):
     """A fake QX4 backend.
     """
-    def __init__(self):
+
+    def configuration(self):
         qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
-        self.configuration = {'name': 'fake_qx4', 'basis_gates': 'u1,u2,u3,cx,id',
-                              'simulator': False, 'n_qubits': 5,
-                              'coupling_map': qx4_cmap}
+        return {
+            'name': 'fake_qx4', 'basis_gates': 'u1,u2,u3,cx,id',
+            'simulator': False, 'n_qubits': 5,
+            'coupling_map': qx4_cmap
+        }
 
 
 class FakeQX5BackEnd(object):
     """A fake QX5 backend.
     """
-    def __init__(self):
+
+    def configuration(self):
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
                     [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
                     [13, 14], [15, 0], [15, 2], [15, 14]]
-        self.configuration = {'name': 'fake_qx5', 'basis_gates': 'u1,u2,u3,cx,id',
-                              'simulator': False, 'n_qubits': 16,
-                              'coupling_map': qx5_cmap}
+        return {
+            'name': 'fake_qx5', 'basis_gates': 'u1,u2,u3,cx,id',
+            'simulator': False, 'n_qubits': 16,
+            'coupling_map': qx5_cmap
+        }
 
 
 class MapperTest(QiskitTestCase):
@@ -249,7 +255,7 @@ class MapperTest(QiskitTestCase):
         """Measurements applied AFTER swap mapping.
         """
         backend = FakeQX5BackEnd()
-        cmap = backend.configuration['coupling_map']
+        cmap = backend.configuration()['coupling_map']
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/move_measurements.qasm'),
                                      name='move')
         dag_circuit = DAGCircuit.fromQuantumCircuit(circ)

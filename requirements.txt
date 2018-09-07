@@ -1,3 +1,5 @@
+jsonschema>=2.6,<2.7
+requests>=2.19.0
 IBMQuantumExperience>=2.0.1
 matplotlib>=2.1
 networkx>=2.0
@@ -6,5 +8,8 @@ ply>=3.10
 scipy>=0.19
 sympy>=1.0
 pillow>=4.2.1
+<<<<<<< HEAD
 vcrpy
 psutil>=5.4.4
+=======
+>>>>>>> master
