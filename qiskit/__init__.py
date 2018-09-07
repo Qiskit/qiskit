@@ -39,7 +39,7 @@ import qiskit.extensions.quantum_initializer
 try:
     from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
 except ImportError as expt:
-    QISKitError(expt)
+    pass
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports.
