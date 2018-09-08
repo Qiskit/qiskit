@@ -251,20 +251,25 @@
         },
         "openqasm_instructions": {
             "oneOf": [
+                { 
+                    "properties": {
+                        "name": {"not": {
+                            "enum": ["snapshot", "reset", "barrier", "bfunc", "copy", "measure"]
+                            },
+                            "type": "string"                            
+                            }
+                    }
+                },
                 {
                     "properties": {
                         "name": {
                             "enum": [
-                                "snapshot",
-                                "wait",
-                                "noise",
-                                "save",
-                                "load"
+                                "snapshot"
                             ]
                         }
                     },
-                    "title": "Simulator instructions"
-                },
+                    "title": "Snapshot instruction for simulators"
+                },                
                 {
                     "properties": {
                         "memory": {
@@ -272,48 +277,7 @@
                         },
                         "name": {
                             "enum": [
-                                "u3",
-                                "U"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 3,
-                            "minItems": 3
-                        },
-                        "qubits": {
-                            "maxItems": 1
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 3,
-                            "minItems": 3
-                        }
-                    },
-                    "required": [
-                        "qubits",
-                        "params"
-                    ],
-                    "title": "3-param 1Q op"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "reset",
-                                "id",
-                                "h",
-                                "s",
-                                "sdg",
-                                "t",
-                                "tdg",
-                                "x",
-                                "y",
-                                "z"
+                                "reset"                                
                             ]
                         },
                         "params": {
@@ -334,209 +298,7 @@
                         "qubits"
                     ],
                     "title": "fixed 1Q op"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "u1",
-                                "u0",
-                                "rx",
-                                "ry",
-                                "rz"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 1,
-                            "minItems": 1
-                        },
-                        "qubits": {
-                            "maxItems": 1,
-                            "minItems": 1
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 1,
-                            "minItems": 1
-                        }
-                    },
-                    "required": [
-                        "qubits",
-                        "params"
-                    ],
-                    "title": "1-param 1Q op"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "u2"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 2,
-                            "minItems": 2
-                        },
-                        "qubits": {
-                            "maxItems": 1,
-                            "minItems": 1
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 2,
-                            "minItems": 2
-                        }
-                    },
-                    "required": [
-                        "qubits",
-                        "params"
-                    ],
-                    "title": "2-param 1Q op"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "cx",
-                                "CX",
-                                "cy",
-                                "cz",
-                                "ch",
-                                "swap"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 0
-                        },
-                        "qubits": {
-                            "description": "[control, target]",
-                            "maxItems": 2,
-                            "minItems": 2
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 0
-                        }
-                    },
-                    "required": [
-                        "qubits"
-                    ],
-                    "title": "fixed 2Q gate"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "cu1",
-                                "crz",
-                                "rzz"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 1,
-                            "minItems": 1
-                        },
-                        "qubits": {
-                            "description": "[control, target]",
-                            "maxItems": 2,
-                            "minItems": 2
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 1,
-                            "minItems": 1
-                        }
-                    },
-                    "required": [
-                        "qubits",
-                        "params"
-                    ],
-                    "title": "1-param 2Q controlled gate"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "cu3"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 3,
-                            "minItems": 3
-                        },
-                        "qubits": {
-                            "description": "[control, target]",
-                            "maxItems": 2,
-                            "minItems": 2
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 3,
-                            "minItems": 3
-                        }
-                    },
-                    "required": [
-                        "qubits",
-                        "params"
-                    ],
-                    "title": "3-param 2Q controlled gate"
-                },
-                {
-                    "properties": {
-                        "memory": {
-                            "maxItems": 0
-                        },
-                        "name": {
-                            "enum": [
-                                "ccx",
-                                "cswap"
-                            ]
-                        },
-                        "params": {
-                            "maxItems": 0
-                        },
-                        "qubits": {
-                            "description": "[control, control, target]",
-                            "maxItems": 3,
-                            "minItems": 3
-                        },
-                        "register": {
-                            "maxItems": 0
-                        },
-                        "texparams": {
-                            "maxItems": 0
-                        }
-                    },
-                    "required": [
-                        "qubits"
-                    ],
-                    "title": "fixed 3Q doubly controlled gate"
-                },
+                },      
                 {
                     "properties": {
                         "memory": {

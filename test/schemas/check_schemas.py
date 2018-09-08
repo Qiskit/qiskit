@@ -54,6 +54,11 @@ schema_tests.append({"schema": "qobj_schema.json",
                          "qobj_openpulse_example.json",
                          "qobj_openqasm_example.json"
                          ]})
+schema_tests.append({"schema": "ibm_backend_qobj_schema.json",
+                     "examples": [
+                         "qobj_openpulse_example.json",
+                         "qobj_openqasm_example.json"
+                         ]})
 schema_tests.append({"schema": "result_schema.json",
                      "examples": [
                          "result_openqasm_example.json",
