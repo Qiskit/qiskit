@@ -54,7 +54,12 @@ schema_tests.append({"schema": "qobj_schema.json",
                          "qobj_openpulse_example.json",
                          "qobj_openqasm_example.json"
                          ]})
-schema_tests.append({"schema": "ibm_backend_qobj_schema.json",
+schema_tests.append({"schema": "ibm_backend_device_qobj_schema.json",
+                     "examples": [
+                         "qobj_openpulse_example.json",
+                         "qobj_openqasm_example.json"
+                         ]})
+schema_tests.append({"schema": "ibm_backend_simulator_qobj_schema.json",
                      "examples": [
                          "qobj_openpulse_example.json",
                          "qobj_openqasm_example.json"
