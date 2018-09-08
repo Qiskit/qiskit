@@ -11,7 +11,7 @@
 import logging
 import unittest
 
-from qiskit import compile
+from qiskit import compile as qcompile
 import qiskit.wrapper
 from qiskit import QISKitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -143,17 +143,30 @@ class TestWrapper(QiskitTestCase):
                 result = execute(self.circuit, 'local_qasm_simulator').result()
                 self.assertIsNotNone(result.get_ran_qasm(self.circuit.name))
 
-    def test_qobj_to_quantum_circuit(self):
-        """Check that qobj_to_quantum_circuit's result matches the qobj ini."""
+    def test_qobj_to_circuit_single(self):
+        """Check that qobj_to_circuit's result matches the qobj ini."""
         backend = 'local_qasm_simulator'
-        qobj_in = compile(self.circuit, backend, skip_transpiler=True)
-        out_circuit = qiskit.wrapper.qobj_to_quantum_circuit(qobj_in)
+        qobj_in = qcompile(self.circuit, backend, skip_transpiler=True)
+        out_circuit = qiskit.wrapper.qobj_to_circuit(qobj_in)
         self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
 
-    def test_qobj_to_quantum_circuit_with_qobj_no_qasm(self):
-        """Verify that qobj_to_quantum_circuit returns None without QASM."""
+    def test_qobj_to_circuit_multiple(self):
+        """Check that qobj_to_circuit's result with multiple circuits"""
+        backend = 'local_qasm_simulator'
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        circuit_b = QuantumCircuit(qreg, creg)
+        circuit_b.x(qreg)
+        circuit_b.h(qreg)
+        circuit_b.measure(qreg, creg)
+        qobj = qcompile([self.circuit, circuit_b], backend, skip_transpiler=True)
+        qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuit(qobj)]
+        self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
+
+    def test_qobj_to_circuit_with_qobj_no_qasm(self):
+        """Verify that qobj_to_circuit returns None without QASM."""
         qobj = Qobj('abc123', {}, {}, {})
-        self.assertIsNone(qiskit.wrapper.qobj_to_quantum_circuit(qobj))
+        self.assertIsNone(qiskit.wrapper.qobj_to_circuit(qobj))
 
 
 if __name__ == '__main__':

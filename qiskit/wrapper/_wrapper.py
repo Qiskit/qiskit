@@ -366,7 +366,7 @@ def load_qasm_file(qasm_file, name=None,
     return circuit_from_qasm_file(qasm_file, name, basis_gates)
 
 
-def qobj_to_quantum_circuit(qobj):
+def qobj_to_circuit(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj
 
     Args:
@@ -375,8 +375,6 @@ def qobj_to_quantum_circuit(qobj):
         list: A list of QuantumCircuit objects from the qobj
 
     """
-    if hasattr(qobj.header, 'compiled_circuit_qasm'):
-        return [load_qasm_string(qobj.header.compiled_circuit_qasm)]
     if qobj.experiments:
         circuits = []
         for x in qobj.experiments:
