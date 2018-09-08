@@ -8,7 +8,6 @@
 """Helper module for simplified QISKit usage."""
 
 import logging
-import warnings
 from copy import deepcopy
 import uuid
 from qiskit._qiskiterror import QISKitError
