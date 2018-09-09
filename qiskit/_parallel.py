@@ -45,6 +45,8 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
+from qiskit._receiver import receiver as rec
+from qiskit._progressbar import BaseProgressBar
 from qiskit._qiskiterror import QISKitError
 from qiskit._util import local_hardware_info
 
@@ -52,7 +54,7 @@ from qiskit._util import local_hardware_info
 CPU_COUNT = local_hardware_info()['cpus']
 
 
-def parallel_map(task, values, task_args=None, task_kwargs=None,
+def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
                  num_processes=CPU_COUNT):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -78,23 +80,37 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     Raises:
         QISKitError: If user interupts via keyboard.
     """
-    if task_args is None:
-        task_args = tuple()
-    if task_kwargs is None:
-        task_kwargs = {}
-
     # len(values) == 1
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
 
+    # Get last element of the receiver channels
+    if any(rec.channels):
+        last_idx = next(reversed(rec.channels))
+
+        if rec.channels[last_idx].type == 'progressbar' and not rec.channels[last_idx].touched:
+            progress_bar = rec.channels[last_idx]
+        else:
+            progress_bar = BaseProgressBar()
+    else:
+        progress_bar = BaseProgressBar()
+
+    progress_bar.start(len(values))
+    nfinished = [0]
+
+    def _callback(x):  # pylint: disable=W0613
+        nfinished[0] += 1
+        progress_bar.update(nfinished[0])
+
     # Run in parallel if not Win and not in parallel already
-    if platform.system() != 'Windows' and os.getenv('QISKIT_IN_PARALLEL') != 'TRUE':
+    if platform.system() != 'Windows' and num_processes > 1 \
+       and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             pool = Pool(processes=num_processes)
 
-            async_res = [pool.apply_async(task, (value,) + task_args,
-                                          task_kwargs) for value in values]
+            async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
+                                          _callback) for value in values]
 
             while not all([item.ready() for item in async_res]):
                 for item in async_res:
@@ -102,11 +118,13 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
             pool.terminate()
             pool.join()
+            progress_bar.finished()
 
-        except KeyboardInterrupt as exept:
+        except KeyboardInterrupt:
             pool.terminate()
             pool.join()
-            raise QISKitError(exept)
+            progress_bar.finished()
+            raise QISKitError('Keyboard interrupt in parallel_map.')
 
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
         return [ar.get() for ar in async_res]
@@ -117,4 +135,6 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     for _, value in enumerate(values):
         result = task(value, *task_args, **task_kwargs)
         results.append(result)
+        _callback(0)
+    progress_bar.finished()
     return results

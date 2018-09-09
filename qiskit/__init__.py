@@ -46,6 +46,9 @@ from .wrapper._wrapper import (
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
+# Set parallel ennvironmental variable
+os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
     __version__ = version_file.read().strip()
