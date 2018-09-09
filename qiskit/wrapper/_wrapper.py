@@ -364,3 +364,24 @@ def load_qasm_file(qasm_file, name=None,
         QISKitError: if the file cannot be read.
     """
     return circuit_from_qasm_file(qasm_file, name, basis_gates)
+
+
+def qobj_to_circuits(qobj):
+    """Return a list of QuantumCircuit object(s) from a qobj
+
+    Args:
+        qobj (Qobj): The Qobj object to convert to QuantumCircuits
+    Returns:
+        list: A list of QuantumCircuit objects from the qobj
+
+    """
+    if qobj.experiments:
+        circuits = []
+        for x in qobj.experiments:
+            if hasattr(x.header, 'compiled_circuit_qasm'):
+                circuits.append(
+                    load_qasm_string(x.header.compiled_circuit_qasm))
+        return circuits
+    # TODO(mtreinish): add support for converting a qobj if the qasm isn't
+    # embedded in the header
+    return None
