@@ -8,8 +8,8 @@
 """An HTML progress bar for Jupyter notebooks"""
 
 import time
-import ipywidgets as widgets
-from IPython.display import display
+import ipywidgets as widgets                # pylint: disable=import-error
+from IPython.display import display         # pylint: disable=import-error
 import qiskit._receiver as rec
 from qiskit._progressbar import BaseProgressBar
 
