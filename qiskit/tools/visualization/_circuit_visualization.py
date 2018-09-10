@@ -31,7 +31,9 @@ from PIL import Image, ImageChops
 from matplotlib import get_backend as get_matplotlib_backend, \
     patches as patches, pyplot as plt
 
-from qiskit import QuantumCircuit, QISKitError, load_qasm_file
+from qiskit._quantumcircuit import QuantumCircuit
+from qiskit._qiskiterror import QISKitError
+from qiskit.wrapper import load_qasm_file
 from qiskit.qasm import Qasm
 from qiskit.unroll import Unroller, JsonBackend
 
