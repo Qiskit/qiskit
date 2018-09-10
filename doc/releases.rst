@@ -69,7 +69,7 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 IBM Q Authentication and ``Qconfig.py``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The managing of credentials for authenticating when using the QE devices has
+The managing of credentials for authenticating when using the QE backends has
 been expanded, and there are new options that can be used for convenience:
 
 1. store your credentials in disk once, and automatically load them in future
@@ -95,37 +95,14 @@ the different authentication options.
 Backend and Job API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and 
-:class:`~qiskit.backends.basejob.BaseJob` are no longer properties, 
-but methods, and as a result they need to be invoked as functions:
+* Jobs submitted to IBM Q backends have improved capabilities. It is possible to
+  cancel them and replenish credits (``job.cancel()``), and to retrieve previous jobs
+  executed on a specific backend either by job id (``backend.retrieve_job(job_id)``) or
+  in batch of latest jobs (``backend.jobs(limit)``)
 
-=====================  ========================
-Qiskit 0.5             Qiskit 0.6
-=====================  ========================
-backend.name           backend.name()
-backend.status         backend.status()
-backend.configuration  backend.configuration()
-backend.calibration    backend.properties()
-backend.parameters
----------------------  ------------------------
-job.status             job.status()
-job.cancelled          job.queue_position()
-job.running
-job.queued
-job.done
-=====================  ========================
-
-``BaseJob`` and ``IBMQJob`` API changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* the :meth:`~qiskit.backends.basejob.BaseJob.status` method is used to
-  check the status of a job, instead of the property with the same name of
-  previous versions. The method returns a member of the
-  :class:`~qiskit.backends.jobstatus.JobStatus` enumeration.
-
-* properties for checking each individual state (``queued``, ``running``,
+* Properties for checking each individual job status (``queued``, ``running``,
   ``validating``, ``done`` and ``cancelled``) no longer exist. If you
-  want to check the job state, use the identity comparison against
+  want to check the job status, use the identity comparison against
   ``job.status``::
 
     from qiskit.backends import JobStatus
@@ -136,9 +113,28 @@ job.done
 
 Please consult the new documentation of the
 :class:`~qiskit.backends.ibmq.ibmqjob.IBMQJob` class to get further insight in
-how to use the simplified API. If using the jobs at the lowest level, please
-check the changes in :class:`~qiskit.backends.basejob.BaseJob` (most notably,
-creating an instance no longer submits the job to the backend automatically).
+how to use the simplified API.
+
+* A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and 
+:class:`~qiskit.backends.basejob.BaseJob` are no longer properties, 
+but methods, and as a result they need to be invoked as functions.
+
+=====================  ========================
+Qiskit 0.5             Qiskit 0.6
+=====================  ========================
+backend.name           backend.name()
+backend.status         backend.status()
+backend.configuration  backend.configuration()
+backend.calibration    backend.properties()
+backend.parameters     backend.jobs()
+                       backend.retrieve_job(job_id)
+=====================  ==========
+job.status             job.status()
+job.cancelled          job.queue_position()
+job.running            job.cancel()
+job.queued
+job.done
+=====================  ========================
 
 Better Jupyter tools
 ^^^^^^^^^^^^^^^^^^^^
