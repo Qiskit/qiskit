@@ -27,7 +27,7 @@ Added
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
-- New parallel_map function, and parallel circuit transpilation (#701).
+- New parallel_map function, progress bars, and parallel circuit transpilation (#701).
 - Jupyter notebook magic function qiskit_job_status (#734).
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
