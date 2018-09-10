@@ -108,7 +108,7 @@ Backend and Job API changes
     from qiskit.backends import JobStatus
 
     job = execute(circuit, backend)
-    if job.status is JobStatus.RUNNING:
+    if job.status() is JobStatus.RUNNING:
         handle_job(job)
 
 Please consult the new documentation of the
