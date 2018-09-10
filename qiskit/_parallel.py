@@ -87,7 +87,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     # Get last element of the receiver channels
     if any(rec.channels):
         progress_bar = None
-        for idx in reversed(rec.channels):
+        for idx in rec.channels:
             if rec.channels[idx].type == 'progressbar' and not rec.channels[idx].touched:
                 progress_bar = rec.channels[idx]
                 break
