@@ -15,6 +15,8 @@ import jsonschema
 from qiskit import QISKitError
 from qiskit import __path__ as qiskit_path
 
+logger = logging.getLogger(__name__)
+
 # _DEFAULT_SCHEMA_PATHS[name]: local_path
 _DEFAULT_SCHEMA_PATHS = {
     'backend_configuration': 'schemas/backend_configuration_schema.json',
@@ -25,10 +27,9 @@ _DEFAULT_SCHEMA_PATHS = {
     'qobj': 'schemas/qobj_schema.json',
     'result': 'schemas/result_schema.json'
                         }
+# Schema and Validator storage
 _SCHEMAS = {}
 _VALIDATORS = {}
-
-logger = logging.getLogger(__name__)
 
 
 def _load_schema(file_path, name=None):
@@ -49,16 +50,17 @@ def _load_schema(file_path, name=None):
     return _SCHEMAS[name]
 
 
-def _create_validator(schema, name, check_schema=True,
+def _create_validator(name, schema=None, check_schema=True,
                       validator_class=None, *args, **kwargs):
     """
     Generate validator for JSON schema.
 
     Parameters
     ----------
-    schema (dict): JSON schema `dict`.
     name (str): Name for validator. Will be validator key in
                 `_VALIDATORS` dict.
+    schema (dict): JSON schema `dict`. If not provided searches for schema in
+                   `_SCHEMAS`.
     check_schema (bool): Verify schema is valid.
 
     validator_class (jsonschema.IValidator): JsonSchema IValidator instance.
@@ -72,26 +74,35 @@ def _create_validator(schema, name, check_schema=True,
     -------
     validator (jsonschema.IValidator): Validator for JSON schema.
     """
+    if schema is None:
+        try:
+            schema = _SCHEMAS[name]
+        except KeyError:
+            raise SchemaValidationError('''Valid schema name or schema must
+                                           be provided.''')
 
     if name not in _VALIDATORS:
+
         if not isinstance(schema, dict):
             raise SchemaValidationError('''Supplied schema must be a Python
                                         dictionary with proper schema form.''')
+
         # Resolve Json spec from schema if needed
         if validator_class is None:
             validator_class = jsonschema.validators.validator_for(schema)
 
-        # Verify supplied schema is valid
-        if check_schema:
-            validator_class.check_schema(schema)
-
         # Generate and store validator in _VALIDATORS
         _VALIDATORS[name] = validator_class(schema, *args, **kwargs)
 
-    return _VALIDATORS[name]
+    validator = _VALIDATORS[name]
+
+    if check_schema:
+        validator.check_schema(schema)
+
+    return validator
 
 
-def _load_default_schemas():
+def _load_default_schemas_and_validators():
     """
     Load all default schemas into `_SCHEMAS`
     """
@@ -99,10 +110,11 @@ def _load_default_schemas():
     schema_base_path = qiskit_path[0]
     for name, path in _DEFAULT_SCHEMA_PATHS.items():
         _load_schema(os.path.join(schema_base_path, path), name)
+        _create_validator(name)
 
 
-# Load all schemas
-_load_default_schemas()
+# Load all schemas on import
+_load_default_schemas_and_validators()
 
 
 def validate_json_against_schema(json_dict, schema,
@@ -130,7 +142,7 @@ def validate_json_against_schema(json_dict, schema,
         if isinstance(schema, str):
             schema_name = schema
             schema = _SCHEMAS[schema]
-            validator = _create_validator(schema, schema_name)
+            validator = _create_validator(schema_name)
             validator.validate(json_dict)
         else:
             jsonschema.validate(json_dict, schema)
