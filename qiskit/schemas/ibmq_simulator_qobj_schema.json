@@ -56,7 +56,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "3-param 1Q op"
+                    "title": "3-param 1Q gate"
                 },
                 {
                     "properties": {
@@ -93,7 +93,7 @@
                     "required": [
                         "qubits"
                     ],
-                    "title": "fixed 1Q op"
+                    "title": "fixed 1Q gate"
                 },
                 {
                     "properties": {
@@ -129,7 +129,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "1-param 1Q op"
+                    "title": "1-param 1Q gate"
                 },
                 {
                     "properties": {
@@ -161,7 +161,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "2-param 1Q op"
+                    "title": "2-param 1Q gate"
                 },
                 {
                     "properties": {
@@ -231,7 +231,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "1-param 2Q controlled gate"
+                    "title": "1-param 2Q gate"
                 },
                 {
                     "properties": {
