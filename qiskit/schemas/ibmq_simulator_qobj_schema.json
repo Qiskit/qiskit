@@ -295,7 +295,7 @@
                     "required": [
                         "qubits"
                     ],
-                    "title": "fixed 3Q doubly controlled gate"
+                    "title": "fixed 3Q gate"
                 }           
             ],            
             "required": [
