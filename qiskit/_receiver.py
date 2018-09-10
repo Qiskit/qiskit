@@ -9,7 +9,7 @@
 """
 
 from collections import OrderedDict
-from qiskit import QISKitError
+from qiskit._qiskiterror import QISKitError
 
 
 class Reciever(object):
