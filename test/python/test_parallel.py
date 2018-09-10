@@ -37,9 +37,9 @@ class TestParallel(QiskitTestCase):
 
     def test_parallel_progbar_used(self):
         """Test that correct progressbar is used."""
-        used = TextProgressBar()
         not_used = TextProgressBar()
         not_used.touched = True
+        used = TextProgressBar()
         parallel_map(_parfunc, list(range(10)))
         self.assertTrue(used.channel_id not in rec.channels.keys())
         self.assertTrue(not_used.channel_id in rec.channels.keys())
