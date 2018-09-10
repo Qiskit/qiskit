@@ -26,7 +26,8 @@ class MetaPass(type):
         obj._defaults = {
             "idempotence": True,
             "ignore_requires": False,
-            "ignore_preserves": False
+            "ignore_preserves": False,
+            "max_iteration": 1000
         }
         obj._settings = {}
         return obj
@@ -107,6 +108,13 @@ class BasePass(metaclass=MetaPass):
         ignored and some optimizations will be disabled.
         """
         return self._settings.get('ignore_preserves', self._defaults['ignore_preserves'])
+
+    @property
+    def max_iteration(self):
+        """ The `pass.max_iteration` attribute returns the maximum amount of iterations allowed in
+        `do_while`. The default is `1000`.
+        """
+        return self._settings.get('max_iteration', self._defaults['max_iteration'])
 
     @property
     def is_TransformationPass(self):  # pylint: disable=invalid-name

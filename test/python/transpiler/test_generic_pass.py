@@ -25,12 +25,15 @@ class TestGenericPass(QiskitTestCase):
         self.assertTrue(tp_pass.idempotence)  # By default, passes are idempotent
         self.assertFalse(tp_pass.ignore_preserves)  # By default, passes do not ignore preserves
         self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
+        self.assertEqual(1000, tp_pass.max_iteration)  # By default, max_iteration is set to 1000
 
-        tp_pass.set(idempotence=False, ignore_preserves=True, ignore_requires=True)
+        tp_pass.set(idempotence=False, ignore_preserves=True, ignore_requires=True,
+                    max_iteration=10)
 
         self.assertFalse(tp_pass.idempotence)
         self.assertTrue(tp_pass.ignore_requires)
         self.assertTrue(tp_pass.ignore_preserves)
+        self.assertEqual(10, tp_pass.max_iteration)
 
     def test_pass_unknown_option(self):
         """ An option in a pass should be in the set of allowed options. """
