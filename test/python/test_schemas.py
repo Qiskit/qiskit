@@ -20,7 +20,7 @@ from .common import QiskitTestCase, Path
 
 class TestSchemaExamples(QiskitTestCase):
     """
-    Tests schema valiation
+    Tests schema validation
     """
 
     def setUp(self):
