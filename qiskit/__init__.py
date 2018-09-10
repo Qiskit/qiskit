@@ -26,6 +26,9 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._reset import Reset
 from ._measure import Measure
+from ._schema_validation import (validate_json_against_schema,
+                                 _load_schema, _create_validator,
+                                 SchemaValidationError)
 from .result import Result
 
 # The qiskit.extensions.x imports needs to be placed here due to the
