@@ -18,4 +18,4 @@ refer to the documentation of each component and use them separately.
 from ._wrapper import (available_backends, local_backends, remote_backends,
                        get_backend, compile, execute, register, unregister,
                        registered_providers, load_qasm_string, load_qasm_file,
-                       least_busy, store_credentials)
+                       least_busy, store_credentials, qobj_to_circuits)

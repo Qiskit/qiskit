@@ -28,6 +28,8 @@ Added
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
 - Jupyter notebook magic function qiskit_job_status (#734).
+- Add a new function ``qobj_to_circuits`` to convert a Qobj object to
+  a list of QuantumCircuit objects (#877)
 
 Changed
 -------
@@ -43,6 +45,15 @@ Changed
 - Breaking change: ``Jobs`` API simplification. (#686)
 - Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
 - Breaking change: ``BaseBackend`` API changed, properties are now methods (#858)
+- When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
+  notebook if there is network connectivity the interactive plots will be used
+  by default (#862, #866)
+
+Deprecated
+----------
+- The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
+  deprecated. A field of the same name should be used in the ``option``
+  dictionary kwarg instead. (#866)
 
 Removed
 -------

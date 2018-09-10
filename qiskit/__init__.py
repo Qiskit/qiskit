@@ -11,6 +11,7 @@
 """Main QISKit public functionality."""
 
 import os
+import pkgutil
 
 # First, check for required Python and API version
 from . import _util
@@ -25,13 +26,24 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._reset import Reset
 from ._measure import Measure
+from .result import Result
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-from .result import Result
+# Import circuit drawing methods by default
+# This is wrapped in a try because the Travis tests fail due to non-framework
+# Python build since using pyenv
+try:
+    from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
+except (ImportError, RuntimeError) as expt:
+    print("Error: {0}".format(expt))
+
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports.
+__path__ = pkgutil.extend_path(__path__, __name__)
 
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
