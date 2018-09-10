@@ -80,7 +80,7 @@ class TestSchemaExamples(QiskitTestCase):
                             validate_json_against_schema(example, schema_name, msg)
 
     def test_schemas_are_valid(self):
-        """ Validate example json files against respective schemas"""
+        """ Validate that schemas are valid jsonschema"""
         for schema_test in self.schema_tests:
             schema_name = schema_test['schema_name']
             with self.subTest(schema_test=schema_name):
