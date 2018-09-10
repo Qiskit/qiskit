@@ -86,11 +86,12 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
     # Get last element of the receiver channels
     if any(rec.channels):
-        last_idx = next(reversed(rec.channels))
-
-        if rec.channels[last_idx].type == 'progressbar' and not rec.channels[last_idx].touched:
-            progress_bar = rec.channels[last_idx]
-        else:
+        progress_bar = None
+        for idx in reversed(rec.channels):
+            if rec.channels[idx].type == 'progressbar' and not rec.channels[idx].touched:
+                progress_bar = rec.channels[idx]
+                break
+        if progress_bar is None:
             progress_bar = BaseProgressBar()
     else:
         progress_bar = BaseProgressBar()
@@ -118,7 +119,6 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
             pool.terminate()
             pool.join()
-            progress_bar.finished()
 
         except KeyboardInterrupt:
             pool.terminate()
@@ -126,6 +126,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
             progress_bar.finished()
             raise QISKitError('Keyboard interrupt in parallel_map.')
 
+        progress_bar.finished()
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
         return [ar.get() for ar in async_res]
 
