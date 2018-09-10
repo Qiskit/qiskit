@@ -13,7 +13,7 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile, TranspilerAccessError
+from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP
@@ -125,6 +125,26 @@ class TestUseCases(QiskitTestCase):
                               'run transformation pass PassA_TP_NR_NP',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 2 (from dag.property)'])
+
+    def test_do_while_until_max_iterationt(self):
+        """ A pass set with a do_while parameter that checks that the max_iteration is raised. """
+        self.passmanager.add_pass([
+            PassF_reduce_dag_property(),
+            PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
+            PassG_calculates_dag_property()], \
+            do_while=lambda property_set: not property_set.fixed_point('property'),
+            max_iteration=2)
+        self.assertSchedulerRaises(self.dag, self.passmanager,
+                             ['run transformation pass PassF_reduce_dag_property',
+                              'dag property = 6',
+                              'run transformation pass PassA_TP_NR_NP',
+                              'run analysis pass PassG_calculates_dag_property',
+                              'set property as 6 (from dag.property)',
+                              'run transformation pass PassF_reduce_dag_property',
+                              'dag property = 5',
+                              'run transformation pass PassA_TP_NR_NP',
+                              'run analysis pass PassG_calculates_dag_property',
+                              'set property as 5 (from dag.property)'], TranspilerError)
 
     def test_do_not_repeat_based_on_preservation(self):
         """ When a pass is still a valid pass (because following passes preserved it), it should not

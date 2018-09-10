@@ -191,11 +191,17 @@ class WorkItemDoWhile(WorkItem):
         self.working_list = WorkingList()
         self.working_list.add(passes)
         self.do_while = do_while
+        self.max_iteration = min([pass_.max_iteration for pass_ in passes])
 
     def __iter__(self):
+        iteration = 0
         while True:
             for pass_ in self.working_list:
                 yield pass_
+            iteration += 1
+            if iteration >= self.max_iteration:
+                raise TranspilerError("Maximum iteration reached. max_iteration=%i" %
+                                      self.max_iteration)
             if not self.do_while():
                 break
 
