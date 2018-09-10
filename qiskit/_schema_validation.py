@@ -15,8 +15,18 @@ import jsonschema
 from qiskit import QISKitError
 from qiskit import __path__ as qiskit_path
 
+# _DEFAULT_SCHEMA_PATHS[name]: local_path
+_DEFAULT_SCHEMA_PATHS = {
+    'backend_configuration': 'schemas/backend_configuration_schema.json',
+    'backend_properties': 'schemas/backend_properties_schema.json',
+    'backend_status': 'schemas/backend_status_schema.json',
+    'default_pulse_configuration': 'schemas/default_pulse_configuration_schema.json',
+    'job_status': 'schemas/job_status_schema.json',
+    'qobj': 'schemas/qobj_schema.json',
+    'result': 'schemas/result_schema.json'
+                        }
 _SCHEMAS = {}
-
+_VALIDATORS = {}
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +49,96 @@ def _load_schema(file_path, name=None):
     return _SCHEMAS[name]
 
 
-def validate_qobj_against_schema(qobj):
-    """Validates a QObj against a schema."""
-    qobj_schema = _load_qobj_schema()
+def _create_validator(schema, name, check_schema=True,
+                      validator_class=None, *args, **kwargs):
+    """
+    Generate validator for JSON schema.
+
+    Parameters
+    ----------
+    schema (dict): JSON schema `dict`.
+    name (str): Name for validator. Will be validator key in
+                `_VALIDATORS` dict.
+    check_schema (bool): Verify schema is valid.
+
+    validator_class (jsonschema.IValidator): JsonSchema IValidator instance.
+            Default behavior is to determine this from the schema `$schema`
+            field.
+
+    Other positional and keywork arguments will be passed onto `jsonschema`
+    validator.
+
+    Returns
+    -------
+    validator (jsonschema.IValidator): Validator for JSON schema.
+    """
+
+    if name not in _VALIDATORS:
+        if not isinstance(schema, dict):
+            raise SchemaValidationError('''Supplied schema must be a Python
+                                        dictionary with proper schema form.''')
+        # Resolve Json spec from schema if needed
+        if validator_class is None:
+            validator_class = jsonschema.validators.validator_for(schema)
+
+        # Verify supplied schema is valid
+        if check_schema:
+            validator_class.check_schema(schema)
+
+        # Generate and store validator in _VALIDATORS
+        _VALIDATORS[name] = validator_class(schema, *args, **kwargs)
+
+    return _VALIDATORS[name]
+
+
+def _load_default_schemas():
+    """
+    Load all default schemas into `_SCHEMAS`
+    """
+
+    schema_base_path = qiskit_path[0]
+    for name, path in _DEFAULT_SCHEMA_PATHS.items():
+        _load_schema(os.path.join(schema_base_path, path), name)
+
+
+# Load all schemas
+_load_default_schemas()
+
+
+def validate_json_against_schema(json_dict, schema,
+                                 err_msg=None):
+    """
+    Validates JSON dict against a schema.
+
+    Parameters
+    ----------
+    json_dict (dict): Json to be validated.
+    schema (dict or str): Json schema or string of name in _VALIDATORS. If
+                          schema is provided `jsonschema.validate` will be
+                          called. If schema name is provided a validator
+                          will be created or recovered from
+                          `_VALIDATORS` cache.
+    err_msg (str): Optional error message.
+
+    Raises
+    ------
+    validation_error (SchemaValidationError): Raised if validation fails.
+
+    """
 
     try:
-        jsonschema.validate(qobj.as_dict(), qobj_schema)
+        if isinstance(schema, str):
+            schema_name = schema
+            schema = _SCHEMAS[schema]
+            validator = _create_validator(schema, schema_name)
+            validator.validate(json_dict)
+        else:
+            jsonschema.validate(json_dict, schema)
     except jsonschema.ValidationError as err:
-        newerr = SchemaValidationError(
-            'Qobj failed validation. Set Qiskit log level to DEBUG for further information.')
+        if err_msg is None:
+            err_msg = '''JSON failed validation. Set Qiskit log level to DEBUG
+                         for further information.'''
+        newerr = SchemaValidationError(err_msg)
         newerr.__cause__ = _SummaryValidationError(err)
         logger.debug('%s', _format_causes(err))
         raise newerr
@@ -139,6 +230,7 @@ class _SummaryValidationError(QISKitError):
 
     def _shorten_message(self, message):
         if len(message) > 1000:
-            return 'Original message too long to be useful: {}[...]'.format(message[:1000])
+            return '''Original message too long to be useful: {}[...]
+                   '''.format(message[:1000])
 
         return message
