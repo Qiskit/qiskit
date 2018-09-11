@@ -9,6 +9,7 @@
 
 import unittest
 from qiskit.transpiler import PropertySet
+from qiskit.transpiler._propertysetutilities import fixed_point
 from ..common import QiskitTestCase
 
 
@@ -16,6 +17,7 @@ class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
     def setUp(self):
         self.pset = PropertySet()
+        self.pset.add_utility(fixed_point)
 
     def test_get_non_existent(self):
         """ Getting non-existent property should return None. """

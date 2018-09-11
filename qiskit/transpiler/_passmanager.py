@@ -11,7 +11,7 @@ from ._propertyset import PropertySet
 from ._basepasses import BasePass
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
 from ._transpilererror import TranspilerError
-
+from ._propertysetutilities import fixed_point
 
 class PassManager():
     """ A PassManager schedules the passes """
@@ -40,6 +40,8 @@ class PassManager():
                              'ignore_preserves': ignore_preserves,
                              'idempotence': idempotence,
                              'max_iteration': max_iteration}
+        # Add default utilities
+        self.property_set.add_utility(fixed_point)
 
     def __getitem__(self, key):
         return self.property_set[key]
