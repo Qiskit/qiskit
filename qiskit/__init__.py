@@ -48,8 +48,12 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
     get_backend, compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file, least_busy,
+    registered_providers,
+    load_qasm_string, load_qasm_file, least_busy,
     store_credentials)
+
+from .wrapper.credentials._configrc import (
+    available_credentials, get_credentials)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper

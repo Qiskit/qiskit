@@ -17,7 +17,7 @@ class BaseProvider(ABC):
     Base class for a backend provider.
     """
     def __init__(self, *args, **kwargs):
-        pass
+        name = 'base'
 
     @abstractmethod
     def available_backends(self, *args, **kwargs):

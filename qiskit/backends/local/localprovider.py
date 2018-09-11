@@ -35,6 +35,7 @@ class LocalProvider(BaseProvider):
     """Provider for local backends."""
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
+        self.name = 'local'
 
         # Populate the list of local backends.
         self.backends = self._verify_local_backends()
