@@ -34,12 +34,11 @@ Added
 Changed
 -------
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
-- Use ``Qobj`` as the formally defined schema for sending information to the
-  devices:
-    - introduce the ``qiskit.qobj`` module. (#589, #655)
-    - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
-    - update the local simulators for accepting ``Qobj`` as input. (#667)
-    - update the ``Result`` class. (#773)
+- Use ``Qobj`` as the formally defined schema for sending information to the devices:
+  - introduce the ``qiskit.qobj`` module. (#589, #655)
+  - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
+  - update the local simulators for accepting ``Qobj`` as input. (#667)
+  - update the ``Result`` class. (#773)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 - Q network hub/group/project credentials replaced by new url format. (#740)
 - Breaking change: ``Jobs`` API simplification. (#686)

@@ -22,7 +22,7 @@ def result_from_old_style_dict(result_dict, experiment_names=None):
         result_dict (dict): dictionary in the old format.
         experiment_names (list): list of circuit names.
     Returns:
-        Result: a Result intance.
+        qiskit.Result: a Result instance.
     """
     # Prepare the experiment results.
     experiment_results = [qobj.ExperimentResult(**kwargs) for
