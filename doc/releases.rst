@@ -12,18 +12,18 @@ formal communication format (``Qobj``), along with long awaited features to
 improve the user experience as a whole. The highlights, compared to the 0.5
 release, are:
 
-* Performance improvements centered in the circuit transpilation: the basis for
-  a more flexible and modular architecture have been set, including
-  paralellization of the circuit compilation and numerous optimizations.
+* Improvements for inter-operability (based on the ``Qobj`` specification) and
+  extensibility (facilities for extending Qiskit with new backends in a seamless
+  way).
 * New options for handling credentials and authentication for the IBM Q
   backends, aimed at simplifying the process and supporting automatic loading
   of user credentials.
 * A revamp of the visualization utilities: stylish interactive visualizations
   are now available for Jupyter users, along with refinements for the circuit
   drawer (including a matplotlib-based version).
-* Improvements for inter-operability (based on the ``Qobj`` specification) and
-  extensibility (facilities for extending Qiskit with new backends in a seamless
-  way).
+* Performance improvements centered around circuit transpilation: the basis for
+  a more flexible and modular architecture have been set, including
+  paralellization of the circuit compilation and numerous optimizations.
 
 Upgrading to 0.6.0
 ------------------
