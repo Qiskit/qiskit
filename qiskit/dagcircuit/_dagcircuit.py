@@ -1334,7 +1334,7 @@ class DAGCircuit:
         """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
         Args:
-            circuit (QuantumCircuit): the input circtuit.
+            circuit (QuantumCircuit): the input circuit.
             expand_gates (bool): if ``False``, none of the gates are expanded,
                 i.e. the gates that are defined in the circuit are included in
                 the DAG basis.
