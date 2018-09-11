@@ -70,6 +70,7 @@ Fixed
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
 - Fixed the issue with control lines spanning through several classical registers. (#762).
+- Fixed visualizations crashing when using simulator extensions (#885)
 
 `0.5.6`_ - 2018-07-06
 =====================
