@@ -33,6 +33,10 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code.
+__path__ = pkgutil.extend_path(__path__, __name__)
+
 # Import circuit drawing methods by default
 # This is wrapped in a try because the Travis tests fail due to non-framework
 # Python build since using pyenv
@@ -40,10 +44,6 @@ try:
     from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
 except (ImportError, RuntimeError) as expt:
     print("Error: {0}".format(expt))
-
-# Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports.
-__path__ = pkgutil.extend_path(__path__, __name__)
 
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
