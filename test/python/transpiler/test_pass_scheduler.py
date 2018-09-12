@@ -13,7 +13,9 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError, ControlFlowPlugin
+from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError, \
+    ControlFlowPlugin
+from qiskit.transpiler._passmanager import PluginDoWhile
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP
@@ -21,12 +23,15 @@ from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
+
 class SchedulerTestCase(QiskitTestCase):
+    """ Asserts for the scheduler. """
+
     def assertScheduler(self, dag, passmanager, expected):
         """
         Runs transpiler(dag, passmanager) and checks if the passes run as expected.
         Args:
-            dag (DAGCircuit): DAG circuit to transform via transpilation
+            dag (DAGCircuit): DAG circuit to transform via transpilation.
             passmanager (PassManager): pass manager instance for the tranpilation process
             expected (list): List of things the passes are logging
         """
@@ -47,6 +52,7 @@ class SchedulerTestCase(QiskitTestCase):
         with self.assertLogs(logger, level='INFO') as cm:
             self.assertRaises(exception_type, transpile, dag, pass_manager=passmanager)
         self.assertEqual([record.message for record in cm.records], expected)
+
 
 class TestUseCases(SchedulerTestCase):
     """ The pass manager schedules passes in, sometimes, tricky ways. These tests combine passes in
@@ -269,30 +275,60 @@ class TestUseCases(SchedulerTestCase):
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
 
+
 class DoXTimesPlugin(ControlFlowPlugin):
+    """ A control-flow plugin for running a set of passes an X amount of times."""
     def __init__(self, passes, do_x_times=0, **_):  # pylint: disable=super-init-not-called
         self.do_x_times = do_x_times
         super().__init__(passes)
 
     def __iter__(self):
-        for x in range(self.do_x_times):
+        for _ in range(self.do_x_times):
+            for pass_ in self.working_list:
+                yield pass_
+
+class DoXTimesPlugin(ControlFlowPlugin):
+    """ A control-flow plugin for running a set of passes an X amount of times."""
+    def __init__(self, passes, do_x_times=None, **_):  # pylint: disable=super-init-not-called
+        self.do_x_times = do_x_times
+        super().__init__(passes)
+
+    def __iter__(self):
+        for _ in range(self.do_x_times):
             for pass_ in self.working_list:
                 yield pass_
 
 class TestControlFlowPlugin(SchedulerTestCase):
+    """ Testing the control flow plugin system. """
+    def setUp(self):
+        self.passmanager = PassManager()
+        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
 
     def test_control_flow_plugin(self):
-        dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
-        passmanager = PassManager()
-        passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
-        passmanager.add_pass([PassB_TP_RA_PA(),PassC_TP_RA_PA()], do_x_times=3)
-        self.assertScheduler(dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
-                                                'run transformation pass PassB_TP_RA_PA',
-                                                'run transformation pass PassC_TP_RA_PA',
-                                                'run transformation pass PassB_TP_RA_PA',
-                                                'run transformation pass PassC_TP_RA_PA',
-                                                'run transformation pass PassB_TP_RA_PA',
-                                                'run transformation pass PassC_TP_RA_PA'])
+        """ Adds a control flow plugin with a single parameter and runs it. """
+        self.passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
+        self.passmanager.add_pass([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=3)
+        self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                          'run transformation pass PassB_TP_RA_PA',
+                                                          'run transformation pass PassC_TP_RA_PA',
+                                                          'run transformation pass PassB_TP_RA_PA',
+                                                          'run transformation pass PassC_TP_RA_PA',
+                                                          'run transformation pass PassB_TP_RA_PA',
+                                                          'run transformation pass PassC_TP_RA_PA'])
+
+    def test_callable_control_flow_plugin(self):
+        """ Removes do_while, then adds it back. Checks max_iteration still working. """
+        self.passmanager = PassManager()
+        self.passmanager.remove_control_flow_plugin('do_while')
+        self.passmanager.add_control_flow_plugin('do_while', PluginDoWhile)
+        self.passmanager.add_pass([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
+            do_while=lambda property_set: True, max_iteration=2)
+        self.assertSchedulerRaises(self.dag, self.passmanager,
+                                   ['run transformation pass PassA_TP_NR_NP',
+                                    'run transformation pass PassB_TP_RA_PA',
+                                    'run transformation pass PassC_TP_RA_PA',
+                                    'run transformation pass PassB_TP_RA_PA',
+                                    'run transformation pass PassC_TP_RA_PA'], TranspilerError)
 
 if __name__ == '__main__':
     unittest.main()
