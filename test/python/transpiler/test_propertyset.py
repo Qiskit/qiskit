@@ -15,8 +15,8 @@ from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
-
 class dummy_utility(Utility):  # pylint: disable=invalid-name
+    """ A dummy utility just for testing the utility registration"""
     def on_change(self, key, new_value):
         """
         Does nothing. Just print the value to update
@@ -79,17 +79,18 @@ class TestPropertySet(QiskitTestCase):
         self.assertFalse(self.pset.fixed_point('property'))
 
     def test_dummy_utility(self):
+        """ Testing add_utility, on_change and getter in a dummy utility """
         self.pset.add_utility(dummy_utility)
-        with self.assertLogs(logger, level='INFO') as cm:
+        with self.assertLogs(logger, level='INFO') as context:
             self.pset['property'] = 1
             self.pset['property'] = 2
-        self.assertEqual([record.message for record in cm.records],
+        self.assertEqual([record.message for record in context.records],
                          ['the property property is updated with 1 (previously None)',
                           'the property property is updated with 2 (previously 1)'])
 
-        with self.assertLogs(logger, level='INFO') as cm:
+        with self.assertLogs(logger, level='INFO') as context:
             self.assertTrue(self.pset.dummy_utility())
-        self.assertEqual([record.message for record in cm.records],
+        self.assertEqual([record.message for record in context.records],
                          ['dummy utility called. Returns True'])
 
 

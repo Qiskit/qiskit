@@ -133,18 +133,18 @@ class TestUseCases(QiskitTestCase):
             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
             PassG_calculates_dag_property()], \
             do_while=lambda property_set: not property_set.fixed_point('property'),
-            max_iteration=2)
+                                  max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
-                             ['run transformation pass PassF_reduce_dag_property',
-                              'dag property = 6',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 6 (from dag.property)',
-                              'run transformation pass PassF_reduce_dag_property',
-                              'dag property = 5',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 5 (from dag.property)'], TranspilerError)
+                                   ['run transformation pass PassF_reduce_dag_property',
+                                    'dag property = 6',
+                                    'run transformation pass PassA_TP_NR_NP',
+                                    'run analysis pass PassG_calculates_dag_property',
+                                    'set property as 6 (from dag.property)',
+                                    'run transformation pass PassF_reduce_dag_property',
+                                    'dag property = 5',
+                                    'run transformation pass PassA_TP_NR_NP',
+                                    'run analysis pass PassG_calculates_dag_property',
+                                    'set property as 5 (from dag.property)'], TranspilerError)
 
     def test_do_not_repeat_based_on_preservation(self):
         """ When a pass is still a valid pass (because following passes preserved it), it should not
