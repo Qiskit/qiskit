@@ -91,7 +91,7 @@ class PassManager():
         if condition:
             condition = partial(condition, self.fenced_property_set)
 
-        self.working_list.add(pass_or_list_of_passes, do_while, condition)
+        self.working_list.add(pass_or_list_of_passes, do_while=do_while, condition=condition)
 
     def run_passes(self, dag):
         """Run all the passes on the dag.
@@ -149,22 +149,24 @@ class WorkingList():
 
     def __init__(self):
         self.list_of_items = []
+        self.control_flow_plugins = {'condition': WorkItemConditional,
+                                     'do_while': WorkItemDoWhile,}
 
-    def add(self, passes, do_while=None, condition=None):
+    def add(self, passes, **kwargs): # pylint: disable=missing-param-doc,differing-param-doc
         """
         Populates the working list with passes.
         Args:
             passes (list): a list of passes to add to the working list.
             do_while (callable): The list of passes is run until this callable returns False.
             condition (callable): The list of passes is run if the callable returns True.
-
+            other kwargs (callable): Other kwargs can be added as control flow plugins.
         Returns:
 
         """
-        if condition:
-            self.list_of_items.append(WorkItemConditional(passes, do_while, condition))
-        elif do_while:
-            self.list_of_items.append(WorkItemDoWhile(passes, do_while))
+        for control_flow, condition in kwargs.items():
+            if condition and control_flow in self.control_flow_plugins:
+                self.list_of_items.append(self.control_flow_plugins[control_flow](passes, **kwargs))
+                break
         else:
             self.list_of_items.append(WorkItem(passes))
 
@@ -189,7 +191,7 @@ class WorkItem():
 class WorkItemDoWhile(WorkItem):
     """This type of working list item implements a set of passes in a do while loop. """
 
-    def __init__(self, passes, do_while):  # pylint: disable=super-init-not-called
+    def __init__(self, passes, do_while=None, **_):  # pylint: disable=super-init-not-called
         self.working_list = WorkingList()
         self.working_list.add(passes)
         self.do_while = do_while
@@ -211,9 +213,9 @@ class WorkItemDoWhile(WorkItem):
 class WorkItemConditional(WorkItem):
     """This type of working list item implements a set of passes under certain condition. """
 
-    def __init__(self, passes, do_while, condition):  # pylint: disable=super-init-not-called
+    def __init__(self, passes, do_while=None, condition=None, **_):  # pylint: disable=super-init-not-called
         self.working_list = WorkingList()
-        self.working_list.add(passes, do_while)
+        self.working_list.add(passes, do_while=do_while)
         self.condition = condition
 
     def __iter__(self):
