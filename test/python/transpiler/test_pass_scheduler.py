@@ -13,7 +13,7 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError
+from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError, ControlFlowPlugin
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP
@@ -264,11 +264,10 @@ class TestUseCases(QiskitTestCase):
         tp_pass = DummyTP()
         tp_pass.set(idempotence=False)
         passmanager.add_pass(tp_pass, idempotence=True, ignore_preserves=True)
-        the_pass_in_the_workinglist = passmanager.working_list.list_of_items[0].passes[0]
+        the_pass_in_the_workinglist = next(iter(passmanager.working_list))
         self.assertFalse(the_pass_in_the_workinglist.idempotence)
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
-
 
 if __name__ == '__main__':
     unittest.main()

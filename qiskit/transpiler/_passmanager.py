@@ -149,8 +149,12 @@ class WorkingList():
 
     def __init__(self):
         self.list_of_items = []
-        self.control_flow_plugins = {'condition': WorkItemConditional,
-                                     'do_while': WorkItemDoWhile,}
+        self.control_flow_plugins = {'condition': PluginConditional,
+                                     'do_while': PluginDoWhile, }
+
+    def add_control_flow_plugin(self, name, worklist_item):
+        # TODO typecheck worklist_item
+        self.control_flow_plugins[name] = worklist_item
 
     def add(self, passes, **kwargs): # pylint: disable=missing-param-doc,differing-param-doc
         """
@@ -160,6 +164,7 @@ class WorkingList():
             do_while (callable): The list of passes is run until this callable returns False.
             condition (callable): The list of passes is run if the callable returns True.
             other kwargs (callable): Other kwargs can be added as control flow plugins.
+               See add_control_flow_plugin().
         Returns:
 
         """
@@ -168,7 +173,7 @@ class WorkingList():
                 self.list_of_items.append(self.control_flow_plugins[control_flow](passes, **kwargs))
                 break
         else:
-            self.list_of_items.append(WorkItem(passes))
+            self.list_of_items.append(passes)
 
     def __iter__(self):
         for item in self.list_of_items:
@@ -176,26 +181,31 @@ class WorkingList():
                 yield pass_
 
 
-class WorkItem():
+class ControlFlowPlugin():
     """This class is a base class for multiple types of working list. When you iterate on it, it
     returns the next pass to run. """
 
-    def __init__(self, passes):
-        self.passes = passes
+    def __init__(self, passes, **kwargs):
+        self.working_list = WorkingList()
+        self.add(passes, **kwargs)
+
+    def add(self, passes, **_):
+        raise NotImplementedError
 
     def __iter__(self):
-        for pass_ in self.passes:
-            yield pass_
+        raise NotImplementedError
 
 
-class WorkItemDoWhile(WorkItem):
+class PluginDoWhile(ControlFlowPlugin):
     """This type of working list item implements a set of passes in a do while loop. """
 
-    def __init__(self, passes, do_while=None, **_):  # pylint: disable=super-init-not-called
-        self.working_list = WorkingList()
-        self.working_list.add(passes)
+    def __init__(self, passes, do_while=None, **kwargs):  # pylint: disable=super-init-not-called
         self.do_while = do_while
         self.max_iteration = min([pass_.max_iteration for pass_ in passes])
+        super().__init__(passes)
+
+    def add(self, passes):
+        self.working_list.add(passes)
 
     def __iter__(self):
         iteration = 0
@@ -210,13 +220,15 @@ class WorkItemDoWhile(WorkItem):
                 break
 
 
-class WorkItemConditional(WorkItem):
+class PluginConditional(ControlFlowPlugin):
     """This type of working list item implements a set of passes under certain condition. """
 
-    def __init__(self, passes, do_while=None, condition=None, **_):  # pylint: disable=super-init-not-called
-        self.working_list = WorkingList()
-        self.working_list.add(passes, do_while=do_while)
+    def __init__(self, passes, do_while=None, condition=None, **kwargs):  # pylint: disable=super-init-not-called
         self.condition = condition
+        super().__init__(passes, do_while=do_while, **kwargs)
+
+    def add(self, passes, do_while):
+        self.working_list.add(passes, do_while=do_while)
 
     def __iter__(self):
         if self.condition():
