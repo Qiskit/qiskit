@@ -187,10 +187,7 @@ class ControlFlowPlugin():
 
     def __init__(self, passes, **kwargs):
         self.working_list = WorkingList()
-        self.add(passes, **kwargs)
-
-    def add(self, passes, **_):
-        raise NotImplementedError
+        self.working_list.add(passes, **kwargs)
 
     def __iter__(self):
         raise NotImplementedError
@@ -203,9 +200,6 @@ class PluginDoWhile(ControlFlowPlugin):
         self.do_while = do_while
         self.max_iteration = min([pass_.max_iteration for pass_ in passes])
         super().__init__(passes)
-
-    def add(self, passes):
-        self.working_list.add(passes)
 
     def __iter__(self):
         iteration = 0
@@ -226,9 +220,6 @@ class PluginConditional(ControlFlowPlugin):
     def __init__(self, passes, do_while=None, condition=None, **kwargs):  # pylint: disable=super-init-not-called
         self.condition = condition
         super().__init__(passes, do_while=do_while, **kwargs)
-
-    def add(self, passes, do_while):
-        self.working_list.add(passes, do_while=do_while)
 
     def __iter__(self):
         if self.condition():
