@@ -53,7 +53,7 @@ from .wrapper._wrapper import (
     store_credentials)
 
 from .wrapper.credentials._configrc import (
-    available_credentials, get_credentials)
+    stored_credentials, get_credentials)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper

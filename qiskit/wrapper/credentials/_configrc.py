@@ -194,7 +194,7 @@ def store_credentials(token=None,
                        pro_dict, overwrite=True)
 
 
-def available_credentials():
+def stored_credentials():
     """Returns a list of credentials stored in the
     local qiskitrc file.
 
