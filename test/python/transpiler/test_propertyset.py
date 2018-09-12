@@ -8,13 +8,30 @@
 """Transpiler PropertySet testing"""
 
 import unittest
+import logging
 from qiskit.transpiler import PropertySet
-from qiskit.transpiler._propertysetutilities import fixed_point
+from qiskit.transpiler._propertysetutilities import fixed_point, Utility
 from ..common import QiskitTestCase
+
+logger = "LocalLogger"
+
+
+class dummy_utility(Utility):  # pylint: disable=invalid-name
+    def on_change(self, key, new_value):
+        """
+        Does nothing. Just print the value to update
+        """
+        logging.getLogger(logger).info('the property %s is updated with %s (previously %s)',
+                                       key, new_value, self.property_set[key])
+
+    def getter(self):
+        logging.getLogger(logger).info('dummy utility called. Returns True')
+        return True
 
 
 class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
+
     def setUp(self):
         self.pset = PropertySet()
         self.pset.add_utility(fixed_point)
@@ -60,6 +77,20 @@ class TestPropertySet(QiskitTestCase):
         self.assertTrue(self.pset.fixed_point('property'))
         self.pset['property'] = 2
         self.assertFalse(self.pset.fixed_point('property'))
+
+    def test_dummy_utility(self):
+        self.pset.add_utility(dummy_utility)
+        with self.assertLogs(logger, level='INFO') as cm:
+            self.pset['property'] = 1
+            self.pset['property'] = 2
+        self.assertEqual([record.message for record in cm.records],
+                         ['the property property is updated with 1 (previously None)',
+                          'the property property is updated with 2 (previously 1)'])
+
+        with self.assertLogs(logger, level='INFO') as cm:
+            self.assertTrue(self.pset.dummy_utility())
+        self.assertEqual([record.message for record in cm.records],
+                         ['dummy utility called. Returns True'])
 
 
 if __name__ == '__main__':
