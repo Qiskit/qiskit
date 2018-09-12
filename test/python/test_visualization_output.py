@@ -102,7 +102,7 @@ class TestVisualizationImplementation(QiskitTestCase):
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
-    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.01):
+    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled by the ```diff_tolerance``` argument."""
         from PIL import Image, ImageChops
