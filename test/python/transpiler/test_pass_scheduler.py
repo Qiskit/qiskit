@@ -287,17 +287,6 @@ class DoXTimesPlugin(ControlFlowPlugin):
             for pass_ in self.working_list:
                 yield pass_
 
-class DoXTimesPlugin(ControlFlowPlugin):
-    """ A control-flow plugin for running a set of passes an X amount of times."""
-    def __init__(self, passes, do_x_times=None, **_):  # pylint: disable=super-init-not-called
-        self.do_x_times = do_x_times
-        super().__init__(passes)
-
-    def __iter__(self):
-        for _ in range(self.do_x_times):
-            for pass_ in self.working_list:
-                yield pass_
-
 class TestControlFlowPlugin(SchedulerTestCase):
     """ Testing the control flow plugin system. """
     def setUp(self):
@@ -318,7 +307,6 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_callable_control_flow_plugin(self):
         """ Removes do_while, then adds it back. Checks max_iteration still working. """
-        self.passmanager = PassManager()
         self.passmanager.remove_control_flow_plugin('do_while')
         self.passmanager.add_control_flow_plugin('do_while', PluginDoWhile)
         self.passmanager.add_pass([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
@@ -329,6 +317,10 @@ class TestControlFlowPlugin(SchedulerTestCase):
                                     'run transformation pass PassC_TP_RA_PA',
                                     'run transformation pass PassB_TP_RA_PA',
                                     'run transformation pass PassC_TP_RA_PA'], TranspilerError)
+
+    def test_remove_unexistent_plugin(self):
+        """ Tries to remove a plugin that does not exist. """
+        self.assertRaises(KeyError, self.passmanager.remove_control_flow_plugin, "foo")
 
 if __name__ == '__main__':
     unittest.main()
