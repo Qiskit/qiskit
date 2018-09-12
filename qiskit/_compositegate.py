@@ -15,7 +15,7 @@ from ._qiskiterror import QISKitError
 class CompositeGate(Gate):
     """Composite gate, a sequence of unitary gates."""
 
-    def __init__(self, name, param, args, circuit=None):
+    def __init__(self, name, param, args, circuit=None, inverse_name=None):
         """Create a new composite gate.
 
         name = instruction name string
@@ -26,6 +26,7 @@ class CompositeGate(Gate):
         super().__init__(name, param, args, circuit)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
+        self.inverse_name = inverse_name or (name + 'dg')
 
     def instruction_list(self):
         """Return a list of instructions for this CompositeGate.
