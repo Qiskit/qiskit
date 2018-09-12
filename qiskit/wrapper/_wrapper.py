@@ -294,6 +294,8 @@ def compile(circuits, backend,
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
+    # pylint: disable=redefined-builtin
+
     # Check for valid parameters for the experiments.
     if hpc is not None and \
             not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
@@ -302,7 +304,6 @@ def compile(circuits, backend,
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
-    # pylint: disable=redefined-builtin
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
 
