@@ -21,15 +21,7 @@ from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
-
-class TestUseCases(QiskitTestCase):
-    """ The pass manager schedules passes in, sometimes, tricky ways. These tests combine passes in
-     many ways, and checks that passes are ran in the right order. """
-
-    def setUp(self):
-        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
-        self.passmanager = PassManager()
-
+class SchedulerTestCase(QiskitTestCase):
     def assertScheduler(self, dag, passmanager, expected):
         """
         Runs transpiler(dag, passmanager) and checks if the passes run as expected.
@@ -55,6 +47,14 @@ class TestUseCases(QiskitTestCase):
         with self.assertLogs(logger, level='INFO') as cm:
             self.assertRaises(exception_type, transpile, dag, pass_manager=passmanager)
         self.assertEqual([record.message for record in cm.records], expected)
+
+class TestUseCases(SchedulerTestCase):
+    """ The pass manager schedules passes in, sometimes, tricky ways. These tests combine passes in
+     many ways, and checks that passes are ran in the right order. """
+
+    def setUp(self):
+        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
+        self.passmanager = PassManager()
 
     def test_chain(self):
         """ A single chain of passes, with Requests and Preserves."""
@@ -268,6 +268,31 @@ class TestUseCases(QiskitTestCase):
         self.assertFalse(the_pass_in_the_workinglist.idempotence)
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
+
+class DoXTimesPlugin(ControlFlowPlugin):
+    def __init__(self, passes, do_x_times=0, **_):  # pylint: disable=super-init-not-called
+        self.do_x_times = do_x_times
+        super().__init__(passes)
+
+    def __iter__(self):
+        for x in range(self.do_x_times):
+            for pass_ in self.working_list:
+                yield pass_
+
+class TestControlFlowPlugin(SchedulerTestCase):
+
+    def test_control_flow_plugin(self):
+        dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
+        passmanager = PassManager()
+        passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
+        passmanager.add_pass([PassB_TP_RA_PA(),PassC_TP_RA_PA()], do_x_times=3)
+        self.assertScheduler(dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                'run transformation pass PassB_TP_RA_PA',
+                                                'run transformation pass PassC_TP_RA_PA',
+                                                'run transformation pass PassB_TP_RA_PA',
+                                                'run transformation pass PassC_TP_RA_PA',
+                                                'run transformation pass PassB_TP_RA_PA',
+                                                'run transformation pass PassC_TP_RA_PA'])
 
 if __name__ == '__main__':
     unittest.main()

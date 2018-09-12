@@ -57,7 +57,8 @@ class PassManager():
         return {**passmanager_level, **passset_level, **pass_level}
 
     def add_pass(self, pass_or_list_of_passes, do_while=None, condition=None,
-                 idempotence=None, ignore_requires=None, ignore_preserves=None, max_iteration=None):
+                 idempotence=None, ignore_requires=None, ignore_preserves=None, max_iteration=None,
+                 **kwargs):
         """
         Args:
             pass_or_list_of_passes (pass instance or list):
@@ -91,7 +92,7 @@ class PassManager():
         if condition:
             condition = partial(condition, self.fenced_property_set)
 
-        self.working_list.add(pass_or_list_of_passes, do_while=do_while, condition=condition)
+        self.working_list.add(pass_or_list_of_passes, do_while=do_while, condition=condition, **kwargs)
 
     def run_passes(self, dag):
         """Run all the passes on the dag.
@@ -141,6 +142,8 @@ class PassManager():
         if pass_.idempotence:
             self.valid_passes.add(pass_)
 
+    def add_control_flow_plugin(self, name, worklist_item):
+        self.working_list.add_control_flow_plugin(name, worklist_item)
 
 class WorkingList():
     """
@@ -223,5 +226,4 @@ class PluginConditional(ControlFlowPlugin):
 
     def __iter__(self):
         if self.condition():
-            for pass_ in self.working_list:
-                yield pass_
+            yield next(iter(self.working_list))
