@@ -59,17 +59,6 @@ try:
 except (ImportError, RuntimeError) as expt:
     print("Error: {0}".format(expt))
 
-# Import the TextProgressBar for easy use.
-from qiskit._progressbar import TextProgressBar
-
-# Import Jupyter tools if running in a Jupyter notebook env.
-if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    try:
-        # The import * is here to register the Jupyter magics
-        from qiskit.wrapper.jupyter import *  # pylint: disable=wildcard-import
-    except ImportError:
-        print("Error importing Jupyter notebook extensions.")
-
 # Set parallel ennvironmental variable
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
