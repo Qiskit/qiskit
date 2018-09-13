@@ -25,8 +25,7 @@ _DEFAULT_SCHEMA_PATHS = {
     'default_pulse_configuration': 'schemas/default_pulse_configuration_schema.json',
     'job_status': 'schemas/job_status_schema.json',
     'qobj': 'schemas/qobj_schema.json',
-    'result': 'schemas/result_schema.json'
-                        }
+    'result': 'schemas/result_schema.json'}
 # Schema and Validator storage
 _SCHEMAS = {}
 _VALIDATORS = {}
@@ -39,6 +38,10 @@ def _load_schema(file_path, name=None):
             file_path(str): Path to schema.
             name(str): Given name for schema. Defaults to file_path filename
                        without schema.
+       Return:
+            schema(dict): Loaded schema.
+
+
     """
     if name is None:
         # filename without extension
@@ -51,28 +54,28 @@ def _load_schema(file_path, name=None):
 
 
 def _create_validator(name, schema=None, check_schema=True,
-                      validator_class=None, *args, **kwargs):
+                      validator_class=None, **validator_kwargs):
     """
     Generate validator for JSON schema.
 
-    Parameters
-    ----------
-    name (str): Name for validator. Will be validator key in
-                `_VALIDATORS` dict.
-    schema (dict): JSON schema `dict`. If not provided searches for schema in
-                   `_SCHEMAS`.
-    check_schema (bool): Verify schema is valid.
+    Args:
+        name (str): Name for validator. Will be validator key in
+                    `_VALIDATORS` dict.
+        schema (dict): JSON schema `dict`. If not provided searches for schema
+                       in `_SCHEMAS`.
+        check_schema (bool): Verify schema is valid.
 
-    validator_class (jsonschema.IValidator): JsonSchema IValidator instance.
-            Default behavior is to determine this from the schema `$schema`
-            field.
+        validator_class (jsonschema.IValidator): JsonSchema IValidator
+                instance. Default behavior is to determine this from the schema
+                `$schema` field.
 
-    Other positional and keywork arguments will be passed onto `jsonschema`
-    validator.
+        **validator_kwargs: Additional keyword arguments for validator.
 
-    Returns
-    -------
-    validator (jsonschema.IValidator): Validator for JSON schema.
+    Return:
+        jsonschema.IValidator: Validator for JSON schema.
+
+    Raises:
+        SchemaValidationError: Raised if validation fails.
     """
     if schema is None:
         try:
@@ -92,7 +95,7 @@ def _create_validator(name, schema=None, check_schema=True,
             validator_class = jsonschema.validators.validator_for(schema)
 
         # Generate and store validator in _VALIDATORS
-        _VALIDATORS[name] = validator_class(schema, *args, **kwargs)
+        _VALIDATORS[name] = validator_class(schema, **validator_kwargs)
 
     validator = _VALIDATORS[name]
 
@@ -102,7 +105,7 @@ def _create_validator(name, schema=None, check_schema=True,
     return validator
 
 
-def _load_default_schemas_and_validators():
+def _load_schemas_and_validators():
     """
     Load all default schemas into `_SCHEMAS`
     """
@@ -114,7 +117,7 @@ def _load_default_schemas_and_validators():
 
 
 # Load all schemas on import
-_load_default_schemas_and_validators()
+_load_schemas_and_validators()
 
 
 def validate_json_against_schema(json_dict, schema,
@@ -122,19 +125,17 @@ def validate_json_against_schema(json_dict, schema,
     """
     Validates JSON dict against a schema.
 
-    Parameters
-    ----------
-    json_dict (dict): Json to be validated.
-    schema (dict or str): Json schema or string of name in _VALIDATORS. If
-                          schema is provided `jsonschema.validate` will be
-                          called. If schema name is provided a validator
-                          will be created or recovered from
-                          `_VALIDATORS` cache.
-    err_msg (str): Optional error message.
+    Args:
+        json_dict (dict): Json to be validated.
+        schema (dict or str): Json schema or string of name in _VALIDATORS. If
+                              schema is provided `jsonschema.validate` will be
+                              called. If schema name is provided a validator
+                              will be created or recovered from
+                              `_VALIDATORS` cache.
+        err_msg (str): Optional error message.
 
-    Raises
-    ------
-    validation_error (SchemaValidationError): Raised if validation fails.
+    Raises:
+        SchemaValidationError: Raised if validation fails.
 
     """
 
