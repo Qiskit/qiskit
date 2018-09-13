@@ -261,8 +261,10 @@ class IBMQBackendValueError(IBMQBackendError, ValueError):
     pass
 
 
-def _job_class_from_job_response(job_info):
-    is_qobj = job_info.get('kind', None) == 'q-obj'
+def _job_class_from_job_response(job_response):
+    is_qobj = job_response.get('kind', None) == 'q-object'
+    # Test device returns a top level Qobject
+    is_qobj = is_qobj or job_response.get('qobj_id', None)
     return IBMQJob if is_qobj else IBMQJobPreQobj
 
 
