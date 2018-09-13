@@ -7,20 +7,34 @@
 
 """ Fenced objects are Object Proxies for raising  TranspilerAccessError when they are modified."""
 
-import wrapt
 from ._transpilererror import TranspilerAccessError
 
+class FencedObject():
+    def __init__(self, instance, attributes_to_fence):
+        self._wrapped = instance
+        self._attributes_to_fence = attributes_to_fence
 
-class FencedPropertySet(wrapt.ObjectProxy):
-    """ A property set that cannot be written (via __setitem__) """
+    def __getattribute__(self, name):
+        object.__getattribute__(self, '_check_if_fenced')(name)
+        return getattr(object.__getattribute__(self,'_wrapped'), name)
 
-    def __setitem__(self, _key, _item):
-        raise TranspilerAccessError("A TransformationPass should not modify property_set.")
+    def __getitem__(self, key):
+        object.__getattribute__(self, '_check_if_fenced')('__getitem__')
+        return object.__getattribute__(self,'_wrapped')[key]
 
+    def __setitem__(self, key, value):
+        object.__getattribute__(self, '_check_if_fenced')('__setitem__')
+        object.__getattribute__(self, '_wrapped')[key] = value
 
-class FencedDAGCircuit(wrapt.ObjectProxy):
-    """ A dag circuit that cannot be modified. """
+    def _check_if_fenced(self, name):
+        if name in object.__getattribute__(self,'_attributes_to_fence'):
+            raise TranspilerAccessError("The fenced %s has the property %s protected" %
+                                        (type(object.__getattribute__(self, '_wrapped')),name))
 
-    def _remove_op_node(self, *_args, **_kwargs):
-        raise TranspilerAccessError("An AnalysisPass should not modify DAGCircuit: _remove_op_node"
-                                    "forbidden")
+class FencedPropertySet(FencedObject):
+    def __init__(self, PropertySetInstance):
+        super().__init__(PropertySetInstance, ['__setitem__'])
+
+class FencedDAGCircuit(FencedObject):
+    def __init__(self, DagCircuitInstance):
+        super().__init__(DagCircuitInstance, ['_remove_op_node'])
