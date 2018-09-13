@@ -48,6 +48,7 @@ Changed
 - When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
   notebook if there is network connectivity the interactive plots will be used
   by default (#862, #866)
+- Can now store and register multiple credentials from a qiskitrc file.
 
 Deprecated
 ----------
