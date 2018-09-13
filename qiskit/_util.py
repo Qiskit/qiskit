@@ -13,6 +13,7 @@ import logging
 import re
 import sys
 import warnings
+import socket
 from collections import UserDict
 
 API_NAME = 'IBMQuantumExperience'
@@ -157,3 +158,26 @@ def _parse_ibmq_credentials(url, hub=None, group=None, project=None):
             "0.6+. Please use the new URL format provided in the q-console.",
             DeprecationWarning)
     return url
+
+
+def _has_connection(hostname, port):
+    """Checks to see if internet connection exists to host
+    via specified port
+
+    Args:
+        hostname (str): Hostname to connect to.
+        port (int): Port to connect to
+
+    Returns:
+        bool: Has connection or not
+
+    Raises:
+        gaierror: No connection established.
+    """
+    try:
+        host = socket.gethostbyname(hostname)
+        socket.create_connection((host, port), 2)
+        return True
+    except socket.gaierror:
+        pass
+    return False
