@@ -46,7 +46,6 @@
                     "type": "array"
                 },
                 "header": {
-                    "_constraints": "sum(x[1] for x in clbit_labels) == number_of_clbits",
                     "description": "QObj metadata that does not affect how the experiments are run on the backend. Carried through to the result.",
                     "type": "object"
                 }

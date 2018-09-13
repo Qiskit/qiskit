@@ -734,7 +734,7 @@
                                     ]
                                 }
                             ],
-                            "minItems": 1,
+                            "minItems": 0,
                             "title": "Map physical clbits to register_slots (for QASM)",
                             "type": "array"
                         },
@@ -761,7 +761,7 @@
                                     "null"
                                 ]
                             },
-                            "minItems": 1,
+                            "minItems": 0,
                             "title": "Map physical qubits to qregs (for QASM)",
                             "type": "array"
                         }
