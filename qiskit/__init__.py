@@ -34,16 +34,9 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-# Import circuit drawing methods by default
-# This is wrapped in a try because the Travis tests fail due to non-framework
-# Python build since using pyenv
-try:
-    from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
-except (ImportError, RuntimeError) as expt:
-    print("Error: {0}".format(expt))
-
-# Import the TextProgressBar for easy use.
-from qiskit._progressbar import TextProgressBar
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code.
+__path__ = pkgutil.extend_path(__path__, __name__)
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports.
@@ -57,6 +50,17 @@ from .wrapper._wrapper import (
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
+
+# Import circuit drawing methods by default
+# This is wrapped in a try because the Travis tests fail due to non-framework
+# Python build since using pyenv
+try:
+    from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
+except (ImportError, RuntimeError) as expt:
+    print("Error: {0}".format(expt))
+
+# Import the TextProgressBar for easy use.
+from qiskit._progressbar import TextProgressBar
 
 # Import Jupyter tools if running in a Jupyter notebook env.
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
