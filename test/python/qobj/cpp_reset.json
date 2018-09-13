@@ -1,5 +1,7 @@
 {
     "qobj_id": "test_reset",
+    "type": "QASM",
+    "schema_version": "1.0.0",
     "config": {
         "shots": 1,
         "memory_slots": 1,
@@ -17,7 +19,7 @@
             },
             "instructions": [
                 {"name": "reset", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {
                     "name": "measure",
                     "memory": [0],
@@ -38,7 +40,7 @@
             "instructions": [
                 {"name": "x", "qubits": [0]},
                 {"name": "reset", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {
                     "name": "measure",
                     "memory": [0],
@@ -59,7 +61,7 @@
             "instructions": [
                 {"name": "y", "qubits": [0]},
                 {"name": "reset", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {
                     "name": "measure",
                     "memory": [0],
@@ -80,7 +82,7 @@
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "reset", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {
                     "name": "measure",
                     "memory": [0],
