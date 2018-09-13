@@ -46,7 +46,7 @@ coverage:
 doc:
 	export PYTHONPATH=$(PWD); \
 	for LANGUAGE in "." "de" "ja"; do \
-		better-apidoc -f -o doc/$$LANGUAGE/_autodoc --no-toc --private --maxdepth=5 --separate --templates=doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
+		better-apidoc -f -o doc/$$LANGUAGE/_autodoc --no-toc --private --maxdepth=5 --separate --templates=doc/_templates/better-apidoc qiskit qiskit/tools qiskit/wrapper/jupyter "qiskit/extensions/standard/[a-z]*"; \
 		sphinx-autogen -t doc/_templates doc/$$LANGUAGE/_autodoc/*; \
 		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
 	done
