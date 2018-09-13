@@ -75,7 +75,9 @@ class StatusMagic(Magics):
                 "Cell must contain at least one variable of BaseJob type.")
 
         def _checker(job_var, status, header):
-            job_status_name = job_var.status().name
+            job_status = job_var.status()
+            job_status_name = job_status.name
+            job_status_msg = job_status.value
             while job_status_name not in ['DONE', 'CANCELLED']:
                 time.sleep(args.interval)
                 job_status = job_var.status()
