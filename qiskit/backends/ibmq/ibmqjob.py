@@ -179,7 +179,7 @@ class IBMQJob(BaseJob):
            wait (int): time between queries to IBM Q server
 
         Returns:
-            Result: Result object
+            qiskit.Result: Result object
 
         Raises:
             JobError: exception raised during job initialization
