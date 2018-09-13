@@ -27,7 +27,6 @@ Added
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
-- New parallel_map function, progress bars, and parallel circuit transpilation (#701).
 - Jupyter notebook magic function qiskit_job_status (#734).
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
@@ -35,12 +34,11 @@ Added
 Changed
 -------
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
-- Use ``Qobj`` as the formally defined schema for sending information to the
-  devices:
-    - introduce the ``qiskit.qobj`` module. (#589, #655)
-    - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
-    - update the local simulators for accepting ``Qobj`` as input. (#667)
-    - update the ``Result`` class. (#773)
+- Use ``Qobj`` as the formally defined schema for sending information to the devices:
+  - introduce the ``qiskit.qobj`` module. (#589, #655)
+  - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
+  - update the local simulators for accepting ``Qobj`` as input. (#667)
+  - update the ``Result`` class. (#773)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 - Q network hub/group/project credentials replaced by new url format. (#740)
 - Breaking change: ``Jobs`` API simplification. (#686)
