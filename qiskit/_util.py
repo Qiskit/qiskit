@@ -13,6 +13,7 @@ import re
 import sys
 import platform
 import warnings
+import socket
 from collections import UserDict
 import psutil
 
@@ -174,3 +175,26 @@ def local_hardware_info():
     results['memory'] = psutil.virtual_memory().total / (1024**3)
     results['cpus'] = psutil.cpu_count(logical=False)
     return results
+
+
+def _has_connection(hostname, port):
+    """Checks to see if internet connection exists to host
+    via specified port
+
+    Args:
+        hostname (str): Hostname to connect to.
+        port (int): Port to connect to
+
+    Returns:
+        bool: Has connection or not
+
+    Raises:
+        gaierror: No connection established.
+    """
+    try:
+        host = socket.gethostbyname(hostname)
+        socket.create_connection((host, port), 2)
+        return True
+    except socket.gaierror:
+        pass
+    return False

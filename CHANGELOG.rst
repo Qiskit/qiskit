@@ -25,6 +25,7 @@ Added
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
+- Added parallelization methods, parallel transpilation, progress bars, and Jupyter magic (#701).
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
 - Jupyter notebook magic function qiskit_job_status (#734).
@@ -60,16 +61,17 @@ Removed
 
 Fixed
 -----
-- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688)
-- Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
+- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688).
+- Fixed ``probabilities_ket`` computation in C++ simulator (#580).
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
-- Fixed the examples to be compatible with version 0.5+ (#672)
+- Fixed the examples to be compatible with version 0.5+ (#672).
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
-- Fixed the issue with control lines spanning through several classical registers. (#762).
-- Fixed visualizations crashing when using simulator extensions (#885)
+- Fixed the issue with control lines spanning through several classical registers (#762).
+- Fixed visualizations crashing when using simulator extensions (#885).
+- Fixed check for network connection when loading interactive visualizations (#892).
 
 `0.5.6`_ - 2018-07-06
 =====================
