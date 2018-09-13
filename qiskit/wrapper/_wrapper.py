@@ -380,7 +380,7 @@ def _build_exp_parallel(idx, circuits, backend, initial_layout=None,
     else:
         _initial_layout = initial_layout
 
-    dag = _transpile_dags_parallel((dag, _initial_layout),
+    dag = _transpile_dags_parallel(0, [dag], [_initial_layout],
                                    basis_gates=basis_gates, coupling_map=coupling_map,
                                    seed=seed, pass_manager=pass_manager)
 

@@ -137,8 +137,9 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         TranspilerError: if the format is not valid.
     """
 
-    values = list(zip(dags, initial_layouts))
-    final_dags = parallel_map(_transpile_dags_parallel, values,
+    index = list(range(len(dags)))
+    final_dags = parallel_map(_transpile_dags_parallel, index,
+                              task_args=(dags, initial_layouts),
                               task_kwargs={'basis_gates': basis_gates,
                                            'coupling_map': coupling_map,
                                            'seed': seed,
@@ -146,12 +147,14 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     return final_dags
 
 
-def _transpile_dags_parallel(value, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                             seed=None, pass_manager=None):
+def _transpile_dags_parallel(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,id',
+                             coupling_map=None, seed=None, pass_manager=None):
     """Helper function for transpiling in parallel (if available).
 
     Args:
-        value (tuple[DAGCircuit,dict]): Tuple of DAG and intial_layout.
+        idx (int): Index for dag of interest
+        dags (list): List of dags
+        initial_layouts (list): List of initial layouts
         basis_gates (str): a comma seperated string for the target basis gates
         coupling_map (list): A graph of coupling
         seed (int): random seed for the swap mapper
@@ -162,8 +165,8 @@ def _transpile_dags_parallel(value, basis_gates='u1,u2,u3,cx,id', coupling_map=N
     Returns:
         DAGCircuit: DAG circuit after going through transpilation.
     """
-    dag = value[0]
-    initial_layout = value[1]
+    dag = dags[idx]
+    initial_layout = initial_layouts[idx]
     final_dag, final_layout = transpile(
         dag,
         basis_gates=basis_gates,
