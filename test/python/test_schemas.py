@@ -26,40 +26,40 @@ class TestSchemaExamples(QiskitTestCase):
     def setUp(self):
         self.schema_tests = []
         self.schema_tests.append({"schema_name": "backend_configuration",
-                             "examples": [
-                                 "backend_configuration_openpulse_example.json",
-                                 "backend_configuration_openqasm_example.json",
-                                 "backend_configuration_openqasm_simulator_example.json"
+                                 "examples": [
+                                     "backend_configuration_openpulse_example.json",
+                                     "backend_configuration_openqasm_example.json",
+                                     "backend_configuration_openqasm_simulator_example.json"
                                  ]})
         self.schema_tests.append({"schema_name": "backend_properties",
-                             "examples": [
-                                 "backend_properties_example.json"
-                                 ]})
+                                  "examples": [
+                                    "backend_properties_example.json"
+                                              ]})
         self.schema_tests.append({"schema_name": "backend_status",
-                             "examples": [
-                                 "backend_status_example.json"
-                                 ]})
+                                  "examples": [
+                                      "backend_status_example.json"
+                                              ]})
         self.schema_tests.append({"schema_name": "default_pulse_configuration",
-                             "examples": [
-                                 "default_pulse_configuration_example.json"
-                                 ]})
+                                  "examples": [
+                                     "default_pulse_configuration_example.json"
+                                              ]})
         self.schema_tests.append({"schema_name": "job_status",
-                             "examples": [
-                                 "job_status_example.json"
-                                 ]})
+                                  "examples": [
+                                    "job_status_example.json"
+                                              ]})
         self.schema_tests.append({"schema_name": "qobj",
-                             "examples": [
-                                 "qobj_openpulse_example.json",
-                                 "qobj_openqasm_example.json"
-                                 ]})
+                                  "examples": [
+                                     "qobj_openpulse_example.json",
+                                     "qobj_openqasm_example.json"
+                                              ]})
         self.schema_tests.append({"schema_name": "result",
-                             "examples": [
-                                 "result_openqasm_example.json",
-                                 "result_openpulse_level_0_example.json",
-                                 "result_openpulse_level_1_example.json",
-                                 "result_statevector_simulator_example.json",
-                                 "result_unitary_simulator_example.json"
-                                 ]})
+                                  "examples": [
+                                     "result_openqasm_example.json",
+                                     "result_openpulse_level_0_example.json",
+                                     "result_openpulse_level_1_example.json",
+                                     "result_statevector_simulator_example.json",
+                                     "result_unitary_simulator_example.json"
+                                              ]})
         self.examples_base_path = os.path.join(qiskit_path[0], 'schemas',
                                                'examples')
 
