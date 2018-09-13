@@ -204,7 +204,7 @@ class IBMQJob(BaseJob):
 
     def _result_from_job_response(self, job_response):
         experiment_results = []
-        result_json = job_response['qObjectResult']
+        result_json = job_response.get('qObjectResult', None)
         # Testing device serves results in the `result` top-level field.
         result_json = result_json or job_response['result']
         for experiment_result_json in result_json['results']:
