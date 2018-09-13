@@ -9,6 +9,7 @@
 
 """IBMQJob Test."""
 
+import os
 import time
 import unittest
 from concurrent import futures
@@ -336,6 +337,26 @@ class TestIBMQJob(JobTestCase):
         with self.assertRaises(JobError):
             job.submit()
 
+
+class TestQObjectBasedIBMQJob(TestIBMQJob):
+    """Test jobs supporting QObject."""
+
+    def setUp(self):
+        super().setUp()
+        self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
+        self._qe_token = os.getenv('IBMQ_QOBJ_TOKEN', None)
+        self._qe_url = os.getenv('IBMQ_QOBJ_URL')
+        if not self._testing_device or not self._qe_token or not self._qe_url:
+            self.skipTest('No credentials or testing device available for '
+                          'testing Qobj capabilities.')
+
+    def test_qobject_enabled_job(self):
+        """"Job should be an instance of IBMQJob."""
+        provider = IBMQProvider(self._qe_token, self._qe_url)
+        backend = provider.get_backend('ibmq_1_atlantis')
+        qobj = transpiler.compile(self._qc, backend)
+        job = backend.run(qobj)
+        self.assertIsInstance(job, IBMQJob)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
