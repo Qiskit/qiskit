@@ -232,11 +232,15 @@ class UnitarySimulatorPy(BaseBackend):
 
         Returns:
             dict: A dictionary of results.
+
+        Raises:
+            QISKitError: if the number of qubits in the circuit is greater than 24.
+            Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = circuit.header.number_of_qubits
-        if (self._number_of_qubits > 24):
+        if self._number_of_qubits > 24:
             raise QISKitError("np.einsum implementation limits local_unitary_simulator" +
-                              + " to 24 qubit circuits.")
+                              " to 24 qubit circuits.")
         result = {
             'data': {},
             'name': circuit.header.name
@@ -272,7 +276,8 @@ class UnitarySimulatorPy(BaseBackend):
             else:
                 result['status'] = 'ERROR'
                 return result
-        result['data']['unitary'] = np.reshape(self._unitary_state, 2 * [2 ** self._number_of_qubits])
+        result['data']['unitary'] = np.reshape(self._unitary_state,
+                                               2 * [2 ** self._number_of_qubits])
         result['status'] = 'DONE'
         result['success'] = True
         result['shots'] = 1
