@@ -60,16 +60,17 @@ Removed
 
 Fixed
 -----
-- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688)
-- Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
+- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688).
+- Fixed ``probabilities_ket`` computation in C++ simulator (#580).
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
-- Fixed the examples to be compatible with version 0.5+ (#672)
+- Fixed the examples to be compatible with version 0.5+ (#672).
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
-- Fixed the issue with control lines spanning through several classical registers. (#762).
-- Fixed visualizations crashing when using simulator extensions (#885)
+- Fixed the issue with control lines spanning through several classical registers (#762).
+- Fixed visualizations crashing when using simulator extensions (#885).
+- Fixed check for network connection when loading interactive visualizations (#892).
 
 `0.5.6`_ - 2018-07-06
 =====================
