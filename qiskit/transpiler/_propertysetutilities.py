@@ -9,6 +9,7 @@
 
 from abc import ABC, abstractmethod
 
+
 class Utility(ABC):
     """
     An Utility is a property set utility that allows to reason about the state of the property set.
@@ -42,8 +43,10 @@ class Utility(ABC):
         """
         raise NotImplementedError
 
-class fixed_point(Utility): # pylint: disable=invalid-name
+
+class fixed_point(Utility):  # pylint: disable=invalid-name
     """ A property set utility to detect when a property reaches a fixed point."""
+
     def __init__(self, property_set):
         self.property_fixed_point = {}
         super().__init__(property_set)
@@ -62,5 +65,5 @@ class fixed_point(Utility): # pylint: disable=invalid-name
         else:
             self.property_fixed_point[key] = False
 
-    def getter(self, key): # pylint: disable=arguments-differ
+    def getter(self, key):  # pylint: disable=arguments-differ
         return self.property_fixed_point.get(key, False)

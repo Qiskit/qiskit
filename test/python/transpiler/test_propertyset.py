@@ -15,6 +15,7 @@ from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
+
 class dummy_utility(Utility):  # pylint: disable=invalid-name
     """ A dummy utility just for testing the utility registration"""
     def on_change(self, key, new_value):
