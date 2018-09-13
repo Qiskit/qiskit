@@ -54,10 +54,7 @@ class IBMQBackend(BaseBackend):
         Returns:
             IBMQJob: an instance derived from BaseJob
         """
-        if self.configuration().get('allow_q_object'):
-            job_class = IBMQJob
-        else:
-            job_class = IBMQJobPreQobj
+        job_class = _job_class_from_backend_support(self)
         job = job_class(self._api, not self.configuration()['simulator'], qobj=qobj)
         job.submit()
         return job
@@ -216,27 +213,14 @@ class IBMQBackend(BaseBackend):
                                            filter=api_filter)
         job_list = []
         for job_info in job_info_list:
-            job_class = self._job_info_to_job_class(job_info)
+            job_class = _job_class_from_job_response(job_info)
             is_device = not bool(self._configuration.get('simulator'))
-            if 'header' in job_info:
-                backend_name = job_info['header'].get('backend_name')
-            elif 'backend' in job_info:  # old style job_info
-                backend_name = job_info['backend'].get('name')
             job = job_class(self._api, is_device,
                             job_id=job_info.get('id'),
                             backend_name=backend_name,
                             creation_date=job_info.get('creationDate'))
             job_list.append(job)
         return job_list
-
-    def _job_info_to_job_class(self, job_info):
-        if 'result' in job_info:
-            job_class = IBMQJob
-        elif 'qasms' in job_info:
-            job_class = IBMQJobPreQobj
-        else:
-            raise IBMQBackendError('unrecognised job record from API')
-        return job_class
 
     def retrieve_job(self, job_id):
         """Attempt to get the specified job by job_id
@@ -258,7 +242,7 @@ class IBMQBackend(BaseBackend):
         except ApiError as ex:
             raise IBMQBackendError('Failed to get job "{}":{}'
                                    .format(job_id, str(ex)))
-        job_class = self._job_info_to_job_class(job_info)
+        job_class = _job_class_from_job_response(job_info)
         is_device = not bool(self._configuration.get('simulator'))
         job = job_class(self._api, is_device,
                         job_id=job_info.get('id'),
@@ -275,3 +259,13 @@ class IBMQBackendError(QISKitError):
 class IBMQBackendValueError(IBMQBackendError, ValueError):
     """ Value errors thrown within IBMQBackend """
     pass
+
+
+def _job_class_from_job_response(job_response):
+    is_qobj = job_response.get('kind', None) == 'q-object'
+    return IBMQJob if is_qobj else IBMQJobPreQobj
+
+
+def _job_class_from_backend_support(backend):
+    support_qobj = backend.configuration().get('allow_q_object')
+    return IBMQJob if support_qobj else IBMQJobPreQobj

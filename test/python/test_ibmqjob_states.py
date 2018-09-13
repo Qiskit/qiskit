@@ -15,7 +15,7 @@ import time
 from contextlib import suppress
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.backends import JobError, JobTimeoutError
 from .common import JobTestCase
@@ -258,13 +258,27 @@ class TestIBMQJobStates(JobTestCase):
                     else:
                         self.assertFalse(self._current_api.get_job.called)
 
-    def run_with_api(self, api):
-        """Creates a new `IBMQJob` instance running with the provided API
+    # TODO: Once qobj results come by default from all the simulator
+    # backends, move to integration tests in test_result.py
+    def test_qobj_result(self):
+        job = self.run_with_api(QObjResultAPI(), job_class=IBMQJob)
+
+        self.wait_for_initialization(job)
+        self._current_api.progress()
+        result = job.result()
+        self.assertEqual(result.get_status(), 'COMPLETED')
+        self.assertEqual(result.get_counts('Bell state'),
+                         {'0x0': 480, '0x3': 490, '0x1': 20, '0x2': 34})
+        self.assertEqual(result.get_counts('Bell state XY'),
+                         {'0x0': 29, '0x3': 15, '0x1': 510, '0x2': 480})
+        self.assertEqual(len(result), 2)
+
+    def run_with_api(self, api, job_class=IBMQJobPreQobj):
+        """Creates a new ``IBMQJobPreQobj`` instance running with the provided API
         object.
         """
         self._current_api = api
-        self._current_qjob = IBMQJob(api, False, qobj=new_fake_qobj(),
-                                     backend_allows_qobj=True)
+        self._current_qjob = job_class(api, False, qobj=new_fake_qobj())
         self._current_qjob.submit()
         return self._current_qjob
 
@@ -450,7 +464,7 @@ class ThrowingGetJobAPI(BaseFakeAPI):
         return self._job_status[self._state]
 
     def get_job(self, job_id):
-        raise ApiError("Unexpected error")
+        raise ApiError('Unexpected error')
 
 
 class CancellableAPI(BaseFakeAPI):
@@ -489,6 +503,51 @@ class ErroredCancellationAPI(BaseFakeAPI):
 
     def cancel_job(self, job_id, *_args, **_kwargs):
         return {'status': 'Error', 'error': 'test-error-while-cancelling'}
+
+
+# TODO: Remove once qobj results come by default from all the simulator
+# backends.
+class QObjResultAPI(BaseFakeAPI):
+    """Class for emulating a successfully-completed non-queued API."""
+
+    _job_status = [
+        {'status': 'RUNNING'},
+        {
+            'status': 'COMPLETED',
+            'qObjectResult': {
+                'backend_name': 'ibmqx2',
+                'backend_version': '1.1.1',
+                'job_id': 'XC1323XG2',
+                'qobj_id': 'Experiment1',
+                'success': True,
+                'status': 'COMPLETED',
+                'results': [
+                    {
+                        'header': {'name': 'Bell state'},
+                        'shots': 1024,
+                        'status': 'DONE',
+                        'success': True,
+                        'data': {
+                            'counts': {
+                                '0x0': 480, '0x3': 490, '0x1': 20, '0x2': 34
+                            }
+                        }
+                    },
+                    {
+                        'header': {'name': 'Bell state XY'},
+                        'shots': 1024,
+                        'status': 'DONE',
+                        'success': True,
+                        'data': {
+                            'counts': {
+                                '0x0': 29, '0x3': 15, '0x1': 510, '0x2': 480
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
 
 
 if __name__ == '__main__':
