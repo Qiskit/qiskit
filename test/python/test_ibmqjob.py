@@ -358,5 +358,6 @@ class TestQObjectBasedIBMQJob(TestIBMQJob):
         job = backend.run(qobj)
         self.assertIsInstance(job, IBMQJob)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

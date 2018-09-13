@@ -212,7 +212,7 @@ class IBMQJob(BaseJob):
             experiment_results.append(qobj_experiment_result)
 
         result_kwargs = {**result_json, 'results': experiment_results}
-        return Result(**result_kwargs)
+        return Result(QobjResult(**result_kwargs))
 
     def cancel(self):
         """Attempt to cancel a job.

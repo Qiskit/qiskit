@@ -7,8 +7,9 @@
 
 """Models for Qobj and its related components."""
 
-import numpy
 from types import SimpleNamespace
+
+import numpy
 
 from ._validation import QobjValidationError
 from ._utils import QobjType
