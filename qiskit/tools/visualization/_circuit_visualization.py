@@ -31,11 +31,12 @@ from PIL import Image, ImageChops
 from matplotlib import get_backend as get_matplotlib_backend, \
     patches as patches, pyplot as plt
 
-from qiskit._quantumcircuit import QuantumCircuit
 from qiskit._qiskiterror import QISKitError
+from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.wrapper import load_qasm_file
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, JsonBackend
+
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler import transpile
 
 logger = logging.getLogger(__name__)
 
@@ -348,13 +349,8 @@ def generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    ast = Qasm(data=circuit.qasm()).parse()
-    if basis:
-        # Split basis only if it is not the empty string.
-        basis = basis.split(',')
-    u = Unroller(ast, JsonBackend(basis))
-    u.execute()
-    json_circuit = u.backend.circuit
+    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
     qcimg = QCircuitImage(json_circuit, scale, style=style)
     latex = qcimg.latex()
     if filename:
@@ -1391,7 +1387,7 @@ class MatplotlibDrawer:
                  scale=1.0, style=None):
 
         self._ast = None
-        self._basis = basis.split(',')
+        self._basis = basis
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
@@ -1421,14 +1417,12 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom='off', labeltop='off', labelleft='off', labelright='off')
 
     def load_qasm_file(self, filename):
-        circuit = load_qasm_file(filename, name='draw', basis_gates=','.join(self._basis))
+        circuit = load_qasm_file(filename, name='draw', basis_gates=self._basis)
         self.parse_circuit(circuit)
 
     def parse_circuit(self, circuit: QuantumCircuit):
-        ast = Qasm(data=circuit.qasm()).parse()
-        u = Unroller(ast, JsonBackend(self._basis))
-        u.execute()
-        self._ast = u.backend.circuit
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+        self._ast = transpile(dag_circuit, basis_gates=self._basis, format='json')
         self._registers()
         self._ops = self._ast['instructions']
 
