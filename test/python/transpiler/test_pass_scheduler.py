@@ -137,9 +137,8 @@ class TestUseCases(SchedulerTestCase):
         self.passmanager.add_pass([
             PassF_reduce_dag_property(),
             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
-            PassG_calculates_dag_property()], \
-            do_while=lambda property_set: not property_set.fixed_point('property'),
-                                  max_iteration=2)
+            PassG_calculates_dag_property()],
+            do_while=lambda property_set: not property_set.fixed_point('property'), max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassF_reduce_dag_property',
                                     'dag property = 6',
@@ -278,6 +277,7 @@ class TestUseCases(SchedulerTestCase):
 
 class DoXTimesPlugin(ControlFlowPlugin):
     """ A control-flow plugin for running a set of passes an X amount of times."""
+
     def __init__(self, passes, do_x_times=0, **_):  # pylint: disable=super-init-not-called
         self.do_x_times = do_x_times
         super().__init__(passes)
@@ -287,8 +287,10 @@ class DoXTimesPlugin(ControlFlowPlugin):
             for pass_ in self.working_list:
                 yield pass_
 
+
 class TestControlFlowPlugin(SchedulerTestCase):
     """ Testing the control flow plugin system. """
+
     def setUp(self):
         self.passmanager = PassManager()
         self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
@@ -310,7 +312,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
         self.passmanager.remove_control_flow_plugin('do_while')
         self.passmanager.add_control_flow_plugin('do_while', PluginDoWhile)
         self.passmanager.add_pass([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
-            do_while=lambda property_set: True, max_iteration=2)
+                                  do_while=lambda property_set: True, max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassA_TP_NR_NP',
                                     'run transformation pass PassB_TP_RA_PA',
@@ -321,6 +323,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
     def test_remove_unexistent_plugin(self):
         """ Tries to remove a plugin that does not exist. """
         self.assertRaises(KeyError, self.passmanager.remove_control_flow_plugin, "foo")
+
 
 if __name__ == '__main__':
     unittest.main()
