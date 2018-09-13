@@ -33,8 +33,7 @@ Python モジュール
 .. autosummary::
    :nosignatures:
 
-   qiskit.QuantumProgram
-   qiskit.QuantumCircuit
+   qiskit
 
 :ref:`modindex`
 

@@ -74,7 +74,7 @@ Several unroller backends and their outputs are summarized here:
 
 
 Logging
-=======
+-------
 
 The SDK uses the `standard Python "logging" library
 <https://docs.python.org/3/library/logging.html>`_ for emitting several messages using the
@@ -124,7 +124,7 @@ the messages. For example, if the module is `qiskit/some/module.py`:
 
 
 Testing
-=======
+-------
 
 The SDK uses the `standard Pyton "unittest" framework
 <https://docs.python.org/3/library/unittest.html>`_ for the testing of the
@@ -195,7 +195,7 @@ Windows:
     C:\..\> python -m unittest test/python/test_apps.py
 
 Testing options
-===============
+^^^^^^^^^^^^^^^
 
 By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a ``test/cassettes`` and not real HTTP requests is generated.
 If user credentials are found, in that cases it use them to make the network requests.
