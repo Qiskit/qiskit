@@ -15,7 +15,7 @@ import time
 from contextlib import suppress
 from IBMQuantumExperience import ApiError
 from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.backends.ibmq.ibmqjob import IBMQJobPreQobj
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.backends import JobError, JobTimeoutError
 from .common import JobTestCase
@@ -263,8 +263,7 @@ class TestIBMQJobStates(JobTestCase):
         object.
         """
         self._current_api = api
-        self._current_qjob = IBMQJob(api, False, qobj=new_fake_qobj(),
-                                     backend_allows_qobj=True)
+        self._current_qjob = IBMQJobPreQobj(api, False, qobj=new_fake_qobj())
         self._current_qjob.submit()
         return self._current_qjob
 
