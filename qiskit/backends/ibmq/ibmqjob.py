@@ -114,7 +114,7 @@ class IBMQJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, api, is_device, qobj=None, job_id=None, backend_name=None,
-                 creation_date=None, backend_allows_qobj=False):
+                 creation_date=None):
         """IBMQJob init function.
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
         the API servers.
@@ -126,7 +126,6 @@ class IBMQJob(BaseJob):
             job_id (String): The job ID of an already submitted job.
             backend_name(String): The name of the backend that run the job.
             creation_date(String): When the job was run.
-            backend_allows_qobj (Bool): whether backend allows qobj input directly
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
@@ -139,7 +138,7 @@ class IBMQJob(BaseJob):
         if qobj is not None:
             validate_qobj_against_schema(qobj)
 
-            self._qobj = qobj_to_dict(qobj, version='1.0.0')
+            self._qobj_payload = qobj_to_dict(qobj, version='1.0.0')
             # TODO: No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
             self._job_data = {
@@ -170,7 +169,6 @@ class IBMQJob(BaseJob):
         self._creation_date = creation_date or current_utc_time()
         self._future = None
         self._api_error_msg = None
-        self._backend_allows_qobj = backend_allows_qobj
 
     # pylint: disable=arguments-differ
     def result(self, timeout=None, wait=5):
@@ -186,48 +184,33 @@ class IBMQJob(BaseJob):
         Raises:
             JobError: exception raised during job initialization
         """
+        job_response = self._wait_for_result(timeout=timeout, wait=wait)
+        return self._result_from_job_response(job_response)
+
+    def _wait_for_result(self, timeout=None, wait=5):
         self._wait_for_submission()
+
         try:
-            job_data = self._wait_for_job(timeout=timeout, wait=wait)
+            job_response = self._wait_for_job(timeout=timeout, wait=wait)
         except ApiError as api_err:
             raise JobError(str(api_err))
-        if 'result' in job_data:
-            return IBMQJob._result_from_api_response(job_data)
-        elif 'qasms' in job_data:
-            if self._is_device:
-                _reorder_bits(job_data)
-            return IBMQJobPreQobj._result_from_api_response(job_data,
-                                                            self.id(),
-                                                            self.backend_name(),
-                                                            self._is_device,
-                                                            self.status())
-        else:
-            raise JobError('unrecognized job data from API ({})'.format(self._id))
 
-    @staticmethod
-    def _result_from_api_response(api_response):
-        # Build the Result.
+        status = self.status()
+        if status is not JobStatus.DONE:
+            raise JobError('Invalid job state. The job should be DONE but '
+                           'it is {}'.format(str(status)))
+
+        return job_response
+
+    def _result_from_job_response(self, job_response):
         experiment_results = []
-        job_result = api_response['result']
-        for resultobj in job_result['results']:
-            qobj_exp_result_args = [resultobj.get(arg) for arg in
-                                    QobjExperimentResult.REQUIRED_ARGS]
-            qobj_exp_result_kwargs = {key: value for (key, value) in
-                                      resultobj.items() if key not in
-                                      QobjExperimentResult.REQUIRED_ARGS}
+        result_json = job_response['qObjectResult']
+        for experiment_result_json in result_json['results']:
+            qobj_experiment_result = QobjExperimentResult(**experiment_result_json)
+            experiment_results.append(qobj_experiment_result)
 
-            qobj_exp_result = QobjExperimentResult(*qobj_exp_result_args,
-                                                   **qobj_exp_result_kwargs)
-            experiment_results.append(qobj_exp_result)
-        qobj_result_args = [job_result.get(arg) for arg in
-                            QobjResult.REQUIRED_ARGS]
-        qobj_result_kwargs = {key: value for (key, value) in
-                              job_result.items() if key not in
-                              QobjResult.REQUIRED_ARGS}
-        qobj_result = QobjResult(*qobj_result_args, **qobj_result_kwargs)
-        # replace job_result list of dict with list of Qobj ExperimentResult
-        qobj_result.results = experiment_results
-        return Result(qobj_result)
+        result_kwargs = {**result_json, 'results': experiment_results}
+        return Result(QobjResult(**result_kwargs))
 
     def cancel(self):
         """Attempt to cancel a job.
@@ -358,10 +341,10 @@ class IBMQJob(BaseJob):
         Returns:
             dict: A dictionary with the response of the submitted job
         """
-        backend_name = self._qobj['header']['backend_name']
+        backend_name = self._backend_name
 
         try:
-            submit_info = self._api.run_job(self._qobj, backend=backend_name)
+            submit_info = self._api.run_job(self._qobj_payload, backend=backend_name)
         # pylint: disable=broad-except
         except Exception as err:
             # Undefined error during submission:
@@ -482,66 +465,30 @@ class IBMQJobPreQobj(IBMQJob):
         self._id = submit_info.get('id')
         return submit_info
 
-    # pylint disable since this version of the function signature will hopefully
-    # be removed later
-    # pylint: disable=arguments-differ
-    @staticmethod
-    def _result_from_api_response(api_response, job_id, backend_name, is_device,
-                                  job_status):
-        # Build the Result.
-        experiment_results = []
-        if is_device and job_status == JobStatus.DONE:
-            _reorder_bits(api_response)
+    def _result_from_job_response(self, job_response):
+        if self._is_device:
+            _reorder_bits(job_response)
 
-        for circuit_result in api_response['qasms']:
+        experiment_results = []
+        for circuit_result in job_response['qasms']:
             this_result = {'data': circuit_result['data'],
                            'name': circuit_result.get('name'),
                            'compiled_circuit_qasm': circuit_result.get('qasm'),
                            'status': circuit_result['status'],
                            'success': circuit_result['status'] == 'DONE',
-                           'shots': api_response['shots']}
+                           'shots': job_response['shots']}
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
             experiment_results.append(this_result)
 
         return result_from_old_style_dict({
-            'id': job_id,
-            'status': api_response['status'],
-            'used_credits': api_response.get('usedCredits'),
+            'id': self._id,
+            'status': job_response['status'],
+            'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
-            'backend_name': backend_name,
-            'success': api_response['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in api_response['qasms']])
-
-
-def _result_from_api_response(api_response, job_id=None, backend_name=None,
-                              is_device=None):
-    """
-    Decides whether job_data is in pre-qobj format and returns appropriate
-    job instance
-
-    Args:
-        api_response (dict): dict with the bare contents of the API.get_job request.
-        job_id (str): job identity on frontend (for pre-qobj results)
-        backend_name (str): backend name (for pre-qobj results)
-        is_device (bool): whether backend is a real device
-
-    Raises:
-        JobError: api response doesn't have 'result' or 'qasms' record
-
-    Returns:
-        Result: qiskit.result.Result object
-    """
-    if 'result' in api_response:
-        return IBMQJob._result_from_api_response(api_response)
-    elif 'qasms' in api_response:
-        if is_device:
-            _reorder_bits(api_response)
-        return IBMQJobPreQobj._result_from_api_response(api_response, job_id,
-                                                        backend_name,
-                                                        is_device)
-    else:
-        raise JobError('unrecognized job data from API ({})'.format(job_id))
+            'backend_name': self.backend_name(),
+            'success': job_response['status'] == 'DONE'
+        }, [circuit_result['name'] for circuit_result in job_response['qasms']])
 
 
 def _reorder_bits(job_data):
