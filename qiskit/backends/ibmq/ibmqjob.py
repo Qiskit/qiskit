@@ -138,7 +138,7 @@ class IBMQJob(BaseJob):
         if qobj is not None:
             validate_qobj_against_schema(qobj)
 
-            self._qobj = qobj_to_dict(qobj, version='1.0.0')
+            self._qobj_payload = qobj_to_dict(qobj, version='1.0.0')
             # TODO: No need for this conversion, just use the new equivalent members above
             old_qobj = qobj_to_dict(qobj, version='0.0.1')
             self._job_data = {
@@ -343,10 +343,10 @@ class IBMQJob(BaseJob):
         Returns:
             dict: A dictionary with the response of the submitted job
         """
-        backend_name = self._qobj['header']['backend_name']
+        backend_name = self._backend_name
 
         try:
-            submit_info = self._api.run_job(self._qobj, backend=backend_name)
+            submit_info = self._api.run_job(self._qobj_payload, backend=backend_name)
         # pylint: disable=broad-except
         except Exception as err:
             # Undefined error during submission:
