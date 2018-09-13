@@ -13,12 +13,6 @@ Functions
     index2 -- Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
 
-    enlarge_single_opt(opt, qubit, number_of_qubits) -- takes a single qubit
-    operator opt to a opterator on n qubits
-
-    enlarge_two_opt(opt, q0, q1, number_of_qubits) -- takes a two-qubit
-    operator opt to a opterator on n qubits
-
 """
 import numpy as np
 from sympy import Matrix, pi, E, I, cos, sin, N, sympify
@@ -63,48 +57,6 @@ def index2(b1, i1, b2, i2, k):
         retval = index1(b2, i2-1, k)
         retval = index1(b1, i1, retval)
     return retval
-
-
-def enlarge_single_opt(opt, qubit, number_of_qubits):
-    """Enlarge single operator to n qubits.
-
-    It is exponential in the number of qubits.
-
-    Args:
-        opt (array): the single-qubit opt.
-        qubit (int): the qubit to apply it on counts from 0 and order
-            is q_{n-1} ... otimes q_1 otimes q_0.
-        number_of_qubits (int): the number of qubits in the system.
-
-    Returns:
-        array: enlarge single operator to n qubits
-    """
-    temp_1 = np.identity(2**(number_of_qubits-qubit-1), dtype=complex)
-    temp_2 = np.identity(2**qubit, dtype=complex)
-    enlarge_opt = np.kron(temp_1, np.kron(opt, temp_2))
-    return enlarge_opt
-
-
-def enlarge_two_opt(opt, q0, q1, num):
-    """Enlarge two-qubit operator to n qubits.
-
-    It is exponential in the number of qubits.
-    opt is the two-qubit gate
-    q0 is the first qubit (control) counts from 0
-    q1 is the second qubit (target)
-    returns a complex numpy array
-    number_of_qubits is the number of qubits in the system.
-    """
-    enlarge_opt = np.zeros([1 << (num), 1 << (num)])
-    for i in range(1 << (num-2)):
-        for j in range(2):
-            for k in range(2):
-                for jj in range(2):
-                    for kk in range(2):
-                        enlarge_opt[index2(j, q0, k, q1, i),
-                                    index2(jj, q0, kk, q1, i)] = opt[j+2*k,
-                                                                     jj+2*kk]
-    return enlarge_opt
 
 
 def single_gate_params(gate, params=None):

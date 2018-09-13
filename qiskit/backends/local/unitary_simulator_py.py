@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Contains a (slow) Python simulator that returns the unitary of the circuit.
+"""Contains a Python simulator that returns the unitary of the circuit.
 
 It simulates a unitary of a quantum circuit that has been compiled to run on
 the simulator. It is exponential in the number of qubits.
@@ -83,13 +83,15 @@ returned results object::
 import logging
 import uuid
 import time
+import string
 
 import numpy as np
 
+from qiskit import QISKitError
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
-from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
+from ._simulatortools import single_gate_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -128,19 +130,60 @@ class UnitarySimulatorPy(BaseBackend):
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
         """
-        unitary_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
-        self._unitary_state = np.dot(unitary_add, self._unitary_state)
 
-    def _add_unitary_two(self, gate, q_0, q_1):
+        # Convert to complex rank-2 tensor
+        gate_tensor = np.array(gate, dtype=complex)
+
+        # Compute einsum index string
+        idx_right = string.ascii_uppercase[:self._number_of_qubits]
+        idx_left_in = string.ascii_lowercase[:self._number_of_qubits]
+        idx_left_out = list(idx_left_in)
+        idx_left_out[-1 - qubit] = 'z'
+        idx_left_out = "".join(idx_left_out)
+        pos = idx_left_in[-1 - qubit]
+
+        indexes = "z{pos}, {left_in}{right}->{left_out}{right}".format(pos=pos,
+                                                                       left_in=idx_left_in,
+                                                                       left_out=idx_left_out,
+                                                                       right=idx_right)
+
+        self._unitary_state = np.einsum(indexes,
+                                        gate_tensor,
+                                        self._unitary_state,
+                                        dtype=complex,
+                                        casting='no')
+
+    def _add_unitary_two(self, gate, qubit0, qubit1):
         """Apply the two-qubit gate.
 
         gate is the two-qubit gate
-        q0 is the first qubit (control) counts from 0
-        q1 is the second qubit (target)
+        qubit0 is the first qubit (control) counts from 0
+        qubit1 is the second qubit (target)
         returns a complex numpy array
         """
-        unitaty_add = enlarge_two_opt(gate, q_0, q_1, self._number_of_qubits)
-        self._unitary_state = np.dot(unitaty_add, self._unitary_state)
+        # Convert to complex rank-4 tensor
+        gate_tensor = np.reshape(np.array(gate, dtype=complex), 4 * [2])
+
+        # Compute index string
+        idx_right = string.ascii_uppercase[:self._number_of_qubits]
+        idx_left_in = string.ascii_lowercase[:self._number_of_qubits]
+        idx_left_out = list(idx_left_in)
+        idx_left_out[-1 - qubit0] = 'z'
+        idx_left_out[-1 - qubit1] = 'y'
+        idx_left_out = "".join(idx_left_out)
+        pos0 = idx_left_in[-1 - qubit0]
+        pos1 = idx_left_in[-1 - qubit1]
+
+        indexes = "yz{pos1}{pos0}, {lin}{r}->{lout}{r}".format(pos0=pos0,
+                                                               pos1=pos1,
+                                                               lin=idx_left_in,
+                                                               lout=idx_left_out,
+                                                               r=idx_right)
+        self._unitary_state = np.einsum(indexes,
+                                        gate_tensor,
+                                        self._unitary_state,
+                                        dtype=complex,
+                                        casting='no')
 
     def run(self, qobj):
         """Run qobj asynchronously.
@@ -191,12 +234,19 @@ class UnitarySimulatorPy(BaseBackend):
             dict: A dictionary of results.
         """
         self._number_of_qubits = circuit.header.number_of_qubits
+        if (self._number_of_qubits > 24):
+            raise QISKitError("np.einsum implementation limits local_unitary_simulator" +
+                              + " to 24 qubit circuits.")
         result = {
             'data': {},
             'name': circuit.header.name
         }
-        self._unitary_state = np.identity(2 ** self._number_of_qubits,
-                                          dtype=complex)
+
+        # Initilize unitary as rank 2*N tensor
+        self._unitary_state = np.reshape(np.eye(2 ** self._number_of_qubits,
+                                                dtype=complex),
+                                         self._number_of_qubits * [2, 2])
+
         for operation in circuit.instructions:
             if operation.name in ('U', 'u1', 'u2', 'u3'):
                 params = getattr(operation, 'params', None)
@@ -222,7 +272,7 @@ class UnitarySimulatorPy(BaseBackend):
             else:
                 result['status'] = 'ERROR'
                 return result
-        result['data']['unitary'] = self._unitary_state
+        result['data']['unitary'] = np.reshape(self._unitary_state, 2 * [2 ** self._number_of_qubits])
         result['status'] = 'DONE'
         result['success'] = True
         result['shots'] = 1
