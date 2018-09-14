@@ -11,16 +11,16 @@ from IBMQuantumExperience import IBMQuantumExperience
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-from qiskit._util import _parse_ibmq_credentials
+from qiskit._util import _provider_name_from_url
 
 
 class IBMQProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
     def __init__(self, token, url='https://quantumexperience.ng.bluemix.net/api',
-                 hub=None, group=None, project=None, proxies=None, verify=True):
+                 proxies=None, verify=True):
         super().__init__()
 
-        url = _parse_ibmq_credentials(url, hub, group, project)
+        self.name = _provider_name_from_url(url)
 
         # Get a connection to IBMQuantumExperience.
         self._api = self._authenticate(token, url, proxies=proxies, verify=verify)

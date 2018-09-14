@@ -10,102 +10,19 @@
 import logging
 import warnings
 from qiskit import transpiler, QISKitError
-from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wrapper import credentials
-from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from qiskit._util import _parse_ibmq_credentials
+import qiskit.wrapper._register as reg
+from qiskit.wrapper.credentials._configrc import (store_credentials,
+                                                  get_qiskitrc_credentials)
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
-
-# Default provider used by the rest of the functions on this module. Please
-# note that this is a global object.
-_DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 logger = logging.getLogger(__name__)
 
 
-def register(*args, provider_class=IBMQProvider, **kwargs):
-    """
-    Authenticate against an online backend provider.
-    This is a factory method that returns the provider that gets registered.
-
-    Note that if no parameters are passed, this method will try to
-    automatically discover the credentials for IBMQ in the following places,
-    in order::
-
-        1. in the `Qconfig.py` file in the current working directory.
-        2. in the environment variables.
-        3. in the `qiskitrc` configuration file.
-
-    Args:
-        args (tuple): positional arguments passed to provider class initialization
-        provider_class (BaseProvider): provider class
-        kwargs (dict): keyword arguments passed to provider class initialization.
-            For the IBMQProvider default this can include things such as:
-
-                * token (str): The token used to register on the online backend such
-                    as the quantum experience.
-                * url (str): The url used for online backend such as the quantum
-                    experience.
-                * hub (str): The hub used for online backend.
-                * group (str): The group used for online backend.
-                * project (str): The project used for online backend.
-                * proxies (dict): Proxy configuration for the API, as a dict with
-                    'urls' and credential keys.
-                * verify (bool): If False, ignores SSL certificates errors.
-
-    Returns:
-        BaseProvider: the provider instance that was just registered.
-
-    Raises:
-        QISKitError: if the provider could not be registered (e.g. due to
-        conflict, or if no credentials were provided.)
-    """
-    # Try to autodiscover credentials if not passed.
-    if not args and not kwargs and provider_class == IBMQProvider:
-        kwargs = credentials.discover_credentials().get(
-            credentials.get_account_name(IBMQProvider)) or {}
-        if not kwargs:
-            raise QISKitError(
-                'No IBMQ credentials found. Please pass them explicitly or '
-                'store them before calling register() with store_credentials()')
-
-    try:
-        provider = provider_class(*args, **kwargs)
-    except Exception as ex:
-        raise QISKitError("Couldn't instantiate provider! Error: {0}".format(ex))
-
-    _DEFAULT_PROVIDER.add_provider(provider)
-    return provider
-
-
-def unregister(provider):
-    """
-    Removes a provider from list of registered providers.
-
-    Note:
-        If backend names from provider1 and provider2 were clashing,
-        `unregister(provider1)` removes the clash and makes the backends
-        from provider2 available.
-
-    Args:
-        provider (BaseProvider): the provider instance to unregister
-    Raises:
-        QISKitError: if the provider instance is not registered
-    """
-    _DEFAULT_PROVIDER.remove_provider(provider)
-
-
-def registered_providers():
-    """Return the currently registered providers."""
-    return list(_DEFAULT_PROVIDER.providers)
-
-
-def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
-                      hub=None, group=None, project=None, proxies=None,
-                      verify=True, overwrite=False):
-    """
-    Store credentials for the IBMQ account in the config file.
-
+def register(token=None, url='https://quantumexperience.ng.bluemix.net/api',
+             hub=None, group=None, project=None, proxies=None, verify=True,
+             provider_name=None, save_credentials=False):
+    """Authenticate against an online backend provider.
     Args:
         token (str): The token used to register on the online backend such
             as the quantum experience.
@@ -117,15 +34,73 @@ def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
         proxies (dict): Proxy configuration for the API, as a dict with
             'urls' and credential keys.
         verify (bool): If False, ignores SSL certificates errors.
-        overwrite (bool): overwrite existing credentials.
+        provider_name (str): the unique name for the online backend
+            provider (for example, 'ibmq' for the IBM Quantum Experience).
+        save_credentials (bool): Store credentials in local qiskitrc
+            file for later use. Default is False.
+    Raises:
+        QISKitError: if the provider name is not recognized.
+    """
+    did_register = 0
+    if token is not None:
+        url = _parse_ibmq_credentials(url, hub, group, project)
+        reg._register(token, url, proxies, verify)
+        reg.REGISTER_CALLED = 1
+        did_register += 1
+        if save_credentials:
+            store_credentials(token=token, url=url,
+                              proxies=proxies, verify=verify,
+                              overwrite=False)
+    else:
+        specific_provider = False
+        if provider_name is not None:
+            specific_provider = True
+        if not specific_provider:
+            # Look for Qconfig.py in cwd
+            did_register = reg.get_qconfig_credentials()
+            # Look at env variables
+            did_register = reg.get_env_credentials()
+            # Look at qiksitrc for saved data
+            did_register = get_qiskitrc_credentials()
+            if not did_register:
+                raise QISKitError(
+                    "Registration failed: No provider credentials found.")
+            reg.REGISTER_CALLED = 1
+        else:
+            did_register = get_qiskitrc_credentials(provider_name)
+            if not did_register:
+                raise QISKitError("Registration failed: Provider credentials not in qiskitrc file.")
+            reg.REGISTER_CALLED = 1
+
+
+def unregister(provider_name):
+    """
+    Removes a provider of list of registered providers.
+    Args:
+        provider_name (str): The unique name for the online provider.
 
     Raises:
-        QISKitError: if the credentials already exist and overwrite==False.
+        QISKitError: if the provider name is not recognized.
     """
-    url = _parse_ibmq_credentials(url, hub, group, project)
-    credentials.store_credentials(
-        provider_class=IBMQProvider, overwrite=overwrite,
-        token=token, url=url, proxies=proxies, verify=verify)
+    if provider_name == 'local':
+        raise QISKitError("Cannot unregister 'local' provider.")
+    else:
+        _registered_names = [p.name for p in reg._DEFAULT_PROVIDER.providers]
+        for idx, name in enumerate(_registered_names):
+            if provider_name == name:
+                reg._DEFAULT_PROVIDER.providers.pop(idx)
+                return
+        raise QISKitError('Provider %s is not registered.' % provider_name)
+
+
+def registered_providers():
+    """
+    Returns the current list of available providers.
+
+    Returns:
+        list: Available providers.
+    """
+    return [p.name for p in reg._DEFAULT_PROVIDER.providers]
 
 
 # Functions for inspecting and retrieving backends.
@@ -159,13 +134,14 @@ def available_backends(filters=None, compact=True):
         list[str]: the names of the available backends.
     """
     backend_names = [str(backend)
-                     for backend in _DEFAULT_PROVIDER.available_backends(filters)]
+                     for backend in reg._DEFAULT_PROVIDER.available_backends(filters)]
 
-    alias_dict = {v: k for k, v in _DEFAULT_PROVIDER.aliased_backend_names().items()}
+    alias_dict = {v: k for k,
+                  v in reg._DEFAULT_PROVIDER.aliased_backend_names().items()}
     backend_names = [alias_dict[name] if name in alias_dict else name for name in backend_names]
 
     if compact:
-        group_dict = _DEFAULT_PROVIDER.grouped_backend_names()
+        group_dict = reg._DEFAULT_PROVIDER.grouped_backend_names()
         groups = set()
         for name in backend_names:
             backend_group = set(k for k, v in group_dict.items() if name in v)
@@ -250,7 +226,7 @@ def get_backend(name):
     Returns:
         BaseBackend: a Backend instance.
     """
-    return _DEFAULT_PROVIDER.get_backend(name)
+    return reg._DEFAULT_PROVIDER.get_backend(name)
 
 
 # Functions for compiling and executing.
@@ -281,7 +257,7 @@ def compile(circuits, backend,
     """
     # pylint: disable=redefined-builtin
     if isinstance(backend, str):
-        backend = _DEFAULT_PROVIDER.get_backend(backend)
+        backend = reg._DEFAULT_PROVIDER.get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
@@ -318,7 +294,7 @@ def execute(circuits, backend,
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
-        backend = _DEFAULT_PROVIDER.get_backend(backend)
+        backend = reg._DEFAULT_PROVIDER.get_backend(backend)
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id, hpc,

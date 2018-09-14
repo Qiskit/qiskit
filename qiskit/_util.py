@@ -160,6 +160,26 @@ def _parse_ibmq_credentials(url, hub=None, group=None, project=None):
     return url
 
 
+def _provider_name_from_url(url):
+    """Get provider name from new url format.
+
+    Args:
+        url (str): String for url.
+
+    Returns:
+        name: String for the provider name.
+    """
+    name = None
+    if 'q-console-api' in url:
+        striped_url = url.replace(
+            "https://q-console-api.mybluemix.net/api/", '')
+        hub, group, project = striped_url.split('/')[1:6:2]
+        name = 'ibmq_%s_%s_%s' % (hub, group, project)
+    elif 'quantumexperience' in url:
+        name = 'ibmq'
+    return name
+
+
 def _has_connection(hostname, port):
     """Checks to see if internet connection exists to host
     via specified port

@@ -40,8 +40,14 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 from .wrapper._wrapper import (
     available_backends, local_backends, remote_backends,
     get_backend, compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file, least_busy,
+    registered_providers,
+    load_qasm_string, load_qasm_file, least_busy,
     store_credentials)
+
+from .wrapper.credentials._configrc import (stored_credentials, get_credentials)
+
+# Import the wrapper, to make it available when doing "import qiskit".
+from . import wrapper
 
 # Import circuit drawing methods by default
 # This is wrapped in a try because the Travis tests fail due to non-framework
@@ -50,9 +56,6 @@ try:
     from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
 except (ImportError, RuntimeError) as expt:
     print("Error: {0}".format(expt))
-
-# Import the wrapper, to make it available when doing "import qiskit".
-from . import wrapper
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:

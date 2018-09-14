@@ -46,7 +46,6 @@ def _qiskit_supported_providers():
 
     return supported_providers
 
-
 class DefaultQISKitProvider(BaseProvider):
     """
     Meta-provider that aggregates several providers.
@@ -59,13 +58,22 @@ class DefaultQISKitProvider(BaseProvider):
                           in _qiskit_supported_providers()]
 
     def get_backend(self, name):
+        provider_name = None
+        # We have an overridding backend name
+        if '@' in name:
+           provider_name = name.split('@')[1]
         name = self.resolve_backend_name(name)
-        for provider in self.providers:
-            try:
-                return provider.get_backend(name)
-            except KeyError:
-                pass
-        raise KeyError(name)
+        if provider_name is not None:
+            for provider in self.providers:
+                if provider.name == provider_name:
+                    return provider.get_backend(name)
+        else:
+            for provider in self.providers:
+                try:
+                    return provider.get_backend(name)
+                except KeyError:
+                    pass
+            raise KeyError(name)
 
     def available_backends(self, filters=None):
         """Get a list of available backends from all providers (after filtering).
@@ -93,9 +101,25 @@ class DefaultQISKitProvider(BaseProvider):
             QISKitError: if passing filters that is neither dict nor callable
         """
         # pylint: disable=arguments-differ
+
+        # Find duplicate backend names
+        backends_by_name = {}
+        for provider in self.providers:
+            pro_backends = provider.available_backends()
+            for back in pro_backends:
+                back._overridding_name = None
+                if back.name() in backends_by_name.keys():
+                    backends_by_name[back.name()] = True
+                else:
+                    backends_by_name[back.name()] = False
+
         backends = []
         for provider in self.providers:
-            backends.extend(provider.available_backends())
+            pro_backends = provider.available_backends()
+            for back in pro_backends:
+                if backends_by_name[back.name()]:
+                    back._overridding_name = back.name()+'@'+provider.name
+                backends.append(back)
 
         if filters is not None:
             if isinstance(filters, dict):
@@ -176,19 +200,9 @@ class DefaultQISKitProvider(BaseProvider):
         Returns:
             BaseProvider: the provider instance.
         """
-        # Check for backend name clashes, emitting a warning.
-        current_backends = {str(backend) for backend in self.available_backends()}
-        added_backends = {str(backend) for backend in provider.available_backends()}
-        common_backends = added_backends.intersection(current_backends)
-
         # checks for equality of provider instances, based on the __eq__ method
         if provider not in self.providers:
             self.providers.append(provider)
-            if common_backends:
-                logger.warning(
-                    'The backend names "%s" of this provider are already in use. '
-                    'Refer to documentation for `available_backends()` and `unregister()`.',
-                    list(common_backends))
             return provider
         else:
             warnings.warn("Skipping registration: The provider is already registered.")
@@ -228,10 +242,21 @@ class DefaultQISKitProvider(BaseProvider):
             regular available names, nor groups, nor deprecated, nor alias names
         """
         resolved_name = ""
-        available = [b.name() for b in self.available_backends(filters=None)]
+        available = []
+        for back in self.available_backends(filters=None):
+            bname = back.name()
+            if '@' in bname:
+                bname = back.name().split('@')[0]
+            if bname not in available:
+                available.append(bname)
+        
         grouped = self.grouped_backend_names()
         deprecated = self.deprecated_backend_names()
         aliased = self.aliased_backend_names()
+        
+        provider_name = None
+        if '@' in name:
+            name, provider_name = name.split('@')
 
         if name in available:
             resolved_name = name
