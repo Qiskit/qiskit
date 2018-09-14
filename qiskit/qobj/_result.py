@@ -56,12 +56,12 @@ class ExperimentResult(QobjItem):
 
     Attributes defined in the schema but not required:
         status (string): Human-readable description of status of this
-            experiment.
+        experiment.
         seed (string): Experiment-level random seed.
         mass_return (string): Is the data in the memory/snapshot averaged or
-            from each shot.
+        from each shot.
         header (dict): Header passed through from the qobj with experiment
-            metadata
+        metadata
     """
 
     REQUIRED_ARGS = ['success', 'shots', 'data']
