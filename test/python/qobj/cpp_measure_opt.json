@@ -1,5 +1,7 @@
 {
     "qobj_id": "test_measure_opt",
+    "type": "QASM",
+    "schema_version": "1.0.0",
     "config": {
         "shots": 2000,
         "memory_slots": 2,
@@ -19,7 +21,7 @@
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "instructions": [
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -34,7 +36,7 @@
             },
             "instructions": [
                 {"name": "x", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -49,7 +51,7 @@
             },
             "instructions": [
                 {"name": "x", "qubits": [1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -65,7 +67,7 @@
             "instructions": [
                 {"name": "x", "qubits": [0]},
                 {"name": "x", "qubits": [1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -80,7 +82,7 @@
             },
             "instructions": [
                 {"name": "y", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -95,7 +97,7 @@
             },
             "instructions": [
                 {"name": "y", "qubits": [1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -111,7 +113,7 @@
             "instructions": [
                 {"name": "y", "qubits": [0]},
                 {"name": "y", "qubits": [1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -126,7 +128,7 @@
             },
             "instructions": [
                 {"name": "h", "qubits": [0]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -141,7 +143,7 @@
             },
             "instructions": [
                 {"name": "h", "qubits": [1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -157,7 +159,7 @@
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "h", "qubits": [1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]
@@ -173,7 +175,7 @@
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
                 {"name": "measure", "memory": [1], "params": [], "qubits": [1], "clbits": [1]}
             ]

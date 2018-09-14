@@ -91,7 +91,7 @@ function(add_doc_target DOC_FORMAT SOURCE_DIR BUILD_DIR)
             COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}
                 ${BETTER_APIDOC} -f -o doc/${lang_dir}/_autodoc
                 --no-toc --private --maxdepth=5 --separate --templates=doc/_templates/better-apidoc
-                qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"
+                qiskit qiskit/tools qiskit/wrapper/jupyter "qiskit/extensions/standard/[a-z]*"
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         add_custom_command(TARGET doc
             COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}
