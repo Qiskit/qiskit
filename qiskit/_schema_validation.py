@@ -17,7 +17,7 @@ from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
-# _DEFAULT_SCHEMA_PATHS[name]: local_path
+
 _DEFAULT_SCHEMA_PATHS = {
     'backend_configuration': 'schemas/backend_configuration_schema.json',
     'backend_properties': 'schemas/backend_properties_schema.json',
@@ -65,7 +65,7 @@ def _create_validator(name, schema=None, check_schema=True,
                        in `_SCHEMAS`.
         check_schema (bool): Verify schema is valid.
 
-        validator_class (jsonschema.IValidator): JsonSchema IValidator
+        validator_class (jsonschema.IValidator): jsonschema IValidator
                 instance. Default behavior is to determine this from the schema
                 `$schema` field.
 
@@ -86,11 +86,7 @@ def _create_validator(name, schema=None, check_schema=True,
 
     if name not in _VALIDATORS:
 
-        if not isinstance(schema, dict):
-            raise SchemaValidationError('''Supplied schema must be a Python
-                                        dictionary with proper schema form.''')
-
-        # Resolve Json spec from schema if needed
+        # Resolve JSON spec from schema if needed
         if validator_class is None:
             validator_class = jsonschema.validators.validator_for(schema)
 
@@ -126,8 +122,8 @@ def validate_json_against_schema(json_dict, schema,
     Validates JSON dict against a schema.
 
     Args:
-        json_dict (dict): Json to be validated.
-        schema (dict or str): Json schema or string of name in _VALIDATORS. If
+        json_dict (dict): JSON to be validated.
+        schema (dict or str): JSON schema or string of name in _VALIDATORS. If
                               schema is provided `jsonschema.validate` will be
                               called. If schema name is provided a validator
                               will be created or recovered from
@@ -243,7 +239,7 @@ class _SummaryValidationError(QISKitError):
 
     def _shorten_message(self, message):
         if len(message) > 1000:
-            return '''Original message too long to be useful: {}[...]
-                   '''.format(message[:1000])
+            return 'Original message too long to be useful: {}[...]'\
+                   ''.format(message[:1000])
 
         return message
