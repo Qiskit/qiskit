@@ -83,15 +83,14 @@ returned results object::
 import logging
 import uuid
 import time
-import string
 
 import numpy as np
 
-from qiskit import QISKitError
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
-from ._simulatortools import single_gate_matrix
+from qiskit import QISKitError
+from ._simulatortools import single_gate_matrix, einsum_matmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -130,23 +129,11 @@ class UnitarySimulatorPy(BaseBackend):
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
         """
-
         # Convert to complex rank-2 tensor
         gate_tensor = np.array(gate, dtype=complex)
-
-        # Compute einsum index string
-        idx_right = string.ascii_uppercase[:self._number_of_qubits]
-        idx_left_in = string.ascii_lowercase[:self._number_of_qubits]
-        idx_left_out = list(idx_left_in)
-        idx_left_out[-1 - qubit] = 'z'
-        idx_left_out = "".join(idx_left_out)
-        pos = idx_left_in[-1 - qubit]
-
-        indexes = "z{pos}, {left_in}{right}->{left_out}{right}".format(pos=pos,
-                                                                       left_in=idx_left_in,
-                                                                       left_out=idx_left_out,
-                                                                       right=idx_right)
-
+        # Compute einsum index string for 1-qubit matrix multiplication
+        indexes = einsum_matmul_index([qubit], self._number_of_qubits)
+        # Apply matrix multiplication
         self._unitary_state = np.einsum(indexes,
                                         gate_tensor,
                                         self._unitary_state,
@@ -161,24 +148,14 @@ class UnitarySimulatorPy(BaseBackend):
         qubit1 is the second qubit (target)
         returns a complex numpy array
         """
+
         # Convert to complex rank-4 tensor
         gate_tensor = np.reshape(np.array(gate, dtype=complex), 4 * [2])
 
-        # Compute index string
-        idx_right = string.ascii_uppercase[:self._number_of_qubits]
-        idx_left_in = string.ascii_lowercase[:self._number_of_qubits]
-        idx_left_out = list(idx_left_in)
-        idx_left_out[-1 - qubit0] = 'z'
-        idx_left_out[-1 - qubit1] = 'y'
-        idx_left_out = "".join(idx_left_out)
-        pos0 = idx_left_in[-1 - qubit0]
-        pos1 = idx_left_in[-1 - qubit1]
+        # Compute einsum index string for 2-qubit matrix multiplication
+        indexes = einsum_matmul_index([qubit0, qubit1], self._number_of_qubits)
 
-        indexes = "yz{pos1}{pos0}, {lin}{r}->{lout}{r}".format(pos0=pos0,
-                                                               pos1=pos1,
-                                                               lin=idx_left_in,
-                                                               lout=idx_left_out,
-                                                               r=idx_right)
+        # Apply matrix multiplication
         self._unitary_state = np.einsum(indexes,
                                         gate_tensor,
                                         self._unitary_state,
@@ -276,6 +253,7 @@ class UnitarySimulatorPy(BaseBackend):
             else:
                 result['status'] = 'ERROR'
                 return result
+        # Reshape unitary rank-2n tensor back to a matrix
         result['data']['unitary'] = np.reshape(self._unitary_state,
                                                2 * [2 ** self._number_of_qubits])
         result['status'] = 'DONE'

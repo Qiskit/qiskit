@@ -63,10 +63,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                                     rtol=1e-3))
 
     def test_local_unitary_simulator(self):
-        """Test unitary simulator.
-
-        If all correct should return the hxhxh, IxCX, CXxY.
-        """
+        """Test unitary simulator."""
         circuits = self._test_circuits()
         backend = UnitarySimulatorPy()
         qobj = compile(circuits, backend=backend)
