@@ -13,6 +13,7 @@ import warnings
 from qiskit import QISKitError
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
+from qiskit.wrapper._wrapper import get_provider
 
 logger = logging.getLogger(__name__)
 
@@ -59,13 +60,24 @@ class DefaultQISKitProvider(BaseProvider):
                           in _qiskit_supported_providers()]
 
     def get_backend(self, name):
+        provider_name = None
+        # We have an overridding backend name
+        if '@' in name:
+            split_name = name.split('@')
+            name = split_name[0]
+            provider_name = split_name[1]
+
         name = self.resolve_backend_name(name)
-        for provider in self.providers:
-            try:
-                return provider.get_backend(name)
-            except KeyError:
-                pass
-        raise KeyError(name)
+        if provider_name is not None:
+            provider = get_provider(provider_name)
+            return provider.get_backend(name)
+        else:
+            for provider in self.providers:
+                try:
+                    return provider.get_backend(name)
+                except KeyError:
+                    pass
+            raise KeyError(name)
 
     def available_backends(self, filters=None):
         """Get a list of available backends from all providers (after filtering).
@@ -93,9 +105,25 @@ class DefaultQISKitProvider(BaseProvider):
             QISKitError: if passing filters that is neither dict nor callable
         """
         # pylint: disable=arguments-differ
+
+        # Find duplicate backend names
+        backends_by_name = {}
+        for provider in self.providers:
+            pro_backends = provider.available_backends()
+            for back in pro_backends:
+                back._overridding_name = None
+                if back.name() in backends_by_name.keys():
+                    backends_by_name[back.name()] = True
+                else:
+                    backends_by_name[back.name()] = False
+
         backends = []
         for provider in self.providers:
-            backends.extend(provider.available_backends())
+            pro_backends = provider.available_backends()
+            for back in pro_backends:
+                if backends_by_name[back.name()]:
+                    back._overridding_name = back.name()+'@'+provider.name
+                backends.append(back)
 
         if filters is not None:
             if isinstance(filters, dict):

@@ -38,6 +38,11 @@ class BaseBackend(ABC):
             raise QISKitError('backend does not have a name.')
         self._configuration = configuration
 
+        # An attribute used to override the backend name
+        # when the backend is present in more than one
+        # registered provider.
+        self._overridding_name = None
+
     @abstractmethod
     def run(self, qobj):
         """Run a Qobj on the the backend."""
@@ -62,6 +67,8 @@ class BaseBackend(ABC):
 
     def name(self):
         """Return backend name"""
+        if self._overridding_name is not None:
+            return self._overridding_name
         return self._configuration['name']
 
     def __str__(self):

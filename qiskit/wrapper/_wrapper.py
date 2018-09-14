@@ -103,6 +103,24 @@ def registered_providers():
     return [p.name for p in reg._DEFAULT_PROVIDER.providers]
 
 
+def get_provider(name):
+    """Gets a provider class by name.
+
+    Args:
+        name (str): Name of the provider.
+
+    Returns:
+        BaseProvider: Provider class with given name.
+
+    Raises:
+        QISKitError: Provider is not registered.
+    """
+    for pro in reg._DEFAULT_PROVIDER.providers:
+        if pro.name == name:
+            return pro
+    raise QISKitError('Provider %s is not registered.' % name)
+
+
 # Functions for inspecting and retrieving backends.
 def available_backends(filters=None, compact=True):
     """
