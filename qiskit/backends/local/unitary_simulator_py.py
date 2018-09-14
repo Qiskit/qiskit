@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Contains a (slow) Python simulator that returns the unitary of the circuit.
+"""Contains a Python simulator that returns the unitary of the circuit.
 
 It simulates a unitary of a quantum circuit that has been compiled to run on
 the simulator. It is exponential in the number of qubits.
@@ -89,7 +89,8 @@ import numpy as np
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
-from ._simulatortools import enlarge_single_opt, enlarge_two_opt, single_gate_matrix
+from qiskit import QISKitError
+from ._simulatortools import single_gate_matrix, einsum_matmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -128,19 +129,38 @@ class UnitarySimulatorPy(BaseBackend):
             is q_{n-1} ... otimes q_1 otimes q_0.
         number_of_qubits is the number of qubits in the system.
         """
-        unitary_add = enlarge_single_opt(gate, qubit, self._number_of_qubits)
-        self._unitary_state = np.dot(unitary_add, self._unitary_state)
+        # Convert to complex rank-2 tensor
+        gate_tensor = np.array(gate, dtype=complex)
+        # Compute einsum index string for 1-qubit matrix multiplication
+        indexes = einsum_matmul_index([qubit], self._number_of_qubits)
+        # Apply matrix multiplication
+        self._unitary_state = np.einsum(indexes,
+                                        gate_tensor,
+                                        self._unitary_state,
+                                        dtype=complex,
+                                        casting='no')
 
-    def _add_unitary_two(self, gate, q_0, q_1):
+    def _add_unitary_two(self, gate, qubit0, qubit1):
         """Apply the two-qubit gate.
 
         gate is the two-qubit gate
-        q0 is the first qubit (control) counts from 0
-        q1 is the second qubit (target)
+        qubit0 is the first qubit (control) counts from 0
+        qubit1 is the second qubit (target)
         returns a complex numpy array
         """
-        unitaty_add = enlarge_two_opt(gate, q_0, q_1, self._number_of_qubits)
-        self._unitary_state = np.dot(unitaty_add, self._unitary_state)
+
+        # Convert to complex rank-4 tensor
+        gate_tensor = np.reshape(np.array(gate, dtype=complex), 4 * [2])
+
+        # Compute einsum index string for 2-qubit matrix multiplication
+        indexes = einsum_matmul_index([qubit0, qubit1], self._number_of_qubits)
+
+        # Apply matrix multiplication
+        self._unitary_state = np.einsum(indexes,
+                                        gate_tensor,
+                                        self._unitary_state,
+                                        dtype=complex,
+                                        casting='no')
 
     def run(self, qobj):
         """Run qobj asynchronously.
@@ -189,14 +209,25 @@ class UnitarySimulatorPy(BaseBackend):
 
         Returns:
             dict: A dictionary of results.
+
+        Raises:
+            QISKitError: if the number of qubits in the circuit is greater than 24.
+            Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = circuit.header.number_of_qubits
+        if self._number_of_qubits > 24:
+            raise QISKitError("np.einsum implementation limits local_unitary_simulator" +
+                              " to 24 qubit circuits.")
         result = {
             'data': {},
             'name': circuit.header.name
         }
-        self._unitary_state = np.identity(2 ** self._number_of_qubits,
-                                          dtype=complex)
+
+        # Initilize unitary as rank 2*N tensor
+        self._unitary_state = np.reshape(np.eye(2 ** self._number_of_qubits,
+                                                dtype=complex),
+                                         self._number_of_qubits * [2, 2])
+
         for operation in circuit.instructions:
             if operation.name in ('U', 'u1', 'u2', 'u3'):
                 params = getattr(operation, 'params', None)
@@ -222,7 +253,9 @@ class UnitarySimulatorPy(BaseBackend):
             else:
                 result['status'] = 'ERROR'
                 return result
-        result['data']['unitary'] = self._unitary_state
+        # Reshape unitary rank-2n tensor back to a matrix
+        result['data']['unitary'] = np.reshape(self._unitary_state,
+                                               2 * [2 ** self._number_of_qubits])
         result['status'] = 'DONE'
         result['success'] = True
         result['shots'] = 1
