@@ -254,15 +254,7 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits, nested_scope=None):
-        """Begin a custom gate.
-
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
-        """
+    def start_gate(self, name, args, qubits, nested_scope=None, extra_fields=None):
         if self.listen and name not in self.basis \
                 and self.gates[name]["opaque"]:
             raise BackendError("opaque gate %s not in basis" % name)
@@ -271,7 +263,7 @@ class JsonBackend(UnrollerBackend):
             self.listen = False
             qubit_indices = [self._qubit_order_internal.get(qubit)
                              for qubit in qubits]
-            self.circuit['instructions'].append({
+            gate_instruction = {
                 'name': name,
                 # TODO: keep these real for now, until a later time
                 'params': list(map(lambda x: float(x.real(nested_scope)),
@@ -281,7 +273,10 @@ class JsonBackend(UnrollerBackend):
                                               nested_scope=nested_scope),
                                       args)),
                 'qubits': qubit_indices,
-            })
+            }
+            if extra_fields is not None:
+                gate_instruction.update(extra_fields)
+            self.circuit['instructions'].append(gate_instruction)
             self._add_condition()
 
     def end_gate(self, name, args, qubits, nested_scope=None):

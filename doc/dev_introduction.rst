@@ -5,12 +5,12 @@ Programming interface
 ---------------------
 
 The *qiskit* directory is the main Python module and contains the
-programming interface objects :py:class:`QuantumProgram <qiskit.QuantumProgram>`,
+programming interface objects:
 :py:class:`QuantumRegister <qiskit.QuantumRegister>`,
 :py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
 and :py:class:`QuantumCircuit <qiskit.QuantumCircuit>`.
 
-At the highest level, users construct a *QuantumProgram* to create,
+At the highest level, users construct a *QuantumCircuit* to create,
 modify, compile, and execute a collection of quantum circuits. Each
 *QuantumCircuit* has a set of data registers, each of type
 *QuantumRegister* or *ClassicalRegister*. Methods of these objects are
@@ -74,7 +74,7 @@ Several unroller backends and their outputs are summarized here:
 
 
 Logging
-=======
+-------
 
 The SDK uses the `standard Python "logging" library
 <https://docs.python.org/3/library/logging.html>`_ for emitting several messages using the
@@ -104,9 +104,8 @@ family of "`qiskit.*`" loggers, and abides by the standard convention for the lo
 +--------------+----------------------------------------------+
 
 
-For convenience, :py:class:`QuantumProgram <qiskit.QuantumProgram>` provides two convenience
-methods (:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` and
-:py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`) that modify the handlers
+For convenience, two methods are provided in :py:mod<`qiskit_logging.py`>: (:py:func:<`set_qiskit_logger()>` and
+:py:func:<`unset_qiskit_logger`>) that modify the handlers
 and the level of the `qiskit` logger. Using these methods might interfere with the global
 logging setup of your environment - please take it into consideration if developing an
 application on top of the SDK.
@@ -125,7 +124,7 @@ the messages. For example, if the module is `qiskit/some/module.py`:
 
 
 Testing
-=======
+-------
 
 The SDK uses the `standard Pyton "unittest" framework
 <https://docs.python.org/3/library/unittest.html>`_ for the testing of the
@@ -196,7 +195,7 @@ Windows:
     C:\..\> python -m unittest test/python/test_apps.py
 
 Testing options
-===============
+^^^^^^^^^^^^^^^
 
 By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a ``test/cassettes`` and not real HTTP requests is generated.
 If user credentials are found, in that cases it use them to make the network requests.

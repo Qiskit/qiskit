@@ -36,8 +36,8 @@ class TestBackendFilters(QiskitTestCase):
     def test_filter_config_callable(self, qe_token, qe_url):
         """Test filtering by lambda function on configuration properties"""
         register(qe_token, qe_url)
-        filtered_backends = available_backends(lambda x: (not x.configuration['simulator'] and
-                                                          x.configuration['n_qubits'] > 5))
+        filtered_backends = available_backends(lambda x: (not x.configuration()['simulator'] and
+                                                          x.configuration()['n_qubits'] > 5))
         self.assertTrue(filtered_backends)
 
     @requires_qe_access

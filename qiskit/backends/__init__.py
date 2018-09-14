@@ -6,9 +6,15 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Utilities for using backends."""
+
+import pkgutil
+
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
 from .jobstatus import JobStatus
 from .joberror import JobError
 from .jobtimeouterror import JobTimeoutError
+
+# Allow extending this namespace.
+__path__ = pkgutil.extend_path(__path__, __name__)
