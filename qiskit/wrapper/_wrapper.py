@@ -10,6 +10,7 @@
 import logging
 import warnings
 from qiskit import transpiler, QISKitError
+from qiskit.backends.baseprovider import BaseProvider
 from qiskit._util import _parse_ibmq_credentials
 import qiskit.wrapper._register as reg
 from qiskit.wrapper.credentials._configrc import (store_credentials,
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def register(token=None, url='https://quantumexperience.ng.bluemix.net/api',
              hub=None, group=None, project=None, proxies=None, verify=True,
-             provider_name=None, save_credentials=False):
+             provider_name=None, provider_class=None, save_credentials=False):
     """Authenticate against an online backend provider.
     Args:
         token (str): The token used to register on the online backend such
@@ -36,11 +37,19 @@ def register(token=None, url='https://quantumexperience.ng.bluemix.net/api',
         verify (bool): If False, ignores SSL certificates errors.
         provider_name (str): the unique name for the online backend
             provider (for example, 'ibmq' for the IBM Quantum Experience).
+        provider_class (BaseProvider): A Provider instance to be registered.
         save_credentials (bool): Store credentials in local qiskitrc
             file for later use. Default is False.
     Raises:
         QISKitError: if the provider name is not recognized.
     """
+    if provider_class is not None:
+        if not issubclass(provider_class, BaseProvider):
+            raise QISKitError('provider_class must be a valid Provider instance.')
+        else:
+            reg._DEFAULT_PROVIDER.add_provider(provider_class)
+            return
+
     did_register = 0
     if token is not None:
         url = _parse_ibmq_credentials(url, hub, group, project)
