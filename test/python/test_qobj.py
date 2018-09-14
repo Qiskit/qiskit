@@ -14,7 +14,7 @@ import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
-from qiskit.qobj import (QobjHeader, validate_qobj_against_schema)
+from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.backends.local import localjob
 from qiskit.backends.ibmq import ibmqjob
 from ._mockutils import FakeBackend
