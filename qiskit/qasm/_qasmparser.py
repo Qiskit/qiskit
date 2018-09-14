@@ -25,11 +25,11 @@ class QasmParser(object):
 
     # pylint: disable=unused-argument,missing-docstring,invalid-name
 
-    def __init__(self, filename):
+    def __init__(self, filename, with_comments=False):
         """Create the parser."""
         if filename is None:
             filename = ""
-        self.lexer = QasmLexer(filename)
+        self.lexer = QasmLexer(filename, with_comments)
         self.tokens = self.lexer.tokens
         self.parse_dir = tempfile.mkdtemp(prefix='qiskit')
         self.precedence = (

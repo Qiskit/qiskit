@@ -44,10 +44,11 @@ class QasmLexer(object):
                 self.data = ifile.read()
             self.lexer.input(self.data)
 
-    def __init__(self, filename):
+    def __init__(self, filename, with_comments=False):
         """Create the OPENQASM lexer."""
         self.__mklexer__(filename)
         self.stack = []
+        self.with_comments = with_comments
 
     def input(self, data):
         """Set the input text data."""
@@ -160,7 +161,8 @@ class QasmLexer(object):
 
     def t_COMMENT(self, t):
         r'//.*'
-        return t
+        if self.with_comments:
+            return t
 
     def t_CX(self, t):
         'CX'

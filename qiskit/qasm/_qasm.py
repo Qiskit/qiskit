@@ -38,12 +38,12 @@ class Qasm(object):
         with QasmParser(self._filename) as qasm_p:
             return qasm_p.get_tokens()
 
-    def parse(self, debug=False):
+    def parse(self, debug=False, with_comments=False):
         """Parse the data."""
         if self._filename:
             with open(self._filename) as ifile:
                 self._data = ifile.read()
 
-        with QasmParser(self._filename) as qasm_p:
+        with QasmParser(self._filename, with_comments) as qasm_p:
             qasm_p.parse_debug(debug)
             return qasm_p.parse(self._data)
