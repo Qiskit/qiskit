@@ -43,14 +43,6 @@ from .wrapper._wrapper import (
     registered_providers, load_qasm_string, load_qasm_file, least_busy,
     store_credentials)
 
-# Import circuit drawing methods by default
-# This is wrapped in a try because the Travis tests fail due to non-framework
-# Python build since using pyenv
-try:
-    from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
-except (ImportError, RuntimeError) as expt:
-    print("Error: {0}".format(expt))
-
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
