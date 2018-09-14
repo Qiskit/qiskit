@@ -13,7 +13,6 @@ import warnings
 from qiskit import QISKitError
 from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.local.localprovider import LocalProvider
-from qiskit.wrapper._wrapper import get_provider
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,6 @@ def _qiskit_supported_providers():
 
     return supported_providers
 
-
 class DefaultQISKitProvider(BaseProvider):
     """
     Meta-provider that aggregates several providers.
@@ -63,14 +61,12 @@ class DefaultQISKitProvider(BaseProvider):
         provider_name = None
         # We have an overridding backend name
         if '@' in name:
-            split_name = name.split('@')
-            name = split_name[0]
-            provider_name = split_name[1]
-
+           provider_name = name.split('@')[1]
         name = self.resolve_backend_name(name)
         if provider_name is not None:
-            provider = get_provider(provider_name)
-            return provider.get_backend(name)
+            for provider in self.providers:
+                if provider.name == provider_name:
+                    return provider.get_backend(name)
         else:
             for provider in self.providers:
                 try:
@@ -246,10 +242,21 @@ class DefaultQISKitProvider(BaseProvider):
             regular available names, nor groups, nor deprecated, nor alias names
         """
         resolved_name = ""
-        available = [b.name() for b in self.available_backends(filters=None)]
+        available = []
+        for back in self.available_backends(filters=None):
+            bname = back.name()
+            if '@' in bname:
+                bname = back.name().split('@')[0]
+            if bname not in available:
+                available.append(bname)
+        
         grouped = self.grouped_backend_names()
         deprecated = self.deprecated_backend_names()
         aliased = self.aliased_backend_names()
+        
+        provider_name = None
+        if '@' in name:
+            name, provider_name = name.split('@')
 
         if name in available:
             resolved_name = name

@@ -114,3 +114,4 @@ def get_env_credentials():
         _register(token=token, url=url)
         did_register = 1
     return did_register
+
