@@ -14,6 +14,7 @@ import ply
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm._node._node import Node
+from qiskit.qasm._node import Comment
 
 from .common import QiskitTestCase
 
@@ -30,6 +31,7 @@ def parse(file_path, prec=15):
 
 class TestParser(QiskitTestCase):
     """QasmParser"""
+
     def setUp(self):
         self.qasm_file_path = self._get_resource_path('qasm/example.qasm')
         self.qasm_file_path_fail = self._get_resource_path(
@@ -56,6 +58,7 @@ class TestParser(QiskitTestCase):
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
+
         def inspect(node):
             for child in node.children:
                 self.assertTrue(isinstance(child, Node))
@@ -77,6 +80,37 @@ class TestParser(QiskitTestCase):
         for token in qasm.get_tokens():
             self.assertTrue(isinstance(token, ply.lex.LexToken))
 
+
+class TestParserWithComments(QiskitTestCase):
+    """QasmParser has a with_comment option to get have comments as extra nodes"""
+
+    def test_single_comment(self):
+        """The thing to parse is a single comment"""
+        qasm_string = """//this is a comment"""
+        ast = Qasm(data=qasm_string).parse(with_comments=True)
+        self.assertEqual(len(ast.children), 1)
+        self.assertIsInstance(ast.children[0], Comment)
+        self.assertEquals(ast.qasm().replace('\n', '', 1), qasm_string)
+
+    def test_inline_comment(self):
+        """The thing to parse is a single comment"""
+        qasm_string = """OPENQASM 2.0;//another comment"""
+        ast = Qasm(data=qasm_string).parse(with_comments=True)
+        self.assertEqual(len(ast.children), 2)
+        self.assertIsInstance(ast.children[1], Comment)
+        self.assertEquals(ast.qasm().replace('\n', '', 2), qasm_string)
+
+    def test_in_decl_comment(self):
+        qasm_string = ("OPENQASM 2.0;\n"
+                       "gate a_gate(a,b,c) d,e\n"
+                       "{\n"
+                       "  // a comment in a declaration\n"
+                       "  U(a,b,c) d;\n"
+                       "}\n")
+        ast = Qasm(data=qasm_string).parse(with_comments=True)
+        self.assertEqual(len(ast.children), 2)
+        self.assertIsInstance(ast.children[1].children[3].children[0], Comment)
+        self.assertEquals(ast.qasm(), qasm_string)
 
 if __name__ == '__main__':
     unittest.main()
