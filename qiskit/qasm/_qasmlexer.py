@@ -95,6 +95,7 @@ class QasmLexer(object):
         'MATCHES',
         'ID',
         'STRING',
+        'COMMENT',
     ] + list(reserved.values())
 
     def t_REAL(self, t):
@@ -159,7 +160,7 @@ class QasmLexer(object):
 
     def t_COMMENT(self, t):
         r'//.*'
-        pass
+        return t
 
     def t_CX(self, t):
         'CX'

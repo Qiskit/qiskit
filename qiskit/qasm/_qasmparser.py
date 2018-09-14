@@ -285,12 +285,14 @@ class QasmParser(object):
 
     # ----------------------------------------
     #  statement : decl
+    #            | comment
     #            | quantum_op ';'
     #            | format ';'
     # ----------------------------------------
     def p_statement(self, program):
         """
            statement : decl
+                     | comment
                      | quantum_op ';'
                      | format ';'
                      | ignore
@@ -302,6 +304,12 @@ class QasmParser(object):
                 raise QasmError("Missing ';' at end of statement; "
                                 + "received", str(program[2].value))
         program[0] = program[1]
+
+    def p_comment(self, program):
+        """
+           comment : COMMENT
+        """
+        program[0] = node.Comment(program[1])
 
     def p_format(self, program):
         """
@@ -663,7 +671,14 @@ class QasmParser(object):
     #         | id '(' ')'          id_list    ';'
     #         | id '(' exp_list ')' id_list    ';'
     #         | BARRIER id_list                ';'
+    #         | COMMENT
     # ----------------------------------------
+    def p_gate_op_comment(self, program):
+        """
+        gate_op : COMMENT
+        """
+        program[0] = node.Comment(program[1])
+
     def p_gate_op_0(self, program):
         """
         gate_op : U '(' exp_list ')' id ';'

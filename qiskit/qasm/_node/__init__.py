@@ -10,6 +10,7 @@ from ._barrier import Barrier
 from ._binaryop import BinaryOp
 from ._binaryoperator import BinaryOperator
 from ._cnot import Cnot
+from ._comment import Comment
 from ._creg import Creg
 from ._customunitary import CustomUnitary
 from ._expressionlist import ExpressionList
