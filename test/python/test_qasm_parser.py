@@ -90,7 +90,7 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 1)
         self.assertIsInstance(ast.children[0], Comment)
-        self.assertEquals(ast.qasm().replace('\n', '', 1), qasm_string)
+        self.assertEqual(ast.qasm().replace('\n', '', 1), qasm_string)
 
     def test_inline_comment(self):
         """The thing to parse is a single comment"""
@@ -98,7 +98,7 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 2)
         self.assertIsInstance(ast.children[1], Comment)
-        self.assertEquals(ast.qasm().replace('\n', '', 2), qasm_string)
+        self.assertEqual(ast.qasm().replace('\n', '', 2), qasm_string)
 
     def test_in_decl_comment(self):
         qasm_string = ("OPENQASM 2.0;\n"
@@ -110,7 +110,8 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 2)
         self.assertIsInstance(ast.children[1].children[3].children[0], Comment)
-        self.assertEquals(ast.qasm(), qasm_string)
+        self.assertEqual(ast.qasm(), qasm_string)
+
 
 if __name__ == '__main__':
     unittest.main()

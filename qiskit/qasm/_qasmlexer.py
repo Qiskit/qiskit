@@ -163,6 +163,7 @@ class QasmLexer(object):
         r'//.*'
         if self.with_comments:
             return t
+        return None
 
     def t_CX(self, t):
         'CX'
