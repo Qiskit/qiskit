@@ -4,6 +4,152 @@ Release history
 Release notes
 *************
 
+Qiskit SDK 0.6.0
+================
+
+This release includes a redesign of internal components centered around a new,
+formal communication format (``Qobj``), along with long awaited features to
+improve the user experience as a whole. The highlights, compared to the 0.5
+release, are:
+
+* Improvements for inter-operability (based on the ``Qobj`` specification) and
+  extensibility (facilities for extending Qiskit with new backends in a seamless
+  way).
+* New options for handling credentials and authentication for the IBM Q
+  backends, aimed at simplifying the process and supporting automatic loading
+  of user credentials.
+* A revamp of the visualization utilities: stylish interactive visualizations
+  are now available for Jupyter users, along with refinements for the circuit
+  drawer (including a matplotlib-based version).
+* Performance improvements centered around circuit transpilation: the basis for
+  a more flexible and modular architecture have been set, including
+  paralellization of the circuit compilation and numerous optimizations.
+
+Upgrading to 0.6.0
+------------------
+
+Please note that some backwards-incompatible changes have been introduced
+during this release - the following notes contain information on how to adapt to
+the new changes.
+
+Removal of ``QuantumProgram``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As hinted during the 0.5 release, the deprecation of the  ``QuantumProgram``
+class has now been completed and is no longer available, in favor of working
+with the individual components (:class:`~qiskit.backends.basebackend.BaseJob`,
+:class:`~qiskit._quantumcircuit.QuantumCircuit`,
+:class:`~qiskit._classicalregister.ClassicalRegister`,
+:class:`~qiskit._quantumregister.QuantumRegister`,
+:mod:`~qiskit.wrapper`) directly.
+
+Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
+:doc:`quickstart` examples for details about the transition ::
+
+
+  from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+  from qiskit import available_backends, execute
+
+  q = QuantumRegister(2)
+  c = ClassicalRegister(2)
+  qc = QuantumCircuit(q, c)
+
+  qc.h(q[0])
+  qc.cx(q[0], q[1])
+  qc.measure(q, c)
+
+  print("Local backends: ", available_backends({'local': True}))
+
+  job_sim = execute(qc, "local_qasm_simulator")
+  sim_result = job_sim.result()
+
+  print("simulation: ", sim_result)
+  print(sim_result.get_counts(qc))
+
+IBM Q Authentication and ``Qconfig.py``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The managing of credentials for authenticating when using the QE backends has
+been expanded, and there are new options that can be used for convenience:
+
+1. store your credentials in disk once, and automatically load them in future
+   sessions. This provides a one-off mechanism::
+
+     from qiskit import store credentials
+     store_credentials('MY_API_TOKEN')
+
+   afterwards, your credentials can be automatically read from disk by not
+   passing any parameters to :meth:`~qiskit.wrapper._wrapper.register`::
+
+     from qiskit import register
+     register()
+
+2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
+   ``register()`` call will automatically load the credentials from them.
+
+Additionally, the previous method of having a ``Qconfig.py`` file in the program
+folder and passing the credentials explicitly is still supported. Please check
+the :ref:`qconfig-setup` section for more details about combining and using
+the different authentication options.
+
+Backend and Job API changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Jobs submitted to IBM Q backends have improved capabilities. It is possible to
+  cancel them and replenish credits (``job.cancel()``), and to retrieve previous jobs
+  executed on a specific backend either by job id (``backend.retrieve_job(job_id)``) or
+  in batch of latest jobs (``backend.jobs(limit)``)
+
+* Properties for checking each individual job status (``queued``, ``running``,
+  ``validating``, ``done`` and ``cancelled``) no longer exist. If you
+  want to check the job status, use the identity comparison against
+  ``job.status``::
+
+    from qiskit.backends import JobStatus
+
+    job = execute(circuit, backend)
+    if job.status() is JobStatus.RUNNING:
+        handle_job(job)
+
+Please consult the new documentation of the
+:class:`~qiskit.backends.ibmq.ibmqjob.IBMQJob` class to get further insight in
+how to use the simplified API.
+
+* A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and 
+:class:`~qiskit.backends.basejob.BaseJob` are no longer properties, 
+but methods, and as a result they need to be invoked as functions.
+
+=====================  ========================
+Qiskit 0.5             Qiskit 0.6
+=====================  ========================
+backend.name           backend.name()
+backend.status         backend.status()
+backend.configuration  backend.configuration()
+backend.calibration    backend.properties()
+backend.parameters     backend.jobs()
+                       backend.retrieve_job(job_id)
+=====================  ==========
+job.status             job.status()
+job.cancelled          job.queue_position()
+job.running            job.cancel()
+job.queued
+job.done
+=====================  ========================
+
+Better Jupyter tools
+^^^^^^^^^^^^^^^^^^^^
+The new release contains improvements to the user experience while using Jupyter notebooks.
+
+First, new interactive visualizations of counts histograms and quantum states are provided:
+:meth:`~qiskit.tools.visualization.plot_histogram` and :meth:`~qiskit.tools.visualization.plot_state`.
+These methods will default to the new interactive kind when the environment is Jupyter and internet
+connection exists.
+
+Secondly, the new release provides Jupyter cell magics for keeping track of the progress of your code.
+Use ``%%qiskit_job_status`` to keep track of the status of submitted jobs to IBMQ backends.
+Use ``%%qiskit_progress_bar`` to keep track of the progress of compilation/execution.
+
+
 Qiskit SDK 0.5.0
 ================
 
@@ -29,6 +175,8 @@ during this release as a result of the ongoing development. While some of these
 features will continue to be supported during a period of time before being
 fully deprecated, it is recommended to update your programs in order to prepare
 for the new versions and take advantage of the new functionality.
+
+.. _quantum-program-0-5:
 
 ``QuantumProgram`` changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

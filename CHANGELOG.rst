@@ -27,33 +27,50 @@ Added
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
+- Jupyter notebook magic function qiskit_job_status (#734).
+- Add a new function ``qobj_to_circuits`` to convert a Qobj object to
+  a list of QuantumCircuit objects (#877)
 
 Changed
 -------
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
-- Use ``Qobj`` as the formally defined schema for sending information to the
-  devices:
-    - introduce the ``qiskit.qobj`` module. (#589, #655)
-    - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
-    - update the local simulators for accepting ``Qobj`` as input. (#667)
+- Use ``Qobj`` as the formally defined schema for sending information to the devices:
+  - introduce the ``qiskit.qobj`` module. (#589, #655)
+  - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
+  - update the local simulators for accepting ``Qobj`` as input. (#667)
+  - update the ``Result`` class. (#773)
 - Use ``get_status_job()`` for checking IBMQJob status. (#641)
 - Q network hub/group/project credentials replaced by new url format. (#740)
-- ``Jobs`` API simplification and breaking changes. (#686)
+- Breaking change: ``Jobs`` API simplification. (#686)
+- Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
+- Breaking change: ``BaseBackend`` API changed, properties are now methods (#858)
+- When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
+  notebook if there is network connectivity the interactive plots will be used
+  by default (#862, #866)
+
+Deprecated
+----------
+- The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
+  deprecated. A field of the same name should be used in the ``option``
+  dictionary kwarg instead. (#866)
 
 Removed
 -------
+- Removed the QuantumProgram class. (#724)
 
 Fixed
 -----
-- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688)
-- Fixed ``probabilities_ket`` computation in C++ simulator. (#580)
+- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688).
+- Fixed ``probabilities_ket`` computation in C++ simulator (#580).
 - Fixed bug in the definition of ``cswap`` gate and its test (#685).
-- Fixed the examples to be compatible with version 0.5+ (#672)
+- Fixed the examples to be compatible with version 0.5+ (#672).
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
 - Fixed issue with combining or extending circuits that contain CompositeGate (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
-- Fixed the issue with control lines spanning through several classical registers. (#762).
+- Fixed the issue with control lines spanning through several classical registers (#762).
+- Fixed visualizations crashing when using simulator extensions (#885).
+- Fixed check for network connection when loading interactive visualizations (#892).
 
 `0.5.6`_ - 2018-07-06
 =====================

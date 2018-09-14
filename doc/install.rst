@@ -179,7 +179,7 @@ precedence over the environment variables or the credentials stored in disk.
 In more complex scenarios or for users that need finer control over multiple
 accounts, please note that you can pass the API token and the other parameters
 directly to the ``register()`` function, which will ignore the automatic
-loading of the credentials and use the arguments directly. For example::
+loading of the credentials and use the arguments directly. For example:
 
 .. code:: python
 

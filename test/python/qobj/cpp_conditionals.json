@@ -1,7 +1,10 @@
 {
     "qobj_id": "test_conditionals",
+    "type": "QASM",
+    "schema_version": "1.0.0",
     "config": {
         "shots": 1,
+        "memory_slots": 1,
         "seed": 1
     },
     "header": {
@@ -34,9 +37,11 @@
                     "qubits": [1],
                     "conditional": {"type": "equals", "mask": "0x1", "val": "0x1"}
                 },
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 }
@@ -58,6 +63,8 @@
                 },
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 },
@@ -73,7 +80,7 @@
                     "qubits": [1],
                     "conditional": {"type": "equals", "mask": "0x1", "val": "0x1"}
                 },
-                {"name": "snapshot", "params": [0]}
+                {"name": "snapshot", "label": "", "type": "", "params": [0]}
             ]
         },
         {
@@ -102,9 +109,11 @@
                     "qubits": [1],
                     "conditional": {"type": "equals", "mask": "0x2", "val": "0x1"}
                 },
-                {"name": "snapshot", "params": [0]},
+                {"name": "snapshot", "label": "", "type": "", "params": [0]},
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [0]
                 }
@@ -126,6 +135,8 @@
                 },
                 {
                     "name": "measure",
+                    "memory": [0],
+                    "params": [],
                     "qubits": [0],
                     "clbits": [1]
                 },
@@ -141,7 +152,7 @@
                     "qubits": [1],
                     "conditional": {"type": "equals", "mask": "0x2", "val": "0x1"}
                 },
-                {"name": "snapshot", "params": [0]}
+                {"name": "snapshot", "label": "", "type": "", "params": [0]}
             ]
         }
     ]

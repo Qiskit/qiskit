@@ -43,31 +43,26 @@ class BaseBackend(ABC):
         """Run a Qobj on the the backend."""
         pass
 
-    @property
     def configuration(self):
         """Return backend configuration"""
         return self._configuration
 
-    @property
     def calibration(self):
         """Return backend calibration"""
         return {}
 
-    @property
     def parameters(self):
         """Return backend parameters"""
         return {}
 
-    @property
     def status(self):
         """Return backend status"""
         return AvailableToOperationalDict(
-            {'name': self.name, 'operational': True, 'pending_jobs': 0})
+            {'name': self.name(), 'operational': True, 'pending_jobs': 0})
 
-    @property
     def name(self):
         """Return backend name"""
         return self._configuration['name']
 
     def __str__(self):
-        return self.name
+        return self.name()

@@ -82,3 +82,8 @@ class CouplingTest(QiskitTestCase):
         expected = ("qubits: q[0] @ 1, q[1] @ 2\n"
                     "edges: q[0]-q[1]")
         self.assertEqual(expected, str(coupling))
+
+    def test_distance_error(self):
+        """Test distance method validation."""
+        graph = _coupling.Coupling({0: [1, 2], 1: [2]})
+        self.assertRaises(_coupling.CouplingError, graph.distance, ('q0', 0), ('q1', 1))

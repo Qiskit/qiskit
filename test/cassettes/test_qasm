@@ -222,15 +222,15 @@ interactions:
       X-Xss-Protection: [1; mode=block]
     status: {code: 200, message: OK}
 - request:
-    body: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q26[3];\ncreg c29[3];\nu2(0,3.14159265358979)
-      q26[0];\ncx q26[0],q26[1];\ncx q26[1],q26[2];\nmeasure q26[0] -> c29[0];\nmeasure
-      q26[1] -> c29[1];\nmeasure q26[2] -> c29[2];\n", "name": "circuit386", "metadata":
+    body: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979)
+      q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure
+      q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n", "name": "circuit304", "metadata":
       {"compiled_circuit": {"header": {"number_of_qubits": 3, "number_of_clbits":
-      3, "qubit_labels": [["q26", 0], ["q26", 1], ["q26", 2]], "clbit_labels": [["c29",
-      3]], "name": "circuit386", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
-      \"qelib1.inc\";\nqreg q26[3];\ncreg c29[3];\nu2(0,3.14159265358979) q26[0];\ncx
-      q26[0],q26[1];\ncx q26[1],q26[2];\nmeasure q26[0] -> c29[0];\nmeasure q26[1]
-      -> c29[1];\nmeasure q26[2] -> c29[2];\n"}, "operations": [{"name": "u2", "params":
+      3, "qubit_labels": [["q46", 0], ["q46", 1], ["q46", 2]], "clbit_labels": [["c47",
+      3]], "name": "circuit304", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
+      \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979) q46[0];\ncx
+      q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure q46[1]
+      -> c47[1];\nmeasure q46[2] -> c47[2];\n"}, "operations": [{"name": "u2", "params":
       [0.0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [0]}, {"name":
       "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name": "measure",
       "qubits": [0], "clbits": [0], "memory": [0]}, {"name": "cx", "params": [], "texparams":
@@ -246,16 +246,16 @@ interactions:
     method: POST
     uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q26[3];\ncreg
-        c29[3];\nu2(0,3.14159265358979) q26[0];\ncx q26[0],q26[1];\ncx q26[1],q26[2];\nmeasure
-        q26[0] -> c29[0];\nmeasure q26[1] -> c29[1];\nmeasure q26[2] -> c29[2];\n",
-        "status": "WORKING_IN_PROGRESS", "name": "circuit386", "executionId": "dummyapiJobsqasms.executionId01",
+    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg
+        c47[3];\nu2(0,3.14159265358979) q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure
+        q46[0] -> c47[0];\nmeasure q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n",
+        "status": "WORKING_IN_PROGRESS", "name": "circuit304", "executionId": "dummyapiJobsqasms.executionId01",
         "metadata": {"compiled_circuit": {"header": {"number_of_qubits": 3, "number_of_clbits":
-        3, "qubit_labels": [["q26", 0], ["q26", 1], ["q26", 2]], "clbit_labels": [["c29",
-        3]], "name": "circuit386", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
-        \"qelib1.inc\";\nqreg q26[3];\ncreg c29[3];\nu2(0,3.14159265358979) q26[0];\ncx
-        q26[0],q26[1];\ncx q26[1],q26[2];\nmeasure q26[0] -> c29[0];\nmeasure q26[1]
-        -> c29[1];\nmeasure q26[2] -> c29[2];\n"}, "operations": [{"name": "u2", "params":
+        3, "qubit_labels": [["q46", 0], ["q46", 1], ["q46", 2]], "clbit_labels": [["c47",
+        3]], "name": "circuit304", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
+        \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979) q46[0];\ncx
+        q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure q46[1]
+        -> c47[1];\nmeasure q46[2] -> c47[2];\n"}, "operations": [{"name": "u2", "params":
         [0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [0]}, {"name":
         "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name": "measure",
         "qubits": [0], "clbits": [0], "memory": [0]}, {"name": "cx", "params": [],
@@ -350,18 +350,18 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Jobs/dummyapiJobsid01?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q26[3];\ncreg
-        c29[3];\nu2(0,3.14159265358979) q26[0];\ncx q26[0],q26[1];\ncx q26[1],q26[2];\nmeasure
-        q26[0] -> c29[0];\nmeasure q26[1] -> c29[1];\nmeasure q26[2] -> c29[2];\n",
-        "status": "DONE", "name": "circuit386", "executionId": "dummyapiJobsqasms.executionId01",
+    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg
+        c47[3];\nu2(0,3.14159265358979) q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure
+        q46[0] -> c47[0];\nmeasure q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n",
+        "status": "DONE", "name": "circuit304", "executionId": "dummyapiJobsqasms.executionId01",
         "result": {"date": "dummyapiJobsqasms.result.date01", "data": {"creg_labels":
-        "c29[3]", "additionalData": {"seed": 42}, "time": 0.42, "counts": {"111":
-        982, "000": 1018}}}, "metadata": {"compiled_circuit": {"header": {"number_of_qubits":
-        3, "number_of_clbits": 3, "qubit_labels": [["q26", 0], ["q26", 1], ["q26",
-        2]], "clbit_labels": [["c29", 3]], "name": "circuit386", "compiled_circuit_qasm":
-        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q26[3];\ncreg c29[3];\nu2(0,3.14159265358979)
-        q26[0];\ncx q26[0],q26[1];\ncx q26[1],q26[2];\nmeasure q26[0] -> c29[0];\nmeasure
-        q26[1] -> c29[1];\nmeasure q26[2] -> c29[2];\n"}, "operations": [{"name":
+        "c47[3]", "additionalData": {"seed": 42}, "time": 0.42, "counts": {"111":
+        1008, "000": 992}}}, "metadata": {"compiled_circuit": {"header": {"number_of_qubits":
+        3, "number_of_clbits": 3, "qubit_labels": [["q46", 0], ["q46", 1], ["q46",
+        2]], "clbit_labels": [["c47", 3]], "name": "circuit304", "compiled_circuit_qasm":
+        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979)
+        q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure
+        q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n"}, "operations": [{"name":
         "u2", "params": [0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits":
         [0]}, {"name": "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name":
         "measure", "qubits": [0], "clbits": [0], "memory": [0]}, {"name": "cx", "params":
