@@ -9,6 +9,8 @@
 
 from types import SimpleNamespace
 
+import numpy
+
 from ._validation import QobjValidationError
 from ._utils import QobjType
 
@@ -42,10 +44,16 @@ class QobjItem(SimpleNamespace):
         """
         Return a valid representation of `obj` depending on its type.
         """
-        if isinstance(obj, list):
+        if isinstance(obj, (list, tuple)):
             return [cls._expand_item(item) for item in obj]
         if isinstance(obj, QobjItem):
             return obj.as_dict()
+        if isinstance(obj, numpy.integer):
+            return int(obj)
+        if isinstance(obj, numpy.float):
+            return float(obj)
+        if isinstance(obj, numpy.ndarray):
+            return obj.tolist()
         return obj
 
     @classmethod
