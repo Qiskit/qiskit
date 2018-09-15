@@ -13,13 +13,9 @@ Functions
     index2 -- Takes a bitstring k and inserts bits b1 as the i1th bit
     and b2 as the i2th bit
 
-    enlarge_single_opt(opt, qubit, number_of_qubits) -- takes a single qubit
-    operator opt to a opterator on n qubits
-
-    enlarge_two_opt(opt, q0, q1, number_of_qubits) -- takes a two-qubit
-    operator opt to a opterator on n qubits
-
 """
+
+from string import ascii_uppercase, ascii_lowercase
 import numpy as np
 from sympy import Matrix, pi, E, I, cos, sin, N, sympify
 
@@ -65,48 +61,6 @@ def index2(b1, i1, b2, i2, k):
     return retval
 
 
-def enlarge_single_opt(opt, qubit, number_of_qubits):
-    """Enlarge single operator to n qubits.
-
-    It is exponential in the number of qubits.
-
-    Args:
-        opt (array): the single-qubit opt.
-        qubit (int): the qubit to apply it on counts from 0 and order
-            is q_{n-1} ... otimes q_1 otimes q_0.
-        number_of_qubits (int): the number of qubits in the system.
-
-    Returns:
-        array: enlarge single operator to n qubits
-    """
-    temp_1 = np.identity(2**(number_of_qubits-qubit-1), dtype=complex)
-    temp_2 = np.identity(2**qubit, dtype=complex)
-    enlarge_opt = np.kron(temp_1, np.kron(opt, temp_2))
-    return enlarge_opt
-
-
-def enlarge_two_opt(opt, q0, q1, num):
-    """Enlarge two-qubit operator to n qubits.
-
-    It is exponential in the number of qubits.
-    opt is the two-qubit gate
-    q0 is the first qubit (control) counts from 0
-    q1 is the second qubit (target)
-    returns a complex numpy array
-    number_of_qubits is the number of qubits in the system.
-    """
-    enlarge_opt = np.zeros([1 << (num), 1 << (num)])
-    for i in range(1 << (num-2)):
-        for j in range(2):
-            for k in range(2):
-                for jj in range(2):
-                    for kk in range(2):
-                        enlarge_opt[index2(j, q0, k, q1, i),
-                                    index2(jj, q0, kk, q1, i)] = opt[j+2*k,
-                                                                     jj+2*kk]
-    return enlarge_opt
-
-
 def single_gate_params(gate, params=None):
     """Apply a single qubit gate to the qubit.
 
@@ -147,6 +101,62 @@ def single_gate_matrix(gate, params=None):
                       -np.exp(1j*lam)*np.sin(theta/2)],
                      [np.exp(1j*phi)*np.sin(theta/2),
                       np.exp(1j*phi+1j*lam)*np.cos(theta/2)]])
+
+
+def einsum_matmul_index(gate_indices, number_of_qubits):
+    """Return the index string for Numpy.eignsum matrix multiplication.
+
+    The returned indices are to perform a matrix multiplication A.B where
+    the matrix A is an M-qubit matrix, matrix B is an N-qubit matrix, and
+    M <= N, and identity matrices are implied on the subsystems where A has no
+    support on B.
+
+    Args:
+        gate_indices (list[int]): the indices of the right matrix subsystems
+                                   to contract with the left matrix.
+        number_of_qubits (int): the total number of qubits for the right matrix.
+
+    Returns:
+        str: An indices string for the Numpy.einsum function.
+
+    Raises:
+        QISKitError: if the total number of qubits plus the number of
+        contracted indices is greater than 26.
+    """
+
+    # Since we use ASCII alphabet for einsum index labels we are limited
+    # to 26 total free left (lowercase) and 26 right (uppercase) indexes.
+    # The rank of the contracted tensor reduces this as we need to use that
+    # many characters for the contracted indices
+    if len(gate_indices) + number_of_qubits > 26:
+        raise QISKitError("Total number of free indexes limited to 26")
+
+    # Right indices for the N-qubit input and output tensor
+    idx_right = ascii_uppercase[:number_of_qubits]
+
+    # Left ndicies for N-qubit input tensor
+    idx_left_in = ascii_lowercase[:number_of_qubits]
+
+    # Left indices for the N-qubit output tensor
+    idx_left_out = list(idx_left_in)
+
+    # Left and right indices for the M-qubit multiplying tensor
+    mat_left = ""
+    mat_right = ""
+
+    # Update left indices for mat and output
+    for pos, idx in enumerate(reversed(gate_indices)):
+        mat_left += ascii_lowercase[-1 - pos]
+        mat_right += idx_left_in[-1 - idx]
+        idx_left_out[-1 - idx] = ascii_lowercase[-1 - pos]
+    idx_left_out = "".join(idx_left_out)
+
+    # Combine indices into matrix multiplication string format
+    # for numpy.einsum function
+    return "{mat_l}{mat_r}, ".format(mat_l=mat_left, mat_r=mat_right) + \
+           "{tens_lin}{tens_r}->{tens_lout}{tens_r}".format(tens_lin=idx_left_in,
+                                                            tens_lout=idx_left_out,
+                                                            tens_r=idx_right)
 
 
 # Functions used by the sympy simulators.
