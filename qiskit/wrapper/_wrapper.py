@@ -44,7 +44,7 @@ def register(token=None, url='https://quantumexperience.ng.bluemix.net/api',
         QISKitError: if the provider name is not recognized.
     """
     if provider_class is not None:
-        if not issubclass(provider_class, BaseProvider):
+        if not isinstance(provider_class, BaseProvider):
             raise QISKitError('provider_class must be a valid Provider instance.')
         else:
             reg._DEFAULT_PROVIDER.add_provider(provider_class)
