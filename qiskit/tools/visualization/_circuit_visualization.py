@@ -34,8 +34,8 @@ from matplotlib import get_backend as get_matplotlib_backend, \
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.wrapper import load_qasm_file
-
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.tools.visualization._error import VisualizationError
 from qiskit.transpiler import transpile
 
 logger = logging.getLogger(__name__)
@@ -440,7 +440,11 @@ class QCircuitImage(object):
             for item in self.header['clbit_labels']:
                 self.cregs[item[0]] = item[1]
         self.clbit_list = []
-        for cr in self.cregs:
+        cregs = self.cregs
+        if self._style.reverse:
+            self.orig_cregs = self.cregs
+            cregs = reversed(self.cregs)
+        for cr in cregs:
             for i in range(self.cregs[cr]):
                 self.clbit_list.append((cr, i))
         self.ordered_regs = [(item[0], item[1]) for
@@ -604,6 +608,8 @@ class QCircuitImage(object):
                                            qarglist[0][1])]
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_2 = self.img_regs[cl_reg]
@@ -629,6 +635,8 @@ class QCircuitImage(object):
 
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_3 = self.img_regs[(if_reg, 0)]
@@ -685,6 +693,8 @@ class QCircuitImage(object):
 
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_4 = self.img_regs[(if_reg, 0)]
@@ -842,6 +852,25 @@ class QCircuitImage(object):
                 count += size
         raise ValueError('qubit index lies outside range of qubit registers')
 
+    def _convert_mask(self, mask):
+        orig_clbit_list = []
+        for cr in self.orig_cregs:
+            for i in range(self.orig_cregs[cr]):
+                orig_clbit_list.append((cr, i))
+        bit_list = [(mask >> bit) & 1 for bit in range(
+            len(orig_clbit_list) - 1, -1, -1)]
+        converted_mask_list = [None] * len(bit_list)
+        converted_mask = 0
+        for pos, bit in enumerate(reversed(bit_list)):
+            new_pos = self.clbit_list.index(orig_clbit_list[pos])
+            converted_mask_list[new_pos] = bit
+        if None in converted_mask_list:
+            raise VisualizationError('Reverse mask creation failed')
+        converted_mask_list = list(reversed(converted_mask_list))
+        for bit in converted_mask_list:
+            converted_mask = (converted_mask << 1) | bit
+        return converted_mask
+
     def _build_latex_array(self, aliases=None):
         """Returns an array of strings containing \\LaTeX for this circuit.
 
@@ -866,6 +895,8 @@ class QCircuitImage(object):
         for _, op in enumerate(self.circuit['instructions']):
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
+                if self._style.reverse:
+                    mask = self._convert_mask(mask)
                 cl_reg = self.clbit_list[self._ffs(mask)]
                 if_reg = cl_reg[0]
                 pos_2 = self.img_regs[cl_reg]
@@ -881,6 +912,8 @@ class QCircuitImage(object):
                                            qarglist[0][1])]
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_2 = self.img_regs[cl_reg]
@@ -1252,7 +1285,10 @@ class QCircuitImage(object):
         Returns:
             int: index of the first set bit.
         """
-        return (mask & (-mask)).bit_length() - 1
+        origin = (mask & (-mask)).bit_length()
+        if self._style.reverse:
+            return origin + 1
+        return origin - 1
 
 
 def _get_register_specs(bit_labels):
