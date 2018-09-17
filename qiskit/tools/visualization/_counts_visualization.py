@@ -12,6 +12,7 @@ Visualization functions for measurement counts.
 """
 
 from collections import Counter
+import functools
 import warnings
 
 import numpy as np
@@ -32,8 +33,13 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
             The number of entries must match the lenght of data (if data is a
             list or 1 if it's a dict)
         options (dict): Representation settings containing
+            - width (integer): graph horizontal size, must be specified with
+              height to have an effect
+            - height (integer): graph vertical size, must be specified with
+              width to have an effect
             - number_to_keep (integer): groups max values
             - show_legend (bool): show legend of graph content
+            - sort (string): Could be 'asc' or 'desc'
     Raises:
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
@@ -54,16 +60,26 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
                                  "number of input executions: %s" %
                                  (len(legend), len(data)))
 
-    _, ax = plt.subplots()
+    if 'height' in options and 'width' in options:
+        _, ax = plt.subplots(figsize=(options['height'], options['width']))
+    else:
+        _, ax = plt.subplots()
+
+    labels = sorted(
+        functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
     for item, execution in enumerate(data):
         if number_to_keep is not False or (
                 'number_to_keep' in options and options['number_to_keep']):
             data_temp = dict(Counter(execution).most_common(number_to_keep))
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
-
-        labels = sorted(execution)
-        values = np.array([execution[key] for key in labels], dtype=float)
+        values = []
+        for key in labels:
+            if key not in execution:
+                values.append(0)
+            else:
+                values.append(execution[key])
+        values = np.array(values, dtype=float)
         pvalues = values / sum(values)
         numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
@@ -82,9 +98,19 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
         for rect in rects:
             height = rect.get_height()
             ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                    '%f' % float(height),
+                    '%.3f' % float(height),
                     ha='center', va='bottom')
     if legend and (
             'show_legend' not in options or options['show_legend'] is True):
         plt.legend()
+    if 'sort' in options:
+        if options['sort'] == 'asc':
+            pass
+        elif options['sort'] == 'desc':
+            ax.invert_xaxis()
+        else:
+            raise VisualizationError("Value of sort option, %s, isn't a "
+                                     "valid choice. Must be 'asc' or "
+                                     "'desc'")
+
     plt.show()

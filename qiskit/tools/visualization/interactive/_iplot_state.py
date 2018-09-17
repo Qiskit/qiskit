@@ -9,6 +9,8 @@
 QISKit visualization library.
 """
 
+import numpy as np
+from qiskit.tools.visualization import VisualizationError
 from ._iplot_blochsphere import iplot_blochsphere
 from ._iplot_cities import iplot_cities
 from ._iplot_hinton import iplot_hinton
@@ -16,21 +18,33 @@ from ._iplot_paulivec import iplot_paulivec
 from ._iplot_qsphere import iplot_qsphere
 
 
-def iplot_state(rho, method='city', options=None):
+def iplot_state(quantum_state, method='city', options=None):
     """Plot the quantum state.
 
     Args:
-        rho (ndarray): Density matrix representation
-            of a quantum state vector or mized state.
+        quantum_state (ndarray): statevector or density matrix
+                                 representation of a quantum state.
         method (str): Plotting method to use.
         options (dict): Plotting settings.
 
-    Note:
-        If input is a state vector, you must first
-        convert to density matrix via `qiskit.tools.qi.qi.outer`.
+    Raises:
+        VisualizationError: if the input is not a statevector or density
+        matrix, or if the state is not an multi-qubit quantum state.
     """
 
-    # Need updating to check its a matrix
+    # Check if input is a statevector, and convert to density matrix
+    rho = np.array(quantum_state)
+    if rho.ndim == 1:
+        rho = np.outer(rho, np.conj(rho))
+    # Check the shape of the input is a square matrix
+    shape = np.shape(rho)
+    if len(shape) != 2 or shape[0] != shape[1]:
+        raise VisualizationError("Input is not a valid quantum state.")
+    # Check state is an n-qubit state
+    num = int(np.log2(len(rho)))
+    if 2 ** num != len(rho):
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+
     if method == "city":
         iplot_cities(rho, options)
     elif method == "paulivec":

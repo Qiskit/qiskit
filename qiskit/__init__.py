@@ -51,14 +51,6 @@ from .wrapper._wrapper import (
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
 
-# Import circuit drawing methods by default
-# This is wrapped in a try because the Travis tests fail due to non-framework
-# Python build since using pyenv
-try:
-    from qiskit.tools.visualization import (circuit_drawer, plot_histogram)
-except (ImportError, RuntimeError) as expt:
-    print("Error: {0}".format(expt))
-
 # Set parallel ennvironmental variable
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 

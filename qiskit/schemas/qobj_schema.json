@@ -251,19 +251,17 @@
         },
         "openqasm_instructions": {
             "oneOf": [
-                {
+                { 
                     "properties": {
-                        "name": {
-                            "enum": [
-                                "snapshot",
-                                "wait",
-                                "noise",
-                                "save",
-                                "load"
-                            ]
-                        }
-                    },
-                    "title": "Simulator instructions"
+                        "name": {"not": {
+                            "enum": ["u3", "U", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z", 
+                            "u1", "u0", "rx", "ry", "rz", "u2", "cx", "CX", "cy", "cz", "ch", 
+                            "swap", "cu1", "crz", "rzz", "cu3", "ccx", "cswap", "snapshot", 
+                            "reset", "barrier", "bfunc", "copy", "measure"]
+                            },
+                            "type": "string"                            
+                            }
+                    }
                 },
                 {
                     "properties": {
@@ -295,7 +293,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "3-param 1Q op"
+                    "title": "3-param 1Q gate"
                 },
                 {
                     "properties": {
@@ -333,7 +331,7 @@
                     "required": [
                         "qubits"
                     ],
-                    "title": "fixed 1Q op"
+                    "title": "fixed 1Q gate/operation"
                 },
                 {
                     "properties": {
@@ -369,7 +367,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "1-param 1Q op"
+                    "title": "1-param 1Q gate"
                 },
                 {
                     "properties": {
@@ -401,7 +399,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "2-param 1Q op"
+                    "title": "2-param 1Q gate"
                 },
                 {
                     "properties": {
@@ -471,7 +469,7 @@
                         "qubits",
                         "params"
                     ],
-                    "title": "1-param 2Q controlled gate"
+                    "title": "1-param 2Q gate"
                 },
                 {
                     "properties": {
@@ -535,7 +533,7 @@
                     "required": [
                         "qubits"
                     ],
-                    "title": "fixed 3Q doubly controlled gate"
+                    "title": "fixed 3Q gate"
                 },
                 {
                     "properties": {
@@ -593,6 +591,35 @@
                         "qubits"
                     ],
                     "title": "barrier"
+                },
+                {
+                    "properties": {
+                        "label": {
+                            "type": "string"
+                        },
+                        "memory": {
+                            "maxItems": 0
+                        },
+                        "name": {
+                            "enum": [
+                                "snapshot"
+                            ]
+                        },
+                        "register": {
+                            "maxItems": 0
+                        },
+                        "texparams": {
+                            "maxItems": 0
+                        },
+                        "type": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "label",
+                        "type"
+                    ],
+                    "title": "snapshot"
                 },
                 {
                     "$ref": "#/definitions/bfunc"
@@ -673,6 +700,70 @@
                         "name": {
                             "description": "Experiment name.",
                             "type": "string"
+                        },
+                        "n_qubits": {
+                            "description": "Number of backend qubits for converting back to OpenQasm registers",
+                            "type": "number"
+                        },
+                        "memory_slots": {
+                            "description": "Number of backend memory slots",
+                            "type": "number"
+                        },
+                        "clbit_labels": {
+                            "description": "A list of length memory_slots (from backend.configuration or in this header), where each element is either [creg_name, n] to identify the corresponding memory slot as the n-th element of creg creg_name, or null to identify that the corresponding memory slot has no corresponding creg",
+                            "items": [
+                                {
+                                    "items": [
+                                        {
+                                            "minLength": 1,
+                                            "title": "clreg",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "description": "The register slot of the clreg",
+                                            "minimum": 0,
+                                            "title": "size",
+                                            "type": "integer"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": [
+                                        "array",
+                                        "null"
+                                    ]
+                                }
+                            ],
+                            "minItems": 0,
+                            "title": "Map physical clbits to register_slots (for QASM)",
+                            "type": "array"
+                        },
+                        "qubit_labels": {
+                            "description": "A list of length n_qubits (from backend.configuration or in this header), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
+                            "items": {
+                                "items": [
+                                    {
+                                        "minLength": 1,
+                                        "title": "qreg",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "description": "The qubit number within the qreg",
+                                        "minimum": 0,
+                                        "title": "qubit number",
+                                        "type": "integer"
+                                    }
+                                ],
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": [
+                                    "array",
+                                    "null"
+                                ]
+                            },
+                            "minItems": 0,
+                            "title": "Map physical qubits to qregs (for QASM)",
+                            "type": "array"
                         }
                     },
                     "type": "object"
@@ -734,7 +825,6 @@
                     "type": "array"
                 },
                 "header": {
-                    "_constraints": "sum(x[1] for x in clbit_labels) == number_of_clbits",
                     "description": "QObj metadata that does not affect how the experiments are run on the backend. Carried through to the result.",
                     "properties": {
                         "backend_name": {
@@ -744,112 +834,6 @@
                         "backend_version": {
                             "description": "The backend version this set of experiments was generated for. ",
                             "type": "string"
-                        },
-                        "clbit_labels": {
-                            "description": "A list of pairs [clreg_name, size], to allocate the next size contiguous clbits to clreg clreg_name. The sum of the size-s should equal register_slots",
-                            "examples": [
-                                [
-                                    [
-                                        "c",
-                                        2
-                                    ],
-                                    [
-                                        "d",
-                                        3
-                                    ]
-                                ]
-                            ],
-                            "items": [
-                                {
-                                    "items": [
-                                        {
-                                            "minLength": 1,
-                                            "title": "clreg",
-                                            "type": "string"
-                                        },
-                                        {
-                                            "description": "Size of the clreg",
-                                            "minimum": 1,
-                                            "title": "size",
-                                            "type": "integer"
-                                        }
-                                    ],
-                                    "maxItems": 2,
-                                    "minItems": 2,
-                                    "type": "array"
-                                }
-                            ],
-                            "minItems": 1,
-                            "title": "Map physical clbits to register_slots (for QASM)",
-                            "type": "array",
-                            "uniqueItems": true
-                        },
-                        "qubit_labels": {
-                            "description": "A list of length n_qubits (from backend.configuration), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
-                            "examples": [
-                                [
-                                    [
-                                        "q",
-                                        0
-                                    ],
-                                    [
-                                        "q",
-                                        1
-                                    ],
-                                    [
-                                        "r",
-                                        0
-                                    ],
-                                    [
-                                        "r",
-                                        1
-                                    ],
-                                    [
-                                        "r",
-                                        2
-                                    ]
-                                ],
-                                [
-                                    [
-                                        "q",
-                                        2
-                                    ],
-                                    null,
-                                    [
-                                        "q",
-                                        1
-                                    ],
-                                    null,
-                                    [
-                                        "q",
-                                        0
-                                    ]
-                                ]
-                            ],
-                            "items": {
-                                "items": [
-                                    {
-                                        "minLength": 1,
-                                        "title": "qreg",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "description": "The qubit number within the qreg",
-                                        "minimum": 0,
-                                        "title": "qubit number",
-                                        "type": "integer"
-                                    }
-                                ],
-                                "maxItems": 2,
-                                "minItems": 2,
-                                "type": [
-                                    "array",
-                                    "null"
-                                ]
-                            },
-                            "minItems": 1,
-                            "title": "Map physical qubits to qregs (for QASM)",
-                            "type": "array"
                         }
                     },
                     "type": "object"
