@@ -291,6 +291,7 @@ def qiskitrc_register_providers(specific_provider=None):
         elif pro == specific_provider:
             _register(**pro_dict)
             did_register = 1
+            break
     if not did_register and specific_provider is not None:
         raise QISKitError('Provider %s credentials not found.' %
                           specific_provider)

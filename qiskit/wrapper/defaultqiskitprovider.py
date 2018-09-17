@@ -59,11 +59,7 @@ class DefaultQISKitProvider(BaseProvider):
 
     def get_backend(self, name):
         provider_name = None
-        # We have an overridding backend name
-        duplicate_backends = self._duplicate_backends()
-        if name in duplicate_backends.keys():
-            if duplicate_backends[name]:
-                raise QISKitError('Backend %s is hosted by more than one provider.' % name)
+        self._is_duplicate_backend(name)
         if '@' in name:
             provider_name = name.split('@')[1]
         name = self.resolve_backend_name(name)
@@ -105,16 +101,9 @@ class DefaultQISKitProvider(BaseProvider):
             QISKitError: if passing filters that is neither dict nor callable
         """
         # pylint: disable=arguments-differ
-
-        # Find duplicate backend names
-        duplicate_backends = self._duplicate_backends()
         backends = []
         for provider in self.providers:
-            pro_backends = provider.available_backends()
-            for back in pro_backends:
-                if duplicate_backends[back.name()]:
-                    back._overridding_name = back.name()+'@'+provider.name
-                backends.append(back)
+            backends.extend(provider.available_backends())
 
         if filters is not None:
             if isinstance(filters, dict):
@@ -140,14 +129,8 @@ class DefaultQISKitProvider(BaseProvider):
 
         return backends
 
-    def _duplicate_backends(self):
-        """Determines which backends are provided
-        by multiple providers.
-
-        Returns:
-            dict: Dictionary of bools indicating if the
-            corresponding backend has duplicates.
-        """
+    def _find_backend_override_names(self):
+        # Find duplicate backend names
         duplicate_backends = {}
         for provider in self.providers:
             pro_backends = provider.available_backends()
@@ -157,7 +140,21 @@ class DefaultQISKitProvider(BaseProvider):
                     duplicate_backends[back.name()] = True
                 else:
                     duplicate_backends[back.name()] = False
-        return duplicate_backends
+        # Set backend overridding name if needed
+        for provider in self.providers:
+            pro_backends = provider.available_backends()
+            for back in pro_backends:
+                if duplicate_backends[back.name()]:
+                    back._overridding_name = back.name()+'@'+provider.name
+
+    def _is_duplicate_backend(self, name):
+        if not '@' in name:
+            for provider in self.providers:
+                pro_backends = provider.available_backends()
+                for back in pro_backends:
+                    if '@' in back.name():
+                        if name == back.name().split('@')[0]:
+                            raise QISKitError('Backend %s has multiple Providers' % name)
 
     def grouped_backend_names(self):
         """

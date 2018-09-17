@@ -48,6 +48,7 @@ def register(token=None, url='https://quantumexperience.ng.bluemix.net/api',
             raise QISKitError('provider_class must be a valid Provider instance.')
         else:
             reg._DEFAULT_PROVIDER.add_provider(provider_class)
+            reg._DEFAULT_PROVIDER._find_backend_override_names()
             return
 
     did_register = 0
@@ -80,6 +81,7 @@ def register(token=None, url='https://quantumexperience.ng.bluemix.net/api',
             if not did_register:
                 raise QISKitError("Registration failed: Provider credentials not in qiskitrc file.")
             reg.REGISTER_CALLED = 1
+        reg._DEFAULT_PROVIDER._find_backend_override_names()
 
 
 def unregister(provider_name):
@@ -98,6 +100,7 @@ def unregister(provider_name):
         for idx, name in enumerate(_registered_names):
             if provider_name == name:
                 reg._DEFAULT_PROVIDER.providers.pop(idx)
+                reg._DEFAULT_PROVIDER._find_backend_override_names()
                 return
         raise QISKitError('Provider %s is not registered.' % provider_name)
 
