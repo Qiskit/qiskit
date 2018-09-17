@@ -18,8 +18,8 @@ from matplotlib import cm
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import numpy as np
-from qiskit import QISKitError
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization.bloch import Bloch
 
 
@@ -332,8 +332,8 @@ def plot_state(quantum_state, method='city'):
         method (str): Plotting method to use.
 
     Raises:
-        QISKitError: if the input is not a statevector or density matrix,
-        or if the state is not an multi-qubit quantum state.
+        VisualizationError: if the input is not a statevector or density
+        matrix, or if the state is not an multi-qubit quantum state.
     """
 
     # Check if input is a statevector, and convert to density matrix
@@ -343,11 +343,11 @@ def plot_state(quantum_state, method='city'):
     # Check the shape of the input is a square matrix
     shape = np.shape(rho)
     if len(shape) != 2 or shape[0] != shape[1]:
-        raise QISKitError("Input is not a valid quantum state.")
+        raise VisualizationError("Input is not a valid quantum state.")
     # Check state is an n-qubit state
     num = int(np.log2(len(rho)))
     if 2 ** num != len(rho):
-        raise QISKitError("Input is not a multi-qubit quantum state.")
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
 
     if method == 'city':
         plot_state_city(rho)
