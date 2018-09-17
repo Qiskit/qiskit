@@ -20,7 +20,7 @@ class Comment(Node):
     def __init__(self, value):
         """Create the version node."""
         Node.__init__(self, "comment", None, None)
-        self.comment_text = re.match(r'//(.*)$', value)[1]
+        self.comment_text = re.match(r'//(.*)$', value).group(1)
 
     def qasm(self, prec=None):
         """Return the corresponding comment string."""
