@@ -10,14 +10,21 @@
 """Quick program to test the qi tools modules."""
 
 import unittest
+from unittest.mock import Mock, call
 from copy import deepcopy
+import math
 
 import numpy as np
 
 from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, \
     pauli_group, sgn_prod
 from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
-from qiskit.tools.qi.qi import state_fidelity, purity, concurrence
+from qiskit.tools.qi.qi import state_fidelity, purity, concurrence, qft, chop
+from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
+from qiskit.tools.qi.qi import choi_to_rauli, random_density_matrix
+from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
+from qiskit.tools.qi.qi import __eof_qubit as eof_qubit
+from qiskit import QISKitError
 from .common import QiskitTestCase
 
 
@@ -120,6 +127,11 @@ class TestQI(QiskitTestCase):
                      round(purity(rho3), 10) == 0.745)
         self.assertTrue(test_pass)
 
+    def test_purity_1d_input(self):
+        input_state = [1, 0]
+        res = purity(input_state)
+        self.assertEqual(1, res)
+
     def test_concurrence(self):
         psi1 = [1, 0, 0, 0]
         rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
@@ -133,6 +145,120 @@ class TestQI(QiskitTestCase):
                      concurrence(rho3) == 0.0 and
                      concurrence(rho4) == 0.5)
         self.assertTrue(test_pass)
+
+    def test_concurrence_not_two_qubits(self):
+        input_state = np.array([[0, 1], [1, 0]])
+        self.assertRaises(Exception, concurrence, input_state)
+
+    def test_qft(self):
+        num_qbits = 3
+        circuit = Mock()
+        q = list(range(num_qbits))
+        qft(circuit, q, num_qbits)
+        self.assertEqual([call(0), call(1), call(2)], circuit.h.mock_calls)
+        expected_calls = [call(math.pi / 2.0, 1, 0),
+                          call(math.pi / 4.0, 2, 0),
+                          call(math.pi / 2.0, 2, 1)]
+        self.assertEqual(expected_calls, circuit.cu1.mock_calls)
+
+    def test_chop(self):
+        array_in = [1.023, 1.0456789, 0.0000001, 0.1]
+        res = chop(array_in, epsilon=1e-3)
+        for i, expected in enumerate([1.023, 1.0456789, 0.0, 0.1]):
+            self.assertEqual(expected, res[i])
+
+    def test_chop_imaginary(self):
+        array_in = np.array([0.000456789+0.0004j, 1.0456789, 4+0.00004j,
+                             0.0000742+3j, 0.000002, 2+6j])
+        res = chop(array_in, epsilon=1e-3)
+        for i, expected in enumerate([0.0+0.0j, 1.0456789, 4+0.0j, 0+3j,
+                                      0.0, 2+6j]):
+            self.assertEqual(expected, res[i])
+
+    def test_shannon_entropy(self):
+        input_pvec = np.array([0.5, 0.3, 0.07, 0.1, 0.03])
+        # Base 2
+        self.assertAlmostEqual(1.7736043871504037,
+                               shannon_entropy(input_pvec))
+        # Base e
+        self.assertAlmostEqual(1.229368880382052,
+                               shannon_entropy(input_pvec, np.e))
+        # Base 10
+        self.assertAlmostEqual(0.533908120973504,
+                               shannon_entropy(input_pvec, 10))
+
+    def test_entropy(self):
+        input_density_matrix = np.array([[0.5, 0.0], [0.0, 0.5]])
+        res = entropy(input_density_matrix)
+        self.assertAlmostEqual(0.6931471805599453, res)
+
+    def test_entropy_1d(self):
+        input_vector = np.array([0.5, 1, 0])
+        res = entropy(input_vector)
+        self.assertEqual(0, res)
+
+    def test_mutual_information(self):
+        input_state = np.array([[0.5, 0.25, 0.75, 1],
+                                [1, 0, 1, 0],
+                                [0.5, 0.5, 0.5, 0.5],
+                                [0, 1, 0, 1]])
+        res = mutual_information(input_state, 2)
+        self.assertAlmostEqual(-0.15821825498448047, res)
+
+    def test_entanglement_of_formation(self):
+        input_state = np.array([[0.5, 0.25, 0.75, 1],
+                                [1, 0, 1, 0],
+                                [0.5, 0.5, 0.5, 0.5],
+                                [0, 1, 0, 1]])
+        res = entanglement_of_formation(input_state, 2)
+        self.assertAlmostEqual(0.6985340217364572, res)
+
+    def test_entanglement_of_formation_1d_input(self):
+        input_state = np.array([0.5, 0.25, 0.75, 1])
+        res = entanglement_of_formation(input_state, 2)
+        self.assertAlmostEqual(0.15687647805861626, res)
+
+    def test_entanglement_of_formation_invalid_input(self):
+        input_state = np.array([[0, 1], [1, 0]])
+        res = entanglement_of_formation(input_state, 1)
+        self.assertIsNone(res)
+
+    def test__eof_qubit(self):
+        input_rho = np.array([[0.5, 0.25, 0.75, 1],
+                              [1, 0, 1, 0],
+                              [0.5, 0.5, 0.5, 0.5],
+                              [0, 1, 0, 1]])
+        res = eof_qubit(input_rho)
+        self.assertAlmostEqual(0.6985340217364572, res)
+
+    def test_is_pos_def(self):
+        input_x = np.array([[1, 0],
+                            [0, 1]])
+        res = is_pos_def(input_x)
+        self.assertTrue(res)
+
+    def test_choi_to_rauli(self):
+        input_matrix = np.array([[0.5, 0.25, 0.75, 1],
+                                 [1, 0, 1, 0],
+                                 [0.5, 0.5, 0.5, 0.5],
+                                 [0, 1, 0, 1]])
+        res = choi_to_rauli(input_matrix)
+        expected = np.array([[2.0+0.j, 2.25+0.0j, 0.0+0.75j, -1.0+0.0j],
+                             [1.75+0.j, 2.5+0.j, 0.-1.5j, 0.75+0.0j],
+                             [0.0-0.25j, 0.0+0.5j, -0.5+0.0j, 0.0-1.25j],
+                             [0.0+0.j, 0.25+0.0j, 0.0-1.25j, 1.0+0.0j]])
+        self.assertTrue(np.array_equal(expected, res))
+
+    def test_random_density_matrix(self):
+        # Verify the shape because random data will change each call
+        random_hs_matrix = random_density_matrix(2)
+        self.assertEqual((2, 2), random_hs_matrix.shape)
+        random_bures_matrix = random_density_matrix(2, method='Bures')
+        self.assertEqual((2, 2), random_bures_matrix.shape)
+
+    def test_random_density_matrix_invalid_method(self):
+        self.assertRaises(QISKitError, random_density_matrix, 2,
+                          method='Special')
 
 
 class TestPauli(QiskitTestCase):
