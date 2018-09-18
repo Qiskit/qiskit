@@ -99,7 +99,7 @@ class TestUseCases(SchedulerTestCase):
             PassF_reduce_dag_property(),
             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
             PassG_calculates_dag_property()], \
-            do_while=lambda property_set: not property_set.fixed_point('property'))
+            do_while=lambda property_set: not property_set['fixed_point']['property'])
         self.assertScheduler(self.dag, self.passmanager,
                              ['run transformation pass PassF_reduce_dag_property',
                               'dag property = 6',
@@ -138,7 +138,7 @@ class TestUseCases(SchedulerTestCase):
             PassF_reduce_dag_property(),
             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
             PassG_calculates_dag_property()
-        ], do_while=lambda property_set: not property_set.fixed_point('property'), max_iteration=2)
+        ], do_while=lambda property_set: not property_set['fixed_point']['property'], max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassF_reduce_dag_property',
                                     'dag property = 6',

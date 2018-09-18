@@ -5,65 +5,33 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-""" Some utilities for the property set """
+""" Some utilities for the property set. Before a property is set, registered utilities (via
+    add_utility) are called with 3 arguments:
+        property_set (PropertySet): The property set that will be updated.
+        key (string): The key to update.
+        new_value (any): The new value to store.
+    The return value of the utility is ignored. The utility can make changes in the property set.
+"""
 
-from abc import ABC, abstractmethod
+from collections import defaultdict
 
-
-class Utility(ABC):
+def fixed_point(property_set, key, new_value):
     """
-    An Utility is a property set utility that allows to reason about the state of the property set.
+    A property set utility to detect when a property reaches a fixed point.
+
+    Args:
+        property_set:
+        key:
+        new_value:
+
+    Returns:
+        None
+
     """
-    def __init__(self, property_set):
-        self.property_set = property_set
+    if property_set['fixed_point'] is None:
+        property_set.setitem('fixed_point', defaultdict(lambda : False))
 
-    @abstractmethod
-    def on_change(self, key, new_value):
-        """
-        The method is called when the property set is changed, exactly before updating key with
-        new_value
-
-        Args:
-            key (string): The key to update.
-            new_value (any): The new value to store.
-
-        Raises:
-            NotImplementedError: This is an abstract method that needs to be implemented
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def getter(self):
-        """
-        This method is called when property_set.class_name is called, where class_name is the
-        name of the utility class. It can have more arguments.
-
-        Raises:
-            NotImplementedError: This is an abstract method that needs to be implemented
-        """
-        raise NotImplementedError
-
-
-class fixed_point(Utility):  # pylint: disable=invalid-name
-    """ A property set utility to detect when a property reaches a fixed point."""
-
-    def __init__(self, property_set):
-        self.property_fixed_point = {}
-        super().__init__(property_set)
-
-    def on_change(self, key, new_value):
-        """
-        When a property in key set is updated with the same value, this utility turns True
-        the property_fixed_point[key] value. False otherwise.
-
-        Args:
-            key (string): The key to update.
-            new_value (any): The new value to store.
-        """
-        if self.property_set[key] and new_value:
-            self.property_fixed_point[key] = self.property_set[key] == new_value
-        else:
-            self.property_fixed_point[key] = False
-
-    def getter(self, key):  # pylint: disable=arguments-differ
-        return self.property_fixed_point.get(key, False)
+    if new_value is None:
+        property_set['fixed_point'][key] = False
+    else:
+        property_set['fixed_point'][key] = property_set[key] == new_value
