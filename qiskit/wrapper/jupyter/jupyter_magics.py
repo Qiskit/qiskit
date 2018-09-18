@@ -15,6 +15,9 @@ from IPython.core import magic_arguments                         # pylint: disab
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import qiskit
+from qiskit.transpiler._receiver import receiver as rec
+from qiskit.transpiler._progressbar import TextProgressBar
+from qiskit.wrapper.jupyter.progressbar import HTMLProgressBar
 
 
 @magics_class
@@ -119,3 +122,32 @@ class StatusMagic(Magics):
         # Group all HTML widgets into single vertical layout
         box = widgets.VBox(job_checkers)
         display(box)
+
+
+@magics_class
+class ProgressBarMagic(Magics):
+    """A class of progress bar magic functions.
+    """
+    @cell_magic
+    @magic_arguments.magic_arguments()
+    @magic_arguments.argument(
+        '-t',
+        '--type',
+        type=str,
+        default='html',
+        help="Type of progress bar, 'html' or 'text'."
+    )
+    def qiskit_progress_bar(self, line='', cell=None):  # pylint: disable=W0613
+        """A Jupyter magic function to generate progressbar.
+        """
+        args = magic_arguments.parse_argstring(self.qiskit_progress_bar, line)
+        if args.type == 'html':
+            progress_bar = HTMLProgressBar()
+        elif args.type == 'text':
+            progress_bar = TextProgressBar()
+        else:
+            raise qiskit.QISKitError('Invalid progress bar type.')
+        self.shell.ex(cell)
+        # Remove progress bar from receiver if not used in cell
+        if progress_bar.channel_id in rec.channels.keys():
+            rec.remove_channel(progress_bar.channel_id)

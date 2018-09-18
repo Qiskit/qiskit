@@ -9,11 +9,23 @@
 
 import logging
 import warnings
-from qiskit import transpiler, QISKitError
+from copy import deepcopy
+import uuid
+from qiskit._qiskiterror import QISKitError
+from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.wrapper import credentials
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from qiskit.transpiler._passmanager import PassManager
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler._transpiler import (_matches_coupling_map,
+                                           _pick_best_layout,
+                                           _dags_2_qobj_parallel,
+                                           _transpile_dags_parallel)
+from qiskit.qobj._qobj import Qobj, QobjConfig, QobjHeader
 from qiskit._util import _parse_ibmq_credentials
+from qiskit.transpiler._transpilererror import TranspilerError
+from qiskit.transpiler._parallel import parallel_map
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 # Default provider used by the rest of the functions on this module. Please
@@ -278,19 +290,104 @@ def compile(circuits, backend,
             creates a qobj with minimal check nor translation
     Returns:
         Qobj: the qobj to be run on the backends
+
+    Raises:
+        TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
     # pylint: disable=redefined-builtin
+
+    # Check for valid parameters for the experiments.
+    if hpc is not None and \
+            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
+        raise TranspilerError('Unknown HPC parameter format!')
+
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+
     if isinstance(backend, str):
         backend = _DEFAULT_PROVIDER.get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
-        pass_manager = transpiler.PassManager()
+        pass_manager = PassManager()
 
-    return transpiler.compile(circuits, backend,
-                              config, basis_gates, coupling_map, initial_layout,
-                              shots, max_credits, seed, qobj_id, hpc,
-                              pass_manager)
+    backend_conf = backend.configuration()
+    backend_name = backend_conf['name']
+    basis_gates = basis_gates or backend_conf['basis_gates']
+    coupling_map = coupling_map or backend_conf['coupling_map']
+
+    qobj_config = deepcopy(config or {})
+    qobj_config.update({'shots': shots,
+                        'max_credits': max_credits,
+                        'memory_slots': 0})
+
+    qobj = Qobj(qobj_id=qobj_id or str(uuid.uuid4()),
+                config=QobjConfig(**qobj_config),
+                experiments=[],
+                header=QobjHeader(backend_name=backend_name))
+
+    if seed:
+        qobj.config.seed = seed
+
+    qobj.experiments = parallel_map(_build_exp_parallel, list(range(len(circuits))),
+                                    task_args=(circuits, backend),
+                                    task_kwargs={'initial_layout': initial_layout,
+                                                 'basis_gates': basis_gates,
+                                                 'config': config,
+                                                 'coupling_map': coupling_map,
+                                                 'seed': seed,
+                                                 'pass_manager': pass_manager})
+
+    qobj.config.memory_slots = max(experiment.config.memory_slots for
+                                   experiment in qobj.experiments)
+
+    qobj.config.n_qubits = max(experiment.config.n_qubits for
+                               experiment in qobj.experiments)
+
+    return qobj
+
+
+def _build_exp_parallel(idx, circuits, backend, initial_layout=None,
+                        basis_gates='u1,u2,u3,cx,id', config=None,
+                        coupling_map=None, seed=None, pass_manager=None):
+    """Builds a single Qobj experiment.  Usually called in parallel mode.
+
+    Args:
+        idx (int): Index of circuit in circuits list.
+        circuits (list): List of circuits passed.
+        backend (BaseBackend or str): a backend to compile for
+        initial_layout (list): initial layout of qubits in mapping
+        basis_gates (str): comma-separated basis gate set to compile to
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        seed (int): random seed for simulators
+        pass_manager (PassManager): pass manager instance for the tranpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
+
+    Returns:
+        experiment: An instance of an experiment to be added to a Qobj.
+    """
+
+    circuit = circuits[idx]
+    dag = DAGCircuit.fromQuantumCircuit(circuit)
+
+    if (initial_layout is None and not backend.configuration()['simulator']
+            and not _matches_coupling_map(dag, coupling_map)):
+        _initial_layout = _pick_best_layout(dag, backend)
+    else:
+        _initial_layout = initial_layout
+
+    dag = _transpile_dags_parallel(0, [dag], [_initial_layout],
+                                   basis_gates=basis_gates, coupling_map=coupling_map,
+                                   seed=seed, pass_manager=pass_manager)
+
+    experiment = _dags_2_qobj_parallel(
+        dag, basis_gates=basis_gates, config=config, coupling_map=coupling_map)
+
+    return experiment
 
 
 def execute(circuits, backend,

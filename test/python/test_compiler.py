@@ -531,6 +531,21 @@ class TestCompiler(QiskitTestCase):
         self.assertEqual(result.get_counts(qc),
                          {'010000': 1024})
 
+    def test_parallel_compile(self):
+        """Trigger parallel routines in compile.
+        """
+        backend = FakeBackEnd()
+        qr = QuantumRegister(16)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        for k in range(1, 15):
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr[5], cr[0])
+        qlist = [qc for k in range(10)]
+        qobj = compile(qlist, backend=backend)
+        self.assertEqual(len(qobj.experiments), 10)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
