@@ -8,6 +8,7 @@
 """ A property set is handle by the PassManager to keep information about the current state of
 the  circuit """
 
+
 class PropertySet:
     """ A dictionary-like object """
 
@@ -20,20 +21,17 @@ class PropertySet:
 
     def setitem(self, key, value):
         """
-        Sets an item without calling any utilities.
+        Sets an item without calling any utilities. Same interface as __setitem__.
         Args:
-            key:
-            value:
-
-        Returns:
-
+            key (string): key property to set
+            value (anything): value to set
         """
         self._properties[key] = value
 
     def __setitem__(self, key, value):
         for utility in self.utilities:
             self.utilities[utility](self, key, value)
-        self._properties[key] = value
+        self.setitem(key, value)
 
     def add_utility(self, utility_class):
         """

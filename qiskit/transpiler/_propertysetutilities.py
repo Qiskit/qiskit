@@ -15,21 +15,18 @@
 
 from collections import defaultdict
 
+
 def fixed_point(property_set, key, new_value):
     """
     A property set utility to detect when a property reaches a fixed point.
 
     Args:
-        property_set:
-        key:
-        new_value:
-
-    Returns:
-        None
-
+        property_set (PropertySet): The property set that will be updated.
+        key (string): The key to update.
+        new_value (any): The new value to store.
     """
     if property_set['fixed_point'] is None:
-        property_set.setitem('fixed_point', defaultdict(lambda : False))
+        property_set.setitem('fixed_point', defaultdict(lambda: False))
 
     if new_value is None:
         property_set['fixed_point'][key] = False

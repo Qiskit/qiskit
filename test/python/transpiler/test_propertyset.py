@@ -19,7 +19,7 @@ logger = "LocalLogger"
 def dummy_utility(property_set, key, new_value):
     """ A dummy utility just for testing the utility registration"""
     logging.getLogger(logger).info('the property %s is updated with %s (previously %s)',
-                                       key, new_value, property_set[key])
+                                   key, new_value, property_set[key])
 
 
 class TestPropertySet(QiskitTestCase):
@@ -76,6 +76,7 @@ class TestPropertySet(QiskitTestCase):
         self.assertEqual([record.message for record in context.records],
                          ['the property property is updated with 1 (previously None)',
                           'the property property is updated with 2 (previously 1)'])
+
 
 if __name__ == '__main__':
     unittest.main()
