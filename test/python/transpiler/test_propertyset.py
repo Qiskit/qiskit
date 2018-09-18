@@ -10,24 +10,16 @@
 import unittest
 import logging
 from qiskit.transpiler import PropertySet
-from qiskit.transpiler._propertysetutilities import fixed_point, Utility
+from qiskit.transpiler._propertysetutilities import fixed_point
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
 
-class dummy_utility(Utility):  # pylint: disable=invalid-name
+def dummy_utility(property_set, key, new_value):
     """ A dummy utility just for testing the utility registration"""
-    def on_change(self, key, new_value):
-        """
-        Does nothing. Just print the value to update
-        """
-        logging.getLogger(logger).info('the property %s is updated with %s (previously %s)',
-                                       key, new_value, self.property_set[key])
-
-    def getter(self):
-        logging.getLogger(logger).info('dummy utility called. Returns True')
-        return True
+    logging.getLogger(logger).info('the property %s is updated with %s (previously %s)',
+                                       key, new_value, property_set[key])
 
 
 class TestPropertySet(QiskitTestCase):
@@ -46,38 +38,34 @@ class TestPropertySet(QiskitTestCase):
         self.pset['property'] = 'value'
         self.assertEqual(self.pset['property'], 'value')
 
-    def test_fixed_point_non_existent(self):
-        """ Getting the fixed point of a non-existent property should return False. """
-        self.assertFalse(self.pset.fixed_point('does_not_exist'))
-
     def test_fixed_point_setting_to_none(self):
         """ Setting a property to None twice does not create a fixed-point. """
         self.pset['property'] = None
         self.pset['property'] = None
-        self.assertFalse(self.pset.fixed_point('property'))
+        self.assertFalse(self.pset['fixed_point']['property'])
 
     def test_fixed_point_reached(self):
         """ Setting a property to the same value twice creates a fixed-point. """
         self.pset['property'] = 1
-        self.assertFalse(self.pset.fixed_point('property'))
+        self.assertFalse(self.pset['fixed_point']['property'])
         self.pset['property'] = 1
-        self.assertTrue(self.pset.fixed_point('property'))
+        self.assertTrue(self.pset['fixed_point']['property'])
 
     def test_fixed_point_not_reached(self):
         """ Setting a property with different values does not create a fixed-point. """
         self.pset['property'] = 1
-        self.assertFalse(self.pset.fixed_point('property'))
+        self.assertFalse(self.pset['fixed_point']['property'])
         self.pset['property'] = 2
-        self.assertFalse(self.pset.fixed_point('property'))
+        self.assertFalse(self.pset['fixed_point']['property'])
 
     def test_fixed_point_left(self):
         """ A fixed-point is not permanent. """
         self.pset['property'] = 1
-        self.assertFalse(self.pset.fixed_point('property'))
+        self.assertFalse(self.pset['fixed_point']['property'])
         self.pset['property'] = 1
-        self.assertTrue(self.pset.fixed_point('property'))
+        self.assertTrue(self.pset['fixed_point']['property'])
         self.pset['property'] = 2
-        self.assertFalse(self.pset.fixed_point('property'))
+        self.assertFalse(self.pset['fixed_point']['property'])
 
     def test_dummy_utility(self):
         """ Testing add_utility, on_change and getter in a dummy utility """
@@ -88,12 +76,6 @@ class TestPropertySet(QiskitTestCase):
         self.assertEqual([record.message for record in context.records],
                          ['the property property is updated with 1 (previously None)',
                           'the property property is updated with 2 (previously 1)'])
-
-        with self.assertLogs(logger, level='INFO') as context:
-            self.assertTrue(self.pset.dummy_utility())
-        self.assertEqual([record.message for record in context.records],
-                         ['dummy utility called. Returns True'])
-
 
 if __name__ == '__main__':
     unittest.main()
