@@ -23,9 +23,9 @@ from qiskit.transpiler._transpiler import (_matches_coupling_map,
                                            _dags_2_qobj_parallel,
                                            _transpile_dags_parallel)
 from qiskit.qobj._qobj import Qobj, QobjConfig, QobjHeader
-from qiskit._parallel import parallel_map
 from qiskit._util import _parse_ibmq_credentials
 from qiskit.transpiler._transpilererror import TranspilerError
+from qiskit.transpiler._parallel import parallel_map
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 # Default provider used by the rest of the functions on this module. Please

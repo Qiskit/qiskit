@@ -8,9 +8,9 @@
 """Tests for qiskit/_util.py"""
 
 import time
-from qiskit._receiver import receiver as rec
-from qiskit._parallel import parallel_map
-from qiskit._progressbar import TextProgressBar
+from qiskit.transpiler._receiver import receiver as rec
+from qiskit.transpiler._parallel import parallel_map
+from qiskit.transpiler._progressbar import TextProgressBar
 from .common import QiskitTestCase
 
 

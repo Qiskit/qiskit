@@ -22,7 +22,7 @@ from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
-from qiskit._parallel import parallel_map
+from ._parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 

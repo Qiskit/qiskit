@@ -43,7 +43,7 @@
 import time
 import datetime
 import sys
-from qiskit._receiver import receiver as rec
+from ._receiver import receiver as rec
 
 
 class BaseProgressBar(object):

@@ -15,8 +15,8 @@ from IPython.core import magic_arguments                         # pylint: disab
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import qiskit
-from qiskit._receiver import receiver as rec
-from qiskit._progressbar import TextProgressBar
+from qiskit.transpiler._receiver import receiver as rec
+from qiskit.transpiler._progressbar import TextProgressBar
 from qiskit.wrapper.jupyter.progressbar import HTMLProgressBar
 
 

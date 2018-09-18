@@ -45,13 +45,16 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit._receiver import receiver as rec
-from qiskit._progressbar import BaseProgressBar
 from qiskit._qiskiterror import QISKitError
 from qiskit._util import local_hardware_info
+from ._receiver import receiver as rec
+from ._progressbar import BaseProgressBar
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
+
+# Set parallel ennvironmental variable
+os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
