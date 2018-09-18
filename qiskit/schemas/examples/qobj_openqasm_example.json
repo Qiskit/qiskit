@@ -4,16 +4,19 @@
     "type": "QASM",
     "header": {
         "description": "Set of Experiments 1",
-        "backend_name": "ibmqx2",
-        "clbit_labels": [["c1", 1],["c2",2]],
-        "qubit_labels": [["q", 0],null,["q",1]]},
+        "backend_name": "ibmqx2"},
     "config": {
         "shots": 1024,
         "memory_slots": 3
         },
     "experiments": [
         {
-        "header": {},
+        "header": {
+            "memory_slots": 3,
+            "n_qubits": 3,
+            "clbit_labels": [["c1", 0],null,null],
+            "qubit_labels": [null,["q", 0],["q",1]]
+            },
         "config": {},
         "instructions": [
             {"name": "u1", "qubits": [1], "params": [0.4]},
@@ -27,7 +30,12 @@
             ]
         },
         {
-        "header": {},
+        "header": {
+            "memory_slots": 3,
+            "n_qubits": 3,
+            "clbit_labels": [["c1", 0],null,null],
+            "qubit_labels": [null,["q", 0],["q",1]]
+            },
         "config": {},
         "instructions": [
             {"name": "u1", "qubits": [1], "params": [0.4]},

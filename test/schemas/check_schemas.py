@@ -17,7 +17,7 @@ import json
 import jsonschema as jsch
 
 schema_tests = []
-verbose_err = False
+verbose_err = True
 any_error = False
 cur_file_path = os.path.dirname(os.path.abspath(__file__))
 # go two directories up
@@ -50,6 +50,17 @@ schema_tests.append({"schema": "job_status_schema.json",
                          "job_status_example.json"
                          ]})
 schema_tests.append({"schema": "qobj_schema.json",
+                     "examples": [
+                         "qobj_openpulse_example.json",
+                         "qobj_openqasm_example.json",
+                         "cpp_two_qubit_gates.json"
+                         ]})
+schema_tests.append({"schema": "ibmq_device_qobj_schema.json",
+                     "examples": [
+                         "qobj_openpulse_example.json",
+                         "qobj_openqasm_example.json"
+                         ]})
+schema_tests.append({"schema": "ibmq_simulator_qobj_schema.json",
                      "examples": [
                          "qobj_openpulse_example.json",
                          "qobj_openqasm_example.json"
