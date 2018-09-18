@@ -11,6 +11,7 @@
 """Main QISKit public functionality."""
 
 import os
+import sys
 import pkgutil
 
 # First, check for required Python and API version
@@ -35,6 +36,10 @@ import qiskit.extensions.quantum_initializer
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code.
+__path__ = pkgutil.extend_path(__path__, __name__)
+
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 from .wrapper._wrapper import (
