@@ -18,7 +18,7 @@ from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, Tra
 from qiskit.transpiler._passmanager import PluginDoWhile
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
-    PassH_Bad_TP, PassI_Bad_AP
+    PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
@@ -275,6 +275,11 @@ class TestUseCases(SchedulerTestCase):
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
 
+    def test_pass_no_return_a_dag(self):
+        """ Passes instances with same arguments (independently of the order) are the same. """
+        self.passmanager.add_pass(PassJ_Bad_NoReturn())
+        self.assertSchedulerRaises(self.dag, self.passmanager,
+                                   ['run transformation pass PassJ_Bad_NoReturn'], TranspilerError)
 
 class DoXTimesPlugin(ControlFlowPlugin):
     """ A control-flow plugin for running a set of passes an X amount of times."""

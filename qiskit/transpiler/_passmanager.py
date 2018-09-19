@@ -12,6 +12,7 @@ from ._basepasses import BasePass
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
 from ._transpilererror import TranspilerError
 from ._propertysetutilities import fixed_point
+from qiskit.dagcircuit import DAGCircuit
 
 
 class PassManager():
@@ -105,7 +106,7 @@ class PassManager():
             dag (DAGCircuit): dag circuit to transform via all the registered passes
         """
         for pass_ in self.working_list:
-            self._do_pass(pass_, dag)
+            dag = self._do_pass(pass_, dag)
 
     def _do_pass(self, pass_, dag):
         """
@@ -126,7 +127,12 @@ class PassManager():
         if pass_ not in self.valid_passes:
             if pass_.is_TransformationPass:
                 pass_.property_set = self.fenced_property_set
-                pass_.run(dag)
+                new_dag = pass_.run(dag)
+                if not isinstance(new_dag, DAGCircuit):
+                    raise TranspilerError("Transformation passes should return the transformed dag."
+                                          "The pass %s is returning a %s" % (type(pass_).__name__,
+                                                                             type(new_dag)))
+                dag = new_dag
             elif pass_.is_AnalysisPass:
                 pass_.property_set = self.property_set
                 pass_.run(FencedDAGCircuit(dag))
@@ -135,6 +141,8 @@ class PassManager():
 
             # update the valid_passes property
             self._update_valid_passes(pass_)
+
+        return dag
 
     def _update_valid_passes(self, pass_):
         if not pass_.is_AnalysisPass:  # Analysis passes preserve all

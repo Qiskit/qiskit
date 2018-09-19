@@ -21,6 +21,7 @@ class DummyTP(TransformationPass):
 
     def run(self, dag):
         logging.getLogger(logger).info('run transformation pass %s', self.name)
+        return dag
 
 
 class DummyAP(AnalysisPass):
@@ -73,6 +74,7 @@ class PassD_TP_NR_NP(DummyTP):
     def run(self, dag):
         super().run(dag)
         logging.getLogger(logger).info('argument %s', self.argument1)
+        return dag
 
 
 class PassE_AP_NR_NP(DummyAP):
@@ -105,6 +107,7 @@ class PassF_reduce_dag_property(DummyTP):
             dag.property = 8
         dag.property = round(dag.property * 0.8)
         logging.getLogger(logger).info('dag property = %i', dag.property)
+        return dag
 
 
 class PassG_calculates_dag_property(DummyAP):
@@ -132,6 +135,7 @@ class PassH_Bad_TP(DummyTP):
         super().run(dag)
         self.property_set['property'] = "value"
         logging.getLogger(logger).info('set property as %s', self.property_set['property'])
+        return dag
 
 
 class PassI_Bad_AP(DummyAP):
@@ -146,3 +150,14 @@ class PassI_Bad_AP(DummyAP):
         logging.getLogger(logger).info('cx_runs: %s', cx_runs)
         dag._remove_op_node(cx_runs.pop()[0])
         logging.getLogger(logger).info('done removing')
+
+
+class PassJ_Bad_NoReturn(DummyTP):
+    """ A bad dummy transformation pass that does not return a DAG.
+    NR: No Requires
+    NP: No Preserves
+    """
+
+    def run(self, dag):
+        super().run(dag)
+        return "Something else than DAG"
