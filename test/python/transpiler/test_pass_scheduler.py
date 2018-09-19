@@ -226,7 +226,7 @@ class TestUseCases(SchedulerTestCase):
         """ A pass set with a do_while parameter that checks for a fixed point. """
         self.passmanager.add_pass(
             [PassK_check_fixed_point('property', PassG_calculates_dag_property()),
-             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
+             PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set['fixed_point']['property'])
         self.assertScheduler(self.dag, self.passmanager,
@@ -277,7 +277,7 @@ class TestUseCases(SchedulerTestCase):
         """ A pass set with a do_while parameter that checks that the max_iteration is raised. """
         self.passmanager.add_pass(
             [PassK_check_fixed_point('property', PassG_calculates_dag_property()),
-             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
+             PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set['fixed_point']['property'],
             max_iteration=2)

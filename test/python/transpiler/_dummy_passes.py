@@ -100,9 +100,9 @@ class PassE_AP_NR_NP(DummyAP):
         logging.getLogger(logger).info('set property as %s', self.property_set['property'])
 
 
-class PassF_reduce_dag_property(DummyTP):
+class PassF_reduce_dag_property(DummyNI):
     """ A dummy transformation pass that (sets and) reduces a property in the DAG.
-    TP: Transformation Pass
+    NI: Non-idempotent transformation pass
     NR: No Requires
     NP: No Preserves
     """
