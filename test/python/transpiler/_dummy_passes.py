@@ -10,6 +10,8 @@
 """Dummy passes used by Tranpiler testing"""
 
 import logging
+from collections import defaultdict
+
 
 from qiskit.transpiler import TransformationPass, AnalysisPass
 
@@ -95,8 +97,8 @@ class PassE_AP_NR_NP(DummyAP):
 
 
 class PassF_reduce_dag_property(DummyTP):
-    """ A dummy transformation pass that (sets and)reduces a property in the DAG.
-    AP: Analysis Pass
+    """ A dummy transformation pass that (sets and) reduces a property in the DAG.
+    TP: Transformation Pass
     NR: No Requires
     NP: No Preserves
     """
@@ -111,7 +113,7 @@ class PassF_reduce_dag_property(DummyTP):
 
 
 class PassG_calculates_dag_property(DummyAP):
-    """ A dummy transformation pass that (sets and)reduces a property in the DAG.
+    """ A dummy transformation pass that "calculates" property in the DAG.
     AP: Analysis Pass
     NR: No Requires
     NP: No Preserves
@@ -119,8 +121,10 @@ class PassG_calculates_dag_property(DummyAP):
 
     def run(self, dag):
         super().run(dag)
-        prop = dag.property
-        self.property_set['property'] = prop
+        if hasattr(dag, 'property'):
+            self.property_set['property'] = dag.property
+        else:
+            self.property_set['property'] = 8
         logging.getLogger(logger).info('set property as %s (from dag.property)',
                                        self.property_set['property'])
 
@@ -161,3 +165,41 @@ class PassJ_Bad_NoReturn(DummyTP):
     def run(self, dag):
         super().run(dag)
         return "Something else than DAG"
+
+
+class PassK_check_fixed_point(DummyAP):
+    """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
+    in property_set['fixed_point'][<property>] as a boolean
+    AP: Analysis Pass
+    NR: PassG_calculates_dag_property() when the property to check is "property"
+    NP: PassG_calculates_dag_property() when the property to check is "property"
+    """
+
+    def __init__(self, property_to_check):
+        self._property = property_to_check
+        self._previous_value = None
+        if property_to_check == "property":
+            self.requires = [PassG_calculates_dag_property()]
+            self.preserves = [PassG_calculates_dag_property()]
+
+    def run(self, dag):
+        super().run(dag)
+
+        if self.property_set['fixed_point'] is None:
+            self.property_set.setitem('fixed_point', defaultdict(lambda: False))
+            # self.property_set['fixed_point'] = defaultdict(lambda: False)
+
+        current_value = self.property_set[self._property]
+
+        if self._previous_value is not None:
+            self.property_set['fixed_point'][self._property] = self._previous_value == current_value
+
+        self._previous_value = current_value
+
+        # if self._property not in self._previous_values:
+        #     self._previous_values[self._property] = current_value
+        #     self.property_set['fixed_point'][self._property] = False
+        # else:
+        #     previous_value = self._prev_values[self._property]
+        #     self.property_set['fixed_point'][self._property] = previous_value == current_value
+        #     self._previous_values[self._property] = current_value
