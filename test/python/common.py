@@ -374,7 +374,7 @@ def requires_qe_access(func):
 def _get_http_recorder(test_options):
     vcr_mode = 'none'
     if test_options['rec']:
-        vcr_mode = 'all'
+        vcr_mode = 'new_episodes'
     return http_recorder(vcr_mode, Path.CASSETTES.value)
 
 
