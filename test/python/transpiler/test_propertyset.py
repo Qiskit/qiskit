@@ -11,6 +11,7 @@ import unittest
 from qiskit.transpiler import PropertySet
 from ..common import QiskitTestCase
 
+
 class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
@@ -25,6 +26,7 @@ class TestPropertySet(QiskitTestCase):
         """ Setting and retrieving."""
         self.pset['property'] = 'value'
         self.assertEqual(self.pset['property'], 'value')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -12,6 +12,7 @@ from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import FixedPoint
 from ..common import QiskitTestCase
 
+
 class TestFixedPointPass(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
@@ -68,6 +69,7 @@ class TestFixedPointPass(QiskitTestCase):
         self.pset['property'] = 2
         self.pass_.run(self.dag)
         self.assertFalse(self.pset['fixed_point']['property'])
+
 
 if __name__ == '__main__':
     unittest.main()

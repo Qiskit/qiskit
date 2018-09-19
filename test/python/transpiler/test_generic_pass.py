@@ -69,5 +69,6 @@ class TestGenericPass(QiskitTestCase):
         tp_pass.set(idempotence=True)
         self.assertTrue(tp_pass.is_idempotent)
 
+
 if __name__ == '__main__':
     unittest.main()

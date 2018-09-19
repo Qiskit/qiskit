@@ -38,7 +38,7 @@ class BasePass(metaclass=MetaPass):
 
     requires = []  # List of passes that requires
     preserves = []  # List of passes that preserves
-    idempotence = True # By default, passes are idempotent
+    idempotence = True  # By default, passes are idempotent
     property_set = {}
     _defaults = {}
     _settings = {}
