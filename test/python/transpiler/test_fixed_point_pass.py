@@ -9,8 +9,8 @@
 
 import unittest
 from qiskit.transpiler import PropertySet
-from ..common import QiskitTestCase
 from qiskit.transpiler.passes import FixedPoint
+from ..common import QiskitTestCase
 
 class TestFixedPointPass(QiskitTestCase):
     """ Tests for PropertySet methods. """

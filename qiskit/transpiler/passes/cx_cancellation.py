@@ -19,6 +19,8 @@ class CXCancellation(TransformationPass):
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on.
+        Returns:
+            DAGCircuit: Transformed DAG.
         """
         cx_runs = dag.collect_runs(["cx"])
         for cx_run in cx_runs:

@@ -7,11 +7,11 @@
 """PassManager class for the transpiler."""
 
 from functools import partial
+from qiskit.dagcircuit import DAGCircuit
 from ._propertyset import PropertySet
 from ._basepasses import BasePass
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
 from ._transpilererror import TranspilerError
-from qiskit.dagcircuit import DAGCircuit
 
 
 class PassManager():
@@ -111,6 +111,9 @@ class PassManager():
         Args:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag in which the pass is ran.
+        Returns:
+            DAGCircuit: The transformed dag in case of a transformation pass. The same dag as
+            parameter in case of the analysis pass.
         Raises:
             TranspilerError: If the pass is not a proper pass instance.
         """

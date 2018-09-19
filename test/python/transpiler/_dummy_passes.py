@@ -172,6 +172,7 @@ class PassK_check_fixed_point(DummyAP, FixedPoint):
     AP: Analysis Pass
     NR: PassG_calculates_dag_property() # set at __init__ time
     """
+
     def run(self, dag):
         for base in PassK_check_fixed_point.__bases__:
             base.run(self, dag)

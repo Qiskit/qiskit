@@ -18,9 +18,10 @@ class FixedPoint(AnalysisPass):
     def __init__(self, property_to_check, pass_that_updates_the_property=None):
         """
         Args:
-            property_to_check: The property to check if a fixed point was reached.
-            pass_that_updates_the_property: The pass instance that updates that property.
+            property_to_check (str): The property to check if a fixed point was reached.
+            pass_that_updates_the_property (BasePass): The pass instance that updates that property.
         """
+        super().__init__()
         self._property = property_to_check
         self._previous_value = None
         if pass_that_updates_the_property:
