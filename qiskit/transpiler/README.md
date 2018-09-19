@@ -11,7 +11,7 @@ The main goal is to provide an extensible infrastructure of pluggable passes tha
 - Passes run with the implementation of the abstract method `run`, which take a DAG representation of the circuit as a parameter.
 - Analysis passes analyze the DAG and write conclusions to a common context, an instance of the `PropertySet` class.
 - All the passes can read the property set.
-- Transformation passes can alter the DAG.
+- Transformation passes can alter the DAG and should return a DAG.
 
 ### Pass Mananger
 - A `PassManager` instance schedule for running registered passes.
