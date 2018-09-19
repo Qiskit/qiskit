@@ -93,65 +93,6 @@ class TestUseCases(SchedulerTestCase):
         self.assertScheduler(self.dag, self.passmanager, ['run analysis pass PassE_AP_NR_NP',
                                                           'set property as False'])
 
-    def test_do_while_until_fixed_point(self):
-        """ A pass set with a do_while parameter that checks for a fixed point. """
-        self.passmanager.add_pass([
-            PassF_reduce_dag_property(),
-            PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
-            PassG_calculates_dag_property()], \
-            do_while=lambda property_set: not property_set['fixed_point']['property'])
-        self.assertScheduler(self.dag, self.passmanager,
-                             ['run transformation pass PassF_reduce_dag_property',
-                              'dag property = 6',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 6 (from dag.property)',
-                              'run transformation pass PassF_reduce_dag_property',
-                              'dag property = 5',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 5 (from dag.property)',
-                              'run transformation pass PassF_reduce_dag_property',
-                              'dag property = 4',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 4 (from dag.property)',
-                              'run transformation pass PassF_reduce_dag_property',
-                              'dag property = 3',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 3 (from dag.property)',
-                              'run transformation pass PassF_reduce_dag_property',
-                              'dag property = 2',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 2 (from dag.property)',
-                              'run transformation pass PassF_reduce_dag_property',
-                              'dag property = 2',
-                              'run transformation pass PassA_TP_NR_NP',
-                              'run analysis pass PassG_calculates_dag_property',
-                              'set property as 2 (from dag.property)'])
-
-    def test_do_while_until_max_iterationt(self):
-        """ A pass set with a do_while parameter that checks that the max_iteration is raised. """
-        self.passmanager.add_pass(
-            [PassF_reduce_dag_property(),
-             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
-             PassG_calculates_dag_property()],
-            do_while=lambda property_set: not property_set['fixed_point']['property'],
-            max_iteration=2)
-        self.assertSchedulerRaises(self.dag, self.passmanager,
-                                   ['run transformation pass PassF_reduce_dag_property',
-                                    'dag property = 6',
-                                    'run transformation pass PassA_TP_NR_NP',
-                                    'run analysis pass PassG_calculates_dag_property',
-                                    'set property as 6 (from dag.property)',
-                                    'run transformation pass PassF_reduce_dag_property',
-                                    'dag property = 5',
-                                    'run transformation pass PassA_TP_NR_NP',
-                                    'run analysis pass PassG_calculates_dag_property',
-                                    'set property as 5 (from dag.property)'], TranspilerError)
-
     def test_do_not_repeat_based_on_preservation(self):
         """ When a pass is still a valid pass (because following passes preserved it), it should not
         run again"""
@@ -282,14 +223,12 @@ class TestUseCases(SchedulerTestCase):
                                    ['run transformation pass PassJ_Bad_NoReturn'], TranspilerError)
 
     def test_fixed_point_pass(self):
-        """ TODO """
-        self.maxDiff = None
-        self.passmanager.add_pass([PassK_check_fixed_point('property'),
-                                   PassA_TP_NR_NP(),
-                                   # Since preserves nothings,  allows PassF to loop
-                                   PassF_reduce_dag_property()],
-                                  do_while=lambda property_set: not property_set['fixed_point'][
-                                      'property'])
+        """ A pass set with a do_while parameter that checks for a fixed point. """
+        self.passmanager.add_pass(
+            [PassK_check_fixed_point('property', PassG_calculates_dag_property()),
+             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
+             PassF_reduce_dag_property()],
+            do_while=lambda property_set: not property_set['fixed_point']['property'])
         self.assertScheduler(self.dag, self.passmanager,
                              ['run analysis pass PassG_calculates_dag_property',
                               'set property as 8 (from dag.property)',
@@ -333,6 +272,28 @@ class TestUseCases(SchedulerTestCase):
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 2'])
+
+    def test_fixed_point_pass_max_iteration(self):
+        """ A pass set with a do_while parameter that checks that the max_iteration is raised. """
+        self.passmanager.add_pass(
+            [PassK_check_fixed_point('property', PassG_calculates_dag_property()),
+             PassA_TP_NR_NP(),  # Since preserves nothings,  allows PassF to loop
+             PassF_reduce_dag_property()],
+            do_while=lambda property_set: not property_set['fixed_point']['property'],
+            max_iteration=2)
+        self.assertSchedulerRaises(self.dag, self.passmanager,
+                                   ['run analysis pass PassG_calculates_dag_property',
+                                    'set property as 8 (from dag.property)',
+                                    'run analysis pass PassK_check_fixed_point',
+                                    'run transformation pass PassA_TP_NR_NP',
+                                    'run transformation pass PassF_reduce_dag_property',
+                                    'dag property = 6',
+                                    'run analysis pass PassG_calculates_dag_property',
+                                    'set property as 6 (from dag.property)',
+                                    'run analysis pass PassK_check_fixed_point',
+                                    'run transformation pass PassA_TP_NR_NP',
+                                    'run transformation pass PassF_reduce_dag_property',
+                                    'dag property = 5'], TranspilerError)
 
 
 class DoXTimesPlugin(ControlFlowPlugin):

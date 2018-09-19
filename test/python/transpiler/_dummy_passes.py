@@ -10,8 +10,7 @@
 """Dummy passes used by Tranpiler testing"""
 
 import logging
-from collections import defaultdict
-
+from qiskit.transpiler.passes import TestFixedPoint
 
 from qiskit.transpiler import TransformationPass, AnalysisPass
 
@@ -167,38 +166,12 @@ class PassJ_Bad_NoReturn(DummyTP):
         return "Something else than DAG"
 
 
-class PassK_check_fixed_point(DummyAP):
+class PassK_check_fixed_point(DummyAP, TestFixedPoint):
     """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
     in property_set['fixed_point'][<property>] as a boolean
     AP: Analysis Pass
-    NR: PassG_calculates_dag_property() when the property to check is "property"
-    NP: PassG_calculates_dag_property() when the property to check is "property"
+    NR: PassG_calculates_dag_property() # set at __init__ time
     """
-
-    def __init__(self, property_to_check):
-        self._property = property_to_check
-        self._previous_value = None
-        if property_to_check == "property":
-            self.requires = [PassG_calculates_dag_property()]
-            self.preserves = [PassG_calculates_dag_property()]
-
     def run(self, dag):
-        super().run(dag)
-
-        if self.property_set['fixed_point'] is None:
-            self.property_set['fixed_point'] = defaultdict(lambda: False)
-
-        current_value = self.property_set[self._property]
-
-        if self._previous_value is not None:
-            self.property_set['fixed_point'][self._property] = self._previous_value == current_value
-
-        self._previous_value = current_value
-
-        # if self._property not in self._previous_values:
-        #     self._previous_values[self._property] = current_value
-        #     self.property_set['fixed_point'][self._property] = False
-        # else:
-        #     previous_value = self._prev_values[self._property]
-        #     self.property_set['fixed_point'][self._property] = previous_value == current_value
-        #     self._previous_values[self._property] = current_value
+        for base in PassK_check_fixed_point.__bases__:
+            base.run(self, dag)

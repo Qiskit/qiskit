@@ -8,3 +8,4 @@
 """Utils for transpiler."""
 
 from .cx_cancellation import CXCancellation
+from .test_fixed_point import TestFixedPoint
