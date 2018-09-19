@@ -212,7 +212,7 @@ class TestUseCases(SchedulerTestCase):
         tp_pass.set(idempotence=False)
         passmanager.add_pass(tp_pass, idempotence=True, ignore_preserves=True)
         the_pass_in_the_workinglist = next(iter(passmanager.working_list))
-        self.assertFalse(the_pass_in_the_workinglist.idempotence)
+        self.assertFalse(the_pass_in_the_workinglist.is_idempotent)
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
 

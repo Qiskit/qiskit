@@ -151,7 +151,7 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
-        if pass_.idempotence:
+        if pass_.is_idempotent:
             self.valid_passes.add(pass_)
 
     def add_control_flow_plugin(self, name, control_flow_plugin):

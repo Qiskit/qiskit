@@ -32,6 +32,11 @@ class DummyAP(AnalysisPass):
         logging.getLogger(logger).info('run analysis pass %s', self.name)
 
 
+class DummyNI(DummyTP):
+    """ A dummy transformation pass that is not idempotent."""
+    idempotence = False
+
+
 class PassA_TP_NR_NP(DummyTP):
     """ A dummy pass without any requires/preserves.
     TP: Transformation Pass
