@@ -281,6 +281,7 @@ class TestUseCases(SchedulerTestCase):
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassJ_Bad_NoReturn'], TranspilerError)
 
+
 class DoXTimesPlugin(ControlFlowPlugin):
     """ A control-flow plugin for running a set of passes an X amount of times."""
 
