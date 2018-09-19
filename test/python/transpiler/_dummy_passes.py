@@ -10,7 +10,7 @@
 """Dummy passes used by Tranpiler testing"""
 
 import logging
-from qiskit.transpiler.passes import TestFixedPoint
+from qiskit.transpiler.passes import FixedPoint
 
 from qiskit.transpiler import TransformationPass, AnalysisPass
 
@@ -166,7 +166,7 @@ class PassJ_Bad_NoReturn(DummyTP):
         return "Something else than DAG"
 
 
-class PassK_check_fixed_point(DummyAP, TestFixedPoint):
+class PassK_check_fixed_point(DummyAP, FixedPoint):
     """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
     in property_set['fixed_point'][<property>] as a boolean
     AP: Analysis Pass

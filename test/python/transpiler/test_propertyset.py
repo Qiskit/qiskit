@@ -11,8 +11,6 @@ import unittest
 from qiskit.transpiler import PropertySet
 from ..common import QiskitTestCase
 
-logger = "LocalLogger"
-
 class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
@@ -27,35 +25,6 @@ class TestPropertySet(QiskitTestCase):
         """ Setting and retrieving."""
         self.pset['property'] = 'value'
         self.assertEqual(self.pset['property'], 'value')
-
-    def test_fixed_point_setting_to_none(self):
-        """ Setting a property to None twice does not create a fixed-point. """
-        self.pset['property'] = None
-        self.pset['property'] = None
-        self.assertFalse(self.pset['fixed_point']['property'])
-
-    def test_fixed_point_reached(self):
-        """ Setting a property to the same value twice creates a fixed-point. """
-        self.pset['property'] = 1
-        self.assertFalse(self.pset['fixed_point']['property'])
-        self.pset['property'] = 1
-        self.assertTrue(self.pset['fixed_point']['property'])
-
-    def test_fixed_point_not_reached(self):
-        """ Setting a property with different values does not create a fixed-point. """
-        self.pset['property'] = 1
-        self.assertFalse(self.pset['fixed_point']['property'])
-        self.pset['property'] = 2
-        self.assertFalse(self.pset['fixed_point']['property'])
-
-    def test_fixed_point_left(self):
-        """ A fixed-point is not permanent. """
-        self.pset['property'] = 1
-        self.assertFalse(self.pset['fixed_point']['property'])
-        self.pset['property'] = 1
-        self.assertTrue(self.pset['fixed_point']['property'])
-        self.pset['property'] = 2
-        self.assertFalse(self.pset['fixed_point']['property'])
 
 if __name__ == '__main__':
     unittest.main()

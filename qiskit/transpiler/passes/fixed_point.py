@@ -10,7 +10,7 @@
 from collections import defaultdict
 from qiskit.transpiler._basepasses import AnalysisPass
 
-class TestFixedPoint(AnalysisPass):
+class FixedPoint(AnalysisPass):
     """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
         in property_set['fixed_point'][<property>] as a boolean. If a pass instance is set in
         pass_that_updates_the_property, it will be added as a requires dependency.
@@ -23,7 +23,8 @@ class TestFixedPoint(AnalysisPass):
         """
         self._property = property_to_check
         self._previous_value = None
-        self.requires = [pass_that_updates_the_property]
+        if pass_that_updates_the_property:
+            self.requires = [pass_that_updates_the_property]
 
     def run(self, dag):
         if self.property_set['fixed_point'] is None:
