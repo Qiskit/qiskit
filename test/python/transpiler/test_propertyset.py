@@ -10,24 +10,15 @@
 import unittest
 import logging
 from qiskit.transpiler import PropertySet
-from qiskit.transpiler._propertysetutilities import fixed_point
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
-
-
-def dummy_utility(property_set, key, new_value):
-    """ A dummy utility just for testing the utility registration"""
-    logging.getLogger(logger).info('the property %s is updated with %s (previously %s)',
-                                   key, new_value, property_set[key])
-
 
 class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
     def setUp(self):
         self.pset = PropertySet()
-        self.pset.add_utility(fixed_point)
 
     def test_get_non_existent(self):
         """ Getting non-existent property should return None. """
@@ -66,17 +57,6 @@ class TestPropertySet(QiskitTestCase):
         self.assertTrue(self.pset['fixed_point']['property'])
         self.pset['property'] = 2
         self.assertFalse(self.pset['fixed_point']['property'])
-
-    def test_dummy_utility(self):
-        """ Testing add_utility, on_change and getter in a dummy utility """
-        self.pset.add_utility(dummy_utility)
-        with self.assertLogs(logger, level='INFO') as context:
-            self.pset['property'] = 1
-            self.pset['property'] = 2
-        self.assertEqual([record.message for record in context.records],
-                         ['the property property is updated with 1 (previously None)',
-                          'the property property is updated with 2 (previously 1)'])
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,29 +14,9 @@ class PropertySet:
 
     def __init__(self):
         self._properties = {}
-        self.utilities = {}
 
     def __getitem__(self, key):
         return self._properties.get(key, None)
 
-    def setitem(self, key, value):
-        """
-        Sets an item without calling any utilities. Same interface as __setitem__.
-        Args:
-            key (string): key property to set
-            value (anything): value to set
-        """
-        self._properties[key] = value
-
     def __setitem__(self, key, value):
-        for utility in self.utilities:
-            self.utilities[utility](self, key, value)
-        self.setitem(key, value)
-
-    def add_utility(self, utility_class):
-        """
-        Adds an utility for the property set.
-        Args:
-            utility_class (UtilityClass): The utility class.
-        """
-        self.utilities[utility_class.__name__] = utility_class
+        self._properties[key] = value

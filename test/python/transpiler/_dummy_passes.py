@@ -186,8 +186,7 @@ class PassK_check_fixed_point(DummyAP):
         super().run(dag)
 
         if self.property_set['fixed_point'] is None:
-            self.property_set.setitem('fixed_point', defaultdict(lambda: False))
-            # self.property_set['fixed_point'] = defaultdict(lambda: False)
+            self.property_set['fixed_point'] = defaultdict(lambda: False)
 
         current_value = self.property_set[self._property]
 
