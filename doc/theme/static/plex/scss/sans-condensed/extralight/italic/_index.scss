@@ -1,0 +1,14 @@
+$font-prefix: '..' !default;
+@font-face {
+  font-family: 'IBM Plex Sans Condensed';
+  font-style: italic;
+  font-weight: 200;
+  src: local('IBM Plex Sans Condensed ExtraLight Italic'),
+    local('IBMPlexSansCondensed-ExtraLightItalic'),
+    url('#{$font-prefix}/IBM-Plex-Sans-Condensed/fonts/complete/woff/IBMPlexSansCondensed-ExtraLightItalic.woff') format('woff');
+}
+
+@import 'pi';
+@import 'latin3';
+@import 'latin2';
+@import 'latin1';

@@ -1,0 +1,9 @@
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: italic;
+  font-weight: 100;
+  src: local('IBM Plex Sans Thin Italic'),
+    local('IBMPlexSans-ThinItalic'),
+    url('#{$font-prefix}/IBM-Plex-Sans/fonts/split/woff2/IBMPlexSans-ThinItalic-Greek.woff2') format('woff2');
+    unicode-range: U+0384-038A, U+038C, U+038E-03A1, U+03A3-03CE;
+}

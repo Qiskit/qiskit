@@ -119,7 +119,7 @@ todo_include_todos = False
 # html_theme = 'bizstyle'
 # html_theme = agogo
 
-html_theme = 'theme'  # use the theme in subdir 'theme'
+html_theme = 'sphinx_materialdesign_theme' # use the theme in subdir 'theme'
 html_theme_path = ['./']  # make sphinx search for themes in current dir
 
 
@@ -127,8 +127,52 @@ html_theme_path = ['./']  # make sphinx search for themes in current dir
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {}
+html_theme_options = {
+    # Specify a list of menu in Header.
+    # Tuples forms:
+    #  ('Name', 'external url or path of pages in the document', boolean, 'icon name')
+    #
+    # Third argument:
+    # True indicates an external link.
+    # False indicates path of pages in the document.
+    #
+    # Fourth argument:
+    # Specify the icon name.
+    # For details see link.
+    # https://material.io/icons/
+    'header_links' : [
+        ('Home', 'index', False, 'home'),
+        ("ExternalLink", "http://example.com", True, 'launch'),
+        ("NoIconLink", "http://example.com", True, ''),
+        ("GitHub", "https://github.com/myyasuda/sphinx_materialdesign_theme", True, 'link')
+    ],
 
+    # Customize css colors.
+    # For details see link.
+    # https://getmdl.io/customize/index.html
+    #
+    # Values: amber, blue, brown, cyan deep_orange, deep_purple, green, grey, indigo, light_blue,
+    #         light_green, lime, orange, pink, purple, red, teal, yellow(Default: indigo)
+    'primary_color': 'blue',
+    # Values: Same as primary_color. (Default: pink)
+    'accent_color': 'indigo',
+
+    # Customize layout.
+    # For details see link.
+    # https://getmdl.io/components/index.html#layout-section
+    'fixed_drawer': True,
+    'fixed_header': False,
+    'header_waterfall': True,
+    'header_scroll': False,
+
+    # Render title in header.
+    # Values: True, False (Default: False)
+    'show_header_title': False,
+    # Render title in drawer.
+    # Values: True, False (Default: True)
+    'show_drawer_title': True,
+    # Render footer.
+}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".

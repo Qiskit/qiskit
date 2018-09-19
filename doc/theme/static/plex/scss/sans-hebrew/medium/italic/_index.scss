@@ -1,0 +1,10 @@
+$font-prefix: '..' !default;
+@font-face {
+  font-family: 'IBM Plex Sans Hebrew';
+  font-style: italic;
+  font-weight: 500;
+  src: local('IBM Plex Sans Hebrew Medium Italic'),
+    local('IBMPlexSansHebrew-MediumItalic'),
+    url('#{$font-prefix}/IBM-Plex-Sans-Hebrew/fonts/complete/woff/IBMPlexSansHebrew-MediumItalic.woff') format('woff');
+}
+

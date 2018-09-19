@@ -1,0 +1,9 @@
+@font-face {
+  font-family: 'IBM Plex Sans Condensed';
+  font-style: italic;
+  font-weight: 100;
+  src: local('IBM Plex Sans Condensed Thin Italic'),
+    local('IBMPlexSansCondensed-ThinItalic'),
+    url('#{$font-prefix}/IBM-Plex-Sans-Condensed/fonts/split/woff2/IBMPlexSansCondensed-ThinItalic-Latin3.woff2') format('woff2');
+    unicode-range: U+0102-0103, U+1EA0-1EF9, U+20AB;
+}
