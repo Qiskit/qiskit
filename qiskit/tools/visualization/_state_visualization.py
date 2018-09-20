@@ -19,6 +19,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import numpy as np
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization.bloch import Bloch
 
 
@@ -322,20 +323,32 @@ def plot_state_qsphere(rho):
             break
 
 
-def plot_state(rho, method='city'):
+def plot_state(quantum_state, method='city'):
     """Plot the quantum state.
 
     Args:
-        rho (ndarray): Density matrix representation
-            of a quantum state vector or mized state.
+        quantum_state (ndarray): statevector or density matrix
+                                 representation of a quantum state.
         method (str): Plotting method to use.
 
-    Note:
-        If input is a state vector, you must first
-        convert to density matrix via `qiskit.tools.qi.qi.outer`.
+    Raises:
+        VisualizationError: if the input is not a statevector or density
+        matrix, or if the state is not an multi-qubit quantum state.
     """
+
+    # Check if input is a statevector, and convert to density matrix
+    rho = np.array(quantum_state)
+    if rho.ndim == 1:
+        rho = np.outer(rho, np.conj(rho))
+    # Check the shape of the input is a square matrix
+    shape = np.shape(rho)
+    if len(shape) != 2 or shape[0] != shape[1]:
+        raise VisualizationError("Input is not a valid quantum state.")
+    # Check state is an n-qubit state
     num = int(np.log2(len(rho)))
-    # Need updating to check its a matrix
+    if 2 ** num != len(rho):
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+
     if method == 'city':
         plot_state_city(rho)
     elif method == "paulivec":
