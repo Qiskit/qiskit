@@ -330,6 +330,9 @@ cursor: pointer;
 .linenodiv {
     pointer-events: none;
 }
+.sublist .toctree-l2 .title {
+    margin: 0 16px;
+}
 @media(min-width: 1630px) {
   .mdl-layout--fixed-drawer .mdl-layout__content{
     margin-left: 26rem !important;
