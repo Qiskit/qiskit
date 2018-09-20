@@ -22,7 +22,7 @@ $(function() {
             const isCurrent = $li.hasClass('current') && !$link.hasClass('current');
             const isActive = $li.hasClass('current') && $link.hasClass('mdl-color-text--primary')
             const $ul = $li.children('ul');
-            if ($ul.hasClass('simple')) {
+            if ($ul.hasClass('simple') || ($li.hasClass('toctree-l1') && $ul.length === 0)) {
                $linkWrapper.addClass('simple');
             }
             $li.append($div.append($linkWrapper.append($link)));
