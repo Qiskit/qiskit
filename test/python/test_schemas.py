@@ -7,7 +7,7 @@
 
 # pylint: disable=redefined-builtin
 
-""" Schemas test"""
+"""Schemas test."""
 import json
 import os
 from qiskit._schema_validation import (validate_json_against_schema,
@@ -22,34 +22,34 @@ class TestSchemaExamples(QiskitTestCase):
     """
     _json_examples_per_schema = {
         "backend_configuration": [
-             "backend_configuration_openpulse_example.json",
-             "backend_configuration_openqasm_example.json",
-             "backend_configuration_openqasm_simulator_example.json"],
+            "backend_configuration_openpulse_example.json",
+            "backend_configuration_openqasm_example.json",
+            "backend_configuration_openqasm_simulator_example.json"],
         "backend_properties": [
-             "backend_properties_example.json"],
+            "backend_properties_example.json"],
         "backend_status": [
-             "backend_status_example.json"],
+            "backend_status_example.json"],
         "default_pulse_configuration": [
-             "default_pulse_configuration_example.json"],
+            "default_pulse_configuration_example.json"],
         "job_status": [
-             "job_status_example.json"],
+            "job_status_example.json"],
         "qobj": [
-             "qobj_openpulse_example.json",
-             "qobj_openqasm_example.json"],
+            "qobj_openpulse_example.json",
+            "qobj_openqasm_example.json"],
         "result": [
-             "result_openqasm_example.json",
-             "result_openpulse_level_0_example.json",
-             "result_openpulse_level_1_example.json",
-             "result_statevector_simulator_example.json",
-             "result_unitary_simulator_example.json"]
-         }
+            "result_openqasm_example.json",
+            "result_openpulse_level_0_example.json",
+            "result_openpulse_level_1_example.json",
+            "result_statevector_simulator_example.json",
+            "result_unitary_simulator_example.json"]
+    }
 
     def setUp(self):
         self.examples_base_path = os.path.join(qiskit_path[0], 'schemas',
                                                'examples')
 
     def test_examples_are_valid(self):
-        """ Validate example json files against respective schemas"""
+        """Validate example json files against respective schemas"""
         schemas = TestSchemaExamples._json_examples_per_schema
         for schema_name, examples in schemas.items():
             with self.subTest(schema_test=schema_name):
@@ -68,8 +68,8 @@ class TestSchemaExamples(QiskitTestCase):
                                                          schema_name, msg)
 
     def test_schemas_are_valid(self):
-        """ Validate that schemas are valid jsonschema"""
+        """Validate that schemas are valid jsonschema"""
         schemas = TestSchemaExamples._json_examples_per_schema
-        for schema_name in schemas.keys():
+        for schema_name in schemas:
             with self.subTest(schema_test=schema_name):
                 _create_validator(schema_name, check_schema=True)
