@@ -333,6 +333,18 @@ cursor: pointer;
 .sublist .toctree-l2 .title {
     margin: 0 16px;
 }
+.sublist .toctree-l3 .title {
+    padding-left: 8px;
+}
+.toctree-l4 .link-wrapper {
+    padding-left: 12px;
+}
+.toctree-l2 .item .simple {
+    padding-left: 16px;
+}
+.toctree-l3 .item .simple {
+    padding-left: 28px;
+}
 @media(min-width: 1630px) {
   .mdl-layout--fixed-drawer .mdl-layout__content{
     margin-left: 26rem !important;
