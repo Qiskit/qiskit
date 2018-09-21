@@ -5,11 +5,22 @@
     "version": "1.0.0",
     "type": "object",
     "required": [
+        "backend_name",
+        "backend_version",
         "operational",
         "pending_jobs",
         "status_msg"
     ],
     "properties": {
+        "backend_name": {
+            "type": "string",
+            "description": "Backend name"
+        },
+        "backend_version": {
+            "description": "Backend version in the form X.X.X",
+            "pattern": "[0-9]+.[0-9]+.[0-9]+$",
+            "type": "string"
+        },
         "operational": {
             "type": "boolean",
             "description": "Backend operational and accepting jobs (true/false)"
