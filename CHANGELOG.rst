@@ -25,9 +25,11 @@ Added
 - Introduced new options for handling credentials (qiskitrc file, environment
   variables) and automatic registration. (#547)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
+- Add parallelization utilities (#701)
+- Parallelize transpilation (#701)
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
-- Jupyter notebook magic function qiskit_job_status (#734).
+- Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
 
@@ -53,6 +55,8 @@ Deprecated
 - The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
   deprecated. A field of the same name should be used in the ``option``
   dictionary kwarg instead. (#866)
+- Breaking change: ``backend.properties()`` instead of ``backend.calibration()``
+  and ``backend.parameters()`` (#870)
 
 Removed
 -------

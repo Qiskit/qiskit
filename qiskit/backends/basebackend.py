@@ -10,6 +10,7 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
+import warnings
 from abc import ABC, abstractmethod
 
 from qiskit._qiskiterror import QISKitError
@@ -49,10 +50,18 @@ class BaseBackend(ABC):
 
     def calibration(self):
         """Return backend calibration"""
+        warnings.warn("Backends will no longer return a calibration dictionary,"
+                      "use backend.properties() instead.", DeprecationWarning)
         return {}
 
     def parameters(self):
         """Return backend parameters"""
+        warnings.warn("Backends will no longer return a parameters dictionary, "
+                      "use backend.properties() instead.", DeprecationWarning)
+        return {}
+
+    def properties(self):
+        """Return backend properties"""
         return {}
 
     def status(self):
