@@ -90,7 +90,7 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 1)
         self.assertIsInstance(ast.children[0], Comment)
-        self.assertEqual(ast.qasm(), '//this is a comment')
+        self.assertEqual(ast.qasm(), qasm_string)
 
     def test_inline_comment(self):
         """The comment to parse is after a statement. """
@@ -98,7 +98,7 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 2)
         self.assertIsInstance(ast.children[1], Comment)
-        self.assertEqual(ast.qasm(), 'OPENQASM 2.0;//another comment')
+        self.assertEqual(ast.qasm(), qasm_string)
 
     def test_in_decl_comment(self):
         """The comment to parse is inside a gate declaration. """
