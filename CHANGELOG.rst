@@ -20,6 +20,8 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Added `SchemaValidationError` to be thrown when schema validation fails (#881)
+- Generalized Qobj schema validation functions for all qiskit schemas (#882).
 - Added decorator to check for C++ simulator availability (#662)
 - It is possible to cancel jobs in non comercial backends (#687)
 - Introduced new options for handling credentials (qiskitrc file, environment
@@ -35,6 +37,8 @@ Added
 
 Changed
 -------
+- Schema tests in `tests/schemas/test_schemas.py` replaced with proper
+  unit test (#834).
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
 - Use ``Qobj`` as the formally defined schema for sending information to the devices:
   - introduce the ``qiskit.qobj`` module. (#589, #655)
