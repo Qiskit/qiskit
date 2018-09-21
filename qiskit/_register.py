@@ -11,7 +11,6 @@ Base register reference object.
 import re
 import logging
 import itertools
-import warnings
 
 from ._qiskiterror import QISKitError, QISKitIndexError
 
@@ -28,20 +27,7 @@ class Register(object):
 
     def __init__(self, size, name=None):
         """Create a new generic register.
-
-        .. deprecated:: 0.5
-            The `name` parameter will be optional in upcoming versions (>0.5.0)
-            and the order of the parameters will change (`size`, `name`)
-            instead of (`name`, `size`).
         """
-
-        if isinstance(size, str):
-            warnings.warn(
-                "name will be optional in upcoming versions (>0.5.0) "
-                "and order will be size, name.", DeprecationWarning)
-            name_temp = size
-            size = name
-            name = name_temp
 
         if name is None:
             name = '%s%i' % (self.prefix, next(self.instances_counter))
