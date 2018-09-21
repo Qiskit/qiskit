@@ -26,12 +26,13 @@ header {
   justify-content: space-between;
   align-items: center;
   margin: 0 auto;
+  max-width: 1100px;
 }
 .toolbar {
   display: flex;
   flex-grow: 1;
   box-sizing: border-box;
-  margin: 32px;
+  justify-content: center;
 }
 .toolbar a {
   display: inline-flex;
@@ -52,7 +53,7 @@ header {
   content: '';
   width: 2px;
   background-color: rgba(255, 255, 255, 0.3);
-  margin: 12px 10px;
+  padding: 12px 0px;
 }
 .toolbar nav.second {
   margin-left: auto;
