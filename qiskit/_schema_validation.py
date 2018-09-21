@@ -53,8 +53,8 @@ def _load_schema(file_path, name=None):
     return _SCHEMAS[name]
 
 
-def _create_validator(name, schema=None, check_schema=True,
-                      validator_class=None, **validator_kwargs):
+def _get_validator(name, schema=None, check_schema=True,
+                   validator_class=None, **validator_kwargs):
     """
     Generate validator for JSON schema.
 
@@ -81,8 +81,8 @@ def _create_validator(name, schema=None, check_schema=True,
         try:
             schema = _SCHEMAS[name]
         except KeyError:
-            raise SchemaValidationError('''Valid schema name or schema must
-                                           be provided.''')
+            raise SchemaValidationError("Valid schema name or schema must "
+                                        "be provided.")
 
     if name not in _VALIDATORS:
 
@@ -103,13 +103,13 @@ def _create_validator(name, schema=None, check_schema=True,
 
 def _load_schemas_and_validators():
     """
-    Load all default schemas into `_SCHEMAS`
+    Load all default schemas into `_SCHEMAS`.
     """
 
     schema_base_path = qiskit_path[0]
     for name, path in _DEFAULT_SCHEMA_PATHS.items():
         _load_schema(os.path.join(schema_base_path, path), name)
-        _create_validator(name)
+        _get_validator(name)
 
 
 # Load all schemas on import
@@ -123,30 +123,30 @@ def validate_json_against_schema(json_dict, schema,
 
     Args:
         json_dict (dict): JSON to be validated.
-        schema (dict or str): JSON schema or string of name in _VALIDATORS. If
-                              schema is provided `jsonschema.validate` will be
-                              called. If schema name is provided a validator
-                              will be created or recovered from
-                              `_VALIDATORS` cache.
+        schema (dict or str): JSON schema dictionary or the name of one of the
+            standards schemas in Qiskit to validate against it. The list of
+            standard schemas is: ``backend_configuration``,
+            ``backend_properties``, ``backend_status``,
+            ``default_pulse_configuration``, ``job_status``, ``qobj``,
+            ``result``.
         err_msg (str): Optional error message.
 
     Raises:
         SchemaValidationError: Raised if validation fails.
-
     """
 
     try:
         if isinstance(schema, str):
             schema_name = schema
-            schema = _SCHEMAS[schema]
-            validator = _create_validator(schema_name)
+            schema = _SCHEMAS[schema_name]
+            validator = _get_validator(schema_name)
             validator.validate(json_dict)
         else:
             jsonschema.validate(json_dict, schema)
     except jsonschema.ValidationError as err:
         if err_msg is None:
-            err_msg = '''JSON failed validation. Set Qiskit log level to DEBUG
-                         for further information.'''
+            err_msg = "JSON failed validation. Set Qiskit log level to DEBUG " \
+                      "for further information."
         newerr = SchemaValidationError(err_msg)
         newerr.__cause__ = _SummaryValidationError(err)
         logger.debug('%s', _format_causes(err))
