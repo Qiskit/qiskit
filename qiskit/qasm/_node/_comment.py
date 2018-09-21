@@ -17,9 +17,10 @@ class Comment(Node):
     """Node for an OPENQASM comment.
     """
 
-    def __init__(self, value):
+    def __init__(self, value, line):
         """Create the version node."""
         Node.__init__(self, "comment", None, None)
+        self.line = line
         self.comment_text = re.match(r'//(.*)$', value).group(1)
 
     def qasm(self, prec=None):

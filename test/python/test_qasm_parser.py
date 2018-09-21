@@ -45,10 +45,10 @@ class TestParser(QiskitTestCase):
         res = parse(self.qasm_file_path)
         self.log.info(res)
         # TODO: For now only some basic checks.
-        self.assertEqual(len(res), 1563)
+        self.assertEqual(len(res), 1562)
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
-        self.assertEqual(res[1547:1562], "measure r -> d;")
+        self.assertEqual(res[1547:], "measure r -> d;")
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
@@ -90,7 +90,7 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 1)
         self.assertIsInstance(ast.children[0], Comment)
-        self.assertEqual(ast.qasm(), '//this is a comment\n')
+        self.assertEqual(ast.qasm(), '//this is a comment')
 
     def test_inline_comment(self):
         """The comment to parse is after a statement. """
@@ -98,7 +98,7 @@ class TestParserWithComments(QiskitTestCase):
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 2)
         self.assertIsInstance(ast.children[1], Comment)
-        self.assertEqual(ast.qasm(), 'OPENQASM 2.0;\n//another comment\n')
+        self.assertEqual(ast.qasm(), 'OPENQASM 2.0;//another comment')
 
     def test_in_decl_comment(self):
         """The comment to parse is inside a gate declaration. """
@@ -107,7 +107,7 @@ class TestParserWithComments(QiskitTestCase):
                        "{\n"
                        "  // a comment in a declaration\n"
                        "  U(a,b,c) d;\n"
-                       "}\n")
+                       "}")
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 2)
         self.assertIsInstance(ast.children[1].children[3].children[0], Comment)

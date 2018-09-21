@@ -309,13 +309,13 @@ class QasmParser(object):
         """
            comment : COMMENT
         """
-        program[0] = node.Comment(program[1])
+        program[0] = node.Comment(program[1], program.slice[1].lineno)
 
     def p_format(self, program):
         """
            format : FORMAT
         """
-        program[0] = node.Format(program[1])
+        program[0] = node.Format(program[1], program.slice[1].lineno)
 
     def p_format_0(self, program):
         """
@@ -677,7 +677,7 @@ class QasmParser(object):
         """
         gate_op : COMMENT
         """
-        program[0] = node.Comment(program[1])
+        program[0] = node.Comment(program[1], program.slice[1].lineno)
 
     def p_gate_op_0(self, program):
         """

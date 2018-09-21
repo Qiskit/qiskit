@@ -24,6 +24,10 @@ class Node(object):
         self.root = root
         # True if this node is an expression node, False otherwise
         self.expression = False
+        if children and hasattr(children[0], 'line'):
+            self.line = children[0].line
+        else:
+            self.line = None
 
     def is_expression(self):
         """Return True if this is an expression node."""

@@ -24,6 +24,10 @@ class Program(Node):
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
         string = ""
+        previous_stmt_line = 1
         for children in self.children:
-            string += children.qasm(prec) + "\n"
+            if children.line != previous_stmt_line:
+                 string += "\n"
+                 previous_stmt_line = children.line
+            string += children.qasm(prec)
         return string

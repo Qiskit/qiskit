@@ -17,9 +17,10 @@ class Format(Node):
     """Node for an OPENQASM file identifier/version statement.
     """
 
-    def __init__(self, value):
+    def __init__(self, value, line):
         """Create the version node."""
         Node.__init__(self, "format", None, None)
+        self.line = line
         parts = re.match(r'(\w+)\s+(\d+)\.(\d+)', value)
         self.language = parts.group(1)
         self.majorversion = parts.group(2)
