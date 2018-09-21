@@ -9,11 +9,12 @@
 
 This module is used for connecting to the Quantum Experience.
 """
+import warnings
 import logging
 
 from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict
+from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict, _dict_merge
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
 from qiskit.backends import JobStatus
@@ -68,14 +69,19 @@ class IBMQBackend(BaseBackend):
             dict: The calibration of the backend.
 
         Raises:
-            LookupError: If a configuration for the backend can't be found.
+            LookupError: If a calibration for the backend can't be found.
+
+        :deprecated: will be removed after 0.7
         """
+        warnings.warn("Backends will no longer return a calibration dictionary, "
+                      "use backend.properties() instead.", DeprecationWarning)
+
         try:
-            backend_name = self.configuration()['name']
+            backend_name = self.name()
             calibrations = self._api.backend_calibration(backend_name)
             # FIXME a hack to remove calibration data that is none.
             # Needs to be fixed in api
-            if backend_name in ('ibmq_qasm_simulator', 'ibmqx_qasm_simulator'):
+            if backend_name == 'ibmq_qasm_simulator':
                 calibrations = {}
         except Exception as ex:
             raise LookupError(
@@ -96,9 +102,14 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             LookupError: If parameters for the backend can't be found.
+
+        :deprecated: will be removed after 0.7
         """
+        warnings.warn("Backends will no longer return a parameters dictionary, "
+                      "use backend.properties() instead.", DeprecationWarning)
+
         try:
-            backend_name = self.configuration()['name']
+            backend_name = self.name()
             parameters = self._api.backend_parameters(backend_name)
             # FIXME a hack to remove parameters data that is none.
             # Needs to be fixed in api
@@ -114,6 +125,27 @@ class IBMQBackend(BaseBackend):
             parameters_edit[new_key] = vals
 
         return parameters_edit
+
+    def properties(self):
+        """Return the online backend properties.
+
+        The return is via QX API call.
+
+        Returns:
+            dict: The properties of the backend.
+
+        Raises:
+            LookupError: If properties for the backend can't be found.
+        """
+        # FIXME: make this an actual call to _api.backend_properties
+        # for now this api endpoint does not exist.
+        warnings.simplefilter("ignore")
+        calibration = self.calibration()
+        parameters = self.parameters()
+        _dict_merge(calibration, parameters)
+        properties = calibration
+        warnings.simplefilter("default")
+        return properties
 
     def status(self):
         """Return the online backend status.

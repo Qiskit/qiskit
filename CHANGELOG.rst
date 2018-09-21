@@ -55,6 +55,8 @@ Deprecated
 - The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
   deprecated. A field of the same name should be used in the ``option``
   dictionary kwarg instead. (#866)
+- Breaking change: ``backend.properties()`` instead of ``backend.calibration()``
+  and ``backend.parameters()`` (#870)
 
 Removed
 -------

@@ -8,7 +8,6 @@
 """Helper module for simplified QISKit usage."""
 
 import logging
-import warnings
 from copy import deepcopy
 import uuid
 from qiskit._qiskiterror import QISKitError
@@ -189,42 +188,6 @@ def available_backends(filters=None, compact=True):
         backend_names = list(groups)
 
     return sorted(backend_names)
-
-
-def local_backends(compact=True):
-    """
-    Return the available local backends.
-
-    Args:
-        compact (bool): only report alias names. this is usually shorter, any several
-        backends usually share the same alias.
-
-    Returns:
-        list[str]: the names of the available remote backends.
-    """
-    warnings.warn(
-        "local_backends() will be deprecated in upcoming versions (>0.5). "
-        "using filters instead is recommended (i.e. available_backends({'local': True}).",
-        DeprecationWarning)
-    return available_backends({'local': True}, compact=compact)
-
-
-def remote_backends(compact=True):
-    """
-    Return the available remote backends.
-
-    Args:
-        compact (bool): only report alias names. this is usually shorter, any several
-        backends usually share the same alias.
-
-    Returns:
-        list[str]: the names of the available remote backends.
-    """
-    warnings.warn(
-        "remote_backends() will be deprecated in upcoming versions (>0.5). "
-        "using filters instead is recommended (i.e. available_backends({'local': False}).",
-        DeprecationWarning)
-    return available_backends({'local': False}, compact=compact)
 
 
 def least_busy(names):
