@@ -25,6 +25,7 @@ header {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  margin: 0 auto;
 }
 .toolbar {
   display: flex;
@@ -336,7 +337,7 @@ cursor: pointer;
 .linenodiv {
     pointer-events: none;
 }
-.sublist .toctree-l2 .title {
+.sublist .toctree-l2.link-wrapper .title {
     margin: 0 16px;
 }
 .sublist .toctree-l3 .title {
