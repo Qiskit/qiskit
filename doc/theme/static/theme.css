@@ -18,6 +18,9 @@ header {
   height: 60px;
   border-bottom: 1px solid #181B20;
 }
+.item{
+        padding: 8px 0!important;
+    }
 .limited-width {
   flex-direction: row;
   justify-content: space-between;
@@ -371,7 +374,7 @@ cursor: pointer;
     }
 }
 @media only screen and (min-width: 672px) and (max-width: 1056px) {
-        .item{
+    .item{
         padding: 8px 0!important;
     }
 }
