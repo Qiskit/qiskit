@@ -14,9 +14,7 @@ from ast import literal_eval
 from configparser import ConfigParser, ParsingError
 
 from qiskit import QISKitError
-from qiskit.backends.ibmq import IBMQProvider
-from ._utils import get_account_name
-
+from .credentials import Credentials
 
 DEFAULT_QISKITRC_FILE = os.path.join(os.path.expanduser("~"),
                                      '.qiskit', 'qiskitrc')
@@ -60,7 +58,7 @@ def read_credentials_from_qiskitrc(filename=None):
                 single_credentials['proxies'])
         if 'verify' in single_credentials.keys():
             single_credentials['verify'] = bool(single_credentials['verify'])
-        credentials_dict[name] = single_credentials
+        credentials_dict[name] = Credentials(**single_credentials)
 
     return credentials_dict
 
@@ -71,58 +69,66 @@ def write_qiskit_rc(credentials, filename=None):
 
     Args:
         credentials (dict): dictionary with the credentials, with the form::
-            {'provider_class_name': {'token': 'TOKEN', 'url': 'URL', ... }}
+            {'account_name': Credentials(...)}
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
     """
+    def _credentials_object_to_dict(obj):
+        return {key: getattr(obj, key)
+                for key in ['token', 'url', 'proxies', 'verify']
+                if getattr(obj, key)}
+
     filename = filename or DEFAULT_QISKITRC_FILE
     # Create the directories and the file if not found.
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
+    unrolled_credentials = {
+        account_name: _credentials_object_to_dict(credentials_object)
+        for account_name, credentials_object in credentials.items()
+    }
+
     # Write the configuration file.
     with open(filename, 'w') as config_file:
         config_parser = ConfigParser()
-        config_parser.read_dict(credentials)
+        config_parser.read_dict(unrolled_credentials)
         config_parser.write(config_file)
 
 
-def store_credentials(provider_class=IBMQProvider, overwrite=False,
-                      filename=None, **kwargs):
+def store_credentials(credentials, account_name=None, overwrite=False,
+                      filename=None):
     """
     Store the credentials for a single provider in the configuration file.
 
     Args:
-        provider_class (class): class of the Provider for the credentials.
+        credentials (Credentials):
+        account_name (str):
         overwrite (bool): overwrite existing credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
-        kwargs (dict): keyword arguments passed to provider class
-            initialization.
 
     Raises:
         QISKitError: If provider already exists and overwrite=False; or if
             the account_name could not be assigned.
     """
     # Set the name of the Provider from the class.
-    account_name = get_account_name(provider_class)
+    account_name = account_name or credentials.simple_name()
     # Read the current providers stored in the configuration file.
     filename = filename or DEFAULT_QISKITRC_FILE
-    credentials = read_credentials_from_qiskitrc(filename)
-    if account_name in credentials.keys() and not overwrite:
+    stored_credentials = read_credentials_from_qiskitrc(filename)
+    if account_name in stored_credentials.keys() and not overwrite:
         raise QISKitError('%s is already present and overwrite=False'
                           % account_name)
 
-    # Append the provider, trim the empty options and store it in the file.
-    kwargs = {key: value for key, value in kwargs.items() if value is not None}
-    credentials[account_name] = {**kwargs}
-    write_qiskit_rc(credentials, filename)
+    # Append and write the credentials to file.
+    stored_credentials[account_name] = credentials
+    write_qiskit_rc(stored_credentials, filename)
 
 
-def remove_credentials(provider_class=IBMQProvider, filename=None):
+def remove_credentials(account_name, filename=None):
     """Remove provider credentials from qiskitrc.
 
     Args:
-        provider_class (class): class of the Provider for the credentials.
+        account_name (str):
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
 
@@ -131,7 +137,6 @@ def remove_credentials(provider_class=IBMQProvider, filename=None):
             file.
     """
     # Set the name of the Provider from the class.
-    account_name = get_account_name(provider_class)
     credentials = read_credentials_from_qiskitrc(filename)
 
     try:
