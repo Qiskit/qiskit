@@ -21,7 +21,7 @@ class DummyTP(TransformationPass):
     """ A dummy transformation pass."""
 
     def run(self, dag):
-        logging.getLogger(logger).info('run transformation pass %s', self.name)
+        logging.getLogger(logger).info('run transformation pass %s', self.name())
         return dag
 
 
@@ -29,7 +29,7 @@ class DummyAP(AnalysisPass):
     """ A dummy analysis pass."""
 
     def run(self, dag):
-        logging.getLogger(logger).info('run analysis pass %s', self.name)
+        logging.getLogger(logger).info('run analysis pass %s', self.name())
 
 
 class DummyNI(DummyTP):

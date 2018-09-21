@@ -48,11 +48,12 @@ class FencedObject():
 
 class FencedPropertySet(FencedObject):
     """ A property set that cannot be written (via __setitem__) """
-    def __init__(self, PropertySetInstance):
-        super().__init__(PropertySetInstance, ['__setitem__'])
+    def __init__(self, property_set_instance):
+        super().__init__(property_set_instance, ['__setitem__'])
 
 
 class FencedDAGCircuit(FencedObject):
-    """ A property set that cannot be written (via __setitem__) """
-    def __init__(self, DagCircuitInstance):
-        super().__init__(DagCircuitInstance, ['_remove_op_node'])
+    """ A dag circuit that cannot be modified (via _remove_op_node) """
+    # FIXME: add more fenced methods of the dag after dagcircuit rewrite
+    def __init__(self, dag_circuit_instance):
+        super().__init__(dag_circuit_instance, ['_remove_op_node'])

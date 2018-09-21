@@ -23,9 +23,9 @@ class PassManager():
         Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            ignore_requires (bool): The schedule ignores the request field in the passes. The
+            ignore_requires (bool): The schedule ignores the requires field in the passes. The
                 default setting in the pass is False.
-            ignore_preserves (bool): The schedule ignores the preserves field in the passes.  The
+            ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
                 default setting in the pass is False.
             idempotence (bool): The schedule considers every pass idempotent.
                 The default setting in the pass is True.
@@ -36,17 +36,11 @@ class PassManager():
         self.working_list = WorkingList()
         self.property_set = PropertySet()
         self.fenced_property_set = FencedPropertySet(self.property_set)
-        self.valid_passes = set()
+        self.valid_passes = set()   # passes already run that have not been invalidated
         self.pass_options = {'ignore_requires': ignore_requires,
                              'ignore_preserves': ignore_preserves,
                              'idempotence': idempotence,
                              'max_iteration': max_iteration}
-
-    def __getitem__(self, key):
-        return self.property_set[key]
-
-    def __setitem__(self, key, value):
-        self.property_set[key] = value
 
     def _join_options(self, passset_options, pass_options):
         # Remove Nones
@@ -55,25 +49,25 @@ class PassManager():
         pass_level = {k: v for k, v in pass_options.items() if v is not None}
         return {**passmanager_level, **passset_level, **pass_level}
 
-    def add_pass(self, pass_or_list_of_passes, idempotence=None, ignore_requires=None,
-                 ignore_preserves=None, max_iteration=None, **control_flow_plugins):
+    def add_passes(self, passes, idempotence=None, ignore_requires=None,
+                   ignore_preserves=None, max_iteration=None, **control_flow_plugins):
         """
         Args:
-            pass_or_list_of_passes (TransformationPass or AnalysisPass or list): algo
-            idempotence (bool): algo Default: True
-            ignore_preserves (bool): algo Default: False
-            ignore_requires (bool): algo Default: False
-            max_iteration (int): Limit in the amount of iterations  Default: 1000
+            passes (list[BasePass]): passes to be added to schedule
+            idempotence (bool): treat passes as idempotent. Default: True
+            ignore_preserves (bool): ignore the preserves claim of passes. Default: False
+            ignore_requires (bool): ignore the requires need of passes. Default: False
+            max_iteration (int): max number of iterations of passes. Default: 1000
             control_flow_plugins (kwargs): See add_control_flow_plugin(): Dictionary of control flow
                 plugins. Default:
-                do_while (callable property_set -> boolean): The pass (or passes) repeats until the
+                do_while (callable property_set -> boolean): The passes repeat until the
                    callable returns False.
-                   Default: lambda x: False # i.e. pass_or_list_of_passes runs once
-                condition (callable property_set -> boolean): The pass (or passes) runs only if the
+                   Default: lambda x: False # i.e. passes run once
+                condition (callable property_set -> boolean): The passes run only if the
                    callable returns True.
-                   Default: lambda x: True # i.e. pass_or_list_of_passes runs
+                   Default: lambda x: True # i.e. passes run
         Raises:
-            TranspilerError: if pass_or_list_of_passes is not a proper pass.
+            TranspilerError: if a pass in passes is not a proper pass.
         """
 
         passset_options = {'idempotence': idempotence,
@@ -81,10 +75,10 @@ class PassManager():
                            'ignore_preserves': ignore_preserves,
                            'max_iteration': max_iteration}
 
-        if isinstance(pass_or_list_of_passes, BasePass):
-            pass_or_list_of_passes = [pass_or_list_of_passes]
+        if isinstance(passes, BasePass):
+            passes = [passes]
 
-        for pass_ in pass_or_list_of_passes:
+        for pass_ in passes:
             if isinstance(pass_, BasePass):
                 for key, value in self._join_options(passset_options, pass_._settings).items():
                     setattr(pass_, key, value)
@@ -94,8 +88,10 @@ class PassManager():
         for name, plugin in control_flow_plugins.items():
             if callable(plugin):
                 control_flow_plugins[name] = partial(plugin, self.fenced_property_set)
+            else:
+                raise TranspilerError('%s control-flow plugin is not callable' % name)
 
-        self.working_list.add(pass_or_list_of_passes, **control_flow_plugins)
+        self.working_list.add(passes, **control_flow_plugins)
 
     def run_passes(self, dag):
         """Run all the passes on the dag.
@@ -111,10 +107,10 @@ class PassManager():
         Do a pass and its "requires".
         Args:
             pass_ (BasePass): Pass to do.
-            dag (DAGCircuit): The dag in which the pass is ran.
+            dag (DAGCircuit): The dag on which the pass is ran.
         Returns:
-            DAGCircuit: The transformed dag in case of a transformation pass. The same dag as
-            parameter in case of the analysis pass.
+            DAGCircuit: The transformed dag in case of a transformation pass.
+            The same input dag in case of an analysis pass.
         Raises:
             TranspilerError: If the pass is not a proper pass instance.
         """
@@ -124,17 +120,17 @@ class PassManager():
             for required_pass in pass_.requires:
                 self._do_pass(required_pass, dag)
 
-        # Run the pass itself, if not already ran (exists in valid_passes)
+        # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
-            if pass_.is_TransformationPass:
+            if pass_.is_transformation_pass:
                 pass_.property_set = self.fenced_property_set
                 new_dag = pass_.run(dag)
                 if not isinstance(new_dag, DAGCircuit):
-                    raise TranspilerError("Transformation passes should return the transformed dag."
+                    raise TranspilerError("Transformation passes should return a transformed dag."
                                           "The pass %s is returning a %s" % (type(pass_).__name__,
                                                                              type(new_dag)))
                 dag = new_dag
-            elif pass_.is_AnalysisPass:
+            elif pass_.is_analysis_pass:
                 pass_.property_set = self.property_set
                 pass_.run(FencedDAGCircuit(dag))
             else:
@@ -146,7 +142,7 @@ class PassManager():
         return dag
 
     def _update_valid_passes(self, pass_):
-        if not pass_.is_AnalysisPass:  # Analysis passes preserve all
+        if not pass_.is_analysis_pass:  # Analysis passes preserve all
             if pass_.ignore_preserves:
                 self.valid_passes.clear()
             else:
@@ -175,7 +171,7 @@ class PassManager():
 
 class WorkingList():
     """
-    A working list is the way that a pass manager organize the things to do.
+    A working list is the way that a pass manager organizes the schedule of things to do.
     """
 
     def __init__(self):
@@ -215,10 +211,10 @@ class WorkingList():
                 plugins. Defaults:
                 do_while (callable property_set -> boolean): The pass (or passes) repeats until the
                    callable returns False.
-                   Default: lambda x: False # i.e. pass_or_list_of_passes runs once
+                   Default: lambda x: False # i.e. passes run once
                 condition (callable property_set -> boolean): The pass (or passes) runs only if the
                    callable returns True.
-                   Default: lambda x: True # i.e. pass_or_list_of_passes runs
+                   Default: lambda x: True # i.e. passes run
         """
         for control_flow, condition in control_flow_plugins.items():
             if condition and control_flow in self.control_flow_plugins:

@@ -10,9 +10,11 @@
 from abc import abstractmethod
 from collections import OrderedDict
 
+
 class MetaPass(type):
     """
-    Enforces the creation of some fields in the pass while allowing passes to override __init__
+    Enforces the creation of some fields in the pass
+    while allowing passes to override __init__
     """
 
     def __call__(cls, *args, **kwargs):
@@ -47,12 +49,15 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         pass
 
-    @property
     def name(self):
         """ The name of the pass. """
         return self.__class__.__name__
 
     def __eq__(self, other):
+        """
+        Two passes are equal if and only if they are of the same class,
+        and have the same arguments.
+        """
         return self._hash == hash(other)
 
     def __hash__(self):
@@ -63,29 +68,29 @@ class BasePass(metaclass=MetaPass):
         """
         Run a pass on the DAGCircuit. This is implemented by the pass developer.
         Args:
-            dag (DAGCircuit): The dag in which the pass is run.
+            dag (DAGCircuit): the dag on which the pass is run.
         Raises:
-            NotImplementedError: Because YOU have to implement this :)
+            NotImplementedError: when this is left unimplemented for a pass.
         """
         raise NotImplementedError
 
     @property
     def is_idempotent(self):
-        """ A pass is idempotent when run several time is equivalent to run it once. In math terms,
-        when `run(run(dag)) == run(dag)`. By default, the passes are idempotent. This allows to
+        """ A pass is idempotent when running it several times is equivalent to running it once
+        i.e. `run(run(dag)) == run(dag)`. By default, the passes are idempotent. This allows to
         optimize the transpiler process when sequence of passes are repeated or when passes are
-        preserves.
+        preserved.
         """
         return self.idempotence
 
     @property
-    def is_TransformationPass(self):  # pylint: disable=invalid-name
+    def is_transformation_pass(self):
         """ If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
-        but cannot modified the property set (but it can be read). """
+        but cannot modify the property set (but it can be read). """
         return isinstance(self, TransformationPass)
 
     @property
-    def is_AnalysisPass(self):  # pylint: disable=invalid-name
+    def is_analysis_pass(self):
         """ If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
         the results of that analysis in the property set. Modifications on the DAG are not allowed
         by this kind of pass. """
