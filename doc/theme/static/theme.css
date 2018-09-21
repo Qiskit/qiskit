@@ -10,8 +10,7 @@ html{
 h1{
     font-size: 2.5rem !important;
     line-height: 2.25rem !important;
-    padding-top: 48px !important;
-    padding-bottom: 24px !important;
+
 }
 header {
   display: flex;
@@ -68,8 +67,6 @@ header {
 }
 h2, h3, #h3, #h2, .h3, .h2 {
     font-size: 1.5rem !important;
-    padding-top: 48px !important;
-    padding-bottom: 24px !important;
 }
 * {
   -moz-osx-font-smoothing: grayscale;
@@ -87,6 +84,12 @@ main{
     text-align: center;
 }
 h3.mdl-color-text--primary{
+    color: rgba(0,0,0,.87) !important;
+}
+h4.mdl-color-text--primary{
+    color: rgba(0,0,0,.87) !important;
+}
+h5.mdl-color-text--primary{
     color: rgba(0,0,0,.87) !important;
 }
  a.reference.external {
