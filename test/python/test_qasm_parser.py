@@ -85,7 +85,7 @@ class TestParserWithComments(QiskitTestCase):
     """QasmParser has a with_comment option to get have comments as extra nodes"""
 
     def test_single_comment(self):
-        """The thing to parse is a single comment"""
+        """The comment to parse is a single comment"""
         qasm_string = """//this is a comment"""
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 1)
@@ -93,7 +93,7 @@ class TestParserWithComments(QiskitTestCase):
         self.assertEqual(ast.qasm().replace('\n', '', 1), qasm_string)
 
     def test_inline_comment(self):
-        """The thing to parse is a single comment"""
+        """The comment to parse is after a statement. """
         qasm_string = """OPENQASM 2.0;//another comment"""
         ast = Qasm(data=qasm_string).parse(with_comments=True)
         self.assertEqual(len(ast.children), 2)
@@ -101,6 +101,7 @@ class TestParserWithComments(QiskitTestCase):
         self.assertEqual(ast.qasm().replace('\n', '', 2), qasm_string)
 
     def test_in_decl_comment(self):
+        """The comment to parse is inside a gate declaration. """
         qasm_string = ("OPENQASM 2.0;\n"
                        "gate a_gate(a,b,c) d,e\n"
                        "{\n"
