@@ -38,7 +38,6 @@ $(function() {
                 $ul.addClass('collapse sublist');
                 const $toggleWrapper = $('<span class="nav-toggle show"></span>');
                 $linkWrapper.addClass('title');
-                $linkWrapper.children('a').removeAttr("href").css("cursor","pointer");
                 $linkWrapper.children('a').addClass('ibm-type-b-tight semibold');
                 $div.addClass('title');
                 $li.append($div.append(
@@ -184,13 +183,13 @@ $(function() {
             }
          });
     }
+    deleteMainHeader();
     addIconsDrawer();
     styleMdlCodeBlock();
     styleColorTextPrimary();
     reconstructionDrawerGlobalToc();
     collapse();
     quickSearchClickEvent();
-    deleteMainHeader();
     collapseResponsive();
     collapseMediumResponsive();
     replaceLinksComposer();
