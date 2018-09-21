@@ -11,7 +11,7 @@
 import json
 import os
 from qiskit._schema_validation import (validate_json_against_schema,
-                                       _create_validator)
+                                       _get_validator)
 from qiskit import __path__ as qiskit_path
 from .common import QiskitTestCase
 
@@ -72,4 +72,4 @@ class TestSchemaExamples(QiskitTestCase):
         schemas = TestSchemaExamples._json_examples_per_schema
         for schema_name in schemas:
             with self.subTest(schema_test=schema_name):
-                _create_validator(schema_name, check_schema=True)
+                _get_validator(schema_name, check_schema=True)
