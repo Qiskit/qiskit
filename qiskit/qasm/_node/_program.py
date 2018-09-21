@@ -27,7 +27,7 @@ class Program(Node):
         previous_stmt_line = 1
         for children in self.children:
             if children.line != previous_stmt_line:
-                 string += "\n"
-                 previous_stmt_line = children.line
+                string += "\n"
+                previous_stmt_line = children.line
             string += children.qasm(prec)
         return string

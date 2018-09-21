@@ -87,6 +87,7 @@ class TestParser(QiskitTestCase):
         self.assertEqual(len(ast.children), 3)
         self.assertEqual(ast.qasm(), qasm_string)
 
+
 class TestParserWithComments(QiskitTestCase):
     """QasmParser has a with_comment option to get have comments as extra nodes"""
 
