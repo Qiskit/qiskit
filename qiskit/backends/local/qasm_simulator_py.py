@@ -397,11 +397,6 @@ class QasmSimulatorPy(BaseBackend):
             'counts': self._format_result(counts, cl_reg_index, cl_reg_nbits),
             'snapshots': self._snapshots
         }
-        if self._shots == 1:
-            # TODO: deprecated -- remove in v0.6
-            data['statevector'] = self._statevector
-            data['quantum_state'] = self._statevector
-            data['classical_state'] = self._classical_state
         end = time.time()
         return {'name': circuit.header.name,
                 'seed': seed,

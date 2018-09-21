@@ -43,8 +43,8 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 from .wrapper._wrapper import (
-    available_backends, local_backends, remote_backends,
-    get_backend, compile, execute, register, unregister,
+    available_backends, get_backend,
+    compile, execute, register, unregister,
     registered_providers, load_qasm_string, load_qasm_file, least_busy,
     store_credentials)
 

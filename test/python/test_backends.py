@@ -154,53 +154,22 @@ class TestBackends(QiskitTestCase):
                 schema = json.load(schema_file)
             jsonschema.validate(configuration, schema)
 
-    def test_local_backend_calibration(self):
-        """Test backend calibration.
-
-        If all correct should pass the vaildation.
-        """
-        local_provider = LocalProvider()
-        local_backends = local_provider.available_backends()
-        for backend in local_backends:
-            calibration = backend.calibration()
-            # FIXME test against schema and decide what calibration
-            # is for a simulator
-            self.assertEqual(len(calibration), 0)
-
-    @requires_qe_access
-    def test_remote_backend_calibration(self, qe_token, qe_url):
-        """Test backend calibration.
+    def test_local_backend_properties(self):
+        """Test backend properties.
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remotes = ibmq_provider.available_backends()
-        remotes = remove_backends_from_list(remotes)
-        for backend in remotes:
-            calibration = backend.calibration()
-            # FIXME test against schema and decide what calibration
-            # is for a simulator
-            if backend.configuration()['simulator']:
-                self.assertEqual(len(calibration), 0)
-            else:
-                self.assertEqual(len(calibration), 4)
-
-    def test_local_backend_parameters(self):
-        """Test backend parameters.
-
-        If all correct should pass the vaildation.
-        """
         local_provider = LocalProvider()
         local_backends = local_provider.available_backends()
         for backend in local_backends:
-            parameters = backend.parameters()
-            # FIXME test against schema and decide what parameters
+            properties = backend.properties()
+            # FIXME test against schema and decide what properties
             # is for a simulator
-            self.assertEqual(len(parameters), 0)
+            self.assertEqual(len(properties), 0)
 
     @requires_qe_access
-    def test_remote_backend_parameters(self, qe_token, qe_url):
-        """Test backend parameters.
+    def test_remote_backend_properties(self, qe_token, qe_url):
+        """Test backend properties.
 
         If all correct should pass the validation.
         """
@@ -209,13 +178,13 @@ class TestBackends(QiskitTestCase):
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
             self.log.info(backend.name())
-            parameters = backend.parameters()
-            # FIXME test against schema and decide what parameters
+            properties = backend.properties()
+            # FIXME test against schema and decide what properties
             # is for a simulator
             if backend.configuration()['simulator']:
-                self.assertEqual(len(parameters), 0)
+                self.assertEqual(len(properties), 0)
             else:
-                self.assertTrue(all(key in parameters for key in (
+                self.assertTrue(all(key in properties for key in (
                     'last_update_date',
                     'qubits',
                     'backend')))
