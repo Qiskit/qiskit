@@ -80,6 +80,12 @@ class TestParser(QiskitTestCase):
         for token in qasm.get_tokens():
             self.assertTrue(isinstance(token, ply.lex.LexToken))
 
+    def test_single_line_program(self):
+        """The unparse should keep the single line formating"""
+        qasm_string = """OPENQASM 2.0;qreg q[2];creg c0[1];"""
+        ast = Qasm(data=qasm_string).parse()
+        self.assertEqual(len(ast.children), 3)
+        self.assertEqual(ast.qasm(), qasm_string)
 
 class TestParserWithComments(QiskitTestCase):
     """QasmParser has a with_comment option to get have comments as extra nodes"""
