@@ -6,33 +6,26 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Provider for remote IBMQ backends with admin features."""
+import itertools
 
-from qiskit.backends import BaseProvider
-from .ibmqsingleprovider import IBMQSingleProvider
+from qiskit.backends.qiskitprovider import QiskitProvider
 from .credentials import Credentials
+from .ibmqsingleprovider import IBMQSingleProvider
 
 QE_URL = 'https://quantumexperience.ng.bluemix.net/api'
 
 
-class IBMQProvider(BaseProvider):
-    """Provider for remote IbmQ backends."""
+class IBMQProvider(QiskitProvider):
+    """Provider for remote IBMQ backends with admin features."""
     def __init__(self):
         super().__init__()
 
         self.accounts = {}
 
-    def get_backend(self, name):
-        raise NotImplementedError
-
-    def available_backends(self):
-        """Get a list of available backends from the IBMQ provider.
-
-        Returns:
-            list[IBMQBackend]: a list of backend instances available
-            from the IBMQ provider.
-        """
-        # pylint: disable=arguments-differ
-        raise NotImplementedError
+    def _backends_list(self):
+        # TODO: return iterator, also in base
+        return list(itertools.chain(
+            *[account.backends() for account in self.accounts.values()]))
 
     def add_account(self, token, url=QE_URL):
         raise NotImplementedError
