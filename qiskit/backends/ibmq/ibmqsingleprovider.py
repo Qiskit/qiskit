@@ -7,15 +7,17 @@
 
 """Provider for a single IBMQ account."""
 
+from collections import OrderedDict
+
 from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
-from qiskit.backends.baseprovider import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.backends.ibmq.credentials import Credentials
+from qiskit.backends.qiskitprovider import QiskitProvider
 
 
-class IBMQSingleProvider(BaseProvider):
+class IBMQSingleProvider(QiskitProvider):
     """Provider for remote IbmQ backends."""
     def __init__(self, credentials):
         """
@@ -29,23 +31,7 @@ class IBMQSingleProvider(BaseProvider):
         self._api = self._authenticate(self.credentials)
 
         # Populate the list of remote backends.
-        self.backends = self._discover_remote_backends()
-
-    def get_backend(self, name):
-        return self.backends[name]
-
-    def available_backends(self):
-        """Get a list of available backends from the IBMQ provider.
-
-        Returns:
-            list[IBMQBackend]: a list of backend instances available
-            from the IBMQ provider.
-        """
-        # pylint: disable=arguments-differ
-        return list(self.backends.values())
-
-    def grouped_backend_names(self):
-        return {}
+        self._backends = self._discover_remote_backends()
 
     def deprecated_backend_names(self):
         return {
@@ -125,7 +111,7 @@ class IBMQSingleProvider(BaseProvider):
             dict[str:IBMQBackend]: a dict of the remote backend instances,
                 keyed by backend name.
         """
-        ret = {}
+        ret = OrderedDict()
         configs_list = self._api.available_backends()
         for raw_config in configs_list:
             config = self._parse_backend_configuration(raw_config)
@@ -134,4 +120,4 @@ class IBMQSingleProvider(BaseProvider):
         return ret
 
     def __eq__(self, other):
-        return self.info == other.info
+        return self.credentials == other.credentials

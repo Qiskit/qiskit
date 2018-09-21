@@ -5,13 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name, bad-continuation
 
 """Provider for local backends."""
+
+from collections import OrderedDict
 import logging
 
 from qiskit._qiskiterror import QISKitError
-from qiskit.backends import BaseProvider
+
+from qiskit.backends.qiskitprovider import QiskitProvider
 from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
 from .qasm_simulator_py import QasmSimulatorPy
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
@@ -31,26 +33,14 @@ SDK_STANDARD_BACKENDS = [
 ]
 
 
-class LocalProvider(BaseProvider):
+class LocalProvider(QiskitProvider):
     """Provider for local backends."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
         # Populate the list of local backends.
-        self.backends = self._verify_local_backends()
-
-    def get_backend(self, name):
-        return self.backends[name]
-
-    def available_backends(self):
-        """Get a list of available backends from the Local provider.
-
-        Returns:
-            list[BaseBackend]: a list of backend instances available
-            from the Local provider.
-        """
-        # pylint: disable=arguments-differ
-        return list(self.backends.values())
+        self._backends = self._verify_local_backends()
 
     def grouped_backend_names(self):
         return {
@@ -60,7 +50,7 @@ class LocalProvider(BaseProvider):
             'local_statevector_simulator': ['local_statevector_simulator_cpp',
                                             'local_statevector_simulator_py'],
             'local_unitary_simulator': ['local_unitary_simulator_cpp',
-                                        'local_unitary_simulator_py']
+                                        'local_unitary_simulator_py'],
             # TODO: restore after clifford simulator release
             # 'local_clifford_simulator': ['local_clifford_simulator_cpp']
             }
@@ -72,8 +62,7 @@ class LocalProvider(BaseProvider):
             }
 
     def aliased_backend_names(self):
-        return {
-            }
+        return {}
 
     @classmethod
     def _verify_local_backends(cls):
@@ -86,16 +75,16 @@ class LocalProvider(BaseProvider):
             dict[str:BaseBackend]: a dict of the local backends instances for
                 the backends that could be instantiated, keyed by backend name.
         """
-        ret = {}
+        ret = OrderedDict()
         for backend_cls in SDK_STANDARD_BACKENDS:
             try:
                 backend_instance = cls._get_backend_instance(backend_cls)
                 backend_name = backend_instance.configuration()['name']
                 ret[backend_name] = backend_instance
-            except QISKitError as e:
+            except QISKitError as err:
                 # Ignore backends that could not be initialized.
                 logger.info('local backend %s is not available: %s',
-                            backend_cls, str(e))
+                            backend_cls, str(err))
         return ret
 
     @classmethod
