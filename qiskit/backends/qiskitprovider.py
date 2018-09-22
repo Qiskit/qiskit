@@ -54,17 +54,31 @@ class QiskitProvider(BaseProvider):
         # TODO: alias resolution for 'name'
         # TODO: 'filter' ergonomics
         # TODO: filter always queries for 'status', slow for IBMQ
-
         backends = self._backends_list()
 
         if filters is not None:
             if isinstance(filters, dict):
                 # exact match filter:
                 # e.g. {'n_qubits': 5, 'operational': True}
+
+                # TODO: workaround for alias resolution for name
+                if 'name' in filters:
+                    try:
+                        filters['name'] = self.resolve_backend_name(filters['name'])
+                    except LookupError:
+                        return []
+
+                if list(filters.keys()) == 'name':
+                    # TODO: special case for the get_backend() compatibility.
+                    # avoids filtering for `status`, as this implies making a
+                    # query to the online server.
+                    backends = [instance for instance in backends
+                                if instance.name() == filters['name']]
+
                 for key, value in filters.items():
                     backends = [instance for instance in backends
-                                if instance.configuration().get(key) == value
-                                or instance.status().get(key) == value]
+                                if instance.configuration().get(key) == value]
+                    # TODO: reintroduce instance.status().get(key) == value
             elif callable(filters):
                 # acceptor filter: accept or reject a specific backend
                 # e.g. lambda x: x.configuration()['n_qubits'] > 5

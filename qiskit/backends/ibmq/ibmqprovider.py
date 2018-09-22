@@ -27,6 +27,21 @@ class IBMQProvider(QiskitProvider):
         return list(itertools.chain(
             *[account.backends() for account in self.accounts.values()]))
 
+    def deprecated_backend_names(self):
+        return {
+            'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+            'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
+            'real': 'ibmqx1'
+            }
+
+    def aliased_backend_names(self):
+        return {
+            'ibmq_5_yorktown': 'ibmqx2',
+            'ibmq_5_tenerife': 'ibmqx4',
+            'ibmq_16_rueschlikon': 'ibmqx5',
+            'ibmq_20_austin': 'QS1_1'
+            }
+
     def add_account(self, token, url=QE_URL):
         raise NotImplementedError
 

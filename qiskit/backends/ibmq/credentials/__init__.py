@@ -37,7 +37,7 @@ def discover_credentials():
 
             {'provider_name': {'token': 'TOKEN', 'url': 'URL', ... }}
     """
-    credentials = {}
+    credentials = OrderedDict()
 
     # dict[str:function] that defines the different locations for looking for
     # credentials, and their precedence order.

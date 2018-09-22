@@ -23,6 +23,40 @@ class BaseProvider(ABC):
     def __init__(self, *args, **kwargs):
         pass
 
+    def available_backends(self, *args, **kwargs):
+        """
+        Returns:
+            list[BaseBackend]: a list of backend instances available
+            from this provider.
+
+        .. deprecated:: 0.6+
+            After 0.6, this function is deprecated. Please use `.backends()`
+            instead.
+        """
+        return self.backends(*args, **kwargs)
+
+    def get_backend(self, name):
+        """
+        Return a backend instance.
+        Args:
+            name (str): identifier
+
+        Returns:
+            BaseBackend: a backend instance.
+
+        Raises:
+            KeyError: if `name` is not among the list of backends available
+                from this provider.
+
+        .. deprecated:: 0.6+
+            After 0.6, this function is deprecated. Please use `.backends()`
+            with a filter instead.
+        """
+        try:
+            return self.backends({'name': name})[0]
+        except IndexError:
+            raise KeyError('backend "{}" not found.'.format(name))
+
     @abstractmethod
     def backends(self, filters=None, **kwargs):
         """

@@ -8,13 +8,16 @@
 """Helper module for simplified QISKit usage."""
 
 import logging
+import warnings
 from copy import deepcopy
 import uuid
+
+import qiskit.backends.ibmq as ibmq
+import qiskit.backends.local as local
+
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumcircuit import QuantumCircuit
-from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wrapper import credentials
-from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+
 from qiskit.transpiler._passmanager import PassManager
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler._transpiler import (_matches_coupling_map,
@@ -22,36 +25,24 @@ from qiskit.transpiler._transpiler import (_matches_coupling_map,
                                            _dags_2_qobj_parallel,
                                            _transpile_dags_parallel)
 from qiskit.qobj._qobj import Qobj, QobjConfig, QobjHeader
-from qiskit._util import _parse_ibmq_credentials
 from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit.transpiler._parallel import parallel_map
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
-# Default provider used by the rest of the functions on this module. Please
-# note that this is a global object.
-_DEFAULT_PROVIDER = DefaultQISKitProvider()
 
 logger = logging.getLogger(__name__)
 
 
-def register(*args, provider_class=IBMQProvider, **kwargs):
+def register(*args, provider_class=None, **kwargs):
     """
     Authenticate against an online backend provider.
     This is a factory method that returns the provider that gets registered.
-
-    Note that if no parameters are passed, this method will try to
-    automatically discover the credentials for IBMQ in the following places,
-    in order::
-
-        1. in the `Qconfig.py` file in the current working directory.
-        2. in the environment variables.
-        3. in the `qiskitrc` configuration file.
 
     Args:
         args (tuple): positional arguments passed to provider class initialization
         provider_class (BaseProvider): provider class
         kwargs (dict): keyword arguments passed to provider class initialization.
-            For the IBMQProvider default this can include things such as:
+            For the IBMQSingleProvider default this can include things such as:
 
                 * token (str): The token used to register on the online backend such
                     as the quantum experience.
@@ -68,24 +59,29 @@ def register(*args, provider_class=IBMQProvider, **kwargs):
         BaseProvider: the provider instance that was just registered.
 
     Raises:
-        QISKitError: if the provider could not be registered (e.g. due to
-        conflict, or if no credentials were provided.)
+        QISKitError: if the provider could not be registered
+
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.backends.ibmq.IBMQ` instead (`use_account()`) for using IBMQ
+        accounts. For custom `Provider`s, please instantiate them directly.
     """
-    # Try to autodiscover credentials if not passed.
-    if not args and not kwargs and provider_class == IBMQProvider:
-        kwargs = credentials.discover_credentials().get(
-            credentials.get_account_name(IBMQProvider)) or {}
-        if not kwargs:
-            raise QISKitError(
-                'No IBMQ credentials found. Please pass them explicitly or '
-                'store them before calling register() with store_credentials()')
+    if provider_class:
+        warnings.warn(
+            'The global registry of providers and register() is deprecated '
+            'since 0.6. Please instantiate "{}()" directly.'.format(provider_class),
+            DeprecationWarning)
+        return None
+    else:
+        warnings.warn('register() will be deprecated after 0.6. Please use the '
+                      'qiskit.IBMQ.use_account() method instead.',
+                      DeprecationWarning)
 
     try:
-        provider = provider_class(*args, **kwargs)
+        provider = ibmq.IBMQ.use_account(*args, **kwargs)
     except Exception as ex:
         raise QISKitError("Couldn't instantiate provider! Error: {0}".format(ex))
 
-    _DEFAULT_PROVIDER.add_provider(provider)
     return provider
 
 
@@ -102,41 +98,28 @@ def unregister(provider):
         provider (BaseProvider): the provider instance to unregister
     Raises:
         QISKitError: if the provider instance is not registered
+
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.backends.ibmq.IBMQ` instead (`remove_account()`).
     """
-    _DEFAULT_PROVIDER.remove_provider(provider)
+    warnings.warn('unregister() will be deprecated after 0.6. Please use the '
+                  'qiskit.IBMQ.remove_account() method instead.',
+                  DeprecationWarning)
+    # TODO: provider is no longer a valid argument - signature, noop?
 
 
 def registered_providers():
-    """Return the currently registered providers."""
-    return list(_DEFAULT_PROVIDER.providers)
+    """Return the currently registered providers.
 
-
-def store_credentials(token, url='https://quantumexperience.ng.bluemix.net/api',
-                      hub=None, group=None, project=None, proxies=None,
-                      verify=True, overwrite=False):
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.backends.ibmq.IBMQ` instead (`list_accounts()`).
     """
-    Store credentials for the IBMQ account in the config file.
-
-    Args:
-        token (str): The token used to register on the online backend such
-            as the quantum experience.
-        url (str): The url used for online backend such as the quantum
-            experience.
-        hub (str): The hub used for online backend.
-        group (str): The group used for online backend.
-        project (str): The project used for online backend.
-        proxies (dict): Proxy configuration for the API, as a dict with
-            'urls' and credential keys.
-        verify (bool): If False, ignores SSL certificates errors.
-        overwrite (bool): overwrite existing credentials.
-
-    Raises:
-        QISKitError: if the credentials already exist and overwrite==False.
-    """
-    url = _parse_ibmq_credentials(url, hub, group, project)
-    credentials.store_credentials(
-        provider_class=IBMQProvider, overwrite=overwrite,
-        token=token, url=url, proxies=proxies, verify=verify)
+    warnings.warn('registered_providers() will be deprecated after 0.6. Please '
+                  'use the qiskit.IBMQ.list_accounts() method instead.',
+                  DeprecationWarning)
+    return ibmq.IBMQ.list_accounts()
 
 
 # Functions for inspecting and retrieving backends.
@@ -168,26 +151,19 @@ def available_backends(filters=None, compact=True):
 
     Returns:
         list[str]: the names of the available backends.
+
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.backends.ibmq.IBMQ` and `qiskit.backends.local.Aer` instead
+        (`backends()`).
     """
-    backend_names = [str(backend)
-                     for backend in _DEFAULT_PROVIDER.available_backends(filters)]
+    warnings.warn('available_backends() will be deprecated after 0.6. Please '
+                  'use the qiskit.IBMQ.backends() and qiskit.Aer.backends() '
+                  'method instead.',
+                  DeprecationWarning)
 
-    alias_dict = {v: k for k, v in _DEFAULT_PROVIDER.aliased_backend_names().items()}
-    backend_names = [alias_dict[name] if name in alias_dict else name for name in backend_names]
-
-    if compact:
-        group_dict = _DEFAULT_PROVIDER.grouped_backend_names()
-        groups = set()
-        for name in backend_names:
-            backend_group = set(k for k, v in group_dict.items() if name in v)
-            if not backend_group:
-                groups.add(name)
-            elif len(backend_group) == 1:
-                (group,) = backend_group
-                groups.add(group)
-        backend_names = list(groups)
-
-    return sorted(backend_names)
+    backends = local.Aer.backends(filters) + ibmq.IBMQ.backends(filters)
+    return [backend.name() for backend in backends]
 
 
 def least_busy(names):
@@ -208,10 +184,29 @@ def least_busy(names):
             either empty or none have attribute ``pending_jobs``
     """
     backends = [get_backend(name) for name in names]
+    return _least_busy_instances(backends).name()
+
+
+def _least_busy_instances(backends):
+    """
+    Return the least busy available backend for those that
+    have a `pending_jobs` in their `status`. Backends such as
+    local backends that do not have this are not considered.
+
+    Args:
+        names (list[BaseBackend]): backends to choose from
+
+    Returns:
+        BaseBackend: the the least busy backend
+
+    Raises:
+        QISKitError: if passing a list of backend names that is
+            either empty or none have attribute ``pending_jobs``
+    """
     try:
         return min([b for b in backends
                     if b.status()['operational'] and 'pending_jobs' in b.status()],
-                   key=lambda b: b.status()['pending_jobs']).name()
+                   key=lambda b: b.status()['pending_jobs'])
     except (ValueError, TypeError):
         raise QISKitError("Can only find least_busy backend from a non-empty list.")
 
@@ -224,8 +219,20 @@ def get_backend(name):
         name(str): unique name of the backend.
     Returns:
         BaseBackend: a Backend instance.
+
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.backends.ibmq.IBMQ` and `qiskit.backends.local.Aer` instead
+        (`backends()`).
     """
-    return _DEFAULT_PROVIDER.get_backend(name)
+    warnings.warn('get_backend() will be deprecated after 0.6. Please '
+                  'use the qiskit.IBMQ.backends() and qiskit.Aer.backends() '
+                  'method instead with the "filters" parameter.',
+                  DeprecationWarning)
+    try:
+        return local.Aer.get_backend(name)
+    except LookupError:
+        return ibmq.IBMQ.get_backend(name)
 
 
 # Functions for compiling and executing.
@@ -268,7 +275,7 @@ def compile(circuits, backend,
         circuits = [circuits]
 
     if isinstance(backend, str):
-        backend = _DEFAULT_PROVIDER.get_backend(backend)
+        backend = get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
@@ -378,7 +385,8 @@ def execute(circuits, backend,
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
-        backend = _DEFAULT_PROVIDER.get_backend(backend)
+        backend = get_backend(backend)
+
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id, hpc,

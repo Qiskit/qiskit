@@ -11,7 +11,6 @@
 """Main QISKit public functionality."""
 
 import os
-import sys
 import pkgutil
 
 # First, check for required Python and API version
@@ -36,19 +35,22 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-# Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports or any non-import code.
-__path__ = pkgutil.extend_path(__path__, __name__)
+# Global objects. They are assigned to the specific module-level variables to
+# minimize the risk of them falling out of sync please use with care.
+import qiskit.backends.ibmq
+IBMQ = qiskit.backends.ibmq.IBMQ
+import qiskit.backends.local
+Aer = qiskit.backends.local.Aer
 
 # Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports.
+# to be placed *before* the wrapper imports or any non-import code.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 from .wrapper._wrapper import (
     available_backends, get_backend,
     compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file, least_busy,
-    store_credentials)
+    registered_providers, load_qasm_string, load_qasm_file, least_busy)
+
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper

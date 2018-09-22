@@ -14,3 +14,6 @@ from .qasm_simulator_py import QasmSimulatorPy
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
 from .statevector_simulator_py import StatevectorSimulatorPy
 from .unitary_simulator_py import UnitarySimulatorPy
+
+# Global instance to be used as the entry point for convenience.
+Aer = LocalProvider()
