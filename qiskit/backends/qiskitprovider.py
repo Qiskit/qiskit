@@ -26,71 +26,80 @@ class QiskitProvider(BaseProvider):
     def _backends_list(self):
         return list(self._backends.values())
 
-    def backends(self, filters=None, **kwargs):
-        """Return the available backends.
+    def backends(self, name=None, filters=None, **kwargs):
+        """Return the available backends matching the specified filtering.
 
-        Note:
-            If two or more providers share similar backend names, only the backends
-            belonging to the first registered provider will be returned.
+        Return the list of available backends from this provider, optionally
+        filtering the results by the backends' `configuration` or `status`
+        attributes, or from a boolean callable. The criteria for filtering can
+        be specified via `**kwargs` or as a callable via `filters`, and the
+        backends must fulfill all specified conditions.
+
+        For example::
+
+            backends(simulator=True,
+                     operational=True,
+                     filters=lambda x: 'snapshot' in x.configuration()['basis_gates'])
+
+        Will return all the operational simulators that support 'snapshot'.
 
         Args:
-            filters (dict or callable): filtering conditions.
-                each will either pass through, or be filtered out:
+            name (str): name of the backend.
+            filters (callable): filtering conditions as a callable
+                (`BaseBackend` -> bool). For example::
 
-                1) dict: {'criteria': value}
-                    the criteria can be over backend's `configuration` or `status`
-                    e.g. {'local': False, 'simulator': False, 'operational': True}
+                    backends(filters=lambda x: x.configuration()['n_qubits'] > 5)
 
-                2) callable: BaseBackend -> bool
-                    e.g. lambda x: x.configuration()['n_qubits'] > 5
+            **kwargs (dict): dict of 'criteria': value pairs, that will be
+                matched against the backend's `configuration` or `status`
+                attributes. For example::
+
+                    backends(local=False, operational=True)
 
         Returns:
-            list[BaseBackend]: a list of backend instances available
-                from all the providers.
-
-        Raises:
-            QISKitError: if passing filters that is neither dict nor callable
+            list[BaseBackend]: a list of backend instances matching the
+                conditions.
         """
-        # TODO: alias resolution for 'name'
-        # TODO: 'filter' ergonomics
-        # TODO: filter always queries for 'status', slow for IBMQ
+        def _match_all(dict_, criteria):
+            """Return True if all items in criteria matches items in dict_."""
+            return all(dict_.get(key_) == value_ for
+                       key_, value_ in criteria.items())
+
         backends = self._backends_list()
 
-        if filters is not None:
-            if isinstance(filters, dict):
-                # exact match filter:
-                # e.g. {'n_qubits': 5, 'operational': True}
+        # Special handling of the `name` parameter, to support alias resolution
+        # and handling of groups.
+        if name:
+            try:
+                resolved_names = self.resolve_backend_name(name)
+                backends = [backend for backend in backends if
+                            backend.name() in resolved_names]
+            except LookupError:
+                return []
 
-                # TODO: workaround for alias resolution for name
-                if 'name' in filters:
-                    try:
-                        filters['name'] = self.resolve_backend_name(filters['name'])
-                    except LookupError:
-                        return []
-
-                if list(filters.keys()) == 'name':
-                    # TODO: special case for the get_backend() compatibility.
-                    # avoids filtering for `status`, as this implies making a
-                    # query to the online server.
-                    backends = [instance for instance in backends
-                                if instance.name() == filters['name']]
-
-                for key, value in filters.items():
-                    backends = [instance for instance in backends
-                                if instance.configuration().get(key) == value]
-                    # TODO: reintroduce instance.status().get(key) == value
-            elif callable(filters):
-                # acceptor filter: accept or reject a specific backend
-                # e.g. lambda x: x.configuration()['n_qubits'] > 5
-                accepted_backends = []
-                for backend in backends:
-                    try:
-                        if filters(backend) is True:
-                            accepted_backends.append(backend)
-                    except Exception:  # pylint: disable=broad-except
-                        pass
-                backends = accepted_backends
+        # Inspect the backends to decide which filters belong to
+        # backend.configuration and which ones to backend.status, as it does
+        # not involve querying the API.
+        configuration_filters = {}
+        status_filters = {}
+        for key, value in kwargs.items():
+            if all(key in backend.configuration() for backend in backends):
+                configuration_filters[key] = kwargs[key]
             else:
-                raise QISKitError('backend filters must be either dict or callable.')
+                status_filters[key] = kwargs[key]
+
+        # 1. Apply backend.configuration filtering.
+        if configuration_filters:
+            backends = [b for b in backends if
+                        _match_all(b.configuration(), configuration_filters)]
+
+        # 2. Apply backend.status filtering (it involves one API call for
+        # each backend).
+        if status_filters:
+            backends = [b for b in backends if
+                        _match_all(b.status(), status_filters)]
+
+        # 3. Apply acceptor filter.
+        backends = list(filter(filters, backends))
 
         return backends
