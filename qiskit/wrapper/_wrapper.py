@@ -162,7 +162,13 @@ def available_backends(filters=None, compact=True):
                   'method instead.',
                   DeprecationWarning)
 
-    backends = local.Aer.backends(filters) + ibmq.IBMQ.backends(filters)
+    kwargs = {}
+    if isinstance(filters, dict):
+        kwargs = filters
+    else:
+        kwargs = {'filters': filters}
+
+    backends = local.Aer.backends(**kwargs) + ibmq.IBMQ.backends(**kwargs)
     return [backend.name() for backend in backends]
 
 

@@ -53,17 +53,17 @@ class BaseProvider(ABC):
             with a filter instead.
         """
         try:
-            return self.backends({'name': name})[0]
+            return self.backends(name=name)[0]
         except IndexError:
             raise KeyError('backend "{}" not found.'.format(name))
 
     @abstractmethod
-    def backends(self, filters=None, **kwargs):
+    def backends(self, name=None, **kwargs):
         """
         Return backend instances.
 
         Args:
-            filters:
+            name (str):
             **kwargs:
 
         Returns:
@@ -128,34 +128,38 @@ class BaseProvider(ABC):
             name (str): name of backend to resolve
 
         Returns:
-            str: name of resolved backend, which is available from one of the providers
+            list (str): list of name of resolved backend, which is available from one of the providers
 
         Raises:
             LookupError: if name cannot be resolved through
             regular available names, nor groups, nor deprecated, nor alias names
         """
-        resolved_name = ""
+        resolved_names = []
         available = [b.name() for b in self._backends_list()]
         grouped = self.grouped_backend_names()
         deprecated = self.deprecated_backend_names()
         aliased = self.aliased_backend_names()
 
         if name in available:
-            resolved_name = name
+            resolved_names = [name]
         elif name in grouped:
             available_members = [b for b in grouped[name] if b in available]
             if available_members:
-                resolved_name = available_members[0]
+                resolved_names = available_members
         elif name in deprecated:
-            resolved_name = deprecated[name]
-            logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)
+            resolved_names = [deprecated[name]]
+            logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_names[0])
         elif name in aliased:
-            resolved_name = aliased[name]
+            resolved_names = [aliased[name]]
 
-        if resolved_name not in available:
+        # Prune unavailable resolved names.
+        resolved_names = [resolved_name for resolved_name in resolved_names
+                          if resolved_name in available]
+
+        if not resolved_names:
             raise LookupError('backend "{}" not found.'.format(name))
 
-        return resolved_name
+        return resolved_names
 
     def __eq__(self, other):
         """
