@@ -53,9 +53,6 @@ from ._progressbar import BaseProgressBar
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
 
-# Set parallel ennvironmental variable
-os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
                  num_processes=CPU_COUNT):

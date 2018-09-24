@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Utils for transpiler."""
-
+import os
 from ._passmanager import PassManager
 from ._transpilererror import TranspilerError
 
@@ -15,3 +15,6 @@ from ._transpiler import compile, transpile
 
 from ._parallel import parallel_map
 from ._progressbar import TextProgressBar
+
+# Set parallel ennvironmental variable
+os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
