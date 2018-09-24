@@ -171,13 +171,18 @@ class PassJ_Bad_NoReturn(DummyTP):
         return "Something else than DAG"
 
 
-class PassK_check_fixed_point(DummyAP, FixedPoint):
+class PassK_check_fixed_point_property(DummyAP, FixedPoint):
     """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
     in property_set['fixed_point'][<property>] as a boolean
     AP: Analysis Pass
-    NR: PassG_calculates_dag_property() # set at __init__ time
+    R: PassG_calculates_dag_property()
     """
 
+    requires = [PassG_calculates_dag_property()]
+
+    def __init__(self):
+        super().__init__('property')
+
     def run(self, dag):
-        for base in PassK_check_fixed_point.__bases__:
+        for base in PassK_check_fixed_point_property.__bases__:
             base.run(self, dag)

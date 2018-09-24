@@ -18,7 +18,7 @@ from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, Tra
 from qiskit.transpiler._passmanager import PluginDoWhile
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
-    PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point
+    PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point_property
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
@@ -258,50 +258,50 @@ class TestUseCases(SchedulerTestCase):
     def test_fixed_point_pass(self):
         """ A pass set with a do_while parameter that checks for a fixed point. """
         self.passmanager.add_pass(
-            [PassK_check_fixed_point('property', PassG_calculates_dag_property()),
+            [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set['fixed_point']['property'])
         self.assertScheduler(self.dag, self.passmanager,
                              ['run analysis pass PassG_calculates_dag_property',
                               'set property as 8 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 6',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 6 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 5',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 5 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 4',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 4 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 3',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 3 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 2',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 2 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 2',
                               'run analysis pass PassG_calculates_dag_property',
                               'set property as 2 (from dag.property)',
-                              'run analysis pass PassK_check_fixed_point',
+                              'run analysis pass PassK_check_fixed_point_property',
                               'run transformation pass PassA_TP_NR_NP',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 2'])
@@ -309,7 +309,7 @@ class TestUseCases(SchedulerTestCase):
     def test_fixed_point_pass_max_iteration(self):
         """ A pass set with a do_while parameter that checks that the max_iteration is raised. """
         self.passmanager.add_pass(
-            [PassK_check_fixed_point('property', PassG_calculates_dag_property()),
+            [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set['fixed_point']['property'],
@@ -317,13 +317,13 @@ class TestUseCases(SchedulerTestCase):
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run analysis pass PassG_calculates_dag_property',
                                     'set property as 8 (from dag.property)',
-                                    'run analysis pass PassK_check_fixed_point',
+                                    'run analysis pass PassK_check_fixed_point_property',
                                     'run transformation pass PassA_TP_NR_NP',
                                     'run transformation pass PassF_reduce_dag_property',
                                     'dag property = 6',
                                     'run analysis pass PassG_calculates_dag_property',
                                     'set property as 6 (from dag.property)',
-                                    'run analysis pass PassK_check_fixed_point',
+                                    'run analysis pass PassK_check_fixed_point_property',
                                     'run transformation pass PassA_TP_NR_NP',
                                     'run transformation pass PassF_reduce_dag_property',
                                     'dag property = 5'], TranspilerError)
