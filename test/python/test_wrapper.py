@@ -11,11 +11,10 @@
 import logging
 import unittest
 
-from qiskit import compile as qcompile
 import qiskit.wrapper
 from qiskit import QISKitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.backends.ibmq import IBMQProvider
+
 from qiskit.qobj import Qobj
 from qiskit.wrapper import registered_providers, execute
 from ._mockutils import DummyProvider
@@ -87,7 +86,7 @@ class TestWrapper(QiskitTestCase):
     def test_unregister_non_existent(self, qe_token, qe_url):
         """Test unregistering a non existent provider."""
         initial_providers = registered_providers()
-        ibmqprovider = IBMQProvider(qe_token, qe_url)
+        ibmqprovider = IBMQSingleProvider(qe_token, qe_url)
         with self.assertRaises(QISKitError):
             qiskit.wrapper.unregister(ibmqprovider)
         self.assertEqual(initial_providers, registered_providers())
@@ -146,7 +145,7 @@ class TestWrapper(QiskitTestCase):
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
         backend = 'local_qasm_simulator'
-        qobj_in = qcompile(self.circuit, backend, skip_transpiler=True)
+        qobj_in = qiskit.wrapper.compile(self.circuit, backend, skip_transpiler=True)
         out_circuit = qiskit.wrapper.qobj_to_circuits(qobj_in)
         self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
 
@@ -162,7 +161,7 @@ class TestWrapper(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = qcompile([self.circuit, circuit_b], backend, skip_transpiler=True)
+        qobj = qiskit.wrapper.compile([self.circuit, circuit_b], backend, skip_transpiler=True)
         qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
         self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
 

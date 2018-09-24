@@ -52,10 +52,23 @@ class BaseProvider(ABC):
             After 0.6, this function is deprecated. Please use `.backends()`
             with a filter instead.
         """
-        try:
-            return self.backends(name=name)[0]
-        except IndexError:
-            raise KeyError('backend "{}" not found.'.format(name))
+        return self.backend(name=name)
+
+    @abstractmethod
+    def backend(self, name=None, **kwargs):
+        """Return a single backend matching the specified filtering.
+
+        Args:
+            name (str): name of the backend.
+            *kwargs (dict): dict used for filtering.
+
+        Returns:
+            BaseProvider: a backend matching the filtering.
+
+        Raises:
+            KeyError: if no backend could be found.
+        """
+        pass
 
     @abstractmethod
     def backends(self, name=None, **kwargs):
@@ -64,7 +77,7 @@ class BaseProvider(ABC):
 
         Args:
             name (str):
-            **kwargs:
+            kwargs (dict):
 
         Returns:
 

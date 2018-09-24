@@ -17,7 +17,7 @@ from unittest import skipIf
 
 import qiskit
 from qiskit import QISKitError
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit.backends.ibmq import IBMQSingleProvider
 from qiskit.wrapper.credentials import (_configrc, _qconfig,
                                         discover_credentials, get_account_name)
 from qiskit.wrapper.credentials._environ import VARIABLES_MAP
@@ -30,7 +30,7 @@ class TestWrapperCredentials(QiskitTestCase):
     """Wrapper autoregistration and credentials test case."""
     def setUp(self):
         super(TestWrapperCredentials, self).setUp()
-        self.ibmq_account_name = get_account_name(IBMQProvider)
+        self.ibmq_account_name = get_account_name(IBMQSingleProvider)
 
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
@@ -176,9 +176,9 @@ def custom_envs(new_environ):
 
 @contextmanager
 def mock_ibmq_provider():
-    """Mock the initialization of IBMQProvider, so it does not query the api."""
-    patcher = patch.object(IBMQProvider, '_authenticate', return_value=None)
-    patcher2 = patch.object(IBMQProvider, '_discover_remote_backends', return_value={})
+    """Mock the initialization of IBMQSingleProvider, so it does not query the api."""
+    patcher = patch.object(IBMQSingleProvider, '_authenticate', return_value=None)
+    patcher2 = patch.object(IBMQSingleProvider, '_discover_remote_backends', return_value={})
     patcher.start()
     patcher2.start()
     yield
