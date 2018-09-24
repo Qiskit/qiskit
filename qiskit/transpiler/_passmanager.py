@@ -86,7 +86,8 @@ class PassManager():
 
         for pass_ in pass_or_list_of_passes:
             if isinstance(pass_, BasePass):
-                pass_.set(**self._join_options(passset_options, pass_._settings))
+                for key, value in self._join_options(passset_options, pass_._settings).items():
+                    setattr(pass_, key, value)
             else:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
 

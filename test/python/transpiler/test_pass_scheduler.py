@@ -221,7 +221,7 @@ class TestUseCases(SchedulerTestCase):
         """ A single pass that is not idempotent. """
         passmanager = PassManager()
         pass_a = PassA_TP_NR_NP()
-        pass_a.set(idempotence=False)  # Set idempotence as False
+        pass_a.idempotence=False  # Set idempotence as False
 
         passmanager.add_pass(pass_a)
         passmanager.add_pass(pass_a)  # Normally removed for optimization, not here.
@@ -242,10 +242,9 @@ class TestUseCases(SchedulerTestCase):
         """
         passmanager = PassManager(idempotence=True, ignore_preserves=False, ignore_requires=True)
         tp_pass = DummyTP()
-        tp_pass.set(idempotence=False)
+        tp_pass.idempotence = False
         passmanager.add_pass(tp_pass, idempotence=True, ignore_preserves=True)
         the_pass_in_the_workinglist = next(iter(passmanager.working_list))
-        self.assertFalse(the_pass_in_the_workinglist.is_idempotent)
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
 

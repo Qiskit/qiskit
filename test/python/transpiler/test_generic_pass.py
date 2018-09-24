@@ -27,19 +27,15 @@ class TestGenericPass(QiskitTestCase):
         self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
         self.assertEqual(1000, tp_pass.max_iteration)  # By default, max_iteration is set to 1000
 
-        tp_pass.set(idempotence=False, ignore_preserves=True, ignore_requires=True,
-                    max_iteration=10)
+        tp_pass.idempotence = False
+        tp_pass.ignore_preserves = True
+        tp_pass.ignore_requires = True
+        tp_pass.max_iteration = 10
 
         self.assertFalse(tp_pass.is_idempotent)
         self.assertTrue(tp_pass.ignore_requires)
         self.assertTrue(tp_pass.ignore_preserves)
         self.assertEqual(10, tp_pass.max_iteration)
-
-    def test_pass_unknown_option(self):
-        """ An option in a pass should be in the set of allowed options. """
-        tp_pass = DummyTP()
-        with self.assertRaises(TranspilerUnknownOption):
-            tp_pass.set(not_an_option=False)
 
     def test_is_TP_or_AP(self):
         """ Passes have isTransformationPass and isAnalysisPass properties."""
@@ -66,7 +62,7 @@ class TestGenericPass(QiskitTestCase):
         """ It is possible to override the idempotence attribute of a pass. """
         tp_pass = DummyNI()
         self.assertFalse(tp_pass.is_idempotent)
-        tp_pass.set(idempotence=True)
+        tp_pass.idempotence = True
         self.assertTrue(tp_pass.is_idempotent)
 
 

@@ -9,8 +9,6 @@
 
 from abc import abstractmethod
 from collections import OrderedDict
-from ._transpilererror import TranspilerUnknownOption
-
 
 class MetaPass(type):
     """
@@ -27,7 +25,7 @@ class MetaPass(type):
             "idempotence": cls.idempotence,
             "ignore_requires": False,
             "ignore_preserves": False,
-            "max_iteration": 1000
+
         }
         obj._settings = {}
         return obj
@@ -39,9 +37,11 @@ class BasePass(metaclass=MetaPass):
     requires = []  # List of passes that requires
     preserves = []  # List of passes that preserves
     idempotence = True  # By default, passes are idempotent
+    ignore_preserves = False
+    ignore_requires = False
+    max_iteration = 1000
+
     property_set = {}
-    _defaults = {}
-    _settings = {}
     _hash = None
 
     def __init__(self):
@@ -57,22 +57,6 @@ class BasePass(metaclass=MetaPass):
 
     def __hash__(self):
         return self._hash
-
-    def set(self, **kwargs):
-        """
-        Sets a pass. `pass_.set(arg=value) equivalent to `pass_.arg = value`
-
-        Args:
-            **kwargs (dict): arguments=value to set
-
-        Raises:
-            TranspilerUnknownOption: If you try to set an option that is not supported.
-        """
-        for option in kwargs:
-            if option not in self._defaults:
-                raise TranspilerUnknownOption("The option %s cannot be set in the pass %s" %
-                                              (option, self.name))
-        self._settings = kwargs
 
     @abstractmethod
     def run(self, dag):
@@ -92,30 +76,7 @@ class BasePass(metaclass=MetaPass):
         optimize the transpiler process when sequence of passes are repeated or when passes are
         preserves.
         """
-        return self._settings.get('idempotence', self._defaults['idempotence'])
-
-    @property
-    def ignore_requires(self):
-        """ The `pass.requires` attribute declares the passes that are necessary to run before this
-        pass. The defaut is `False`. If `ignore_requires` is set to `True`, then the attribute is
-        ignored.
-        """
-        return self._settings.get('ignore_requires', self._defaults['ignore_requires'])
-
-    @property
-    def ignore_preserves(self):
-        """ The `pass.preserves` attribute declares the passes that are not modified by this pass.
-        The default is `False`. If `ignore_preserves` is set to `True`, then the attribute is
-        ignored and some optimizations will be disabled.
-        """
-        return self._settings.get('ignore_preserves', self._defaults['ignore_preserves'])
-
-    @property
-    def max_iteration(self):
-        """ The `pass.max_iteration` attribute returns the maximum amount of iterations allowed in
-        `do_while`. The default is `1000`.
-        """
-        return self._settings.get('max_iteration', self._defaults['max_iteration'])
+        return self.idempotence
 
     @property
     def is_TransformationPass(self):  # pylint: disable=invalid-name
