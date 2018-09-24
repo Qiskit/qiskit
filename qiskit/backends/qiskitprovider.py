@@ -26,6 +26,12 @@ class QiskitProvider(BaseProvider):
     def _backends_list(self):
         return list(self._backends.values())
 
+    def backend(self, name=None, **kwargs):
+        try:
+            return self.backends(name, **kwargs)[0]
+        except IndexError:
+            raise KeyError(name)
+
     def backends(self, name=None, filters=None, **kwargs):
         """Return the available backends matching the specified filtering.
 

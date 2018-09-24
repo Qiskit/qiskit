@@ -162,7 +162,6 @@ def available_backends(filters=None, compact=True):
                   'method instead.',
                   DeprecationWarning)
 
-    kwargs = {}
     if isinstance(filters, dict):
         kwargs = filters
     else:
@@ -236,9 +235,9 @@ def get_backend(name):
                   'method instead with the "filters" parameter.',
                   DeprecationWarning)
     try:
-        return local.Aer.get_backend(name)
-    except LookupError:
-        return ibmq.IBMQ.get_backend(name)
+        return local.Aer.backend(name)
+    except KeyError:
+        return ibmq.IBMQ.backend(name)
 
 
 # Functions for compiling and executing.
@@ -281,7 +280,10 @@ def compile(circuits, backend,
         circuits = [circuits]
 
     if isinstance(backend, str):
-        backend = get_backend(backend)
+        try:
+            backend = local.Aer.backend(backend)
+        except KeyError:
+            backend = ibmq.IBMQ.backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
@@ -391,7 +393,10 @@ def execute(circuits, backend,
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
-        backend = get_backend(backend)
+        try:
+            backend = local.Aer.backend(backend)
+        except KeyError:
+            backend = ibmq.IBMQ.backend(backend)
 
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
