@@ -9,7 +9,6 @@
 from copy import deepcopy
 import logging
 import uuid
-
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -23,6 +22,7 @@ from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
+from ._parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def compile(circuits, backend,
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        Qobj: the Qobj to be run on the backends
+        QobjExperiment: Experiment to be wrapped in a Qobj.
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
@@ -111,10 +111,7 @@ def _circuits_2_dags(circuits):
         list[DAGCircuit]: the dag representation of the circuits
         to be used in the transpiler
     """
-    dags = []
-    for circuit in circuits:
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
-        dags.append(dag)
+    dags = parallel_map(DAGCircuit.fromQuantumCircuit, circuits)
     return dags
 
 
@@ -139,20 +136,48 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Raises:
         TranspilerError: if the format is not valid.
     """
-    # TODO: Parallelize this method
-    final_dags = []
-    for dag, initial_layout in zip(dags, initial_layouts):
-        final_dag, final_layout = transpile(
-            dag,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            initial_layout=initial_layout,
-            get_layout=True,
-            seed=seed,
-            pass_manager=pass_manager)
-        final_dag.layout = [[k, v] for k, v in final_layout.items()] if final_layout else None
-        final_dags.append(final_dag)
+
+    index = list(range(len(dags)))
+    final_dags = parallel_map(_transpile_dags_parallel, index,
+                              task_args=(dags, initial_layouts),
+                              task_kwargs={'basis_gates': basis_gates,
+                                           'coupling_map': coupling_map,
+                                           'seed': seed,
+                                           'pass_manager': pass_manager})
     return final_dags
+
+
+def _transpile_dags_parallel(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,id',
+                             coupling_map=None, seed=None, pass_manager=None):
+    """Helper function for transpiling in parallel (if available).
+
+    Args:
+        idx (int): Index for dag of interest
+        dags (list): List of dags
+        initial_layouts (list): List of initial layouts
+        basis_gates (str): a comma seperated string for the target basis gates
+        coupling_map (list): A graph of coupling
+        seed (int): random seed for the swap mapper
+        pass_manager (PassManager): pass manager instance for the tranpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
+    Returns:
+        DAGCircuit: DAG circuit after going through transpilation.
+    """
+    dag = dags[idx]
+    initial_layout = initial_layouts[idx]
+    final_dag, final_layout = transpile(
+        dag,
+        basis_gates=basis_gates,
+        coupling_map=coupling_map,
+        initial_layout=initial_layout,
+        get_layout=True,
+        seed=seed,
+        pass_manager=pass_manager)
+    final_dag.layout = [[k, v]
+                        for k, v in final_layout.items()] if final_layout else None
+    return final_dag
 
 
 def _dags_2_qobj(dags, backend_name, config=None, shots=None,
@@ -196,28 +221,10 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
     if seed:
         qobj.config.seed = seed
 
-    for dag in dags:
-        json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-        # Step 3a: create the Experiment based on json_circuit
-        experiment = QobjExperiment.from_dict(json_circuit)
-        # Step 3b: populate the Experiment configuration and header
-        experiment.header.name = dag.name
-        # TODO: place in header or config?
-        experiment_config = deepcopy(config or {})
-        experiment_config.update({
-            'coupling_map': coupling_map,
-            'basis_gates': basis_gates,
-            'layout': dag.layout,
-            'memory_slots': sum(dag.cregs.values()),
-            # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
-            'n_qubits': sum(dag.qregs.values())})
-        experiment.config = QobjItem(**experiment_config)
-
-        # set eval_symbols=True to evaluate each symbolic expression
-        # TODO: after transition to qobj, we can drop this
-        experiment.header.compiled_circuit_qasm = dag.qasm(qeflag=True, eval_symbols=True)
-        # Step 3c: add the Experiment to the Qobj
-        qobj.experiments.append(experiment)
+    qobj.experiments = parallel_map(_dags_2_qobj_parallel, dags,
+                                    task_kwargs={'basis_gates': basis_gates,
+                                                 'config': config,
+                                                 'coupling_map': coupling_map})
 
     # Update the `memory_slots` value.
     # TODO: remove when `memory_slots` can be provided by the user.
@@ -231,6 +238,43 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
                                experiment in qobj.experiments)
 
     return qobj
+
+
+def _dags_2_qobj_parallel(dag, config=None, basis_gates=None,
+                          coupling_map=None):
+    """Helper function for dags to qobj in parallel (if available).
+
+    Args:
+        dag (DAGCircuit): DAG to compile
+        config (dict): dictionary of parameters (e.g. noise) used by runner
+        basis_gates (list[str])): basis gates for the experiment
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+
+    Returns:
+        Qobj: Qobj to be run on the backends
+    """
+    json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
+    # Step 3a: create the Experiment based on json_circuit
+    experiment = QobjExperiment.from_dict(json_circuit)
+    # Step 3b: populate the Experiment configuration and header
+    experiment.header.name = dag.name
+    # TODO: place in header or config?
+    experiment_config = deepcopy(config or {})
+    experiment_config.update({
+        'coupling_map': coupling_map,
+        'basis_gates': basis_gates,
+        'layout': dag.layout,
+        'memory_slots': sum(dag.cregs.values()),
+        # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
+        'n_qubits': sum(dag.qregs.values())})
+    experiment.config = QobjItem(**experiment_config)
+
+    # set eval_symbols=True to evaluate each symbolic expression
+    # TODO: after transition to qobj, we can drop this
+    experiment.header.compiled_circuit_qasm = dag.qasm(
+        qeflag=True, eval_symbols=True)
+    # Step 3c: add the Experiment to the Qobj
+    return experiment
 
 
 def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,

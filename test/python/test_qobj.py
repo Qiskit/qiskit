@@ -9,17 +9,16 @@
 
 """QOBj test."""
 import unittest
-import json
 import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile
+from qiskit import compile, SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
-from qiskit.qobj import QobjHeader, QobjValidationError
+from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.backends.local import localjob
 from qiskit.backends.ibmq import ibmqjob
 from ._mockutils import FakeBackend
-from .common import QiskitTestCase, Path
+from .common import QiskitTestCase
 
 
 class TestQobj(QiskitTestCase):
@@ -62,13 +61,8 @@ class TestQobj(QiskitTestCase):
 
     def test_as_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
-        schema_file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
-
-        with open(schema_file_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
         try:
-            jsonschema.validate(self.valid_qobj.as_dict(), schema)
+            validate_qobj_against_schema(self.valid_qobj)
         except jsonschema.ValidationError as validation_error:
             self.fail(str(validation_error))
 
@@ -106,7 +100,7 @@ class TestQobj(QiskitTestCase):
         backend = FakeBackend()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
-        with self.assertRaises(QobjValidationError):
+        with self.assertRaises(SchemaValidationError):
             job = localjob.LocalJob(_nop, self.bad_qobj)
             job.submit()
 
@@ -117,7 +111,7 @@ class TestQobj(QiskitTestCase):
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         api_stub = {}
-        with self.assertRaises(QobjValidationError):
+        with self.assertRaises(SchemaValidationError):
             job = ibmqjob.IBMQJob(api_stub, 'True', self.bad_qobj)
             job.submit()
 

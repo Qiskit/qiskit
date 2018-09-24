@@ -15,3 +15,6 @@ from ._basepasses import AnalysisPass, TransformationPass
 
 # pylint: disable=redefined-builtin
 from ._transpiler import compile, transpile
+
+from ._parallel import parallel_map
+from ._progressbar import TextProgressBar
