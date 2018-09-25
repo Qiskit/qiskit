@@ -280,8 +280,7 @@ class TestIBMQJobStates(JobTestCase):
         """
         backend = FakeBackend()
         self._current_api = api
-        self._current_qjob = job_class(
-            api, False, qobj=new_fake_qobj(), backend=backend)
+        self._current_qjob = job_class(backend, None, api, False, qobj=new_fake_qobj())
         self._current_qjob.submit()
         return self._current_qjob
 

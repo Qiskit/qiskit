@@ -55,7 +55,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             LocalJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        local_job = LocalJob(self._run_job, qobj, job_id, self)
+        local_job = LocalJob(self, job_id, self._run_job, qobj)
         local_job.submit()
         return local_job
 

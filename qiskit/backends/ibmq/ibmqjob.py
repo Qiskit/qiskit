@@ -114,8 +114,8 @@ class IBMQJob(BaseJob):
     """
     _executor = futures.ThreadPoolExecutor()
 
-    def __init__(self, api, is_device, qobj=None, job_id=None, creation_date=None,
-                 backend=None, **kwargs):
+    def __init__(self, backend, job_id, api, is_device, qobj=None,
+                 creation_date=None, **kwargs):
         """IBMQJob init function.
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
         the API servers.
@@ -124,7 +124,8 @@ class IBMQJob(BaseJob):
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. See notes below
-            job_id (String): The job ID of an already submitted job.
+            job_id (String): The job ID of an already submitted job. Pass `None`
+            if you are creating a new one.
             creation_date(String): When the job was run.
             backend (str): The backend instance used to run this job.
             kwargs (dict): You can pass `backend_name` to this function although
@@ -140,7 +141,7 @@ class IBMQJob(BaseJob):
                           'pass the `backend` parameter with the instance of '
                           'the backend running the job.', DeprecationWarning)
 
-        super().__init__()
+        super().__init__(backend, job_id)
         self._job_data = None
 
         if qobj is not None:
@@ -341,9 +342,6 @@ class IBMQJob(BaseJob):
         warnings.warn('The use of `job.backend_name()` is deprecated, '
                       'use `job.backend().name()` instead', DeprecationWarning)
         return self.backend().name()
-
-    def backend(self):
-        return self._backend
 
     def submit(self):
         """Submit job to IBM-Q.

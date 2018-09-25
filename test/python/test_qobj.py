@@ -102,7 +102,7 @@ class TestQobj(QiskitTestCase):
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = localjob.LocalJob(_nop, self.bad_qobj, job_id, backend)
+            job = localjob.LocalJob(backend, job_id, _nop, self.bad_qobj)
             job.submit()
 
     def test_ibmqobj_raises_error_when_sending_bad_qobj(self):
@@ -113,7 +113,7 @@ class TestQobj(QiskitTestCase):
 
         api_stub = {}
         with self.assertRaises(SchemaValidationError):
-            job = ibmqjob.IBMQJob(api_stub, 'True', self.bad_qobj)
+            job = ibmqjob.IBMQJob(backend, None, api_stub, 'True', self.bad_qobj)
             job.submit()
 
     def test_change_qobj_after_compile(self):

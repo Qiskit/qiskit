@@ -48,7 +48,7 @@ class TestLocalJob(QiskitTestCase):
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (LocalJob, executor):
             for index in range(taskcount):
-                local_job = LocalJob(target_tasks[index], new_fake_qobj(), job_id, backend)
+                local_job = LocalJob(backend, job_id, target_tasks[index], new_fake_qobj())
                 local_job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
@@ -67,7 +67,7 @@ class TestLocalJob(QiskitTestCase):
         backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (LocalJob, executor):
-            job = LocalJob(lambda: None, new_fake_qobj(), job_id, backend)
+            job = LocalJob(backend, job_id, lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
 

@@ -50,16 +50,11 @@ class LocalJob(BaseJob):
     else:
         _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, qobj, job_id, backend):
-        super().__init__()
+    def __init__(self, backend, job_id, fn, qobj):
+        super().__init__(backend, job_id)
         self._fn = fn
-        self._job_id = job_id
         self._qobj = qobj
-        self._backend = backend
         self._future = None
-
-    def job_id(self):
-        return self._job_id
 
     def submit(self):
         """Submit the job to the backend for execution.
