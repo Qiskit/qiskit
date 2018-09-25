@@ -261,6 +261,8 @@ def latex_circuit_drawer(circuit,
                          style=None):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
+    Requires version >=2.6.0 of the qcircuit LaTeX package.
+
     Args:
         circuit (QuantumCircuit): a quantum circuit
         basis (str): comma separated list of gates
