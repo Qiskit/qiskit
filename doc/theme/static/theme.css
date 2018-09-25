@@ -5,12 +5,22 @@ html{
     font-size: 16px !important;
 }
 .mdl-layout{
-    background: white !important;
+    background: red !important;
+}
+th.field-name{
+    border-color: #00bcd4 !important;
+    background: rgba(0,188,212,.1);
+    border-bottom: 1px solid;
+    padding: 16px;
+
+}
+td.field-body {
+   padding-top: 16px;
+   padding-left: 8px;
 }
 h1{
     font-size: 2.5rem !important;
     line-height: 2.25rem !important;
-
 }
 header {
   display: flex;
