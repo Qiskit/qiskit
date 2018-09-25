@@ -26,7 +26,7 @@ from .common import QiskitTestCase, requires_cpp_simulator
 
 class TestLocalQasmSimulatorCpp(QiskitTestCase):
     """
-    Test job_processor module.
+    Test local qasm simulator cpp module.
     """
 
     @requires_cpp_simulator
