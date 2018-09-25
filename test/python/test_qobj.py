@@ -8,6 +8,7 @@
 # pylint: disable=redefined-builtin
 
 """QOBj test."""
+import uuid
 import unittest
 import copy
 import jsonschema
@@ -96,12 +97,12 @@ class TestQobj(QiskitTestCase):
 
     def test_localjob_raises_error_when_sending_bad_qobj(self):
         """Test localjob is denied resource request access when given an invalid Qobj instance."""
-
+        job_id = str(uuid.uuid4())
         backend = FakeBackend()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = localjob.LocalJob(_nop, self.bad_qobj)
+            job = localjob.LocalJob(_nop, self.bad_qobj, job_id, backend)
             job.submit()
 
     def test_ibmqobj_raises_error_when_sending_bad_qobj(self):

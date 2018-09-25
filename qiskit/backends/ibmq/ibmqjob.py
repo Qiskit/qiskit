@@ -12,6 +12,7 @@ IBM Q Experience.
 """
 
 from concurrent import futures
+import warnings
 import time
 import logging
 import pprint
@@ -113,8 +114,8 @@ class IBMQJob(BaseJob):
     """
     _executor = futures.ThreadPoolExecutor()
 
-    def __init__(self, api, is_device, qobj=None, job_id=None, backend_name=None,
-                 creation_date=None):
+    def __init__(self, api, is_device, qobj=None, job_id=None, creation_date=None,
+                 backend=None, **kwargs):
         """IBMQJob init function.
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
         the API servers.
@@ -124,14 +125,21 @@ class IBMQJob(BaseJob):
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. See notes below
             job_id (String): The job ID of an already submitted job.
-            backend_name(String): The name of the backend that run the job.
             creation_date(String): When the job was run.
+            backend (str): The backend instance used to run this job.
+            kwargs (dict): You can pass `backend_name` to this function although
+                it has been deprecated.
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
             will ignore ``job_id`` and will create an instance representing
             an already-created job retrieved from the API server.
         """
+        if 'backend_name' in kwargs:
+            warnings.warn('Passing the parameter `backend_name` is deprecated, '
+                          'pass the `backend` parameter with the instance of '
+                          'the backend running the job.', DeprecationWarning)
+
         super().__init__()
         self._job_data = None
 
@@ -152,7 +160,7 @@ class IBMQJob(BaseJob):
         self._future_captured_exception = None
         self._api = api
         self._id = job_id
-        self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
+        self._backend = backend
         self._status = JobStatus.INITIALIZING
         # In case of not providing a qobj, it assumes job_id has been provided
         # and query the API for updating the status.
@@ -315,12 +323,27 @@ class IBMQJob(BaseJob):
         If the Id is not set because the job is already initializing, this call
         will block until we have an Id.
         """
+        warnings.warn('The method `job.id()` is deprecated, use '
+                      '``job.job_id()`` instead.')
+        return self.job_id()
+
+    def job_id(self):
+        """Return backend determined id.
+
+        If the Id is not set because the job is already initializing, this call
+        will block until we have an Id.
+        """
         self._wait_for_submission()
         return self._id
 
     def backend_name(self):
         """Return backend name used for this job."""
-        return self._backend_name
+        warnings.warn('The use of `job.backend_name()` is deprecated, '
+                      'use `job.backend().name()` instead', DeprecationWarning)
+        return self.backend().name()
+
+    def backend(self):
+        return self._backend
 
     def submit(self):
         """Submit job to IBM-Q.
@@ -341,7 +364,7 @@ class IBMQJob(BaseJob):
         Returns:
             dict: A dictionary with the response of the submitted job
         """
-        backend_name = self._backend_name
+        backend_name = self.backend().name()
 
         try:
             submit_info = self._api.run_job(self._qobj_payload, backend=backend_name)
@@ -442,7 +465,7 @@ class IBMQJobPreQobj(IBMQJob):
         max_credits = self._job_data['max_credits']
 
         try:
-            submit_info = self._api.run_job(api_jobs, backend=self._backend_name,
+            submit_info = self._api.run_job(api_jobs, backend=self.backend().name(),
                                             shots=shots, max_credits=max_credits,
                                             seed=seed, hpc=hpc_camel_cased)
         # pylint: disable=broad-except

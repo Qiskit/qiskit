@@ -23,6 +23,16 @@ class BaseJob(ABC):
         pass
 
     @abstractmethod
+    def backend(self):
+        """Return the backend for this job."""
+        pass
+
+    @abstractmethod
+    def job_id(self):
+        """Return a unique id identifyinf the job."""
+        pass
+
+    @abstractmethod
     def submit(self):
         """Submit the job to the backend."""
         pass

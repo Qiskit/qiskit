@@ -7,6 +7,7 @@
 
 """This module implements the job class used for LocalBackend objects."""
 
+import warnings
 from concurrent import futures
 import logging
 import sys
@@ -49,12 +50,16 @@ class LocalJob(BaseJob):
     else:
         _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, qobj):
+    def __init__(self, fn, qobj, job_id, backend):
         super().__init__()
         self._fn = fn
+        self._job_id = job_id
         self._qobj = qobj
-        self._backend_name = qobj.header.backend_name
+        self._backend = backend
         self._future = None
+
+    def job_id(self):
+        return self._job_id
 
     def submit(self):
         """Submit the job to the backend for execution.
@@ -69,7 +74,7 @@ class LocalJob(BaseJob):
             raise JobError("We have already submitted the job!")
 
         validate_qobj_against_schema(self._qobj)
-        self._future = self._executor.submit(self._fn, self._qobj)
+        self._future = self._executor.submit(self._fn, self._job_id, self._qobj)
 
     @requires_submit
     def result(self, timeout=None):
@@ -120,6 +125,12 @@ class LocalJob(BaseJob):
 
     def backend_name(self):
         """
-        Return backend name used for this job
+        Return the name of the backend used for this job.
         """
-        return self._backend_name
+        warnings.warn('The use of `job.backend_name()` is deprecated, use '
+                      '`job.backend().name()` instead.', DeprecationWarning)
+        return self._backend.name()
+
+    def backend(self):
+        """Return the instance of the backend used for this job."""
+        return self._backend
