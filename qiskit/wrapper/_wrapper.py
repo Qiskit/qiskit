@@ -103,6 +103,7 @@ def unregister(provider):
         After 0.6, this function is deprecated. Please use the methods in
         `qiskit.backends.ibmq.IBMQ` instead (`remove_account()`).
     """
+    # pylint: disable=unused-argument
     warnings.warn('unregister() will be deprecated after 0.6. Please use the '
                   'qiskit.IBMQ.remove_account() method instead.',
                   DeprecationWarning)

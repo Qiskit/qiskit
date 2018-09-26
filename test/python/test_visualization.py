@@ -13,8 +13,7 @@ import os
 import random
 from inspect import signature
 import unittest
-
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+import qiskit
 from .common import QiskitTestCase
 
 try:
@@ -45,8 +44,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
         Returns:
             QuantumCircuit: constructed circuit
         """
-        qr = QuantumRegister(width, "q")
-        qc = QuantumCircuit(qr)
+        qr = qiskit.QuantumRegister(width, "q")
+        qc = qiskit.QuantumCircuit(qr)
 
         one_q_ops = "iden,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"
         two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
@@ -69,7 +68,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
                     operation = random.choice(three_q_ops.split(','))
                 # every gate is defined as a method of the QuantumCircuit class
                 # the code below is so we can call a gate by its name
-                gate = getattr(QuantumCircuit, operation)
+                gate = getattr(qiskit.QuantumCircuit, operation)
                 op_args = list(signature(gate).parameters.keys())
                 num_angles = len(op_args) - num_operands - 1    # -1 for the 'self' arg
                 angles = [random.uniform(0, 3.14) for x in range(num_angles)]
@@ -136,9 +135,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_teleport(self):
         """Test draw teleport circuit."""
         filename = self._get_resource_path('test_teleport.tex')
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
-        qc = QuantumCircuit(qr, cr)
+        qr = qiskit.QuantumRegister(3, 'q')
+        cr = qiskit.ClassicalRegister(3, 'c')
+        qc = qiskit.QuantumCircuit(qr, cr)
         # Prepare an initial state
         qc.u3(0.3, 0.2, 0.1, qr[0])
         # Prepare a Bell pair

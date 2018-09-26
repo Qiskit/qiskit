@@ -41,9 +41,9 @@ def filter_backends(backends, filters=None, **kwargs):
     status_filters = {}
     for key, value in kwargs.items():
         if all(key in backend.configuration() for backend in backends):
-            configuration_filters[key] = kwargs[key]
+            configuration_filters[key] = value
         else:
-            status_filters[key] = kwargs[key]
+            status_filters[key] = value
 
     # 1. Apply backend.configuration filtering.
     if configuration_filters:
@@ -77,7 +77,7 @@ def resolve_backend_name(name, backends, grouped, deprecated, aliased):
         aliased (dict[str: list[str]]): dict of aliased names.
 
     Returns:
-        list (str): list of name of resolved backends
+        list[str]: list of name of resolved backends
 
     Raises:
         LookupError: if name cannot be resolved through regular available

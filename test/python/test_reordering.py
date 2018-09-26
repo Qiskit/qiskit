@@ -91,7 +91,7 @@ class TestBitReordering(QiskitTestCase):
         sim_backend = qiskit.Aer.get_backend('local_qasm_simulator')
         try:
             qiskit.IBMQ.use_account(qe_token, qe_url)
-            real_backends = IBMQ.backends(simulator=False)
+            real_backends = qiskit.IBMQ.backends(simulator=False)
             real_backend = least_busy(real_backends)
         except Exception:
             real_backend = None

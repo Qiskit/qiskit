@@ -16,4 +16,4 @@ from .statevector_simulator_py import StatevectorSimulatorPy
 from .unitary_simulator_py import UnitarySimulatorPy
 
 # Global instance to be used as the entry point for convenience.
-Aer = LocalProvider()
+Aer = LocalProvider()  # pylint: disable=invalid-name

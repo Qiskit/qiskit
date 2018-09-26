@@ -30,9 +30,9 @@ class IBMQBackend(BaseBackend):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
-            credentials (Credentials):
-            provider (IBMQProvider):
             configuration (dict): configuration of backend.
+            provider (IBMQProvider): provider.
+            credentials (Credentials): credentials.
             api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
                 api for communicating with the Quantum Experience.
         """

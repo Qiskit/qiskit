@@ -35,25 +35,28 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-# Global objects. They are assigned to the specific module-level variables to
-# minimize the risk of them falling out of sync please use with care.
 import qiskit.backends.ibmq
-IBMQ = qiskit.backends.ibmq.IBMQ
 import qiskit.backends.local
-Aer = qiskit.backends.local.Aer
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
-from .wrapper._wrapper import (
-    available_backends, get_backend,
-    compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file, least_busy)
+from .wrapper._wrapper import (compile, execute, load_qasm_string,
+                               load_qasm_file, least_busy, qobj_to_circuits)
+
+# To be deprecated methods
+from .wrapper._wrapper import (available_backends, get_backend, register,
+                               unregister, registered_providers)
 
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
+
+# Global objects. They are assigned to the specific module-level variables to
+# minimize the risk of them falling out of sync - please use with care.
+IBMQ = qiskit.backends.ibmq.IBMQ
+Aer = qiskit.backends.local.Aer  # pylint: disable=invalid-name
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
