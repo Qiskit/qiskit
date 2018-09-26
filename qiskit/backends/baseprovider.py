@@ -40,7 +40,7 @@ class BaseProvider(ABC):
 
         Args:
             name (str): name of the backend.
-            *kwargs (dict): dict used for filtering.
+            **kwargs (dict): dict used for filtering.
 
         Returns:
             BaseProvider: a backend matching the filtering.
@@ -52,19 +52,18 @@ class BaseProvider(ABC):
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
             raise KeyError('More than one backend matches the criteria')
-        elif len(backends) == 0:
+        elif not backends:
             raise KeyError('No backend matches the criteria')
 
         return backends[0]
 
     @abstractmethod
     def backends(self, name=None, **kwargs):
-        """
-        Return backend instances.
+        """Return backend instances.
 
         Args:
-            name (str):
-            kwargs (dict):
+            name (str): name of the backend.
+            **kwargs (dict): dict used for filtering.
 
         Returns:
             list[BaseBackend]:

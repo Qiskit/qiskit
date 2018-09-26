@@ -107,7 +107,7 @@ def store_credentials(credentials, overwrite=False, filename=None):
     Store the credentials for a single provider in the configuration file.
 
     Args:
-        credentials (Credentials):
+        credentials (Credentials): credentials.
         overwrite (bool): overwrite existing credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
@@ -132,7 +132,7 @@ def remove_credentials(credentials, filename=None):
     """Remove provider credentials from qiskitrc.
 
     Args:
-        credentials (Credentials):
+        credentials (Credentials): credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
 

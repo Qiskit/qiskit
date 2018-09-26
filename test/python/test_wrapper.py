@@ -8,7 +8,6 @@
 
 """Tests for the wrapper functionality."""
 
-import logging
 import unittest
 
 import qiskit.wrapper
@@ -140,6 +139,7 @@ class TestWrapper(QiskitTestCase):
         self.assertIn('local_unitary_simulator', compact_names)
         self.assertIn('local_qasm_simulator_py', expanded_names)
         self.assertIn('local_statevector_simulator_py', expanded_names)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

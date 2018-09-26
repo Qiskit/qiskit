@@ -63,6 +63,7 @@ class LocalProvider(BaseProvider):
         return super().get_backend(name=name, **kwargs)
 
     def backends(self, name=None, filters=None, **kwargs):
+        # pylint: disable=arguments-differ
         backends = self._backends.values()
 
         # Special handling of the `name` parameter, to support alias resolution
@@ -80,7 +81,7 @@ class LocalProvider(BaseProvider):
             except LookupError:
                 return []
 
-        return filter_backends(backends, filters=None, **kwargs)
+        return filter_backends(backends, filters=filters, **kwargs)
 
     def grouped_backend_names(self):
         return {

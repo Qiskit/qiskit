@@ -16,6 +16,7 @@ from .common import (QiskitTestCase,
                      requires_cpp_simulator,
                      requires_qe_access)
 
+
 class TestBackendNameResolution(QiskitTestCase):
     """
     Test backend resolution algorithms.

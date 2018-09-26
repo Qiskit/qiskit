@@ -14,7 +14,6 @@ from IBMQuantumExperience import IBMQuantumExperience
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-from qiskit.backends.ibmq.credentials import Credentials
 from qiskit.backends.providerutils import filter_backends
 
 
@@ -24,6 +23,7 @@ class IBMQSingleProvider(BaseProvider):
         """
         Args:
             credentials (Credentials): Quantum Experience or IBMQ credentials.
+            ibmq_provider (IBMQProvider): IBMQ main provider.
         """
         super().__init__()
 
@@ -36,12 +36,13 @@ class IBMQSingleProvider(BaseProvider):
         self._backends = self._discover_remote_backends()
 
     def backends(self, name=None, filters=None, **kwargs):
+        # pylint: disable=arguments-differ
         backends = self._backends.values()
 
         if name:
             kwargs['name'] = name
 
-        return filter_backends(backends, filters=None, **kwargs)
+        return filter_backends(backends, filters=filters, **kwargs)
 
     @classmethod
     def _authenticate(cls, credentials):

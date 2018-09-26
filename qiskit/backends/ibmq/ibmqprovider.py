@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Provider for remote IBMQ backends with admin features."""
-import itertools
 from collections import OrderedDict
 
 from qiskit import QISKitError
@@ -29,6 +28,7 @@ class IBMQProvider(BaseProvider):
         self.accounts = OrderedDict()
 
     def backends(self, name=None, filters=None, **kwargs):
+        # pylint: disable=arguments-differ
         def _match_all(obj, criteria):
             """Return True if all items in criteria matches items in obj."""
             return all(getattr(obj, key_, None) == value_ for
@@ -78,10 +78,12 @@ class IBMQProvider(BaseProvider):
             token (str): Quantum Experience or IBM Q API token.
             url (str): URL for Quantum Experience or IBM Q (for IBM Q,
                 including the hub, group and project in the URL).
+            **kwargs (dict):
+                * proxies (dict): Proxy configuration for the API.
+                * verify (bool): If False, ignores SSL certificates errors
 
-        Keyword Args:
-            proxies (dict): Proxy configuration for the API.
-            verify (bool): If False, ignores SSL certificates errors
+        Raises:
+            QISKitError: if the credentials are already in use.
         """
         credentials = Credentials(token, url, **kwargs)
 
@@ -98,6 +100,16 @@ class IBMQProvider(BaseProvider):
         store_credentials(credentials)
 
     def remove_account(self, token, url=QE_URL, **kwargs):
+        """Remove an account.
+
+        Args:
+            token:
+            url:
+            **kwargs:
+
+        Raises:
+            QISKitError: if the credentials could not be removed.
+        """
         removed = False
         credentials = Credentials(token, url, **kwargs)
 
@@ -130,16 +142,16 @@ class IBMQProvider(BaseProvider):
             token (str): Quantum Experience or IBM Q API token.
             url (str): URL for Quantum Experience or IBM Q (for IBM Q,
                 including the hub, group and project in the URL).
-
-        Keyword Args:
-            proxies (dict): Proxy configuration for the API.
-            verify (bool): If False, ignores SSL certificates errors
+            **kwargs (dict):
+                * proxies (dict): Proxy configuration for the API.
+                * verify (bool): If False, ignores SSL certificates errors
         """
         credentials = Credentials(token, url, **kwargs)
 
         self._append_provider(credentials)
 
     def list_accounts(self):
+        """List all accounts."""
         information = []
         for provider in self.accounts.values():
             information.append({
@@ -150,10 +162,11 @@ class IBMQProvider(BaseProvider):
         return information
 
     def load_accounts(self):
+        """Load all accounts."""
         if self.accounts:
             raise QISKitError('The account list is not empty')
 
-        for account_name, credentials in discover_credentials().items():
+        for credentials in discover_credentials().values():
             self._append_provider(credentials)
 
         if not self.accounts:
