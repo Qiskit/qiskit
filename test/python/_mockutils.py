@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class DummyProvider(BaseProvider):
     """Dummy provider just for testing purposes."""
 
-    def backend(self, name=None, **kwargs):
+    def get_backend(self, name=None, **kwargs):
         return self._backend
 
     def backends(self, name=None, **kwargs):

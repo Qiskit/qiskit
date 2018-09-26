@@ -235,9 +235,9 @@ def get_backend(name):
                   'method instead with the "filters" parameter.',
                   DeprecationWarning)
     try:
-        return local.Aer.backend(name)
+        return local.Aer.get_backend(name)
     except KeyError:
-        return ibmq.IBMQ.backend(name)
+        return ibmq.IBMQ.get_backend(name)
 
 
 # Functions for compiling and executing.
@@ -281,9 +281,9 @@ def compile(circuits, backend,
 
     if isinstance(backend, str):
         try:
-            backend = local.Aer.backend(backend)
+            backend = local.Aer.get_backend(backend)
         except KeyError:
-            backend = ibmq.IBMQ.backend(backend)
+            backend = ibmq.IBMQ.get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
@@ -394,9 +394,9 @@ def execute(circuits, backend,
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
         try:
-            backend = local.Aer.backend(backend)
+            backend = local.Aer.get_backend(backend)
         except KeyError:
-            backend = ibmq.IBMQ.backend(backend)
+            backend = ibmq.IBMQ.get_backend(backend)
 
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,

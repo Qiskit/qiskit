@@ -35,27 +35,7 @@ class BaseProvider(ABC):
         """
         return self.backends(*args, **kwargs)
 
-    def get_backend(self, name):
-        """
-        Return a backend instance.
-        Args:
-            name (str): identifier
-
-        Returns:
-            BaseBackend: a backend instance.
-
-        Raises:
-            KeyError: if `name` is not among the list of backends available
-                from this provider.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use `.backends()`
-            with a filter instead.
-        """
-        return self.backend(name=name)
-
-    @abstractmethod
-    def backend(self, name=None, **kwargs):
+    def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
 
         Args:
@@ -66,9 +46,16 @@ class BaseProvider(ABC):
             BaseProvider: a backend matching the filtering.
 
         Raises:
-            KeyError: if no backend could be found.
+            KeyError: if no backend could be found or more than one backend
+                matches.
         """
-        pass
+        backends = self.backends(name, **kwargs)
+        if len(backends) > 1:
+            raise KeyError('More than one backend matches the criteria')
+        elif len(backends) == 0:
+            raise KeyError('No backend matches the criteria')
+
+        return backends[0]
 
     @abstractmethod
     def backends(self, name=None, **kwargs):
@@ -80,19 +67,7 @@ class BaseProvider(ABC):
             kwargs (dict):
 
         Returns:
-
-        """
-        pass
-
-    @abstractmethod
-    def _backends_list(self):
-        """Return all the available backends in this provider.
-
-        Private function for returning all the available backend instances in
-        this provider.
-
-        Returns:
-            list[BaseBackend]: list of backend instances.
+            list[BaseBackend]:
         """
         pass
 
@@ -130,49 +105,6 @@ class BaseProvider(ABC):
             dict[str: list[str]]: {backend_name: list(alias_name)}
         """
         return {}
-
-    def resolve_backend_name(self, name):
-        """Resolve backend name from a possible short group name, a deprecated name,
-        or an alias.
-
-        A group will be resolved in order of member priorities, depending on availability.
-
-        Args:
-            name (str): name of backend to resolve
-
-        Returns:
-            list (str): list of name of resolved backend, which is available from one of the providers
-
-        Raises:
-            LookupError: if name cannot be resolved through
-            regular available names, nor groups, nor deprecated, nor alias names
-        """
-        resolved_names = []
-        available = [b.name() for b in self._backends_list()]
-        grouped = self.grouped_backend_names()
-        deprecated = self.deprecated_backend_names()
-        aliased = self.aliased_backend_names()
-
-        if name in available:
-            resolved_names = [name]
-        elif name in grouped:
-            available_members = [b for b in grouped[name] if b in available]
-            if available_members:
-                resolved_names = available_members
-        elif name in deprecated:
-            resolved_names = [deprecated[name]]
-            logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_names[0])
-        elif name in aliased:
-            resolved_names = [aliased[name]]
-
-        # Prune unavailable resolved names.
-        resolved_names = [resolved_name for resolved_name in resolved_names
-                          if resolved_name in available]
-
-        if not resolved_names:
-            raise LookupError('backend "{}" not found.'.format(name))
-
-        return resolved_names
 
     def __eq__(self, other):
         """

@@ -29,7 +29,7 @@ class TestBackendNameResolution(QiskitTestCase):
 
             with self.subTest(oldname=oldname, newname=newname):
                 try:
-                    real_backend = Aer.backend(newname)
+                    real_backend = Aer.get_backend(newname)
                 except KeyError:
                     # The real name of the backend might not exist
                     pass
@@ -47,12 +47,12 @@ class TestBackendNameResolution(QiskitTestCase):
             with self.subTest(display_name=display_name,
                               backend_name=backend_name):
                 try:
-                    backend_by_name = IBMQ.backend(backend_name)
+                    backend_by_name = IBMQ.get_backend(backend_name)
                 except IndexError:
                     # The real name of the backend might not exist
                     pass
                 else:
-                    backend_by_display_name = IBMQ.backend(display_name)
+                    backend_by_display_name = IBMQ.get_backend(display_name)
                     self.assertEqual(backend_by_name, backend_by_display_name)
                     self.assertEqual(backend_by_display_name.name(), backend_name)
 
@@ -65,19 +65,19 @@ class TestBackendNameResolution(QiskitTestCase):
                               priority_list=priority_list):
                 target_backend = _get_first_available_backend(priority_list)
                 if target_backend:
-                    self.assertEqual(Aer.backends(group_name),
-                                     Aer.backends(target_backend))
+                    self.assertEqual(Aer.get_backend(group_name),
+                                     Aer.get_backend(target_backend))
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(LookupError, Aer.backend, 'bad_name')
+        self.assertRaises(LookupError, Aer.get_backend, 'bad_name')
 
 
 def _get_first_available_backend(backends):
     """Gets the first available backend."""
     for backend_name in backends:
         try:
-            return Aer.backend(backend_name).name()
+            return Aer.get_backend(backend_name).name()
         except LookupError:
             pass
 

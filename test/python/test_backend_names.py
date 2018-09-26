@@ -24,7 +24,7 @@ class TestBackendNames(QiskitTestCase):
     def test_local_groups(self):
         """test local group names are resolved correctly"""
         group_name = 'local_qasm_simulator'
-        backend = Aer.backend(group_name)
+        backend = Aer.get_backend(group_name)
         if is_cpp_simulator_available():
             self.assertIsInstance(backend, QasmSimulatorCpp)
         else:
@@ -34,7 +34,7 @@ class TestBackendNames(QiskitTestCase):
     def test_local_deprecated(self):
         """test deprecated local backends are resolved correctly"""
         old_name = 'local_qiskit_simulator'
-        new_backend = Aer.backend(old_name)
+        new_backend = Aer.get_backend(old_name)
         self.assertIsInstance(new_backend, QasmSimulatorCpp)
 
     def test_compact_flag(self):

@@ -10,8 +10,10 @@ import itertools
 from collections import OrderedDict
 
 from qiskit import QISKitError
-from qiskit.backends.ibmq.credentials._configrc import remove_credentials
-from qiskit.backends.qiskitprovider import QiskitProvider
+
+from qiskit.backends import BaseProvider
+
+from .credentials._configrc import remove_credentials
 from .credentials import (Credentials,
                           read_credentials_from_qiskitrc, store_credentials, discover_credentials)
 from .ibmqsingleprovider import IBMQSingleProvider
@@ -19,37 +21,55 @@ from .ibmqsingleprovider import IBMQSingleProvider
 QE_URL = 'https://quantumexperience.ng.bluemix.net/api'
 
 
-class IBMQProvider(QiskitProvider):
+class IBMQProvider(BaseProvider):
     """Provider for remote IBMQ backends with admin features."""
     def __init__(self):
         super().__init__()
 
         self.accounts = OrderedDict()
 
-    def _backends_list(self):
-        # TODO: return iterator, also in base
-        return list(itertools.chain(
-            *[account.backends() for account in self.accounts.values()]))
+    def backends(self, name=None, filters=None, **kwargs):
+        def _match_all(obj, criteria):
+            """Return True if all items in criteria matches items in obj."""
+            return all(getattr(obj, key_, None) == value_ for
+                       key_, value_ in criteria.items())
+
+        # Special handling of the credentials filters.
+        credentials_filter = {}
+        for key in ['token', 'url', 'hub', 'group', 'project']:
+            if key in kwargs:
+                credentials_filter[key] = kwargs.pop(key)
+        accounts = [account for account in self.accounts.values() if
+                    _match_all(account.credentials, credentials_filter)]
+
+        # Special handling of the `name` parameter, to support alias resolution.
+        if name:
+            aliases = self.aliased_backend_names()
+            aliases.update(self.deprecated_backend_names())
+            name = aliases.get(name, name)
+
+        # Aggregate the list of filtered backends.
+        backends = []
+        for provider in accounts:
+            backends = backends + provider.backends(
+                name=name, filters=filters, **kwargs)
+
+        return backends
 
     def deprecated_backend_names(self):
-        aggregated = {}
-        for provider in self.accounts.values():
-            aggregated.update(provider.deprecated_backend_names())
-
-        return aggregated
+        return {
+            'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
+            'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
+            'real': 'ibmqx1'
+            }
 
     def aliased_backend_names(self):
-        aggregated = {}
-        for provider in self.accounts.values():
-            aggregated.update(provider.aliased_backend_names())
-
-        return aggregated
-
-    def backends(self, name=None, filters=None, **kwargs):
-        # TODO: return iterator, also in base
-        return list(itertools.chain(
-            *[account.backends(name, filters, **kwargs)
-              for account in self.accounts.values()]))
+        return {
+            'ibmq_5_yorktown': 'ibmqx2',
+            'ibmq_5_tenerife': 'ibmqx4',
+            'ibmq_16_rueschlikon': 'ibmqx5',
+            'ibmq_20_austin': 'QS1_1'
+            }
 
     def add_account(self, token, url=QE_URL, **kwargs):
         """Authenticate against IBMQ and store the account for future use.
