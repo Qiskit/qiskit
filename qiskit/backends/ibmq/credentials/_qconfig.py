@@ -16,6 +16,7 @@ from qiskit import QISKitError
 from .credentials import Credentials
 
 DEFAULT_QCONFIG_FILE = 'Qconfig.py'
+QE_URL = 'https://quantumexperience.ng.bluemix.net/api'
 
 
 def read_credentials_from_qconfig():
@@ -54,6 +55,7 @@ def read_credentials_from_qconfig():
         else:
             credentials = {}
         credentials['token'] = q_config.APItoken
+        credentials['url'] = credentials.get('url', QE_URL)
     except Exception as ex:
         # pylint: disable=broad-except
         raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
