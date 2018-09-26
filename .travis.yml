@@ -6,7 +6,9 @@
 notifications:
   email: false
 
-cache: pip
+cache:
+  - pip
+  - ccache
 sudo: false
 
 ###############################################################################
@@ -27,6 +29,7 @@ sudo: false
 stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
+    - pip install -U wheel
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt
     # Create the basic cmake structure, setting out/ as the default dir.
