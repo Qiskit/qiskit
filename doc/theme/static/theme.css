@@ -120,6 +120,9 @@ h5.mdl-color-text--primary{
 .current{
     font-weight: normal !important;
 }
+.link-wrapper{
+    word-break: break-word
+}
 .link-wrapper.simple{
     margin-left: 32px !important;
 }
