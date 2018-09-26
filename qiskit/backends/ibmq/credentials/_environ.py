@@ -34,7 +34,7 @@ def read_credentials_from_environ():
 
     """
     # The token is the only required parameter.
-    if not os.getenv('QE_TOKEN'):
+    if not (os.getenv('QE_TOKEN') and os.getenv('QE_URL')):
         return {}
 
     # Build the credentials based on environment variables.

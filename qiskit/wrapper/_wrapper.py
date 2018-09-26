@@ -71,7 +71,7 @@ def register(*args, provider_class=None, **kwargs):
             'The global registry of providers and register() is deprecated '
             'since 0.6. Please instantiate "{}()" directly.'.format(provider_class),
             DeprecationWarning)
-        return None
+        return provider_class(*args, **kwargs)
     else:
         warnings.warn('register() will be deprecated after 0.6. Please use the '
                       'qiskit.IBMQ.use_account() method instead.',

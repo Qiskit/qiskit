@@ -91,7 +91,7 @@ class TestWrapper(QiskitTestCase):
             qiskit.wrapper.unregister(ibmqprovider)
         self.assertEqual(initial_providers, registered_providers())
 
-    def test_register_backend_name_conflicts(self):
+    def test_register_third_party(self):
         """Test backend name conflicts when registering."""
         class SecondDummyProvider(DummyProvider):
             """
@@ -99,25 +99,9 @@ class TestWrapper(QiskitTestCase):
             pass
 
         dummy_provider = qiskit.wrapper.register(provider_class=DummyProvider)
-        initial_providers = registered_providers()
-        initial_backends = qiskit.wrapper.available_backends()
         dummy_backend = dummy_provider.get_backend('local_dummy_simulator')
-        with self.assertLogs(level=logging.WARNING) as logs:
-            second_dummy_provider = qiskit.wrapper.register(
-                provider_class=SecondDummyProvider)
 
-        # Check that one, and only one warning has been issued.
-        self.assertEqual(len(logs.records), 1)
-        # Check that the provider has been registered.
-        self.assertCountEqual(initial_providers + [second_dummy_provider],
-                              registered_providers())
-        # Check that no new backends have been added.
-        self.assertCountEqual(initial_backends,
-                              qiskit.wrapper.available_backends())
-
-        # Check the name of the backend still refers to the previous one.
-        self.assertEqual(dummy_backend,
-                         qiskit.wrapper.get_backend('local_dummy_simulator'))
+        self.assertTrue(dummy_backend)
 
     def test_local_execute_and_get_ran_qasm(self):
         """Check if the local backend return the ran qasm."""
