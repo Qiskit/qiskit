@@ -122,6 +122,7 @@ deploy_pypi: &deploy_pypi
 
 # Define the order of the stages.
 stages:
+  - reference
   - lint and pure python test
   - test
   - ibmq
@@ -131,16 +132,30 @@ stages:
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
+    # "reference" stage
+    ###########################################################################
+    # Tests in a reference (GNU/Linux, Python 3.5) environment.
+    - stage: reference
+      <<: *stage_linux
+      if: type = pull_request and branch = master
+
+    - stage: reference
+      <<: *stage_linux_no_compile
+      if: type = pull_request and branch = master
+      script: make style VERBOSE="" && make lint VERBOSE=""
+
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
+      if: type = cron and branch = master
       script: make style VERBOSE="" && make lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
+      if: type = cron and branch = master
 
     # "test" stage
     ###########################################################################
@@ -151,11 +166,13 @@ jobs:
     # GNU/Linux, Python 3.6
     - stage: test
       <<: *stage_linux
+      if: type = cron and branch = master
       python: 3.6
 
     # GNU/Linux, Python 3.7
     - stage: test
       <<: *stage_linux
+      if: type = cron and branch = master
       # Compiling Python 3.7 requires an Ubuntu Xenial distribution
       # and sudo set to true
       # Fix when this is solved:
@@ -167,17 +184,19 @@ jobs:
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
       <<: *stage_osx
+      if: type = cron and branch = master
 
     # OSX, Python 3.7 (via pyenv)
     - stage: test
       <<: *stage_osx_python3_7
+      if: type = cron and branch = master
 
     # "ibmq" stage
     ###########################################################################
     # GNU/Linux, Python 3.6, against IBM Q
     - stage: ibmq
       <<: *stage_linux
-      if: branch = master and repo = Qiskit/qiskit-terra and type = push
+      if: type = cron and branch = master and repo = Qiskit/qiskit-terra
       python: 3.6
       env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
 
