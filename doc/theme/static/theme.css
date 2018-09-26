@@ -92,6 +92,9 @@ h2, h3, #h3, #h2, .h3, .h2 {
 main{
     background: white !important;
 }
+.highlight pre{
+    'IBM Plex Mono' !important;
+}
 .mdl-layout__drawer>.mdl-layout-title .title>img.logo{
     width: 40% !important;
 }
