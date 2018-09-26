@@ -10,8 +10,11 @@
 aliases."""
 
 from qiskit import IBMQ, Aer
-from .common import requires_qe_access, QiskitTestCase, is_cpp_simulator_available
-
+from qiskit.backends.local import QasmSimulatorPy, QasmSimulatorCpp
+from .common import (QiskitTestCase,
+                     is_cpp_simulator_available,
+                     requires_cpp_simulator,
+                     requires_qe_access)
 
 class TestBackendNameResolution(QiskitTestCase):
     """
@@ -48,7 +51,7 @@ class TestBackendNameResolution(QiskitTestCase):
                               backend_name=backend_name):
                 try:
                     backend_by_name = IBMQ.get_backend(backend_name)
-                except IndexError:
+                except KeyError:
                     # The real name of the backend might not exist
                     pass
                 else:
@@ -71,6 +74,28 @@ class TestBackendNameResolution(QiskitTestCase):
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
         self.assertRaises(LookupError, Aer.get_backend, 'bad_name')
+
+
+class TestBackendNames(QiskitTestCase):
+    """
+    Test grouped/deprecated/aliased names from providers.
+    """
+
+    def test_local_groups(self):
+        """test local group names are resolved correctly"""
+        group_name = 'local_qasm_simulator'
+        backend = Aer.get_backend(group_name)
+        if is_cpp_simulator_available():
+            self.assertIsInstance(backend, QasmSimulatorCpp)
+        else:
+            self.assertIsInstance(backend, QasmSimulatorPy)
+
+    @requires_cpp_simulator
+    def test_local_deprecated(self):
+        """test deprecated local backends are resolved correctly"""
+        old_name = 'local_qiskit_simulator'
+        new_backend = Aer.get_backend(old_name)
+        self.assertIsInstance(new_backend, QasmSimulatorCpp)
 
 
 def _get_first_available_backend(backends):

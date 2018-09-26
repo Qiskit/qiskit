@@ -21,7 +21,7 @@ class BaseBackend(ABC):
     """Base class for backends."""
 
     @abstractmethod
-    def __init__(self, configuration):
+    def __init__(self, configuration, provider=None):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -29,6 +29,7 @@ class BaseBackend(ABC):
         not available.
 
         Args:
+            provider (BaseProvider): provider responsible for this backend
             configuration (dict): configuration dictionary
 
         Raises:
@@ -38,6 +39,7 @@ class BaseBackend(ABC):
         if 'name' not in configuration:
             raise QISKitError('backend does not have a name.')
         self._configuration = configuration
+        self.provider = provider
 
     @abstractmethod
     def run(self, qobj):

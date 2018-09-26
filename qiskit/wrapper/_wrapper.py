@@ -106,7 +106,6 @@ def unregister(provider):
     warnings.warn('unregister() will be deprecated after 0.6. Please use the '
                   'qiskit.IBMQ.remove_account() method instead.',
                   DeprecationWarning)
-    # TODO: provider is no longer a valid argument - signature, noop?
 
 
 def registered_providers():
@@ -167,8 +166,20 @@ def available_backends(filters=None, compact=True):
     else:
         kwargs = {'filters': filters}
 
-    backends = local.Aer.backends(**kwargs) + ibmq.IBMQ.backends(**kwargs)
-    return [backend.name() for backend in backends]
+    ibmq_names = [backend.name() for backend in ibmq.IBMQ.backends(**kwargs)]
+    aer_names = [backend.name() for backend in local.Aer.backends(**kwargs)]
+
+    if compact:
+        # Hack for backwards compatibility: reverse the groups for local.
+        aer_groups = local.Aer.grouped_backend_names()
+        reversed_aer_groups = {}
+        for group, items in aer_groups.items():
+            for alias in items:
+                reversed_aer_groups[alias] = group
+
+        aer_names = list(set(reversed_aer_groups[name] for name in aer_names))
+
+    return ibmq_names + aer_names
 
 
 def least_busy(names):
@@ -189,31 +200,7 @@ def least_busy(names):
             either empty or none have attribute ``pending_jobs``
     """
     backends = [get_backend(name) for name in names]
-    return _least_busy_instances(backends).name()
-
-
-def _least_busy_instances(backends):
-    """
-    Return the least busy available backend for those that
-    have a `pending_jobs` in their `status`. Backends such as
-    local backends that do not have this are not considered.
-
-    Args:
-        names (list[BaseBackend]): backends to choose from
-
-    Returns:
-        BaseBackend: the the least busy backend
-
-    Raises:
-        QISKitError: if passing a list of backend names that is
-            either empty or none have attribute ``pending_jobs``
-    """
-    try:
-        return min([b for b in backends
-                    if b.status()['operational'] and 'pending_jobs' in b.status()],
-                   key=lambda b: b.status()['pending_jobs'])
-    except (ValueError, TypeError):
-        raise QISKitError("Can only find least_busy backend from a non-empty list.")
+    return ibmq.least_busy(backends).name()
 
 
 def get_backend(name):

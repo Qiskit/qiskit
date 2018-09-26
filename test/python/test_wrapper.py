@@ -61,8 +61,9 @@ class TestWrapper(QiskitTestCase):
         """Test double registration of the same credentials."""
         qiskit.wrapper.register(qe_token, qe_url)
         initial_providers = registered_providers()
-        # Registering twice should give warning and add no providers.
-        qiskit.wrapper.register(qe_token, qe_url)
+
+        with self.assertRaises(QISKitError):
+            qiskit.wrapper.register(qe_token, qe_url)
         self.assertCountEqual(initial_providers, registered_providers())
 
     def test_register_bad_credentials(self):
@@ -72,32 +73,8 @@ class TestWrapper(QiskitTestCase):
             qiskit.wrapper.register('FAKE_TOKEN', 'http://unknown')
         self.assertEqual(initial_providers, registered_providers())
 
-    @requires_qe_access
-    def test_unregister(self, qe_token, qe_url):
-        """Test unregistering."""
-        initial_providers = registered_providers()
-        ibmqprovider = qiskit.wrapper.register(qe_token, qe_url)
-        self.assertCountEqual(initial_providers + [ibmqprovider],
-                              registered_providers())
-        qiskit.wrapper.unregister(ibmqprovider)
-        self.assertEqual(initial_providers, registered_providers())
-
-    @requires_qe_access
-    def test_unregister_non_existent(self, qe_token, qe_url):
-        """Test unregistering a non existent provider."""
-        initial_providers = registered_providers()
-        ibmqprovider = IBMQSingleProvider(qe_token, qe_url)
-        with self.assertRaises(QISKitError):
-            qiskit.wrapper.unregister(ibmqprovider)
-        self.assertEqual(initial_providers, registered_providers())
-
     def test_register_third_party(self):
-        """Test backend name conflicts when registering."""
-        class SecondDummyProvider(DummyProvider):
-            """
-            Subclass the DummyProvider so register treats them as different."""
-            pass
-
+        """Test registering third party backend."""
         dummy_provider = qiskit.wrapper.register(provider_class=DummyProvider)
         dummy_backend = dummy_provider.get_backend('local_dummy_simulator')
 
@@ -154,6 +131,15 @@ class TestWrapper(QiskitTestCase):
         qobj = Qobj('abc123', {}, {}, {})
         self.assertIsNone(qiskit.wrapper.qobj_to_circuits(qobj))
 
+    def test_compact_flag(self):
+        """Test the compact flag for available_backends works"""
+        compact_names = qiskit.wrapper.available_backends()
+        expanded_names = qiskit.wrapper.available_backends(compact=False)
+        self.assertIn('local_qasm_simulator', compact_names)
+        self.assertIn('local_statevector_simulator', compact_names)
+        self.assertIn('local_unitary_simulator', compact_names)
+        self.assertIn('local_qasm_simulator_py', expanded_names)
+        self.assertIn('local_statevector_simulator_py', expanded_names)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

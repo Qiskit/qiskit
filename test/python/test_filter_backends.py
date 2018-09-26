@@ -7,8 +7,8 @@
 
 """Backends Filtering Test."""
 
-from qiskit import Aer, IBMQ
-from qiskit.wrapper import register, available_backends, least_busy
+from qiskit import IBMQ
+from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase
 
 
@@ -20,15 +20,15 @@ class TestBackendFilters(QiskitTestCase):
         """Test filtering by configuration properties"""
         n_qubits = 20 if self.using_ibmq_credentials else 5
 
-        provider = IBMQ.use_account(qe_token, qe_url)
-        filtered_backends = provider.backends(n_qubits=n_qubits, local=False)
+        IBMQ.use_account(qe_token, qe_url)
+        filtered_backends = IBMQ.backends(n_qubits=n_qubits, local=False)
         self.assertTrue(filtered_backends)
 
     @requires_qe_access
     def test_filter_status_dict(self, qe_token, qe_url):
         """Test filtering by dictionary of mixed status/configuration properties"""
-        provider = IBMQ.use_account(qe_token, qe_url)
-        filtered_backends = provider.backends(
+        IBMQ.use_account(qe_token, qe_url)
+        filtered_backends = IBMQ.backends(
             operational=True,  # from status
             local=False, simulator=True)  # from configuration
 
@@ -37,8 +37,8 @@ class TestBackendFilters(QiskitTestCase):
     @requires_qe_access
     def test_filter_config_callable(self, qe_token, qe_url):
         """Test filtering by lambda function on configuration properties"""
-        provider = IBMQ.use_account(qe_token, qe_url)
-        filtered_backends = provider.backends(
+        IBMQ.use_account(qe_token, qe_url)
+        filtered_backends = IBMQ.backends(
             filters=lambda x: (not x.configuration()['simulator']
                                and x.configuration()['n_qubits'] > 5))
         self.assertTrue(filtered_backends)
@@ -46,8 +46,7 @@ class TestBackendFilters(QiskitTestCase):
     @requires_qe_access
     def test_filter_least_busy(self, qe_token, qe_url):
         """Test filtering by least busy function"""
-        provider = IBMQ.use_account(qe_token, qe_url)
-        filtered_backends = provider.backends()
-        names = [backend.name() for backend in filtered_backends]
-        filtered_backends = least_busy(names)
+        IBMQ.use_account(qe_token, qe_url)
+        backends = IBMQ.backends()
+        filtered_backends = least_busy(backends)
         self.assertTrue(filtered_backends)

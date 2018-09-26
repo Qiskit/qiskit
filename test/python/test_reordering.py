@@ -13,7 +13,7 @@ import unittest
 import qiskit
 
 from qiskit import transpiler
-from qiskit.wrapper._wrapper import _least_busy_instances
+from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -90,9 +90,9 @@ class TestBitReordering(QiskitTestCase):
     def _get_backends(self, qe_token, qe_url):
         sim_backend = qiskit.Aer.get_backend('local_qasm_simulator')
         try:
-            ibmq_provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-            real_backends = ibmq_provider.backends(simulator=False)
-            real_backend = _least_busy_instances(real_backends)
+            qiskit.IBMQ.use_account(qe_token, qe_url)
+            real_backends = IBMQ.backends(simulator=False)
+            real_backend = least_busy(real_backends)
         except Exception:
             real_backend = None
 

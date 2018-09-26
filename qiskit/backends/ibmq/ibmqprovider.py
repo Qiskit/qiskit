@@ -39,8 +39,8 @@ class IBMQProvider(BaseProvider):
         for key in ['token', 'url', 'hub', 'group', 'project']:
             if key in kwargs:
                 credentials_filter[key] = kwargs.pop(key)
-        accounts = [account for account in self.accounts.values() if
-                    _match_all(account.credentials, credentials_filter)]
+        providers = [provider for provider in self.accounts.values() if
+                     _match_all(provider.credentials, credentials_filter)]
 
         # Special handling of the `name` parameter, to support alias resolution.
         if name:
@@ -50,7 +50,7 @@ class IBMQProvider(BaseProvider):
 
         # Aggregate the list of filtered backends.
         backends = []
-        for provider in accounts:
+        for provider in providers:
             backends = backends + provider.backends(
                 name=name, filters=filters, **kwargs)
 
@@ -85,53 +85,38 @@ class IBMQProvider(BaseProvider):
         """
         credentials = Credentials(token, url, **kwargs)
 
-        # Check if the exact same credentials are already stored.
+        # Check if duplicated credentials are already stored. By convention,
+        # we assume (hub, group, project) is always unique.
         stored_credentials = read_credentials_from_qiskitrc()
-        session_credentials = {account_name: provider.credentials for
-                               account_name, provider in self.accounts.items()}
 
-        if credentials in session_credentials.values():
-            # Exact same credentials are already in use.
-            raise QISKitError('Credentials are already loaded')
-        elif credentials in stored_credentials.values():
-            # Exact same credentials are already stored under a different name.
-            raise QISKitError('Credentials are already stored, but not loaded')
+        if credentials.unique_id() in stored_credentials.keys():
+            raise QISKitError('Credentials are already stored')
 
-        # Find a suitable account name, avoiding clashing with the .qiskitrc.
-        account_name = _next_available_name(credentials.simple_name(),
-                                            stored_credentials.keys())
-        provider = self._append_provider(credentials, account_name)
+        self._append_provider(credentials)
 
         # Store the credentials back to disk.
-        stored_credentials[account_name] = credentials
-        store_credentials(credentials, account_name=account_name)
-
-        return provider
+        store_credentials(credentials)
 
     def remove_account(self, token, url=QE_URL, **kwargs):
-        is_changed = False
+        removed = False
         credentials = Credentials(token, url, **kwargs)
 
-        # Check if the exact same credentials are already stored.
+        # Check if the credentials are already stored in session or disk. By
+        # convention, we assume (hub, group, project) is always unique.
+
         stored_credentials = read_credentials_from_qiskitrc()
-        session_credentials = {account_name: provider.credentials for
-                               account_name, provider in self.accounts.items()}
 
         # Try to remove from session.
-        if credentials in session_credentials.values():
-            account_name = [name for name, provider in self.accounts.items()
-                            if provider.credentials == credentials][0]
-            del self.accounts[account_name]
-            is_changed = True
+        if credentials.unique_id() in self.accounts.keys():
+            del self.accounts[credentials.unique_id()]
+            removed = True
 
         # Try to remove from disk.
-        if credentials in stored_credentials.values():
-            account_name = [name for name, stored in stored_credentials.items()
-                            if stored == credentials][0]
-            remove_credentials(account_name)
-            is_changed = True
+        if credentials.unique_id() in stored_credentials.keys():
+            remove_credentials(credentials)
+            removed = True
 
-        if not is_changed:
+        if not removed:
             raise QISKitError('Unable to find credentials')
 
     def use_account(self, token, url=QE_URL, **kwargs):
@@ -152,46 +137,33 @@ class IBMQProvider(BaseProvider):
         """
         credentials = Credentials(token, url, **kwargs)
 
-        session_credentials = {account_name: provider.credentials for
-                               account_name, provider in self.accounts.items()}
-
-        if credentials in session_credentials.values():
-            # Exact same credentials are already in use.
-            raise QISKitError('Credentials are already loaded')
-
-        # Find a suitable account name, avoiding clashing with the session.
-        account_name = _next_available_name(credentials.simple_name(),
-                                            self.accounts.keys())
-        return self._append_provider(credentials, account_name=account_name)
+        self._append_provider(credentials)
 
     def list_accounts(self):
-        return dict(self.accounts)
+        information = []
+        for provider in self.accounts.values():
+            information.append({
+                'token': provider.credentials.token,
+                'url': provider.credentials.url,
+            })
 
-    def load_account(self, account_name):
-        stored_credentials = discover_credentials()
-
-        if account_name in stored_credentials:
-            return self._append_provider(stored_credentials[account_name],
-                                         account_name)
-
-        raise QISKitError('No account "{}" found' % account_name)
+        return information
 
     def load_accounts(self):
-        new_providers = OrderedDict()
-        for account_name, credentials in discover_credentials().items():
-            new_providers[account_name] = self._append_provider(credentials, account_name)
+        if self.accounts:
+            raise QISKitError('The account list is not empty')
 
-        if not new_providers:
+        for account_name, credentials in discover_credentials().items():
+            self._append_provider(credentials)
+
+        if not self.accounts:
             raise QISKitError('No IBMQ credentials found')
 
-        return new_providers
-
-    def _append_provider(self, credentials, account_name=None):
+    def _append_provider(self, credentials):
         """Append a provider with the specified credentials to the session.
 
         Args:
             credentials (Credentials): set of credentials.
-            account_name (str): account name.
 
         Returns:
             IBMQSingleProvider: new provider.
@@ -199,12 +171,13 @@ class IBMQProvider(BaseProvider):
         Raises:
             QISKitError: if the provider could not be appended.
         """
-        account_name = account_name or credentials.simple_name()
-        if account_name in self.accounts:
-            raise QISKitError('Account name already exists in this session.')
+        # Check if duplicated credentials are already in use. By convention,
+        # we assume (hub, group, project) is always unique.
+        if credentials.unique_id() in self.accounts.keys():
+            raise QISKitError('Credentials are already in use')
 
-        single_provider = IBMQSingleProvider(credentials)
-        self.accounts[account_name] = single_provider
+        single_provider = IBMQSingleProvider(credentials, self)
+        self.accounts[credentials.unique_id()] = single_provider
 
         return single_provider
 

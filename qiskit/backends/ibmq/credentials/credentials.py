@@ -62,6 +62,13 @@ class Credentials(object):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    def unique_id(self):
+        """Return a value that uniquely identifies these credentials.
+
+        By convention, we assume (hub, group, project) is always unique.
+        """
+        return self.hub, self.group, self.project
+
 
 def _unify_ibmq_url(url, hub=None, group=None, project=None):
     """Return a new-style set of credential values (url and hub parameters).
