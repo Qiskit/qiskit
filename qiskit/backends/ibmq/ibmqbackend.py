@@ -26,15 +26,17 @@ class IBMQBackend(BaseBackend):
     """Backend class interfacing with the Quantum Experience remotely.
     """
 
-    def __init__(self, configuration, api=None):
+    def __init__(self, configuration, provider, credentials, api):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
+            credentials (Credentials):
+            provider (IBMQProvider):
             configuration (dict): configuration of backend.
             api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
                 api for communicating with the Quantum Experience.
         """
-        super().__init__(configuration=configuration)
+        super().__init__(provider=provider, configuration=configuration)
         self._api = api
         if self._configuration:
             configuration_edit = {}
@@ -45,6 +47,11 @@ class IBMQBackend(BaseBackend):
             # FIXME: This is a hack to make sure that the
             # local : False is added to the online device
             self._configuration['local'] = False
+
+        self._credentials = credentials
+        self.hub = credentials.hub
+        self.group = credentials.group
+        self.project = credentials.project
 
     def run(self, qobj):
         """Run qobj asynchronously.

@@ -20,7 +20,7 @@ from qiskit.backends.providerutils import filter_backends
 
 class IBMQSingleProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
-    def __init__(self, credentials):
+    def __init__(self, credentials, ibmq_provider):
         """
         Args:
             credentials (Credentials): Quantum Experience or IBMQ credentials.
@@ -30,13 +30,16 @@ class IBMQSingleProvider(BaseProvider):
         # Get a connection to IBMQuantumExperience.
         self.credentials = credentials
         self._api = self._authenticate(self.credentials)
+        self._ibm_provider = ibmq_provider
 
         # Populate the list of remote backends.
         self._backends = self._discover_remote_backends()
 
     def backends(self, name=None, filters=None, **kwargs):
         backends = self._backends.values()
-        kwargs['name'] = name
+
+        if name:
+            kwargs['name'] = name
 
         return filter_backends(backends, filters=None, **kwargs)
 
@@ -107,7 +110,10 @@ class IBMQSingleProvider(BaseProvider):
         configs_list = self._api.available_backends()
         for raw_config in configs_list:
             config = self._parse_backend_configuration(raw_config)
-            ret[config['name']] = IBMQBackend(configuration=config, api=self._api)
+            ret[config['name']] = IBMQBackend(configuration=config,
+                                              provider=self._ibm_provider,
+                                              credentials=self.credentials,
+                                              api=self._api)
 
         return ret
 

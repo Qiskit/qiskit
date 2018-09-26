@@ -58,7 +58,8 @@ def read_credentials_from_qiskitrc(filename=None):
                 single_credentials['proxies'])
         if 'verify' in single_credentials.keys():
             single_credentials['verify'] = bool(single_credentials['verify'])
-        credentials_dict[name] = Credentials(**single_credentials)
+        new_credentials = Credentials(**single_credentials)
+        credentials_dict[new_credentials.unique_id()] = new_credentials
 
     return credentials_dict
 
@@ -78,13 +79,20 @@ def write_qiskit_rc(credentials, filename=None):
                 for key in ['token', 'url', 'proxies', 'verify']
                 if getattr(obj, key)}
 
+    def _section_name(credentials_):
+        """Return a string suitable for use as a unique section name."""
+        base_name = 'ibmq'
+        if credentials_.is_ibmq():
+            base_name = '{}_{}_{}_{}'.format(base_name, *credentials_.unique_id())
+        return base_name
+
     filename = filename or DEFAULT_QISKITRC_FILE
     # Create the directories and the file if not found.
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     unrolled_credentials = {
-        account_name: _credentials_object_to_dict(credentials_object)
-        for account_name, credentials_object in credentials.items()
+        _section_name(credentials_object): _credentials_object_to_dict(credentials_object)
+        for _, credentials_object in credentials.items()
     }
 
     # Write the configuration file.
@@ -94,14 +102,12 @@ def write_qiskit_rc(credentials, filename=None):
         config_parser.write(config_file)
 
 
-def store_credentials(credentials, account_name=None, overwrite=False,
-                      filename=None):
+def store_credentials(credentials, overwrite=False, filename=None):
     """
     Store the credentials for a single provider in the configuration file.
 
     Args:
         credentials (Credentials):
-        account_name (str):
         overwrite (bool): overwrite existing credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
@@ -110,25 +116,23 @@ def store_credentials(credentials, account_name=None, overwrite=False,
         QISKitError: If provider already exists and overwrite=False; or if
             the account_name could not be assigned.
     """
-    # Set the name of the Provider from the class.
-    account_name = account_name or credentials.simple_name()
     # Read the current providers stored in the configuration file.
     filename = filename or DEFAULT_QISKITRC_FILE
     stored_credentials = read_credentials_from_qiskitrc(filename)
-    if account_name in stored_credentials.keys() and not overwrite:
-        raise QISKitError('%s is already present and overwrite=False'
-                          % account_name)
+
+    if credentials.unique_id() in stored_credentials and not overwrite:
+        raise QISKitError('Credentials already present and overwrite=False')
 
     # Append and write the credentials to file.
-    stored_credentials[account_name] = credentials
+    stored_credentials[credentials.unique_id()] = credentials
     write_qiskit_rc(stored_credentials, filename)
 
 
-def remove_credentials(account_name, filename=None):
+def remove_credentials(credentials, filename=None):
     """Remove provider credentials from qiskitrc.
 
     Args:
-        account_name (str):
+        credentials (Credentials):
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
 
@@ -137,11 +141,11 @@ def remove_credentials(account_name, filename=None):
             file.
     """
     # Set the name of the Provider from the class.
-    credentials = read_credentials_from_qiskitrc(filename)
+    stored_credentials = read_credentials_from_qiskitrc(filename)
 
     try:
-        credentials.pop(account_name)
+        del stored_credentials[credentials.unique_id()]
     except KeyError:
         raise QISKitError('The account "%s" does not exist in the '
                           'configuration file')
-    write_qiskit_rc(credentials, filename)
+    write_qiskit_rc(stored_credentials, filename)

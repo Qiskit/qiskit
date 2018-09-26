@@ -52,7 +52,6 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test using multiple accounts, combining QE and IBMQ."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.use_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN2')
             qiskit.IBMQ.use_account('QISKITRC_TOKEN',
                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             qiskit.IBMQ.use_account('QISKITRC_TOKEN',
@@ -61,7 +60,7 @@ class TestIBMQAccounts(QiskitTestCase):
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
             self.assertEqual(loaded_accounts, {})
-            self.assertEqual(len(qiskit.IBMQ.accounts), 4)
+            self.assertEqual(len(qiskit.IBMQ.accounts), 3)
 
     def test_use_duplicate_credentials(self):
         """Test using the same credentials twice."""
@@ -89,7 +88,6 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test storing several accounts, combining QE and IBMQ"""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN2')
             qiskit.IBMQ.add_account('QISKITRC_TOKEN',
                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             qiskit.IBMQ.add_account('QISKITRC_TOKEN',
@@ -98,6 +96,7 @@ class TestIBMQAccounts(QiskitTestCase):
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
             self.assertEqual(qiskit.IBMQ.accounts.keys(), loaded_accounts.keys())
+            self.assertEqual(len(loaded_accounts), 3)
             for account_name, provider in qiskit.IBMQ.accounts.items():
                 self.assertEqual(provider.credentials,
                                  loaded_accounts[account_name])
@@ -108,26 +107,13 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.add_account('QISKITRC_TOKEN')
 
             with self.assertRaises(QISKitError):
-                qiskit.IBMQ.use_account('QISKITRC_TOKEN')
+                # Note they are considered the same, as they have the same url.
+                qiskit.IBMQ.use_account('QISKITRC_TOKEN2')
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
             self.assertEqual(len(qiskit.IBMQ.accounts), 1)
             self.assertEqual(len(loaded_accounts), 1)
-
-    def test_load_account(self):
-        """Test loading a single account."""
-        with no_file('Qconfig.py'), custom_qiskitrc(), no_envs(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-            account_name = list(qiskit.IBMQ.accounts.keys())[0]
-
-            # Clear the accounts and load a single one.
-            qiskit.IBMQ.accounts.clear()
-            qiskit.IBMQ.load_account(account_name)
-
-            self.assertEqual(len(qiskit.IBMQ.accounts), 1)
-            self.assertEqual(list(qiskit.IBMQ.accounts.keys())[0],
-                             account_name)
 
     def test_remove_account(self):
         """Test removing an account from session."""
@@ -177,12 +163,12 @@ class TestCredentials(QiskitTestCase):
             with no_file('Qconfig.py'), no_envs(), mock_ibmq_provider():
                 # Attempt overwriting.
                 store_credentials(credentials2, overwrite=True)
-                providers = qiskit.IBMQ.load_accounts()
+                qiskit.IBMQ.load_accounts()
 
         # Ensure that the credentials are the overwritten ones - note that the
         # 'hub' parameter was removed.
-        self.assertEqual(len(providers), 1)
-        self.assertEqual(list(providers.values())[0].credentials.token,
+        self.assertEqual(len(qiskit.IBMQ.accounts), 1)
+        self.assertEqual(list(qiskit.IBMQ.accounts.values())[0].credentials.token,
                          'QISKITRC_TOKEN_2')
 
     def test_environ_over_qiskitrc(self):

@@ -101,8 +101,7 @@ class LocalProvider(BaseProvider):
             'wood_simulator': 'local_qasm_simulator_cpp',
             }
 
-    @classmethod
-    def _verify_local_backends(cls):
+    def _verify_local_backends(self):
         """
         Return the local backends in `SDK_STANDARD_BACKENDS` that are
         effectively available (as some of them might depend on the presence
@@ -115,7 +114,7 @@ class LocalProvider(BaseProvider):
         ret = OrderedDict()
         for backend_cls in SDK_STANDARD_BACKENDS:
             try:
-                backend_instance = cls._get_backend_instance(backend_cls)
+                backend_instance = self._get_backend_instance(backend_cls)
                 backend_name = backend_instance.configuration()['name']
                 ret[backend_name] = backend_instance
             except QISKitError as err:
@@ -124,8 +123,7 @@ class LocalProvider(BaseProvider):
                             backend_cls, str(err))
         return ret
 
-    @classmethod
-    def _get_backend_instance(cls, backend_cls):
+    def _get_backend_instance(self, backend_cls):
         """
         Return an instance of a backend from its class.
 
@@ -139,10 +137,10 @@ class LocalProvider(BaseProvider):
         """
         # Verify that the backend can be instantiated.
         try:
-            backend_instance = backend_cls()
+            backend_instance = backend_cls(provider=self)
         except Exception as err:
             raise QISKitError('Backend %s could not be instantiated: %s' %
-                              (cls, err))
+                              (backend_cls, err))
 
         # Verify that the instance has a minimal valid configuration.
         try:

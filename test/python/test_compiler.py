@@ -17,9 +17,9 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpiler
 from qiskit import Result
 from qiskit.qobj import Qobj
-from qiskit.wrapper import register, available_backends, get_backend, compile, execute, least_busy
+from qiskit.wrapper import compile, execute
 from qiskit._qiskiterror import QISKitError
-from qiskit.wrapper._wrapper import _least_busy_instances
+from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase
 
 
@@ -165,8 +165,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = _least_busy_instances(provider.backends())
+        qiskit.IBMQ.use_account(qe_token, qe_url)
+        backend = least_busy(qiskit.IBMQ.backends())
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -186,8 +186,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = _least_busy_instances(provider.backends())
+        qiskit.IBMQ.use_account(qe_token, qe_url)
+        backend = least_busy(qiskit.IBMQ.backends())
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -208,8 +208,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.get_backend(local=False, simulator=True)
+        qiskit.IBMQ.use_account(qe_token, qe_url)
+        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -228,8 +228,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.get_backend(local=False, simulator=True)
+        qiskit.IBMQ.use_account(qe_token, qe_url)
+        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -250,8 +250,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.get_backend(local=False, simulator=True)
+        qiskit.IBMQ.use_account(qe_token, qe_url)
+        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -270,8 +270,8 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.get_backend(local=False, simulator=True)
+        qiskit.IBMQ.use_account(qe_token, qe_url)
+        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)

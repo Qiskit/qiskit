@@ -41,8 +41,8 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQ.use_account(qe_token, qe_url)
-        remotes = ibmq_provider.backends()
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends()
         self.assertTrue(len(remotes) > 0)
 
     @requires_qe_access
@@ -51,9 +51,9 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQ.use_account(qe_token, qe_url)
-        remote = ibmq_provider.backends(simulator=False)
-        self.assertTrue(remote)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
+        self.assertTrue(remotes)
 
     @requires_qe_access
     def test_remote_backends_exist_simulator(self, qe_token, qe_url):
@@ -61,9 +61,9 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQ.use_account(qe_token, qe_url)
-        remote = ibmq_provider.backends(simulator=True)
-        self.assertTrue(remote)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=True)
+        self.assertTrue(remotes)
 
     def test_get_backend(self):
         """Test get backends.
@@ -99,8 +99,8 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        ibmq_provider = IBMQ.use_account(qe_token, qe_url)
-        remotes = ibmq_provider.backends()
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
             self.log.info(backend.status())
@@ -132,8 +132,8 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQ.use_account(qe_token, qe_url)
-        remotes = ibmq_provider.backends(simulator=False)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             configuration = backend.configuration()
             schema_path = self._get_resource_path(
@@ -160,8 +160,8 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQ.use_account(qe_token, qe_url)
-        remotes = ibmq_provider.backends(simulator=False)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             self.log.info(backend.name())
             properties = backend.properties()

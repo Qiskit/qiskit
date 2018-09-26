@@ -76,7 +76,8 @@ class QiskitTestCase(unittest.TestCase):
         import qiskit.backends.local
 
         qiskit.backends.ibmq.IBMQ.accounts = {}
-        qiskit.backends.local.LocalProvider._backends = qiskit.backends.local.LocalProvider._verify_local_backends()
+        qiskit.backends.local.Aer._backends = \
+            qiskit.backends.local.Aer._verify_local_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
