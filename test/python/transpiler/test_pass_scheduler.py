@@ -353,7 +353,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
                                     'run transformation pass PassB_TP_RA_PA',
                                     'run transformation pass PassC_TP_RA_PA'], TranspilerError)
 
-    def test_remove_unexistent_plugin(self):
+    def test_remove_nonexistent_plugin(self):
         """ Tries to remove a plugin that does not exist. """
         self.assertRaises(KeyError, self.passmanager.remove_control_flow_plugin, "foo")
 

@@ -29,18 +29,33 @@ class PassManager():
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
         """
-
+        # the pass manager's schedule of passes, including any control-flow.
+        # Populated via PassManager.add_passes().
         self.working_list = WorkingList()
+
+        # global property set is the context of the circuit held by the pass manager
+        # as it runs through its scheduled passes. Analysis passes may update the property_set,
+        # but transformation passes have read-only access (via the fenced_property_set).
         self.property_set = PropertySet()
         self.fenced_property_set = FencedPropertySet(self.property_set)
-        self.valid_passes = set()  # passes already run that have not been invalidated
-        self.pass_options = {'ignore_requires': ignore_requires,
-                             'ignore_preserves': ignore_preserves,
-                             'max_iteration': max_iteration}
+
+        # passes already run that have not been invalidated
+        self.valid_passes = set()
+
+        # pass manager's overriding options for the passes it runs (for debugging)
+        self.passmanager_options = {'ignore_requires': ignore_requires,
+                                    'ignore_preserves': ignore_preserves,
+                                    'max_iteration': max_iteration}
 
     def _join_options(self, passset_options):
-        # Remove Nones
-        passmanager_level = {k: v for k, v in self.pass_options.items() if v is not None}
+        """ Set the options of each individual pass, based on precedence rules:
+        passmanager options (set via ``PassManager.__init__()``) override
+        passset options (set via ``PassManager.add_passes()``), and those override
+        pass options (set via ``BasePass.arg = value``).
+
+        Removes None items.
+        """
+        passmanager_level = {k: v for k, v in self.passmanager_options.items() if v is not None}
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
         return {**passmanager_level, **passset_level}
 
@@ -52,8 +67,8 @@ class PassManager():
             ignore_preserves (bool): ignore the preserves claim of passes. Default: False
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
-            control_flow_plugins (kwargs): See add_control_flow_plugin(): Dictionary of control flow
-                plugins. Default:
+            control_flow_plugins (kwargs): See add_control_flow_plugin(): Dictionary of
+                control flow plugins. Default:
                 do_while (callable property_set -> boolean): The passes repeat until the
                    callable returns False.
                    Default: lambda x: False # i.e. passes run once
@@ -96,8 +111,8 @@ class PassManager():
             dag = self._do_pass(pass_, dag)
 
     def _do_pass(self, pass_, dag):
-        """
-        Do a pass and its "requires".
+        """Do a pass and its "requires".
+
         Args:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag on which the pass is ran.
@@ -162,13 +177,14 @@ class PassManager():
 
 class WorkingList():
     """
-    A working list is the way that a pass manager organizes the schedule of things to do.
+    A working list is the way that a pass manager organizes the
+    schedule of things to do.
     """
 
     def __init__(self):
         self.list_of_items = []
         self.control_flow_plugins = {'condition': PluginConditional,
-                                     'do_while': PluginDoWhile, }
+                                     'do_while': PluginDoWhile}
 
     def add_control_flow_plugin(self, name, control_flow_plugin):
         """

@@ -24,6 +24,7 @@ class MetaPass(type):
         _kwargs = OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))
         obj._kwargs = '(' + ', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()]) + ')'
         obj._hash = hash(obj.__repr__())
+        obj._options = {}
         return obj
 
 
@@ -33,11 +34,11 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.ignore_preserves = False
-        self.ignore_requires = False
-        self.max_iteration = 1000
+        self.ignore_preserves = False  # Ignore preserves for this pass
+        self.ignore_requires = False  # Ignore requires for this pass
+        self.max_iteration = 1000  # Maximum allowed iteration on this pass
 
-        self.property_set = {}
+        self.property_set = {}  # This pass's copy of the pass manager's property set.
         self._hash = None
 
     def name(self):
