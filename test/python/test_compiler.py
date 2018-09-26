@@ -50,7 +50,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -69,7 +69,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -91,7 +91,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -109,7 +109,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -128,7 +128,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -145,7 +145,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -209,7 +209,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend(local=False, simulator=True)
+        backend = provider.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -229,7 +229,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend(local=False, simulator=True)
+        backend = provider.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -251,7 +251,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend(local=False, simulator=True)
+        backend = provider.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -271,7 +271,7 @@ class TestCompiler(QiskitTestCase):
         If all correct some should exists.
         """
         provider = qiskit.IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend(local=False, simulator=True)
+        backend = provider.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -415,7 +415,7 @@ class TestCompiler(QiskitTestCase):
 
         Pass if the results are correct.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
         coupling_map = [[0, 1], [0, 2],
                         [1, 2],
                         [3, 2], [3, 4],
@@ -463,7 +463,7 @@ class TestCompiler(QiskitTestCase):
         If all correct should return data with the same stats. The circuit may
         be different.
         """
-        backend = qiskit.Aer.backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('local_qasm_simulator')
 
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')

@@ -12,8 +12,9 @@ from collections import OrderedDict
 import logging
 
 from qiskit._qiskiterror import QISKitError
+from qiskit.backends import BaseProvider
+from qiskit.backends.providerutils import resolve_backend_name, filter_backends
 
-from qiskit.backends.qiskitprovider import QiskitProvider
 from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
 from .qasm_simulator_py import QasmSimulatorPy
 from .statevector_simulator_cpp import StatevectorSimulatorCpp
@@ -33,7 +34,7 @@ SDK_STANDARD_BACKENDS = [
 ]
 
 
-class LocalProvider(QiskitProvider):
+class LocalProvider(BaseProvider):
     """Provider for local backends."""
 
     def __init__(self, *args, **kwargs):
@@ -41,6 +42,45 @@ class LocalProvider(QiskitProvider):
 
         # Populate the list of local backends.
         self._backends = self._verify_local_backends()
+
+    def get_backend(self, name=None, **kwargs):
+        backends = self._backends.values()
+
+        # Special handling of the `name` parameter, to support alias resolution
+        # and handling of groups.
+        if name:
+            try:
+                resolved_names = resolve_backend_name(
+                    name, backends,
+                    self.grouped_backend_names(),
+                    self.deprecated_backend_names(),
+                    {}
+                )
+                name = resolved_names[0]
+            except LookupError:
+                pass
+
+        return super().get_backend(name=name, **kwargs)
+
+    def backends(self, name=None, filters=None, **kwargs):
+        backends = self._backends.values()
+
+        # Special handling of the `name` parameter, to support alias resolution
+        # and handling of groups.
+        if name:
+            try:
+                resolved_names = resolve_backend_name(
+                    name, backends,
+                    self.grouped_backend_names(),
+                    self.deprecated_backend_names(),
+                    {}
+                )
+                backends = [backend for backend in backends if
+                            backend.name() in resolved_names]
+            except LookupError:
+                return []
+
+        return filter_backends(backends, filters=None, **kwargs)
 
     def grouped_backend_names(self):
         return {
@@ -60,9 +100,6 @@ class LocalProvider(QiskitProvider):
             'local_qiskit_simulator': 'local_qasm_simulator_cpp',
             'wood_simulator': 'local_qasm_simulator_cpp',
             }
-
-    def aliased_backend_names(self):
-        return {}
 
     @classmethod
     def _verify_local_backends(cls):

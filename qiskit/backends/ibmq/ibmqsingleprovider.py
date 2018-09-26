@@ -12,12 +12,13 @@ from collections import OrderedDict
 from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
+from qiskit.backends import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.backends.ibmq.credentials import Credentials
-from qiskit.backends.qiskitprovider import QiskitProvider
+from qiskit.backends.providerutils import filter_backends
 
 
-class IBMQSingleProvider(QiskitProvider):
+class IBMQSingleProvider(BaseProvider):
     """Provider for remote IbmQ backends."""
     def __init__(self, credentials):
         """
@@ -33,20 +34,11 @@ class IBMQSingleProvider(QiskitProvider):
         # Populate the list of remote backends.
         self._backends = self._discover_remote_backends()
 
-    def deprecated_backend_names(self):
-        return {
-            'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
-            'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
-            'real': 'ibmqx1'
-            }
+    def backends(self, name=None, filters=None, **kwargs):
+        backends = self._backends.values()
+        kwargs['name'] = name
 
-    def aliased_backend_names(self):
-        return {
-            'ibmq_5_yorktown': 'ibmqx2',
-            'ibmq_5_tenerife': 'ibmqx4',
-            'ibmq_16_rueschlikon': 'ibmqx5',
-            'ibmq_20_austin': 'QS1_1'
-            }
+        return filter_backends(backends, filters=None, **kwargs)
 
     @classmethod
     def _authenticate(cls, credentials):

@@ -40,7 +40,7 @@ class TestIBMQJob(JobTestCase):
     @requires_qe_access
     def test_run_simulator(self, qe_token, qe_url):
         provider = IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
@@ -109,7 +109,7 @@ class TestIBMQJob(JobTestCase):
         IBMQJob._executor = futures.ThreadPoolExecutor(max_workers=2)
 
         provider = IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         self.log.info('submitting to backend %s', backend.name())
         num_qubits = 16
@@ -208,7 +208,7 @@ class TestIBMQJob(JobTestCase):
         provider = IBMQ.use_account(qe_token, qe_url)
         backend_name = ('ibmq_20_tokyo'
                         if self.using_ibmq_credentials else 'ibmqx4')
-        backend = provider.backend(backend_name)
+        backend = provider.get_backend(backend_name)
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
@@ -220,7 +220,7 @@ class TestIBMQJob(JobTestCase):
     @requires_qe_access
     def test_job_id(self, qe_token, qe_url):
         provider = IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
@@ -230,7 +230,7 @@ class TestIBMQJob(JobTestCase):
     @requires_qe_access
     def test_get_backend_name(self, qe_token, qe_url):
         provider = IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
@@ -253,7 +253,7 @@ class TestIBMQJob(JobTestCase):
     @requires_qe_access
     def test_retrieve_job(self, qe_token, qe_url):
         provider = IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
@@ -286,7 +286,7 @@ class TestIBMQJob(JobTestCase):
         provider = IBMQ.use_account(qe_token, qe_url)
         # TODO: consider generalizing backend name
         # TODO: this tests depends on the previous executions of the user
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
         my_filter = {'backend.name': 'ibmq_qasm_simulator',
                      'shots': 1024,
                      'qasms.result.data.counts.00': {'lt': 500}}
@@ -321,7 +321,7 @@ class TestIBMQJob(JobTestCase):
     @requires_qe_access
     def test_double_submit_fails(self, qe_token, qe_url):
         provider = IBMQ.use_account(qe_token, qe_url)
-        backend = provider.backend('ibmq_qasm_simulator')
+        backend = provider.get_backend('ibmq_qasm_simulator')
 
         qobj = transpiler.compile(self._qc, backend)
         # backend.run() will automatically call job.submit()
@@ -343,7 +343,7 @@ class TestQObjectBasedIBMQJob(JobTestCase):
                           'testing Qobj capabilities.')
 
         self._provider = IBMQ.use_account(self.qe_token, self.qe_url)
-        self._backend = self._provider.backend(self._testing_device)
+        self._backend = self._provider.get_backend(self._testing_device)
 
         self._qc = _bell_circuit()
 
