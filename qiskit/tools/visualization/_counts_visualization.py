@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from ._error import VisualizationError
 
 
-def plot_histogram(data, number_to_keep=False, legend=None, options=None):
+def plot_histogram(data, number_to_keep=None, legend=None, options=None):
     """Plot a histogram of data.
 
     Args:
@@ -47,10 +47,13 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
     if options is None:
         options = {}
 
-    if number_to_keep is not False:
+    if number_to_keep is not None:
         warnings.warn("number_to_keep has been deprecated, use the options "
                       "dictionary and set a number_to_keep key instead",
                       DeprecationWarning)
+
+    if 'number_to_keep' in options and options['number_to_keep']:
+        number_to_keep = options['number_to_keep']
 
     if isinstance(data, dict):
         data = [data]
@@ -68,8 +71,7 @@ def plot_histogram(data, number_to_keep=False, legend=None, options=None):
     labels = sorted(
         functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
     for item, execution in enumerate(data):
-        if number_to_keep is not False or (
-                'number_to_keep' in options and options['number_to_keep']):
+        if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
