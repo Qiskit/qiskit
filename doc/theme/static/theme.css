@@ -92,9 +92,6 @@ h2, h3, #h3, #h2, .h3, .h2 {
 main{
     background: white !important;
 }
-.highlight pre{
-    'IBM Plex Mono' !important;
-}
 .mdl-layout__drawer>.mdl-layout-title .title>img.logo{
     width: 40% !important;
 }
@@ -122,6 +119,9 @@ h5.mdl-color-text--primary{
 }
 .current{
     font-weight: normal !important;
+}
+.title-header {
+    display: none;
 }
 .link-wrapper{
     word-break: break-word
@@ -395,6 +395,21 @@ cursor: pointer;
     .item{
         padding: 8px 0!important;
     }
+    .title-header {
+        display: block;
+        margin: 0;
+        padding: 0;
+    }
+    a.title{
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .mdl-layout__drawer>.mdl-layout-title .title>img.logo{
+        width: 50px !important;
+        padding-left: 32px !important;
+        padding-right: 16px !important;
+    }
 }
 @media (min-width: 672px){
     .mdl-layout__drawer {
@@ -451,6 +466,12 @@ cursor: pointer;
     .globaltoc{
      display: block !important;
     }
+    .home {
+       padding-left: 32px !important;
+    }
+    .second {
+        padding-right: 16px;
+    }
 }
 @media (max-width: 672px) {
     .mdl-layout--fixed-drawer>.mdl-layout__content{
@@ -478,11 +499,26 @@ cursor: pointer;
         max-width: 100% !important;
         margin-left: 0px;
     }
+    .title-header {
+        display: block;
+        margin: 0;
+        padding: 0;
+    }
+
     .mdl-layout-title{
         display: flex !important;
         padding-right: 20px !important;
     }
+    a.title{
+        display: flex !important;
+        align-items: center !important;
+    }
 
+    .mdl-layout__drawer>.mdl-layout-title .title>img.logo{
+        width: 50px !important;
+        padding-left: 32px !important;
+        padding-right: 16px !important;
+    }
     .pagenation-text div{
     display: none;
     }
@@ -510,5 +546,21 @@ cursor: pointer;
     }
     .iconMediumResponsiveTableOfContent{
         display: none;
+    }
+
+    .second .external {
+        display: none !important;
+    }
+    .first{
+        display: none !important;
+    }
+    .home {
+       padding-left: 32px !important;
+    }
+    .second {
+        padding-right: 16px;
+    }
+    .document .page-content{
+        padding: 40px 14px !important;
     }
  }
