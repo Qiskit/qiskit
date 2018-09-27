@@ -1450,7 +1450,7 @@ class MatplotlibDrawer:
         self.ax = self.figure.add_subplot(111)
         self.ax.axis('off')
         self.ax.set_aspect('equal')
-        self.ax.tick_params(labelbottom='off', labeltop='off', labelleft='off', labelright='off')
+        self.ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
 
     def load_qasm_file(self, filename):
         circuit = load_qasm_file(filename, name='draw', basis_gates=self._basis)
