@@ -20,7 +20,7 @@ try:
     from qiskit.tools.visualization import (latex_circuit_drawer,
                                             matplotlib_circuit_drawer)
     VALID_MATPLOTLIB = True
-except RuntimeError:
+except (RuntimeError, ImportError):
     # Under some combinations (travis osx vms, or headless configurations)
     # matplotlib might not be fully, raising:
     # RuntimeError: Python is not installed as a framework.
