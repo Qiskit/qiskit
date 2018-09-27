@@ -10,6 +10,7 @@ Utilities for reading credentials from the deprecated `Qconfig.py` file.
 """
 
 import os
+from collections import OrderedDict
 from importlib.util import module_from_spec, spec_from_file_location
 
 from qiskit import QISKitError
@@ -26,7 +27,7 @@ def read_credentials_from_qconfig():
     Returns:
         dict: dictionary with the credentials, in the form::
 
-            {'token': 'TOKEN', 'url': 'URL', ... }
+            {credentials_unique_id: Credentials}
 
     Raises:
         QISKitError: if the Qconfig.py was not parseable. Please note that this
@@ -34,7 +35,7 @@ def read_credentials_from_qconfig():
             empty dict is returned).
     """
     if not os.path.isfile(DEFAULT_QCONFIG_FILE):
-        return {}
+        return OrderedDict()
     else:
         # Note this is nested inside the else to prevent some tools marking
         # the whole method as deprecated.
@@ -61,4 +62,4 @@ def read_credentials_from_qconfig():
         raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
 
     credentials = Credentials(**credentials)
-    return {credentials.simple_name(): credentials}
+    return OrderedDict({credentials.simple_name(): credentials})

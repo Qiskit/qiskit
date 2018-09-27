@@ -19,12 +19,16 @@ TEMPLATE_IBMQ_HUBS = '{prefix}/Hubs/{hub}/Groups/{group}/Projects/{project}'
 
 
 class Credentials(object):
-    """IBM Q account credentials."""
+    """IBM Q account credentials.
+
+    Note that, by convention, two credentials that have the same hub, group
+    and token (regardless of other attributes) are considered equivalent.
+    The `unique_id()` returns the unique identifier.
+    """
 
     def __init__(self, token, url, hub=None, group=None, project=None,
                  proxies=None, verify=True):
         """
-
         Args:
             token (str): Quantum Experience or IBMQ API token.
             url (str): URL for Quantum Experience or IBMQ.
@@ -38,7 +42,7 @@ class Credentials(object):
             `hub`, `group` and `project` are stored as attributes for
             convenience, but their usage in the API is deprecated. The new-style
             URLs (that includes these parameters as part of the url string, and
-            is automatically set during instantation) should be used when
+            is automatically set during instantiation) should be used when
             communicating with the API.
         """
         self.token = token

@@ -10,6 +10,7 @@ Utilities for reading credentials from environment variables.
 """
 
 import os
+from collections import OrderedDict
 
 from .credentials import Credentials
 
@@ -30,12 +31,12 @@ def read_credentials_from_environ():
     Returns:
         dict: dictionary with the credentials, in the form::
 
-            {'account_name': {'token': 'TOKEN', 'url': 'URL', ... }}
+            {credentials_unique_id: Credentials}
 
     """
     # The token is the only required parameter.
     if not (os.getenv('QE_TOKEN') and os.getenv('QE_URL')):
-        return {}
+        return OrderedDict()
 
     # Build the credentials based on environment variables.
     credentials = {}
@@ -44,4 +45,4 @@ def read_credentials_from_environ():
             credentials[credential_key] = os.getenv(envar_name)
 
     credentials = Credentials(**credentials)
-    return {credentials.simple_name(): credentials}
+    return OrderedDict({credentials.simple_name(): credentials})
