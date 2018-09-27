@@ -284,10 +284,18 @@ def _get_credentials(test_object, test_options):
     else:
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()
-        # TODO: decide on which credentials to use when testing.
+
         if discovered_credentials:
-            return discovered_credentials.get(
-                'ibmq', next(iter(discovered_credentials.values())))
+            # Decide which credentials to use for testing.
+            if len(discovered_credentials) > 1:
+                try:
+                    # Attempt to use QE credentials.
+                    return discovered_credentials[dummy_credentials.unique_id()]
+                except KeyError:
+                    pass
+
+            # Use the first available credentials.
+            return list(discovered_credentials.values())[0]
 
     # No user credentials were found.
     if test_options['rec']:

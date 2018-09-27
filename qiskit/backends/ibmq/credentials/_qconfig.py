@@ -62,4 +62,4 @@ def read_credentials_from_qconfig():
         raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
 
     credentials = Credentials(**credentials)
-    return OrderedDict({credentials.simple_name(): credentials})
+    return OrderedDict({credentials.unique_id(): credentials})

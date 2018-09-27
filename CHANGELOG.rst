@@ -24,8 +24,8 @@ Added
 - Generalized Qobj schema validation functions for all qiskit schemas (#882).
 - Added decorator to check for C++ simulator availability (#662)
 - It is possible to cancel jobs in non comercial backends (#687)
-- Introduced new options for handling credentials (qiskitrc file, environment
-  variables) and automatic registration. (#547)
+- Introduced new `qiskit.IBMQ` provider, with centralized handling of IBMQ
+  credentials (qiskitrc file, environment variables). (#547, #948)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - Add parallelization utilities (#701)
 - Parallelize transpilation (#701)

@@ -45,4 +45,4 @@ def read_credentials_from_environ():
             credentials[credential_key] = os.getenv(envar_name)
 
     credentials = Credentials(**credentials)
-    return OrderedDict({credentials.simple_name(): credentials})
+    return OrderedDict({credentials.unique_id(): credentials})

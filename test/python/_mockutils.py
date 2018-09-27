@@ -39,9 +39,6 @@ class DummyProvider(BaseProvider):
     def backends(self, name=None, **kwargs):
         return [self._backend]
 
-    def _backends_list(self):
-        return self.backends()
-
     def __init__(self):
         self._backend = DummySimulator()
 

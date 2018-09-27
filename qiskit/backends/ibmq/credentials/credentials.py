@@ -55,14 +55,6 @@ class Credentials(object):
         """Return whether the credentials represent a IBMQ account."""
         return all([self.hub, self.group, self.project])
 
-    def simple_name(self):
-        """Return a string representation of this set of credentials."""
-        name = 'ibmq'
-        if self.is_ibmq():
-            name += '{c.hub}_{c.group}_{c.project}'.format(c=self)
-
-        return name
-
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
