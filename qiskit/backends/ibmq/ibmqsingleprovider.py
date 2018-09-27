@@ -18,7 +18,11 @@ from qiskit.backends.providerutils import filter_backends
 
 
 class IBMQSingleProvider(BaseProvider):
-    """Provider for remote IbmQ backends."""
+    """Provider for single IBMQ accounts.
+
+    Note: this class is not part of the public API and is not guaranteed to be
+    present in future releases.
+    """
     def __init__(self, credentials, ibmq_provider):
         """
         Args:
@@ -46,8 +50,7 @@ class IBMQSingleProvider(BaseProvider):
 
     @classmethod
     def _authenticate(cls, credentials):
-        """
-        Authenticate against the IBMQuantumExperience API.
+        """Authenticate against the IBMQuantumExperience API.
 
         Args:
             credentials (Credentials): Quantum Experience or IBMQ credentials.
@@ -77,8 +80,7 @@ class IBMQSingleProvider(BaseProvider):
 
     @classmethod
     def _parse_backend_configuration(cls, config):
-        """
-        Parse a backend configuration returned by IBMQuantumConfiguration.
+        """Parse a backend configuration returned by IBMQuantumConfiguration.
 
         Args:
             config (dict): raw configuration as returned by
@@ -100,8 +102,7 @@ class IBMQSingleProvider(BaseProvider):
         return edited_config
 
     def _discover_remote_backends(self):
-        """
-        Return the remote backends available.
+        """Return the remote backends available.
 
         Returns:
             dict[str:IBMQBackend]: a dict of the remote backend instances,
