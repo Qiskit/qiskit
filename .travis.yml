@@ -122,7 +122,7 @@ deploy_pypi: &deploy_pypi
 
 # Define the order of the stages.
 stages:
-  - reference
+  - reference environment
   - lint and pure python test
   - test
   - ibmq
@@ -134,13 +134,13 @@ jobs:
   include:
     # "reference" stage
     ###########################################################################
-    # Tests in a reference (GNU/Linux, Python 3.5) environment.
-    - stage: reference
+    # Tests in the reference (GNU/Linux, Python 3.5) environment.
+    - stage: reference environment
       <<: *stage_linux_no_compile
       if: type = pull_request and branch = master
       script: make style VERBOSE="" && make lint VERBOSE=""
 
-    - stage: reference
+    - stage: reference environment
       <<: *stage_linux
       if: type = pull_request and branch = master
 
