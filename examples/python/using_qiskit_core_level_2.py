@@ -42,7 +42,7 @@ plot_circuit(compiled_standard)
 # 2. custom compile -- customize PassManager to run specific circuit transformations
 from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
-pm.add_pass(CXCancellation())
+pm.add_passes(CXCancellation())
 qobj_custom = transpiler.compile(circ, backend_device, pass_manager=pm)
 compiled_custom = load_qasm_string(qobj_custom['circuits'][0]['compiled_circuit_qasm'])
 plot_circuit(compiled_custom)

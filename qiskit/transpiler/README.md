@@ -25,7 +25,6 @@ The tranpiler architecture allows passes to declare two kinds of dependency cont
 - Analysis passes preserve all.
 - The `requires` and `preserves` lists contain concrete instances of other passes (i.e. with specific pass parameters).
 
-
 ## Use cases
 ### A simple chain with dependencies:
 The `CxCancellation` requires and preserves `ToffoliDecompose`. Same for `RotationMerge`. The pass `Mapper` requires extra information for running (the `coupling_map`, in this case).
@@ -89,6 +88,28 @@ pm.add_pass(SwapMapper(coupling_map),
 ``` 
 
 The `CheckIfMapped` is an analysis pass that updates the property `is_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
+
+### Control Flow Plugins
+By default, there are two control flow plugins included in the default pass manager: `do_while` and `conditional` (see **Fixed Point** and **Conditional** subsections). You might want to add more control flow plugins. For example, a for-loop can be implemented in the following way:
+```Python
+class DoXTimesPlugin(ControlFlowPlugin):
+    def __init__(self, passes, do_x_times, **_):
+        self.do_x_times = do_x_times()
+        super().__init__(passes)
+
+    def __iter__(self):
+        for _ in range(self.do_x_times):
+            for pass_ in self.working_list:
+                yield pass_
+```
+The plugin is added to the pass manager in this way:
+```
+self.passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
+```
+This allows to use the parameter `do_x_times`, which needs to be a callable. In this case, this is used to parametrized the plugin, so it will for-loop 3 times.
+```
+self.passmanager.add_passes([Pass()], do_x_times=lambda x : 3)
+```
 
 ### Misbehaving passes
 To help the pass developer discipline, if an analysis pass attempts to modify the dag or if a transformation pass tries to set a property in the property set of the pass manager, a `TranspilerAccessError` raises.
