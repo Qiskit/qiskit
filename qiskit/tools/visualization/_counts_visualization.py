@@ -64,7 +64,7 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None):
                                  (len(legend), len(data)))
 
     if 'height' in options and 'width' in options:
-        _, ax = plt.subplots(figsize=(options['height'], options['width']))
+        _, ax = plt.subplots(figsize=(options['width'], options['height']))
     else:
         _, ax = plt.subplots()
 
