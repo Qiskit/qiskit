@@ -26,7 +26,6 @@ class TestGenericPass(QiskitTestCase):
         self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
         self.assertEqual(1000, tp_pass.max_iteration)  # By default, max_iteration is set to 1000
 
-        tp_pass.idempotence = False
         tp_pass.ignore_preserves = True
         tp_pass.ignore_requires = True
         tp_pass.max_iteration = 10

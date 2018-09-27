@@ -22,14 +22,10 @@ class MetaPass(type):
         obj = type.__call__(cls, *args, **kwargs)
         obj._args = str(args)
         _kwargs = OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))
-        obj._kwargs = '('+', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()])+')'
+        obj._kwargs = '(' + ', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()]) + ')'
         obj._hash = hash(obj.__repr__())
-        obj._defaults = {
-            "idempotence": True,
-            "ignore_requires": False,
-            "ignore_preserves": False,
-
-        }
+        obj._defaults = {"ignore_requires": False,
+                         "ignore_preserves": False}
         obj._settings = {}
         return obj
 
@@ -40,7 +36,6 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.idempotence = True  # By default, passes are idempotent
         self.ignore_preserves = False
         self.ignore_requires = False
         self.max_iteration = 1000
@@ -53,7 +48,7 @@ class BasePass(metaclass=MetaPass):
         return self.__class__.__name__
 
     def __repr__(self):
-        return self.name()+self._args+self._kwargs
+        return self.name() + self._args + self._kwargs
 
     def __eq__(self, other):
         """

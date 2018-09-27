@@ -221,10 +221,9 @@ class TestUseCases(SchedulerTestCase):
          - The pass set
          - The pass manager option
         """
-        passmanager = PassManager(idempotence=True, ignore_preserves=False, ignore_requires=True)
+        passmanager = PassManager(ignore_preserves=False, ignore_requires=True)
         tp_pass = DummyTP()
-        tp_pass.idempotence = False
-        passmanager.add_passes(tp_pass, idempotence=True, ignore_preserves=True)
+        passmanager.add_passes(tp_pass, ignore_preserves=True)
         the_pass_in_the_workinglist = next(iter(passmanager.working_list))
         self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
         self.assertTrue(the_pass_in_the_workinglist.ignore_requires)

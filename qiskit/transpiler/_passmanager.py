@@ -17,8 +17,7 @@ from ._transpilererror import TranspilerError
 class PassManager():
     """ A PassManager schedules the passes """
 
-    def __init__(self, ignore_requires=None, ignore_preserves=None, idempotence=None,
-                 max_iteration=None):
+    def __init__(self, ignore_requires=None, ignore_preserves=None, max_iteration=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
@@ -27,8 +26,6 @@ class PassManager():
                 default setting in the pass is False.
             ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
                 default setting in the pass is False.
-            idempotence (bool): The schedule considers every pass idempotent.
-                The default setting in the pass is True.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
         """
@@ -36,10 +33,9 @@ class PassManager():
         self.working_list = WorkingList()
         self.property_set = PropertySet()
         self.fenced_property_set = FencedPropertySet(self.property_set)
-        self.valid_passes = set()   # passes already run that have not been invalidated
+        self.valid_passes = set()  # passes already run that have not been invalidated
         self.pass_options = {'ignore_requires': ignore_requires,
                              'ignore_preserves': ignore_preserves,
-                             'idempotence': idempotence,
                              'max_iteration': max_iteration}
 
     def _join_options(self, passset_options, pass_options):
@@ -49,12 +45,11 @@ class PassManager():
         pass_level = {k: v for k, v in pass_options.items() if v is not None}
         return {**passmanager_level, **passset_level, **pass_level}
 
-    def add_passes(self, passes, idempotence=None, ignore_requires=None,
-                   ignore_preserves=None, max_iteration=None, **control_flow_plugins):
+    def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
+                   **control_flow_plugins):
         """
         Args:
             passes (list[BasePass]): passes to be added to schedule
-            idempotence (bool): treat passes as idempotent. Default: True
             ignore_preserves (bool): ignore the preserves claim of passes. Default: False
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
@@ -70,8 +65,7 @@ class PassManager():
             TranspilerError: if a pass in passes is not a proper pass.
         """
 
-        passset_options = {'idempotence': idempotence,
-                           'ignore_requires': ignore_requires,
+        passset_options = {'ignore_requires': ignore_requires,
                            'ignore_preserves': ignore_preserves,
                            'max_iteration': max_iteration}
 
