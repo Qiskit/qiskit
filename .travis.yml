@@ -136,13 +136,13 @@ jobs:
     ###########################################################################
     # Tests in a reference (GNU/Linux, Python 3.5) environment.
     - stage: reference
-      <<: *stage_linux
-      if: type = pull_request and branch = master
-
-    - stage: reference
       <<: *stage_linux_no_compile
       if: type = pull_request and branch = master
       script: make style VERBOSE="" && make lint VERBOSE=""
+
+    - stage: reference
+      <<: *stage_linux
+      if: type = pull_request and branch = master
 
     # "lint and and pure python test" stage
     ###########################################################################
@@ -162,6 +162,7 @@ jobs:
     # GNU/Linux, Python 3.5
     - stage: test
       <<: *stage_linux
+      if: type != pull_request and branch = master
 
     # GNU/Linux, Python 3.6
     - stage: test
