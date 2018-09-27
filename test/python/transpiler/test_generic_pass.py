@@ -16,7 +16,7 @@ from ..common import QiskitTestCase
 
 
 class TestGenericPass(QiskitTestCase):
-    """ Passes have common caracteristics defined in BasePass."""
+    """ Passes have common characteristics defined in BasePass."""
 
     def test_pass_setting(self):
         """ Passes can be set via `set`."""
@@ -38,13 +38,13 @@ class TestGenericPass(QiskitTestCase):
         self.assertEqual(10, tp_pass.max_iteration)
 
     def test_is_TP_or_AP(self):
-        """ Passes have isTransformationPass and isAnalysisPass properties."""
+        """ Passes have is_transformation_pass and is_analysis_pass properties."""
         tp_pass = DummyTP()
-        self.assertTrue(tp_pass.is_TransformationPass)
-        self.assertFalse(tp_pass.is_AnalysisPass)
+        self.assertTrue(tp_pass.is_transformation_pass)
+        self.assertFalse(tp_pass.is_analysis_pass)
         ap_pass = DummyAP()
-        self.assertFalse(ap_pass.is_TransformationPass)
-        self.assertTrue(ap_pass.is_AnalysisPass)
+        self.assertFalse(ap_pass.is_transformation_pass)
+        self.assertTrue(ap_pass.is_analysis_pass)
 
     def test_pass_diff_args(self):
         """ Passes instances with different arguments are differnt """
