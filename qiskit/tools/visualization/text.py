@@ -159,14 +159,13 @@ def text_draw(circuit, filename=None,
 class TextDrawing():
     def __init__(self, json_circuit):
         self.json_circuit = json_circuit
-        self.wires = TextDrawing.jsonToTextDraw(self.json_circuit)
 
     def lines(self):
-        return TextDrawing.drawWires(self.wires)
+        return TextDrawing.drawWires(self.build_wires())
 
-    @staticmethod
-    def wire_names(header):
+    def wire_names(self):
         ret = []
+        header = self.json_circuit['header']
         for qubit in header['qubit_labels']:
             ret.append("%s%s: |0>" % (qubit[0], qubit[1]))
         for qubit in header['clbit_labels']:
@@ -241,20 +240,19 @@ class TextDrawing():
                 ret += botc
         return ret
 
-    @staticmethod
-    def jsonToTextDraw(json_circuit):
+    def build_wires(self):
         layers = []
-        noqubits = json_circuit['header']['number_of_qubits']
-        noclbits = json_circuit['header']['number_of_clbits']
+        noqubits = self.json_circuit['header']['number_of_qubits']
+        noclbits = self.json_circuit['header']['number_of_clbits']
 
-        names = TextDrawing.wire_names(json_circuit['header'])
+        names = self.wire_names()
         longest = len(max(names))
         inputs_wires = []
         for name in names:
             inputs_wires.append(InputWire(name.rjust(longest)))
         layers.append(inputs_wires)
 
-        for no, instruction in enumerate(json_circuit['instructions']):
+        for no, instruction in enumerate(self.json_circuit['instructions']):
             qubit_layer = [None] * noqubits
             clbit_layer = [None] * noclbits
 
