@@ -1257,10 +1257,16 @@ class QCircuitImage(object):
 
                 try:
                     self._latex[pos_1][columns] = "\\meter"
-                    prev_entry = self._latex[pos_1][columns - 1]
-                    if 'barrier' in prev_entry:
-                        self._latex[pos_1][columns - 1] = prev_entry.replace(
-                            '\\barrier{', '\\barrier[-1.15em]{')
+                    prev_column = [x[columns - 1] for x in self._latex]
+                    for item, prev_entry in enumerate(prev_column):
+                        if 'barrier' in prev_entry:
+                            span = re.search('barrier{(.*)}', prev_entry)
+                            if span and (
+                                    item + int(span.group(1))) - pos_1 >= 0:
+                                self._latex[
+                                    item][columns - 1] = prev_entry.replace(
+                                        '\\barrier{', '\\barrier[-1.15em]{')
+
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                 except Exception as e:
