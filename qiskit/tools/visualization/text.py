@@ -148,13 +148,13 @@ class InputWire(EmptyWire):
         self.bot = " " * len(self.label)
 
 
-def ascii_draw(circuit, filename=None,
-               basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                     "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=80):
+def text_draw(circuit, filename=None,
+              basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                     "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=80, encoding="cp437"):
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    wires = TextDrawing.jsonToAscii(json_circuit)
+    wires = TextDrawing.jsonToTextDraw(json_circuit)
     lines = TextDrawing.drawWires(wires)
     return lines
 
@@ -237,7 +237,7 @@ class TextDrawing():
         return ret
 
     @staticmethod
-    def jsonToAscii(json_circuit):
+    def jsonToTextDraw(json_circuit):
         layers = []
         noqubits = json_circuit['header']['number_of_qubits']
         noclbits = json_circuit['header']['number_of_clbits']
