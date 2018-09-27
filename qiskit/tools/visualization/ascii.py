@@ -8,7 +8,7 @@
 # pylint: disable=
 
 """
-A module for drawing circuits in ascii art
+A module for drawing circuits in ascii art or some other text representation
 """
 
 from qiskit.dagcircuit import DAGCircuit
@@ -47,7 +47,7 @@ class MeasureFrom(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
         self.top = "   "
-        self.mid = " m "
+        self.mid = " ∩ "
         self.bot = " ║ "
 
 
@@ -92,7 +92,7 @@ class CXcontrol(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
         self.top = "   "
-        self.mid = "─·─"
+        self.mid = "─o─"
         self.bot = " │ "
 
 
@@ -154,139 +154,140 @@ def ascii_draw(circuit, filename=None,
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    wires = jsonToAscii(json_circuit)
-    lines = drawWires(wires)
+    wires = TextDrawing.jsonToAscii(json_circuit)
+    lines = TextDrawing.drawWires(wires)
     return lines
 
+class TextDrawing():
+    @staticmethod
+    def wire_names(header):
+        ret = []
+        for qubit in header['qubit_labels']:
+            ret.append("%s%s: |0>" % (qubit[0], qubit[1]))
+        for qubit in header['clbit_labels']:
+            ret.append("%s%s: 0 " % (qubit[0], qubit[1]))
+        return ret
 
-def wire_names(header):
-    ret = []
-    for qubit in header['qubit_labels']:
-        ret.append("%s%s: |0>" % (qubit[0], qubit[1]))
-    for qubit in header['clbit_labels']:
-        ret.append("%s%s: 0 " % (qubit[0], qubit[1]))
-    return ret
+    @staticmethod
+    def drawWires(wires):
+        lines = []
+        bot_line = None
+        for wire in wires:
+            # TOP
+            top_line = ""
+            for instruction in wire:
+                top_line += instruction.top
 
+            if bot_line is None:
+                lines.append(top_line)
+            else:
+                lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
 
-def drawWires(wires):
-    lines = []
-    bot_line = None
-    for wire in wires:
-        # TOP
-        top_line = ""
-        for instruction in wire:
-            top_line += instruction.top
+            # MID
+            mid_line = ""
+            for instruction in wire:
+                mid_line += instruction.mid
 
-        if bot_line is None:
-            lines.append(top_line)
-        else:
-            lines.append(merge_lines(lines.pop(), top_line))
+            lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="bot"))
 
-        # MID
-        mid_line = ""
-        for instruction in wire:
-            mid_line += instruction.mid
+            # BOT
+            bot_line = ""
+            for instruction in wire:
+                bot_line += instruction.bot
+            lines.append(TextDrawing.merge_lines(lines[-1], bot_line, icod="bot"))
 
-        lines.append(merge_lines(lines[-1], mid_line, icod="bot"))
+        return lines
 
-        # BOT
-        bot_line = ""
-        for instruction in wire:
-            bot_line += instruction.bot
-        lines.append(merge_lines(lines[-1], bot_line, icod="bot"))
+    @staticmethod
+    def merge_lines(top, bot, icod="top"):
+        """
 
-    return lines
+        Args:
+            top:
+            bot:
+            icod: in case of doubts
+        Returns:
+        """
+        ret = ""
+        for topc, botc in zip(top, bot):
+            if topc == botc:
+                ret += topc
+            elif topc in '┼╪':
+                ret += "│"
+            elif topc == " ":
+                ret += botc
+            elif topc in '┬' and botc == " ":
+                ret += topc
+            elif topc in '┬│' and botc == "═":
+                ret += '╪'
+            elif topc in '└┘║│' and botc == " ":
+                ret += topc
+            elif topc in '─═' and botc == " " and icod == "top":
+                ret += topc
+            elif topc in '─═' and botc == " " and icod == "bot":
+                ret += botc
+            elif topc == "║" and botc in "═":
+                ret += "╬"
+            elif topc == "║" and botc in "─":
+                ret += "╫"
+            elif topc in '╫╬' and botc in " ":
+                ret += "║"
+            else:
+                ret += botc
+        return ret
 
+    @staticmethod
+    def jsonToAscii(json_circuit):
+        layers = []
+        noqubits = json_circuit['header']['number_of_qubits']
+        noclbits = json_circuit['header']['number_of_clbits']
 
-def merge_lines(top, bot, icod="top"):
-    """
+        names = TextDrawing.wire_names(json_circuit['header'])
+        longest = len(max(names))
+        inputs_wires = []
+        for name in names:
+            inputs_wires.append(InputWire(name.rjust(longest)))
+        layers.append(inputs_wires)
 
-    Args:
-        top:
-        bot:
-        icod: in case of doubts
-    Returns:
-    """
-    ret = ""
-    for topc, botc in zip(top, bot):
-        if topc == botc:
-            ret += topc
-        elif topc in '┼╪':
-            ret += "│"
-        elif topc == " ":
-            ret += botc
-        elif topc in '┬' and botc == " ":
-            ret += topc
-        elif topc in '┬│' and botc == "═":
-            ret += '╪'
-        elif topc in '└┘║│' and botc == " ":
-            ret += topc
-        elif topc in '─═' and botc == " " and icod == "top":
-            ret += topc
-        elif topc in '─═' and botc == " " and icod == "bot":
-            ret += botc
-        elif topc == "║" and botc in "═":
-            ret += "╬"
-        elif topc == "║" and botc in "─":
-            ret += "╫"
-        elif topc in '╫╬' and botc in " ":
-            ret += "║"
-        else:
-            ret += botc
-    return ret
+        for no, instruction in enumerate(json_circuit['instructions']):
+            qubit_layer = [None] * noqubits
+            clbit_layer = [None] * noclbits
 
+            if instruction['name'] == 'measure':
+                qubit_layer[instruction['qubits'][0]] = MeasureFrom(instruction)
+                clbit_layer[instruction['clbits'][0]] = MeasureTo(instruction)
 
-def jsonToAscii(json_circuit):
-    layers = []
-    noqubits = json_circuit['header']['number_of_qubits']
-    noclbits = json_circuit['header']['number_of_clbits']
+            elif 'conditional' in instruction:
+                # conditional
+                mask = int(instruction['conditional']['mask'], 16)
 
-    names = wire_names(json_circuit['header'])
-    longest = len(max(names))
-    inputs_wires = []
-    for name in names:
-        inputs_wires.append(InputWire(name.rjust(longest)))
-    layers.append(inputs_wires)
+                clbit_layer[mask] = ConditionalFrom(instruction)  # TODO
+                qubit_layer[instruction['qubits'][0]] = ConditionalTo(instruction)
 
-    for no, instruction in enumerate(json_circuit['instructions']):
-        qubit_layer = [None] * noqubits
-        clbit_layer = [None] * noclbits
+                longest = max(clbit_layer[mask].label_size,
+                              qubit_layer[instruction['qubits'][0]].label_size)
+                clbit_layer[mask].center_to(longest)
+                qubit_layer[instruction['qubits'][0]].center_to(longest)
 
-        if instruction['name'] == 'measure':
-            qubit_layer[instruction['qubits'][0]] = MeasureFrom(instruction)
-            clbit_layer[instruction['clbits'][0]] = MeasureTo(instruction)
+            elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
+                # gate
+                qubit_layer[instruction['qubits'][0]] = UnitaryGate(instruction)
 
-        elif 'conditional' in instruction:
-            # conditional
-            mask = int(instruction['conditional']['mask'], 16)
+            elif len(instruction['qubits']) == 2 and 'clbits' not in instruction:
+                # cx
+                control = instruction['qubits'][0]
+                target = instruction['qubits'][1]
 
-            clbit_layer[mask] = ConditionalFrom(instruction)  # TODO
-            qubit_layer[instruction['qubits'][0]] = ConditionalTo(instruction)
+                qubit_layer[control] = CXcontrol(instruction)
+                qubit_layer[target] = CXtarget(instruction)
+            else:
+                Exception("I don't know how to handle this instruction", instruction)
+            layers.append(qubit_layer + clbit_layer)
 
-            longest = max(clbit_layer[mask].label_size,
-                          qubit_layer[instruction['qubits'][0]].label_size)
-            clbit_layer[mask].center_to(longest)
-            qubit_layer[instruction['qubits'][0]].center_to(longest)
+        # TODO compress (layers)
 
-        elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
-            # gate
-            qubit_layer[instruction['qubits'][0]] = UnitaryGate(instruction)
+        # Replace the Nones with EmptyWire
+        for layerno, layer in enumerate(layers):
+            layers[layerno] = EmptyWire.fillup_layer(layer, noqubits)
 
-        elif len(instruction['qubits']) == 2 and 'clbits' not in instruction:
-            # cx
-            control = instruction['qubits'][0]
-            target = instruction['qubits'][1]
-
-            qubit_layer[control] = CXcontrol(instruction)
-            qubit_layer[target] = CXtarget(instruction)
-        else:
-            Exception("I don't know how to handle this instruction", instruction)
-        layers.append(qubit_layer + clbit_layer)
-
-    # TODO compress (layers)
-
-    # Replace the Nones with EmptyWire
-    for layerno, layer in enumerate(layers):
-        layers[layerno] = EmptyWire.fillup_layer(layer, noqubits)
-
-    return [i for i in zip(*layers)]
+        return [i for i in zip(*layers)]
