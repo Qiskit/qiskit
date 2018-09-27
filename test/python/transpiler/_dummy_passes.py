@@ -43,8 +43,9 @@ class PassA_TP_NR_NP(DummyTP):
     NR: No requires
     NP: No preserves
     """
-    pass
-
+    def __init__(self):
+        super().__init__()
+        self.preserves.append(self) # preserves itself (idempotence)
 
 class PassB_TP_RA_PA(DummyTP):
     """ A dummy pass that requires PassA_TP_NR_NP and preserves it.
@@ -52,9 +53,11 @@ class PassB_TP_RA_PA(DummyTP):
     RA: Requires PassA
     PA: Preserves PassA
     """
-    requires = [PassA_TP_NR_NP()]
-    preserves = [PassA_TP_NR_NP()]
-
+    def __init__(self):
+        super().__init__()
+        self.requires.append(PassA_TP_NR_NP())
+        self.preserves.append(PassA_TP_NR_NP())
+        self.preserves.append(self) # preserves itself (idempotence)
 
 class PassC_TP_RA_PA(DummyTP):
     """ A dummy pass that requires PassA_TP_NR_NP and preserves it.
@@ -62,9 +65,11 @@ class PassC_TP_RA_PA(DummyTP):
     RA: Requires PassA
     PA: Preserves PassA
     """
-    requires = [PassA_TP_NR_NP()]
-    preserves = [PassA_TP_NR_NP()]
-
+    def __init__(self):
+        super().__init__()
+        self.requires.append(PassA_TP_NR_NP())
+        self.preserves.append(PassA_TP_NR_NP())
+        self.preserves.append(self) # preserves itself (idempotence)
 
 class PassD_TP_NR_NP(DummyTP):
     """ A dummy transfomation pass that takes an argument.
@@ -72,10 +77,11 @@ class PassD_TP_NR_NP(DummyTP):
     NR: No Requires
     NP: No Preserves
     """
-
     def __init__(self, argument1=None, argument2=None):
+        super().__init__()
         self.argument1 = argument1
         self.argument2 = argument2
+        self.preserves.append(self) # preserves itself (idempotence)
 
     def run(self, dag):
         super().run(dag)
@@ -178,10 +184,9 @@ class PassK_check_fixed_point_property(DummyAP, FixedPoint):
     R: PassG_calculates_dag_property()
     """
 
-    requires = [PassG_calculates_dag_property()]
-
     def __init__(self):
         super().__init__('property')
+        self.requires.append(PassG_calculates_dag_property())
 
     def run(self, dag):
         for base in PassK_check_fixed_point_property.__bases__:

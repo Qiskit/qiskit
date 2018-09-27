@@ -20,11 +20,12 @@ class MetaPass(type):
     def __call__(cls, *args, **kwargs):
         """ Called with __init__"""
         obj = type.__call__(cls, *args, **kwargs)
-        obj._hash = hash(cls.__name__ +
-                         str(args) +
-                         str(OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))))
+        obj._args = str(args)
+        _kwargs = OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))
+        obj._kwargs = '('+', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()])+')'
+        obj._hash = hash(obj.__repr__())
         obj._defaults = {
-            "idempotence": cls.idempotence,
+            "idempotence": True,
             "ignore_requires": False,
             "ignore_preserves": False,
 
@@ -36,22 +37,23 @@ class MetaPass(type):
 class BasePass(metaclass=MetaPass):
     """Base class for transpiler passes."""
 
-    requires = []  # List of passes that requires
-    preserves = []  # List of passes that preserves
-    idempotence = True  # By default, passes are idempotent
-    ignore_preserves = False
-    ignore_requires = False
-    max_iteration = 1000
-
-    property_set = {}
-    _hash = None
-
     def __init__(self):
-        pass
+        self.requires = []  # List of passes that requires
+        self.preserves = []  # List of passes that preserves
+        self.idempotence = True  # By default, passes are idempotent
+        self.ignore_preserves = False
+        self.ignore_requires = False
+        self.max_iteration = 1000
+
+        self.property_set = {}
+        self._hash = None
 
     def name(self):
         """ The name of the pass. """
         return self.__class__.__name__
+
+    def __repr__(self):
+        return self.name()+self._args+self._kwargs
 
     def __eq__(self, other):
         """

@@ -23,7 +23,6 @@ from ..common import QiskitTestCase
 
 logger = "LocalLogger"
 
-
 class SchedulerTestCase(QiskitTestCase):
     """ Asserts for the scheduler. """
 
@@ -181,7 +180,7 @@ class TestUseCases(SchedulerTestCase):
     def test_pass_non_idempotence_pm(self):
         """ A pass manager that considers every pass as not idempotent, allows the immediate
         repetition of a pass"""
-        passmanager = PassManager(idempotence=False)
+        passmanager = PassManager(ignore_preserves=True)
         passmanager.add_passes(PassA_TP_NR_NP())
         passmanager.add_passes(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
         passmanager.add_passes(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
@@ -191,37 +190,19 @@ class TestUseCases(SchedulerTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
-    def test_pass_idempotence_pm(self):
-        """ A pass manager that considers every pass as idempotent, should optimze"""
-        passmanager = PassManager(idempotence=True)
-        passmanager.add_passes(PassF_reduce_dag_property())
-        passmanager.add_passes(PassF_reduce_dag_property())
-        self.assertScheduler(self.dag, passmanager,
-                             ['run transformation pass PassF_reduce_dag_property',
-                              'dag property = 6'])
-
     def test_pass_non_idempotence_passset(self):
         """ A pass set that is not idempotent. """
         passmanager = PassManager()
-        passmanager.add_passes([PassA_TP_NR_NP(), PassB_TP_RA_PA()], idempotence=False)
+        passmanager.add_passes([PassA_TP_NR_NP(), PassB_TP_RA_PA()], ignore_preserves=True)
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
-
-    def test_pass_idempotence_passset(self):
-        """ A pass set that forces idempotence. """
-        passmanager = PassManager()
-        passmanager.add_passes([PassF_reduce_dag_property(), PassF_reduce_dag_property()],
-                               idempotence=True)
-        self.assertScheduler(self.dag, passmanager,
-                             ['run transformation pass PassF_reduce_dag_property',
-                              'dag property = 6'])
 
     def test_pass_idempotence_single_pass(self):
         """ A single pass that is not idempotent. """
         passmanager = PassManager()
         pass_a = PassA_TP_NR_NP()
-        pass_a.idempotence=False  # Set idempotence as False
+        pass_a.ignore_preserves=True  # Ignoring self-preserves means the pass is not-idempotent
 
         passmanager.add_passes(pass_a)
         passmanager.add_passes(pass_a)  # Normally removed for optimization, not here.

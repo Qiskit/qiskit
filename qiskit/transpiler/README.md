@@ -33,7 +33,7 @@ The `CxCancellation` requires and preserves `ToffoliDecompose`. Same for `Rotati
 pm = PassManager()
 pm.add_pass(CxCancellation()) # requires: ToffoliDecompose / preserves: ToffoliDecompose
 pm.add_pass(RotationMerge())  # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_pass(Mapper(coupling_map=coupling_map))         # requires: {} / preserves: {}
+pm.add_pass(Mapper(coupling_map=coupling_map))         # requires: [] / preserves: []
 pm.add_pass(CxCancellation())
 ```
 
