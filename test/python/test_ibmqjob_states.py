@@ -10,7 +10,6 @@
 
 """IBMQJob states test-suite."""
 
-import uuid
 import unittest
 import time
 from contextlib import suppress
