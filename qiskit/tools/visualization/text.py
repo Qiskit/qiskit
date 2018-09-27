@@ -154,11 +154,16 @@ def text_draw(circuit, filename=None,
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    wires = TextDrawing.jsonToTextDraw(json_circuit)
-    lines = TextDrawing.drawWires(wires)
-    return lines
+    return TextDrawing(json_circuit).lines()
 
 class TextDrawing():
+    def __init__(self, json_circuit):
+        self.json_circuit = json_circuit
+        self.wires = TextDrawing.jsonToTextDraw(self.json_circuit)
+
+    def lines(self):
+        return TextDrawing.drawWires(self.wires)
+
     @staticmethod
     def wire_names(header):
         ret = []
