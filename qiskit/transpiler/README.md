@@ -2,14 +2,14 @@
 The main goal of Terra's transpiler is to provide an extensible infrastructure of pluggable passes that allows flexibility in customizing the compilation pipeline through the creation and combination of new passes.
 
 ### Passes
-- Passes run with the implementation of the abstract method `run`, which take a DAG (directed acyclic graph) representation of the circuit and returns another instance of a DAG.
+- Passes run with the implementation of the abstract method `run`, which takes and returns a DAG (directed acyclic graph) representation of the circuit.
 - Passes are instances of either `AnalysisPass` or `TransformationPass`.
 - Passes are described not just by their class, but also by their parameters (see Use cases: pass identity)
 - Analysis passes analyze the DAG and write conclusions to a common context, a `PropertySet` object. They cannot modify the DAG.
 - Transformation passes can alter the DAG, but have read-only access to the property set.
 
 ### Pass Mananger
-- A `PassManager` instance is the global entity that determines the schedule for running registered passes.
+- A `PassManager` instance determines the schedule for running registered passes.
 - The pass manager is in charge of deciding the next pass to run, not the pass itself.
 - Registering passes in the pass manager pipeline is done by the `add_passes` method.
 - While registering, you can specify basic control primitives over each pass (conditionals and loops).
@@ -19,7 +19,7 @@ The main goal of Terra's transpiler is to provide an extensible infrastructure o
 
 
 ### Pass dependency control
-The tranpiler architecture allows passes to declare two kinds of dependencies to the pass manager:
+The tranpiler architecture allows passes to declare two kinds of dependency control to the pass manager:
 - `requires` are passes that need to have been run before executing the current pass.
 - `preserves` are passes that are not invalidated by the current pass.
 - Analysis passes preserve all.
