@@ -6,15 +6,15 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Provider for remote IBMQ backends with admin features."""
-from collections import OrderedDict
 
-from qiskit import QISKitError
+from collections import OrderedDict
 
 from qiskit.backends import BaseProvider
 
 from .credentials._configrc import remove_credentials
 from .credentials import (Credentials,
                           read_credentials_from_qiskitrc, store_credentials, discover_credentials)
+from .ibmqaccounterror import IBMQAccountError
 from .ibmqsingleprovider import IBMQSingleProvider
 
 QE_URL = 'https://quantumexperience.ng.bluemix.net/api'
@@ -99,7 +99,7 @@ class IBMQProvider(BaseProvider):
                 * verify (bool): If False, ignores SSL certificates errors
 
         Raises:
-            QISKitError: if the credentials are already in use.
+            IBMQAccountError: if the credentials are already in use.
         """
         credentials = Credentials(token, url, **kwargs)
 
@@ -108,7 +108,7 @@ class IBMQProvider(BaseProvider):
         stored_credentials = read_credentials_from_qiskitrc()
 
         if credentials.unique_id() in stored_credentials.keys():
-            raise QISKitError('Credentials are already stored')
+            raise IBMQAccountError('Credentials are already stored')
 
         self._append_account(credentials)
 
@@ -127,7 +127,7 @@ class IBMQProvider(BaseProvider):
                 * verify (bool): If False, ignores SSL certificates errors
 
         Raises:
-            QISKitError: if the credentials could not be removed.
+            IBMQAccountError: if the credentials could not be removed.
         """
         removed = False
         credentials = Credentials(token, url, **kwargs)
@@ -147,7 +147,7 @@ class IBMQProvider(BaseProvider):
             removed = True
 
         if not removed:
-            raise QISKitError('Unable to find credentials')
+            raise IBMQAccountError('Unable to find credentials')
 
     def use_account(self, token, url=QE_URL, **kwargs):
         """Authenticate against IBMQ during this session.
@@ -196,17 +196,17 @@ class IBMQProvider(BaseProvider):
         3. in the `qiskitrc` configuration file
 
         Raises:
-            QISKitError: if there already loaded accounts in the session, or
+            IBMQAccountError: if there already loaded accounts in the session, or
                 no credentials could be found.
         """
         if self.accounts:
-            raise QISKitError('The account list is not empty')
+            raise IBMQAccountError('The account list is not empty')
 
         for credentials in discover_credentials().values():
             self._append_account(credentials)
 
         if not self.accounts:
-            raise QISKitError('No IBMQ credentials found')
+            raise IBMQAccountError('No IBMQ credentials found')
 
     def _append_account(self, credentials):
         """Append an account with the specified credentials to the session.
@@ -218,12 +218,12 @@ class IBMQProvider(BaseProvider):
             IBMQSingleProvider: new single-account provider.
 
         Raises:
-            QISKitError: if the provider could not be appended.
+            IBMQAccountError: if the provider could not be appended.
         """
         # Check if duplicated credentials are already in use. By convention,
         # we assume (hub, group, project) is always unique.
         if credentials.unique_id() in self.accounts.keys():
-            raise QISKitError('Credentials are already in use')
+            raise IBMQAccountError('Credentials are already in use')
 
         single_provider = IBMQSingleProvider(credentials, self)
         self.accounts[credentials.unique_id()] = single_provider

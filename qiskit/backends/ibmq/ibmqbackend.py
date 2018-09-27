@@ -289,6 +289,14 @@ class IBMQBackend(BaseBackend):
                         creation_date=job_info.get('creationDate'))
         return job
 
+    def __repr__(self):
+        credentials_info = ''
+        if self.hub:
+            credentials_info = '{}, {}, {}'.format(self.hub, self.group,
+                                                   self.project)
+        return "<{}('{}') from IBMQ({})>".format(
+            self.__class__.__name__, self.name(), credentials_info)
+
 
 class IBMQBackendError(QISKitError):
     """IBM Q Backend Errors"""

@@ -72,12 +72,11 @@ class QiskitTestCase(unittest.TestCase):
     def tearDown(self):
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
-        import qiskit.backends.ibmq
-        import qiskit.backends.local
+        from qiskit.backends.ibmq import IBMQ
+        from qiskit.backends.local import Aer
 
-        qiskit.backends.ibmq.IBMQ.accounts = {}
-        qiskit.backends.local.Aer._backends = \
-            qiskit.backends.local.Aer._verify_local_backends()
+        IBMQ.accounts.clear()
+        Aer._backends = Aer._verify_local_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
