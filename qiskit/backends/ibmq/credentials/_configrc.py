@@ -11,6 +11,7 @@ Utilities for reading and writing credentials from and to configuration files.
 
 import os
 from ast import literal_eval
+from collections import OrderedDict
 from configparser import ConfigParser, ParsingError
 
 from qiskit import QISKitError
@@ -32,7 +33,7 @@ def read_credentials_from_qiskitrc(filename=None):
         dict: dictionary with the contents of the configuration file, with
             the form::
 
-            {'provider_class_name': {'token': 'TOKEN', 'url': 'URL', ... }}
+            {credential_unique_id: Credentials}
 
     Raises:
         QISKitError: if the file was not parseable. Please note that this
@@ -47,7 +48,7 @@ def read_credentials_from_qiskitrc(filename=None):
         raise QISKitError(str(ex))
 
     # Build the credentials dictionary.
-    credentials_dict = {}
+    credentials_dict = OrderedDict()
     for name in config_parser.sections():
         single_credentials = dict(config_parser.items(name))
         # Individually convert keys to their right types.
@@ -70,7 +71,9 @@ def write_qiskit_rc(credentials, filename=None):
 
     Args:
         credentials (dict): dictionary with the credentials, with the form::
-            {'account_name': Credentials(...)}
+
+            {credentials_unique_id: Credentials}
+
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
     """
@@ -104,16 +107,16 @@ def write_qiskit_rc(credentials, filename=None):
 
 def store_credentials(credentials, overwrite=False, filename=None):
     """
-    Store the credentials for a single provider in the configuration file.
+    Store the credentials for a single account in the configuration file.
 
     Args:
-        credentials (Credentials): credentials.
+        credentials (Credentials): credentials instance.
         overwrite (bool): overwrite existing credentials.
         filename (str): full path to the qiskitrc file. If `None`, the default
             location is used (`HOME/.qiskit/qiskitrc`).
 
     Raises:
-        QISKitError: If provider already exists and overwrite=False; or if
+        QISKitError: If credentials already exists and overwrite=False; or if
             the account_name could not be assigned.
     """
     # Read the current providers stored in the configuration file.
@@ -129,7 +132,7 @@ def store_credentials(credentials, overwrite=False, filename=None):
 
 
 def remove_credentials(credentials, filename=None):
-    """Remove provider credentials from qiskitrc.
+    """Remove credentials from qiskitrc.
 
     Args:
         credentials (Credentials): credentials.
