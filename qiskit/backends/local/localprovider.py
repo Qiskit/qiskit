@@ -83,7 +83,9 @@ class LocalProvider(BaseProvider):
 
         return filter_backends(backends, filters=filters, **kwargs)
 
-    def grouped_backend_names(self):
+    @staticmethod
+    def grouped_backend_names():
+        """Returns group names: shorter names for referring to the backends."""
         return {
             'local_qasm_simulator': ['local_qasm_simulator_cpp',
                                      'local_qasm_simulator_py',
@@ -96,7 +98,9 @@ class LocalProvider(BaseProvider):
             # 'local_clifford_simulator': ['local_clifford_simulator_cpp']
             }
 
-    def deprecated_backend_names(self):
+    @staticmethod
+    def deprecated_backend_names():
+        """Returns deprecated backend names."""
         return {
             'local_qiskit_simulator': 'local_qasm_simulator_cpp',
             'wood_simulator': 'local_qasm_simulator_cpp',

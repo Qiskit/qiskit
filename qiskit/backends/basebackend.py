@@ -29,8 +29,8 @@ class BaseBackend(ABC):
         not available.
 
         Args:
-            provider (BaseProvider): provider responsible for this backend
             configuration (dict): configuration dictionary
+            provider (BaseProvider): provider responsible for this backend
 
         Raises:
             FileNotFoundError if backend executable is not available.

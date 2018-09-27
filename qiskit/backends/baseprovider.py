@@ -24,7 +24,8 @@ class BaseProvider(ABC):
         pass
 
     def available_backends(self, *args, **kwargs):
-        """
+        """Return the list of available backends.
+
         Returns:
             list[BaseBackend]: a list of backend instances available
             from this provider.
@@ -43,7 +44,7 @@ class BaseProvider(ABC):
             **kwargs (dict): dict used for filtering.
 
         Returns:
-            BaseProvider: a backend matching the filtering.
+            BaseBackend: a backend matching the filtering.
 
         Raises:
             KeyError: if no backend could be found or more than one backend
@@ -59,58 +60,22 @@ class BaseProvider(ABC):
 
     @abstractmethod
     def backends(self, name=None, **kwargs):
-        """Return backend instances.
+        """Return a list of backends matching the specified filtering.
 
         Args:
             name (str): name of the backend.
             **kwargs (dict): dict used for filtering.
 
         Returns:
-            list[BaseBackend]:
+            list[BaseBackend]: a list of backends matching the filtering
+                criteria.
         """
         pass
 
-    def grouped_backend_names(self):
-        """
-        Returns dict that defines group names, usually shorter names
-        for referring to the backends.
-
-        If a group name is used, the corresponding backend will be chosen
-        in order of priority from the value list, depending on availability.
-
-        Returns:
-            dict[str: list[str]]: {group_name: list(backend_name)}
-        """
-        return {}
-
-    def deprecated_backend_names(self):
-        """
-        Dict that stores the current name for all deprecated backends.
-        The conversion to the current name is done with a warning.
-        These can be gradually removed in subsequent releases.
-
-        Returns:
-            dict[str: str]: {deprecated_name: backend_name}
-        """
-        return {}
-
-    def aliased_backend_names(self):
-        """
-        Dict that stores possible aliases for a given backend name.
-        Either the name itself or an alias can be used to connect to that
-        backend.
-
-        Returns:
-            dict[str: list[str]]: {backend_name: list(alias_name)}
-        """
-        return {}
-
     def __eq__(self, other):
+        """Equality comparison.
+
+        By default, it is assumed that two `Providers` from the same class are
+        equal. Subclassed providers can override this behavior.
         """
-        Assumes two providers with the same class name clash.
-        Derived providers can override this behavior
-        (e.g. IBMQSingleProvider instances are equal if and only if
-        they have the same authentication attributes as well).
-        """
-        equality = (type(self).__name__ == type(other).__name__)
-        return equality
+        return type(self).__name__ == type(other).__name__
