@@ -54,7 +54,7 @@ Changed
   notebook if there is network connectivity the interactive plots will be used
   by default (#862, #866)
 - Breaking change: ``BaseJob`` API changed, any job constructor must be passed
-  the backend used to run them and a unique job id (#).
+  the backend used to run them and a unique job id (#936).
 
 Deprecated
 ----------
