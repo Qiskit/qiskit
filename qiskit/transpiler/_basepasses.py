@@ -77,15 +77,6 @@ class BasePass(metaclass=MetaPass):
         raise NotImplementedError
 
     @property
-    def is_idempotent(self):
-        """ A pass is idempotent when running it several times is equivalent to running it once
-        i.e. `run(run(dag)) == run(dag)`. By default, the passes are idempotent. This allows to
-        optimize the transpiler process when sequence of passes are repeated or when passes are
-        preserved.
-        """
-        return self.idempotence
-
-    @property
     def is_transformation_pass(self):
         """ If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
         but cannot modify the property set (but it can be read). """

@@ -22,7 +22,6 @@ class TestGenericPass(QiskitTestCase):
         """ Passes can be set via `set`."""
         tp_pass = DummyTP()
 
-        self.assertTrue(tp_pass.is_idempotent)  # By default, passes are idempotent
         self.assertFalse(tp_pass.ignore_preserves)  # By default, passes do not ignore preserves
         self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
         self.assertEqual(1000, tp_pass.max_iteration)  # By default, max_iteration is set to 1000
@@ -32,7 +31,6 @@ class TestGenericPass(QiskitTestCase):
         tp_pass.ignore_requires = True
         tp_pass.max_iteration = 10
 
-        self.assertFalse(tp_pass.is_idempotent)
         self.assertTrue(tp_pass.ignore_requires)
         self.assertTrue(tp_pass.ignore_preserves)
         self.assertEqual(10, tp_pass.max_iteration)
@@ -57,13 +55,6 @@ class TestGenericPass(QiskitTestCase):
         pass1 = PassD_TP_NR_NP(argument1=1, argument2=2)
         pass2 = PassD_TP_NR_NP(argument2=2, argument1=1)
         self.assertEqual(pass1, pass2)
-
-    def test_pass_no_idempotent(self):
-        """ It is possible to override the idempotence attribute of a pass. """
-        tp_pass = DummyNI()
-        self.assertFalse(tp_pass.is_idempotent)
-        tp_pass.idempotence = True
-        self.assertTrue(tp_pass.is_idempotent)
 
 
 if __name__ == '__main__':
