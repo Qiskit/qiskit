@@ -154,3 +154,6 @@ class LocalProvider(BaseProvider):
             raise QISKitError('Backend %s has an invalid configuration')
 
         return backend_instance
+
+    def __str__(self):
+        return 'Aer'

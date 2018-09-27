@@ -35,8 +35,9 @@ from .result import Result
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-import qiskit.backends.ibmq
-import qiskit.backends.local
+# Please note these are global instances, not modules.
+from qiskit.backends.ibmq import IBMQ
+from qiskit.backends.local import Aer  # pylint: disable=invalid-name
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code.
@@ -52,11 +53,6 @@ from .wrapper._wrapper import (available_backends, get_backend, register,
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
-
-# Global objects. They are assigned to the specific module-level variables to
-# minimize the risk of them falling out of sync - please use with care.
-IBMQ = qiskit.backends.ibmq.IBMQ
-Aer = qiskit.backends.local.Aer  # pylint: disable=invalid-name
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:

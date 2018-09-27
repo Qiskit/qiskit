@@ -12,9 +12,10 @@ import warnings
 from copy import deepcopy
 import uuid
 
-import qiskit.backends.ibmq as ibmq
-import qiskit.backends.local as local
+from qiskit import IBMQ
+from qiskit import Aer
 
+from qiskit.backends import ibmq
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumcircuit import QuantumCircuit
 
@@ -63,7 +64,7 @@ def register(*args, provider_class=None, **kwargs):
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.backends.ibmq.IBMQ` instead (`use_account()`) for using IBMQ
+        `qiskit.IBMQ` instead (`use_account()`) for using IBMQ
         accounts. For custom `Provider`s, please instantiate them directly.
     """
     if provider_class:
@@ -78,7 +79,7 @@ def register(*args, provider_class=None, **kwargs):
                       DeprecationWarning)
 
     try:
-        provider = ibmq.IBMQ.use_account(*args, **kwargs)
+        provider = IBMQ.use_account(*args, **kwargs)
     except Exception as ex:
         raise QISKitError("Couldn't instantiate provider! Error: {0}".format(ex))
 
@@ -101,7 +102,7 @@ def unregister(provider):
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.backends.ibmq.IBMQ` instead (`remove_account()`).
+        `qiskit.IBMQ` instead (`remove_account()`).
     """
     # pylint: disable=unused-argument
     warnings.warn('unregister() will be deprecated after 0.6. Please use the '
@@ -114,12 +115,12 @@ def registered_providers():
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.backends.ibmq.IBMQ` instead (`list_accounts()`).
+        `qiskit.IBMQ` instead (`list_accounts()`).
     """
     warnings.warn('registered_providers() will be deprecated after 0.6. Please '
                   'use the qiskit.IBMQ.list_accounts() method instead.',
                   DeprecationWarning)
-    return ibmq.IBMQ.list_accounts()
+    return IBMQ.list_accounts()
 
 
 # Functions for inspecting and retrieving backends.
@@ -154,7 +155,7 @@ def available_backends(filters=None, compact=True):
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.backends.ibmq.IBMQ` and `qiskit.backends.local.Aer` instead
+        `qiskit.IBMQ` and `qiskit.backends.local.Aer` instead
         (`backends()`).
     """
     warnings.warn('available_backends() will be deprecated after 0.6. Please '
@@ -167,12 +168,12 @@ def available_backends(filters=None, compact=True):
     else:
         kwargs = {'filters': filters}
 
-    ibmq_names = [backend.name() for backend in ibmq.IBMQ.backends(**kwargs)]
-    aer_names = [backend.name() for backend in local.Aer.backends(**kwargs)]
+    ibmq_names = [backend.name() for backend in IBMQ.backends(**kwargs)]
+    aer_names = [backend.name() for backend in Aer.backends(**kwargs)]
 
     if compact:
         # Hack for backwards compatibility: reverse the groups for local.
-        aer_groups = local.Aer.grouped_backend_names()
+        aer_groups = Aer.grouped_backend_names()
         reversed_aer_groups = {}
         for group, items in aer_groups.items():
             for alias in items:
@@ -215,7 +216,7 @@ def get_backend(name):
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.backends.ibmq.IBMQ` and `qiskit.backends.local.Aer` instead
+        `qiskit.IBMQ` and `qiskit.Aer` instead
         (`backends()`).
     """
     warnings.warn('get_backend() will be deprecated after 0.6. Please '
@@ -223,9 +224,9 @@ def get_backend(name):
                   'method instead with the "filters" parameter.',
                   DeprecationWarning)
     try:
-        return local.Aer.get_backend(name)
+        return Aer.get_backend(name)
     except KeyError:
-        return ibmq.IBMQ.get_backend(name)
+        return IBMQ.get_backend(name)
 
 
 # Functions for compiling and executing.
@@ -269,9 +270,9 @@ def compile(circuits, backend,
 
     if isinstance(backend, str):
         try:
-            backend = local.Aer.get_backend(backend)
+            backend = Aer.get_backend(backend)
         except KeyError:
-            backend = ibmq.IBMQ.get_backend(backend)
+            backend = IBMQ.get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
@@ -382,9 +383,9 @@ def execute(circuits, backend,
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
         try:
-            backend = local.Aer.get_backend(backend)
+            backend = Aer.get_backend(backend)
         except KeyError:
-            backend = ibmq.IBMQ.get_backend(backend)
+            backend = IBMQ.get_backend(backend)
 
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,

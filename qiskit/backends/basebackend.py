@@ -77,3 +77,16 @@ class BaseBackend(ABC):
 
     def __str__(self):
         return self.name()
+
+    def __repr__(self):
+        """Official string representation of a Backend.
+
+        Note that, by Qiskit convention, it is consciously *not* a fully valid
+        Python expression. Subclasses should provide 'a string of the form
+        <...some useful description...>'. [0]
+
+        [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
+        """
+        return "<{}('{}') from {}()>".format(self.__class__.__name__,
+                                             self.name(),
+                                             self.provider)
