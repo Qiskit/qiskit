@@ -351,7 +351,7 @@ def generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
     qcimg = QCircuitImage(json_circuit, scale, style=style)
     latex = qcimg.latex()
