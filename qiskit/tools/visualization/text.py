@@ -88,13 +88,20 @@ class ConditionalFrom(DrawElementMultiBit):
         self._bot_connector = '─'
 
 
+class Barrier(DrawElement):
+    def __init__(self, instruction):
+        super().__init__(instruction)
+        self.top = " ¦ "
+        self.mid = "─¦─"
+        self.bot = " ¦ "
+
+
 class CXcontrol(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
         self.top = "   "
         self.mid = "─o─"
         self.bot = " │ "
-
 
 class CXtarget(DrawElement):
     def __init__(self, instruction):
@@ -217,7 +224,7 @@ class TextDrawing():
                 ret += topc
             elif topc in '┬│' and botc == "═":
                 ret += '╪'
-            elif topc in '└┘║│' and botc == " ":
+            elif topc in '└┘║│¦' and botc == " ":
                 ret += topc
             elif topc in '─═' and botc == " " and icod == "top":
                 ret += topc
@@ -252,6 +259,10 @@ class TextDrawing():
             if instruction['name'] == 'measure':
                 qubit_layer[instruction['qubits'][0]] = MeasureFrom(instruction)
                 clbit_layer[instruction['clbits'][0]] = MeasureTo(instruction)
+
+            elif instruction['name'] == 'barrier':
+                for qubit in instruction['qubits']:
+                    qubit_layer[qubit] = Barrier(instruction)
 
             elif 'conditional' in instruction:
                 # conditional
