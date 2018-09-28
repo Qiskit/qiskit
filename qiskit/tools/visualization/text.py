@@ -43,9 +43,9 @@ class MeasureTo(DrawElement):
 class MeasureFrom(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = "   "
-        self.mid = " ∩ "
-        self.bot = " ║ "
+        self.top = "┌─┐"
+        self.mid = "┤M├"
+        self.bot = "└╥┘"
 
 
 class DrawElementMultiBit(DrawElement):
@@ -76,7 +76,6 @@ class MultiQubitGateTop(DrawElementMultiBit):
 class MultiQubitGateMid(DrawElementMultiBit):
     def __init__(self, instruction, input_length, order):
         self.label = instruction['name']
-        print(input_length,order)
         self._top = "│ %s │"
         self._mid = "┤ %s ├"
         self._bot = "│ %s │"
@@ -255,7 +254,7 @@ class TextDrawing():
                 ret += "│"
             elif topc == " ":
                 ret += botc
-            elif topc in '┬' and botc == " ":
+            elif topc in '┬╥' and botc == " ":
                 ret += topc
             elif topc in '┬│' and botc == "═":
                 ret += '╪'
@@ -269,7 +268,7 @@ class TextDrawing():
                 ret += botc
             elif topc == "║" and botc in "═":
                 ret += "╬"
-            elif topc == "║" and botc in "─":
+            elif topc in "║╥" and botc in "─":
                 ret += "╫"
             elif topc in '╫╬' and botc in " ":
                 ret += "║"
