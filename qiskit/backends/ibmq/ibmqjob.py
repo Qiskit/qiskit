@@ -160,7 +160,6 @@ class IBMQJob(BaseJob):
 
         self._future_captured_exception = None
         self._api = api
-        self._id = job_id
         self._backend = backend
         self._status = JobStatus.INITIALIZING
         # In case of not providing a qobj, it assumes job_id has been provided
@@ -236,7 +235,7 @@ class IBMQJob(BaseJob):
         project = self._api.config.get('project', None)
 
         try:
-            response = self._api.cancel_job(self._id, hub, group, project)
+            response = self._api.cancel_job(self._job_id, hub, group, project)
             self._cancelled = 'error' not in response
             return self._cancelled
         except ApiError as error:
@@ -254,16 +253,16 @@ class IBMQJob(BaseJob):
                           or the server sent an unknown answer.
         """
 
-        # Implies self._id is None
+        # Implies self._job_id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
 
-        if self._id is None or self._status in JOB_FINAL_STATES:
+        if self._job_id is None or self._status in JOB_FINAL_STATES:
             return self._status
 
         try:
             # TODO: See result values
-            api_job = self._api.get_status_job(self._id)
+            api_job = self._api.get_status_job(self._job_id)
             if 'status' not in api_job:
                 raise JobError('get_job didn\'t return status: %s' %
                                pprint.pformat(api_job))
@@ -335,7 +334,7 @@ class IBMQJob(BaseJob):
         will block until we have an Id.
         """
         self._wait_for_submission()
-        return self._id
+        return self._job_id
 
     def backend_name(self):
         """Return backend name used for this job."""
@@ -352,7 +351,7 @@ class IBMQJob(BaseJob):
         # TODO: Validation against the schema should be done here and not
         # during initiliazation. Once done, we should document that the method
         # can raise QobjValidationError.
-        if self._future is not None or self._id is not None:
+        if self._future is not None or self._job_id is not None:
             raise JobError("We have already submitted the job!")
         self._future = self._executor.submit(self._submit_callback)
 
@@ -383,7 +382,7 @@ class IBMQJob(BaseJob):
         # Submisssion success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
-        self._id = submit_info.get('id')
+        self._job_id = submit_info.get('id')
         return submit_info
 
     def _wait_for_job(self, timeout=60, wait=5):
@@ -406,7 +405,7 @@ class IBMQJob(BaseJob):
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
                 raise JobTimeoutError(
-                    'Timeout while waiting for the job: {}'.format(self._id)
+                    'Timeout while waiting for the job: {}'.format(self._job_id)
                 )
 
             logger.info('status = %s (%d seconds)', self._status, elapsed_time)
@@ -416,11 +415,11 @@ class IBMQJob(BaseJob):
             raise JobError(
                 'Job result impossible to retrieve. The job was cancelled.')
 
-        return self._api.get_job(self._id)
+        return self._api.get_job(self._job_id)
 
     def _wait_for_submission(self, timeout=60):
         """Waits for the request to return a job ID"""
-        if self._id is None:
+        if self._job_id is None:
             if self._future is None:
                 raise JobError("You have to submit before asking for status or results!")
             try:
@@ -483,7 +482,7 @@ class IBMQJobPreQobj(IBMQJob):
         # Submisssion success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
-        self._id = submit_info.get('id')
+        self._job_id = submit_info.get('id')
         return submit_info
 
     def _result_from_job_response(self, job_response):
@@ -503,7 +502,7 @@ class IBMQJobPreQobj(IBMQJob):
             experiment_results.append(this_result)
 
         return result_from_old_style_dict({
-            'id': self._id,
+            'id': self._job_id,
             'status': job_response['status'],
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
