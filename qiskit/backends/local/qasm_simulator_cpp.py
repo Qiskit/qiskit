@@ -9,6 +9,8 @@
 Interface to C++ quantum circuit simulator with realistic noise.
 """
 
+
+import uuid
 import json
 import logging
 import os
@@ -72,13 +74,15 @@ class QasmSimulatorCpp(BaseBackend):
 
     def run(self, qobj):
         """Run a qobj on the backend."""
-        local_job = LocalJob(self._run_job, qobj)
+        job_id = str(uuid.uuid4())
+        local_job = LocalJob(self, job_id, self._run_job, qobj)
         local_job.submit()
         return local_job
 
-    def _run_job(self, qobj):
+    def _run_job(self, job_id, qobj):
         self._validate(qobj)
         result = run(qobj, self._configuration['exe'])
+        result['job_id'] = job_id
         copy_qasm_from_qobj_into_result(qobj, result)
 
         return result_from_old_style_dict(
@@ -133,11 +137,12 @@ class CliffordSimulatorCpp(BaseBackend):
         Returns:
             LocalJob: derived from BaseJob
         """
-        local_job = LocalJob(self._run_job, qobj)
+        job_id = str(uuid.uuid4())
+        local_job = LocalJob(self, job_id, self._run_job, qobj)
         local_job.submit()
         return local_job
 
-    def _run_job(self, qobj):
+    def _run_job(self, job_id, qobj):
         self._validate()
         # set backend to Clifford simulator
         if 'config' in qobj:
@@ -146,6 +151,7 @@ class CliffordSimulatorCpp(BaseBackend):
             qobj['config'] = {'simulator': 'clifford'}
 
         result = run(qobj, self._configuration['exe'])
+        result['job_id'] = job_id
 
         return result_from_old_style_dict(
             result, [circuit.header.name for circuit in qobj.experiments])

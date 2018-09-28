@@ -53,6 +53,8 @@ Changed
 - When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
   notebook if there is network connectivity the interactive plots will be used
   by default (#862, #866)
+- Breaking change: ``BaseJob`` API changed, any job constructor must be passed
+  the backend used to run them and a unique job id (#936).
 - Add support for drawing circuit barriers to the latex circuit drawer. This
   requires having the LaTeX qcircuit package version >=2.6.0 installed (#764)
 
