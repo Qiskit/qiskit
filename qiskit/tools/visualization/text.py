@@ -65,7 +65,6 @@ class DrawElementMultiBit(DrawElement):
 class MultiQubitGateTop(DrawElementMultiBit):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.label = instruction['name']
         self._mid_content = "" # The label will be put by some other part of the box.
         self._top = "┌─%s─┐"
         self._mid = "┤ %s ├"
@@ -75,7 +74,7 @@ class MultiQubitGateTop(DrawElementMultiBit):
 
 class MultiQubitGateMid(DrawElementMultiBit):
     def __init__(self, instruction, input_length, order):
-        self.label = instruction['name']
+        super().__init__(instruction)
         self._top = "│ %s │"
         self._mid = "┤ %s ├"
         self._bot = "│ %s │"
@@ -90,7 +89,6 @@ class MultiQubitGateMid(DrawElementMultiBit):
 class MultiQubitGateBot(DrawElementMultiBit):
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
-        self.label = instruction['name']
         self._top = "│ %s │"
         self._mid = "┤ %s ├"
         self._bot = "└─%s─┘"
@@ -103,7 +101,8 @@ class MultiQubitGateBot(DrawElementMultiBit):
 
 class ConditionalTo(DrawElementMultiBit):
     def __init__(self, instruction):
-        self.label = self._mid_content = instruction['name']
+        super().__init__(instruction)
+        self._mid_content = self.label
         self._top = "┌─%s─┐"
         self._mid = "┤ %s ├"
         self._bot = "└─%s─┘"
