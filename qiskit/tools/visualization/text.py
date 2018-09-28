@@ -22,18 +22,15 @@ class DrawElement():
             if len(instruction['params']):
                 params += "(%s)" % ','.join([str(i) for i in instruction['params']])
         self.label = "%s%s" % (instruction['name'], params)
-        self.top = "┌─%s─┐" % ('─' * len(self.label))
-        self.mid = "┤ %s ├" % self.label
-        self.bot = "└─%s─┘" % ('─' * len(self.label))
+        self.width = len(self.label)
 
     @property
     def length(self):
-        return len(self.mid)
+        return max(len(self.top),len(self.mid),len(self.bot))
 
     @property
     def label_size(self):
         return len(self.label)
-
 
 class MeasureTo(DrawElement):
     def __init__(self, instruction):
@@ -52,40 +49,77 @@ class MeasureFrom(DrawElement):
 
 
 class DrawElementMultiBit(DrawElement):
-    def center_to(self, size):
-        self.label = self.label.center(size)
-
     @property
     def top(self):
-        return self._top % self._top_connector.center(len(self.label), '─')
+        return self._top % self._top_connector.center(self.width, self._top_border)
 
     @property
     def mid(self):
-        return self._mid % self.label
+        return self._mid % self._mid_content.center(self.width)
 
     @property
     def bot(self):
-        return self._bot % self._bot_connector.center(len(self.label), '─')
+        return self._bot % self._bot_connector.center(self.width, self._bot_border)
 
+
+class MultiQubitGateTop(DrawElementMultiBit):
+    def __init__(self, instruction):
+        super().__init__(instruction)
+        self.label = instruction['name']
+        self._mid_content = "" # The label will be put by some other part of the box.
+        self._top = "┌─%s─┐"
+        self._mid = "┤ %s ├"
+        self._bot = "│ %s │"
+        self._top_connector = self._top_border = '─'
+        self._bot_connector = self._bot_border = " "
+
+class MultiQubitGateMid(DrawElementMultiBit):
+    def __init__(self, instruction, input_length, order):
+        self.label = instruction['name']
+        print(input_length,order)
+        self._top = "│ %s │"
+        self._mid = "┤ %s ├"
+        self._bot = "│ %s │"
+        self._top_border = self._bot_border = ' '
+
+        # TODO logic about centering vertically, using input_length and order
+        # '*'.center((input_lenght*3)-1)
+        self._top_connector = self._bot_connector = self._mid_content = ''
+        # TODO for now, force it in every Mid in the middle
+        self._mid_content = self.label
+
+class MultiQubitGateBot(DrawElementMultiBit):
+    def __init__(self, instruction, input_length):
+        super().__init__(instruction)
+        self.label = instruction['name']
+        self._top = "│ %s │"
+        self._mid = "┤ %s ├"
+        self._bot = "└─%s─┘"
+        self._top_border = " "
+        self._bot_border = '─'
+
+        self._mid_content = self._bot_connector = self._top_connector = ""
+        if input_length <= 2:
+            self._top_connector = self.label
 
 class ConditionalTo(DrawElementMultiBit):
     def __init__(self, instruction):
-        self.label = instruction['name']
+        self.label = self._mid_content = instruction['name']
         self._top = "┌─%s─┐"
         self._mid = "┤ %s ├"
         self._bot = "└─%s─┘"
-        self._top_connector = '─'
+        self._bot_border = self._top_connector = self._top_border = '─'
         self._bot_connector = '┬'
 
 
 class ConditionalFrom(DrawElementMultiBit):
     def __init__(self, instruction):
-        self.label = "%s %s" % ('=', instruction['conditional']['val'])
+        self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
         self._top = "┌─%s─┐"
         self._mid = "╡ %s ╞"
         self._bot = "└─%s─┘"
         self._top_connector = '┴'
-        self._bot_connector = '─'
+        self._top_border = self._bot_connector = self._bot_border = '─'
 
 
 class Barrier(DrawElement):
@@ -102,6 +136,7 @@ class CXcontrol(DrawElement):
         self.top = "   "
         self.mid = "─o─"
         self.bot = " │ "
+
 
 class CXtarget(DrawElement):
     def __init__(self, instruction):
@@ -224,6 +259,8 @@ class TextDrawing():
                 ret += topc
             elif topc in '┬│' and botc == "═":
                 ret += '╪'
+            elif topc in '┬│' and botc == "─":
+                ret += '┼'
             elif topc in '└┘║│¦' and botc == " ":
                 ret += topc
             elif topc in '─═' and botc == " " and icod == "top":
@@ -273,22 +310,45 @@ class TextDrawing():
 
                 longest = max(clbit_layer[mask].label_size,
                               qubit_layer[instruction['qubits'][0]].label_size)
-                clbit_layer[mask].center_to(longest)
-                qubit_layer[instruction['qubits'][0]].center_to(longest)
+                clbit_layer[mask].width=longest
+                qubit_layer[instruction['qubits'][0]].width=longest
 
-            elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
-                # gate
-                qubit_layer[instruction['qubits'][0]] = UnitaryGate(instruction)
-
-            elif len(instruction['qubits']) == 2 and 'clbits' not in instruction:
+            elif instruction['name'] in ['cx', 'CX']:
                 # cx
                 control = instruction['qubits'][0]
                 target = instruction['qubits'][1]
 
                 qubit_layer[control] = CXcontrol(instruction)
                 qubit_layer[target] = CXtarget(instruction)
+
+            elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
+                # unitary gate
+                qubit_layer[instruction['qubits'][0]] = UnitaryGate(instruction)
+
+            elif len(instruction['qubits']) >= 2 and 'clbits' not in instruction:
+                # multiple qubit gate
+                qubits = sorted(instruction['qubits'])
+
+                # Checks if qubits are consecutive
+                if qubits != [i for i in range(qubits[0], qubits[-1] + 1)]:
+                    raise Exception(
+                        "I don't know how to build a gate with multiple qubits when they are not adjacent to each other",
+                        instruction)
+
+                qubit_layer[qubits[0]] = MultiQubitGateTop(instruction)
+                for order,qubit in enumerate(qubits[1:-1],1):
+                    qubit_layer[qubit] = MultiQubitGateMid(instruction, len(qubits), order)
+                qubit_layer[qubits[-1]] = MultiQubitGateBot(instruction, len(qubits))
+
+                # Adjust width
+                affected_part_of_the_layer = qubit_layer[qubits[0]:qubits[-1]+1]
+                longest = max([qubit.label_size for qubit in affected_part_of_the_layer])
+                for qubit in affected_part_of_the_layer:
+                    qubit.width=longest
+
             else:
-                Exception("I don't know how to handle this instruction", instruction)
+                raise Exception("I don't know how to handle this instruction", instruction)
+
             layers.append(qubit_layer + clbit_layer)
 
         # TODO compress (layers)
