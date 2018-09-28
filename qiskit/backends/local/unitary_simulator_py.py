@@ -170,14 +170,16 @@ class UnitarySimulatorPy(BaseBackend):
         Returns:
             LocalJob: derived from BaseJob
         """
-        local_job = LocalJob(self._run_job, qobj)
+        job_id = str(uuid.uuid4())
+        local_job = LocalJob(self, job_id, self._run_job, qobj)
         local_job.submit()
         return local_job
 
-    def _run_job(self, qobj):
+    def _run_job(self, job_id, qobj):
         """Run qobj. This is a blocking call.
 
         Args:
+            job_id (str): unique id for the job.
             qobj (Qobj): job description
         Returns:
             Result: Result object
@@ -187,7 +189,6 @@ class UnitarySimulatorPy(BaseBackend):
         for circuit in qobj.experiments:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
-        job_id = str(uuid.uuid4())
         result = {'backend': self._configuration['name'],
                   'id': qobj.qobj_id,
                   'job_id': job_id,
