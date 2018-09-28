@@ -322,9 +322,13 @@ class IBMQJob(BaseJob):
 
         If the Id is not set because the job is already initializing, this call
         will block until we have an Id.
+
+        .. deprecated:: 0.6+
+            After 0.6, this function is deprecated. Please use
+            `job.job_id()` instead.
         """
         warnings.warn('The method `job.id()` is deprecated, use '
-                      '``job.job_id()`` instead.')
+                      '``job.job_id()`` instead.', DeprecationWarning)
         return self.job_id()
 
     def job_id(self):
@@ -337,7 +341,13 @@ class IBMQJob(BaseJob):
         return self._job_id
 
     def backend_name(self):
-        """Return backend name used for this job."""
+        """
+        Return backend name used for this job.
+
+        .. deprecated:: 0.6+
+            After 0.6, this function is deprecated. Please use
+            `job.backend().name()` instead.
+        """
         warnings.warn('The use of `job.backend_name()` is deprecated, '
                       'use `job.backend().name()` instead', DeprecationWarning)
         return self.backend().name()
