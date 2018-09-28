@@ -16,7 +16,7 @@ from .common import QiskitTestCase
 try:
     from qiskit.tools.qcvv import fitters
     VALID_MATPLOTLIB = True
-except RuntimeError:
+except (RuntimeError, ImportError):
     # Under some combinations (travis osx vms, or headless configurations)
     # matplotlib might not be fully, raising:
     # RuntimeError: Python is not installed as a framework.
