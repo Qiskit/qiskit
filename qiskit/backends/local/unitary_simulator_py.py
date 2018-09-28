@@ -112,10 +112,9 @@ class UnitarySimulatorPy(BaseBackend):
         'basis_gates': 'u1,u2,u3,cx,id'
     }
 
-    def __init__(self, configuration=None):
-        """Initialize the UnitarySimulatorPy object.
-        """
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         provider=provider)
 
         # Define attributes inside __init__.
         self._unitary_state = None

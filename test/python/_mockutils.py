@@ -32,13 +32,17 @@ logger = logging.getLogger(__name__)
 
 class DummyProvider(BaseProvider):
     """Dummy provider just for testing purposes."""
+
+    def get_backend(self, name=None, **kwargs):
+        return self._backend
+
+    def backends(self, name=None, **kwargs):
+        return [self._backend]
+
     def __init__(self):
         self._backend = DummySimulator()
 
         super().__init__()
-
-    def get_backend(self, name):
-        return self._backend
 
     def available_backends(self, filters=None):
         # pylint: disable=arguments-differ

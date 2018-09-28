@@ -10,9 +10,9 @@ Utilities for reading credentials from environment variables.
 """
 
 import os
+from collections import OrderedDict
 
-from qiskit.backends.ibmq import IBMQProvider
-from ._utils import get_account_name
+from .credentials import Credentials
 
 # Dictionary that maps `ENV_VARIABLE_NAME` to credential parameter.
 VARIABLES_MAP = {
@@ -31,12 +31,12 @@ def read_credentials_from_environ():
     Returns:
         dict: dictionary with the credentials, in the form::
 
-            {'IBMQProvider': {'token': 'TOKEN', 'url': 'URL', ... }}
+            {credentials_unique_id: Credentials}
 
     """
     # The token is the only required parameter.
-    if not os.getenv('QE_TOKEN'):
-        return {}
+    if not (os.getenv('QE_TOKEN') and os.getenv('QE_URL')):
+        return OrderedDict()
 
     # Build the credentials based on environment variables.
     credentials = {}
@@ -44,4 +44,5 @@ def read_credentials_from_environ():
         if os.getenv(envar_name):
             credentials[credential_key] = os.getenv(envar_name)
 
-    return {get_account_name(IBMQProvider): credentials}
+    credentials = Credentials(**credentials)
+    return OrderedDict({credentials.unique_id(): credentials})
