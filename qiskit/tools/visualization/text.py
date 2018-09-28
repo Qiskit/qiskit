@@ -134,7 +134,7 @@ class CXcontrol(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
         self.top = "   "
-        self.mid = "─o─"
+        self.mid = "─■─"
         self.bot = " │ "
 
 
