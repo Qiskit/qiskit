@@ -33,12 +33,14 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.ignore_preserves = False
-        self.ignore_requires = False
-        self.max_iteration = 1000
+        self.ignore_preserves = False  # Ignore preserves for this pass
+        self.ignore_requires = False  # Ignore requires for this pass
+        self.max_iteration = 1000  # Maximum allowed iteration on this pass
 
-        self.property_set = {}
+        self.property_set = {}  # This pass's pointer to the pass manager's property set.
         self._hash = None
+        self._args = None
+        self._kwargs = None
 
     def name(self):
         """ The name of the pass. """

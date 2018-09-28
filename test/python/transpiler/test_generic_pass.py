@@ -10,8 +10,7 @@
 """BasePass and generic pass testing"""
 
 import unittest.mock
-from qiskit.transpiler import TranspilerUnknownOption
-from ._dummy_passes import DummyAP, DummyTP, DummyNI, PassD_TP_NR_NP
+from ._dummy_passes import DummyAP, DummyTP, PassD_TP_NR_NP
 from ..common import QiskitTestCase
 
 

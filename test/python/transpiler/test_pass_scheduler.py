@@ -17,11 +17,12 @@ from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, Tra
     ControlFlowPlugin
 from qiskit.transpiler._passmanager import PluginDoWhile
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
-    PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, PassG_calculates_dag_property, \
+    PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point_property
 from ..common import QiskitTestCase
 
 logger = "LocalLogger"
+
 
 class SchedulerTestCase(QiskitTestCase):
     """ Asserts for the scheduler. """
@@ -65,7 +66,7 @@ class TestUseCases(SchedulerTestCase):
         """ A single chain of passes, with Requests and Preserves."""
         self.passmanager.add_passes(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
         self.passmanager.add_passes(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        self.passmanager.add_passes(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
+        self.passmanager.add_passes(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {}/ Preserves: {}
         self.passmanager.add_passes(PassB_TP_RA_PA())
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassC_TP_RA_PA',
@@ -202,7 +203,7 @@ class TestUseCases(SchedulerTestCase):
         """ A single pass that is not idempotent. """
         passmanager = PassManager()
         pass_a = PassA_TP_NR_NP()
-        pass_a.ignore_preserves=True  # Ignoring self-preserves means the pass is not-idempotent
+        pass_a.ignore_preserves = True  # Ignoring self-preserves means the pass is not-idempotent
 
         passmanager.add_passes(pass_a)
         passmanager.add_passes(pass_a)  # Normally removed for optimization, not here.
@@ -331,7 +332,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
     def test_control_flow_plugin(self):
         """ Adds a control flow plugin with a single parameter and runs it. """
         self.passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
-        self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x : 3)
+        self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassB_TP_RA_PA',
                                                           'run transformation pass PassC_TP_RA_PA',
@@ -353,7 +354,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
                                     'run transformation pass PassB_TP_RA_PA',
                                     'run transformation pass PassC_TP_RA_PA'], TranspilerError)
 
-    def test_remove_unexistent_plugin(self):
+    def test_remove_nonexistent_plugin(self):
         """ Tries to remove a plugin that does not exist. """
         self.assertRaises(KeyError, self.passmanager.remove_control_flow_plugin, "foo")
 
