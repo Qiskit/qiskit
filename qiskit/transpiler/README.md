@@ -14,8 +14,8 @@ The main goal of Terra's transpiler is to provide an extensible infrastructure o
 - Registering passes in the pass manager pipeline is done by the `add_passes` method.
 - While registering, you can specify basic control primitives over each pass (conditionals and loops).
 - Options to control the scheduler:
-	- The precedence of passes options is pass, pass set, pass manager. (see [tests](https://github.com/Qiskit/qiskit-terra/master/test/transpiler/test_pass_scheduler.py))
 	- Passes can have arguments at init time that can affect their scheduling. If you want to set properties related to how the pass is run, you can do so by accessing these properties (e.g. pass_.max_iteration = 10).
+	- Options set from the pass manager take more precedence over those set at the time of adding a pass set, and those take more precedence over the options of each individual pass. (see [tests](https://github.com/Qiskit/qiskit-terra/master/test/transpiler/test_pass_scheduler.py))
 
 
 ### Pass dependency control
@@ -31,10 +31,10 @@ The `CxCancellation` requires and preserves `ToffoliDecompose`. Same for `Rotati
 
 ```
 pm = PassManager()
-pm.add_pass(CxCancellation()) # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_pass(RotationMerge())  # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_pass(Mapper(coupling_map=coupling_map))         # requires: [] / preserves: []
-pm.add_pass(CxCancellation())
+pm.add_passes([CxCancellation()]) # requires: ToffoliDecompose / preserves: ToffoliDecompose
+pm.add_passes([RotationMerge()])  # requires: ToffoliDecompose / preserves: ToffoliDecompose
+pm.add_passes([Mapper(coupling_map=coupling_map)])         # requires: [] / preserves: []
+pm.add_passes([CxCancellation()])
 ```
 
 Given the above, the pass manager executes the following sequence of passes:
@@ -50,9 +50,9 @@ Given the above, the pass manager executes the following sequence of passes:
 A pass behavior can be heavily influenced by its parameters. For example, unrolling using some basis gates is totally different than unrolling to different gates. And a PassManager might use both.
 
 ```
-pm.add_pass(Unroller(basis_gates=['id','u1','u2','u3','cx']))
-pm.add_pass(...)
-pm.add_pass(Unroller(basis_gates=['U','CX']))
+pm.add_passes([Unroller(basis_gates=['id','u1','u2','u3','cx'])])
+pm.add_passes(...)
+pm.add_passes([Unroller(basis_gates=['U','CX'])])
 ```
 
 where (from `qelib1.inc`):
@@ -72,8 +72,8 @@ There are cases when one or more passes have to be run repeatedly, until a condi
 
 ```
 pm = PassManager()
-pm.add_pass([CxCancellation(), RotationMerge(), CalculateDepth()],
-            do_while=lambda property_set: not property_set['fixed_point']['depth'])
+pm.add_passes([CxCancellation(), RotationMerge(), CalculateDepth()],
+              do_while=lambda property_set: not property_set['fixed_point']['depth'])
 ```
 The control argument `do_while` will run these passes until the callable returns `False`. The callable always takes in one argument, the pass manager's property set. In this example, `CalculateDepth` is an analysis pass that updates the property `depth` in the property set.
 
@@ -81,9 +81,9 @@ The control argument `do_while` will run these passes until the callable returns
 The pass manager developer can avoid one or more passes by making them conditional (on a property in the property set):
 
 ```
-pm.add_pass(LayoutMapper(coupling_map))
-pm.add_pass(CheckIfMapped(coupling_map))
-pm.add_pass(SwapMapper(coupling_map),
+pm.add_pass([LayoutMapper(coupling_map)])
+pm.add_pass([CheckIfMapped(coupling_map)])
+pm.add_pass([SwapMapper(coupling_map)],
             condition=lambda property_set: not property_set['is_mapped'])
 ``` 
 

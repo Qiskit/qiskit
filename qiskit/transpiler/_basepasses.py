@@ -24,7 +24,6 @@ class MetaPass(type):
         _kwargs = OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))
         obj._kwargs = '(' + ', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()]) + ')'
         obj._hash = hash(obj.__repr__())
-        obj._options = {}
         return obj
 
 
@@ -46,7 +45,7 @@ class BasePass(metaclass=MetaPass):
         return self.__class__.__name__
 
     def __repr__(self):
-        return self.name() + self._args + self._kwargs
+        return self.name() + self._args + self._kwargs  # pylint: disable=no-member
 
     def __eq__(self, other):
         """
