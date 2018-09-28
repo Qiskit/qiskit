@@ -153,6 +153,7 @@ def remove_credentials(credentials, filename=None):
                           'configuration file')
     write_qiskit_rc(stored_credentials, filename)
 
+
 def remove_all_credentials(filename=None):
     """Remove all credentials from qiskitrc.
 
