@@ -152,3 +152,21 @@ def remove_credentials(credentials, filename=None):
         raise QISKitError('The account "%s" does not exist in the '
                           'configuration file')
     write_qiskit_rc(stored_credentials, filename)
+
+def remove_all_credentials(filename=None):
+    """Remove all credentials from qiskitrc.
+
+    Args:
+        filename (str): full path to the qiskitrc file. If `None`, the default
+            location is used (`HOME/.qiskit/qiskitrc`)
+
+    Raises:
+        FileNotFoundError: If the qiskitrc file can't be found
+    """
+
+    filename = filename or DEFAULT_QISKITRC_FILE
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(
+            "Specified qiskitrc, %s, can't be found" % filename)
+    # Write an empty file
+    open(filename, 'w').close()
