@@ -216,6 +216,14 @@ class TestUseCases(SchedulerTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
+    def test_pass_idempotence_single_pass(self):
+        """ Analysis pass are idempotent. """
+        passmanager = PassManager()
+        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
+        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
+        self.assertScheduler(self.dag, passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                     'set property as 1'])
+
     def test_pass_option_precedence(self):
         """ The precedence of options for a pass is:
          - The pass

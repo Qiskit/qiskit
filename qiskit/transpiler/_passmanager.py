@@ -150,11 +150,11 @@ class PassManager():
         return dag
 
     def _update_valid_passes(self, pass_):
+        self.valid_passes.add(pass_)
         if not pass_.is_analysis_pass:  # Analysis passes preserve all
             if pass_.ignore_preserves:
                 self.valid_passes.clear()
             else:
-                self.valid_passes.add(pass_)
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
     def add_control_flow_plugin(self, name, control_flow_plugin):
