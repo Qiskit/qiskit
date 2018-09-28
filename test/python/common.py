@@ -75,7 +75,7 @@ class QiskitTestCase(unittest.TestCase):
         from qiskit.backends.ibmq import IBMQ
         from qiskit.backends.local import Aer
 
-        IBMQ.accounts.clear()
+        IBMQ._accounts.clear()
         Aer._backends = Aer._verify_local_backends()
 
     @staticmethod
