@@ -33,7 +33,7 @@ class IBMQProvider(BaseProvider):
         # This attribute stores a reference to the different accounts. The
         # keys are tuples (hub, group, project), as the convention is that
         # that tuple uniquely identifies a set of credentials.
-        self.accounts = OrderedDict()
+        self._accounts = OrderedDict()
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
@@ -47,7 +47,7 @@ class IBMQProvider(BaseProvider):
         for key in ['token', 'url', 'hub', 'group', 'project']:
             if key in kwargs:
                 credentials_filter[key] = kwargs.pop(key)
-        providers = [provider for provider in self.accounts.values() if
+        providers = [provider for provider in self._accounts.values() if
                      _match_all(provider.credentials, credentials_filter)]
 
         # Special handling of the `name` parameter, to support alias resolution.
@@ -137,8 +137,8 @@ class IBMQProvider(BaseProvider):
         stored_credentials = read_credentials_from_qiskitrc()
 
         # Try to remove from session.
-        if credentials.unique_id() in self.accounts.keys():
-            del self.accounts[credentials.unique_id()]
+        if credentials.unique_id() in self._accounts.keys():
+            del self._accounts[credentials.unique_id()]
             removed = True
 
         # Try to remove from disk.
@@ -176,7 +176,7 @@ class IBMQProvider(BaseProvider):
                 in the session.
         """
         information = []
-        for provider in self.accounts.values():
+        for provider in self._accounts.values():
             information.append({
                 'token': provider.credentials.token,
                 'url': provider.credentials.url,
@@ -199,13 +199,13 @@ class IBMQProvider(BaseProvider):
             IBMQAccountError: if there already loaded accounts in the session, or
                 no credentials could be found.
         """
-        if self.accounts:
+        if self._accounts:
             raise IBMQAccountError('The account list is not empty')
 
         for credentials in discover_credentials().values():
             self._append_account(credentials)
 
-        if not self.accounts:
+        if not self._accounts:
             raise IBMQAccountError('No IBMQ credentials found')
 
     def _append_account(self, credentials):
@@ -222,10 +222,10 @@ class IBMQProvider(BaseProvider):
         """
         # Check if duplicated credentials are already in use. By convention,
         # we assume (hub, group, project) is always unique.
-        if credentials.unique_id() in self.accounts.keys():
+        if credentials.unique_id() in self._accounts.keys():
             raise IBMQAccountError('Credentials are already in use')
 
         single_provider = IBMQSingleProvider(credentials, self)
-        self.accounts[credentials.unique_id()] = single_provider
+        self._accounts[credentials.unique_id()] = single_provider
 
         return single_provider

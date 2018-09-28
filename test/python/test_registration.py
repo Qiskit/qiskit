@@ -41,7 +41,7 @@ class TestIBMQAccounts(QiskitTestCase):
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
-            _, provider = list(qiskit.IBMQ.accounts.items())[0]
+            _, provider = list(qiskit.IBMQ._accounts.items())[0]
 
             self.assertEqual(loaded_accounts, {})
             self.assertEqual('QISKITRC_TOKEN', provider.credentials.token)
@@ -60,7 +60,7 @@ class TestIBMQAccounts(QiskitTestCase):
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
             self.assertEqual(loaded_accounts, {})
-            self.assertEqual(len(qiskit.IBMQ.accounts), 3)
+            self.assertEqual(len(qiskit.IBMQ._accounts), 3)
 
     def test_use_duplicate_credentials(self):
         """Test using the same credentials twice."""
@@ -70,7 +70,7 @@ class TestIBMQAccounts(QiskitTestCase):
             with self.assertRaises(QISKitError):
                 qiskit.IBMQ.use_account('QISKITRC_TOKEN')
 
-            self.assertEqual(len(qiskit.IBMQ.accounts), 1)
+            self.assertEqual(len(qiskit.IBMQ._accounts), 1)
 
     def test_store_credentials(self):
         """Test storing one account."""
@@ -80,8 +80,8 @@ class TestIBMQAccounts(QiskitTestCase):
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
-            self.assertEqual(qiskit.IBMQ.accounts.keys(), loaded_accounts.keys())
-            self.assertEqual(list(qiskit.IBMQ.accounts.values())[0].credentials,
+            self.assertEqual(qiskit.IBMQ._accounts.keys(), loaded_accounts.keys())
+            self.assertEqual(list(qiskit.IBMQ._accounts.values())[0].credentials,
                              list(loaded_accounts.values())[0])
 
     def test_store_multiple_credentials(self):
@@ -95,9 +95,9 @@ class TestIBMQAccounts(QiskitTestCase):
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
-            self.assertEqual(qiskit.IBMQ.accounts.keys(), loaded_accounts.keys())
+            self.assertEqual(qiskit.IBMQ._accounts.keys(), loaded_accounts.keys())
             self.assertEqual(len(loaded_accounts), 3)
-            for account_name, provider in qiskit.IBMQ.accounts.items():
+            for account_name, provider in qiskit.IBMQ._accounts.items():
                 self.assertEqual(provider.credentials,
                                  loaded_accounts[account_name])
 
@@ -112,7 +112,7 @@ class TestIBMQAccounts(QiskitTestCase):
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
-            self.assertEqual(len(qiskit.IBMQ.accounts), 1)
+            self.assertEqual(len(qiskit.IBMQ._accounts), 1)
             self.assertEqual(len(loaded_accounts), 1)
 
     def test_remove_account(self):
@@ -121,7 +121,7 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.use_account('QISKITRC_TOKEN')
             qiskit.IBMQ.remove_account('QISKITRC_TOKEN')
 
-            self.assertEqual(len(qiskit.IBMQ.accounts), 0)
+            self.assertEqual(len(qiskit.IBMQ._accounts), 0)
 
     def test_remove_account_from_disk(self):
         """Test removing an account from disk."""
@@ -129,9 +129,9 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.add_account('QISKITRC_TOKEN')
             self.assertEqual(len(read_credentials_from_qiskitrc()), 1)
 
-            qiskit.IBMQ.accounts.clear()
+            qiskit.IBMQ._accounts.clear()
             qiskit.IBMQ.remove_account('QISKITRC_TOKEN')
-            self.assertEqual(len(qiskit.IBMQ.accounts), 0)
+            self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
 
@@ -167,8 +167,8 @@ class TestCredentials(QiskitTestCase):
 
         # Ensure that the credentials are the overwritten ones - note that the
         # 'hub' parameter was removed.
-        self.assertEqual(len(qiskit.IBMQ.accounts), 1)
-        self.assertEqual(list(qiskit.IBMQ.accounts.values())[0].credentials.token,
+        self.assertEqual(len(qiskit.IBMQ._accounts), 1)
+        self.assertEqual(list(qiskit.IBMQ._accounts.values())[0].credentials.token,
                          'QISKITRC_TOKEN_2')
 
     def test_environ_over_qiskitrc(self):
