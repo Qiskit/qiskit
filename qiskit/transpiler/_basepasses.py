@@ -24,9 +24,6 @@ class MetaPass(type):
         _kwargs = OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))
         obj._kwargs = '(' + ', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()]) + ')'
         obj._hash = hash(obj.__repr__())
-        obj._defaults = {"ignore_requires": False,
-                         "ignore_preserves": False}
-        obj._settings = {}
         return obj
 
 

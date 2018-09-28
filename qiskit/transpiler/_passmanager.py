@@ -38,12 +38,11 @@ class PassManager():
                              'ignore_preserves': ignore_preserves,
                              'max_iteration': max_iteration}
 
-    def _join_options(self, passset_options, pass_options):
+    def _join_options(self, passset_options):
         # Remove Nones
         passmanager_level = {k: v for k, v in self.pass_options.items() if v is not None}
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
-        pass_level = {k: v for k, v in pass_options.items() if v is not None}
-        return {**passmanager_level, **passset_level, **pass_level}
+        return {**passmanager_level, **passset_level}
 
     def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
                    **control_flow_plugins):
@@ -74,7 +73,7 @@ class PassManager():
 
         for pass_ in passes:
             if isinstance(pass_, BasePass):
-                for key, value in self._join_options(passset_options, pass_._settings).items():
+                for key, value in self._join_options(passset_options).items():
                     setattr(pass_, key, value)
             else:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
