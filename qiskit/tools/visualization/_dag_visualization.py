@@ -35,7 +35,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     Raises:
         VisualizationError: when style is not recognized.
     """
-    G = copy.deepcopy(dag.multi_graph)
+    G = copy.deepcopy(dag.multi_graph)  # don't modify the original graph attributes
     G.graph['dpi'] = 100 * scale
 
     if style == 'plain':
@@ -58,13 +58,12 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 
-    if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-        show = 'ipynb'  # inline dot file visualization of graph
-        if filename:
-            show = False
-        return nxpd.draw(G, filename=filename, show=show)
+    show = nxpd.nxpdParams['show']
+    if filename:
+        show = False
+    elif ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+        show = 'ipynb'
     else:
         show = True
-        if filename:
-            show = False
-        nxpd.draw(G, filename=filename, show=show)
+
+    return nxpd.draw(G, filename=filename, show=show)
