@@ -92,8 +92,7 @@ class LocalProvider(BaseProvider):
                                      'local_clifford_simulator_cpp'],
             'local_statevector_simulator': ['local_statevector_simulator_cpp',
                                             'local_statevector_simulator_py'],
-            'local_unitary_simulator': ['local_unitary_simulator_cpp',
-                                        'local_unitary_simulator_py'],
+            'local_unitary_simulator': ['local_unitary_simulator_py'],
             # TODO: restore after clifford simulator release
             # 'local_clifford_simulator': ['local_clifford_simulator_cpp']
             }
