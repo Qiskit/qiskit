@@ -9,7 +9,7 @@
 
 from ._passmanager import PassManager, ControlFlowPlugin
 from ._propertyset import PropertySet
-from ._transpilererror import TranspilerError, TranspilerAccessError, TranspilerUnknownOption
+from ._transpilererror import TranspilerError, TranspilerAccessError
 from ._fencedobjs import FencedDAGCircuit, FencedPropertySet
 from ._basepasses import AnalysisPass, TransformationPass
 from ._transpiler import compile, transpile  # pylint: disable=redefined-builtin
