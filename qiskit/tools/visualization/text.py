@@ -21,7 +21,7 @@ class DrawElement():
         if 'params' in instruction:
             if len(instruction['params']):
                 params += "(%s)" % ','.join([str(i) for i in instruction['params']])
-        self.label = "%s%s" % (instruction['name'], params)
+        self.label = "%s%s" % (instruction['name'].upper(), params)
         self.width = len(self.label)
 
     @property
