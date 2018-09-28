@@ -19,7 +19,7 @@ from qiskit.backends.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.backends import JobError, JobTimeoutError
 from .common import JobTestCase
-from ._mockutils import new_fake_qobj
+from ._mockutils import new_fake_qobj, FakeBackend
 
 
 class TestIBMQJobStates(JobTestCase):
@@ -277,8 +277,9 @@ class TestIBMQJobStates(JobTestCase):
         """Creates a new ``IBMQJobPreQobj`` instance running with the provided API
         object.
         """
+        backend = FakeBackend()
         self._current_api = api
-        self._current_qjob = job_class(api, False, qobj=new_fake_qobj())
+        self._current_qjob = job_class(backend, None, api, False, qobj=new_fake_qobj())
         self._current_qjob.submit()
         return self._current_qjob
 

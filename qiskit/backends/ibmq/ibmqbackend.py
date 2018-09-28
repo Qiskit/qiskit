@@ -56,7 +56,7 @@ class IBMQBackend(BaseBackend):
             IBMQJob: an instance derived from BaseJob
         """
         job_class = _job_class_from_backend_support(self)
-        job = job_class(self._api, not self.configuration()['simulator'], qobj=qobj)
+        job = job_class(self, None, self._api, not self.configuration()['simulator'], qobj=qobj)
         job.submit()
         return job
 
@@ -247,9 +247,7 @@ class IBMQBackend(BaseBackend):
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
             is_device = not bool(self._configuration.get('simulator'))
-            job = job_class(self._api, is_device,
-                            job_id=job_info.get('id'),
-                            backend_name=backend_name,
+            job = job_class(self, job_info.get('id'), self._api, is_device,
                             creation_date=job_info.get('creationDate'))
             job_list.append(job)
         return job_list
@@ -276,9 +274,7 @@ class IBMQBackend(BaseBackend):
                                    .format(job_id, str(ex)))
         job_class = _job_class_from_job_response(job_info)
         is_device = not bool(self._configuration.get('simulator'))
-        job = job_class(self._api, is_device,
-                        job_id=job_info.get('id'),
-                        backend_name=job_info.get('backend').get('name'),
+        job = job_class(self, job_info.get('id'), self._api, is_device,
                         creation_date=job_info.get('creationDate'))
         return job
 

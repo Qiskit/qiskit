@@ -9,6 +9,7 @@
 
 """LocalJob creation and test suite."""
 
+import uuid
 from contextlib import contextmanager
 from os import path
 import unittest
@@ -42,10 +43,12 @@ class TestLocalJob(QiskitTestCase):
         taskcount = 10
         target_tasks = [lambda: None for _ in range(taskcount)]
 
+        job_id = str(uuid.uuid4())
+        backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (LocalJob, executor):
             for index in range(taskcount):
-                local_job = LocalJob(target_tasks[index], new_fake_qobj())
+                local_job = LocalJob(backend, job_id, target_tasks[index], new_fake_qobj())
                 local_job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
@@ -60,9 +63,11 @@ class TestLocalJob(QiskitTestCase):
         # we only check if we delegate on the proper method of the underlaying
         # future object.
 
+        job_id = str(uuid.uuid4())
+        backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (LocalJob, executor):
-            job = LocalJob(lambda: None, new_fake_qobj())
+            job = LocalJob(backend, job_id, lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
 
