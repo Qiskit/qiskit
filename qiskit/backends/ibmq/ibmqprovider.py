@@ -222,7 +222,7 @@ class IBMQProvider(BaseProvider):
             credentials (Credentials): set of credentials.
 
         Returns:
-            eBMQSingleProvider: new single-account provider.
+            IBMQSingleProvider: new single-account provider.
 
         Raises:
             IBMQAccountError: if the provider could not be appended.
