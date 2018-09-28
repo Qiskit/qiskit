@@ -63,7 +63,7 @@ class PassManager():
                    **control_flow_plugins):
         """
         Args:
-            passes (list[BasePass]): passes to be added to schedule
+            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
             ignore_preserves (bool): ignore the preserves claim of passes. Default: False
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000

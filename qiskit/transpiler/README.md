@@ -31,10 +31,10 @@ The `CxCancellation` requires and preserves `ToffoliDecompose`. Same for `Rotati
 
 ```
 pm = PassManager()
-pm.add_passes([CxCancellation()]) # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_passes([RotationMerge()])  # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_passes([Mapper(coupling_map=coupling_map)])         # requires: [] / preserves: []
-pm.add_passes([CxCancellation()])
+pm.add_passes(CxCancellation()) # requires: ToffoliDecompose / preserves: ToffoliDecompose
+pm.add_passes(RotationMerge())  # requires: ToffoliDecompose / preserves: ToffoliDecompose
+pm.add_passes(Mapper(coupling_map=coupling_map))         # requires: [] / preserves: []
+pm.add_passes(CxCancellation())
 ```
 
 Given the above, the pass manager executes the following sequence of passes:
@@ -50,9 +50,9 @@ Given the above, the pass manager executes the following sequence of passes:
 A pass behavior can be heavily influenced by its parameters. For example, unrolling using some basis gates is totally different than unrolling to different gates. And a PassManager might use both.
 
 ```
-pm.add_passes([Unroller(basis_gates=['id','u1','u2','u3','cx'])])
+pm.add_passes(Unroller(basis_gates=['id','u1','u2','u3','cx']))
 pm.add_passes(...)
-pm.add_passes([Unroller(basis_gates=['U','CX'])])
+pm.add_passes(Unroller(basis_gates=['U','CX']))
 ```
 
 where (from `qelib1.inc`):
@@ -81,10 +81,10 @@ The control argument `do_while` will run these passes until the callable returns
 The pass manager developer can avoid one or more passes by making them conditional (on a property in the property set):
 
 ```
-pm.add_pass([LayoutMapper(coupling_map)])
-pm.add_pass([CheckIfMapped(coupling_map)])
-pm.add_pass([SwapMapper(coupling_map)],
-            condition=lambda property_set: not property_set['is_mapped'])
+pm.add_passes(LayoutMapper(coupling_map))
+pm.add_passes(CheckIfMapped(coupling_map))
+pm.add_passes(SwapMapper(coupling_map),
+              condition=lambda property_set: not property_set['is_mapped'])
 ``` 
 
 The `CheckIfMapped` is an analysis pass that updates the property `is_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
