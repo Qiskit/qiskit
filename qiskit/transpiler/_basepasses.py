@@ -37,15 +37,17 @@ class BasePass(metaclass=MetaPass):
         self.ignore_requires = False  # Ignore requires for this pass
         self.max_iteration = 1000  # Maximum allowed iteration on this pass
 
-        self.property_set = {}  # This pass's copy of the pass manager's property set.
+        self.property_set = {}  # This pass's pointer to the pass manager's property set.
         self._hash = None
+        self._args = None
+        self._kwargs = None
 
     def name(self):
         """ The name of the pass. """
         return self.__class__.__name__
 
     def __repr__(self):
-        return self.name() + self._args + self._kwargs  # pylint: disable=no-member
+        return self.name() + self._args + self._kwargs
 
     def __eq__(self, other):
         """
