@@ -55,8 +55,10 @@ class QasmSimulatorCpp(BaseBackend):
                        'snapshot,wait,noise,save,load'
     }
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         provider=provider)
+
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):
             paths = [self._configuration.get('exe')]
@@ -110,8 +112,9 @@ class CliffordSimulatorCpp(BaseBackend):
         'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
     }
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         provider=provider)
 
         # Try to use the default executable if not specified.
         if self._configuration.get('exe'):

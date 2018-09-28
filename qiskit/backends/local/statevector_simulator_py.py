@@ -42,8 +42,9 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'basis_gates': 'u1,u2,u3,cx,id,snapshot'
     }
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         provider=provider)
 
     def run(self, qobj):
         """Run qobj asynchronously.

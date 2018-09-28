@@ -12,84 +12,192 @@ Test the registration and credentials features of the wrapper.
 import os
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from unittest.mock import patch
 from unittest import skipIf
+from unittest.mock import patch
 
 import qiskit
 from qiskit import QISKitError
-from qiskit.backends.ibmq import IBMQProvider
-from qiskit.wrapper.credentials import (_configrc, _qconfig,
-                                        discover_credentials, get_account_name)
-from qiskit.wrapper.credentials._environ import VARIABLES_MAP
+from qiskit.backends.ibmq.credentials import (
+    _configrc, _qconfig, discover_credentials, store_credentials, Credentials,
+    read_credentials_from_qiskitrc)
+from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
+from qiskit.backends.ibmq.ibmqprovider import QE_URL
+from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
 from .common import QiskitTestCase
+
+
+IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
 
 
 # TODO: NamedTemporaryFiles do not support name in Windows
 @skipIf(os.name == 'nt', 'Test not supported in Windows')
-class TestWrapperCredentials(QiskitTestCase):
-    """Wrapper autoregistration and credentials test case."""
-    def setUp(self):
-        super(TestWrapperCredentials, self).setUp()
-        self.ibmq_account_name = get_account_name(IBMQProvider)
+class TestIBMQAccounts(QiskitTestCase):
+    """Tests for the IBMQ account handling."""
+    def test_use_credentials(self):
+        """Test using one account."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.use_account('QISKITRC_TOKEN', url='someurl',
+                                    proxies={'http': 'foo'})
+
+            # Compare the session accounts with the ones stored in file.
+            loaded_accounts = read_credentials_from_qiskitrc()
+            _, provider = list(qiskit.IBMQ._accounts.items())[0]
+
+            self.assertEqual(loaded_accounts, {})
+            self.assertEqual('QISKITRC_TOKEN', provider.credentials.token)
+            self.assertEqual('someurl', provider.credentials.url)
+            self.assertEqual({'http': 'foo'}, provider.credentials.proxies)
+
+    def test_use_multiple_credentials(self):
+        """Test using multiple accounts, combining QE and IBMQ."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.use_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.use_account('QISKITRC_TOKEN',
+                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+            qiskit.IBMQ.use_account('QISKITRC_TOKEN',
+                                    url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
+
+            # Compare the session accounts with the ones stored in file.
+            loaded_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(loaded_accounts, {})
+            self.assertEqual(len(qiskit.IBMQ._accounts), 3)
+
+    def test_use_duplicate_credentials(self):
+        """Test using the same credentials twice."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.use_account('QISKITRC_TOKEN')
+
+            with self.assertRaises(QISKitError):
+                qiskit.IBMQ.use_account('QISKITRC_TOKEN')
+
+            self.assertEqual(len(qiskit.IBMQ._accounts), 1)
+
+    def test_store_credentials(self):
+        """Test storing one account."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.add_account('QISKITRC_TOKEN', url=QE_URL,
+                                    proxies={'http': 'foo'})
+
+            # Compare the session accounts with the ones stored in file.
+            loaded_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(qiskit.IBMQ._accounts.keys(), loaded_accounts.keys())
+            self.assertEqual(list(qiskit.IBMQ._accounts.values())[0].credentials,
+                             list(loaded_accounts.values())[0])
+
+    def test_store_multiple_credentials(self):
+        """Test storing several accounts, combining QE and IBMQ"""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
+                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
+                                    url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
+
+            # Compare the session accounts with the ones stored in file.
+            loaded_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(qiskit.IBMQ._accounts.keys(), loaded_accounts.keys())
+            self.assertEqual(len(loaded_accounts), 3)
+            for account_name, provider in qiskit.IBMQ._accounts.items():
+                self.assertEqual(provider.credentials,
+                                 loaded_accounts[account_name])
+
+    def test_store_duplicate_credentials(self):
+        """Test store the same credentials twice."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
+
+            with self.assertRaises(QISKitError):
+                # Note they are considered the same, as they have the same url.
+                qiskit.IBMQ.use_account('QISKITRC_TOKEN2')
+
+            # Compare the session accounts with the ones stored in file.
+            loaded_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(len(qiskit.IBMQ._accounts), 1)
+            self.assertEqual(len(loaded_accounts), 1)
+
+    def test_remove_account(self):
+        """Test removing an account from session."""
+        with mock_ibmq_provider():
+            qiskit.IBMQ.use_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.remove_account('QISKITRC_TOKEN')
+
+            self.assertEqual(len(qiskit.IBMQ._accounts), 0)
+
+    def test_remove_account_from_disk(self):
+        """Test removing an account from disk."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
+            self.assertEqual(len(read_credentials_from_qiskitrc()), 1)
+
+            qiskit.IBMQ._accounts.clear()
+            qiskit.IBMQ.remove_account('QISKITRC_TOKEN')
+            self.assertEqual(len(qiskit.IBMQ._accounts), 0)
+            self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
+
+
+# TODO: NamedTemporaryFiles do not support name in Windows
+@skipIf(os.name == 'nt', 'Test not supported in Windows')
+class TestCredentials(QiskitTestCase):
+    """Tests for the credential subsystem."""
 
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
         with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
             with self.assertRaises(QISKitError) as context_manager:
-                qiskit.wrapper.register()
+                qiskit.IBMQ.load_accounts()
 
         self.assertIn('No IBMQ credentials found', str(context_manager.exception))
 
-    def test_store_credentials(self):
-        """Test storing credentials and using them for autoregister."""
-        with no_file('Qconfig.py'), no_envs(), custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.wrapper.store_credentials('QISKITRC_TOKEN', proxies={'http': 'foo'})
-            provider = qiskit.register()
-
-        self.assertEqual(provider._token, 'QISKITRC_TOKEN')
-        self.assertEqual(provider._proxies, {'http': 'foo'})
-
     def test_store_credentials_overwrite(self):
         """Test overwriting qiskitrc credentials."""
+        credentials = Credentials('QISKITRC_TOKEN', url=QE_URL, hub='HUB')
+        credentials2 = Credentials('QISKITRC_TOKEN_2', url=QE_URL)
+
         with custom_qiskitrc():
-            qiskit.wrapper.store_credentials('QISKITRC_TOKEN', hub='HUB')
+            store_credentials(credentials)
             # Attempt overwriting.
             with self.assertRaises(QISKitError) as context_manager:
-                qiskit.wrapper.store_credentials('QISKITRC_TOKEN')
+                store_credentials(credentials)
             self.assertIn('already present', str(context_manager.exception))
 
             with no_file('Qconfig.py'), no_envs(), mock_ibmq_provider():
                 # Attempt overwriting.
-                qiskit.wrapper.store_credentials('QISKITRC_TOKEN_2',
-                                                 overwrite=True)
-                provider = qiskit.wrapper.register()
+                store_credentials(credentials2, overwrite=True)
+                qiskit.IBMQ.load_accounts()
 
         # Ensure that the credentials are the overwritten ones - note that the
         # 'hub' parameter was removed.
-        self.assertEqual(provider._token, 'QISKITRC_TOKEN_2')
+        self.assertEqual(len(qiskit.IBMQ._accounts), 1)
+        self.assertEqual(list(qiskit.IBMQ._accounts.values())[0].credentials.token,
+                         'QISKITRC_TOKEN_2')
 
     def test_environ_over_qiskitrc(self):
         """Test order, without qconfig"""
+        credentials = Credentials('QISKITRC_TOKEN', url=QE_URL)
+
         with custom_qiskitrc():
             # Prepare the credentials: both env and qiskitrc present
-            qiskit.wrapper.store_credentials('QISKITRC_TOKEN')
-            with no_file('Qconfig.py'), custom_envs({'QE_TOKEN': 'ENVIRON_TOKEN'}):
+            store_credentials(credentials)
+            with no_file('Qconfig.py'), custom_envs({'QE_TOKEN': 'ENVIRON_TOKEN',
+                                                     'QE_URL': 'ENVIRON_URL'}):
                 credentials = discover_credentials()
 
-        self.assertIn(self.ibmq_account_name, credentials)
-        self.assertEqual(credentials[self.ibmq_account_name]['token'], 'ENVIRON_TOKEN')
+        self.assertEqual(len(credentials), 1)
+        self.assertEqual(list(credentials.values())[0].token, 'ENVIRON_TOKEN')
 
     def test_qconfig_over_all(self):
         """Test order, with qconfig"""
+        credentials = Credentials('QISKITRC_TOKEN', url=QE_URL)
+
         with custom_qiskitrc():
             # Prepare the credentials: qconfig, env and qiskitrc present
-            qiskit.wrapper.store_credentials('QISKITRC_TOKEN')
+            store_credentials(credentials)
             with custom_qconfig(b"APItoken='QCONFIG_TOKEN'"),\
                     custom_envs({'QE_TOKEN': 'ENVIRON_TOKEN'}):
                 credentials = discover_credentials()
 
-        self.assertIn(self.ibmq_account_name, credentials)
-        self.assertEqual(credentials[self.ibmq_account_name]['token'], 'QCONFIG_TOKEN')
+        self.assertEqual(len(credentials), 1)
+        self.assertEqual(list(credentials.values())[0].token, 'QCONFIG_TOKEN')
 
 
 # Context managers
@@ -176,9 +284,9 @@ def custom_envs(new_environ):
 
 @contextmanager
 def mock_ibmq_provider():
-    """Mock the initialization of IBMQProvider, so it does not query the api."""
-    patcher = patch.object(IBMQProvider, '_authenticate', return_value=None)
-    patcher2 = patch.object(IBMQProvider, '_discover_remote_backends', return_value={})
+    """Mock the initialization of IBMQSingleProvider, so it does not query the api."""
+    patcher = patch.object(IBMQSingleProvider, '_authenticate', return_value=None)
+    patcher2 = patch.object(IBMQSingleProvider, '_discover_remote_backends', return_value={})
     patcher.start()
     patcher2.start()
     yield

@@ -12,7 +12,7 @@ TODO: Must expand tests. Re-evaluate after Aer."""
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpiler
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit import IBMQ
 from .common import requires_qe_access, QiskitTestCase
 
 
@@ -25,8 +25,9 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
         If all correct should return correct counts.
         """
-        provider = IBMQProvider(qe_token, qe_url)
-        backend = provider.get_backend('ibmq_qasm_simulator')
+        IBMQ.use_account(qe_token, qe_url)
+        backend = IBMQ.get_backend('ibmq_qasm_simulator')
+
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
@@ -47,8 +48,9 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
         If all correct should return correct counts.
         """
-        provider = IBMQProvider(qe_token, qe_url)
-        backend = provider.get_backend('ibmq_qasm_simulator')
+        IBMQ.use_account(qe_token, qe_url)
+        backend = IBMQ.get_backend('ibmq_qasm_simulator')
+
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qcr1 = QuantumCircuit(qr, cr)
@@ -79,8 +81,9 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
         If all correct should return correct counts.
         """
-        provider = IBMQProvider(qe_token, qe_url)
-        backend = provider.get_backend('ibmq_qasm_simulator')
+        IBMQ.use_account(qe_token, qe_url)
+        backend = IBMQ.get_backend('ibmq_qasm_simulator')
+
         qr1 = QuantumRegister(2)
         cr1 = ClassicalRegister(2)
         qr2 = QuantumRegister(2)
