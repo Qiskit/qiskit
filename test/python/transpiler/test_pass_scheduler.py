@@ -216,12 +216,25 @@ class TestUseCases(SchedulerTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
-    def test_pass_idempotence_single_pass(self):
-        """ Analysis pass are idempotent. """
+    def test_analysis_pass_is_idempotent(self):
+        """ Analysis passes are idempotent. """
         passmanager = PassManager()
         passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
         passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
         self.assertScheduler(self.dag, passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                     'set property as 1'])
+
+    def test_ap_before_and_after_a_tp(self):
+        """ A default transformation does not preserves anything and analysis passes
+        need to be re-run"""
+        passmanager = PassManager()
+        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
+        passmanager.add_passes(PassA_TP_NR_NP())
+        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
+        self.assertScheduler(self.dag, passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                     'set property as 1',
+                                                     'run transformation pass PassA_TP_NR_NP',
+                                                     'run analysis pass PassE_AP_NR_NP',
                                                      'set property as 1'])
 
     def test_pass_option_precedence(self):
