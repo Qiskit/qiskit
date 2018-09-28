@@ -134,38 +134,25 @@ class TestIBMQAccounts(QiskitTestCase):
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
-    def test_remove_all_accounts(self):
+    def test_remove_accounts(self):
         """Test removing all accounts from session."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.add_account('QISKITRC_TOKEN')
             qiskit.IBMQ.add_account('QISKITRC_TOKEN',
                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
-            qiskit.IBMQ.remove_all_accounts()
+            qiskit.IBMQ.remove_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
 
-    def test_remove_all_accounts_from_disk(self):
+    def test_remove_accounts_from_disk(self):
         """Test removing all account from disk."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.add_account('QISKITRC_TOKEN')
             qiskit.IBMQ.add_account('QISKITRC_TOKEN',
                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             self.assertEqual(len(read_credentials_from_qiskitrc()), 2)
-            qiskit.IBMQ._accounts.clear()
-            qiskit.IBMQ.remove_all_accounts()
+            qiskit.IBMQ.remove_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
-
-    def test_remove_all_accounts_not_from_disk(self):
-        """Test removing an account from disk."""
-        with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
-            self.assertEqual(len(read_credentials_from_qiskitrc()), 2)
-            qiskit.IBMQ._accounts.clear()
-            qiskit.IBMQ.remove_all_accounts(delete=False)
-            self.assertEqual(len(qiskit.IBMQ._accounts), 0)
-            self.assertEqual(len(read_credentials_from_qiskitrc()), 2)
 
 
 # TODO: NamedTemporaryFiles do not support name in Windows

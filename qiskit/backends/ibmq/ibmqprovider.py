@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 from qiskit.backends import BaseProvider
 
-from .credentials._configrc import remove_credentials, remove_all_credentials
+from .credentials._configrc import remove_credentials
 from .credentials import (Credentials,
                           read_credentials_from_qiskitrc, store_credentials, discover_credentials)
 from .ibmqaccounterror import IBMQAccountError
@@ -149,15 +149,12 @@ class IBMQProvider(BaseProvider):
         if not removed:
             raise IBMQAccountError('Unable to find credentials')
 
-    def remove_all_accounts(self, delete=True):
-        """Remove all accounts from this session and optionally from disk.
-
-        Args:
-            delete (bool): If true remove the accounts from disk
-        """
-        if delete:
-            remove_all_credentials()
-        self._accounts = OrderedDict()
+    def remove_accounts(self):
+        """Remove all accounts from this session and optionally from disk."""
+        current_creds = self._accounts.copy()
+        for creds in current_creds:
+            self.remove_account(current_creds[creds].credentials.token,
+                                current_creds[creds].credentials.url)
 
     def use_account(self, token, url=QE_URL, **kwargs):
         """Authenticate against IBMQ during this session.
