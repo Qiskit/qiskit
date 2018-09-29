@@ -131,25 +131,25 @@ your IBM Q Experience account:
 
 3. We are now going to add the necessary credentials to QISKit. Take your token
    from step 2, here called `MY_API_TOKEN`, and pass it to the
-   `store_credentials` function:
+   `IBMQ.add_account()` function:
 
    ```python
-   from qiskit import store_credentials
+   from qiskit import IBMQ
 
-   store_credentials('MY_API_TOKEN')
-   ```
+   IBMQ.add_account('MY_API_TOKEN')
+    ```
 
 4. If you have access to the IBM Q Network features, you also need to pass the
    url listed on your IBM Q account page to `store_credentials`.
 
-After calling `store_credentials()`, your credentials will be stored into disk.
+After calling `IBMQ.add_account()`, your credentials will be stored into disk.
 Once they are stored, Qiskit will automatically load and use them in your program
 via:
 
 ```python
-from qiskit import register
+from qiskit import IBMQ
 
-register()
+IBMQ.load_accounts()
 ```
 
 For more details on installing Qiskit and for alternative methods for passing

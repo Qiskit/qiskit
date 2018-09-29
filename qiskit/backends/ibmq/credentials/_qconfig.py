@@ -10,14 +10,14 @@ Utilities for reading credentials from the deprecated `Qconfig.py` file.
 """
 
 import os
+from collections import OrderedDict
 from importlib.util import module_from_spec, spec_from_file_location
 
 from qiskit import QISKitError
-from qiskit.backends.ibmq import IBMQProvider
-from ._utils import get_account_name
-
+from .credentials import Credentials
 
 DEFAULT_QCONFIG_FILE = 'Qconfig.py'
+QE_URL = 'https://quantumexperience.ng.bluemix.net/api'
 
 
 def read_credentials_from_qconfig():
@@ -27,7 +27,7 @@ def read_credentials_from_qconfig():
     Returns:
         dict: dictionary with the credentials, in the form::
 
-            {'token': 'TOKEN', 'url': 'URL', ... }
+            {credentials_unique_id: Credentials}
 
     Raises:
         QISKitError: if the Qconfig.py was not parseable. Please note that this
@@ -35,7 +35,7 @@ def read_credentials_from_qconfig():
             empty dict is returned).
     """
     if not os.path.isfile(DEFAULT_QCONFIG_FILE):
-        return {}
+        return OrderedDict()
     else:
         # Note this is nested inside the else to prevent some tools marking
         # the whole method as deprecated.
@@ -56,8 +56,10 @@ def read_credentials_from_qconfig():
         else:
             credentials = {}
         credentials['token'] = q_config.APItoken
+        credentials['url'] = credentials.get('url', QE_URL)
     except Exception as ex:
         # pylint: disable=broad-except
         raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
 
-    return {get_account_name(IBMQProvider): credentials}
+    credentials = Credentials(**credentials)
+    return OrderedDict({credentials.unique_id(): credentials})

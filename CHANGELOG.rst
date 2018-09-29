@@ -24,8 +24,8 @@ Added
 - Generalized Qobj schema validation functions for all qiskit schemas (#882).
 - Added decorator to check for C++ simulator availability (#662)
 - It is possible to cancel jobs in non comercial backends (#687)
-- Introduced new options for handling credentials (qiskitrc file, environment
-  variables) and automatic registration. (#547)
+- Introduced new `qiskit.IBMQ` provider, with centralized handling of IBMQ
+  credentials (qiskitrc file, environment variables). (#547, #948)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - Add parallelization utilities (#701)
 - Parallelize transpilation (#701)
@@ -34,6 +34,8 @@ Added
 - Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
+- Allow selective loading of accounts from disk via hub/group/project 
+  filters to `IBMQ.load_accounts()`.
 
 Changed
 -------
@@ -53,6 +55,10 @@ Changed
 - When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
   notebook if there is network connectivity the interactive plots will be used
   by default (#862, #866)
+- Breaking change: ``BaseJob`` API changed, any job constructor must be passed
+  the backend used to run them and a unique job id (#936).
+- Add support for drawing circuit barriers to the latex circuit drawer. This
+  requires having the LaTeX qcircuit package version >=2.6.0 installed (#764)
 
 Deprecated
 ----------

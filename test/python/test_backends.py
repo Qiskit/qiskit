@@ -12,9 +12,8 @@ import json
 
 import jsonschema
 
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit import IBMQ, Aer
 from qiskit.backends.local import LocalProvider
-from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 
@@ -33,8 +32,7 @@ class TestBackends(QiskitTestCase):
         If all correct some should exists.
         """
         local_provider = LocalProvider()
-        local = local_provider.available_backends()
-        self.log.info(local)
+        local = local_provider.backends()
         self.assertTrue(len(local) > 0)
 
     @requires_qe_access
@@ -43,10 +41,8 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remotes = ibmq_provider.available_backends()
-        remotes = remove_backends_from_list(remotes)
-        self.log.info(remotes)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends()
         self.assertTrue(len(remotes) > 0)
 
     @requires_qe_access
@@ -55,11 +51,9 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remote = ibmq_provider.available_backends()
-        remote = [r for r in remote if not r.configuration()['simulator']]
-        self.log.info(remote)
-        self.assertTrue(remote)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
+        self.assertTrue(remotes)
 
     @requires_qe_access
     def test_remote_backends_exist_simulator(self, qe_token, qe_url):
@@ -67,20 +61,17 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remote = ibmq_provider.available_backends()
-        remote = [r for r in remote if r.configuration()['simulator']]
-        self.log.info(remote)
-        self.assertTrue(remote)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=True)
+        self.assertTrue(remotes)
 
     def test_get_backend(self):
         """Test get backends.
 
         If all correct should return a name the same as input.
         """
-        local_provider = DefaultQISKitProvider()
-        backend = local_provider.get_backend(name='local_qasm_simulator_py')
-        self.assertEqual(backend.configuration()['name'], 'local_qasm_simulator_py')
+        backend = Aer.backends(name='local_qasm_simulator_py')[0]
+        self.assertEqual(backend.name(), 'local_qasm_simulator_py')
 
     def test_local_backend_status(self):
         """Test backend_status.
@@ -90,8 +81,7 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        local_provider = DefaultQISKitProvider()
-        backend = local_provider.get_backend(name='local_qasm_simulator')
+        backend = Aer.backends(name='local_qasm_simulator')[0]
         status = backend.status()
         schema_path = self._get_resource_path(
             'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
@@ -109,8 +99,8 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remotes = ibmq_provider.available_backends()
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
             self.log.info(backend.status())
@@ -126,8 +116,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the vaildation.
         """
-        local_provider = LocalProvider()
-        local_backends = local_provider.available_backends()
+        local_backends = Aer.backends()
         for backend in local_backends:
             configuration = backend.configuration()
             schema_path = self._get_resource_path(
@@ -143,9 +132,8 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remotes = ibmq_provider.available_backends()
-        remotes = remove_backends_from_list(remotes)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             configuration = backend.configuration()
             schema_path = self._get_resource_path(
@@ -159,8 +147,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        local_provider = LocalProvider()
-        local_backends = local_provider.available_backends()
+        local_backends = Aer.backends()
         for backend in local_backends:
             properties = backend.properties()
             # FIXME test against schema and decide what properties
@@ -173,9 +160,8 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        ibmq_provider = IBMQProvider(qe_token, qe_url)
-        remotes = ibmq_provider.available_backends()
-        remotes = remove_backends_from_list(remotes)
+        IBMQ.use_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             self.log.info(backend.name())
             properties = backend.properties()
