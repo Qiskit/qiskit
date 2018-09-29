@@ -12,6 +12,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 """
 
 import logging
+import uuid
 
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator_cpp import QasmSimulatorCpp
@@ -34,16 +35,18 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
         'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,load,save,snapshot'
     }
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         provider=provider)
 
     def run(self, qobj):
         """Run a qobj on the the backend."""
-        local_job = LocalJob(self._run_job, qobj)
+        job_id = str(uuid.uuid4())
+        local_job = LocalJob(self, job_id, self._run_job, qobj)
         local_job.submit()
         return local_job
 
-    def _run_job(self, qobj):
+    def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""
         self._validate(qobj)
         final_state_key = 32767  # Internal key for final state snapshot
@@ -52,7 +55,7 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
             experiment.instructions.append(
                 QobjInstruction(name='snapshot', params=[final_state_key])
             )
-        result = super()._run_job(qobj)
+        result = super()._run_job(job_id, qobj)
         # Replace backend name with current backend
         result.backend_name = self.name
         # Extract final state snapshot and move to 'statevector' data field

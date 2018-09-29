@@ -17,10 +17,24 @@ from abc import ABC, abstractmethod
 class BaseJob(ABC):
     """Class to handle asynchronous jobs"""
 
-    @abstractmethod
-    def __init__(self):
-        """Initializes the asynchronous job"""
-        pass
+    def __init__(self, backend, job_id):
+        """Initializes the asynchronous job.
+
+        Args:
+            backend (BaseBackend): the backend used to run the job.
+            job_id (str): a unique id in the context of the backend used to run
+                the job.
+        """
+        self._job_id = job_id
+        self._backend = backend
+
+    def job_id(self):
+        """Return a unique id identifying the job."""
+        return self._job_id
+
+    def backend(self):
+        """Return the backend for this job."""
+        return self._backend
 
     @abstractmethod
     def submit(self):
