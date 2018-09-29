@@ -13,7 +13,7 @@
 
 
 
-### Steps to reproduce the problem.
+### Steps to reproduce the problem
 
 
 
@@ -21,7 +21,7 @@
 
 
 
-### Suggested solution.
+### Suggested solution
 
 
 
