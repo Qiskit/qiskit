@@ -21,7 +21,7 @@
 
 
 
-### Suggested solution
+### Suggested solutions
 
 
 
