@@ -6,6 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=missing-docstring,broad-except
+# pylint: disable=redefined-builtin
+# pylint: disable=too-many-function-args
 
 """IBMQ Remote Simulator Tests"""
 
@@ -13,6 +15,7 @@ import os
 import unittest
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
                     get_backend, compile)
+
 from qiskit.backends.ibmq import IBMQProvider
 from qiskit.qasm import pi
 from .common import requires_qe_access, JobTestCase, slow_test
@@ -32,8 +35,8 @@ class TestBackendQobj(JobTestCase):
         self._qe_url = os.getenv('IBMQ_QOBJ_URL')
 
         if not self._testing_device or not self._qe_token or not self._qe_url:
-            self.skipTest('No credentials or testing device available for '
-                          'testing Qobj capabilities.')
+            self.skipTest("No credentials or testing device available for "
+                          "testing Qobj capabilities.")
 
         self._remote_provider = IBMQProvider(self._qe_token, self._qe_url)
         self._local_backend = get_backend('local_qasm_simulator')
