@@ -8,7 +8,7 @@
 """Provider for remote IBMQ backends with admin features."""
 
 from collections import OrderedDict
-
+import warnings
 from qiskit.backends import BaseProvider
 
 from .credentials._configrc import remove_credentials
@@ -200,7 +200,7 @@ class IBMQProvider(BaseProvider):
                 no credentials could be found.
         """
         if self._accounts:
-            raise IBMQAccountError('The account list is not empty')
+            warnings.warn('Can not load accounts. The account list is not empty')
 
         for credentials in discover_credentials().values():
             self._append_account(credentials)
