@@ -392,7 +392,7 @@ try
 
     $ pip install -e .
  
- and then you can run them with 
+and then you can run them with 
 
 .. code:: sh
 
