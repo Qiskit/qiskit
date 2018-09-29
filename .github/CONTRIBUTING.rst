@@ -337,7 +337,7 @@ There are two main branches in the repository:
     we will fix it ASAP, promise :).
   - This should not be considered as a stable branch to use in production
     environments.
-  - The API of the SDK could change without prior notice.
+  - The API of Qiskit could change without prior notice.
 
 - ``stable``
 
@@ -388,7 +388,7 @@ use the ``master`` branch and thinking seriously about contributing with us :)
 Documentation
 -------------
 
-The documentation for the project is in the ``doc`` directory. The
+The documentation for the element of Qiskit is in the ``doc`` directory. The
 documentation for the Qiskit Terra is auto-generated from python
 docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
 documentation. Please follow `Google's Python Style
@@ -396,8 +396,8 @@ Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comment
 for docstrings. A good example of the style can also be found with
 `sphinx's napolean converter
 documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
-You can see the rendered documentation for the stable version of the SDK at
-`the SDK's landing page <https://qiskit.org/documentation>`_.
+You can see the rendered documentation for the stable version of Qiskit Terra at
+`the Qikit Terra landing page <https://qiskit.org/terra>`_.
 
 To generate the documentation, we need to invoke CMake first in order to generate
 all specific files for our current platform.
