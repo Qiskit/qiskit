@@ -394,7 +394,9 @@ try
  and then you can run them with 
 
 .. code:: sh
+
     $ python examples/python/using_qiskit_core_level_0.py
+    
 
 Documentation
 -------------
