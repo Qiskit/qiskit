@@ -36,7 +36,7 @@ We'd love to accept your code! Before we can, we have to get a few legal
 requirements sorted out. By signing a contributor license agreement (CLA), we
 ensure that the community is free to use your contributions.
 
-When you contribute to the Qiskit project with a new pull request, a bot will
+When you contribute to the Qiskit Terra project with a new pull request, a bot will
 evaluate whether you have signed the CLA. If required, the bot will comment on
 the pull request,  including a link to accept the agreement. The
 `individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
@@ -353,7 +353,7 @@ There are two main branches in the repository:
 Release cycle
 ~~~~~~~~~~~~~
 
-From time to time, we will release brand new versions of the Qiskit. These
+From time to time, we will release brand new versions of Qiskit Terra. These
 are well-tested versions of the software.
 
 When the time for a new release has come, we will:
@@ -373,7 +373,7 @@ What version should I use: development or stable?
 
 It depends on your needs as a user.
 
-If you want to use Qiskit for building Apps which goal is to run Quantum
+If you want to use Qiskit Terra for building Apps which goal is to run Quantum
 Circuits, we encourage you to use the latest released version, installing it via
 Pip.
 
@@ -382,7 +382,7 @@ Pip.
     $ pip install qiskit
 
 If you found out that the release version doesn't fit your needs, and you are
-thinking about extending the functionality of the Qiskit, you are more likely to
+thinking about extending the functionality of Qiskit Terra, you are more likely to
 use the ``master`` branch and thinking seriously about contributing with us :)
 
 Documentation
@@ -397,7 +397,7 @@ for docstrings. A good example of the style can also be found with
 `sphinx's napolean converter
 documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
 You can see the rendered documentation for the stable version of Qiskit Terra at
-`the Qikit Terra landing page <https://qiskit.org/terra>`_.
+the `landing page <https://qiskit.org/terra>`_.
 
 To generate the documentation, we need to invoke CMake first in order to generate
 all specific files for our current platform.
