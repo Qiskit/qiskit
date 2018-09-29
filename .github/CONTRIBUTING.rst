@@ -108,7 +108,7 @@ will help you change some default behavior. To make use of them, you just need t
 pass them right after ``-D`` cmake argument. Example:
 .. code::
 
-    qiskit-sdk-py/out$ cmake -DUSEFUL_FLAG=Value ..
+    qiskit-terra/out$ cmake -DUSEFUL_FLAG=Value ..
 
 Flags:
 
