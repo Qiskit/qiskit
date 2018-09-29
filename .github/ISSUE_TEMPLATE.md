@@ -1,9 +1,9 @@
-<!-- ⚠️ If you do not respect this template, your issue will be closed -->
+<!-- ⚠️ If you do not respect this template, your issue maybe be closed -->
 <!-- ⚠️ Make sure to browse the opened and closed issues -->
 
 *BUG TEMPLATE* <!-- Delete this header from your issue -->
 
-### Informations
+### Information
 
 - **Qiskit Terra version**:
 - **Python version**:
@@ -13,7 +13,7 @@
 
 
 
-### Steps to reproduce the problem
+### Steps to reproduce the problem.
 
 
 
@@ -21,7 +21,7 @@
 
 
 
-### Suggested solutions
+### Suggested solution.
 
 
 
