@@ -149,6 +149,13 @@ class IBMQProvider(BaseProvider):
         if not removed:
             raise IBMQAccountError('Unable to find credentials')
 
+    def remove_accounts(self):
+        """Remove all accounts from this session and optionally from disk."""
+        current_creds = self._accounts.copy()
+        for creds in current_creds:
+            self.remove_account(current_creds[creds].credentials.token,
+                                current_creds[creds].credentials.url)
+
     def use_account(self, token, url=QE_URL, **kwargs):
         """Authenticate against IBMQ during this session.
 
