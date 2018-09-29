@@ -34,6 +34,8 @@ Added
 - Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
+- Allow selective loading of accounts from disk via hub/group/project 
+  filters to `IBMQ.load_accounts()`.
 
 Changed
 -------

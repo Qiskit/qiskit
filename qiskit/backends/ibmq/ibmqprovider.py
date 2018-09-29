@@ -37,10 +37,6 @@ class IBMQProvider(BaseProvider):
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
-        def _match_all(obj, criteria):
-            """Return True if all items in criteria matches items in obj."""
-            return all(getattr(obj, key_, None) == value_ for
-                       key_, value_ in criteria.items())
 
         # Special handling of the credentials filters.
         credentials_filter = {}
@@ -48,7 +44,7 @@ class IBMQProvider(BaseProvider):
             if key in kwargs:
                 credentials_filter[key] = kwargs.pop(key)
         providers = [provider for provider in self._accounts.values() if
-                     _match_all(provider.credentials, credentials_filter)]
+                     self._match_all(provider.credentials, credentials_filter)]
 
         # Special handling of the `name` parameter, to support alias resolution.
         if name:
@@ -191,29 +187,33 @@ class IBMQProvider(BaseProvider):
 
         return information
 
-    def load_accounts(self):
-        """Load all accounts found in the system.
+    def load_accounts(self, **kwargs):
+        """Load IBMQ accounts found in the system, subject to optional filtering.
 
-        Automatically load all the accounts found in the system. This method
+        Automatically load the accounts found in the system. This method
         looks for credentials in the following locations, in order, and
-        returning as soon as credentials are found::
+        returns as soon as credentials are found:
 
         1. in the `Qconfig.py` file in the current working directory.
         2. in the environment variables.
         3. in the `qiskitrc` configuration file
 
         Raises:
-            IBMQAccountError: if there already loaded accounts in the session, or
-                no credentials could be found.
+            IBMQAccountError: if attempting to load previously loaded accounts,
+                    or if no credentials can be found.
         """
-        if self._accounts:
-            raise IBMQAccountError('The account list is not empty')
+        # Special handling of the credentials filters.
+        credentials_filter = {}
+        for key in ['token', 'url', 'hub', 'group', 'project']:
+            if key in kwargs:
+                credentials_filter[key] = kwargs.pop(key)
 
         for credentials in discover_credentials().values():
-            self._append_account(credentials)
+            if self._match_all(credentials, credentials_filter):
+                self._append_account(credentials)
 
         if not self._accounts:
-            raise IBMQAccountError('No IBMQ credentials found')
+            raise IBMQAccountError('No IBMQ credentials found.')
 
     def _append_account(self, credentials):
         """Append an account with the specified credentials to the session.
@@ -236,3 +236,8 @@ class IBMQProvider(BaseProvider):
         self._accounts[credentials.unique_id()] = single_provider
 
         return single_provider
+
+    def _match_all(self, obj, criteria):
+        """Return True if all items in criteria matches items in obj."""
+        return all(getattr(obj, key_, None) == value_ for
+                   key_, value_ in criteria.items())
