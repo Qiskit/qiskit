@@ -46,6 +46,86 @@ NOTE: If you work for a company that wants to allow you to contribute your work,
 then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
 and email it to us at qiskit@us.ibm.com.
 
+
+Good first contributions
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are welcome to contribute wherever in the code you want to, of course, but
+we recommend taking a look at the "Good first contribution" label into the
+issues and pick one. We would love to mentor you!
+
+Doc
+~~~
+
+Review the parts of the documentation regarding the new changes and update it
+if it's needed.
+
+Pull requests
+~~~~~~~~~~~~~
+
+We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
+to accept the contributions.
+
+A friendly reminder! We'd love to have a previous discussion about the best way to
+implement the feature/bug you are contributing with. This is a good way to
+improve code quality in our beloved Qiskit!, so remember to file a new Issue before
+starting to code for a solution.
+
+So after having discussed the best way to land your changes into the codebase,
+you are ready to start coding (yay!). We have two options here:
+
+1. You think your implementation doesn't introduce a lot of code, right?. Ok,
+   no problem, you are all set to create the PR once you have finished coding.
+   We are waiting for it!
+2. Your implementation does introduce many things in the codebase. That sounds
+   great! Thanks!. In this case you can start coding and create a PR with the
+   word: **[WIP]** as a prefix of the description. This means "Work In
+   Progress", and allow reviewers to make micro reviews from time to time
+   without waiting for the big and final solution... otherwise, it would make
+   reviewing and coming changes pretty difficult to accomplish. The reviewer
+   will remove the **[WIP]** prefix from the description once the PR is ready
+   to merge.
+
+Pull request checklist
+""""""""""""""""""""""
+
+When submitting a pull request and you feel it is ready for review, please
+double check that:
+
+* the code follows the code style of the project. For convenience, you can
+  execute ``make style`` and ``make lint`` locally, which will print potential
+  style warnings and fixes.
+* the documentation has been updated accordingly. In particular, if a function
+  or class has been modified during the PR, please update the docstring
+  accordingly.
+* your contribution passes the existing tests, and if developing a new feature,
+  that you have added new tests that cover those changes.
+* you add a new line to the ``CHANGELOG.rst`` file, in the ``UNRELEASED``
+  section, with the title of your pull request and its identifier (for example,
+  "``Replace OldComponent with FluxCapacitor (#123)``".
+
+Commit messages
+"""""""""""""""
+
+Please follow the next rules for the commit messages:
+
+- It should include a reference to the issue ID in the first line of the commit,
+  **and** a brief description of the issue, so everybody knows what this ID
+  actually refers to without wasting to much time on following the link to the
+  issue.
+
+- It should provide enough information for a reviewer to understand the changes
+  and their relation to the rest of the code.
+
+A good example:
+
+.. code::
+
+    Issue #190: Short summary of the issue
+    * One of the important changes
+    * Another important change
+
+
 Code
 ----
 
@@ -205,6 +285,11 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
+Note many of the test will not pass unless you have setup an account with the IBMQ. Todo this please go to
+this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account.
+We are working on making this simpler and making the test for Terra not needing an account. 
+
+
 Style guide
 ~~~~~~~~~~~
 
@@ -222,90 +307,6 @@ All platforms:
     out$> make lint
     out$> make style
 
-
-Good first contributions
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-You are welcome to contribute wherever in the code you want to, of course, but
-we recommend taking a look at the "Good first contribution" label into the
-issues and pick one. We would love to mentor you!
-
-Doc
-~~~
-
-Review the parts of the documentation regarding the new changes and update it
-if it's needed.
-
-Pull requests
-~~~~~~~~~~~~~
-
-We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
-to accept the contributions.
-
-A friendly reminder! We'd love to have a previous discussion about the best way to
-implement the feature/bug you are contributing with. This is a good way to
-improve code quality in our beloved SDK!, so remember to file a new Issue before
-starting to code for a solution.
-
-So after having discussed the best way to land your changes into the codebase,
-you are ready to start coding (yay!). We have two options here:
-
-1. You think your implementation doesn't introduce a lot of code, right?. Ok,
-   no problem, you are all set to create the PR once you have finished coding.
-   We are waiting for it!
-2. Your implementation does introduce many things in the codebase. That sounds
-   great! Thanks!. In this case you can start coding and create a PR with the
-   word: **[WIP]** as a prefix of the description. This means "Work In
-   Progress", and allow reviewers to make micro reviews from time to time
-   without waiting to the big and final solution... otherwise, it would make
-   reviewing and coming changes pretty difficult to accomplish. The reviewer
-   will remove the **[WIP]** prefix from the description once the PR is ready
-   to merge.
-
-Pull request checklist
-""""""""""""""""""""""
-
-When submitting a pull request and you feel it is ready for review, please
-double check that:
-
-* the code follows the code style of the project. For convenience, you can
-  execute ``make style`` and ``make lint`` locally, which will print potential
-  style warnings and fixes.
-* the documentation has been updated accordingly. In particular, if a function
-  or class has been modified during the PR, please update the docstring
-  accordingly.
-* your contribution passes the existing tests, and if developing a new feature,
-  that you have added new tests that cover those changes.
-* you add a new line to the ``CHANGELOG.rst`` file, in the ``UNRELEASED``
-  section, with the title of your pull request and its identifier (for example,
-  "``Replace OldComponent with FluxCapacitor (#123)``".
-
-Commit messages
-"""""""""""""""
-
-Please follow the next rules for the commit messages:
-
-- It should include a reference to the issue ID in the first line of the commit,
-  **and** a brief description of the issue, so everybody knows what this ID
-  actually refers to without wasting to much time on following the link to the
-  issue.
-
-- It should provide enough information for a reviewer to understand the changes
-  and their relation to the rest of the code.
-
-A good example:
-
-.. code::
-
-    Issue #190: Short summary of the issue
-    * One of the important changes
-    * Another important change
-
-A (really) bad example:
-
-.. code::
-
-    Fixes #190
 
 Development cycle
 -----------------
@@ -352,7 +353,7 @@ There are two main branches in the repository:
 Release cycle
 ~~~~~~~~~~~~~
 
-From time to time, we will release brand new versions of the Qiskit SDK. These
+From time to time, we will release brand new versions of the Qiskit. These
 are well-tested versions of the software.
 
 When the time for a new release has come, we will:
@@ -373,22 +374,22 @@ What version should I use: development or stable?
 It depends on your needs as a user.
 
 If you want to use Qiskit for building Apps which goal is to run Quantum
-programs, we encourage you to use the latest released version, installing it via
+Circuits, we encourage you to use the latest released version, installing it via
 Pip.
 
 .. code:: sh
 
-    $ pip install qiskit`
+    $ pip install qiskit
 
 If you found out that the release version doesn't fit your needs, and you are
-thinking about extending the functionality of the SDK, you are more likely to
+thinking about extending the functionality of the Qiskit, you are more likely to
 use the ``master`` branch and thinking seriously about contributing with us :)
 
 Documentation
 -------------
 
 The documentation for the project is in the ``doc`` directory. The
-documentation for the python SDK is auto-generated from python
+documentation for the Qiskit Terra is auto-generated from python
 docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
 documentation. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
