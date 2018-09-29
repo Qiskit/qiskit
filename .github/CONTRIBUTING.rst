@@ -181,7 +181,7 @@ we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
 
 Useful CMake flags
-------------------
+~~~~~~~~~~~~~~~~~~
 
 There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
@@ -276,18 +276,18 @@ Linux and Mac:
 
 .. code-block:: bash
 
-    $ LOG_LEVEL=INFO python -m unittest test/python/test_apps.py
+    $ LOG_LEVEL=INFO python -m unittest test/python/test_circuit.py
 
 Windows:
 
 .. code-block:: bash
 
     C:\..\> set LOG_LEVEL="INFO"
-    C:\..\> python -m unittest test/python/test_apps.py
+    C:\..\> python -m unittest test/python/test_circuit.py
 
-Note many of the test will not pass unless you have setup an account with the IBMQ. Todo this please go to
-this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account.
-We are working on making this simpler and making the test for Terra not needing an account. 
+Note many of the test will not pass unless you have setup an account with the IBMQ. To set this up please go to
+this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account. 
+We are working on making this simpler and making the test for Qiskit Terra not needing an account. 
 
 
 Style guide
@@ -373,9 +373,9 @@ What version should I use: development or stable?
 
 It depends on your needs as a user.
 
-If you want to use Qiskit Terra for building Apps which goal is to run Quantum
-Circuits, we encourage you to use the latest released version, installing it via
-Pip.
+If you want to use Qiskit Terra for building circuits for applications or research then we recommend
+that you should be using the stable version. However, to simplify this the latest stable version 
+can be installed using Pip.
 
 .. code:: sh
 
@@ -383,7 +383,18 @@ Pip.
 
 If you found out that the release version doesn't fit your needs, and you are
 thinking about extending the functionality of Qiskit Terra, you are more likely to
-use the ``master`` branch and thinking seriously about contributing with us :)
+use the ``master`` branch and thinking seriously about contributing with us :). 
+
+Please clone the distribution and set up the code as described above. To get the examples working 
+try  
+.. code:: sh
+
+    $ pip install -e .
+ 
+ and then you can run them with 
+
+.. code:: sh
+    $ python examples/python/using_qiskit_core_level_0.py
 
 Documentation
 -------------
