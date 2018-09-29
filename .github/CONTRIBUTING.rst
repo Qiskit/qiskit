@@ -387,6 +387,7 @@ use the ``master`` branch and thinking seriously about contributing with us :).
 
 Please clone the distribution and set up the code as described above. To get the examples working 
 try  
+
 .. code:: sh
 
     $ pip install -e .
@@ -396,7 +397,7 @@ try
 .. code:: sh
 
     $ python examples/python/using_qiskit_core_level_0.py
-    
+
 
 Documentation
 -------------
