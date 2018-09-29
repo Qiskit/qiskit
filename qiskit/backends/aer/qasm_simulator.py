@@ -22,7 +22,7 @@ import numpy as np
 
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
-from qiskit.backends.local.localjob import LocalJob
+from qiskit.backends.aer.aerjob import AerJob
 from qiskit.qobj import qobj_to_dict
 
 logger = logging.getLogger(__name__)
@@ -37,15 +37,15 @@ DEFAULT_SIMULATOR_PATHS = [
                                  + EXTENSION)),
     # This is the path where PIP installs the simulator
     os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                 'qasm_simulator_cpp' + EXTENSION)),
+                                 'qasm_simulator-cpp' + EXTENSION)),
 ]
 
 
-class QasmSimulatorCpp(BaseBackend):
+class QasmSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_qasm_simulator_cpp',
+        'name': 'qasm_simulator',
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
@@ -77,9 +77,9 @@ class QasmSimulatorCpp(BaseBackend):
     def run(self, qobj):
         """Run a qobj on the backend."""
         job_id = str(uuid.uuid4())
-        local_job = LocalJob(self, job_id, self._run_job, qobj)
-        local_job.submit()
-        return local_job
+        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job.submit()
+        return aer_job
 
     def _run_job(self, job_id, qobj):
         self._validate(qobj)
@@ -99,12 +99,12 @@ class QasmSimulatorCpp(BaseBackend):
                                experiment.header.name)
 
 
-class CliffordSimulatorCpp(BaseBackend):
+class CliffordSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_clifford_simulator_cpp',
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'name': 'clifford_simulator',
+        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator',
         'simulator': True,
         'local': True,
         'description': 'A C++ Clifford simulator with approximate noise',
@@ -138,12 +138,12 @@ class CliffordSimulatorCpp(BaseBackend):
             qobj (dict): job description
 
         Returns:
-            LocalJob: derived from BaseJob
+            AerJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        local_job = LocalJob(self, job_id, self._run_job, qobj)
-        local_job.submit()
-        return local_job
+        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job.submit()
+        return aer_job
 
     def _run_job(self, job_id, qobj):
         self._validate()

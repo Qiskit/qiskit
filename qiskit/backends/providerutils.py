@@ -77,32 +77,34 @@ def resolve_backend_name(name, backends, grouped, deprecated, aliased):
         aliased (dict[str: list[str]]): dict of aliased names.
 
     Returns:
-        list[str]: list of name of resolved backends
+        str: resolved name (name of an available backend)
 
     Raises:
         LookupError: if name cannot be resolved through regular available
             names, nor groups, nor deprecated, nor alias names.
     """
-    resolved_names = []
+    resolved_name = ""
     available = [backend.name() for backend in backends]
 
     if name in available:
-        resolved_names = [name]
+        resolved_name = name
     elif name in grouped:
-        available_members = [b for b in grouped[name] if b in available]
-        if available_members:
-            resolved_names = available_members
+        resolved_name = grouped[name]
     elif name in deprecated:
-        resolved_names = [deprecated[name]]
-        logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_names[0])
+        resolved_name = deprecated[name]
     elif name in aliased:
-        resolved_names = [aliased[name]]
+        resolved_name = aliased[name]
 
-    # Prune unavailable resolved names.
-    resolved_names = [resolved_name for resolved_name in resolved_names
-                      if resolved_name in available]
+    # if a list of candidates, prune unavailable names, then return the best
+    if isinstance(resolved_name, list):
+        available_members = [b for b in resolved_name if b in available]
+        if available_members:
+            resolved_name = available_members[0]
 
-    if not resolved_names:
+    if not resolved_name:
         raise LookupError('backend "{}" not found.'.format(name))
 
-    return resolved_names
+    if name in deprecated:
+        logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)    
+
+    return resolved_name
