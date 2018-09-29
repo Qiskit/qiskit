@@ -1,4 +1,4 @@
-<!-- ⚠️ If you do not respect this template, your issue maybe be closed -->
+<!-- ⚠️ If you do not respect this template, your issue may be be closed -->
 <!-- ⚠️ Make sure to browse the opened and closed issues -->
 
 *BUG TEMPLATE* <!-- Delete this header from your issue -->
