@@ -516,7 +516,7 @@ class IBMQJobPreQobj(IBMQJob):
             'status': job_response['status'],
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
-            'backend_name': self.backend_name(),
+            'backend_name': self.backend().name(),
             'success': job_response['status'] == 'DONE'
         }, [circuit_result['name'] for circuit_result in job_response['qasms']])
 
