@@ -15,18 +15,18 @@ import logging
 import uuid
 
 from qiskit.qobj import QobjInstruction
-from .qasm_simulator_cpp import QasmSimulatorCpp
+from .qasm_simulator import QasmSimulator
 from ._simulatorerror import SimulatorError
-from .localjob import LocalJob
+from .aerjob import AerJob
 
 logger = logging.getLogger(__name__)
 
 
-class StatevectorSimulatorCpp(QasmSimulatorCpp):
+class StatevectorSimulator(QasmSimulator):
     """C++ statevector simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_statevector_simulator_cpp',
+        'name': 'statevector_simulator',
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
@@ -42,9 +42,9 @@ class StatevectorSimulatorCpp(QasmSimulatorCpp):
     def run(self, qobj):
         """Run a qobj on the the backend."""
         job_id = str(uuid.uuid4())
-        local_job = LocalJob(self, job_id, self._run_job, qobj)
-        local_job.submit()
-        return local_job
+        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job.submit()
+        return aer_job
 
     def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""

@@ -7,8 +7,6 @@
 
 """
 Exception for errors raised by simulators.
-
-Author: Juan Gomez
 """
 
 from qiskit import QISKitError
