@@ -11,6 +11,7 @@ This module is used for creating asynchronous job objects for the
 IBM Q Experience.
 """
 
+import sys
 from concurrent import futures
 import warnings
 import time
@@ -242,9 +243,11 @@ class IBMQJob(BaseJob):
             self._cancelled = False
             raise JobError('Error cancelling job: %s' % error.usr_msg)
 
-    def status(self):
+    def status(self, monitor=False):
         """Query the API to update the status.
-
+        Args:
+            monitor (int): If non-zero, sets the time-interval at
+            which to automatically query the job status.
         Returns:
             JobStatus: The status of the job, once updated.
 
@@ -252,7 +255,9 @@ class IBMQJob(BaseJob):
             JobError: if there was an exception in the future being executed
                           or the server sent an unknown answer.
         """
-
+        if monitor:
+            _job_monitor(self, monitor)
+            return
         # Implies self._job_id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
@@ -647,3 +652,42 @@ def _format_hpc_parameters(hpc):
         }
 
     return hpc_camel_cased
+
+
+def _job_monitor(job, interval):
+    """Monitor the status of a IBMQJob instance.
+
+    Args:
+        job (IBMQJob): Job to monitor.
+        interval (int): Time interval between status queries.
+
+    Notes:
+        This function blocks output until the job has completed,
+        and is therefore useful in scripts, otherwise use the
+        Jupyter notebook magic %%qiskit_job_status.
+    """
+    # Set default value for interval
+    if interval is True:
+        interval = 2
+    status = job.status()
+    msg = status.value
+    prev_msg = msg
+    msg_len = len(msg)
+    sys.stdout.write('\r%s: %s' % ('Job Status', msg))
+    while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
+        time.sleep(interval)
+        status = job.status()
+        msg = status.value
+
+        if status.name == 'QUEUED':
+            msg += ' (%s)' % job.queue_position()
+
+        # Adjust length of message so there are no artifacts
+        if len(msg) < msg_len:
+            msg += ' ' * (msg_len - len(msg))
+        elif len(msg) > msg_len:
+            msg_len = len(msg)
+
+        if msg != prev_msg:
+            sys.stdout.write('\r%s: %s' % ('Job Status', msg))
+            prev_msg = msg
