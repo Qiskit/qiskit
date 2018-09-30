@@ -14,13 +14,13 @@ import numpy as np
 from qiskit import qasm, unroll
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.local.unitary_simulator_py import UnitarySimulatorPy
+from qiskit.backends.aer.unitary_simulator import UnitarySimulator
 from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
-from .common import QiskitTestCase
+from ..common import QiskitTestCase
 
 
-class LocalUnitarySimulatorTest(QiskitTestCase):
-    """Test local unitary simulator."""
+class AerUnitarySimulatorTest(QiskitTestCase):
+    """Test aer unitary simulator."""
 
     def setUp(self):
         self.seed = 88
@@ -48,7 +48,7 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
                                       max_credits=10),
                     experiments=[circuit],
                     header=QobjHeader(
-                        backend_name='local_unitary_simulator_py'))
+                        backend_name='unitary_simulator'))
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
@@ -57,15 +57,15 @@ class LocalUnitarySimulatorTest(QiskitTestCase):
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
 
-        result = UnitarySimulatorPy().run(qobj).result()
+        result = UnitarySimulator().run(qobj).result()
         self.assertTrue(np.allclose(result.get_unitary('test'),
                                     expected,
                                     rtol=1e-3))
 
-    def test_local_unitary_simulator(self):
+    def test_aer_unitary_simulator(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        backend = UnitarySimulatorPy()
+        backend = UnitarySimulator()
         qobj = compile(circuits, backend=backend)
         job = backend.run(qobj)
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]

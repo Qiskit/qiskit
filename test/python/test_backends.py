@@ -13,7 +13,7 @@ import json
 import jsonschema
 
 from qiskit import IBMQ, Aer
-from qiskit.backends.local import LocalProvider
+from qiskit.backends.aer import AerProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 
@@ -26,13 +26,13 @@ def remove_backends_from_list(backends):
 class TestBackends(QiskitTestCase):
     """QISKit Backends (Object) Tests."""
 
-    def test_local_backends_exist(self):
+    def test_aer_backends_exist(self):
         """Test if there are local backends.
 
         If all correct some should exists.
         """
-        local_provider = LocalProvider()
-        local = local_provider.backends()
+        aer_provider = AerProvider()
+        local = aer_provider.backends()
         self.assertTrue(len(local) > 0)
 
     @requires_qe_access
@@ -70,10 +70,10 @@ class TestBackends(QiskitTestCase):
 
         If all correct should return a name the same as input.
         """
-        backend = Aer.backends(name='local_qasm_simulator_py')[0]
-        self.assertEqual(backend.name(), 'local_qasm_simulator_py')
+        backend = Aer.backends(name='qasm_simulator_py')[0]
+        self.assertEqual(backend.name(), 'qasm_simulator_py')
 
-    def test_local_backend_status(self):
+    def test_aer_backend_status(self):
         """Test backend_status.
 
         If all correct should pass the vaildation.
@@ -81,7 +81,7 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        backend = Aer.backends(name='local_qasm_simulator')[0]
+        backend = Aer.backends(name='qasm_simulator')[0]
         status = backend.status()
         schema_path = self._get_resource_path(
             'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
@@ -111,13 +111,13 @@ class TestBackends(QiskitTestCase):
                 schema = json.load(schema_file)
             jsonschema.validate(status, schema)
 
-    def test_local_backend_configuration(self):
+    def test_aer_backend_configuration(self):
         """Test backend configuration.
 
         If all correct should pass the vaildation.
         """
-        local_backends = Aer.backends()
-        for backend in local_backends:
+        aer_backends = Aer.backends()
+        for backend in aer_backends:
             configuration = backend.configuration()
             schema_path = self._get_resource_path(
                 'deprecated/backends/backend_configuration_schema_old_py.json',
@@ -142,13 +142,13 @@ class TestBackends(QiskitTestCase):
                 schema = json.load(schema_file)
             jsonschema.validate(configuration, schema)
 
-    def test_local_backend_properties(self):
+    def test_aer_backend_properties(self):
         """Test backend properties.
 
         If all correct should pass the validation.
         """
-        local_backends = Aer.backends()
-        for backend in local_backends:
+        aer_backends = Aer.backends()
+        for backend in aer_backends:
             properties = backend.properties()
             # FIXME test against schema and decide what properties
             # is for a simulator

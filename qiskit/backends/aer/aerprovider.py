@@ -107,7 +107,8 @@ class AerProvider(BaseProvider):
             'local_statevector_simulator_py': 'statevector_simulator_py',
             'local_unitary_simulator_py': 'unitary_simulator',
             'local_qasm_simulator': AerProvider.grouped_backend_names()['qasm_simulator'],
-            'local_statevector_simulator': AerProvider.grouped_backend_names()['statevector_simulator'],
+            'local_statevector_simulator':
+                AerProvider.grouped_backend_names()['statevector_simulator'],
             'local_unitary_simulator': AerProvider.grouped_backend_names()['unitary_simulator'],
             'local_qiskit_simulator': 'qasm_simulator'
             }

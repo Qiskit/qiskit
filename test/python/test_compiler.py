@@ -50,7 +50,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -69,7 +69,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -91,7 +91,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -109,7 +109,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -128,7 +128,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -145,7 +145,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -415,7 +415,7 @@ class TestCompiler(QiskitTestCase):
 
         Pass if the results are correct.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
         coupling_map = [[0, 1], [0, 2],
                         [1, 2],
                         [3, 2], [3, 4],
@@ -441,9 +441,9 @@ class TestCompiler(QiskitTestCase):
         bell.measure(qr[0], cr[0])
         bell.measure(qr[1], cr[1])
         shots = 2048
-        bell_qobj = compile(bell, backend='local_qasm_simulator',
+        bell_qobj = compile(bell, backend='qasm_simulator',
                             shots=shots, seed=10)
-        ghz_qobj = compile(ghz, backend='local_qasm_simulator',
+        ghz_qobj = compile(ghz, backend='qasm_simulator',
                            shots=shots, coupling_map=coupling_map,
                            seed=10)
         bell_result = backend.run(bell_qobj).result()
@@ -463,7 +463,7 @@ class TestCompiler(QiskitTestCase):
         If all correct should return data with the same stats. The circuit may
         be different.
         """
-        backend = qiskit.Aer.get_backend('local_qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator')
 
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')
@@ -520,13 +520,13 @@ class TestCompiler(QiskitTestCase):
             qc.measure(qr0[j], ans[j])
             qc.measure(qr1[j], ans[j+n])
         # First version: no mapping
-        result = execute(qc, backend='local_qasm_simulator',
+        result = execute(qc, backend='qasm_simulator',
                          coupling_map=None, shots=1024,
                          seed=14).result()
         self.assertEqual(result.get_counts(qc),
                          {'010000': 1024})
         # Second version: map to coupling graph
-        result = execute(qc, backend='local_qasm_simulator',
+        result = execute(qc, backend='qasm_simulator',
                          coupling_map=coupling_map, shots=1024,
                          seed=14).result()
         self.assertEqual(result.get_counts(qc),

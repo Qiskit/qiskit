@@ -27,11 +27,11 @@ class TestQiskitResult(QiskitTestCase):
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
 
-        self.backend = 'local_qasm_simulator'
+        self.backend = 'qasm_simulator'
         self._result1 = qiskit.execute(self._qc1, self.backend).result()
         self._result2 = qiskit.execute(self._qc2, self.backend).result()
 
-    def test_local_result_fields(self):
+    def test_aer_result_fields(self):
         """Test components of a result from a local simulator."""
         self.assertIn('qasm_simulator', self._result1.backend_name)
         self.assertIsInstance(self._result1.job_id, str)
@@ -39,7 +39,7 @@ class TestQiskitResult(QiskitTestCase):
         self.assertEqual(self._result1.circuit_statuses(), ['DONE'])
 
     @requires_qe_access
-    def test_remote_result_fields(self, qe_token, qe_url):
+    def test_ibmq_result_fields(self, qe_token, qe_url):
         """Test components of a result from a remote simulator."""
         qiskit.IBMQ.use_account(qe_token, qe_url)
         remote_backend = qiskit.IBMQ.get_backend(local=False, simulator=True)

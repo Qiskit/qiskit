@@ -105,6 +105,6 @@ def resolve_backend_name(name, backends, grouped, deprecated, aliased):
         raise LookupError('backend "{}" not found.'.format(name))
 
     if name in deprecated:
-        logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)    
+        logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)
 
     return resolved_name
