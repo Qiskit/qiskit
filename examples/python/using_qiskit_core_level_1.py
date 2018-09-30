@@ -8,10 +8,13 @@
 """
 Example showing how to use Qiskit at level 1 (intermediate).
 
-In Qiskit 0.6 we will be working on a pass manager for level 2+ users
+This example shows the most intermediate way to user Terra. It builds some circuits
+and compiles them once. It uses the backend only for configurations in the compile but the qobj
+is just and container that runs on the backend and the same qobj can run on many backends. It is the
+user responsibility to make sure it can be run. This is useful as you might want to compare the same
+circuit on different backends.
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
+In Qiskit 0.6 we will be working on a pass manager for level 2+ users
 """
 
 import pprint, time

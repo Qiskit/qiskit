@@ -261,15 +261,6 @@ def compile(circuits, backend,
         After 0.6, compile will only take a backend object.
     """
     # pylint: disable=redefined-builtin
-
-    # Check for valid parameters for the experiments.
-    if hpc is not None and \
-            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
-        raise TranspilerError('Unknown HPC parameter format!')
-
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
-
     if isinstance(backend, str):
         warnings.warn('compile will not take a string', DeprecationWarning)
         try:
@@ -278,6 +269,7 @@ def compile(circuits, backend,
             backend = IBMQ.get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
+    # TODO (jay) why do we need to pass skip and not pass manager directly
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
