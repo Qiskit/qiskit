@@ -257,7 +257,7 @@ class IBMQJob(BaseJob):
         """
         if monitor:
             _job_monitor(self, monitor)
-            return
+            return None
         # Implies self._job_id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
