@@ -13,10 +13,9 @@
 
 import os
 import unittest
-from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister,
-                    get_backend, compile)
+from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
-from qiskit.backends.ibmq import IBMQProvider
+from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
 from .common import requires_qe_access, JobTestCase, slow_test
 
@@ -38,9 +37,9 @@ class TestBackendQobj(JobTestCase):
             self.skipTest("No credentials or testing device available for "
                           "testing Qobj capabilities.")
 
-        self._remote_provider = IBMQProvider(self._qe_token, self._qe_url)
-        self._local_backend = get_backend('local_qasm_simulator')
-        self._remote_backend = self._remote_provider.get_backend(self._testing_device)
+        IBMQ.use_account(self._qe_token, self._qe_url)
+        self._local_backend = Aer.get_backend('local_qasm_simulator')
+        self._remote_backend = IBMQ.get_backend(self._testing_device)
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
 
