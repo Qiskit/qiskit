@@ -9,8 +9,6 @@
 
 import logging
 import warnings
-from copy import deepcopy
-import uuid
 
 from qiskit import IBMQ
 from qiskit import Aer
@@ -20,14 +18,7 @@ from qiskit._qiskiterror import QISKitError
 from qiskit._quantumcircuit import QuantumCircuit
 from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler._transpiler import (_matches_coupling_map,
-                                           _pick_best_layout,
-                                           _dags_2_qobj_parallel,
-                                           _transpile_dags_parallel)
-from qiskit.qobj._qobj import Qobj, QobjConfig, QobjHeader
 from qiskit.transpiler._transpilererror import TranspilerError
-from qiskit.transpiler._parallel import parallel_map
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 
@@ -259,13 +250,13 @@ def compile(circuits, backend,
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): skip most of the compile steps and produce qobj directly
-        
+
     Returns:
         Qobj: the qobj to be run on the backends
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
-    
+
     .. deprecated:: 0.6+
         After 0.6, compile will only take a backend object.
     """
@@ -289,9 +280,9 @@ def compile(circuits, backend,
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
-    
+
     qobj_standard = transpiler.compile(circuits, backend, config, basis_gates, coupling_map,
-                                       initial_layout, shots, max_credits, seed, qobj_id, hpc, 
+                                       initial_layout, shots, max_credits, seed, qobj_id, hpc,
                                        pass_manager)
     return qobj_standard
 
