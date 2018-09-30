@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-GHZ state example illustrating mapping onto the backend.
+GHZ state example.
 
 Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
@@ -54,7 +54,7 @@ print(result.get_counts("ghz"))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration()['n_qubits'] > 5))
+                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()

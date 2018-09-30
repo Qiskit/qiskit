@@ -14,7 +14,9 @@ used `pip install`, the examples only work from the root directory.
 
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, Aer
+from qiskit import execute, Aer, IBMQ
+from qiskit.backends.ibmq import least_busy
+
 
 ###############################################################
 # make the qft
@@ -65,9 +67,30 @@ print(qft3.qasm())
 print(qft4.qasm())
 print(qft5.qasm())
 
+###############################################################
+# Set up the API and execute the program.
+###############################################################
+try:
+    import Qconfig
+    IBMQ.use_account(Qconfig.APItoken, Qconfig.config['url'])
+except:
+    print("""WARNING: There's no connection with the API for remote backends.
+             Have you initialized a Qconfig.py file with your personal token?
+             For now, there's only access to local simulator backends...""")
+
+print('Qasm simulator')
 sim_backend = Aer.get_backend('qasm_simulator')
 job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
 print(result.get_counts("qft3"))
 print(result.get_counts("qft4"))
 print(result.get_counts("qft5"))
+
+# Second version: real device
+least_busy_device = least_busy(IBMQ.backends(simulator=False,
+                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+print("Running on current least busy device: ", least_busy_device)
+job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
+result = job.result()
+print(result.get_counts("ghz"))
+
