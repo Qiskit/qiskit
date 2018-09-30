@@ -7,7 +7,7 @@
         "memory_slots": 2,
         "seed": 1
     },
-    "header": {"backend_name": "local_qasm_simulator_cpp"},
+    "header": {"backend_name": "qasm_simulator"},
     "experiments": [
         {
             "header": {

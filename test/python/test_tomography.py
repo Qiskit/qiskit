@@ -114,7 +114,7 @@ class TestTomography(QiskitTestCase):
 
 def _tomography_test_data(circuit, qr, cr, tomoset, shots):
     tomo_circs = tomo.create_tomography_circuits(circuit, qr, cr, tomoset)
-    result = execute(tomo_circs, 'local_qasm_simulator', shots=shots, seed=42).result()
+    result = execute(tomo_circs, 'qasm_simulator', shots=shots, seed=42).result()
     data = tomo.tomography_data(result, circuit.name, tomoset)
     return tomo.fit_tomography_data(data)
 

@@ -1,5 +1,5 @@
 {
-    "backend_name": "local_statevector_simulator",
+    "backend_name": "statevector_simulator",
     "backend_version": "2.1.0",
     "job_id": "XC1323XG2",
     "qobj_id": "Experiment1",

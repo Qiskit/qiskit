@@ -104,7 +104,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -122,7 +122,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -158,7 +158,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         qc2.snapshot(slot='1')
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = 'local_qasm_simulator_py'
+        backend = 'qasm_simulator_py'
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
 
@@ -182,7 +182,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         qc1 += qc2
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -200,7 +200,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         qc1 += qc2
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -236,7 +236,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         qc2.snapshot(slot='1')
         qc2.measure(qr, cr)
         qc1 += qc2
-        backend = 'local_qasm_simulator_py'
+        backend = 'qasm_simulator_py'
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
 

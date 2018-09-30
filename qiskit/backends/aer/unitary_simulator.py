@@ -23,7 +23,7 @@ and the output is the results object
 
 The simulator is run using
 
-    UnitarySimulatorPy(compiled_circuit).run().
+    UnitarySimulator(compiled_circuit).run().
 
 In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
