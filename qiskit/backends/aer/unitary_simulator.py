@@ -23,7 +23,7 @@ and the output is the results object
 
 The simulator is run using
 
-    UnitarySimulatorPy(compiled_circuit).run().
+    UnitarySimulator(compiled_circuit).run().
 
 In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
@@ -88,7 +88,7 @@ import numpy as np
 
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
-from qiskit.backends.local.localjob import LocalJob
+from qiskit.backends.aer.aerjob import AerJob
 from qiskit import QISKitError
 from ._simulatortools import single_gate_matrix, einsum_matmul_index
 
@@ -99,11 +99,11 @@ logger = logging.getLogger(__name__)
 # does not show up
 
 
-class UnitarySimulatorPy(BaseBackend):
+class UnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_unitary_simulator_py',
+        'name': 'unitary_simulator',
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -168,12 +168,12 @@ class UnitarySimulatorPy(BaseBackend):
             qobj (dict): job description
 
         Returns:
-            LocalJob: derived from BaseJob
+            AerJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        local_job = LocalJob(self, job_id, self._run_job, qobj)
-        local_job.submit()
-        return local_job
+        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job.submit()
+        return aer_job
 
     def _run_job(self, job_id, qobj):
         """Run qobj. This is a blocking call.
@@ -216,7 +216,7 @@ class UnitarySimulatorPy(BaseBackend):
         """
         self._number_of_qubits = circuit.header.number_of_qubits
         if self._number_of_qubits > 24:
-            raise QISKitError("np.einsum implementation limits local_unitary_simulator" +
+            raise QISKitError("np.einsum implementation limits unitary_simulator" +
                               " to 24 qubit circuits.")
         result = {
             'data': {},

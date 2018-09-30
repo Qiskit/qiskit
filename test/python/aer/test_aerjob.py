@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-"""LocalJob creation and test suite."""
+"""AerJob creation and test suite."""
 
 import uuid
 from contextlib import contextmanager
@@ -15,24 +15,24 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.backends.local import QasmSimulatorCpp
-from qiskit.backends.local import QasmSimulatorPy
-from qiskit.backends.local import StatevectorSimulatorCpp
-from qiskit.backends.local import StatevectorSimulatorPy
-from qiskit.backends.local import UnitarySimulatorPy
-from .common import QiskitTestCase
-from ._mockutils import new_fake_qobj
+from qiskit.backends.aer import QasmSimulator
+from qiskit.backends.aer import QasmSimulatorPy
+from qiskit.backends.aer import StatevectorSimulator
+from qiskit.backends.aer import StatevectorSimulatorPy
+from qiskit.backends.aer import UnitarySimulator
+from ..common import QiskitTestCase
+from .._mockutils import new_fake_qobj
 
 
-class TestLocalJob(QiskitTestCase):
-    """Test how backends create LocalJob objects and the LocalJob class."""
+class TestAerJob(QiskitTestCase):
+    """Test how backends create AerJob objects and the AerJob class."""
 
     _backends = [
-        QasmSimulatorCpp,
+        QasmSimulator,
         QasmSimulatorPy,
-        StatevectorSimulatorCpp,
+        StatevectorSimulator,
         StatevectorSimulatorPy,
-        UnitarySimulatorPy
+        UnitarySimulator
     ]
 
     def test_multiple_execution(self):
@@ -46,10 +46,10 @@ class TestLocalJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
-        with mocked_executor() as (LocalJob, executor):
+        with mocked_executor() as (AerJob, executor):
             for index in range(taskcount):
-                local_job = LocalJob(backend, job_id, target_tasks[index], new_fake_qobj())
-                local_job.submit()
+                aer_job = AerJob(backend, job_id, target_tasks[index], new_fake_qobj())
+                aer_job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
         for index in range(taskcount):
@@ -66,8 +66,8 @@ class TestLocalJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
-        with mocked_executor() as (LocalJob, executor):
-            job = LocalJob(backend, job_id, lambda: None, new_fake_qobj())
+        with mocked_executor() as (AerJob, executor):
+            job = AerJob(backend, job_id, lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
 
@@ -98,15 +98,15 @@ def mocked_executor():
 
     import importlib
     import concurrent.futures as futures
-    import qiskit.backends.local.localjob as localjob
+    import qiskit.backends.aer.aerjob as aerjob
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)
     mock_options = {'return_value': executor, 'autospec': True}
     with patch.object(futures, 'ProcessPoolExecutor', **mock_options),\
             patch.object(futures, 'ThreadPoolExecutor', **mock_options):
-        importlib.reload(localjob)
-        yield localjob.LocalJob, executor
+        importlib.reload(aerjob)
+        yield aerjob.AerJob, executor
 
 
 @contextmanager

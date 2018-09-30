@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     failed("Invalid command line", out);
     // Print usage message
     std::cerr << std::endl;
-    std::cerr << "qsikit_simulator file" << std::endl;
+    std::cerr << "qasm_simulator file" << std::endl;
     std::cerr << std::endl;
     std::cerr << "  file : qobj file\n" << std::endl;
     return 1;

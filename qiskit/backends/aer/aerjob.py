@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""This module implements the job class used for LocalBackend objects."""
+"""This module implements the job class used for AerBackend objects."""
 
 import warnings
 from concurrent import futures
@@ -38,8 +38,8 @@ def requires_submit(func):
     return _wrapper
 
 
-class LocalJob(BaseJob):
-    """Local QISKit SDK Job class.
+class AerJob(BaseJob):
+    """Aer Job class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs

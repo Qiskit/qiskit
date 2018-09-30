@@ -67,9 +67,9 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     print('The exact ground state energy is: {}'.format(exact))
 
     # Optimization
-    device = 'local_qasm_simulator'
+    device = 'qasm_simulator'
     if shots == 1:
-        device = 'local_statevector_simulator'
+        device = 'statevector_simulator'
 
     if 'statevector' not in device:
         H = group_paulis(pauli_list)
