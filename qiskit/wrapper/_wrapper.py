@@ -207,7 +207,7 @@ def least_busy(names):
     """
     backends = [get_backend(name) for name in names]
     warnings.warn('the global least_busy() will be deprecated after 0.6. Please '
-                  'use the qiskit.IBMQ.least_busy()',
+                  'use east_busy() imported from ibmq',
                   DeprecationWarning)
     return ibmq.least_busy(backends).name()
 
@@ -265,6 +265,9 @@ def compile(circuits, backend,
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
+    
+    .. deprecated:: 0.6+
+        After 0.6, compile will only take a backend object.
     """
     # pylint: disable=redefined-builtin
 
@@ -277,6 +280,7 @@ def compile(circuits, backend,
         circuits = [circuits]
 
     if isinstance(backend, str):
+        warnings.warn('compile will not take a string', DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:

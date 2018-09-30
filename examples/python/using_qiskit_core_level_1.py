@@ -49,8 +49,7 @@ try:
     print("(Aer Backends)")
     for backend in Aer.backends():
         print(backend.status())
-    my_backend_name = 'local_qasm_simulator'
-    my_backend = Aer.get_backend(my_backend_name)
+    my_backend = Aer.get_backend('local_qasm_simulator')
     print("(QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration())
     print("(QASM Simulator properties) ")
