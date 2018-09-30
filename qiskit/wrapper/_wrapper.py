@@ -200,8 +200,15 @@ def least_busy(names):
     Raises:
         QISKitError: if passing a list of backend names that is
             either empty or none have attribute ``pending_jobs``
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.IBMQ` instead
+        (`backends()`).
     """
     backends = [get_backend(name) for name in names]
+    warnings.warn('the global least_busy() will be deprecated after 0.6. Please '
+                  'use the qiskit.IBMQ.least_busy()',
+                  DeprecationWarning)
     return ibmq.least_busy(backends).name()
 
 
@@ -219,9 +226,10 @@ def get_backend(name):
         `qiskit.IBMQ` and `qiskit.Aer` instead
         (`backends()`).
     """
-    warnings.warn('get_backend() will be deprecated after 0.6. Please '
+    warnings.warn('the global get_backend() will be deprecated after 0.6. Please '
                   'use the qiskit.IBMQ.backends() and qiskit.Aer.backends() '
-                  'method instead with the "filters" parameter.',
+                  'method instead with the "filters" parameter.'
+                  'or qiskit.IBMQ.get_backend()',
                   DeprecationWarning)
     try:
         return Aer.get_backend(name)
@@ -379,9 +387,14 @@ def execute(circuits, backend,
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
+
+    .. deprecated:: 0.6+
+        After 0.6, execute will only take a backend object.
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
+        warnings.warn('execute will not take a string',
+                  DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:
