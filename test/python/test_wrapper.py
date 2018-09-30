@@ -49,11 +49,11 @@ class TestWrapper(QiskitTestCase):
         self.log.info(backends)
         self.assertTrue(len(backends) > 0)
 
-    def test_local_backends(self):
+    def test_aer_backends(self):
         """Test wrapper.available_backends({'local': True})"""
-        local_backends = qiskit.wrapper.available_backends({'local': True})
-        self.log.info(local_backends)
-        self.assertTrue(len(local_backends) > 0)
+        aer_backends = qiskit.wrapper.available_backends({'local': True})
+        self.log.info(aer_backends)
+        self.assertTrue(len(aer_backends) > 0)
 
     @requires_qe_access
     def test_register_twice(self, qe_token, qe_url):
@@ -79,39 +79,39 @@ class TestWrapper(QiskitTestCase):
 
         self.assertTrue(dummy_backend)
 
-    def test_local_execute_and_get_ran_qasm(self):
-        """Check if the local backend return the ran qasm."""
+    def test_aer_execute_and_get_ran_qasm(self):
+        """Check if the aer backend returns the ran qasm."""
 
         cpp_simulators = [
-            'local_qasm_simulator_cpp',
-            'local_statevector_simulator_cpp'
+            'qasm_simulator',
+            'statevector_simulator'
         ]
 
         python_simulators = [
-            'local_qasm_simulator_py',
-            'local_statevector_simulator_py',
-            'local_unitary_simulator_py'
+            'qasm_simulator_py',
+            'statevector_simulator_py',
+            'unitary_simulator'
         ]
 
-        local_simulators = python_simulators
+        aer_simulators = python_simulators
         if is_cpp_simulator_available():
-            local_simulators += cpp_simulators
+            aer_simulators += cpp_simulators
 
-        for backend_name in local_simulators:
+        for backend_name in aer_simulators:
             with self.subTest(backend_name=backend_name):
-                result = execute(self.circuit, 'local_qasm_simulator').result()
+                result = execute(self.circuit, 'qasm_simulator').result()
                 self.assertIsNotNone(result.get_ran_qasm(self.circuit.name))
 
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         qobj_in = qiskit.wrapper.compile(self.circuit, backend, skip_transpiler=True)
         out_circuit = qiskit.wrapper.qobj_to_circuits(qobj_in)
         self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
 
     def test_qobj_to_circuits_multiple(self):
         """Check that qobj_to_circuits's result with multiple circuits"""
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         qreg1 = QuantumRegister(2)
         qreg2 = QuantumRegister(3)
         creg1 = ClassicalRegister(2)
@@ -134,11 +134,11 @@ class TestWrapper(QiskitTestCase):
         """Test the compact flag for available_backends works"""
         compact_names = qiskit.wrapper.available_backends()
         expanded_names = qiskit.wrapper.available_backends(compact=False)
-        self.assertIn('local_qasm_simulator', compact_names)
-        self.assertIn('local_statevector_simulator', compact_names)
-        self.assertIn('local_unitary_simulator', compact_names)
-        self.assertIn('local_qasm_simulator_py', expanded_names)
-        self.assertIn('local_statevector_simulator_py', expanded_names)
+        self.assertIn('qasm_simulator', compact_names)
+        self.assertIn('statevector_simulator', compact_names)
+        self.assertIn('unitary_simulator', compact_names)
+        self.assertIn('qasm_simulator_py', expanded_names)
+        self.assertIn('statevector_simulator_py', expanded_names)
 
 
 if __name__ == '__main__':

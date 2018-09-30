@@ -15,16 +15,16 @@ from numpy.linalg import norm
 
 from qiskit import qasm, unroll
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.backends.local.qasm_simulator_cpp import (QasmSimulatorCpp,
-                                                      cx_error_matrix,
-                                                      x90_error_matrix)
+from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
+                                                cx_error_matrix,
+                                                x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
 from qiskit.transpiler import transpile
-from .common import QiskitTestCase, requires_cpp_simulator
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
-class TestLocalQasmSimulatorCpp(QiskitTestCase):
+class TestAerQasmSimulator(QiskitTestCase):
     """
     Test job_processor module.
     """
@@ -61,13 +61,13 @@ class TestLocalQasmSimulatorCpp(QiskitTestCase):
                 seed=1111
             ),
             experiments=[compiled_circuit1, compiled_circuit2],
-            header=QobjHeader(backend_name='local_qasm_simulator_cpp')
+            header=QobjHeader(backend_name='qasm_simulator')
         )
         self.qobj.experiments[0].header.name = 'test_circuit1'
         self.qobj.experiments[0].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
         self.qobj.experiments[1].header.name = 'test_circuit2'
         self.qobj.experiments[1].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
-        self.backend = QasmSimulatorCpp()
+        self.backend = QasmSimulator()
 
     def test_x90_coherent_error_matrix(self):
         x90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)

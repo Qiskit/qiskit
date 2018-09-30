@@ -13,7 +13,7 @@ TODO: Must expand tests. Re-evaluate after Aer."""
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpiler
 from qiskit import IBMQ
-from .common import requires_qe_access, QiskitTestCase
+from ..common import requires_qe_access, QiskitTestCase
 
 
 class TestIbmqQasmSimulator(QiskitTestCase):

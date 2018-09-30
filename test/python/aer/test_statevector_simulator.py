@@ -9,20 +9,20 @@
 
 import unittest
 from qiskit import execute, load_qasm_file
-from .common import QiskitTestCase, requires_cpp_simulator
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator
-class StatevectorSimulatorCppTest(QiskitTestCase):
-    """Test C++ statevector simulator."""
+class StatevectorSimulatorTest(QiskitTestCase):
+    """Test Aer's C++ statevector simulator."""
 
     def setUp(self):
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
         self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
 
-    def test_statevector_simulator_cpp(self):
+    def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
-        result = execute(self.q_circuit, backend='local_statevector_simulator_cpp').result()
+        result = execute(self.q_circuit, backend='statevector_simulator').result()
         self.assertEqual(result.get_status(), 'COMPLETED')
         actual = result.get_statevector(self.q_circuit)
 
