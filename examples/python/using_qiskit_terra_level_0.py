@@ -11,7 +11,8 @@ Example showing how to use Qiskit-Terra at level 0 (novice).
 This example shows the most basic way to user Terra. It builds some circuits
 and runs them on both the Aer (local Qiskit provider) or IBMQ (remote IBMQ provider).
 
-See level 1 if you would like to understand how to compile
+To control the compile parameters we have provided a compile function which can be used 
+as a level 1 user.
 
 """
 
@@ -52,7 +53,7 @@ try:
     print(Aer.backends())
 
     # runing the job
-    job_sim = execute([qc1, qc2], Aer.get_backend('local_qasm_simulator'))
+    job_sim = execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
     sim_result = job_sim.result()
 
     # Show the results
