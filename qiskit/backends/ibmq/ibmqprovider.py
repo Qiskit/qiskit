@@ -7,6 +7,7 @@
 
 """Provider for remote IBMQ backends with admin features."""
 
+import warnings
 from collections import OrderedDict
 
 from qiskit.backends import BaseProvider
@@ -95,7 +96,7 @@ class IBMQProvider(BaseProvider):
                 * verify (bool): If False, ignores SSL certificates errors
 
         Raises:
-            IBMQAccountError: if the credentials are already in use.
+            IBMQAccountError: if the credentials are already stored.
         """
         credentials = Credentials(token, url, **kwargs)
 
@@ -199,8 +200,7 @@ class IBMQProvider(BaseProvider):
         3. in the `qiskitrc` configuration file
 
         Raises:
-            IBMQAccountError: if attempting to load previously loaded accounts,
-                    or if no credentials can be found.
+            IBMQAccountError: if no credentials can be found.
         """
         # Special handling of the credentials filters.
         credentials_filter = {}
@@ -223,14 +223,12 @@ class IBMQProvider(BaseProvider):
 
         Returns:
             IBMQSingleProvider: new single-account provider.
-
-        Raises:
-            IBMQAccountError: if the provider could not be appended.
         """
         # Check if duplicated credentials are already in use. By convention,
         # we assume (hub, group, project) is always unique.
         if credentials.unique_id() in self._accounts.keys():
-            raise IBMQAccountError('Credentials are already in use')
+            warnings.warn('Credentials are already in use.',
+                          DeprecationWarning)
 
         single_provider = IBMQSingleProvider(credentials, self)
         self._accounts[credentials.unique_id()] = single_provider
