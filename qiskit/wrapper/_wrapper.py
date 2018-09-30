@@ -393,8 +393,7 @@ def execute(circuits, backend,
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
-        warnings.warn('execute will not take a string',
-                  DeprecationWarning)
+        warnings.warn('execute will not take a string', DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:
