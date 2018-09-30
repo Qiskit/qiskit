@@ -67,7 +67,7 @@ try:
     # Compile and run on a real device backend
     try:
         # select least busy available device and execute.
-        least_busy_device = least_busy(IBMQ.backends())
+        least_busy_device = least_busy(IBMQ.backends(simulator=False))
         print("Running on current least busy device: ", least_busy_device)
 
         # running the job
