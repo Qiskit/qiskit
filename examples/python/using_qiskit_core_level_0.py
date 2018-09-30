@@ -6,7 +6,10 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Example showing how to use Qiskit at level 0 (novice).
+Example showing how to use Qiskit-Terra at level 0 (novice).
+
+This example shows the most basic way to user Terra. It builds some circuits
+and runs them on both the Aer (local Qiskit provider) or IBMQ (remote IBMQ provider).
 
 See level 1 if you would like to understand how to compile
 
