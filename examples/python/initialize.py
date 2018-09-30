@@ -61,7 +61,8 @@ print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
 sim_backend = Aer.get_backend('qasm_simulator')
-result = execute(circuit, sim_backend, shots=shots).result()
+job = execute(circuit, sim_backend, shots=shots)
+result = job.result()
 
 print("Probabilities from simulator...[%s]" % result)
 n_qubits_qureg = qr.size

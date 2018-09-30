@@ -82,9 +82,10 @@ print('Qasm simulator')
 sim_backend = Aer.get_backend('qasm_simulator')
 job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
-print(result.get_counts("qft3"))
-print(result.get_counts("qft4"))
-print(result.get_counts("qft5"))
+print(result)
+print(result.get_counts(qft3))
+print(result.get_counts(qft4))
+print(result.get_counts(qft5))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
@@ -92,5 +93,8 @@ least_busy_device = least_busy(IBMQ.backends(simulator=False,
 print("Running on current least busy device: ", least_busy_device)
 job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
 result = job.result()
-print(result.get_counts("ghz"))
+print(result)
+print(result.get_counts(qft3))
+print(result.get_counts(qft4))
+print(result.get_counts(qft5))
 

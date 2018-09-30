@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-GHZ state example.
+GHZ state example. It also compares running on experiment and simulator
 
 Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
@@ -50,7 +50,8 @@ sim_backend = Aer.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
 print('Qasm simulator')
-print(result.get_counts("ghz"))
+print(result)
+print(result.get_counts(qc))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
@@ -58,4 +59,5 @@ least_busy_device = least_busy(IBMQ.backends(simulator=False,
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()
-print(result.get_counts("ghz"))
+print(result)
+print(result.get_counts(qc))

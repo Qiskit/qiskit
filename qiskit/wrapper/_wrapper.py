@@ -15,10 +15,8 @@ from qiskit import Aer
 
 from qiskit.backends import ibmq
 from qiskit._qiskiterror import QISKitError
-from qiskit._quantumcircuit import QuantumCircuit
 from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
-from qiskit.transpiler._transpilererror import TranspilerError
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 
