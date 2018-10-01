@@ -189,9 +189,8 @@ class InputWire(EmptyWire):
 
 
 class TextDrawing():
-    def __init__(self, json_circuit, encoding='cp437'):
+    def __init__(self, json_circuit):
         self.json_circuit = json_circuit
-        self.encoding = encoding
 
     def lines(self):
         return TextDrawing.drawWires(self.build_wires())
@@ -359,10 +358,11 @@ class TextDrawing():
         return [i for i in zip(*layers)]
 
 
-def text_draw(circuit, filename=None,
-              basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                    "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=80, encoding="cp437"):
+def text_drawer(circuit, filename=None,
+                basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                    "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=80):
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    return TextDrawing(json_circuit, encoding).lines()
+
+    return "\n".join((TextDrawing(json_circuit).lines()))
