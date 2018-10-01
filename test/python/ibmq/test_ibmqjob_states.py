@@ -18,8 +18,8 @@ from qiskit.backends.jobstatus import JobStatus
 from qiskit.backends.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob
 from qiskit.backends.ibmq.ibmqjob import API_FINAL_STATES
 from qiskit.backends import JobError, JobTimeoutError
-from .common import JobTestCase
-from ._mockutils import new_fake_qobj, FakeBackend
+from ..common import JobTestCase
+from .._mockutils import new_fake_qobj, FakeBackend
 
 
 class TestIBMQJobStates(JobTestCase):

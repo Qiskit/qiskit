@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Provider for local backends."""
+"""Provider for aer backends."""
 
 from collections import OrderedDict
 import logging
@@ -15,33 +15,33 @@ from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseProvider
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
 
-from .qasm_simulator_cpp import CliffordSimulatorCpp, QasmSimulatorCpp
+from .qasm_simulator import CliffordSimulator, QasmSimulator
 from .qasm_simulator_py import QasmSimulatorPy
-from .statevector_simulator_cpp import StatevectorSimulatorCpp
+from .statevector_simulator import StatevectorSimulator
 from .statevector_simulator_py import StatevectorSimulatorPy
-from .unitary_simulator_py import UnitarySimulatorPy
+from .unitary_simulator import UnitarySimulator
 
 
 logger = logging.getLogger(__name__)
 
-SDK_STANDARD_BACKENDS = [
-    QasmSimulatorCpp,
+AER_STANDARD_BACKENDS = [
+    QasmSimulator,
     QasmSimulatorPy,
-    StatevectorSimulatorCpp,
+    StatevectorSimulator,
     StatevectorSimulatorPy,
-    UnitarySimulatorPy,
-    CliffordSimulatorCpp,
+    UnitarySimulator,
+    CliffordSimulator,
 ]
 
 
-class LocalProvider(BaseProvider):
-    """Provider for local backends."""
+class AerProvider(BaseProvider):
+    """Provider for aer backends."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
-        # Populate the list of local backends.
-        self._backends = self._verify_local_backends()
+        # Populate the list of aer backends.
+        self._backends = self._verify_aer_backends()
 
     def get_backend(self, name=None, **kwargs):
         backends = self._backends.values()
@@ -50,13 +50,13 @@ class LocalProvider(BaseProvider):
         # and handling of groups.
         if name:
             try:
-                resolved_names = resolve_backend_name(
+                resolved_name = resolve_backend_name(
                     name, backends,
                     self.grouped_backend_names(),
                     self.deprecated_backend_names(),
                     {}
                 )
-                name = resolved_names[0]
+                name = resolved_name
             except LookupError:
                 pass
 
@@ -70,14 +70,14 @@ class LocalProvider(BaseProvider):
         # and handling of groups.
         if name:
             try:
-                resolved_names = resolve_backend_name(
+                resolved_name = resolve_backend_name(
                     name, backends,
                     self.grouped_backend_names(),
                     self.deprecated_backend_names(),
                     {}
                 )
                 backends = [backend for backend in backends if
-                            backend.name() in resolved_names]
+                            backend.name() == resolved_name]
             except LookupError:
                 return []
 
@@ -87,43 +87,52 @@ class LocalProvider(BaseProvider):
     def grouped_backend_names():
         """Returns group names: shorter names for referring to the backends."""
         return {
-            'local_qasm_simulator': ['local_qasm_simulator_cpp',
-                                     'local_qasm_simulator_py',
-                                     'local_clifford_simulator_cpp'],
-            'local_statevector_simulator': ['local_statevector_simulator_cpp',
-                                            'local_statevector_simulator_py'],
-            'local_unitary_simulator': ['local_unitary_simulator_py'],
+            'qasm_simulator': ['qasm_simulator',
+                               'qasm_simulator_py',
+                               'clifford_simulator'],
+            'statevector_simulator': ['statevector_simulator',
+                                      'statevector_simulator_py'],
+            'unitary_simulator': ['unitary_simulator'],
             # TODO: restore after clifford simulator release
-            # 'local_clifford_simulator': ['local_clifford_simulator_cpp']
+            # 'clifford_simulator': ['clifford_simulator']
             }
 
     @staticmethod
     def deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
-            'local_qiskit_simulator': 'local_qasm_simulator_cpp',
-            'wood_simulator': 'local_qasm_simulator_cpp',
+            'local_qasm_simulator_cpp': 'qasm_simulator',
+            'local_qasm_simulator_py': 'qasm_simulator_py',
+            'local_statevector_simulator_cpp': 'statevector_simulator',
+            'local_statevector_simulator_py': 'statevector_simulator_py',
+            'local_unitary_simulator_py': 'unitary_simulator',
+            'local_qiskit_simulator': 'qasm_simulator',
+            # deprecated names below used to refer to a group
+            'local_qasm_simulator': AerProvider.grouped_backend_names()['qasm_simulator'],
+            'local_statevector_simulator':
+                AerProvider.grouped_backend_names()['statevector_simulator'],
+            'local_unitary_simulator': AerProvider.grouped_backend_names()['unitary_simulator']
             }
 
-    def _verify_local_backends(self):
+    def _verify_aer_backends(self):
         """
-        Return the local backends in `SDK_STANDARD_BACKENDS` that are
+        Return the aer backends in `AER_STANDARD_BACKENDS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
         Returns:
-            dict[str:BaseBackend]: a dict of the local backends instances for
+            dict[str:BaseBackend]: a dict of aer backend instances for
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
-        for backend_cls in SDK_STANDARD_BACKENDS:
+        for backend_cls in AER_STANDARD_BACKENDS:
             try:
                 backend_instance = self._get_backend_instance(backend_cls)
                 backend_name = backend_instance.configuration()['name']
                 ret[backend_name] = backend_instance
             except QISKitError as err:
                 # Ignore backends that could not be initialized.
-                logger.info('local backend %s is not available: %s',
+                logger.info('aer backend %s is not available: %s',
                             backend_cls, str(err))
         return ret
 

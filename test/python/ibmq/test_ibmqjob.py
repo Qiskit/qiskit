@@ -25,7 +25,7 @@ from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq import least_busy
 
-from .common import requires_qe_access, JobTestCase, slow_test
+from ..common import requires_qe_access, JobTestCase, slow_test
 
 
 class TestIBMQJob(JobTestCase):
@@ -137,7 +137,7 @@ class TestIBMQJob(JobTestCase):
                 break
             for job in job_array:
                 self.log.info('%s %s %s %s', job.status(), job.status() is JobStatus.RUNNING,
-                              check, job.id())
+                              check, job.job_id())
             self.log.info('-'*20 + ' ' + str(time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
@@ -151,7 +151,7 @@ class TestIBMQJob(JobTestCase):
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
-        job_ids = [job.id() for job in job_array]
+        job_ids = [job.job_id() for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @slow_test
@@ -199,7 +199,7 @@ class TestIBMQJob(JobTestCase):
         self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
 
         # Ensure job ids are unique.
-        job_ids = [job.id() for job in job_array]
+        job_ids = [job.job_id() for job in job_array]
         self.assertEqual(sorted(job_ids), sorted(list(set(job_ids))))
 
     @slow_test
@@ -224,8 +224,8 @@ class TestIBMQJob(JobTestCase):
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        self.log.info('job_id: %s', job.id())
-        self.assertTrue(job.id() is not None)
+        self.log.info('job_id: %s', job.job_id())
+        self.assertTrue(job.job_id() is not None)
 
     @requires_qe_access
     def test_get_backend_name(self, qe_token, qe_url):
@@ -234,7 +234,7 @@ class TestIBMQJob(JobTestCase):
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        self.assertTrue(job.backend_name() == backend.name())
+        self.assertTrue(job.backend().name() == backend.name())
 
     @requires_qe_access
     def test_get_jobs_from_backend(self, qe_token, qe_url):
@@ -247,7 +247,7 @@ class TestIBMQJob(JobTestCase):
         self.log.info('found %s jobs on backend %s', len(job_list), backend.name())
         for job in job_list:
             self.log.info('status: %s', job.status())
-            self.assertTrue(isinstance(job.id(), str))
+            self.assertTrue(isinstance(job.job_id(), str))
         self.log.info('time to get job statuses: %0.3f s', time.time() - start_time)
 
     @requires_qe_access
@@ -257,8 +257,8 @@ class TestIBMQJob(JobTestCase):
 
         qobj = transpiler.compile(self._qc, backend)
         job = backend.run(qobj)
-        rjob = backend.retrieve_job(job.id())
-        self.assertTrue(job.id() == rjob.id())
+        rjob = backend.retrieve_job(job.job_id())
+        self.assertTrue(job.job_id() == rjob.job_id())
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
     @requires_qe_access

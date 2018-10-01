@@ -24,7 +24,7 @@ class CompileSkipTranslationTest(QiskitTestCase):
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         rtrue = compile(qc, backend, skip_transpiler=True)
         rfalse = compile(qc, backend, skip_transpiler=False)
         self.assertEqual(rtrue.config, rfalse.config)
@@ -38,7 +38,7 @@ class CompileSkipTranslationTest(QiskitTestCase):
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         rtrue = execute(qc, backend, seed=42, skip_transpiler=True).result()
         rfalse = execute(qc, backend, seed=42, skip_transpiler=False).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())

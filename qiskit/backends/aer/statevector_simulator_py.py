@@ -21,8 +21,8 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 import logging
 import uuid
 
-from qiskit.backends.local.localjob import LocalJob
-from qiskit.backends.local._simulatorerror import SimulatorError
+from qiskit.backends.aer.aerjob import AerJob
+from qiskit.backends.aer._simulatorerror import SimulatorError
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator_py import QasmSimulatorPy
 
@@ -33,7 +33,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_statevector_simulator_py',
+        'name': 'statevector_simulator_py',
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -53,12 +53,12 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             qobj (dict): job description
 
         Returns:
-            LocalJob: derived from BaseJob
+            AerJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        local_job = LocalJob(self, job_id, self._run_job, qobj)
-        local_job.submit()
-        return local_job
+        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job.submit()
+        return aer_job
 
     def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""

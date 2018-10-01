@@ -37,7 +37,7 @@ import qiskit.extensions.quantum_initializer
 
 # Please note these are global instances, not modules.
 from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.local import Aer  # pylint: disable=invalid-name
+from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code.
