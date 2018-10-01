@@ -251,10 +251,7 @@ class IBMQProvider(BaseProvider):
             if key in filter_dict:
                 credentials_filter[key] = filter_dict.pop(key)
 
-        if self._match_all(credentials, credentials_filter):
-            return True
-        else:
-            return False
+        return self._match_all(credentials, credentials_filter)
 
     def _match_all(self, obj, criteria):
         """Return True if all items in criteria matches items in obj."""
