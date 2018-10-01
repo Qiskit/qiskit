@@ -90,18 +90,18 @@ try:
     # See a list of available remote backends
     try:
         # Runing the job.
-        job_exp = least_busy_device.run(qobj)
+        exp_job = least_busy_device.run(qobj)
 
         lapse = 0
         interval = 10
-        while job_exp.status().name != 'DONE':
+        while exp_job.status().name != 'DONE':
             print('Status @ {} seconds'.format(interval * lapse))
-            print(job_exp.status())
+            print(exp_job.status())
             time.sleep(interval)
             lapse += 1
-        print(job_exp.status())
+        print(exp_job.status())
 
-        exp_result = job_exp.result()
+        exp_result = exp_job.result()
 
         # Show the results
         print("experiment: ", exp_result)
