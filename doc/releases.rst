@@ -69,22 +69,26 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 IBM Q Authentication and ``Qconfig.py``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The managing of credentials for authenticating when using the QE backends has
+The managing of credentials for authenticating when using the QX backends has
 been expanded, and there are new options that can be used for convenience:
 
-1. store your credentials in disk once, and automatically load them in future
+1. save your credentials in disk once, and automatically load them in future
    sessions. This provides a one-off mechanism::
 
      from qiskit import IBMQ
-     IBQM.add_account('MY_API_TOKEN')
+     IBQM.save_account('MY_API_TOKEN', 'MY_API_URL')
 
-   afterwards, your credentials can be automatically read from disk by invoking
+   afterwards, your credentials can be automatically loaded from disk by invoking
    :meth:`~qiskit.backends.ibmq.IBMQ.load_accounts`::
 
      from qiskit import IBMQ
      IBMQ.load_accounts()
 
-2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
+   or you can load only specific accounts if you only want to use those in a session::
+   
+     IBMQ.load_accounts(project='MY_PROJECT')
+
+2. use environment variables. If ``QX_TOKEN`` and ``QX_URL`` is set, the
    ``IBMQ.load_accounts()`` call will automatically load the credentials from
    them.
 
