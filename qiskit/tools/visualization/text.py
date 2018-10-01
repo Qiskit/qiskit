@@ -127,6 +127,22 @@ class Barrier(DrawElement):
         self.bot = " ¦ "
 
 
+class SwapTop(DrawElement):
+    def __init__(self, instruction):
+        super().__init__(instruction)
+        self.top = "   "
+        self.mid = "─X─"
+        self.bot = " │ "
+
+
+class SwapBot(DrawElement):
+    def __init__(self, instruction):
+        super().__init__(instruction)
+        self.top = " │ "
+        self.mid = "─X─"
+        self.bot = "   "
+
+
 class CXcontrol(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
@@ -366,6 +382,14 @@ class TextDrawing():
             elif instruction['name'] == 'barrier':
                 for qubit in instruction['qubits']:
                     qubit_layer[qubit] = Barrier(instruction)
+
+            elif instruction['name'] == 'barrier':
+                for qubit in instruction['qubits']:
+                    qubit_layer[qubit] = Barrier(instruction)
+
+            elif instruction['name'] == 'swap':
+                qubit_layer[instruction['qubits'][0]] = SwapTop(instruction)
+                qubit_layer[instruction['qubits'][1]] = SwapBot(instruction)
 
             elif 'conditional' in instruction:
                 # conditional
