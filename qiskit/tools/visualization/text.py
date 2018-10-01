@@ -199,6 +199,15 @@ class InputWire(EmptyWire):
         self.mid = label
         self.bot = " " * len(self.label)
 
+    @staticmethod
+    def fillup_layer(names):
+        print([(i,len(i)) for i in names])
+        longest = max([len(name) for name in names])
+        inputs_wires = []
+        for name in names:
+            inputs_wires.append(InputWire(name.rjust(longest)))
+        return inputs_wires
+
 
 class TextDrawing():
     def __init__(self, json_circuit):
@@ -225,10 +234,12 @@ class TextDrawing():
                 rest_of_the_line -= layer_length
             else:
                 layer_groups[-1].append(BreakWire.fillup_layer(layer, '»'))
-                layer_groups.append([BreakWire.fillup_layer(layer, '«')]+[layer])
-
+                layer_groups.append([BreakWire.fillup_layer(layer, '«')])
+                layer_groups[-1].append(InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
+                layer_groups[-1].append(layer)
+                
                 # minus the length of the break '«'
-                rest_of_the_line = line_length - 1
+                rest_of_the_line = line_length - layer_groups[-1][0][0].length
 
         lines = []
         for layer_group in layer_groups:
@@ -237,13 +248,19 @@ class TextDrawing():
 
         return lines
 
-    def wire_names(self):
+    def wire_names(self, with_initial_value=True):
         ret = []
+
+        if with_initial_value:
+            initial_value = {'qubit': '|0>', 'clbit': '0 '}
+        else:
+            initial_value = {'qubit': '', 'clbit': ''}
+
         header = self.json_circuit['header']
         for qubit in header['qubit_labels']:
-            ret.append("%s%s: |0>" % (qubit[0], qubit[1]))
+            ret.append("%s%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
         for qubit in header['clbit_labels']:
-            ret.append("%s%s: 0 " % (qubit[0], qubit[1]))
+            ret.append("%s%s: %s" % (qubit[0], qubit[1], initial_value['clbit']))
         return ret
 
 
@@ -322,12 +339,7 @@ class TextDrawing():
         noqubits = self.json_circuit['header']['number_of_qubits']
         noclbits = self.json_circuit['header']['number_of_clbits']
 
-        names = self.wire_names()
-        longest = len(max(names))
-        inputs_wires = []
-        for name in names:
-            inputs_wires.append(InputWire(name.rjust(longest)))
-        layers.append(inputs_wires)
+        layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
 
         for no, instruction in enumerate(self.json_circuit['instructions']):
             qubit_layer = [None] * noqubits
