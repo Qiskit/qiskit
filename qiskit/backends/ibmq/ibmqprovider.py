@@ -52,7 +52,7 @@ class IBMQProvider(BaseProvider):
             aliases = self.aliased_backend_names()
             aliases.update(self.deprecated_backend_names())
             name = aliases.get(name, name)
-        
+
         # Aggregate the list of filtered backends.
         backends = []
         for provider in providers:
