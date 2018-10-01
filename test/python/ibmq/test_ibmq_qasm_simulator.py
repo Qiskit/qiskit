@@ -25,7 +25,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
         If all correct should return correct counts.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
         qr = QuantumRegister(1)
@@ -48,7 +48,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
         If all correct should return correct counts.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
         qr = QuantumRegister(2)
@@ -81,7 +81,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
         If all correct should return correct counts.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
         qr1 = QuantumRegister(2)

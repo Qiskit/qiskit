@@ -41,7 +41,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends()
         self.assertTrue(len(remotes) > 0)
 
@@ -51,7 +51,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends(simulator=False)
         self.assertTrue(remotes)
 
@@ -61,7 +61,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends(simulator=True)
         self.assertTrue(remotes)
 
@@ -99,7 +99,7 @@ class TestBackends(QiskitTestCase):
         # FIXME: reintroduce in 0.6
         self.skipTest('Skipping due to available vs operational')
 
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
@@ -132,7 +132,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             configuration = backend.configuration()
@@ -160,7 +160,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             self.log.info(backend.name())

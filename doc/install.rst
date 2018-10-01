@@ -76,19 +76,19 @@ To store your information, simply run:
 
     from qiskit import IBMQ
 
-    IBMQ.add_account('MY_API_TOKEN')
+    IBMQ.save_account('MY_API_TOKEN')
 
 
 where `MY_API_TOKEN` should be replaced with your token.
 
 If you are on the IBM Q network, you must also pass the `url` 
-argument found on your q-console account page to `IBMQ.add_account()`:
+argument found on your q-console account page to `IBMQ.save_account()`:
 
 .. code:: python
 
     from qiskit import IBMQ
 
-    IBMQ.add_account('MY_API_TOKEN', url='https://...')
+    IBMQ.save_account('MY_API_TOKEN', url='https://...')
 
 
 3.1.2 Load API credentials from environment variables
@@ -177,14 +177,14 @@ precedence over the environment variables or the credentials stored in disk.
 
 In more complex scenarios or for users that need finer control over multiple
 accounts, please note that you can pass the API token and the other parameters
-directly to the ``IBMQ.use_account()`` function, which will ignore the automatic
+directly to the ``IBMQ.enable_account()`` function, which will ignore the automatic
 loading of the credentials and use the arguments directly. For example:
 
 .. code:: python
 
     from qiskit import IBMQ
 
-    IBMQ.use_account('MY_API_TOKEN', url='https://my.url')
+    IBMQ.enable_account('MY_API_TOKEN', url='https://my.url')
 
 will try to authenticate using ``MY_API_TOKEN`` and the specified URL,
 regardless of the configuration stored in the config file, the environment

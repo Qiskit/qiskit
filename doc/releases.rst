@@ -120,7 +120,7 @@ And for listing and using remote backends::
 
   from qiskit import IBMQ
 
-  IBMQ.use_account('MY_API_TOKEN')
+  IBMQ.enable_account('MY_API_TOKEN')
   5_qubit_devices = IBMQ.backends(simulator=True, n_qubits=5)
   ibmqx4 = IBMQ.get_backend('ibmqx4')
 

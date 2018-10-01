@@ -39,7 +39,7 @@ for i in range(5):
 ###############################################################
 try:
     import Qconfig
-    IBMQ.use_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
