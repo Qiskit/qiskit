@@ -80,8 +80,27 @@ class IBMQProvider(BaseProvider):
             'ibmq_20_austin': 'QS1_1'
             }
 
-    def add_account(self, token, url=QE_URL, **kwargs):
-        """Authenticate against IBMQ and store the account for future use.
+    def use_account(self, token, url=QE_URL, **kwargs):
+        """Authenticate and use one IBMQ account during this session.
+
+        Login into Quantum Experience or IBMQ using the provided credentials,
+        adding the account to the current session. The account is not stored
+        in disk.
+
+        Args:
+            token (str): Quantum Experience or IBM Q API token.
+            url (str): URL for Quantum Experience or IBM Q (for IBM Q,
+                including the hub, group and project in the URL).
+            **kwargs (dict):
+                * proxies (dict): Proxy configuration for the API.
+                * verify (bool): If False, ignores SSL certificates errors
+        """
+        credentials = Credentials(token, url, **kwargs)
+
+        self._append_account(credentials)
+
+    def save_account(self, token, url=QE_URL, **kwargs):
+        """Authenticate against IBMQ and save the account to disk for future use.
 
         Login into Quantum Experience or IBMQ using the provided credentials,
         adding the account to the current session. The account is stored in
@@ -102,75 +121,12 @@ class IBMQProvider(BaseProvider):
         stored_credentials = read_credentials_from_qiskitrc()
 
         if credentials.unique_id() in stored_credentials.keys():
-            warnings.warn('Credentials are already stored')
+            warnings.warn('Credentials are already stored.')
         else:
-            self._append_account(credentials)
-
-            # Store the credentials back to disk.
             store_credentials(credentials)
 
-    def remove_account(self, token, url=QE_URL, **kwargs):
-        """Remove an account from the session and from disk.
-
-        Args:
-            token (str): Quantum Experience or IBM Q API token.
-            url (str): URL for Quantum Experience or IBM Q (for IBM Q,
-                including the hub, group and project in the URL).
-            **kwargs (dict):
-                * proxies (dict): Proxy configuration for the API.
-                * verify (bool): If False, ignores SSL certificates errors
-
-        Raises:
-            IBMQAccountError: if the credentials could not be removed.
-        """
-        removed = False
-        credentials = Credentials(token, url, **kwargs)
-
-        # Check if the credentials are already stored in session or disk. By
-        # convention, we assume (hub, group, project) is always unique.
-        stored_credentials = read_credentials_from_qiskitrc()
-
-        # Try to remove from session.
-        if credentials.unique_id() in self._accounts.keys():
-            del self._accounts[credentials.unique_id()]
-            removed = True
-
-        # Try to remove from disk.
-        if credentials.unique_id() in stored_credentials.keys():
-            remove_credentials(credentials)
-            removed = True
-
-        if not removed:
-            raise IBMQAccountError('Unable to find credentials')
-
-    def remove_accounts(self):
-        """Remove all accounts from this session and optionally from disk."""
-        current_creds = self._accounts.copy()
-        for creds in current_creds:
-            self.remove_account(current_creds[creds].credentials.token,
-                                current_creds[creds].credentials.url)
-
-    def use_account(self, token, url=QE_URL, **kwargs):
-        """Authenticate against IBMQ during this session.
-
-        Login into Quantum Experience or IBMQ using the provided credentials,
-        adding the account to the current session. The account is not stored
-        in disk.
-
-        Args:
-            token (str): Quantum Experience or IBM Q API token.
-            url (str): URL for Quantum Experience or IBM Q (for IBM Q,
-                including the hub, group and project in the URL).
-            **kwargs (dict):
-                * proxies (dict): Proxy configuration for the API.
-                * verify (bool): If False, ignores SSL certificates errors
-        """
-        credentials = Credentials(token, url, **kwargs)
-
-        self._append_account(credentials)
-
-    def list_accounts(self):
-        """List all accounts currently stored in the session.
+    def active_accounts(self):
+        """List all accounts currently in the session.
 
         Returns:
             list[dict]: a list with information about the accounts currently
@@ -185,8 +141,26 @@ class IBMQProvider(BaseProvider):
 
         return information
 
+    def stored_accounts(self):
+        """List all accounts stored to disk.
+
+        Returns:
+            list[dict]: a list with information about the accounts stored
+                on disk.
+        """
+        information = []
+        stored_creds = read_credentials_from_qiskitrc()
+        for creds in stored_creds:
+            information.append({
+                'token': stored_creds[creds].token,
+                'url': stored_creds[creds].url
+            })
+
+        return information
+
     def load_accounts(self, **kwargs):
-        """Load IBMQ accounts found in the system, subject to optional filtering.
+        """Load IBMQ accounts found in the system into current session,
+        subject to optional filtering.
 
         Automatically load the accounts found in the system. This method
         looks for credentials in the following locations, in order, and
@@ -210,7 +184,65 @@ class IBMQProvider(BaseProvider):
                 self._append_account(credentials)
 
         if not self._accounts:
-            raise IBMQAccountError('No IBMQ credentials found.')
+            raise IBMQAccountError('No IBMQ credentials found on disk.')
+
+    def disable_accounts(self, **kwargs):
+        """Disable accounts in the current session, subject to optional filtering.
+
+        The filter kwargs can be `token`, `url`, `hub`, `group`, `project`.
+        If no filter is passed, all accounts in the current session will be disabled.
+
+        Raises:
+            IBMQAccountError: if no account matched the filter.
+        """
+        disabled = False
+
+        # Special handling of the credentials filters.
+        credentials_filter = {}
+        for key in ['token', 'url', 'hub', 'group', 'project']:
+            if key in kwargs:
+                credentials_filter[key] = kwargs.pop(key)
+
+        # Try to remove from session.
+        current_creds = self._accounts.copy()
+        for creds in current_creds:
+            credentials = Credentials(current_creds[creds].credentials.token,
+                                      current_creds[creds].credentials.url)
+            if self._match_all(credentials, credentials_filter):
+                del self._accounts[credentials.unique_id()]
+                disabled = True
+
+        if not disabled:
+            raise IBMQAccountError('No matching account to disable in current session.')
+
+    def delete_accounts(self, **kwargs):
+        """Delete saved accounts from disk, subject to optional filtering.
+
+        The filter kwargs can be `token`, `url`, `hub`, `group`, `project`.
+        If no filter is passed, all accounts will be deleted from disk.
+
+        Raises:
+            IBMQAccountError: if no account matched the filter.
+        """
+        deleted = False
+
+        # Special handling of the credentials filters.
+        credentials_filter = {}
+        for key in ['token', 'url', 'hub', 'group', 'project']:
+            if key in kwargs:
+                credentials_filter[key] = kwargs.pop(key)
+
+        # Try to delete from disk.
+        stored_creds = read_credentials_from_qiskitrc()
+        for creds in stored_creds:
+            credentials = Credentials(stored_creds[creds].token,
+                                      stored_creds[creds].url)
+            if self._match_all(credentials, credentials_filter):
+                remove_credentials(credentials)
+                deleted = True
+
+        if not deleted:
+            raise IBMQAccountError('No matching account to delete from disk.')
 
     def _append_account(self, credentials):
         """Append an account with the specified credentials to the session.
