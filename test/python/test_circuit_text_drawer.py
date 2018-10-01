@@ -5,9 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tests for comparing the outputs of text drawing of circtuis with expected ones."""
+"""Tests for comparing the outputs of text drawing of circuit with expected ones."""
 
-import os
 import unittest
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -16,19 +15,14 @@ from qiskit.tools.visualization.text import text_drawer
 
 
 class TestCircuitTextDrawer(QiskitTestCase):
-    def sample_circuit(self):
-        """Generate a sample circuit that includes the most common elements of
-        quantum circuits.
-        """
+    def test_text_sample_circuit(self):
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
         circuit.x(qr[0])
         circuit.y(qr[0])
         circuit.z(qr[0])
-        circuit.barrier(qr[0])
-        circuit.barrier(qr[1])
-        circuit.barrier(qr[2])
+        circuit.barrier(qr)
         circuit.h(qr[0])
         circuit.s(qr[0])
         circuit.sdg(qr[0])
@@ -54,8 +48,15 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit.ccx(qr[0], qr[1], qr[2])
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.measure(qr, cr)
+        text_drawer(circuit)
 
-        return circuit
+    def test_text_pager(self):
+        qr = QuantumRegister(1, 'q')
+        circuit = QuantumCircuit(qr)
+        no_instructions = 50
+        for _ in range(no_instructions):
+            circuit.x(qr[0])
+        self.assertEqual(text_drawer(circuit, line_length=10).count('\n'), no_instructions * 3 + 2)
 
     def test_text_measure_1(self):
         expected = '\n'.join([

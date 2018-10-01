@@ -212,13 +212,17 @@ class TextDrawing():
     def __init__(self, json_circuit):
         self.json_circuit = json_circuit
 
-    def lines(self, line_length):
+    def lines(self, line_length=None):
 
         noqubits = self.json_circuit['header']['number_of_qubits']
         layers = self.build_layers()
 
-        # TODO compress (layers)
-        #
+        # TODO compress layers
+        # -| H |----------
+        # --------| H |---
+        # should be
+        # -| H |---
+        # -| H |---
 
         layer_groups = [[]]
         rest_of_the_line = line_length
@@ -226,7 +230,12 @@ class TextDrawing():
             # Replace the Nones with EmptyWire
             layers[layerno] = EmptyWire.fillup_layer(layer, noqubits)
 
-            # chop the layer to the line_length
+            if line_length is None:
+                # does not page
+                layer_groups[-1].append(layer)
+                continue
+
+            # chop the layer to the line_length (pager)
             layer_length = layers[layerno][0].length
 
             if layer_length < rest_of_the_line:
@@ -236,16 +245,14 @@ class TextDrawing():
                 layer_groups[-1].append(BreakWire.fillup_layer(layer, '»'))
 
                 # New group
-                print('-')
                 layer_groups.append([BreakWire.fillup_layer(layer, '«')])
-                rest_of_the_line = line_length - layer_groups[-1][0][0].length
+                rest_of_the_line = line_length - layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
-                rest_of_the_line -= layer_groups[-1][0][0].length
+                rest_of_the_line -= layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(layer)
-                rest_of_the_line -= layer_groups[-1][0][0].length
-
+                rest_of_the_line -= layer_groups[-1][-1][0].length
 
         lines = []
         for layer_group in layer_groups:
@@ -415,7 +422,7 @@ class TextDrawing():
 
 def text_drawer(circuit, filename=None,
                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                    "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=80):
+                    "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
