@@ -228,17 +228,24 @@ class TextDrawing():
 
             # chop the layer to the line_length
             layer_length = layers[layerno][0].length
+
             if layer_length < rest_of_the_line:
                 layer_groups[-1].append(layer)
                 rest_of_the_line -= layer_length
             else:
                 layer_groups[-1].append(BreakWire.fillup_layer(layer, '»'))
-                layer_groups.append([BreakWire.fillup_layer(layer, '«')])
-                layer_groups[-1].append(InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
-                layer_groups[-1].append(layer)
 
-                # minus the length of the break '«'
+                # New group
+                print('-')
+                layer_groups.append([BreakWire.fillup_layer(layer, '«')])
                 rest_of_the_line = line_length - layer_groups[-1][0][0].length
+
+                layer_groups[-1].append(InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
+                rest_of_the_line -= layer_groups[-1][0][0].length
+
+                layer_groups[-1].append(layer)
+                rest_of_the_line -= layer_groups[-1][0][0].length
+
 
         lines = []
         for layer_group in layer_groups:
@@ -258,8 +265,9 @@ class TextDrawing():
         header = self.json_circuit['header']
         for qubit in header['qubit_labels']:
             ret.append("%s%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
-        for qubit in header['clbit_labels']:
-            ret.append("%s%s: %s" % (qubit[0], qubit[1], initial_value['clbit']))
+        for creg in header['clbit_labels']:
+            for clbit in range(creg[1]):
+                ret.append("%s%s: %s" % (creg[0],clbit, initial_value['clbit']))
         return ret
 
 
@@ -323,7 +331,7 @@ class TextDrawing():
                 ret += topc
             elif topc in '─═' and botc == " " and icod == "bot":
                 ret += botc
-            elif topc == "║" and botc in "═":
+            elif topc in "║╥" and botc in "═":
                 ret += "╬"
             elif topc in "║╥" and botc in "─":
                 ret += "╫"
