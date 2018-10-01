@@ -14,7 +14,6 @@ A module for drawing circuits in ascii art or some other text representation
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import transpile
 
-
 class DrawElement():
     def __init__(self, instruction):
         params = ""
@@ -167,6 +166,19 @@ class EmptyWire(DrawElement):
                 max_length)
         return layer
 
+class BreakWire(DrawElement):
+    def __init__(self, arrow_char):
+        self.top = arrow_char
+        self.mid = arrow_char
+        self.bot = arrow_char
+
+    @staticmethod
+    def fillup_layer(layer, arrow_char):
+        layer_length = len(layer)
+        breakwire_layer = []
+        for wire in range(layer_length):
+            breakwire_layer.append(BreakWire(arrow_char))
+        return breakwire_layer
 
 class EmptyQubitWire(EmptyWire):
     def __init__(self, length):
@@ -192,8 +204,38 @@ class TextDrawing():
     def __init__(self, json_circuit):
         self.json_circuit = json_circuit
 
-    def lines(self):
-        return TextDrawing.drawWires(self.build_wires())
+    def lines(self, line_length):
+
+        noqubits = self.json_circuit['header']['number_of_qubits']
+        layers = self.build_layers()
+
+        # TODO compress (layers)
+        #
+
+        layer_groups = [[]]
+        rest_of_the_line = line_length
+        for layerno, layer in enumerate(layers):
+            # Replace the Nones with EmptyWire
+            layers[layerno] = EmptyWire.fillup_layer(layer, noqubits)
+
+            # chop the layer to the line_length
+            layer_length = layers[layerno][0].length
+            if layer_length < rest_of_the_line:
+                layer_groups[-1].append(layer)
+                rest_of_the_line -= layer_length
+            else:
+                layer_groups[-1].append(BreakWire.fillup_layer(layer, '»'))
+                layer_groups.append([BreakWire.fillup_layer(layer, '«')]+[layer])
+
+                # minus the length of the break '«'
+                rest_of_the_line = line_length - 1
+
+        lines = []
+        for layer_group in layer_groups:
+            wires = [i for i in zip(*layer_group)]
+            lines+=TextDrawing.drawWires(wires)
+
+        return lines
 
     def wire_names(self):
         ret = []
@@ -203,6 +245,7 @@ class TextDrawing():
         for qubit in header['clbit_labels']:
             ret.append("%s%s: 0 " % (qubit[0], qubit[1]))
         return ret
+
 
     @staticmethod
     def drawWires(wires):
@@ -274,7 +317,7 @@ class TextDrawing():
                 ret += botc
         return ret
 
-    def build_wires(self):
+    def build_layers(self):
         layers = []
         noqubits = self.json_circuit['header']['number_of_qubits']
         noclbits = self.json_circuit['header']['number_of_clbits']
@@ -349,14 +392,7 @@ class TextDrawing():
 
             layers.append(qubit_layer + clbit_layer)
 
-        # TODO compress (layers)
-
-        # Replace the Nones with EmptyWire
-        for layerno, layer in enumerate(layers):
-            layers[layerno] = EmptyWire.fillup_layer(layer, noqubits)
-
-        return [i for i in zip(*layers)]
-
+        return layers
 
 def text_drawer(circuit, filename=None,
                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
@@ -364,4 +400,4 @@ def text_drawer(circuit, filename=None,
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    return "\n".join((TextDrawing(json_circuit).lines()))
+    return "\n".join(TextDrawing(json_circuit).lines(line_length))
