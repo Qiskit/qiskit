@@ -364,5 +364,4 @@ def text_drawer(circuit, filename=None,
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-
     return "\n".join((TextDrawing(json_circuit).lines()))
