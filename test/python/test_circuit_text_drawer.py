@@ -60,24 +60,51 @@ class TestCircuitTextDrawer(QiskitTestCase):
 
     def test_text_measure_1(self):
         expected = '\n'.join([
-            "             ┌─┐",
-            "q0: |0>──────┤M├",
-            "          ┌─┐└╥┘",
-            "q1: |0>───┤M├─╫─",
-            "       ┌─┐└╥┘ ║ ",
-            "q2: |0>┤M├─╫──╫─",
-            "       └╥┘ ║  ║ ",
-            " c0: 0 ═╬══╬══╩═",
-            "        ║  ║    ",
-            " c1: 0 ═╬══╩════",
-            "        ║       ",
-            " c2: 0 ═╩═══════",
-            "                "])
+            "              ┌─┐",
+            "q_0: |0>──────┤M├",
+            "           ┌─┐└╥┘",
+            "q_1: |0>───┤M├─╫─",
+            "        ┌─┐└╥┘ ║ ",
+            "q_2: |0>┤M├─╫──╫─",
+            "        └╥┘ ║  ║ ",
+            " c_0: 0 ═╬══╬══╩═",
+            "         ║  ║    ",
+            " c_1: 0 ═╬══╩════",
+            "         ║       ",
+            " c_2: 0 ═╩═══════",
+            "                 "])
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
-        self.assertEqual(text_drawer(circuit, line_length=50), expected)
+        self.assertEqual(text_drawer(circuit), expected)
+
+    def test_text_measure_2(self):
+        expected = '\n'.join([
+            "               ",
+            "q1_0: |0>──────",
+            "               ",
+            "q1_1: |0>──────",
+            "            ┌─┐",
+            "q2_0: |0>───┤M├",
+            "         ┌─┐└╥┘",
+            "q2_1: |0>┤M├─╫─",
+            "         └╥┘ ║ ",
+            " c1_0: 0 ═╬══╬═",
+            "          ║  ║ ",
+            " c1_1: 0 ═╬══╬═",
+            "          ║  ║ ",
+            " c2_0: 0 ═╬══╩═",
+            "          ║    ",
+            " c2_1: 0 ═╩════",
+            "               "])
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        qr2 = QuantumRegister(2, 'q2')
+        cr2 = ClassicalRegister(2, 'c2')
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit.measure(qr2, cr2)
+        self.assertEqual(text_drawer(circuit), expected)
 
 
 if __name__ == '__main__':

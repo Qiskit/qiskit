@@ -271,10 +271,10 @@ class TextDrawing():
 
         header = self.json_circuit['header']
         for qubit in header['qubit_labels']:
-            ret.append("%s%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
+            ret.append("%s_%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
         for creg in header['clbit_labels']:
             for clbit in range(creg[1]):
-                ret.append("%s%s: %s" % (creg[0],clbit, initial_value['clbit']))
+                ret.append("%s_%s: %s" % (creg[0],clbit, initial_value['clbit']))
         return ret
 
 
