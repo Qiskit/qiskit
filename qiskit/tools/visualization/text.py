@@ -311,12 +311,13 @@ class TextDrawing():
                 clbit_layer[mask].width=longest
                 qubit_layer[instruction['qubits'][0]].width=longest
 
-            elif instruction['name'] in ['cx', 'CX']:
-                # cx
-                control = instruction['qubits'][0]
-                target = instruction['qubits'][1]
+            elif instruction['name'] in ['cx', 'CX', 'ccx']:
+                # cx/ccx
+                control = [qubit for qubit in instruction['qubits'][:-1]]
+                target = instruction['qubits'][-1]
 
-                qubit_layer[control] = CXcontrol(instruction)
+                for qubit in control:
+                    qubit_layer[qubit] = CXcontrol(instruction)
                 qubit_layer[target] = CXtarget(instruction)
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
