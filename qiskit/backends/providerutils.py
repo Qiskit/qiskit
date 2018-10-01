@@ -8,7 +8,7 @@
 """Utilities for providers."""
 
 import logging
-
+import qiskit.backends.ibmq as _ibmq
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +41,10 @@ def filter_backends(backends, filters=None, **kwargs):
     status_filters = {}
     for key, value in kwargs.items():
         if all(key in backend.configuration() for backend in backends):
+            if key == 'name':
+                for _k, _v in _ibmq.IBMQ.aliased_backend_names().items():
+                    if value == _v:
+                        value = _k
             configuration_filters[key] = value
         else:
             status_filters[key] = value
