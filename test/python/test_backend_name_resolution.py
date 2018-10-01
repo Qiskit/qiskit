@@ -78,6 +78,20 @@ class TestBackendNameResolution(QiskitTestCase):
         """Test a failing backend lookup."""
         self.assertRaises(LookupError, Aer.get_backend, 'bad_name')
 
+    @requires_qe_access
+    def test_get_backends(self, qe_token, qe_url):
+        """Test that one can get_backends from backends using city
+        and qx formats (if available)"""
+        IBMQ.use_account(qe_token, qe_url)
+        backends = IBMQ.backends()
+        dep_backend_names = IBMQ.deprecated_backend_names()
+        for back in backends:
+            test_back = IBMQ.get_backend(back.name())
+            self.assertEqual(test_back, back)
+            if back.name() in dep_backend_names.keys():
+                dep_back = IBMQ.get_backend(dep_backend_names[back.name()])
+                self.assertEqual(test_back, dep_back)
+
 
 class TestAerBackendNames(QiskitTestCase):
     """
