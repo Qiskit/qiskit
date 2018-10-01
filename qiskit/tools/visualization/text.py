@@ -201,7 +201,6 @@ class InputWire(EmptyWire):
 
     @staticmethod
     def fillup_layer(names):
-        print([(i,len(i)) for i in names])
         longest = max([len(name) for name in names])
         inputs_wires = []
         for name in names:
@@ -237,7 +236,7 @@ class TextDrawing():
                 layer_groups.append([BreakWire.fillup_layer(layer, '«')])
                 layer_groups[-1].append(InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
                 layer_groups[-1].append(layer)
-                
+
                 # minus the length of the break '«'
                 rest_of_the_line = line_length - layer_groups[-1][0][0].length
 
