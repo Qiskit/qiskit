@@ -42,9 +42,13 @@ def filter_backends(backends, filters=None, **kwargs):
     for key, value in kwargs.items():
         if all(key in backend.configuration() for backend in backends):
             if key == 'name':
-                for _k, _v in _ibmq.IBMQ.aliased_backend_names().items():
-                    if value == _v:
-                        value = _k
+                try:
+                    value = resolve_backend_name(
+                        value, backends, {},
+                        _ibmq.IBMQ.deprecated_backend_names(),
+                        _ibmq.IBMQ.aliased_backend_names())
+                except LookupError:
+                    pass
             configuration_filters[key] = value
         else:
             status_filters[key] = value
@@ -89,7 +93,6 @@ def resolve_backend_name(name, backends, grouped, deprecated, aliased):
     """
     resolved_name = ""
     available = [backend.name() for backend in backends]
-
     if name in available:
         resolved_name = name
     elif name in grouped:
