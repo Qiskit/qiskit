@@ -47,6 +47,12 @@ class IBMQProvider(BaseProvider):
         providers = [provider for provider in self._accounts.values() if
                      self._match_all(provider.credentials, credentials_filter)]
 
+        # Special handling of the `name` parameter, to support alias resolution.
+        if name:
+            aliases = self.aliased_backend_names()
+            aliases.update(self.deprecated_backend_names())
+            name = aliases.get(name, name)
+        
         # Aggregate the list of filtered backends.
         backends = []
         for provider in providers:
