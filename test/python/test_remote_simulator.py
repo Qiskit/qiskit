@@ -32,6 +32,7 @@ class TestBackendQobj(JobTestCase):
         self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
         self._qe_token = os.getenv('IBMQ_TOKEN', None)
         self._qe_url = os.getenv('IBMQ_QOBJ_URL')
+
         if not self._testing_device or not self._qe_token or not self._qe_url:
             self.skipTest("No credentials or testing device available for "
                           "testing Qobj capabilities.")
@@ -42,22 +43,17 @@ class TestBackendQobj(JobTestCase):
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
 
-    @slow_test
-    @requires_qe_access
+
     def test_operational(self):
         """Test if backend is operational.
         """
         self.assertTrue(self._remote_backend.status()['operational'])
 
-    @slow_test
-    @requires_qe_access
     def test_allow_qobj(self):
         """Test if backend support Qobj.
         """
         self.assertTrue(self._remote_backend.configuration()['allow_q_object'])
 
-    @slow_test
-    @requires_qe_access
     def test_one_qubit_no_operation(self):
         """Test one circuit, one register, in-order readout.
         """
@@ -70,10 +66,8 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_one_qubit_operation(self):
         """Test one circuit, one register, in-order readout.
         """
@@ -87,10 +81,8 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_simple_circuit(self):
         """Test one circuit, one register, in-order readout.
         """
@@ -108,10 +100,8 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_readout_order(self):
         """Test one circuit, one register, out-of-order readout.
         """
@@ -130,10 +120,8 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj_remote).result()
         result_local = self._local_backend.run(qobj_local).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_multi_register(self):
         """Test one circuit, two registers, out-of-order readout.
         """
@@ -158,10 +146,8 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_multi_circuit(self):
         """Test two circuits, two registers, out-of-order readout.
         """
@@ -195,12 +181,10 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ1),
-                                   result_local.get_counts(circ1), delta=50)
+                                   result_local.get_counts(circ1), delta=100)
         self.assertDictAlmostEqual(result_remote.get_counts(circ2),
-                                   result_local.get_counts(circ2), delta=50)
+                                   result_local.get_counts(circ2), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_conditional_operation(self):
         """Test conditional operation.
         """
@@ -216,10 +200,8 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
-    @slow_test
-    @requires_qe_access
     def test_atlantic_circuit(self):
         """Test Atlantis deterministic ry operation.
         """
@@ -234,7 +216,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = self._remote_backend.run(qobj).result()
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=50)
+                                   result_local.get_counts(circ), delta=100)
 
 
 if __name__ == '__main__':
