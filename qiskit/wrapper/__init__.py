@@ -18,6 +18,8 @@ refer to the documentation of each component and use them separately.
 from ._wrapper import (compile, execute, load_qasm_string, load_qasm_file,
                        least_busy, qobj_to_circuits)
 
+from ._monitor import job_monitor
+
 # To be deprecated methods
 from ._wrapper import (available_backends, get_backend, register, unregister,
                        registered_providers)
