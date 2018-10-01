@@ -10,6 +10,7 @@ import logging
 
 from qiskit import QISKitError
 from ._qobj import QOBJ_VERSION
+from ._qobj import QobjItem
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 def qobj_to_dict(qobj, version=QOBJ_VERSION):
     """Convert a Qobj to another version of the schema.
+    Convert all types to native python types.
 
     Args:
         qobj (Qobj): input Qobj.
@@ -31,7 +33,9 @@ def qobj_to_dict(qobj, version=QOBJ_VERSION):
     if version == QOBJ_VERSION:
         return qobj_to_dict_current_version(qobj)
     elif version == '0.0.1':
-        return qobj_to_dict_previous_version(qobj)
+        return_dict = qobj_to_dict_previous_version(qobj)
+        return {key: QobjItem._expand_item(value) for key, value
+                in return_dict.items()}
     else:
         raise QISKitError('Invalid target version for conversion.')
 
