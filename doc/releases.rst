@@ -37,7 +37,7 @@ Removal of ``QuantumProgram``
 
 As hinted during the 0.5 release, the deprecation of the  ``QuantumProgram``
 class has now been completed and is no longer available, in favor of working
-with the individual components (:class:`~qiskit.backends.basebackend.BaseJob`,
+with the individual components (:class:`~qiskit.backends.basejob.BaseJob`,
 :class:`~qiskit._quantumcircuit.QuantumCircuit`,
 :class:`~qiskit._classicalregister.ClassicalRegister`,
 :class:`~qiskit._quantumregister.QuantumRegister`,
@@ -79,13 +79,13 @@ been expanded, and there are new options that can be used for convenience:
      IBQM.save_account('MY_API_TOKEN', 'MY_API_URL')
 
    afterwards, your credentials can be automatically loaded from disk by invoking
-   :meth:`~qiskit.backends.ibmq.IBMQ.load_accounts`::
+   :meth:`~qiskit.backends.ibmq.ibmqprovider.IBMQ.load_accounts`::
 
      from qiskit import IBMQ
      IBMQ.load_accounts()
 
    or you can load only specific accounts if you only want to use those in a session::
-   
+
      IBMQ.load_accounts(project='MY_PROJECT')
 
 2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
@@ -148,8 +148,8 @@ Please consult the new documentation of the
 how to use the simplified API.
 
 * A number of members of :class:`~qiskit.backends.basebackend.BaseBackend` and 
-:class:`~qiskit.backends.basejob.BaseJob` are no longer properties, 
-but methods, and as a result they need to be invoked as functions.
+  :class:`~qiskit.backends.basejob.BaseJob` are no longer properties,
+  but methods, and as a result they need to be invoked as functions.
 
 =====================  ========================
 Qiskit 0.5             Qiskit 0.6
@@ -160,7 +160,6 @@ backend.configuration  backend.configuration()
 backend.calibration    backend.properties()
 backend.parameters     backend.jobs()
                        backend.retrieve_job(job_id)
-=====================  ==========
 job.status             job.status()
 job.cancelled          job.queue_position()
 job.running            job.cancel()
