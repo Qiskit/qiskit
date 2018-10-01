@@ -6,23 +6,27 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Example showing how to use Qiskit at level 0 (novice).
+Example showing how to use Qiskit-Terra at level 0 (novice).
 
-See level 1 if you would like to understand how to compile
+This example shows the most basic way to user Terra. It builds some circuits
+and runs them on both the Aer (local Qiskit provider) or IBMQ (remote IBMQ provider).
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
+To control the compile parameters we have provided a compile function which can be used 
+as a level 1 user.
+
 """
 
 import time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import available_backends, execute, register, least_busy
+from qiskit import execute, IBMQ, Aer
+from qiskit.backends.ibmq import least_busy
+
 
 try:
     import Qconfig
-    register(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.use_account(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -45,11 +49,11 @@ try:
     qc2.measure(qubit_reg, clbit_reg)
 
     # setting up the backend
-    print("(Local Backends)")
-    print(available_backends({'local': True}))
+    print("(AER Backends)")
+    print(Aer.backends())
 
     # runing the job
-    job_sim = execute([qc1, qc2], "local_qasm_simulator")
+    job_sim = execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
     sim_result = job_sim.result()
 
     # Show the results
@@ -58,13 +62,13 @@ try:
     print(sim_result.get_counts(qc2))
 
     # see a list of available remote backends
-    print("\n(Remote Backends)")
-    print(available_backends({'local': False}))
+    print("\n(IBMQ Backends)")
+    print(IBMQ.backends())
 
     # Compile and run on a real device backend
     try:
         # select least busy available device and execute.
-        least_busy_device = least_busy(available_backends())
+        least_busy_device = least_busy(IBMQ.backends(simulator=False))
         print("Running on current least busy device: ", least_busy_device)
 
         # running the job
@@ -72,7 +76,7 @@ try:
 
         lapse = 0
         interval = 10
-        while not job_exp.done:
+        while job_exp.status().name != 'DONE':
             print('Status @ {} seconds'.format(interval * lapse))
             print(job_exp.status())
             time.sleep(interval)
