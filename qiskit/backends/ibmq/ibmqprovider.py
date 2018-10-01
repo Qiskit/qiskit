@@ -45,7 +45,7 @@ class IBMQProvider(BaseProvider):
             if key in kwargs:
                 credentials_filter[key] = kwargs.pop(key)
         providers = [provider for provider in self._accounts.values() if
-                     self._match_all(provider.credentials, credentials_filter)]
+                     self._credentials_match_filter(provider.credentials, kwargs)]
 
         # Special handling of the `name` parameter, to support alias resolution.
         if name:
@@ -80,7 +80,7 @@ class IBMQProvider(BaseProvider):
             'ibmq_20_austin': 'QS1_1'
             }
 
-    def use_account(self, token, url=QE_URL, **kwargs):
+    def enable_account(self, token, url=QE_URL, **kwargs):
         """Authenticate and use one IBMQ account during this session.
 
         Login into Quantum Experience or IBMQ using the provided credentials,
@@ -173,14 +173,8 @@ class IBMQProvider(BaseProvider):
         Raises:
             IBMQAccountError: if no credentials are found.
         """
-        # Special handling of the credentials filters.
-        credentials_filter = {}
-        for key in ['token', 'url', 'hub', 'group', 'project']:
-            if key in kwargs:
-                credentials_filter[key] = kwargs.pop(key)
-
         for credentials in discover_credentials().values():
-            if self._match_all(credentials, credentials_filter):
+            if self._credentials_match_filter(credentials, kwargs):
                 self._append_account(credentials)
 
         if not self._accounts:
@@ -197,18 +191,12 @@ class IBMQProvider(BaseProvider):
         """
         disabled = False
 
-        # Special handling of the credentials filters.
-        credentials_filter = {}
-        for key in ['token', 'url', 'hub', 'group', 'project']:
-            if key in kwargs:
-                credentials_filter[key] = kwargs.pop(key)
-
         # Try to remove from session.
         current_creds = self._accounts.copy()
         for creds in current_creds:
             credentials = Credentials(current_creds[creds].credentials.token,
                                       current_creds[creds].credentials.url)
-            if self._match_all(credentials, credentials_filter):
+            if self._credentials_match_filter(credentials, kwargs):
                 del self._accounts[credentials.unique_id()]
                 disabled = True
 
@@ -226,18 +214,12 @@ class IBMQProvider(BaseProvider):
         """
         deleted = False
 
-        # Special handling of the credentials filters.
-        credentials_filter = {}
-        for key in ['token', 'url', 'hub', 'group', 'project']:
-            if key in kwargs:
-                credentials_filter[key] = kwargs.pop(key)
-
         # Try to delete from disk.
         stored_creds = read_credentials_from_qiskitrc()
         for creds in stored_creds:
             credentials = Credentials(stored_creds[creds].token,
                                       stored_creds[creds].url)
-            if self._match_all(credentials, credentials_filter):
+            if self._credentials_match_filter(credentials, kwargs):
                 remove_credentials(credentials)
                 deleted = True
 
@@ -262,6 +244,17 @@ class IBMQProvider(BaseProvider):
         self._accounts[credentials.unique_id()] = single_provider
 
         return single_provider
+
+    def _credentials_match_filter(self, credentials, filter_dict):
+        credentials_filter = {}
+        for key in ['token', 'url', 'hub', 'group', 'project']:
+            if key in filter_dict:
+                credentials_filter[key] = filter_dict.pop(key)
+
+        if self._match_all(credentials, credentials_filter):
+            return True
+        else:
+            return False
 
     def _match_all(self, obj, criteria):
         """Return True if all items in criteria matches items in obj."""
