@@ -48,6 +48,8 @@ class QobjItem(SimpleNamespace):
             return [cls._expand_item(item) for item in obj]
         if isinstance(obj, QobjItem):
             return obj.as_dict()
+        if isinstance(obj, dict):
+            return {key: cls._expand_item(value) for key, value in obj.items()}
         if isinstance(obj, numpy.integer):
             return int(obj)
         if isinstance(obj, numpy.float):
