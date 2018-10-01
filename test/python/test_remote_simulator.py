@@ -17,7 +17,7 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
-from .common import requires_qe_access, JobTestCase, slow_test
+from .common import JobTestCase
 
 
 class TestBackendQobj(JobTestCase):
@@ -42,7 +42,6 @@ class TestBackendQobj(JobTestCase):
         self._remote_backend = IBMQ.get_backend(self._testing_device)
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
-
 
     def test_operational(self):
         """Test if backend is operational.
