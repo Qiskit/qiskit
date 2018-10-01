@@ -114,7 +114,7 @@ For example, to list and use a local backend::
   from qiskit import Aer
 
   all_local_backends = Aer.backends(local=True)  # returns a list of instances
-  qasm_simulator = Aer.backends('local_qasm_simulator')
+  qasm_simulator = Aer.backends('qasm_simulator')
 
 And for listing and using remote backends::
 
@@ -123,6 +123,19 @@ And for listing and using remote backends::
   IBMQ.enable_account('MY_API_TOKEN')
   5_qubit_devices = IBMQ.backends(simulator=True, n_qubits=5)
   ibmqx4 = IBMQ.get_backend('ibmqx4')
+
+Please note as well that the names of the local simulators have been simplified.
+The previous names can still be used, but it is encouraged to use the new,
+shorter names:
+
+=============================  ========================
+Qiskit 0.5                     Qiskit 0.6
+=============================  ========================
+'local_qasm_simulator'         'qasm_simulator'
+'local_statevector_simulator'  'statevector_simulator'
+'local_unitary_simulator_py'   'unitary_simulator'
+=============================  ========================
+
 
 Backend and Job API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
