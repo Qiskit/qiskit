@@ -61,11 +61,13 @@ class TestWrapper(QiskitTestCase):
         qiskit.wrapper.register(qe_token, qe_url)
         initial_providers = registered_providers()
 
-        with self.assertRaises(QISKitError):
+        with self.assertWarns(Warning) as context_manager:
             qiskit.wrapper.register(qe_token, qe_url)
+
+        self.assertEqual('Credentials are already in use.',
+                         str(context_manager.warnings[-1].message))
         self.assertCountEqual(initial_providers, registered_providers())
 
-    @requires_qe_access
     def test_register_bad_credentials(self):
         """Test registering a provider with bad credentials."""
         initial_providers = registered_providers()
