@@ -9,25 +9,14 @@
 
 import logging
 import warnings
-from copy import deepcopy
-import uuid
 
 from qiskit import IBMQ
 from qiskit import Aer
 
 from qiskit.backends import ibmq
 from qiskit._qiskiterror import QISKitError
-from qiskit._quantumcircuit import QuantumCircuit
-
+from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler._transpiler import (_matches_coupling_map,
-                                           _pick_best_layout,
-                                           _dags_2_qobj_parallel,
-                                           _transpile_dags_parallel)
-from qiskit.qobj._qobj import Qobj, QobjConfig, QobjHeader
-from qiskit.transpiler._transpilererror import TranspilerError
-from qiskit.transpiler._parallel import parallel_map
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
 
@@ -200,8 +189,15 @@ def least_busy(names):
     Raises:
         QISKitError: if passing a list of backend names that is
             either empty or none have attribute ``pending_jobs``
+    .. deprecated:: 0.6+
+        After 0.6, this function is deprecated. Please use the methods in
+        `qiskit.IBMQ` instead
+        (`backends()`).
     """
     backends = [get_backend(name) for name in names]
+    warnings.warn('the global least_busy() will be deprecated after 0.6. Please '
+                  'use least_busy() imported from qiskit.backends.ibmq',
+                  DeprecationWarning)
     return ibmq.least_busy(backends).name()
 
 
@@ -219,9 +215,10 @@ def get_backend(name):
         `qiskit.IBMQ` and `qiskit.Aer` instead
         (`backends()`).
     """
-    warnings.warn('get_backend() will be deprecated after 0.6. Please '
+    warnings.warn('the global get_backend() will be deprecated after 0.6. Please '
                   'use the qiskit.IBMQ.backends() and qiskit.Aer.backends() '
-                  'method instead with the "filters" parameter.',
+                  'method instead with the "name" parameter.'
+                  '(or qiskit.IBMQ.get_backend() and qiskit.Aer.get_backend())',
                   DeprecationWarning)
     try:
         return Aer.get_backend(name)
@@ -250,111 +247,36 @@ def compile(circuits, backend,
         seed (int): random seed for simulators
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
-        skip_transpiler (bool): If True, bypass most of the compilation process and
-            creates a qobj with minimal check nor translation
+        skip_transpiler (bool): skip most of the compile steps and produce qobj directly
+
     Returns:
         Qobj: the qobj to be run on the backends
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
+
+    .. deprecated:: 0.6+
+        After 0.6, compile will only take a backend object.
     """
     # pylint: disable=redefined-builtin
-
-    # Check for valid parameters for the experiments.
-    if hpc is not None and \
-            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
-        raise TranspilerError('Unknown HPC parameter format!')
-
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
-
     if isinstance(backend, str):
+        warnings.warn('compile() no longer takes backend string names.'
+                      'Please pass backend objects, obtained via'
+                      'IBMQ.get_backend() or Aer.get_backend().', DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:
             backend = IBMQ.get_backend(backend)
 
     pass_manager = None  # default pass manager which executes predetermined passes
+    # TODO (jay) why do we need to pass skip and not pass manager directly
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
-    backend_conf = backend.configuration()
-    backend_name = backend_conf['name']
-    basis_gates = basis_gates or backend_conf['basis_gates']
-    coupling_map = coupling_map or backend_conf['coupling_map']
-
-    qobj_config = deepcopy(config or {})
-    qobj_config.update({'shots': shots,
-                        'max_credits': max_credits,
-                        'memory_slots': 0})
-
-    qobj = Qobj(qobj_id=qobj_id or str(uuid.uuid4()),
-                config=QobjConfig(**qobj_config),
-                experiments=[],
-                header=QobjHeader(backend_name=backend_name))
-
-    if seed:
-        qobj.config.seed = seed
-
-    qobj.experiments = parallel_map(_build_exp_parallel, list(range(len(circuits))),
-                                    task_args=(circuits, backend),
-                                    task_kwargs={'initial_layout': initial_layout,
-                                                 'basis_gates': basis_gates,
-                                                 'config': config,
-                                                 'coupling_map': coupling_map,
-                                                 'seed': seed,
-                                                 'pass_manager': pass_manager})
-
-    qobj.config.memory_slots = max(experiment.config.memory_slots for
-                                   experiment in qobj.experiments)
-
-    qobj.config.n_qubits = max(experiment.config.n_qubits for
-                               experiment in qobj.experiments)
-
-    return qobj
-
-
-def _build_exp_parallel(idx, circuits, backend, initial_layout=None,
-                        basis_gates='u1,u2,u3,cx,id', config=None,
-                        coupling_map=None, seed=None, pass_manager=None):
-    """Builds a single Qobj experiment.  Usually called in parallel mode.
-
-    Args:
-        idx (int): Index of circuit in circuits list.
-        circuits (list): List of circuits passed.
-        backend (BaseBackend or str): a backend to compile for
-        initial_layout (list): initial layout of qubits in mapping
-        basis_gates (str): comma-separated basis gate set to compile to
-        config (dict): dictionary of parameters (e.g. noise) used by runner
-        coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
-        seed (int): random seed for simulators
-        pass_manager (PassManager): pass manager instance for the tranpilation process
-            If None, a default set of passes are run.
-            Otherwise, the passes defined in it will run.
-            If contains no passes in it, no dag transformations occur.
-
-    Returns:
-        experiment: An instance of an experiment to be added to a Qobj.
-    """
-
-    circuit = circuits[idx]
-    dag = DAGCircuit.fromQuantumCircuit(circuit)
-
-    if (initial_layout is None and not backend.configuration()['simulator']
-            and not _matches_coupling_map(dag, coupling_map)):
-        _initial_layout = _pick_best_layout(dag, backend)
-    else:
-        _initial_layout = initial_layout
-
-    dag = _transpile_dags_parallel(0, [dag], [_initial_layout],
-                                   basis_gates=basis_gates, coupling_map=coupling_map,
-                                   seed=seed, pass_manager=pass_manager)
-
-    experiment = _dags_2_qobj_parallel(
-        dag, basis_gates=basis_gates, config=config, coupling_map=coupling_map)
-
-    return experiment
+    qobj_standard = transpiler.compile(circuits, backend, config, basis_gates, coupling_map,
+                                       initial_layout, shots, max_credits, seed, qobj_id, hpc,
+                                       pass_manager)
+    return qobj_standard
 
 
 def execute(circuits, backend,
@@ -379,9 +301,15 @@ def execute(circuits, backend,
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
+
+    .. deprecated:: 0.6+
+        After 0.6, execute will only take a backend object, not string.
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
+        warnings.warn('execute() no longer takes backend string names.'
+                      'Please pass backend objects, obtained via'
+                      'IBMQ.get_backend() or Aer.get_backend().', DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:

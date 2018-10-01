@@ -8,21 +8,25 @@
 """
 Example showing how to use Qiskit at level 1 (intermediate).
 
-In Qiskit 0.6 we will be working on a pass manager for level 2+ users
+This example shows how an intermediate user interacts with Terra. It builds some circuits
+and compiles them from compile parameters. It makes a qobj object which is just and container to be 
+run on a backend. The same qobj can run on many backends (as shown). It is the
+user responsibility to make sure it can be run. This is useful when you want to compare the same
+circuits on different backends or change the compile parameters.
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
+To control the passes and we have a pass manager for level 2 user. 
 """
 
-import pprint
+import pprint, time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import available_backends, compile, register, get_backend, least_busy
+from qiskit import compile, IBMQ, Aer
+from qiskit.backends.ibmq import least_busy
 
 try:
     import Qconfig
-    register(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.use_account(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -45,21 +49,31 @@ try:
     qc2.measure(qubit_reg, clbit_reg)
 
     # Setting up the backend
-    print("(Local Backends)")
-    for backend_name in available_backends({'local': True}):
-        backend = get_backend(backend_name)
+    print("(Aer Backends)")
+    for backend in Aer.backends():
         print(backend.status())
-    my_backend_name = 'local_qasm_simulator'
-    my_backend = get_backend(my_backend_name)
-    print("(Local QASM Simulator configuration) ")
+    my_backend = Aer.get_backend('local_qasm_simulator')
+    print("(QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration())
-    print("(Local QASM Simulator properties) ")
+    print("(QASM Simulator properties) ")
     pprint.pprint(my_backend.properties())
 
 
-    # Compiling the job
-    qobj = compile([qc1, qc2], my_backend)
-    # Note: in the near future qobj will become an object
+    print("\n(IMQ Backends)")
+    for backend in IBMQ.backends():
+        print(backend.status())
+
+    # select least busy available device and execute.
+    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    print("Running on current least busy device: ", least_busy_device)
+    print("(with configuration) ")
+    pprint.pprint(least_busy_device.configuration())
+    print("(with properties) ")
+    pprint.pprint(least_busy_device.properties())
+
+
+    # Compiling the job for the experimental backend 
+    qobj = compile([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
 
     # Runing the job
     sim_job = my_backend.run(qobj)
@@ -75,32 +89,19 @@ try:
     # Compile and run the Quantum Program on a real device backend
     # See a list of available remote backends
     try:
-        print("\n(Remote Backends)")
-        for backend_name in available_backends({'local': False}):
-            backend = get_backend(backend_name)
-            s = backend.status()
-            print(s)
-
-        # select least busy available device and execute.
-        least_busy_device = least_busy(available_backends())
-        print("Running on current least busy device: ", least_busy_device)
-
-        my_backend = get_backend(least_busy_device)
-
-        print("(with configuration) ")
-        pprint.pprint(my_backend.configuration())
-        print("(with properties) ")
-        pprint.pprint(my_backend.properties())
-
-        # Compiling the job
-        # I want to make it so the compile is only done once and the needing
-        # a backend is optional
-        qobj = compile([qc1, qc2], backend=my_backend, shots=1024, max_credits=10)
-
         # Runing the job.
-        exp_job = my_backend.run(qobj)
+        job_exp = least_busy_device.run(qobj)
 
-        exp_result = exp_job.result()
+        lapse = 0
+        interval = 10
+        while job_exp.status().name != 'DONE':
+            print('Status @ {} seconds'.format(interval * lapse))
+            print(job_exp.status())
+            time.sleep(interval)
+            lapse += 1
+        print(job_exp.status())
+
+        exp_result = job_exp.result()
 
         # Show the results
         print("experiment: ", exp_result)

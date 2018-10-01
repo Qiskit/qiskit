@@ -1,19 +1,20 @@
 """
 Example on how to use: load_qasm_file
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
 """
 from qiskit.wrapper import load_qasm_file
-from qiskit import QISKitError, available_backends, execute
+from qiskit import QISKitError, execute, Aer
+
 try:
     qc = load_qasm_file("examples/qasm/entangled_registers.qasm")
 
     # See a list of available local simulators
-    print("Local backends: ", available_backends({'local': True}))
+    print("Aer backends: ", Aer.backends())
+    sim_backend = Aer.get_backend('qasm_simulator')
+
 
     # Compile and run the Quantum circuit on a local simulator backend
-    job_sim = execute(qc, "local_qasm_simulator")
+    job_sim = execute(qc, sim_backend)
     sim_result = job_sim.result()
 
     # Show the results

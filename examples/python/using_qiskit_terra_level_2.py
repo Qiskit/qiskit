@@ -8,15 +8,26 @@
 """
 Example showing how to use Qiskit at level 2 (advanced).
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
+The order of the passes can determine the best way for a circuit to be complied. Here we
+make a simple circuit of 4 repeated CNOTs and show that the default pass is not as good
+as making a pass manager and telling it to start with CXCancellation.
+
+
 """
 
 # choose a remote device
-import Qconfig
-from qiskit.backends.ibmq import IBMQProvider
-ibmqprovider = IBMQProvider(Qconfig.APItoken, Qconfig.config['url'])
-backend_device = ibmqprovider.get_backend('ibmqx4')
+from qiskit import IBMQ, qobj_to_circuits
+
+try:
+    import Qconfig
+    IBMQ.use_account(Qconfig.APItoken, Qconfig.config['url'])
+except:
+    print("""WARNING: There's no connection with the API for remote backends.
+             Have you initialized a Qconfig.py file with your personal token?
+             For now, there's only access to local simulator backends...""")
+
+
+backend_device = IBMQ.get_backend('ibmqx4')
 
 # 0. build circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -30,19 +41,18 @@ circ.cx(q[0], q[1])
 circ.measure(q, c)
 
 # draw circuit
-from qiskit.tools.visualization import plot_circuit
-plot_circuit(circ)
+print(circ.qasm())
 
 # 1. standard compile -- standard qiskit passes, when no PassManager given
-from qiskit import transpiler, load_qasm_string
+from qiskit import transpiler
 qobj_standard = transpiler.compile(circ, backend_device)
-compiled_standard = load_qasm_string(qobj_standard['circuits'][0]['compiled_circuit_qasm'])
-plot_circuit(compiled_standard)
+[compiled_standard] = qobj_to_circuits(qobj_standard)
+print(compiled_standard.qasm())
 
 # 2. custom compile -- customize PassManager to run specific circuit transformations
 from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
 pm.add_pass(CXCancellation())
 qobj_custom = transpiler.compile(circ, backend_device, pass_manager=pm)
-compiled_custom = load_qasm_string(qobj_custom['circuits'][0]['compiled_circuit_qasm'])
-plot_circuit(compiled_custom)
+[compiled_custom] = qobj_to_circuits(qobj_custom)
+print(compiled_custom.qasm())
