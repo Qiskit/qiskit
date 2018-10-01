@@ -143,6 +143,14 @@ class SwapBot(DrawElement):
         self.bot = "   "
 
 
+class Reset(DrawElement):
+    def __init__(self, instruction):
+        super().__init__(instruction)
+        self.top = "     "
+        self.mid = "─|0>─"
+        self.bot = "     "
+
+
 class CXcontrol(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
@@ -390,6 +398,9 @@ class TextDrawing():
             elif instruction['name'] == 'swap':
                 qubit_layer[instruction['qubits'][0]] = SwapTop(instruction)
                 qubit_layer[instruction['qubits'][1]] = SwapBot(instruction)
+
+            elif instruction['name'] == 'reset':
+                qubit_layer[instruction['qubits'][0]] = Reset(instruction)
 
             elif 'conditional' in instruction:
                 # conditional
