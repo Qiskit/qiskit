@@ -116,7 +116,7 @@ COMPLETED
 This script is available [here](examples/python/hello_quantum.py), where we also show how to
 run the same program on a real quantum computer.
 
-### Executing your code on a real Quantum chip
+### Executing your code on a real quantum chip
 
 You can also use Qiskit to execute your code on a
 [real quantum chip](https://github.com/Qiskit/ibmqx-backend-information).
@@ -129,22 +129,22 @@ your IBM Q Experience account:
 
 2. Get an API token from the IBM Q Experience website under _My Account > Advanced > API Token_. This API token allows you to execute your programs with the IBM Q Experience backends. See: [Example](doc/example_real_backend.rst).
 
-3. We are now going to add the necessary credentials to QISKit. Take your token
+3. We are now going to add the necessary credentials to Qiskit. Take your token
    from step 2, here called `MY_API_TOKEN`, and pass it to the
-   `IBMQ.add_account()` function:
+   `IBMQ.save_account()` function:
 
    ```python
    from qiskit import IBMQ
 
-   IBMQ.add_account('MY_API_TOKEN')
+   IBMQ.save_account('MY_API_TOKEN')
     ```
 
 4. If you have access to the IBM Q Network features, you also need to pass the
-   url listed on your IBM Q account page to `store_credentials`.
+   url listed on your IBM Q account page to `save_account`.
 
-After calling `IBMQ.add_account()`, your credentials will be stored into disk.
-Once they are stored, Qiskit will automatically load and use them in your program
-via:
+After calling `IBMQ.save_account()`, your credentials will be stored into disk.
+Once they are stored, at any point in the future you can load and use them
+in your program simply via:
 
 ```python
 from qiskit import IBMQ
@@ -185,7 +185,7 @@ at these resources:
   for additional information and examples of QASM code
 * **[IBM Quantum Experience Composer](https://quantumexperience.ng.bluemix.net/qx/editor)**,
   a GUI for interacting with real and simulated quantum computers
-* **[QISkit Python API](https://github.com/Qiskit/qiskit-api-py)**, an API to use the IBM Quantum
+* **[Qiskit Python API](https://github.com/Qiskit/qiskit-api-py)**, an API to use the IBM Quantum
   Experience in Python
 
 Qiskit was originally developed by researchers and developers on the
