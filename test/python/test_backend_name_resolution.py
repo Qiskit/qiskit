@@ -6,11 +6,11 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Test backend name resolution for functionality groups, deprecations and
+"""Test backend name resolution for functionality, via groups, deprecations and
 aliases."""
 
 from qiskit import IBMQ, Aer
-from qiskit.backends.local import QasmSimulatorPy, QasmSimulatorCpp
+from qiskit.backends.aer import QasmSimulatorPy, QasmSimulator
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,
                      requires_cpp_simulator,
@@ -19,7 +19,7 @@ from .common import (QiskitTestCase,
 
 class TestBackendNameResolution(QiskitTestCase):
     """
-    Test backend resolution algorithms.
+    Test backend name resolution algorithms.
     """
 
     def test_deprecated(self):
@@ -28,12 +28,14 @@ class TestBackendNameResolution(QiskitTestCase):
         deprecated_names = Aer.deprecated_backend_names()
 
         for oldname, newname in deprecated_names.items():
-            if newname == 'local_qasm_simulator_cpp' and not is_cpp_simulator_available():
+            if (newname == 'qasm_simulator' or
+                    newname == 'statevector_simulator') and not is_cpp_simulator_available():
                 continue
 
             with self.subTest(oldname=oldname, newname=newname):
                 try:
-                    real_backend = Aer.get_backend(newname)
+                    resolved_newname = _get_first_available_backend(newname)
+                    real_backend = Aer.get_backend(resolved_newname)
                 except KeyError:
                     # The real name of the backend might not exist
                     pass
@@ -60,11 +62,11 @@ class TestBackendNameResolution(QiskitTestCase):
                     self.assertEqual(backend_by_name, backend_by_display_name)
                     self.assertEqual(backend_by_display_name.name(), backend_name)
 
-    def test_aggregate(self):
-        """Test that aggregate group names maps the first available backend
+    def test_groups(self):
+        """Test that aggregate group names map to the first available backend
         of their list of backends."""
-        aggregate_backends = Aer.grouped_backend_names()
-        for group_name, priority_list in aggregate_backends.items():
+        aer_groups = Aer.grouped_backend_names()
+        for group_name, priority_list in aer_groups.items():
             with self.subTest(group_name=group_name,
                               priority_list=priority_list):
                 target_backend = _get_first_available_backend(priority_list)
@@ -77,31 +79,33 @@ class TestBackendNameResolution(QiskitTestCase):
         self.assertRaises(LookupError, Aer.get_backend, 'bad_name')
 
 
-class TestBackendNames(QiskitTestCase):
+class TestAerBackendNames(QiskitTestCase):
     """
     Test grouped/deprecated/aliased names from providers.
     """
-
-    def test_local_groups(self):
-        """test local group names are resolved correctly"""
-        group_name = 'local_qasm_simulator'
+    def test_aer_groups(self):
+        """test aer group names are resolved correctly"""
+        group_name = 'qasm_simulator'
         backend = Aer.get_backend(group_name)
         if is_cpp_simulator_available():
-            self.assertIsInstance(backend, QasmSimulatorCpp)
+            self.assertIsInstance(backend, QasmSimulator)
         else:
             self.assertIsInstance(backend, QasmSimulatorPy)
 
     @requires_cpp_simulator
-    def test_local_deprecated(self):
-        """test deprecated local backends are resolved correctly"""
+    def test_aer_deprecated(self):
+        """test deprecated aer backends are resolved correctly"""
         old_name = 'local_qiskit_simulator'
         new_backend = Aer.get_backend(old_name)
-        self.assertIsInstance(new_backend, QasmSimulatorCpp)
+        self.assertIsInstance(new_backend, QasmSimulator)
 
 
-def _get_first_available_backend(backends):
+def _get_first_available_backend(backend_names):
     """Gets the first available backend."""
-    for backend_name in backends:
+    if isinstance(backend_names, str):
+        backend_names = [backend_names]
+
+    for backend_name in backend_names:
         try:
             return Aer.get_backend(backend_name).name()
         except LookupError:

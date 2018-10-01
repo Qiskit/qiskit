@@ -30,8 +30,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.cr_name = cr.name
         self.circuits = [qc]
 
-    def test_local_qasm_simulator_py(self):
-        backend = Aer.get_backend('local_qasm_simulator_py')
+    def test_aer_qasm_simulator_py(self):
+        backend = Aer.get_backend('qasm_simulator_py')
         qobj = wrapper.compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
@@ -41,8 +41,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_local_clifford_simulator_cpp(self):
-        backend = Aer.get_backend('local_clifford_simulator_cpp')
+    def test_aer_clifford_simulator(self):
+        backend = Aer.get_backend('clifford_simulator')
         qobj = wrapper.compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
@@ -52,8 +52,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_local_qasm_simulator_cpp(self):
-        backend = Aer.get_backend('local_qasm_simulator_cpp')
+    def test_aer_qasm_simulator(self):
+        backend = Aer.get_backend('qasm_simulator')
         qobj = wrapper.compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
@@ -62,8 +62,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
         self.assertIn(self.cr_name, c_qasm)
 
-    def test_local_unitary_simulator(self):
-        backend = Aer.get_backend('local_unitary_simulator_py')
+    def test_aer_unitary_simulator(self):
+        backend = Aer.get_backend('unitary_simulator')
         qobj = wrapper.compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm

@@ -13,14 +13,14 @@ import numpy as np
 from qiskit import qasm, unroll
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.local.qasm_simulator_py import QasmSimulatorPy
+from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
 from qiskit.qobj import Qobj, QobjHeader, QobjItem, QobjConfig, QobjExperiment
 
-from .common import QiskitTestCase
+from ..common import QiskitTestCase
 
 
-class TestLocalQasmSimulatorPy(QiskitTestCase):
-    """Test local_qasm_simulator_py."""
+class TestAerQasmSimulatorPy(QiskitTestCase):
+    """Test Aer's qasm_simulator_py."""
 
     def setUp(self):
         self.seed = 88
@@ -40,7 +40,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                                            max_credits=3),
                          experiments=[circuit],
                          header=QobjHeader(
-                             backend_name='local_qasm_simulator_py'))
+                             backend_name='qasm_simulator_py'))
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -111,7 +111,7 @@ class TestLocalQasmSimulatorPy(QiskitTestCase):
                                       shots=shots,
                                       memory_slots=max_qubits),
                     experiments=[ucircuit_true, ucircuit_false],
-                    header=QobjHeader(backend_name='local_qasm_simulator_py'))
+                    header=QobjHeader(backend_name='qasm_simulator_py'))
 
         result = QasmSimulatorPy().run(qobj).result()
         result_if_true = result.get_data('test_if_true')

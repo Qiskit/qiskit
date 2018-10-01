@@ -14,12 +14,12 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import execute
-from .common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
+from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator
 class TestCrossSimulation(QiskitTestCase):
-    """Test output consistency across simulators.
+    """Test output consistency across simulators (from Aer & IBMQ)
     """
     _desired_fidelity = 0.99
 
@@ -30,8 +30,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
 
-        sim_cpp = 'local_statevector_simulator_cpp'
-        sim_py = 'local_statevector_simulator_py'
+        sim_cpp = 'statevector_simulator'
+        sim_py = 'statevector_simulator_py'
         result_cpp = execute(circuit, sim_cpp).result()
         result_py = execute(circuit, sim_py).result()
         statevector_cpp = result_cpp.get_statevector()
@@ -53,8 +53,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        sim_cpp = 'local_qasm_simulator_cpp'
-        sim_py = 'local_qasm_simulator_py'
+        sim_cpp = 'qasm_simulator'
+        sim_py = 'qasm_simulator_py'
         sim_ibmq = 'ibmq_qasm_simulator'
         shots = 2000
         result_cpp = execute(circuit, sim_cpp, shots=shots).result()
@@ -80,8 +80,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.snapshot(3)
         circuit.measure(qr, cr)
 
-        sim_cpp = 'local_qasm_simulator_cpp'
-        sim_py = 'local_qasm_simulator_py'
+        sim_cpp = 'qasm_simulator'
+        sim_py = 'qasm_simulator_py'
         result_cpp = execute(circuit, sim_cpp, shots=2).result()
         result_py = execute(circuit, sim_py, shots=2).result()
         snapshots_cpp = result_cpp.get_snapshots()
@@ -111,8 +111,8 @@ class TestCrossSimulation(QiskitTestCase):
 
         # TODO: bring back online simulator tests when reset/measure doesn't
         # get rejected by the api
-        sim_cpp = 'local_qasm_simulator_cpp'
-        sim_py = 'local_qasm_simulator_py'
+        sim_cpp = 'qasm_simulator'
+        sim_py = 'qasm_simulator_py'
         # sim_ibmq = 'ibmq_qasm_simulator'
         shots = 1000
         result_cpp = execute(circuit, sim_cpp, shots=shots, seed=1).result()

@@ -63,10 +63,10 @@ class MapperTest(QiskitTestCase):
         """
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'))
         coupling_map = [[0, 2], [1, 2], [2, 3]]
-        result1 = qiskit.execute(circ, backend="local_qasm_simulator",
+        result1 = qiskit.execute(circ, backend="qasm_simulator",
                                  coupling_map=coupling_map, seed=self.seed)
         count1 = result1.result().get_counts()
-        result2 = qiskit.execute(circ, backend="local_qasm_simulator", coupling_map=None,
+        result2 = qiskit.execute(circ, backend="qasm_simulator", coupling_map=None,
                                  seed=self.seed)
         count2 = result2.result().get_counts()
         self.assertEqual(count1.keys(), count2.keys(), )
@@ -81,7 +81,7 @@ class MapperTest(QiskitTestCase):
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'))
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
-        qobj = qiskit.execute(circ, backend="local_qasm_simulator",
+        qobj = qiskit.execute(circ, backend="qasm_simulator",
                               coupling_map=coupling_map,
                               seed=self.seed, shots=shots)
         counts = qobj.result().get_counts()
@@ -102,7 +102,7 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[1], qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         coupling_map = [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
         initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
         qobj = qiskit.compile(qc, backend=backend,
@@ -118,7 +118,7 @@ class MapperTest(QiskitTestCase):
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
-        qobj = qiskit.execute(circ, backend="local_qasm_simulator",
+        qobj = qiskit.execute(circ, backend="qasm_simulator",
                               coupling_map=coupling_map, shots=shots,
                               seed=self.seed)
         counts = qobj.result().get_counts()
@@ -226,7 +226,7 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[13], qr[4])
         for j in range(16):
             qc.measure(qr[j], cr[j])
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
                         [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
                         [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],

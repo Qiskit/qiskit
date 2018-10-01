@@ -7,6 +7,7 @@
 
 """Provider for remote IBMQ backends with admin features."""
 
+import warnings
 from collections import OrderedDict
 
 from qiskit.backends import BaseProvider
@@ -93,9 +94,6 @@ class IBMQProvider(BaseProvider):
             **kwargs (dict):
                 * proxies (dict): Proxy configuration for the API.
                 * verify (bool): If False, ignores SSL certificates errors
-
-        Raises:
-            IBMQAccountError: if the credentials are already in use.
         """
         credentials = Credentials(token, url, **kwargs)
 
@@ -104,12 +102,12 @@ class IBMQProvider(BaseProvider):
         stored_credentials = read_credentials_from_qiskitrc()
 
         if credentials.unique_id() in stored_credentials.keys():
-            raise IBMQAccountError('Credentials are already stored')
+            warnings.warn('Credentials are already stored')
+        else:
+            self._append_account(credentials)
 
-        self._append_account(credentials)
-
-        # Store the credentials back to disk.
-        store_credentials(credentials)
+            # Store the credentials back to disk.
+            store_credentials(credentials)
 
     def remove_account(self, token, url=QE_URL, **kwargs):
         """Remove an account from the session and from disk.
@@ -199,8 +197,7 @@ class IBMQProvider(BaseProvider):
         3. in the `qiskitrc` configuration file
 
         Raises:
-            IBMQAccountError: if attempting to load previously loaded accounts,
-                    or if no credentials can be found.
+            IBMQAccountError: if no credentials are found.
         """
         # Special handling of the credentials filters.
         credentials_filter = {}
@@ -223,14 +220,11 @@ class IBMQProvider(BaseProvider):
 
         Returns:
             IBMQSingleProvider: new single-account provider.
-
-        Raises:
-            IBMQAccountError: if the provider could not be appended.
         """
         # Check if duplicated credentials are already in use. By convention,
         # we assume (hub, group, project) is always unique.
         if credentials.unique_id() in self._accounts.keys():
-            raise IBMQAccountError('Credentials are already in use')
+            warnings.warn('Credentials are already in use.')
 
         single_provider = IBMQSingleProvider(credentials, self)
         self._accounts[credentials.unique_id()] = single_provider
