@@ -41,11 +41,14 @@ class QobjItem(SimpleNamespace):
 
     @classmethod
     def _expand_item(cls, obj):
+        # pylint: disable=too-many-return-statements
         """
         Return a valid representation of `obj` depending on its type.
         """
         if isinstance(obj, (list, tuple)):
             return [cls._expand_item(item) for item in obj]
+        if isinstance(obj, dict):
+            return {key: cls._expand_item(value) for key, value in obj.items()}
         if isinstance(obj, QobjItem):
             return obj.as_dict()
         if isinstance(obj, numpy.integer):
