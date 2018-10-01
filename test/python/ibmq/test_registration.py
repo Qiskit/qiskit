@@ -109,7 +109,7 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test disabling an account in a session."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.enable_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.disable_accounts('QISKITRC_TOKEN')
+            qiskit.IBMQ.disable_accounts(token='QISKITRC_TOKEN')
 
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
 
@@ -123,7 +123,7 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.delete_accounts(token='QISKITRC_TOKEN')
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
-    def test_disable_accounts(self):
+    def test_disable_all_accounts(self):
         """Test disabling all accounts from session."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.enable_account('QISKITRC_TOKEN')
@@ -132,7 +132,7 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.disable_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
 
-    def test_delete_accounts(self):
+    def test_delete_all_accounts(self):
         """Test deleting all accounts from disk."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.save_account('QISKITRC_TOKEN')
