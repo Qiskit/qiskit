@@ -67,9 +67,6 @@ class TestIBMQAccounts(QiskitTestCase):
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.use_account('QISKITRC_TOKEN')
 
-            with self.assertRaises(QISKitError):
-                qiskit.IBMQ.use_account('QISKITRC_TOKEN')
-
             self.assertEqual(len(qiskit.IBMQ._accounts), 1)
 
     def test_store_credentials(self):
@@ -105,10 +102,6 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test store the same credentials twice."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-
-            with self.assertRaises(QISKitError):
-                # Note they are considered the same, as they have the same url.
-                qiskit.IBMQ.use_account('QISKITRC_TOKEN2')
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()

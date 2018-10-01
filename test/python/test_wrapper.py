@@ -65,6 +65,7 @@ class TestWrapper(QiskitTestCase):
             qiskit.wrapper.register(qe_token, qe_url)
         self.assertCountEqual(initial_providers, registered_providers())
 
+    @requires_qe_access
     def test_register_bad_credentials(self):
         """Test registering a provider with bad credentials."""
         initial_providers = registered_providers()
