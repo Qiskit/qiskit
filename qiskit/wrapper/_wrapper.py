@@ -196,7 +196,7 @@ def least_busy(names):
     """
     backends = [get_backend(name) for name in names]
     warnings.warn('the global least_busy() will be deprecated after 0.6. Please '
-                  'use east_busy() imported from ibmq',
+                  'use least_busy() imported from qiskit.backends.ibmq',
                   DeprecationWarning)
     return ibmq.least_busy(backends).name()
 
@@ -217,8 +217,8 @@ def get_backend(name):
     """
     warnings.warn('the global get_backend() will be deprecated after 0.6. Please '
                   'use the qiskit.IBMQ.backends() and qiskit.Aer.backends() '
-                  'method instead with the "filters" parameter.'
-                  'or qiskit.IBMQ.get_backend()',
+                  'method instead with the "name" parameter.'
+                  '(or qiskit.IBMQ.get_backend() and qiskit.Aer.get_backend())',
                   DeprecationWarning)
     try:
         return Aer.get_backend(name)
@@ -260,7 +260,9 @@ def compile(circuits, backend,
     """
     # pylint: disable=redefined-builtin
     if isinstance(backend, str):
-        warnings.warn('compile will not take a string', DeprecationWarning)
+        warnings.warn('compile() no longer takes backend string names.'
+                      'Please pass backend objects, obtained via'
+                      'IBMQ.get_backend() or Aer.get_backend().', DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:
@@ -301,11 +303,13 @@ def execute(circuits, backend,
         BaseJob: returns job instance derived from BaseJob
 
     .. deprecated:: 0.6+
-        After 0.6, execute will only take a backend object.
+        After 0.6, execute will only take a backend object, not string.
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
-        warnings.warn('execute will not take a string', DeprecationWarning)
+        warnings.warn('execute() no longer takes backend string names.'
+                      'Please pass backend objects, obtained via'
+                      'IBMQ.get_backend() or Aer.get_backend().', DeprecationWarning)
         try:
             backend = Aer.get_backend(backend)
         except KeyError:
