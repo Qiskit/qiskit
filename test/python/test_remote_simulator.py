@@ -32,13 +32,12 @@ class TestBackendQobj(JobTestCase):
         self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
         self._qe_token = os.getenv('IBMQ_TOKEN', None)
         self._qe_url = os.getenv('IBMQ_QOBJ_URL')
-
         if not self._testing_device or not self._qe_token or not self._qe_url:
             self.skipTest("No credentials or testing device available for "
                           "testing Qobj capabilities.")
 
         IBMQ.use_account(self._qe_token, self._qe_url)
-        self._local_backend = Aer.get_backend('local_qasm_simulator')
+        self._local_backend = Aer.get_backend('qasm_simulator_py')
         self._remote_backend = IBMQ.get_backend(self._testing_device)
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
