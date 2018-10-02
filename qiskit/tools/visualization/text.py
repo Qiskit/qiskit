@@ -14,22 +14,24 @@ A module for drawing circuits in ascii art or some other text representation
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import transpile
 
+
 class DrawElement():
     def __init__(self, instruction):
         params = ""
         if 'params' in instruction:
             if len(instruction['params']):
-                params += "(%s)" % ','.join([str(i) for i in instruction['params']])
+                params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
         self.label = "%s%s" % (instruction['name'].upper(), params)
         self.width = len(self.label)
 
     @property
     def length(self):
-        return max(len(self.top),len(self.mid),len(self.bot))
+        return max(len(self.top), len(self.mid), len(self.bot))
 
     @property
     def label_size(self):
         return len(self.label)
+
 
 class MeasureTo(DrawElement):
     def __init__(self, instruction):
@@ -64,12 +66,13 @@ class DrawElementMultiBit(DrawElement):
 class MultiQubitGateTop(DrawElementMultiBit):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self._mid_content = "" # The label will be put by some other part of the box.
+        self._mid_content = ""  # The label will be put by some other part of the box.
         self._top = "┌─%s─┐"
         self._mid = "┤ %s ├"
         self._bot = "│ %s │"
         self._top_connector = self._top_border = '─'
         self._bot_connector = self._bot_border = " "
+
 
 class MultiQubitGateMid(DrawElementMultiBit):
     def __init__(self, instruction, input_length, order):
@@ -85,6 +88,7 @@ class MultiQubitGateMid(DrawElementMultiBit):
         # TODO for now, force it in every Mid in the middle
         self._mid_content = self.label
 
+
 class MultiQubitGateBot(DrawElementMultiBit):
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
@@ -97,6 +101,7 @@ class MultiQubitGateBot(DrawElementMultiBit):
         self._mid_content = self._bot_connector = self._top_connector = ""
         if input_length <= 2:
             self._top_connector = self.label
+
 
 class ConditionalTo(DrawElementMultiBit):
     def __init__(self, instruction):
@@ -120,6 +125,47 @@ class ConditionalFrom(DrawElementMultiBit):
         self._bot = "└─%s─┘"
         self._top_connector = '┴'
         self._top_border = self._bot_connector = self._bot_border = '─'
+
+
+class ConditionalFromTop(DrawElementMultiBit):
+    def __init__(self, instruction):
+        super().__init__(instruction)
+        self._mid_content = ""  # The label will be put by some other part of the box.
+        self._top = "┌─%s─┐"
+        self._mid = "╡ %s ╞"
+        self._bot = "│ %s │"
+        self._top_connector = '┴'
+        self._top_border = '─'
+        self._bot_connector = self._bot_border = " "
+
+
+class ConditionalFromMid(DrawElementMultiBit):
+    def __init__(self, instruction, input_length, order):
+        super().__init__(instruction)
+        self._top = "│ %s │"
+        self._mid = "╡ %s ╞"
+        self._bot = "│ %s │"
+        self._top_border = self._bot_border = ' '
+
+        # TODO logic about centering vertically, using input_length and order
+        # '*'.center((input_lenght*3)-1)
+        self._top_connector = self._bot_connector = self._mid_content = ''
+        # TODO for now, force it in every Mid in the middle
+        self._mid_content = self.label
+
+
+class ConditionalFromBot(DrawElementMultiBit):
+    def __init__(self, instruction, input_length):
+        super().__init__(instruction)
+        self._top = "│ %s │"
+        self._mid = "╡ %s ╞"
+        self._bot = "└─%s─┘"
+        self._top_border = " "
+        self._bot_border = '─'
+
+        self._mid_content = self._bot_connector = self._top_connector = ""
+        if input_length <= 2:
+            self._top_connector = self.label
 
 
 class Barrier(DrawElement):
@@ -193,6 +239,7 @@ class EmptyWire(DrawElement):
                 max_length)
         return layer
 
+
 class BreakWire(DrawElement):
     def __init__(self, arrow_char):
         self.top = arrow_char
@@ -206,6 +253,7 @@ class BreakWire(DrawElement):
         for wire in range(layer_length):
             breakwire_layer.append(BreakWire(arrow_char))
         return breakwire_layer
+
 
 class EmptyQubitWire(EmptyWire):
     def __init__(self, length):
@@ -275,7 +323,8 @@ class TextDrawing():
                 layer_groups.append([BreakWire.fillup_layer(layer, '«')])
                 rest_of_the_line = line_length - layer_groups[-1][-1][0].length
 
-                layer_groups[-1].append(InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
+                layer_groups[-1].append(
+                    InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
                 rest_of_the_line -= layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(layer)
@@ -284,7 +333,7 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-            lines+=TextDrawing.drawWires(wires)
+            lines += TextDrawing.drawWires(wires)
 
         return lines
 
@@ -301,9 +350,8 @@ class TextDrawing():
             ret.append("%s_%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
         for creg in header['clbit_labels']:
             for clbit in range(creg[1]):
-                ret.append("%s_%s: %s" % (creg[0],clbit, initial_value['clbit']))
+                ret.append("%s_%s: %s" % (creg[0], clbit, initial_value['clbit']))
         return ret
-
 
     @staticmethod
     def drawWires(wires):
@@ -349,7 +397,7 @@ class TextDrawing():
         for topc, botc in zip(top, bot):
             if topc == botc:
                 ret += topc
-            elif topc in '┼╪':
+            elif topc in '┼╪' and botc == " ":
                 ret += "│"
             elif topc == " ":
                 ret += botc
@@ -380,13 +428,9 @@ class TextDrawing():
         return ret
 
     def clbit_index_from_mask(self, mask):
-        clbit_labels = {}
-        initial = 0
-        for index,name_amount in enumerate(self.json_circuit['header']['clbit_labels']):
-            final=initial+name_amount[1]
-            clbit_labels[index] = [ i for i in range(initial, final)]
-            initial = final
-        return clbit_labels[mask]
+        clbit_len = self.json_circuit['header']['number_of_clbits']
+        bit_mask = [bool(mask & (1 << n)) for n in range(clbit_len)]
+        return [i for i, x in enumerate(bit_mask) if x]
 
     @staticmethod
     def normalize_width(layer):
@@ -431,14 +475,18 @@ class TextDrawing():
 
             elif 'conditional' in instruction:
                 # conditional
-                mask = int(instruction['conditional']['mask'], 16)-1
-
-                clbits = self.clbit_index_from_mask(mask)
+                clbits = self.clbit_index_from_mask(int(instruction['conditional']['mask'], 16))
                 if len(clbits) == 1:
                     clbit_layer[clbits[0]] = ConditionalFrom(instruction)
+                else:
+                    clbit_layer[clbits[0]] = ConditionalFromTop(instruction)
+                    for order, clbit in enumerate(clbits[1:-1], 1):
+                        clbit_layer[clbit] = ConditionalFromMid(instruction, len(clbits), order)
+                    clbit_layer[clbits[-1]] = ConditionalFromBot(instruction, len(clbits))
+
                 qubit_layer[instruction['qubits'][0]] = ConditionalTo(instruction)
 
-                TextDrawing.normalize_width(clbit_layer+qubit_layer)
+                TextDrawing.normalize_width(clbit_layer + qubit_layer)
 
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
                 # cx/ccx
@@ -464,10 +512,9 @@ class TextDrawing():
                         instruction)
 
                 qubit_layer[qubits[0]] = MultiQubitGateTop(instruction)
-                for order,qubit in enumerate(qubits[1:-1],1):
+                for order, qubit in enumerate(qubits[1:-1], 1):
                     qubit_layer[qubit] = MultiQubitGateMid(instruction, len(qubits), order)
                 qubit_layer[qubits[-1]] = MultiQubitGateBot(instruction, len(qubits))
-
 
                 TextDrawing.normalize_width(qubit_layer)
 
@@ -478,9 +525,10 @@ class TextDrawing():
 
         return layers
 
+
 def text_drawer(circuit, filename=None,
                 basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                    "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
+                      "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
