@@ -101,6 +101,7 @@ class MultiQubitGateBot(DrawElementMultiBit):
 class ConditionalTo(DrawElementMultiBit):
     def __init__(self, instruction):
         super().__init__(instruction)
+        self.width = len(self.label)
         self._mid_content = self.label
         self._top = "┌─%s─┐"
         self._mid = "┤ %s ├"
@@ -111,7 +112,9 @@ class ConditionalTo(DrawElementMultiBit):
 
 class ConditionalFrom(DrawElementMultiBit):
     def __init__(self, instruction):
+        super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
+        self.width = len(self.label)
         self._top = "┌─%s─┐"
         self._mid = "╡ %s ╞"
         self._bot = "└─%s─┘"
@@ -372,6 +375,23 @@ class TextDrawing():
                 ret += botc
         return ret
 
+    def clbit_index_from_mask(self, mask):
+        clbit_labels = {}
+        initial = 0
+        for index,name_amount in enumerate(self.json_circuit['header']['clbit_labels']):
+            final=initial+name_amount[1]
+            clbit_labels[index] = [ i for i in range(initial, final)]
+            initial = final
+        return clbit_labels[mask]
+
+    @staticmethod
+    def normalize_width(layer):
+        instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
+        longest = max([instruction.width for instruction in instructions])
+        print(longest)
+        for instruction in instructions:
+            instruction.width = longest
+
     def build_layers(self):
         layers = []
         noqubits = self.json_circuit['header']['number_of_qubits']
@@ -408,15 +428,14 @@ class TextDrawing():
 
             elif 'conditional' in instruction:
                 # conditional
-                mask = int(instruction['conditional']['mask'], 16)
+                mask = int(instruction['conditional']['mask'], 16)-1
 
-                clbit_layer[mask] = ConditionalFrom(instruction)  # TODO
+                clbits = self.clbit_index_from_mask(mask)
+                if len(clbits) == 1:
+                    clbit_layer[clbits[0]] = ConditionalFrom(instruction)
                 qubit_layer[instruction['qubits'][0]] = ConditionalTo(instruction)
 
-                longest = max(clbit_layer[mask].label_size,
-                              qubit_layer[instruction['qubits'][0]].label_size)
-                clbit_layer[mask].width=longest
-                qubit_layer[instruction['qubits'][0]].width=longest
+                TextDrawing.normalize_width(clbit_layer+qubit_layer)
 
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
                 # cx/ccx
@@ -446,11 +465,8 @@ class TextDrawing():
                     qubit_layer[qubit] = MultiQubitGateMid(instruction, len(qubits), order)
                 qubit_layer[qubits[-1]] = MultiQubitGateBot(instruction, len(qubits))
 
-                # Adjust width
-                affected_part_of_the_layer = qubit_layer[qubits[0]:qubits[-1]+1]
-                longest = max([qubit.label_size for qubit in affected_part_of_the_layer])
-                for qubit in affected_part_of_the_layer:
-                    qubit.width=longest
+
+                TextDrawing.normalize_width(qubit_layer)
 
             else:
                 raise Exception("I don't know how to handle this instruction", instruction)
