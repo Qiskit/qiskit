@@ -16,13 +16,42 @@ from qiskit.transpiler import transpile
 
 
 class DrawElement():
-    def __init__(self, instruction):
-        params = ""
-        if 'params' in instruction:
-            if len(instruction['params']):
-                params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
-        self.label = "%s%s" % (instruction['name'].upper(), params)
+    """ An element is an instruction or an operation that need to be drawn."""
+
+    def __init__(self, instruction=None):
+        if instruction:
+            params = ""
+            if 'params' in instruction:
+                if instruction['params']:
+                    params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
+            self.label = "%s%s" % (instruction['name'].upper(), params)
+        else:
+            self.label = ""
         self.width = len(self.label)
+        self._top = self._mid = self._bot = ""
+        self._top_connector = self._mid_content = self._bot_connector = " "
+        self._top_border = self._bot_border = " "
+
+    @property
+    def top(self):
+        if "%s" in self._top:
+            return self._top % self._top_connector.center(self.width, self._top_border)
+        else:
+            return self._top
+
+    @property
+    def mid(self):
+        if "%s" in self._mid:
+            return self._mid % self._mid_content.center(self.width)
+        else:
+            return self._mid
+
+    @property
+    def bot(self):
+        if "%s" in self._bot:
+            return self._bot % self._bot_connector.center(self.width, self._bot_border)
+        else:
+            return self._bot
 
     @property
     def length(self):
@@ -36,31 +65,20 @@ class DrawElement():
 class MeasureTo(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = " ║ "
-        self.mid = "═╩═"
-        self.bot = "   "
+        self._top = " ║ "
+        self._mid = "═╩═"
+        self._bot = "   "
 
 
 class MeasureFrom(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = "┌─┐"
-        self.mid = "┤M├"
-        self.bot = "└╥┘"
+        self._top = "┌─┐"
+        self._mid = "┤M├"
+        self._bot = "└╥┘"
 
 
 class DrawElementMultiBit(DrawElement):
-    @property
-    def top(self):
-        return self._top % self._top_connector.center(self.width, self._top_border)
-
-    @property
-    def mid(self):
-        return self._mid % self._mid_content.center(self.width)
-
-    @property
-    def bot(self):
-        return self._bot % self._bot_connector.center(self.width, self._bot_border)
 
     def center_label(self, input_length, order):
         location_in_the_box = '*'.center(input_length * 2 - 1).index('*') + 1
@@ -95,7 +113,7 @@ class MultiQubitGateMid(DrawElementMultiBit):
         self._top_border = self._bot_border = ' '
         self._top_connector = self._bot_connector = self._mid_content = ''
         self.center_label(input_length, order)
-        
+
 
 class MultiQubitGateBot(DrawElementMultiBit):
     def __init__(self, instruction, input_length):
@@ -179,65 +197,66 @@ class ConditionalFromBot(DrawElementMultiBit):
 class Barrier(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = " ¦ "
-        self.mid = "─¦─"
-        self.bot = " ¦ "
+        self._top = " ¦ "
+        self._mid = "─¦─"
+        self._bot = " ¦ "
 
 
 class SwapTop(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = "   "
-        self.mid = "─X─"
-        self.bot = " │ "
+        self._top = "   "
+        self._mid = "─X─"
+        self._bot = " │ "
 
 
 class SwapBot(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = " │ "
-        self.mid = "─X─"
-        self.bot = "   "
+        self._top = " │ "
+        self._mid = "─X─"
+        self._bot = "   "
 
 
 class Reset(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = "     "
-        self.mid = "─|0>─"
-        self.bot = "     "
+        self._top = "     "
+        self._mid = "─|0>─"
+        self._bot = "     "
 
 
 class CXcontrol(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = "   "
-        self.mid = "─■─"
-        self.bot = " │ "
+        self._top = "   "
+        self._mid = "─■─"
+        self._bot = " │ "
 
 
 class CXtarget(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.top = " │ "
-        self.mid = "(+)"
-        self.bot = "   "
+        self._top = " │ "
+        self._mid = "(+)"
+        self._bot = "   "
 
 
 class UnitaryGate(DrawElement):
     def __init__(self, instruction):
         super().__init__(instruction)
         label_size = len(self.label)
-        self.top = "┌─%s─┐" % ('─' * label_size)
-        self.mid = "┤ %s ├" % self.label
-        self.bot = "└─%s─┘" % ('─' * label_size)
+        self._top = "┌─%s─┐" % ('─' * label_size)
+        self._mid = "┤ %s ├" % self.label
+        self._bot = "└─%s─┘" % ('─' * label_size)
 
 
 class EmptyWire(DrawElement):
-    def __init__(self, length):
+    def __init__(self, length=0):
+        super().__init__()
         self._length = length
-        self.top = " " * length
-        self.bot = " " * length
+        self._top = " " * length
+        self._bot = " " * length
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
@@ -250,9 +269,9 @@ class EmptyWire(DrawElement):
 
 class BreakWire(DrawElement):
     def __init__(self, arrow_char):
-        self.top = arrow_char
-        self.mid = arrow_char
-        self.bot = arrow_char
+        self._top = arrow_char
+        self._mid = arrow_char
+        self._bot = arrow_char
 
     @staticmethod
     def fillup_layer(layer, arrow_char):
@@ -266,21 +285,22 @@ class BreakWire(DrawElement):
 class EmptyQubitWire(EmptyWire):
     def __init__(self, length):
         super().__init__(length)
-        self.mid = '─' * length
+        self._mid = '─' * length
 
 
 class EmptyClbitWire(EmptyWire):
     def __init__(self, length):
         super().__init__(length)
-        self.mid = '═' * length
+        self._mid = '═' * length
 
 
 class InputWire(EmptyWire):
     def __init__(self, label):
+        super().__init__()
         self.label = label
-        self.top = " " * len(self.label)
-        self.mid = label
-        self.bot = " " * len(self.label)
+        self._top = " " * len(self.label)
+        self._mid = label
+        self._bot = " " * len(self.label)
 
     @staticmethod
     def fillup_layer(names):
@@ -516,7 +536,8 @@ class TextDrawing():
                 # Checks if qubits are consecutive
                 if qubits != [i for i in range(qubits[0], qubits[-1] + 1)]:
                     raise Exception(
-                        "I don't know how to build a gate with multiple qubits when they are not adjacent to each other",
+                        ("I don't know how to build a gate with multiple qubits when"
+                         "they are not adjacent to each other"),
                         instruction)
 
                 qubit_layer[qubits[0]] = MultiQubitGateTop(instruction)
