@@ -55,7 +55,11 @@ class IBMQProvider(BaseProvider):
         return {
             'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
             'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
-            'real': 'ibmqx1'
+            'real': 'ibmqx1',
+            'ibmqx2': 'ibmq_5_yorktown',
+            'ibmqx4': 'ibmq_5_tenerife',
+            'ibmqx5': 'ibmq_16_rueschlikon',
+            'QS1_1': 'ibmq_20_austin',
             }
 
     def aliased_backend_names(self):

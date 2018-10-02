@@ -21,12 +21,7 @@ from qiskit.backends import JobStatus
 # imports. Once fixed, their place should be `ibmqprovider.py`.
 
 # Dict with the form {'new_name': 'previous_name'}
-ALIASED_BACKEND_NAMES = {
-    'ibmq_5_yorktown': 'ibmqx2',
-    'ibmq_5_tenerife': 'ibmqx4',
-    'ibmq_16_rueschlikon': 'ibmqx5',
-    'ibmq_20_austin': 'QS1_1'
-}
+ALIASED_BACKEND_NAMES = {}
 
 # Dict with the form {'previous_name': 'new_name'}
 ALIASED_BACKEND_NAMES_REVERSED = {name: alias for alias, name in
