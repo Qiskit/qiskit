@@ -23,7 +23,7 @@ from qiskit.backends.ibmq.credentials import (
 from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
 from qiskit.backends.ibmq.ibmqprovider import QE_URL
 from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
-from .common import QiskitTestCase
+from ..common import QiskitTestCase
 
 
 IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
@@ -33,11 +33,11 @@ IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
 @skipIf(os.name == 'nt', 'Test not supported in Windows')
 class TestIBMQAccounts(QiskitTestCase):
     """Tests for the IBMQ account handling."""
-    def test_use_credentials(self):
-        """Test using one account."""
+    def test_enable_account(self):
+        """Test enabling one account."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN', url='someurl',
-                                    proxies={'http': 'foo'})
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN', url='someurl',
+                                       proxies={'http': 'foo'})
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
@@ -48,102 +48,98 @@ class TestIBMQAccounts(QiskitTestCase):
             self.assertEqual('someurl', provider.credentials.url)
             self.assertEqual({'http': 'foo'}, provider.credentials.proxies)
 
-    def test_use_multiple_credentials(self):
-        """Test using multiple accounts, combining QE and IBMQ."""
+    def test_enable_multiple_accounts(self):
+        """Test enabling multiple accounts, combining QX and IBMQ."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN',
+                                       url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN',
+                                       url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
             self.assertEqual(loaded_accounts, {})
             self.assertEqual(len(qiskit.IBMQ._accounts), 3)
 
-    def test_use_duplicate_credentials(self):
-        """Test using the same credentials twice."""
+    def test_enable_duplicate_accounts(self):
+        """Test enabling the same credentials twice."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN')
 
             self.assertEqual(len(qiskit.IBMQ._accounts), 1)
 
-    def test_store_credentials(self):
-        """Test storing one account."""
+    def test_save_account(self):
+        """Test saving one account."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN', url=QE_URL,
-                                    proxies={'http': 'foo'})
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN', url=QE_URL,
+                                     proxies={'http': 'foo'})
 
             # Compare the session accounts with the ones stored in file.
-            loaded_accounts = read_credentials_from_qiskitrc()
-            self.assertEqual(qiskit.IBMQ._accounts.keys(), loaded_accounts.keys())
-            self.assertEqual(list(qiskit.IBMQ._accounts.values())[0].credentials,
-                             list(loaded_accounts.values())[0])
+            stored_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(len(stored_accounts.keys()), 1)
 
-    def test_store_multiple_credentials(self):
-        """Test storing several accounts, combining QE and IBMQ"""
+    def test_save_multiple_accounts(self):
+        """Test saving several accounts, combining QX and IBMQ"""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN',
+                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN',
+                                     url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
 
             # Compare the session accounts with the ones stored in file.
-            loaded_accounts = read_credentials_from_qiskitrc()
-            self.assertEqual(qiskit.IBMQ._accounts.keys(), loaded_accounts.keys())
-            self.assertEqual(len(loaded_accounts), 3)
+            stored_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(len(stored_accounts), 3)
             for account_name, provider in qiskit.IBMQ._accounts.items():
                 self.assertEqual(provider.credentials,
-                                 loaded_accounts[account_name])
+                                 stored_accounts[account_name])
 
-    def test_store_duplicate_credentials(self):
-        """Test store the same credentials twice."""
+    def test_save_duplicate_accounts(self):
+        """Test saving the same credentials twice."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN')
 
             # Compare the session accounts with the ones stored in file.
-            loaded_accounts = read_credentials_from_qiskitrc()
-            self.assertEqual(len(qiskit.IBMQ._accounts), 1)
-            self.assertEqual(len(loaded_accounts), 1)
+            stored_accounts = read_credentials_from_qiskitrc()
+            self.assertEqual(len(stored_accounts), 1)
 
-    def test_remove_account(self):
-        """Test removing an account from session."""
-        with mock_ibmq_provider():
-            qiskit.IBMQ.use_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.remove_account('QISKITRC_TOKEN')
+    def test_disable_accounts(self):
+        """Test disabling an account in a session."""
+        with custom_qiskitrc(), mock_ibmq_provider():
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.disable_accounts(token='QISKITRC_TOKEN')
 
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
 
-    def test_remove_account_from_disk(self):
-        """Test removing an account from disk."""
+    def test_delete_accounts(self):
+        """Test deleting an account from disk."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN')
             self.assertEqual(len(read_credentials_from_qiskitrc()), 1)
 
             qiskit.IBMQ._accounts.clear()
-            qiskit.IBMQ.remove_account('QISKITRC_TOKEN')
-            self.assertEqual(len(qiskit.IBMQ._accounts), 0)
+            qiskit.IBMQ.delete_accounts(token='QISKITRC_TOKEN')
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
-    def test_remove_accounts(self):
-        """Test removing all accounts from session."""
+    def test_disable_all_accounts(self):
+        """Test disabling all accounts from session."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
-            qiskit.IBMQ.remove_accounts()
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.enable_account('QISKITRC_TOKEN',
+                                       url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+            qiskit.IBMQ.disable_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
 
-    def test_remove_accounts_from_disk(self):
-        """Test removing all account from disk."""
+    def test_delete_all_accounts(self):
+        """Test deleting all accounts from disk."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN')
-            qiskit.IBMQ.add_account('QISKITRC_TOKEN',
-                                    url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN')
+            qiskit.IBMQ.save_account('QISKITRC_TOKEN',
+                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             self.assertEqual(len(read_credentials_from_qiskitrc()), 2)
-            qiskit.IBMQ.remove_accounts()
+            qiskit.IBMQ.delete_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
