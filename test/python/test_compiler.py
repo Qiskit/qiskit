@@ -165,7 +165,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         backend = least_busy(qiskit.IBMQ.backends())
 
         qubit_reg = QuantumRegister(2, name='q')
@@ -186,7 +186,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         backend = least_busy(qiskit.IBMQ.backends())
 
         qubit_reg = QuantumRegister(2, name='q')
@@ -208,7 +208,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2, name='q')
@@ -228,7 +228,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2, name='q')
@@ -250,7 +250,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2)
@@ -270,7 +270,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
 
         qubit_reg = QuantumRegister(2)
