@@ -19,7 +19,12 @@ from .common import QiskitTestCase
 
 
 class TestCircuitTextDrawer(QiskitTestCase):
+    """ `text_drawer` "draws" a circuit in "ascii art" """
+
     def test_text_sample_circuit(self):
+        """ Draw a sample circuit that includes the most common elements of quantum circuits. (taken
+        from test/python/test_visualization_output.py:TestVisualizationImplementation:sample_circuit
+        """
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
@@ -57,6 +62,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
             self.assertEqual(file.read().rstrip('\n'), text_drawer(circuit))
 
     def test_text_pager(self):
+        """ The pager breaks the circuit when the drawing does not fit in the console."""
         qr = QuantumRegister(1, 'q')
         circuit = QuantumCircuit(qr)
         no_instructions = 50
@@ -65,6 +71,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit, line_length=10).count('\n'), no_instructions * 3 + 2)
 
     def test_text_measure_1(self):
+        """ The measure operator, using 3-bit-length registers. """
         expected = '\n'.join(["              ┌─┐",
                               "q_0: |0>──────┤M├",
                               "           ┌─┐└╥┘",
@@ -85,6 +92,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_measure_2(self):
+        """ The measure operator, using some registers. """
         expected = '\n'.join(["               ",
                               "q1_0: |0>──────",
                               "               ",
@@ -111,6 +119,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_swap(self):
+        """ Swap drawing. """
         expected = '\n'.join(["               ",
                               "q1_0: |0>────X─",
                               "             │ ",
@@ -127,6 +136,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_cswap(self):
+        """ CSwap drawing. """
         expected = '\n'.join(["           ",
                               "q_0: |0>─■─",
                               "         │ ",
@@ -141,6 +151,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_reset(self):
+        """ Reset drawing. """
         expected = '\n'.join(["                        ",
                               "q1_0: |0>───────────|0>─",
                               "                        ",
@@ -158,6 +169,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_single_gate(self):
+        """ Single Qbit gate drawing. """
         expected = '\n'.join(["                   ┌───┐",
                               "q1_0: |0>──────────┤ H ├",
                               "              ┌───┐└───┘",
@@ -175,6 +187,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_barrier(self):
+        """ Barrier drawing. """
         expected = '\n'.join(["             ¦ ",
                               "q1_0: |0>────¦─",
                               "             ¦ ",
@@ -192,6 +205,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_conditional_1(self):
+        """ Conditional drawing with 1-bit-length regs."""
         qasm_string = """
         OPENQASM 2.0;
         include "qelib1.inc";
@@ -212,6 +226,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_conditional_2(self):
+        """ Conditional drawing with 2-bit-length regs."""
         qasm_string = """
         OPENQASM 2.0;
         include "qelib1.inc";
@@ -236,6 +251,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_conditional_3(self):
+        """ Conditional drawing with 3-bit-length regs."""
         qasm_string = """
         OPENQASM 2.0;
         include "qelib1.inc";
@@ -264,6 +280,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_conditional_4(self):
+        """ Conditional drawing with 4-bit-length regs."""
         qasm_string = """
         OPENQASM 2.0;
         include "qelib1.inc";
@@ -296,6 +313,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_conditional_5(self):
+        """ Conditional drawing with 5-bit-length regs."""
         qasm_string = """
         OPENQASM 2.0;
         include "qelib1.inc";
