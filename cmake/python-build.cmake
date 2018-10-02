@@ -47,7 +47,7 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 		add_custom_target(${TARGET_NAME_SDIST})
 		add_custom_command(TARGET ${TARGET_NAME_SDIST}
 			COMMAND ${CMAKE_COMMAND} -E remove
-				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/local/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
+				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/aer/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
 			COMMAND ${PYTHON} ${SETUP_PY} ${PIP_PACKAGE_SOURCE_DIST}
 			WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 	endif()
@@ -60,23 +60,23 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
     	add_custom_command(TARGET ${COPY_QASM_SIM_CPP_TARGET}
 			COMMAND ${CMAKE_COMMAND} -E copy
             ${QASM_SIMULATOR_CPP_OUTPUT_DIR}/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION}
-				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/local)
+				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/aer)
 		# For ' make clean' target
 		set_property(DIRECTORY APPEND PROPERTY
 			ADDITIONAL_MAKE_CLEAN_FILES
-				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/local/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION})
+				${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/aer/qasm_simulator_cpp${EXECUTABLE_FILE_EXTENSION})
 		# For Windows, we need to copy external .dll dependencies too
 		if(MINGW)
             foreach(dll_file ${QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS})
 				add_custom_command(TARGET ${COPY_QASM_SIM_CPP_TARGET}
 					COMMAND ${CMAKE_COMMAND} -E copy
 						${dll_file}
-						${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/local)
+						${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/aer)
 				# For 'make clean' target
 				get_filename_component(FINAL_FILE ${dll_file} NAME)
 				set_property(DIRECTORY APPEND PROPERTY
 					ADDITIONAL_MAKE_CLEAN_FILES
-						${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/local/${FINAL_FILE})
+						${CMAKE_CURRENT_SOURCE_DIR}/qiskit/backends/aer/${FINAL_FILE})
 			endforeach()
 		endif()
 
