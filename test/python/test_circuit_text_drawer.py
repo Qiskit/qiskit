@@ -156,6 +156,24 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit.reset(qr2[1])
         self.assertEqual(text_drawer(circuit), expected)
 
+    def test_text_single_gate(self):
+        expected = '\n'.join([
+            "                   ┌───┐",
+            "q1_0: |0>──────────┤ H ├",
+            "              ┌───┐└───┘",
+            "q1_1: |0>─────┤ H ├─────",
+            "              └───┘     ",
+            "q2_0: |0>───────────────",
+            "         ┌───┐          ",
+            "q2_1: |0>┤ H ├──────────",
+            "         └───┘          "])
+        qr1 = QuantumRegister(2, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.h(qr1)
+        circuit.h(qr2[1])
+        self.assertEqual(text_drawer(circuit), expected)
+
 
 if __name__ == '__main__':
     unittest.main()
