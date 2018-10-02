@@ -32,7 +32,6 @@ from matplotlib import get_backend as get_matplotlib_backend, \
     patches as patches, pyplot as plt
 
 from qiskit._qiskiterror import QISKitError
-from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.wrapper import load_qasm_file
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization._error import VisualizationError
@@ -243,7 +242,7 @@ def qx_color_scheme():
         "cregbundle": False,
         "plotbarrier": False,
         "showindex": False,
-        "compress": False,
+        "compress": True,
         "margin": [2.0, 0.0, 0.0, 0.3],
         "creglinestyle": "solid",
         "reversebits": False
@@ -1464,7 +1463,7 @@ class MatplotlibDrawer:
         circuit = load_qasm_file(filename, name='draw', basis_gates=self._basis)
         self.parse_circuit(circuit)
 
-    def parse_circuit(self, circuit: QuantumCircuit):
+    def parse_circuit(self, circuit):
         dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
         self._ast = transpile(dag_circuit, basis_gates=self._basis, format='json')
         self._registers()
