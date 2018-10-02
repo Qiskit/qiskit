@@ -36,22 +36,19 @@ class DrawElement():
     def top(self):
         if "%s" in self._top:
             return self._top % self._top_connector.center(self.width, self._top_border)
-        else:
-            return self._top
+        return self._top
 
     @property
     def mid(self):
         if "%s" in self._mid:
             return self._mid % self._mid_content.center(self.width)
-        else:
-            return self._mid
+        return self._mid
 
     @property
     def bot(self):
         if "%s" in self._bot:
             return self._bot % self._bot_connector.center(self.width, self._bot_border)
-        else:
-            return self._bot
+        return self._bot
 
     @property
     def length(self):
@@ -84,7 +81,7 @@ class DrawElementMultiBit(DrawElement):
         location_in_the_box = '*'.center(input_length * 2 - 1).index('*') + 1
         top_limit = (order - 1) * 2 + 2
         bot_limit = top_limit + 2
-        if top_limit <= location_in_the_box and bot_limit > location_in_the_box:
+        if top_limit <= location_in_the_box < bot_limit:
             if location_in_the_box == top_limit:
                 self._top_connector = self.label
             elif location_in_the_box == top_limit + 1:
@@ -261,7 +258,7 @@ class EmptyWire(DrawElement):
     @staticmethod
     def fillup_layer(layer, first_clbit):
         max_length = max([i.length for i in filter(lambda x: x is not None, layer)])
-        for nones in [i for i, x in enumerate(layer) if x == None]:
+        for nones in [i for i, x in enumerate(layer) if x is None]:
             layer[nones] = EmptyClbitWire(max_length) if nones >= first_clbit else EmptyQubitWire(
                 max_length)
         return layer
@@ -269,6 +266,7 @@ class EmptyWire(DrawElement):
 
 class BreakWire(DrawElement):
     def __init__(self, arrow_char):
+        super().__init__()
         self._top = arrow_char
         self._mid = arrow_char
         self._bot = arrow_char
@@ -277,7 +275,7 @@ class BreakWire(DrawElement):
     def fillup_layer(layer, arrow_char):
         layer_length = len(layer)
         breakwire_layer = []
-        for wire in range(layer_length):
+        for _ in range(layer_length):
             breakwire_layer.append(BreakWire(arrow_char))
         return breakwire_layer
 
@@ -303,7 +301,7 @@ class InputWire(EmptyWire):
         self._bot = " " * len(self.label)
 
     @staticmethod
-    def fillup_layer(names):
+    def fillup_layer(names):  # pylint: disable=arguments-differ
         longest = max([len(name) for name in names])
         inputs_wires = []
         for name in names:
@@ -361,7 +359,7 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-            lines += TextDrawing.drawWires(wires)
+            lines += TextDrawing.draw_wires(wires)
 
         return lines
 
@@ -382,7 +380,7 @@ class TextDrawing():
         return ret
 
     @staticmethod
-    def drawWires(wires):
+    def draw_wires(wires):
         lines = []
         bot_line = None
         for wire in wires:
@@ -474,7 +472,7 @@ class TextDrawing():
 
         layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
 
-        for no, instruction in enumerate(self.json_circuit['instructions']):
+        for instruction in self.json_circuit['instructions']:
             qubit_layer = [None] * noqubits
             clbit_layer = [None] * noclbits
 
@@ -555,9 +553,8 @@ class TextDrawing():
         return layers
 
 
-def text_drawer(circuit, filename=None,
-                basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                      "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
+def text_drawer(circuit, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
