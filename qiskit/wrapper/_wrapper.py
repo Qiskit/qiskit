@@ -53,7 +53,7 @@ def register(*args, provider_class=None, **kwargs):
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.IBMQ` instead (`use_account()`) for using IBMQ
+        `qiskit.IBMQ` instead (`enable_account()`) for using IBMQ
         accounts. For custom `Provider`s, please instantiate them directly.
     """
     if provider_class:
@@ -64,11 +64,11 @@ def register(*args, provider_class=None, **kwargs):
         return provider_class(*args, **kwargs)
     else:
         warnings.warn('register() will be deprecated after 0.6. Please use the '
-                      'qiskit.IBMQ.use_account() method instead.',
+                      'qiskit.IBMQ.enable_account() method instead.',
                       DeprecationWarning)
 
     try:
-        provider = IBMQ.use_account(*args, **kwargs)
+        provider = IBMQ.enable_account(*args, **kwargs)
     except Exception as ex:
         raise QISKitError("Couldn't instantiate provider! Error: {0}".format(ex))
 
@@ -91,11 +91,11 @@ def unregister(provider):
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.IBMQ` instead (`remove_account()`).
+        `qiskit.IBMQ` instead (`disable_account()`).
     """
     # pylint: disable=unused-argument
     warnings.warn('unregister() will be deprecated after 0.6. Please use the '
-                  'qiskit.IBMQ.remove_account() method instead.',
+                  'qiskit.IBMQ.disable_account() method instead.',
                   DeprecationWarning)
 
 
@@ -104,12 +104,12 @@ def registered_providers():
 
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
-        `qiskit.IBMQ` instead (`list_accounts()`).
+        `qiskit.IBMQ` instead (`active_accounts()`).
     """
     warnings.warn('registered_providers() will be deprecated after 0.6. Please '
-                  'use the qiskit.IBMQ.list_accounts() method instead.',
+                  'use the qiskit.IBMQ.active_accounts() method instead.',
                   DeprecationWarning)
-    return IBMQ.list_accounts()
+    return IBMQ.active_accounts()
 
 
 # Functions for inspecting and retrieving backends.
