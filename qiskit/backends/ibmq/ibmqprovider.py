@@ -55,12 +55,14 @@ class IBMQProvider(BaseProvider):
         """
         # pylint: disable=arguments-differ
 
-        # Special handling of the credentials filters: match, then prune from kwargs
-        providers = [provider for provider in self._accounts.values() if
-                     self._credentials_match_filter(provider.credentials, kwargs)]
+        # Special handling of the credentials filters: match and prune from kwargs
+        credentials_filter = {}
         for key in ['token', 'url', 'hub', 'group', 'project', 'proxies', 'verify']:
             if key in kwargs:
-                kwargs.pop(key)
+                credentials_filter[key] = kwargs.pop(key)
+        providers = [provider for provider in self._accounts.values() if
+                     self._credentials_match_filter(provider.credentials,
+                                                    credentials_filter)]
 
         # Special handling of the `name` parameter, to support alias resolution.
         if name:
