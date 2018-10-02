@@ -7,6 +7,7 @@
 
 """Tests for comparing the outputs of text drawing of circuit with expected ones."""
 
+import os
 import unittest
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -49,7 +50,9 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit.ccx(qr[0], qr[1], qr[2])
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.measure(qr, cr)
-        print(text_drawer(circuit))
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'references', 'text_ref.txt')
+        with open(p) as f:
+            self.assertEqual(f.read().rstrip('\n'),text_drawer(circuit))
 
     def test_text_pager(self):
         qr = QuantumRegister(1, 'q')
