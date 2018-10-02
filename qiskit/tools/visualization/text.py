@@ -25,7 +25,7 @@ class DrawElement():
             self.label = "%s%s" % (instruction['name'].upper(), params)
         else:
             self.label = ""
-        self.width = len(self.label)
+        self._width = None
         self._top = self._mid = self._bot = ""
         self._top_connector = self._mid_content = self._bot_connector = " "
         self._top_border = self._bot_border = " "
@@ -57,8 +57,14 @@ class DrawElement():
         return max(len(self.top), len(self.mid), len(self.bot))
 
     @property
-    def label_size(self):
+    def width(self):
+        if self._width:
+            return self._width
         return len(self.label)
+
+    @width.setter
+    def width(self, value):
+        self._width = value
 
 
 class MeasureTo(DrawElement):
@@ -131,7 +137,6 @@ class MultiQubitGateBot(DrawElementMultiBit):
 class ConditionalTo(DrawElementMultiBit):
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.width = len(self.label)
         self._mid_content = self.label
         self._top = "┌─%s─┐"
         self._mid = "┤ %s ├"
@@ -144,7 +149,6 @@ class ConditionalFrom(DrawElementMultiBit):
     def __init__(self, instruction):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
-        self.width = len(self.label)
         self._top = "┌─%s─┐"
         self._mid = "╡ %s ╞"
         self._bot = "└─%s─┘"
@@ -168,7 +172,6 @@ class ConditionalFromMid(DrawElementMultiBit):
     def __init__(self, instruction, input_length, order):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
-        self.width = len(self.label)
         self._top = "│ %s │"
         self._mid = "╡ %s ╞"
         self._bot = "│ %s │"
@@ -181,7 +184,6 @@ class ConditionalFromBot(DrawElementMultiBit):
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
-        self.width = len(self.label)
         self._top = "│ %s │"
         self._mid = "╡ %s ╞"
         self._bot = "└─%s─┘"
