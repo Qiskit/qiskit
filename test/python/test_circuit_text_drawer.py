@@ -123,6 +123,21 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit.swap(qr1, qr2)
         self.assertEqual(text_drawer(circuit), expected)
 
+    def test_text_cswap(self):
+        expected = '\n'.join([
+            "           ",
+            "q_0: |0>─■─",
+            "         │ ",
+            "q_1: |0>─X─",
+            "         │ ",
+            "q_2: |0>─X─",
+            "           "])
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cswap(qr[0], qr[1], qr[2])
+        self.assertEqual(text_drawer(circuit), expected)
+
     def test_text_reset(self):
         expected = '\n'.join([
             "                        ",
@@ -130,15 +145,15 @@ class TestCircuitTextDrawer(QiskitTestCase):
             "                        ",
             "q1_1: |0>──────|0>──────",
             "                        ",
-            "q2_0: |0>─|0>───────────",
+            "q2_0: |0>───────────────",
             "                        ",
-            "q2_1: |0>───────────────",
+            "q2_1: |0>─|0>───────────",
             "                        "])
         qr1 = QuantumRegister(2, 'q1')
         qr2 = QuantumRegister(2, 'q2')
         circuit = QuantumCircuit(qr1, qr2)
         circuit.reset(qr1)
-        circuit.reset(qr2[0])
+        circuit.reset(qr2[1])
         self.assertEqual(text_drawer(circuit), expected)
 
 

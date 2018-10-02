@@ -388,16 +388,20 @@ class TextDrawing():
                 clbit_layer[instruction['clbits'][0]] = MeasureTo(instruction)
 
             elif instruction['name'] == 'barrier':
-                for qubit in instruction['qubits']:
-                    qubit_layer[qubit] = Barrier(instruction)
-
-            elif instruction['name'] == 'barrier':
+                # barrier
                 for qubit in instruction['qubits']:
                     qubit_layer[qubit] = Barrier(instruction)
 
             elif instruction['name'] == 'swap':
+                # swap
                 qubit_layer[instruction['qubits'][0]] = SwapTop(instruction)
                 qubit_layer[instruction['qubits'][1]] = SwapBot(instruction)
+
+            elif instruction['name'] == 'cswap':
+                # cswap
+                qubit_layer[instruction['qubits'][0]] = CXcontrol(instruction)
+                qubit_layer[instruction['qubits'][1]] = SwapBot(instruction)
+                qubit_layer[instruction['qubits'][2]] = SwapBot(instruction)
 
             elif instruction['name'] == 'reset':
                 qubit_layer[instruction['qubits'][0]] = Reset(instruction)
