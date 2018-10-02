@@ -293,6 +293,42 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit = circuit_from_qasm_string(qasm_string)
         self.assertEqual(text_drawer(circuit), expected)
 
+    def test_text_conditional_5(self):
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[5];
+        creg c1[5];
+        if(c0==1) x q[0];
+        if(c1==0) x q[0];
+        """
+        expected = '\n'.join(["        ┌───────┐┌───────┐",
+                              "q_0: |0>┤   X   ├┤   X   ├",
+                              "        ├───┴───┤└───┬───┘",
+                              "c0_0: 0 ╡       ╞════╪════",
+                              "        │       │    │    ",
+                              "c0_1: 0 ╡       ╞════╪════",
+                              "        │       │    │    ",
+                              "c0_2: 0 ╡ = 0x1 ╞════╪════",
+                              "        │       │    │    ",
+                              "c0_3: 0 ╡       ╞════╪════",
+                              "        │       │    │    ",
+                              "c0_4: 0 ╡       ╞════╪════",
+                              "        └───────┘┌───┴───┐",
+                              "c1_0: 0 ═════════╡       ╞",
+                              "                 │       │",
+                              "c1_1: 0 ═════════╡       ╞",
+                              "                 │       │",
+                              "c1_2: 0 ═════════╡ = 0x0 ╞",
+                              "                 │       │",
+                              "c1_3: 0 ═════════╡       ╞",
+                              "                 │       │",
+                              "c1_4: 0 ═════════╡       ╞",
+                              "                 └───────┘"])
+        circuit = circuit_from_qasm_string(qasm_string)
+        self.assertEqual(text_drawer(circuit), expected)
+
 
 if __name__ == '__main__':
     unittest.main()
