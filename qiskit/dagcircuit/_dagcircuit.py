@@ -74,10 +74,10 @@ class DAGCircuit:
         self.multi_graph = nx.MultiDiGraph()
 
         # Map of qregs to sizes
-        self.qregs = {}
+        self.qregs = OrderedDict()
 
         # Map of cregs to sizes
-        self.cregs = {}
+        self.cregs = OrderedDict()
 
         # Map of user defined gates to ast nodes defining them
         self.gates = {}
