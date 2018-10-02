@@ -58,6 +58,7 @@ class DrawElement():
 
     @property
     def width(self):
+        """ Returns the width of the label, including padding"""
         if self._width:
             return self._width
         return len(self.label)
@@ -68,6 +69,7 @@ class DrawElement():
 
 
 class MeasureTo(DrawElement):
+    """ The element on the classic wire to which the measure is performed"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = " ║ "
@@ -76,6 +78,7 @@ class MeasureTo(DrawElement):
 
 
 class MeasureFrom(DrawElement):
+    """ The element on the quantum wire in which the measure is performed"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = "┌─┐"
@@ -84,8 +87,14 @@ class MeasureFrom(DrawElement):
 
 
 class DrawElementMultiBit(DrawElement):
-
+    """Elements that is draw on over multiple wires."""
     def center_label(self, input_length, order):
+        """
+        In multi-bit elements, the label is centered vertically.
+        Args:
+            input_length (int): Rhe amount of wires affected.
+            order (int): Which middle element is this one?
+        """
         location_in_the_box = '*'.center(input_length * 2 - 1).index('*') + 1
         top_limit = (order - 1) * 2 + 2
         bot_limit = top_limit + 2
@@ -99,6 +108,7 @@ class DrawElementMultiBit(DrawElement):
 
 
 class MultiQubitGateTop(DrawElementMultiBit):
+    """ Draws the top part of a box that affects more than one quantum wire"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._mid_content = ""  # The label will be put by some other part of the box.
@@ -110,6 +120,7 @@ class MultiQubitGateTop(DrawElementMultiBit):
 
 
 class MultiQubitGateMid(DrawElementMultiBit):
+    """ Draws the middle part of a box that affects more than one quantum wire"""
     def __init__(self, instruction, input_length, order):
         super().__init__(instruction)
         self._top = "│ %s │"
@@ -121,6 +132,7 @@ class MultiQubitGateMid(DrawElementMultiBit):
 
 
 class MultiQubitGateBot(DrawElementMultiBit):
+    """ Draws the bottom part of a box that affects more than one quantum wire"""
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
         self._top = "│ %s │"
@@ -135,6 +147,7 @@ class MultiQubitGateBot(DrawElementMultiBit):
 
 
 class ConditionalTo(DrawElementMultiBit):
+    """ The quantum part of a conditional. """
     def __init__(self, instruction):
         super().__init__(instruction)
         self._mid_content = self.label
@@ -146,6 +159,7 @@ class ConditionalTo(DrawElementMultiBit):
 
 
 class ConditionalFrom(DrawElementMultiBit):
+    """ The classical part of a conditional. """
     def __init__(self, instruction):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
@@ -157,6 +171,7 @@ class ConditionalFrom(DrawElementMultiBit):
 
 
 class ConditionalFromTop(DrawElementMultiBit):
+    """ Draws the top part of a conditional box that affects more than one classical wire"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._mid_content = ""  # The label will be put by some other part of the box.
@@ -169,6 +184,7 @@ class ConditionalFromTop(DrawElementMultiBit):
 
 
 class ConditionalFromMid(DrawElementMultiBit):
+    """ Draws the middle part of a conditional box that affects more than one classical wire"""
     def __init__(self, instruction, input_length, order):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
@@ -181,6 +197,7 @@ class ConditionalFromMid(DrawElementMultiBit):
 
 
 class ConditionalFromBot(DrawElementMultiBit):
+    """ Draws the bottom part of a conditional box that affects more than one classical wire"""
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
@@ -196,6 +213,7 @@ class ConditionalFromBot(DrawElementMultiBit):
 
 
 class Barrier(DrawElement):
+    """ Draws a barrier."""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = " ¦ "
@@ -204,6 +222,7 @@ class Barrier(DrawElement):
 
 
 class SwapTop(DrawElement):
+    """ Draws the top part of a swap gate"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = "   "
@@ -212,6 +231,7 @@ class SwapTop(DrawElement):
 
 
 class SwapBot(DrawElement):
+    """ Draws the bottom part of a swap gate"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = " │ "
@@ -220,6 +240,7 @@ class SwapBot(DrawElement):
 
 
 class Reset(DrawElement):
+    """ Draws a reset gate"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = "     "
@@ -228,6 +249,7 @@ class Reset(DrawElement):
 
 
 class CXcontrol(DrawElement):
+    """ Draws the top part of a CX gate"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = "   "
@@ -236,6 +258,7 @@ class CXcontrol(DrawElement):
 
 
 class CXtarget(DrawElement):
+    """ Draws the bottom part of a CX gate"""
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top = " │ "
@@ -244,6 +267,7 @@ class CXtarget(DrawElement):
 
 
 class UnitaryGate(DrawElement):
+    """ Draws a single box, that effects a single quantum wire"""
     def __init__(self, instruction):
         super().__init__(instruction)
         label_size = len(self.label)
@@ -253,6 +277,7 @@ class UnitaryGate(DrawElement):
 
 
 class EmptyWire(DrawElement):
+    """ This element is just the wire, with no instructions nor operations."""
     def __init__(self, length=0):
         super().__init__()
         self._length = length
@@ -261,6 +286,15 @@ class EmptyWire(DrawElement):
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
+        """
+        Given a layer, replace the Nones in it with EmptyWire elements.
+        Args:
+            layer (list): The layer that contains Nones.
+            first_clbit (int): The first wire that is classic.
+
+        Returns:
+            list: The new layer, with no Nones.
+        """
         max_length = max([i.length for i in filter(lambda x: x is not None, layer)])
         for nones in [i for i, x in enumerate(layer) if x is None]:
             layer[nones] = EmptyClbitWire(max_length) if nones >= first_clbit else EmptyQubitWire(
@@ -269,6 +303,7 @@ class EmptyWire(DrawElement):
 
 
 class BreakWire(DrawElement):
+    """ This element is used to break the drawing in several pages."""
     def __init__(self, arrow_char):
         super().__init__()
         self._top = arrow_char
@@ -276,8 +311,16 @@ class BreakWire(DrawElement):
         self._bot = arrow_char
 
     @staticmethod
-    def fillup_layer(layer, arrow_char):
-        layer_length = len(layer)
+    def fillup_layer(layer_length, arrow_char):
+        """
+        Creates a layer with BreakWire elements.
+        Args:
+            layer_length (int): The length of the layer to create
+            arrow_char (char): The char used to create the BreakWire element.
+
+        Returns:
+            list: The new layer.
+        """
         breakwire_layer = []
         for _ in range(layer_length):
             breakwire_layer.append(BreakWire(arrow_char))
@@ -285,18 +328,21 @@ class BreakWire(DrawElement):
 
 
 class EmptyQubitWire(EmptyWire):
+    """ This element is just the quantum wire, with no instructions nor operations."""
     def __init__(self, length):
         super().__init__(length)
         self._mid = '─' * length
 
 
 class EmptyClbitWire(EmptyWire):
+    """ This element is just the classic wire, with no instructions nor operations."""
     def __init__(self, length):
         super().__init__(length)
         self._mid = '═' * length
 
 
 class InputWire(EmptyWire):
+    """ This element is the label and the initial value of a wire."""
     def __init__(self, label):
         super().__init__()
         self.label = label
@@ -306,6 +352,14 @@ class InputWire(EmptyWire):
 
     @staticmethod
     def fillup_layer(names):  # pylint: disable=arguments-differ
+        """
+        Creates a layer with InputWire elements.
+        Args:
+            names (list): List of names for the wires.
+
+        Returns:
+            list: The new layer
+        """
         longest = max([len(name) for name in names])
         inputs_wires = []
         for name in names:
@@ -314,11 +368,20 @@ class InputWire(EmptyWire):
 
 
 class TextDrawing():
+    """ The text drawing"""
     def __init__(self, json_circuit):
         self.json_circuit = json_circuit
 
     def lines(self, line_length=None):
+        """
+        Generates a list with lines. These lines form the text drawing.
+        Args:
+            line_length (int): Optional. When given, breaks the circuit drawing to this length. This
+                               useful when the drawing does not fit in the console.
 
+        Returns:
+            list: A list of lines with the text drawing.
+        """
         noqubits = self.json_circuit['header']['number_of_qubits']
         layers = self.build_layers()
 
@@ -347,10 +410,10 @@ class TextDrawing():
                 layer_groups[-1].append(layer)
                 rest_of_the_line -= layer_length
             else:
-                layer_groups[-1].append(BreakWire.fillup_layer(layer, '»'))
+                layer_groups[-1].append(BreakWire.fillup_layer(len(layer), '»'))
 
                 # New group
-                layer_groups.append([BreakWire.fillup_layer(layer, '«')])
+                layer_groups.append([BreakWire.fillup_layer(len(layer), '«')])
                 rest_of_the_line = line_length - layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(
@@ -368,6 +431,15 @@ class TextDrawing():
         return lines
 
     def wire_names(self, with_initial_value=True):
+        """
+        Returns a list of names for each wire.
+        Args:
+            with_initial_value (bool): Optional (Default: True). If true, adds the initial value to
+                                       the name.
+
+        Returns:
+            List: The list of wire names.
+        """
         ret = []
 
         if with_initial_value:
@@ -385,6 +457,14 @@ class TextDrawing():
 
     @staticmethod
     def draw_wires(wires):
+        """
+        Given a list of wires, creates a list of lines with the text drawing.
+        Args:
+            wires (list): A list of wires with instructions.
+
+        Returns:
+            list: A list of lines with the text drawing.
+        """
         lines = []
         bot_line = None
         for wire in wires:
@@ -459,18 +539,38 @@ class TextDrawing():
         return ret
 
     def clbit_index_from_mask(self, mask):
+        """
+        Given a mask, returns a list of classical indexes affected by that mask.
+        Args:
+            mask (int): The mask.
+
+        Returns:
+            list: A list of indexes affected by the mask.
+        """
         clbit_len = self.json_circuit['header']['number_of_clbits']
         bit_mask = [bool(mask & (1 << n)) for n in range(clbit_len)]
         return [i for i, x in enumerate(bit_mask) if x]
 
     @staticmethod
     def normalize_width(layer):
+        """
+        When the elements of the layer have different widths, sets the width to the max elements.
+        Args:
+            layer (list): A list of elements.
+        """
         instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
         longest = max([instruction.width for instruction in instructions])
         for instruction in instructions:
             instruction.width = longest
 
     def build_layers(self):
+        """
+        Constructs layers.
+        Returns:
+            list: List of DrawElements.
+        Raises:
+            Exception: When the drawing is, for some reason, impossible to be drawn.
+        """
         layers = []
         noqubits = self.json_circuit['header']['number_of_qubits']
         noclbits = self.json_circuit['header']['number_of_clbits']
@@ -560,6 +660,17 @@ class TextDrawing():
 
 def text_drawer(circuit, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
+    """
+    Draws a circuit using ascii art.
+    Args:
+        circuit (QuantumCircuit): Input circuit
+        basis (str): Optional. Comma-separated list of gate names
+        line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
+                           you maximum line length your console supports.
+
+    Returns:
+        String: The drawing in a loooong string.
+    """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
