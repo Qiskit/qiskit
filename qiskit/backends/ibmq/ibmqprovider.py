@@ -37,13 +37,22 @@ class IBMQProvider(BaseProvider):
         self._accounts = OrderedDict()
 
     def backends(self, name=None, filters=None, **kwargs):
+        """Return all backends accessible via IBMQ provider, subject to optional filtering.
+
+        Args:
+            name (str): backend name to filter by
+            filters (callable): more complex filters, such as lambda functions
+                e.g. IBMQ.backends(filters=lambda b: b.congiguration['n_qubits'] > 5)
+            kwargs: simple filters specifying a true/false criteria in the
+                backend configuration or backend status or provider credentials
+                e.g. IBMQ.backends(n_qubits=5, operational=True, hub='internal')
+
+        Raises:
+            IBMQAccountError: if no account matched the filter.
+        """
         # pylint: disable=arguments-differ
 
         # Special handling of the credentials filters.
-        credentials_filter = {}
-        for key in ['token', 'url', 'hub', 'group', 'project']:
-            if key in kwargs:
-                credentials_filter[key] = kwargs.pop(key)
         providers = [provider for provider in self._accounts.values() if
                      self._credentials_match_filter(provider.credentials, kwargs)]
 
