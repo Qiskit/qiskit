@@ -44,7 +44,7 @@ from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 from .wrapper._wrapper import (compile, execute, load_qasm_string,
-                               load_qasm_file, least_busy, qobj_to_circuits,)
+                               load_qasm_file, least_busy, qobj_to_circuits)
 
 # To be deprecated methods
 from .wrapper._wrapper import (available_backends, get_backend, register,

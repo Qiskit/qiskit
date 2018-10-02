@@ -7,7 +7,6 @@
 
 """A module of magic functions"""
 
-import sys
 import time
 import threading
 from IPython.display import display                              # pylint: disable=import-error
@@ -18,6 +17,35 @@ import qiskit
 from qiskit.transpiler._receiver import receiver as rec
 from qiskit.transpiler._progressbar import TextProgressBar
 from qiskit.wrapper.jupyter.progressbar import HTMLProgressBar
+
+
+def _html_checker(job_var, interval, status, header):
+    """Internal function that updates the status
+    of a HTML job monitor.
+
+    Args:
+        job_var (BaseJob): The job to keep track of.
+        interval (int): The status check interval
+        status (widget): HTML ipywidget for output ot screen
+        header (str): String representing HTML code for status.
+    """
+    job_status = job_var.status()
+    job_status_name = job_status.name
+    job_status_msg = job_status.value
+    status.value = header % (job_status_msg)
+    while job_status_name not in ['DONE', 'CANCELLED']:
+        time.sleep(interval)
+        job_status = job_var.status()
+        job_status_name = job_status.name
+        job_status_msg = job_status.value
+        if job_status_name == 'ERROR':
+            break
+        else:
+            if job_status_name == 'QUEUED':
+                job_status_msg += ' (%s)' % job_var._queue_position
+            status.value = header % (job_status_msg)
+
+    status.value = header % (job_status_msg)
 
 
 @magics_class
@@ -77,27 +105,6 @@ class StatusMagic(Magics):
             raise Exception(
                 "Cell must contain at least one variable of BaseJob type.")
 
-        def _checker(job_var, status, header):
-            job_status = job_var.status()
-            job_status_name = job_status.name
-            job_status_msg = job_status.value
-            status.value = header % (job_status_msg)
-            while job_status_name not in ['DONE', 'CANCELLED']:
-                time.sleep(args.interval)
-                job_status = job_var.status()
-                job_status_name = job_status.name
-                job_status_msg = job_status.value
-                if job_status_name == 'ERROR':
-                    break
-                else:
-                    if job_status_name == 'QUEUED':
-                        job_status_msg += ' (%s)' % job_var._queue_position
-                    status.value = header % (job_status_msg)
-
-            status.value = header % (job_status_msg)
-            # Explicitly stop the thread just to be safe.
-            sys.exit()
-
         # List index of job if checking status of multiple jobs.
         multi_job = False
         if len(jobs) > 1:
@@ -116,7 +123,8 @@ class StatusMagic(Magics):
             status = widgets.HTML(
                 value=header % job_var.status().value)
 
-            thread = threading.Thread(target=_checker, args=(job_var, status, header))
+            thread = threading.Thread(target=_html_checker, args=(job_var, args.interval,
+                                                                  status, header))
             thread.start()
             job_checkers.append(status)
 

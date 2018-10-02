@@ -11,6 +11,40 @@
 import sys
 import time
 import threading
+from qiskit._qiskiterror import QISKitError
+
+_NOTEBOOK_ENV = False
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+    _NOTEBOOK_ENV = True
+    from IPython.display import display                              # pylint: disable=import-error
+    import ipywidgets as widgets                                     # pylint: disable=import-error
+    from qiskit.wrapper.jupyter.jupyter_magics import _html_checker  # pylint: disable=ungrouped-imports
+
+
+def _text_checker(job, interval):
+    status = job.status()
+    msg = status.value
+    prev_msg = msg
+    msg_len = len(msg)
+
+    print('\r%s: %s' % ('Job Status', msg), end='')
+    while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
+        time.sleep(interval)
+        status = job.status()
+        msg = status.value
+
+        if status.name == 'QUEUED':
+            msg += ' (%s)' % job.queue_position()
+
+        # Adjust length of message so there are no artifacts
+        if len(msg) < msg_len:
+            msg += ' ' * (msg_len - len(msg))
+        elif len(msg) > msg_len:
+            msg_len = len(msg)
+
+        if msg != prev_msg:
+            print('\r%s: %s' % ('Job Status', msg), end='')
+            prev_msg = msg
 
 
 def job_monitor(job, interval=2, monitor_async=False):
@@ -19,41 +53,24 @@ def job_monitor(job, interval=2, monitor_async=False):
     Args:
         job (BaseJob): Job to monitor.
         interval (int): Time interval between status queries.
-        monitor_async (bool): Monitor asyncronously.
+        monitor_async (bool): Monitor asyncronously (in Jupyter only).
 
-    Notes:
-        This function blocks output until the job has completed,
-        and is therefore useful in scripts, otherwise use the
-        Jupyter notebook magic %%qiskit_job_status.
+    Raises:
+        QISKitError: When trying to run async outside of Jupyter
     """
+    if _NOTEBOOK_ENV:
+        style = "font-size:16px;"
+        header = "<p style='{style}'>Job Status: %s </p>".format(style=style)
+        status = widgets.HTML(value=header % job.status().value)
+        display(status)
+        if monitor_async:
+            thread = threading.Thread(target=_html_checker, args=(job, interval,
+                                                                  status, header))
+            thread.start()
+        else:
+            _html_checker(job, interval, status, header)
 
-    def _checker(job, interval):
-        status = job.status()
-        msg = status.value
-        prev_msg = msg
-        msg_len = len(msg)
-
-        sys.stdout.write('\r%s: %s' % ('Job Status', msg))
-        while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
-            time.sleep(interval)
-            status = job.status()
-            msg = status.value
-
-            if status.name == 'QUEUED':
-                msg += ' (%s)' % job.queue_position()
-
-            # Adjust length of message so there are no artifacts
-            if len(msg) < msg_len:
-                msg += ' ' * (msg_len - len(msg))
-            elif len(msg) > msg_len:
-                msg_len = len(msg)
-
-            if msg != prev_msg:
-                sys.stdout.write('\r%s: %s' % ('Job Status', msg))
-                prev_msg = msg
-        sys.exit()
-    if monitor_async:
-        thread = threading.Thread(target=_checker, args=(job, interval))
-        thread.start()
     else:
-        _checker(job, interval)
+        if monitor_async:
+            raise QISKitError('monitor_async only available in Jupyter notebooks.')
+        _text_checker(job, interval)
