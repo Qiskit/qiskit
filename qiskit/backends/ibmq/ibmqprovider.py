@@ -55,9 +55,12 @@ class IBMQProvider(BaseProvider):
         """
         # pylint: disable=arguments-differ
 
-        # Special handling of the credentials filters.
+        # Special handling of the credentials filters: match, then prune from kwargs
         providers = [provider for provider in self._accounts.values() if
                      self._credentials_match_filter(provider.credentials, kwargs)]
+        for key in ['token', 'url', 'hub', 'group', 'project', 'proxies', 'verify']:
+            if key in kwargs:
+                kwargs.pop(key)
 
         # Special handling of the `name` parameter, to support alias resolution.
         if name:
@@ -258,14 +261,18 @@ class IBMQProvider(BaseProvider):
         return single_provider
 
     def _credentials_match_filter(self, credentials, filter_dict):
-        credentials_filter = {}
-        for key in ['token', 'url', 'hub', 'group', 'project']:
-            if key in filter_dict:
-                credentials_filter[key] = filter_dict.pop(key)
+        """Return True if the credentials match a filter.
 
-        return self._match_all(credentials, credentials_filter)
+        These filters apply on properties of a Credentials object:
+        token, url, hub, group, project, proxies, verify
+        Any other filter has no effect.
 
-    def _match_all(self, obj, criteria):
-        """Return True if all items in criteria matches items in obj."""
-        return all(getattr(obj, key_, None) == value_ for
-                   key_, value_ in criteria.items())
+        Args:
+            credentials (Credentials): IBMQ credentials object
+            filter_dict (dict): dictionary of filter conditions
+
+        Returns:
+            bool: True if the credentials meet all the filter conditions
+        """
+        return all(getattr(credentials, key_, None) == value_ for
+                   key_, value_ in filter_dict.items())
