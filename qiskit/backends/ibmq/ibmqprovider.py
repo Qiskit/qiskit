@@ -47,6 +47,9 @@ class IBMQProvider(BaseProvider):
                 backend configuration or backend status or provider credentials
                 e.g. IBMQ.backends(n_qubits=5, operational=True, hub='internal')
 
+        Returns:
+            list[IBMQBackend]: list of backends available that match the filter
+
         Raises:
             IBMQAccountError: if no account matched the filter.
         """
