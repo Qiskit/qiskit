@@ -148,12 +148,18 @@ class ConditionalFromMid(DrawElementMultiBit):
         self._mid = "╡ %s ╞"
         self._bot = "│ %s │"
         self._top_border = self._bot_border = ' '
-
-        # TODO logic about centering vertically, using input_length and order
-        # '*'.center((input_lenght*3)-1)
         self._top_connector = self._bot_connector = self._mid_content = ''
-        # TODO for now, force it in every Mid in the middle
-        self._mid_content = self.label
+
+        location_in_the_box = '*'.center(input_length*2-1).index('*')+1
+        top_limit = (order-1)*2+2
+        bot_limit = top_limit+2
+        if top_limit <= location_in_the_box and bot_limit > location_in_the_box:
+            if location_in_the_box == top_limit :
+                self._top_connector = self.label
+            elif location_in_the_box == top_limit+1:
+                self._mid_content = self.label
+            else:
+                self._bot_connector = self.label
 
 
 class ConditionalFromBot(DrawElementMultiBit):
