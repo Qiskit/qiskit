@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Tests for qiskit/_util.py"""
-
+import os
 import time
 from qiskit.transpiler._receiver import receiver as rec
 from qiskit.transpiler._parallel import parallel_map
@@ -24,6 +24,11 @@ def _parfunc(x):
 class TestParallel(QiskitTestCase):
     """A class for testing parallel_map functionality.
     """
+
+    def test_parallel_env_flag(self):
+        """Verify parallel env flag is set """
+        self.assertEqual(os.getenv('QISKIT_IN_PARALLEL', None), 'FALSE')
+
     def test_parallel(self):
         """Test parallel_map """
         ans = parallel_map(_parfunc, list(range(10)))

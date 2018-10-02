@@ -1,19 +1,17 @@
 """
 Example used in the README. In this example a Bell state is made.
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
 """
 
 # Import the Qiskit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import QISKitError, available_backends, execute, register, get_backend, least_busy
-
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import execute, IBMQ, Aer
+from qiskit.backends.ibmq import least_busy
 
 # Authenticate for access to remote backends
 try:
     import Qconfig
-    register(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -36,10 +34,11 @@ try:
     qc.measure(q, c)
 
     # See a list of available local simulators
-    print("Local backends: ", available_backends({'local': True}))
+    print("Aer backends: ", Aer.backends())
+    sim_backend = Aer.get_backend('qasm_simulator')
 
     # Compile and run the Quantum circuit on a simulator backend
-    job_sim = execute(qc, "local_qasm_simulator")
+    job_sim = execute(qc, sim_backend)
     sim_result = job_sim.result()
 
     # Show the results
@@ -47,12 +46,12 @@ try:
     print(sim_result.get_counts(qc))
 
     # see a list of available remote backends
-    remote_backends = available_backends({'local': False, 'simulator': False})
+    ibmq_backends = IBMQ.backends()
 
-    print("Remote backends: ", remote_backends)
+    print("Remote backends: ", ibmq_backends)
     # Compile and run the Quantum Program on a real device backend
     try:
-        least_busy_device = least_busy(available_backends())
+        least_busy_device = least_busy(IBMQ.backends(simulator=False))
         print("Running on current least busy device: ", least_busy_device)
 
         #runing the job

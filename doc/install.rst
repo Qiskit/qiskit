@@ -53,15 +53,14 @@ installation, and when you want to use them, you can simply run:
 
 .. code:: python
 
-    from qiskit import register
+    from qiskit import IBMQ
 
-    register()
+    IBMQ.load_accounts()
 
-This ``register()`` call (without parameters) performs the automatic loading
-of the credentials from several sources, and authenticates against IBM Q,
-making the online devices available to your program. Please use one of the
-following methods for storing the credentials before calling the automatic
-registration:
+This ``IBMQ.load_accounts()`` call performs the automatic loading of the
+credentials from several sources, and authenticates against IBM Q, making the
+online devices available to your program. Please use one of the following
+methods for storing the credentials before calling the automatic registration:
 
 3.1.1 Store API credentials locally
 """""""""""""""""""""""""""""""""""
@@ -75,21 +74,21 @@ To store your information, simply run:
 
 .. code:: python
 
-    from qiskit import store_credentials
+    from qiskit import IBMQ
 
-    store_credentials('MY_API_TOKEN')
+    IBMQ.save_account('MY_API_TOKEN')
 
 
 where `MY_API_TOKEN` should be replaced with your token.
 
 If you are on the IBM Q network, you must also pass the `url` 
-argument found on your q-console account page to `store_credentials`:
+argument found on your q-console account page to `IBMQ.save_account()`:
 
 .. code:: python
 
-    from qiskit import store_credentials
+    from qiskit import IBMQ
 
-    store_credentials('MY_API_TOKEN', url='https://...')
+    IBMQ.save_account('MY_API_TOKEN', url='https://...')
 
 
 3.1.2 Load API credentials from environment variables
@@ -178,18 +177,21 @@ precedence over the environment variables or the credentials stored in disk.
 
 In more complex scenarios or for users that need finer control over multiple
 accounts, please note that you can pass the API token and the other parameters
-directly to the ``register()`` function, which will ignore the automatic
+directly to the ``IBMQ.enable_account()`` function, which will ignore the automatic
 loading of the credentials and use the arguments directly. For example:
 
 .. code:: python
 
-    from qiskit import register
+    from qiskit import IBMQ
 
-    register('MY_API_TOKEN', url='https://my.url')
+    IBMQ.enable_account('MY_API_TOKEN', url='https://my.url')
 
 will try to authenticate using ``MY_API_TOKEN`` and the specified URL,
 regardless of the configuration stored in the config file, the environment
 variables, or the ``Qconfig.py`` file, if any.
+
+Please refer to the ``qiskit.IBMQ`` documentation for more information about
+using multiple credentials.
 
 Install Jupyter-based tutorials
 ===============================

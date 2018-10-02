@@ -41,7 +41,7 @@ with the individual components (:class:`~qiskit.backends.basebackend.BaseJob`,
 :class:`~qiskit._quantumcircuit.QuantumCircuit`,
 :class:`~qiskit._classicalregister.ClassicalRegister`,
 :class:`~qiskit._quantumregister.QuantumRegister`,
-:mod:`~qiskit.wrapper`) directly.
+:mod:`~qiskit`) directly.
 
 Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 :doc:`quickstart` examples for details about the transition ::
@@ -69,28 +69,60 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 IBM Q Authentication and ``Qconfig.py``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The managing of credentials for authenticating when using the QE backends has
+The managing of credentials for authenticating when using the QX backends has
 been expanded, and there are new options that can be used for convenience:
 
-1. store your credentials in disk once, and automatically load them in future
+1. save your credentials in disk once, and automatically load them in future
    sessions. This provides a one-off mechanism::
 
-     from qiskit import store credentials
-     store_credentials('MY_API_TOKEN')
+     from qiskit import IBMQ
+     IBQM.save_account('MY_API_TOKEN', 'MY_API_URL')
 
-   afterwards, your credentials can be automatically read from disk by not
-   passing any parameters to :meth:`~qiskit.wrapper._wrapper.register`::
+   afterwards, your credentials can be automatically loaded from disk by invoking
+   :meth:`~qiskit.backends.ibmq.IBMQ.load_accounts`::
 
-     from qiskit import register
-     register()
+     from qiskit import IBMQ
+     IBMQ.load_accounts()
+
+   or you can load only specific accounts if you only want to use those in a session::
+   
+     IBMQ.load_accounts(project='MY_PROJECT')
 
 2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
-   ``register()`` call will automatically load the credentials from them.
+   ``IBMQ.load_accounts()`` call will automatically load the credentials from
+   them.
 
 Additionally, the previous method of having a ``Qconfig.py`` file in the program
 folder and passing the credentials explicitly is still supported. Please check
 the :ref:`qconfig-setup` section for more details about combining and using
 the different authentication options.
+
+Working with backends
+^^^^^^^^^^^^^^^^^^^^^
+
+A new mechanism has been introduced in 0.6 as the recommended way for obtaining
+a backend, allowing for more powerful and unified filtering and integrated with
+the new credentials system. The previous top-level methods
+:meth:`~qiskit.wrapper._wrapper.register`,
+:meth:`~qiskit.wrapper._wrapper.available_backends` and
+:meth:`~qiskit.wrapper._wrapper.get_backend` are still supported, but will
+deprecated in upcoming versions in favor of using the `qiskit.IBMQ` and
+`qiskit.Aer` objects directly, which allow for more complex filtering.
+
+For example, to list and use a local backend::
+
+  from qiskit import Aer
+
+  all_local_backends = Aer.backends(local=True)  # returns a list of instances
+  qasm_simulator = Aer.backends('local_qasm_simulator')
+
+And for listing and using remote backends::
+
+  from qiskit import IBMQ
+
+  IBMQ.enable_account('MY_API_TOKEN')
+  5_qubit_devices = IBMQ.backends(simulator=True, n_qubits=5)
+  ibmqx4 = IBMQ.get_backend('ibmqx4')
 
 Backend and Job API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

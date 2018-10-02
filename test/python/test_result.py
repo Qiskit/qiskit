@@ -12,7 +12,6 @@ import unittest
 from numpy import array_equal
 
 import qiskit
-from qiskit.wrapper import execute, register, available_backends
 from .common import QiskitTestCase, requires_qe_access
 
 
@@ -28,11 +27,11 @@ class TestQiskitResult(QiskitTestCase):
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
 
-        self.backend = 'local_qasm_simulator'
-        self._result1 = execute(self._qc1, self.backend).result()
-        self._result2 = execute(self._qc2, self.backend).result()
+        self.backend = 'qasm_simulator'
+        self._result1 = qiskit.execute(self._qc1, self.backend).result()
+        self._result2 = qiskit.execute(self._qc2, self.backend).result()
 
-    def test_local_result_fields(self):
+    def test_aer_result_fields(self):
         """Test components of a result from a local simulator."""
         self.assertIn('qasm_simulator', self._result1.backend_name)
         self.assertIsInstance(self._result1.job_id, str)
@@ -40,12 +39,12 @@ class TestQiskitResult(QiskitTestCase):
         self.assertEqual(self._result1.circuit_statuses(), ['DONE'])
 
     @requires_qe_access
-    def test_remote_result_fields(self, qe_token, qe_url):
+    def test_ibmq_result_fields(self, qe_token, qe_url):
         """Test components of a result from a remote simulator."""
-        register(qe_token, qe_url)
-        remote_backend = available_backends({'local': False, 'simulator': True})[0]
-        remote_result = execute(self._qc1, remote_backend).result()
-        self.assertEqual(remote_result.backend_name, remote_backend)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
+        remote_backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
+        remote_result = qiskit.execute(self._qc1, remote_backend).result()
+        self.assertEqual(remote_result.backend_name, remote_backend.name())
         self.assertIsInstance(remote_result.job_id, str)
         self.assertEqual(remote_result.status, 'COMPLETED')
         self.assertEqual(remote_result.circuit_statuses(), ['DONE'])
@@ -64,7 +63,7 @@ class TestQiskitResult(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         xvals_dict = {circuits[0].name: 0, circuits[1].name: 1}
-        result = execute(circuits, self.backend).result()
+        result = qiskit.execute(circuits, self.backend).result()
         yvals, xvals = result.get_qubitpol_vs_xval(2, xvals_dict=xvals_dict)
         self.assertTrue(array_equal(yvals, [[-1, -1], [1, -1]]))
         self.assertTrue(array_equal(xvals, [0, 1]))
@@ -79,7 +78,7 @@ class TestQiskitResult(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        result = execute(qc, self.backend, shots=shots).result()
+        result = qiskit.execute(qc, self.backend, shots=shots).result()
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
         mean_zz = result.average_data("qc", observable)
         observable = {"00": 1, "11": -1, "01": 1, "10": -1}

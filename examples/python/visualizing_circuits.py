@@ -5,6 +5,11 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+"""
+Example showing how to draw a quantum circuit using Qiskit Terra.
+
+"""
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import circuit_drawer
 
