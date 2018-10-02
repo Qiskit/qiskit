@@ -22,6 +22,12 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
 
 
 def _text_checker(job, interval):
+    """A text-based job status checker
+
+    Args:
+        job (BaseJob): The job to check.
+        interval (int): The interval at which to check.
+    """
     status = job.status()
     msg = status.value
     prev_msg = msg
