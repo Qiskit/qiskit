@@ -371,6 +371,10 @@ class TextDrawing():
                 ret += "╫"
             elif topc in '╫╬' and botc in " ":
                 ret += "║"
+            elif topc == '└' and botc == "┌":
+                ret += "├"
+            elif topc == '┘' and botc == "┐":
+                ret += "┤"
             else:
                 ret += botc
         return ret
@@ -388,7 +392,6 @@ class TextDrawing():
     def normalize_width(layer):
         instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
         longest = max([instruction.width for instruction in instructions])
-        print(longest)
         for instruction in instructions:
             instruction.width = longest
 
