@@ -9,7 +9,7 @@
 # pylint: disable=redefined-builtin
 # pylint: disable=too-many-function-args
 
-"""IBMQ Remote Simulator Tests"""
+"""IBMQ Remote Backend Qobj Tests"""
 
 import os
 import unittest
@@ -17,10 +17,10 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
-from .common import JobTestCase
+from ..common import requires_qe_access, JobTestCase, slow_test
 
 
-class TestBackendQobj(JobTestCase):
+class TestIBMQQobj(JobTestCase):
     """Qiskit backend qobj test. Compares remote simulator as
        configured in environment variables 'IBMQ_QOBJ_DEVICE',
        'IBMQ_TOKEN' and 'IBMQ_QOBJ_URL' against local simulator
@@ -37,8 +37,8 @@ class TestBackendQobj(JobTestCase):
             self.skipTest("No credentials or testing device available for "
                           "testing Qobj capabilities.")
 
-        IBMQ.use_account(self._qe_token, self._qe_url)
-        self._local_backend = Aer.get_backend('qasm_simulator_py')
+        IBMQ.enable_account(self._qe_token, self._qe_url)
+        self._local_backend = Aer.get_backend('local_qasm_simulator')
         self._remote_backend = IBMQ.get_backend(self._testing_device)
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
