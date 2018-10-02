@@ -88,7 +88,7 @@ been expanded, and there are new options that can be used for convenience:
    
      IBMQ.load_accounts(project='MY_PROJECT')
 
-2. use environment variables. If ``QX_TOKEN`` and ``QX_URL`` is set, the
+2. use environment variables. If ``QE_TOKEN`` and ``QE_URL`` is set, the
    ``IBMQ.load_accounts()`` call will automatically load the credentials from
    them.
 
