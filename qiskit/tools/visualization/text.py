@@ -5,8 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=
-
 """
 A module for drawing circuits in ascii art or some other text representation
 """
@@ -34,24 +32,28 @@ class DrawElement():
 
     @property
     def top(self):
+        """ Constructs the top line of the element"""
         if "%s" in self._top:
             return self._top % self._top_connector.center(self.width, self._top_border)
         return self._top
 
     @property
     def mid(self):
+        """ Constructs the middle line of the element"""
         if "%s" in self._mid:
             return self._mid % self._mid_content.center(self.width)
         return self._mid
 
     @property
     def bot(self):
+        """ Constructs the bottom line of the element"""
         if "%s" in self._bot:
             return self._bot % self._bot_connector.center(self.width, self._bot_border)
         return self._bot
 
     @property
     def length(self):
+        """ Returns the length of the element, including the box around."""
         return max(len(self.top), len(self.mid), len(self.bot))
 
     @property
@@ -412,12 +414,13 @@ class TextDrawing():
     @staticmethod
     def merge_lines(top, bot, icod="top"):
         """
-
+        Merges two lines (top and bot) in the way that the overlapping make senses.
         Args:
-            top:
-            bot:
-            icod: in case of doubts
+            top (str): the top line
+            bot (str): the bottom line
+            icod (top or bot): in case of doubt, which line should have priority? Default: "top".
         Returns:
+            str: The merge of both lines.
         """
         ret = ""
         for topc, botc in zip(top, bot):
