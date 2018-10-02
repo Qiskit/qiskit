@@ -67,18 +67,17 @@ class IBMQProvider(BaseProvider):
         return {
             'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
             'ibmqx_hpc_qasm_simulator': 'ibmq_qasm_simulator',
-            'real': 'ibmqx1'
+            'real': 'ibmqx1',
+            'ibmqx2': 'ibmq_5_yorktown',
+            'ibmqx4': 'ibmq_5_tenerife',
+            'ibmqx5': 'ibmq_16_rueschlikon',
+            'QS1_1': 'ibmq_20_austin',
             }
 
     @staticmethod
     def aliased_backend_names():
         """Returns aliased backend names."""
-        return {
-            'ibmq_5_yorktown': 'ibmqx2',
-            'ibmq_5_tenerife': 'ibmqx4',
-            'ibmq_16_rueschlikon': 'ibmqx5',
-            'ibmq_20_austin': 'QS1_1'
-            }
+        return {}
 
     def add_account(self, token, url=QE_URL, **kwargs):
         """Authenticate against IBMQ and store the account for future use.

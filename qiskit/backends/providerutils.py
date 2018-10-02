@@ -85,7 +85,6 @@ def resolve_backend_name(name, backends, grouped, deprecated, aliased):
     """
     resolved_name = ""
     available = [backend.name() for backend in backends]
-
     if name in available:
         resolved_name = name
     elif name in grouped:
