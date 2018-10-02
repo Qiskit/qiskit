@@ -52,7 +52,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit.measure(qr, cr)
         p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'references', 'text_ref.txt')
         with open(p) as f:
-            self.assertEqual(f.read().rstrip('\n'),text_drawer(circuit))
+            self.assertEqual(f.read().rstrip('\n'), text_drawer(circuit))
 
     def test_text_pager(self):
         qr = QuantumRegister(1, 'q')
@@ -215,19 +215,21 @@ class TestCircuitTextDrawer(QiskitTestCase):
         include "qelib1.inc";
         qreg q[1];
         creg c0[2];
-        creg c1[1];
+        creg c1[2];
         if(c0==1) x q[0];
         if(c1==0) x q[0];
         """
-        expected = '\n'.join(["        ┌───┐┌───────┐",
-                              "q_0: |0>┤ X ├┤   X   ├",
-                              "        ├─┴─┤└───┬───┘",
-                              "c0_0: 0 ╡   ╞════╪════",
-                              "        │ X │    │    ",
-                              "c0_1: 0 ╡   ╞════╪════",
-                              "        └───┘┌───┴───┐",
-                              "c1_0: 0 ═════╡ = 0x0 ╞",
-                              "             └───────┘"])
+        expected = '\n'.join(["        ┌───────┐┌───────┐",
+                              "q_0: |0>┤   X   ├┤   X   ├",
+                              "        ├───┴───┤└───┬───┘",
+                              "c0_0: 0 ╡       ╞════╪════",
+                              "        │ = 0x1 │    │    ",
+                              "c0_1: 0 ╡       ╞════╪════",
+                              "        └───────┘┌───┴───┐",
+                              "c1_0: 0 ═════════╡       ╞",
+                              "                 │ = 0x0 │",
+                              "c1_1: 0 ═════════╡       ╞",
+                              "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
         self.assertEqual(text_drawer(circuit), expected)
 

@@ -142,6 +142,8 @@ class ConditionalFromTop(DrawElementMultiBit):
 class ConditionalFromMid(DrawElementMultiBit):
     def __init__(self, instruction, input_length, order):
         super().__init__(instruction)
+        self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
+        self.width = len(self.label)
         self._top = "│ %s │"
         self._mid = "╡ %s ╞"
         self._bot = "│ %s │"
@@ -157,6 +159,8 @@ class ConditionalFromMid(DrawElementMultiBit):
 class ConditionalFromBot(DrawElementMultiBit):
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
+        self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
+        self.width = len(self.label)
         self._top = "│ %s │"
         self._mid = "╡ %s ╞"
         self._bot = "└─%s─┘"
