@@ -5,8 +5,15 @@
 [![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
 
 The Quantum Information Science Kit (**Qiskit** for short) is a software development kit (SDK) for
-working with [OpenQASM](https://github.com/Qiskit/qiskit-openqasm) and the
-[IBM Q Experience (QX)](https://quantumexperience.ng.bluemix.net/).
+developing quantum computing applications and working with NISQ (Noisy-Intermidate Scale Quantum) computers such as
+[IBM Q](https://quantumexperience.ng.bluemix.net/).
+
+**Qiskit** is made up elements that each work together to enable quantum computing. This element is **Qiskit-terra** 
+and is the foundation on which the rest of the software lies. Terra provides a bedrock for composing quantum programs at the level of circuits and pulses, to optimize them for the constraints of a particular device, and to manage the execution of batches of experiments on remote-access devices. 
+
+https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492
+
+[OpenQASM](https://github.com/Qiskit/qiskit-openqasm)
 
 Use **Qiskit** to create quantum computing programs, compile them, and execute them on one of
 several backends (online Real quantum processors, online simulators, and local simulators). For
