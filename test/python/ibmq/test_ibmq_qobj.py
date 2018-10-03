@@ -11,35 +11,22 @@
 
 """IBMQ Remote Backend Qobj Tests"""
 
-import os
 import unittest
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
-from ..common import JobTestCase
+from ..common import requires_qe_access, JobTestCase
 
 
-class TestIBMQQobj(JobTestCase):
-    """Qiskit backend qobj test. Compares remote simulator as
-       configured in environment variables 'IBMQ_QOBJ_DEVICE',
-       'IBMQ_TOKEN' and 'IBMQ_QOBJ_URL' against local simulator
-       'local_qasm_simulator' as ground truth.
-    """
+class TestBackendQobj(JobTestCase):
 
-    def setUp(self):
+    @requires_qe_access
+    def setUp(self, qe_token, qe_url):
         super().setUp()
-        self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
-        self._qe_token = os.getenv('IBMQ_TOKEN', None)
-        self._qe_url = os.getenv('IBMQ_QOBJ_URL')
-
-        if not self._testing_device or not self._qe_token or not self._qe_url:
-            self.skipTest("No credentials or testing device available for "
-                          "testing Qobj capabilities.")
-
-        IBMQ.enable_account(self._qe_token, self._qe_url)
-        self._local_backend = Aer.get_backend('local_qasm_simulator')
-        self._remote_backend = IBMQ.get_backend(self._testing_device)
+        IBMQ.enable_account(qe_token, qe_url)
+        self._local_backend = Aer.get_backend('qasm_simulator_py')
+        self._remote_backend = IBMQ.get_backend('ibmq_qasm_simulator')
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
 
