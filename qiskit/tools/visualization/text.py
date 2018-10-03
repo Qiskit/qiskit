@@ -73,6 +73,7 @@ class MeasureTo(DrawElement):
     mid: ═╩═ ═══╩═══
     bot:
     """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self.width = 3
@@ -81,12 +82,14 @@ class MeasureTo(DrawElement):
         self._bot_connect = "   "
         self._mid_padding = "═"
 
+
 class MeasureFrom(DrawElement):
     """ The element on the quantum wire in which the measure is performed
         top: ┌─┐    ┌─┐
         mid: ┤M├ ───┤M├───
         bot: └╥┘    └╥┘
     """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self.width = 3
@@ -95,8 +98,10 @@ class MeasureFrom(DrawElement):
         self._bot_connect = "└╥┘"
         self._mid_padding = "─"
 
+
 class DrawElementMultiBit(DrawElement):
     """Elements that is draw on over multiple wires."""
+
     def center_label(self, input_length, order):
         """
         In multi-bit elements, the label is centered vertically.
@@ -118,6 +123,7 @@ class DrawElementMultiBit(DrawElement):
 
 class MultiQubitGateTop(DrawElementMultiBit):
     """ Draws the top part of a box that affects more than one quantum wire"""
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self._mid_content = ""  # The label will be put by some other part of the box.
@@ -130,6 +136,7 @@ class MultiQubitGateTop(DrawElementMultiBit):
 
 class MultiQubitGateMid(DrawElementMultiBit):
     """ Draws the middle part of a box that affects more than one quantum wire"""
+
     def __init__(self, instruction, input_length, order):
         super().__init__(instruction)
         self._top = "│ %s │"
@@ -142,6 +149,7 @@ class MultiQubitGateMid(DrawElementMultiBit):
 
 class MultiQubitGateBot(DrawElementMultiBit):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
+
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
         self._top = "│ %s │"
@@ -157,6 +165,7 @@ class MultiQubitGateBot(DrawElementMultiBit):
 
 class ConditionalTo(DrawElementMultiBit):
     """ The quantum part of a conditional. """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self._mid_content = self.label
@@ -169,6 +178,7 @@ class ConditionalTo(DrawElementMultiBit):
 
 class ConditionalFrom(DrawElementMultiBit):
     """ The classical part of a conditional. """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
@@ -181,6 +191,7 @@ class ConditionalFrom(DrawElementMultiBit):
 
 class ConditionalFromTop(DrawElementMultiBit):
     """ Draws the top part of a conditional box that affects more than one classical wire"""
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self._mid_content = ""  # The label will be put by some other part of the box.
@@ -194,6 +205,7 @@ class ConditionalFromTop(DrawElementMultiBit):
 
 class ConditionalFromMid(DrawElementMultiBit):
     """ Draws the middle part of a conditional box that affects more than one classical wire"""
+
     def __init__(self, instruction, input_length, order):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
@@ -207,6 +219,7 @@ class ConditionalFromMid(DrawElementMultiBit):
 
 class ConditionalFromBot(DrawElementMultiBit):
     """ Draws the bottom part of a conditional box that affects more than one classical wire"""
+
     def __init__(self, instruction, input_length):
         super().__init__(instruction)
         self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
@@ -221,82 +234,85 @@ class ConditionalFromBot(DrawElementMultiBit):
             self._top_connect = self.label
 
 
-class Barrier(DrawElement):
+class DirectOnQuWire(DrawElement):
+    def __init__(self, instruction=None):
+        super().__init__(instruction)
+        self._top = ' %s '
+        self._mid = '─%s─'
+        self._bot = ' %s '
+        self._mid_padding = '─'
+
+
+class Barrier(DirectOnQuWire):
     """ Draws a barrier.
         top:  ¦     ¦
         mid: ─¦─ ───¦───
         bot:  ¦     ¦
-
     """
+
     def __init__(self, instruction):
         super().__init__(instruction)
-        self.width = 3
-        self._top_connect = " ¦ "
-        self._mid_content = "─¦─"
-        self._bot_connect = " ¦ "
+        self.width = 1
+        self._top_connect = "¦"
+        self._mid_content = "¦"
+        self._bot_connect = "¦"
 
 
-class SwapTop(DrawElement):
-    """ Draws the top part of a swap gate
+class ExDown(DirectOnQuWire):
+    """ Draws an X with a connector down. E.g. the top part of a swap gate
     top:
     mid: ─X─ ───X───
     bot:  │     │
     """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self.width = 1
-        self._top = " %s "
-        self._mid = "─%s─"
-        self._bot = " %s "
-
         self._mid_content = "X"
         self._bot_connect = "│"
-        self._mid_padding = "─"
 
 
-class SwapBot(DrawElement):
-    """ Draws the bottom part of a swap gate
+class ExUp(DirectOnQuWire):
+    """ Draws an X with a connector going up. E.g. the bottom part of a swap gate.
     top:  │     │
     mid: ─X─ ───X───
     bot:
     """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self.width = 1
-        self._top = " %s "
-        self._mid = "─%s─"
-        self._bot = " %s "
-
         self._top_connect = "│"
         self._mid_content = "X"
-        self._mid_padding = "─"
 
 
-class Reset(DrawElement):
+class Reset(DirectOnQuWire):
     """ Draws a reset gate"""
+
     def __init__(self, instruction):
         super().__init__(instruction)
+        self.width = 3
         self._mid_content = "|0>"
         self._mid_padding = "─"
 
-class CXcontrol(DrawElement):
-    """ Draws the top part of a CX gate
+
+class BulletDown(DirectOnQuWire):
+    """ Draws a bullet with a connector going down. E.g. the top part of a CX gate.
     top:
     mid: ─■─  ───■───
     bot:  │      │
     """
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self.width = 1
-        self._top = ' %s '
-        self._mid = '─%s─'
-        self._bot = ' %s '
-        self._bot_connect = "│"
-        self._mid_padding = '─'
         self._mid_content = '■'
+        self._bot_connect = "│"
+
 
 class UnitaryGate(DrawElement):
     """ Draws a single box, that effects a single quantum wire"""
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top_border = self._top_connect = '─'
@@ -306,19 +322,17 @@ class UnitaryGate(DrawElement):
         self._mid = "┤ %s ├"
         self._bot = "└─%s─┘"
 
+
 class UnitaryGateWithTopConnector(UnitaryGate):
     """ Draws a gate with a qubit conector on top"""
+
     def __init__(self, instruction):
         super().__init__(instruction)
         self._top_connect = '┴'
 
+
 class EmptyWire(DrawElement):
     """ This element is just the wire, with no instructions nor operations."""
-    def __init__(self, length=0):
-        super().__init__()
-        self._length = length
-        self._top_connect = " " * length
-        self._bot_connect = " " * length
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
@@ -331,14 +345,14 @@ class EmptyWire(DrawElement):
         Returns:
             list: The new layer, with no Nones.
         """
-        max_length = max([i.length for i in filter(lambda x: x is not None, layer)])
         for nones in [i for i, x in enumerate(layer) if x is None]:
-            layer[nones] = EmptyClbitWire(max_length) if nones >= first_clbit else EmptyQubitWire(max_length)
+            layer[nones] = EmptyClbitWire() if nones >= first_clbit else EmptyQubitWire()
         return layer
 
 
 class BreakWire(DrawElement):
     """ This element is used to break the drawing in several pages."""
+
     def __init__(self, arrow_char):
         super().__init__()
         self._top = self._mid = self._bot = "%s"
@@ -363,23 +377,28 @@ class BreakWire(DrawElement):
         return breakwire_layer
 
 
-class EmptyQubitWire(EmptyWire):
+class EmptyQubitWire(DirectOnQuWire):
     """ This element is just the quantum wire, with no instructions nor operations."""
-    def __init__(self, length=0):
-        super().__init__(length)
-        self._mid_content = '─' * length
-        self._mid_padding = '─'
+
+    def __init__(self):
+        super().__init__()
+        self.width = 0
+        self._mid_content = ''
 
 
 class EmptyClbitWire(EmptyWire):
     """ This element is just the classic wire, with no instructions nor operations."""
-    def __init__(self, length=0):
-        super().__init__(length)
-        self._mid_content = '═' * length
+
+    def __init__(self):
+        super().__init__()
+        self.width = 1
+        self._mid_content = '═'
         self._mid_padding = '═'
+
 
 class InputWire(EmptyWire):
     """ This element is the label and the initial value of a wire."""
+
     def __init__(self, label):
         super().__init__()
         self.label = label
@@ -404,6 +423,7 @@ class InputWire(EmptyWire):
 
 class TextDrawing():
     """ The text drawing"""
+
     def __init__(self, json_circuit):
         self.json_circuit = json_circuit
 
@@ -629,14 +649,14 @@ class TextDrawing():
 
             elif instruction['name'] == 'swap':
                 # swap
-                qubit_layer[instruction['qubits'][0]] = SwapTop(instruction)
-                qubit_layer[instruction['qubits'][1]] = SwapBot(instruction)
+                qubit_layer[instruction['qubits'][0]] = ExDown(instruction)
+                qubit_layer[instruction['qubits'][1]] = ExUp(instruction)
 
             elif instruction['name'] == 'cswap':
                 # cswap
-                qubit_layer[instruction['qubits'][0]] = CXcontrol(instruction)
-                qubit_layer[instruction['qubits'][1]] = SwapBot(instruction)
-                qubit_layer[instruction['qubits'][2]] = SwapBot(instruction)
+                qubit_layer[instruction['qubits'][0]] = BulletDown(instruction)
+                qubit_layer[instruction['qubits'][1]] = ExUp(instruction)
+                qubit_layer[instruction['qubits'][2]] = ExUp(instruction)
 
             elif instruction['name'] == 'reset':
                 qubit_layer[instruction['qubits'][0]] = Reset(instruction)
@@ -660,7 +680,7 @@ class TextDrawing():
                 target = instruction['qubits'][-1]
 
                 for qubit in control:
-                    qubit_layer[qubit] = CXcontrol(instruction)
+                    qubit_layer[qubit] = BulletDown(instruction)
                 qubit_layer[target] = UnitaryGateWithTopConnector(instruction)
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
