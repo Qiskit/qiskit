@@ -331,39 +331,6 @@ class TestIBMQJob(JobTestCase):
             job.submit()
 
 
-class TestQObjectBasedIBMQJob(JobTestCase):
-    """Test jobs supporting QObject."""
-
-    def setUp(self):
-        super().setUp()
-        self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
-        self._qe_token = os.getenv('IBMQ_TOKEN', None)
-        self._qe_url = os.getenv('IBMQ_QOBJ_URL')
-        if not self._testing_device or not self._qe_token or not self._qe_url:
-            self.skipTest('No credentials or testing device available for '
-                          'testing Qobj capabilities.')
-
-        IBMQ.enable_account(self._qe_token, self._qe_url)
-        self._backend = IBMQ.get_backend(self._testing_device)
-
-        self._qc = _bell_circuit()
-
-    def test_qobject_enabled_job(self):
-        """Job should be an instance of IBMQJob."""
-        qobj = transpiler.compile(self._qc, self._backend)
-        job = self._backend.run(qobj)
-        self.assertIsInstance(job, IBMQJob)
-
-    def test_qobject_result(self):
-        """Jobs can be retrieved."""
-        qobj = transpiler.compile(self._qc, self._backend)
-        job = self._backend.run(qobj)
-        try:
-            job.result()
-        except JobError as err:
-            self.fail(err)
-
-
 def _bell_circuit():
     qr = QuantumRegister(2, 'q')
     cr = ClassicalRegister(2, 'c')

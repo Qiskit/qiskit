@@ -11,7 +11,11 @@
 
 """IBMQ Remote Backend Qobj Tests"""
 
+import os
 import unittest
+from qiskit import transpiler
+from qiskit.backends import JobError
+from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
 from qiskit import IBMQ, Aer
@@ -23,6 +27,7 @@ class TestBackendQobj(JobTestCase):
 
     @requires_qe_access
     def setUp(self, qe_token, qe_url):
+        # pylint: disable=arguments-differ
         super().setUp()
         IBMQ.enable_account(qe_token, qe_url)
         self._local_backend = Aer.get_backend('qasm_simulator_py')
@@ -30,17 +35,20 @@ class TestBackendQobj(JobTestCase):
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
 
-    def test_operational(self):
+    @requires_qe_access
+    def test_operational(self, **_):
         """Test if backend is operational.
         """
         self.assertTrue(self._remote_backend.status()['operational'])
 
-    def test_allow_qobj(self):
+    @requires_qe_access
+    def test_allow_qobj(self, **_):
         """Test if backend support Qobj.
         """
         self.assertTrue(self._remote_backend.configuration()['allow_q_object'])
 
-    def test_one_qubit_no_operation(self):
+    @requires_qe_access
+    def test_one_qubit_no_operation(self, **_):
         """Test one circuit, one register, in-order readout.
         """
         qr = QuantumRegister(1)
@@ -54,7 +62,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_one_qubit_operation(self):
+    @requires_qe_access
+    def test_one_qubit_operation(self, **_):
         """Test one circuit, one register, in-order readout.
         """
         qr = QuantumRegister(1)
@@ -69,7 +78,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_simple_circuit(self):
+    @requires_qe_access
+    def test_simple_circuit(self, **_):
         """Test one circuit, one register, in-order readout.
         """
         qr = QuantumRegister(4)
@@ -88,7 +98,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_readout_order(self):
+    @requires_qe_access
+    def test_readout_order(self, **_):
         """Test one circuit, one register, out-of-order readout.
         """
         qr = QuantumRegister(4)
@@ -108,7 +119,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_multi_register(self):
+    @requires_qe_access
+    def test_multi_register(self, **_):
         """Test one circuit, two registers, out-of-order readout.
         """
         qr1 = QuantumRegister(2)
@@ -134,7 +146,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_multi_circuit(self):
+    @requires_qe_access
+    def test_multi_circuit(self, **_):
         """Test two circuits, two registers, out-of-order readout.
         """
         qr1 = QuantumRegister(2)
@@ -171,7 +184,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ2),
                                    result_local.get_counts(circ2), delta=100)
 
-    def test_conditional_operation(self):
+    @requires_qe_access
+    def test_conditional_operation(self, **_):
         """Test conditional operation.
         """
         qr = QuantumRegister(4)
@@ -188,7 +202,8 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_atlantic_circuit(self):
+    @requires_qe_access
+    def test_atlantic_circuit(self, **_):
         """Test Atlantis deterministic ry operation.
         """
         qr = QuantumRegister(3)
@@ -203,6 +218,49 @@ class TestBackendQobj(JobTestCase):
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
+
+
+class TestQObjectBasedIBMQJob(JobTestCase):
+    """Test jobs supporting QObject."""
+
+    def setUp(self):
+        super().setUp()
+        self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
+        self._qe_token = os.getenv('IBMQ_TOKEN', None)
+        self._qe_url = os.getenv('IBMQ_QOBJ_URL')
+        if not self._testing_device or not self._qe_token or not self._qe_url:
+            self.skipTest('No credentials or testing device available for '
+                          'testing Qobj capabilities.')
+
+        IBMQ.enable_account(self._qe_token, self._qe_url)
+        self._backend = IBMQ.get_backend(self._testing_device)
+
+        self._qc = _bell_circuit()
+
+    def test_qobject_enabled_job(self):
+        """Job should be an instance of IBMQJob."""
+        qobj = transpiler.compile(self._qc, self._backend)
+        job = self._backend.run(qobj)
+        self.assertIsInstance(job, IBMQJob)
+
+    def test_qobject_result(self):
+        """Jobs can be retrieved."""
+        qobj = transpiler.compile(self._qc, self._backend)
+        job = self._backend.run(qobj)
+        try:
+            job.result()
+        except JobError as err:
+            self.fail(err)
+
+
+def _bell_circuit():
+    qr = QuantumRegister(2, 'q')
+    cr = ClassicalRegister(2, 'c')
+    qc = QuantumCircuit(qr, cr)
+    qc.h(qr[0])
+    qc.cx(qr[0], qr[1])
+    qc.measure(qr, cr)
+    return qc
 
 
 if __name__ == '__main__':
