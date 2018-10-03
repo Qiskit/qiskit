@@ -7,19 +7,20 @@
 
 # pylint: disable = no-member
 
-"""Tests for comparing the outputs of text drawing of circuit with expected ones."""
+""" `text_drawer` "draws" a circuit in "ascii art" """
 
 import os
 import unittest
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization.text import text_drawer
+from qiskit.tools.visualization import text as elements
 from qiskit.wrapper._circuittoolkit import circuit_from_qasm_string
 from .common import QiskitTestCase
 
 
-class TestCircuitTextDrawer(QiskitTestCase):
-    """ `text_drawer` "draws" a circuit in "ascii art" """
+class TestTextDrawerBigCircuit(QiskitTestCase):
+    """ General cases and use cases, using big circuits. """
 
     def test_text_sample_circuit(self):
         """ Draw a sample circuit that includes the most common elements of quantum circuits. (taken
@@ -69,6 +70,35 @@ class TestCircuitTextDrawer(QiskitTestCase):
         for _ in range(no_instructions):
             circuit.x(qr[0])
         self.assertEqual(text_drawer(circuit, line_length=10).count('\n'), no_instructions * 3 + 2)
+
+
+class TestTextDrawerElement(QiskitTestCase):
+    """ Draw each element"""
+
+    def assertEqualElement(self, expected, element):
+        self.assertEqual(expected[0], element.top)
+        self.assertEqual(expected[1], element.mid)
+        self.assertEqual(expected[2], element.bot)
+
+    def test_MeasureTo(self):
+        """ MeasureTo element. """
+        element = elements.MeasureTo(None)
+        expected = [" ║ ",
+                    "═╩═",
+                    "   "]
+        self.assertEqualElement(expected, element)
+
+    def test_MeasureFrom(self):
+        """ MeasureFrom element. """
+        element = elements.MeasureFrom(None)
+        expected = ["┌─┐",
+                    "┤M├",
+                    "└╥┘"]
+        self.assertEqualElement(expected, element)
+
+
+class TestTextDrawerGatesInCircuit(QiskitTestCase):
+    """ Gate by gate checks in different settings."""
 
     def test_text_measure_1(self):
         """ The measure operator, using 3-bit-length registers. """
@@ -144,7 +174,6 @@ class TestCircuitTextDrawer(QiskitTestCase):
                               "         │ ",
                               "q_2: |0>─X─",
                               "           "])
-
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cswap(qr[0], qr[1], qr[2])
@@ -185,6 +214,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
         circuit.h(qr1)
         circuit.h(qr2[1])
         self.assertEqual(text_drawer(circuit), expected)
+
 
     def test_text_barrier(self):
         """ Barrier drawing. """
