@@ -23,7 +23,7 @@ from qiskit.backends.ibmq.credentials import (
 from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
 from qiskit.backends.ibmq.ibmqprovider import QE_URL
 from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, requires_qe_access
 
 
 IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
@@ -142,6 +142,20 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.delete_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
+
+    @requires_qe_access
+    def test_pass_bad_proxy(self, qe_token, qe_url):
+        """Test proxy pass through."""
+        prox = {'urls': {
+            'http': 'http://user:password@1.2.3.4:5678',
+            'https': 'https://user:password@1.2.3.4:5678'}}
+        failed = False
+        try:
+            qiskit.IBMQ.enable_account(qe_token, qe_url, proxies=prox)
+        except ConnectionError as excep:
+            if 'ProxyError' in str(excep):
+                failed = True
+        self.assertTrue(failed)
 
 
 # TODO: NamedTemporaryFiles do not support name in Windows
