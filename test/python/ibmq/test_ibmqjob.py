@@ -9,7 +9,6 @@
 
 """IBMQJob Test."""
 
-import os
 import time
 import unittest
 from concurrent import futures
