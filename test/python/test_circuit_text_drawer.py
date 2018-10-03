@@ -213,14 +213,14 @@ class TestCircuitTextDrawer(QiskitTestCase):
         creg c0[1];
         creg c1[1];
         if(c0==1) x q[0];
-        if(c1==0) x q[0];
+        if(c1==1) x q[0];
         """
         expected = '\n'.join(["        ┌───────┐┌───────┐",
                               "q_0: |0>┤   X   ├┤   X   ├",
                               "        ├───┴───┤└───┬───┘",
                               "c0_0: 0 ╡ = 0x1 ╞════╪════",
                               "        └───────┘┌───┴───┐",
-                              "c1_0: 0 ═════════╡ = 0x0 ╞",
+                              "c1_0: 0 ═════════╡ = 0x1 ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
         self.assertEqual(text_drawer(circuit), expected)
@@ -233,18 +233,18 @@ class TestCircuitTextDrawer(QiskitTestCase):
         qreg q[1];
         creg c0[2];
         creg c1[2];
-        if(c0==1) x q[0];
-        if(c1==0) x q[0];
+        if(c0==2) x q[0];
+        if(c1==2) x q[0];
         """
         expected = '\n'.join(["        ┌───────┐┌───────┐",
                               "q_0: |0>┤   X   ├┤   X   ├",
                               "        ├───┴───┤└───┬───┘",
                               "c0_0: 0 ╡       ╞════╪════",
-                              "        │ = 0x1 │    │    ",
+                              "        │ = 0x2 │    │    ",
                               "c0_1: 0 ╡       ╞════╪════",
                               "        └───────┘┌───┴───┐",
                               "c1_0: 0 ═════════╡       ╞",
-                              "                 │ = 0x0 │",
+                              "                 │ = 0x2 │",
                               "c1_1: 0 ═════════╡       ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
@@ -258,21 +258,21 @@ class TestCircuitTextDrawer(QiskitTestCase):
         qreg q[1];
         creg c0[3];
         creg c1[3];
-        if(c0==1) x q[0];
-        if(c1==0) x q[0];
+        if(c0==3) x q[0];
+        if(c1==3) x q[0];
         """
         expected = '\n'.join(["        ┌───────┐┌───────┐",
                               "q_0: |0>┤   X   ├┤   X   ├",
                               "        ├───┴───┤└───┬───┘",
                               "c0_0: 0 ╡       ╞════╪════",
                               "        │       │    │    ",
-                              "c0_1: 0 ╡ = 0x1 ╞════╪════",
+                              "c0_1: 0 ╡ = 0x3 ╞════╪════",
                               "        │       │    │    ",
                               "c0_2: 0 ╡       ╞════╪════",
                               "        └───────┘┌───┴───┐",
                               "c1_0: 0 ═════════╡       ╞",
                               "                 │       │",
-                              "c1_1: 0 ═════════╡ = 0x0 ╞",
+                              "c1_1: 0 ═════════╡ = 0x3 ╞",
                               "                 │       │",
                               "c1_2: 0 ═════════╡       ╞",
                               "                 └───────┘"])
@@ -287,8 +287,8 @@ class TestCircuitTextDrawer(QiskitTestCase):
         qreg q[1];
         creg c0[4];
         creg c1[4];
-        if(c0==1) x q[0];
-        if(c1==0) x q[0];
+        if(c0==4) x q[0];
+        if(c1==4) x q[0];
         """
         expected = '\n'.join(["        ┌───────┐┌───────┐",
                               "q_0: |0>┤   X   ├┤   X   ├",
@@ -296,7 +296,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
                               "c0_0: 0 ╡       ╞════╪════",
                               "        │       │    │    ",
                               "c0_1: 0 ╡       ╞════╪════",
-                              "        │ = 0x1 │    │    ",
+                              "        │ = 0x4 │    │    ",
                               "c0_2: 0 ╡       ╞════╪════",
                               "        │       │    │    ",
                               "c0_3: 0 ╡       ╞════╪════",
@@ -304,7 +304,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
                               "c1_0: 0 ═════════╡       ╞",
                               "                 │       │",
                               "c1_1: 0 ═════════╡       ╞",
-                              "                 │ = 0x0 │",
+                              "                 │ = 0x4 │",
                               "c1_2: 0 ═════════╡       ╞",
                               "                 │       │",
                               "c1_3: 0 ═════════╡       ╞",
@@ -320,8 +320,8 @@ class TestCircuitTextDrawer(QiskitTestCase):
         qreg q[1];
         creg c0[5];
         creg c1[5];
-        if(c0==1) x q[0];
-        if(c1==0) x q[0];
+        if(c0==5) x q[0];
+        if(c1==5) x q[0];
         """
         expected = '\n'.join(["        ┌───────┐┌───────┐",
                               "q_0: |0>┤   X   ├┤   X   ├",
@@ -330,7 +330,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
                               "        │       │    │    ",
                               "c0_1: 0 ╡       ╞════╪════",
                               "        │       │    │    ",
-                              "c0_2: 0 ╡ = 0x1 ╞════╪════",
+                              "c0_2: 0 ╡ = 0x5 ╞════╪════",
                               "        │       │    │    ",
                               "c0_3: 0 ╡       ╞════╪════",
                               "        │       │    │    ",
@@ -340,7 +340,7 @@ class TestCircuitTextDrawer(QiskitTestCase):
                               "                 │       │",
                               "c1_1: 0 ═════════╡       ╞",
                               "                 │       │",
-                              "c1_2: 0 ═════════╡ = 0x0 ╞",
+                              "c1_2: 0 ═════════╡ = 0x5 ╞",
                               "                 │       │",
                               "c1_3: 0 ═════════╡       ╞",
                               "                 │       │",
