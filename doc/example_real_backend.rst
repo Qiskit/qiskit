@@ -8,7 +8,7 @@ Quantum device:
 
     # Import the Qiskit SDK
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-    from qiskit import execute, register
+    from qiskit import execute, IBMQ
 
     # Set your API Token.
     # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
@@ -18,7 +18,7 @@ Quantum device:
 
     # Authenticate with the IBM Q API in order to use online devices.
     # You need the API Token and the QX URL.
-    register(QX_TOKEN, QX_URL)
+    IBMQ.enable_account(QX_TOKEN, QX_URL)
 
     # Create a Quantum Register with 2 qubits.
     q = QuantumRegister(2)
@@ -35,66 +35,17 @@ Quantum device:
     # Add a Measure gate to see the state.
     qc.measure(q, c)
 
-    # Compile and run the Quantum Program on a real device backend
-    job_exp = execute(qc, 'ibmqx4', shots=1024, max_credits=10)
-    result = job_exp.result()
+    # See a list of available devices.
+    print("IBMQ backends: ", IBMQ.backends())
 
-    # Show the results
-    print(result)
-    print(result.get_data())
+    # Compile and run the Quantum circuit on a device.
+    backend_ibmq = IBMQ.get_backend('ibmqx4')
+    job_ibmq = execute(qc, backend_ibmq)
+    result_ibmq = job_ibmq.result()
 
-
-Example Real Chip Backend using IBMQ
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you have access to the IBM Q features, the following code can be used for
-executing the same example as described on the previous section, but using
-the IBM Q features:
-
-.. code-block:: python
-
-    # Import the Qiskit SDK
-    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-    from qiskit import execute, register
-
-    # Set your API Token and credentials.
-    # You can get it from https://quantumexperience.ng.bluemix.net/qx/account,
-    # looking for "Personal Access Token" section.
-    QX_TOKEN = "API_TOKEN"
-    QX_URL = "https://quantumexperience.ng.bluemix.net/api"
-    QX_HUB = "MY_HUB"
-    QX_GROUP = "MY_GROUP"
-    QX_PROJECT = "MY_PROJECT"
-
-    # Authenticate with the IBM Q API in order to use online devices.
-    # You need the API Token and the QX URL.
-    register(QX_TOKEN, QX_URL,
-             hub=QX_HUB,
-             group=QX_GROUP,
-             project=QX_PROJECT)
-
-    # Create a Quantum Register with 2 qubits.
-    q = QuantumRegister(2)
-    # Create a Classical Register with 2 bits.
-    c = ClassicalRegister(2)
-    # Create a Quantum Circuit
-    qc = QuantumCircuit(q, c)
-
-    # Add a H gate on qubit 0, putting this qubit in superposition.
-    qc.h(q[0])
-    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
-    # the qubits in a Bell state.
-    qc.cx(q[0], q[1])
-    # Add a Measure gate to see the state.
-    qc.measure(q, c)
-
-    # Compile and run the Quantum Program on a real device backend
-    job_exp = execute(qc, 'ibmqx4', shots=1024, max_credits=10)
-    result = job_exp.result()
-
-    # Show the results
-    print(result)
-    print(result.get_data())
+    # Show the results.
+    print("real execution results: ", result_ibmq)
+    print(result_ibmq.get_counts(qc))
 
 Please check the Installation :ref:`qconfig-setup` section for more details on
 how to setup your IBM Q credentials.

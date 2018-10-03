@@ -17,7 +17,7 @@ this project, one can do,
 
     # Import the Qiskit SDK
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-    from qiskit import available_backends, execute
+    from qiskit import execute, Aer
 
     # Create a Quantum Register with 2 qubits.
     q = QuantumRegister(2)
@@ -35,15 +35,16 @@ this project, one can do,
     qc.measure(q, c)
 
     # See a list of available local simulators
-    print("Local backends: ", available_backends({'local': True}))
+    print("Aer backends: ", Aer.backends())
 
     # Compile and run the Quantum circuit on a simulator backend
-    job_sim = execute(qc, "local_qasm_simulator")
-    sim_result = job_sim.result()
+    backend_sim = Aer.get_backend('qasm_simulator')
+    job_sim = execute(qc, backend_sim)
+    result_sim = job_sim.result()
 
     # Show the results
-    print("simulation: ", sim_result)
-    print(sim_result.get_counts(qc))
+    print("simulation: ", result_sim )
+    print(result_sim.get_counts(qc))
 
 The :func:`~qiskit.Result.get_counts` method outputs a dictionary of
 ``state:counts`` pairs;
