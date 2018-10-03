@@ -23,10 +23,15 @@ from qiskit.backends.ibmq.credentials import (
 from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
 from qiskit.backends.ibmq.ibmqprovider import QE_URL
 from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, requires_qe_access
 
 
 IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
+
+PROXIES = {'urls': {
+    'http': 'http://user:password@127.0.0.1:5678',
+    'https': 'https://user:password@127.0.0.1:5678'}
+          }
 
 
 # TODO: NamedTemporaryFiles do not support name in Windows
@@ -37,7 +42,7 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test enabling one account."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.enable_account('QISKITRC_TOKEN', url='someurl',
-                                       proxies={'http': 'foo'})
+                                       proxies=PROXIES)
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
@@ -46,7 +51,7 @@ class TestIBMQAccounts(QiskitTestCase):
             self.assertEqual(loaded_accounts, {})
             self.assertEqual('QISKITRC_TOKEN', provider.credentials.token)
             self.assertEqual('someurl', provider.credentials.url)
-            self.assertEqual({'http': 'foo'}, provider.credentials.proxies)
+            self.assertEqual(PROXIES, provider.credentials.proxies)
 
     def test_enable_multiple_accounts(self):
         """Test enabling multiple accounts, combining QX and IBMQ."""
@@ -73,7 +78,7 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test saving one account."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.IBMQ.save_account('QISKITRC_TOKEN', url=QE_URL,
-                                     proxies={'http': 'foo'})
+                                     proxies=PROXIES)
 
             # Compare the session accounts with the ones stored in file.
             stored_accounts = read_credentials_from_qiskitrc()
@@ -142,6 +147,17 @@ class TestIBMQAccounts(QiskitTestCase):
             qiskit.IBMQ.delete_accounts()
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
+
+    @requires_qe_access
+    def test_pass_bad_proxy(self, qe_token, qe_url):
+        """Test proxy pass through."""
+        failed = False
+        try:
+            qiskit.IBMQ.enable_account(qe_token, qe_url, proxies=PROXIES)
+        except ConnectionError as excep:
+            if 'ProxyError' in str(excep):
+                failed = True
+        self.assertTrue(failed)
 
 
 # TODO: NamedTemporaryFiles do not support name in Windows
