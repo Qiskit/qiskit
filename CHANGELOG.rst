@@ -18,6 +18,13 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Changed
+-------
+
+
+`0.6.0`_ - 2018-10-04
+=====================
+
 Added
 -----
 - Added `SchemaValidationError` to be thrown when schema validation fails (#881)
@@ -85,6 +92,15 @@ Fixed
 - Fixed the issue with control lines spanning through several classical registers (#762).
 - Fixed visualizations crashing when using simulator extensions (#885).
 - Fixed check for network connection when loading interactive visualizations (#892).
+
+
+`0.5.7`_ - 2018-07-19
+=====================
+
+Changed
+-------
+- Add new backend names support, with aliasing for the old ones.
+
 
 `0.5.6`_ - 2018-07-06
 =====================
@@ -586,7 +602,9 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...HEAD
+.. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
+.. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
 .. _0.5.6: https://github.com/Qiskit/qiskit-terra/compare/0.5.5...0.5.6
 .. _0.5.5: https://github.com/Qiskit/qiskit-terra/compare/0.5.4...0.5.5
 .. _0.5.4: https://github.com/Qiskit/qiskit-terra/compare/0.5.3...0.5.4
