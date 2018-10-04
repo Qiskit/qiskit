@@ -55,6 +55,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                 G.nodes[n]['color'] = 'black'
                 G.nodes[n]['style'] = 'filled'
                 G.nodes[n]['fillcolor'] = 'red'
+        for e in G.edges:
+            G.edges[e]['label'] = str(G.edges[e]['name'])
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 
