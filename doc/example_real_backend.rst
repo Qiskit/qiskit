@@ -6,7 +6,7 @@ Quantum device:
 
 .. code-block:: python
 
-    # Import the Qiskit SDK
+    # Import Qiskit Terra
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import execute, IBMQ
 
@@ -87,4 +87,4 @@ is not specified, the following values will be used by default:
 
 Please note that these parameters must only be used for the
 ``ibmq_qasm_simulator_hpc``, and will be reset to None along with emitting
-a warning by the SDK if used with another backend.
+a warning by Terra if used with another backend.
