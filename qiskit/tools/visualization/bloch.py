@@ -154,7 +154,7 @@ class Bloch():
         self.ylpos = [1.2, -1.2]
         # Labels for z-axis (in LaTex),
         # default = [r'$\left|1\right>$', r'$\left|0\right>$']
-        self.zlabel = [r'$\left|1\right>$', r'$\left|0\right>$']
+        self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
         # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
         # ---font options---

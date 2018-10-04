@@ -13,30 +13,29 @@ Two quantum circuit drawers based on:
     2. Matplotlib
 """
 
+import json
+import logging
+import operator
+import os
+import re
+import subprocess
+import tempfile
 from collections import namedtuple, OrderedDict
 from fractions import Fraction
+from io import StringIO
 from itertools import groupby, zip_longest
 from math import fmod, isclose, ceil
-from io import StringIO
 
-import re
-import os
-import operator
-import subprocess
-import logging
-import json
-import tempfile
-
-from matplotlib import get_backend as get_matplotlib_backend
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 import numpy as np
-
 from PIL import Image, ImageChops
+from matplotlib import get_backend as get_matplotlib_backend, \
+    patches as patches, pyplot as plt
 
-from qiskit import QuantumCircuit, QISKitError, load_qasm_file
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, JsonBackend
+from qiskit._qiskiterror import QISKitError
+from qiskit.wrapper import load_qasm_file
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.tools.visualization._error import VisualizationError
+from qiskit.transpiler import transpile
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +43,12 @@ logger = logging.getLogger(__name__)
 def plot_circuit(circuit,
                  basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                 scale=0.7):
+                 scale=0.7,
+                 style=None):
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     """
-    im = circuit_drawer(circuit, basis, scale)
+    im = circuit_drawer(circuit, basis=basis, scale=scale, style=style)
     if im:
         im.show()
 
@@ -56,7 +56,9 @@ def plot_circuit(circuit,
 def circuit_drawer(circuit,
                    basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                   scale=0.7, filename=None):
+                   scale=0.7,
+                   filename=None,
+                   style=None):
     """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
 
     1. latex: high-quality images, but heavy external software dependencies
@@ -69,27 +71,203 @@ def circuit_drawer(circuit,
         basis (str): the basis to unroll to prior to drawing
         scale (float): scale of image to draw (shrink if < 1)
         filename (str): file path to save image to
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
     """
     try:
-        return latex_circuit_drawer(circuit, basis, scale, filename)
+        return latex_circuit_drawer(circuit, basis, scale, filename, style)
     except (OSError, subprocess.CalledProcessError):
-        return matplotlib_circuit_drawer(circuit, basis, scale, filename)
+        return matplotlib_circuit_drawer(circuit, basis, scale, filename, style)
 
 
+# -----------------------------------------------------------------------------
+# Plot style sheet option
+# -----------------------------------------------------------------------------
+class QCStyle:
+    def __init__(self):
+        self.tc = '#000000'
+        self.sc = '#000000'
+        self.lc = '#000000'
+        self.cc = '#778899'
+        self.gc = '#ffffff'
+        self.gt = '#000000'
+        self.bc = '#bdbdbd'
+        self.bg = '#ffffff'
+        self.fs = 13
+        self.sfs = 8
+        self.disptex = {
+            'id': 'id',
+            'u0': 'U_0',
+            'u1': 'U_1',
+            'u2': 'U_2',
+            'u3': 'U_3',
+            'x': 'X',
+            'y': 'Y',
+            'z': 'Z',
+            'h': 'H',
+            's': 'S',
+            'sdg': 'S^\\dagger',
+            't': 'T',
+            'tdg': 'T^\\dagger',
+            'rx': 'R_x',
+            'ry': 'R_y',
+            'rz': 'R_z',
+            'reset': '\\left|0\\right\\rangle'
+        }
+        self.dispcol = {
+            'id': '#ffffff',
+            'u0': '#ffffff',
+            'u1': '#ffffff',
+            'u2': '#ffffff',
+            'u3': '#ffffff',
+            'x': '#ffffff',
+            'y': '#ffffff',
+            'z': '#ffffff',
+            'h': '#ffffff',
+            's': '#ffffff',
+            'sdg': '#ffffff',
+            't': '#ffffff',
+            'tdg': '#ffffff',
+            'rx': '#ffffff',
+            'ry': '#ffffff',
+            'rz': '#ffffff',
+            'reset': '#ffffff',
+            'target': '#ffffff',
+            'meas': '#ffffff'
+        }
+        self.latexmode = True
+        self.pimode = False
+        self.fold = 20
+        self.bundle = False
+        self.barrier = False
+        self.index = False
+        self.compress = True
+        self.figwidth = -1
+        self.dpi = 150
+        self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.cline = 'doublet'
+        self.reverse = False
+
+    def set_style(self, dic):
+        self.tc = dic.get('textcolor', self.tc)
+        self.sc = dic.get('subtextcolor', self.sc)
+        self.lc = dic.get('linecolor', self.lc)
+        self.cc = dic.get('creglinecolor', self.cc)
+        self.gt = dic.get('gatetextcolor', self.tc)
+        self.gc = dic.get('gatefacecolor', self.gc)
+        self.bc = dic.get('barrierfacecolor', self.bc)
+        self.bg = dic.get('backgroundcolor', self.bg)
+        self.fs = dic.get('fontsize', self.fs)
+        self.sfs = dic.get('subfontsize', self.sfs)
+        self.disptex = dic.get('displaytext', self.disptex)
+        for key in self.dispcol.keys():
+            self.dispcol[key] = self.gc
+        self.dispcol = dic.get('displaycolor', self.dispcol)
+        self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
+        self.pimode = dic.get('usepiformat', self.pimode)
+        self.fold = dic.get('fold', self.fold)
+        if self.fold < 2:
+            self.fold = -1
+        self.bundle = dic.get('cregbundle', self.bundle)
+        self.barrier = dic.get('plotbarrier', self.barrier)
+        self.index = dic.get('showindex', self.index)
+        self.compress = dic.get('compress', self.compress)
+        self.figwidth = dic.get('figwidth', self.figwidth)
+        self.dpi = dic.get('dpi', self.dpi)
+        self.margin = dic.get('margin', self.margin)
+        self.cline = dic.get('creglinestyle', self.cline)
+        self.reverse = dic.get('reversebits', self.reverse)
+
+
+def qx_color_scheme():
+    return {
+        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
+        "textcolor": "#000000",
+        "gatetextcolor": "#000000",
+        "subtextcolor": "#000000",
+        "linecolor": "#000000",
+        "creglinecolor": "#b9b9b9",
+        "gatefacecolor": "#ffffff",
+        "barrierfacecolor": "#bdbdbd",
+        "backgroundcolor": "#ffffff",
+        "fold": 20,
+        "fontsize": 13,
+        "subfontsize": 8,
+        "figwidth": -1,
+        "dpi": 150,
+        "displaytext": {
+            "id": "id",
+            "u0": "U_0",
+            "u1": "U_1",
+            "u2": "U_2",
+            "u3": "U_3",
+            "x": "X",
+            "y": "Y",
+            "z": "Z",
+            "h": "H",
+            "s": "S",
+            "sdg": "S^\\dagger",
+            "t": "T",
+            "tdg": "T^\\dagger",
+            "rx": "R_x",
+            "ry": "R_y",
+            "rz": "R_z",
+            "reset": "\\left|0\\right\\rangle"
+        },
+        "displaycolor": {
+            "id": "#ffca64",
+            "u0": "#f69458",
+            "u1": "#f69458",
+            "u2": "#f69458",
+            "u3": "#f69458",
+            "x": "#a6ce38",
+            "y": "#a6ce38",
+            "z": "#a6ce38",
+            "h": "#00bff2",
+            "s": "#00bff2",
+            "sdg": "#00bff2",
+            "t": "#ff6666",
+            "tdg": "#ff6666",
+            "rx": "#ffca64",
+            "ry": "#ffca64",
+            "rz": "#ffca64",
+            "reset": "#d7ddda",
+            "target": "#00bff2",
+            "meas": "#f070aa"
+        },
+        "latexdrawerstyle": True,
+        "usepiformat": False,
+        "cregbundle": False,
+        "plotbarrier": False,
+        "showindex": False,
+        "compress": True,
+        "margin": [2.0, 0.0, 0.0, 0.3],
+        "creglinestyle": "solid",
+        "reversebits": False
+    }
+
+
+# -----------------------------------------------------------------------------
+# latex_circuit_drawer
+# -----------------------------------------------------------------------------
 def latex_circuit_drawer(circuit,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                         scale=0.7, filename=None):
+                         scale=0.7,
+                         filename=None,
+                         style=None):
     """Draw a quantum circuit based on latex (Qcircuit package)
+
+    Requires version >=2.6.0 of the qcircuit LaTeX package.
 
     Args:
         circuit (QuantumCircuit): a quantum circuit
         basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -102,12 +280,16 @@ def latex_circuit_drawer(circuit,
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        generate_latex_source(circuit, filename=tmppath, basis=basis, scale=scale)
+        generate_latex_source(circuit, filename=tmppath, basis=basis,
+                              scale=scale, style=style)
         im = None
         try:
-            subprocess.run(["pdflatex", "-output-directory={}".format(tmpdirname),
+
+            subprocess.run(["pdflatex", "-halt-on-error",
+                            "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                           check=True)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
                 logger.warning('WARNING: Unable to compile latex. '
@@ -115,18 +297,11 @@ def latex_circuit_drawer(circuit,
                                'Skipping latex circuit drawing...')
             raise
         except subprocess.CalledProcessError as e:
-            if "capacity exceeded" in str(e.stdout):
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Circuit too large for memory. '
-                               'Skipping latex circuit drawing...')
-            elif "Dimension too large." in str(e.stdout):
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Dimension too large for the beamer template. '
-                               'Skipping latex circuit drawing...')
-            else:
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Is the `Qcircuit` latex package installed? '
-                               'Skipping latex circuit drawing...')
+            with open('latex_error.log', 'wb') as error_file:
+                error_file.write(e.stdout)
+            logger.warning('WARNING Unable to complile latex. '
+                           'The output from the pdflatex command can '
+                           'be found in latex_error.log')
             raise
         else:
             try:
@@ -162,7 +337,7 @@ def _trim(im):
 def generate_latex_source(circuit, filename=None,
                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
-                          scale=0.7):
+                          scale=0.7, style=None):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -170,18 +345,14 @@ def generate_latex_source(circuit, filename=None,
         scale (float): image scaling
         filename (str): optional filename to write latex
         basis (str): optional comma-separated list of gate names
+        style (dict or str): dictionary of style or file name of style file
 
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    ast = Qasm(data=circuit.qasm()).parse()
-    if basis:
-        # Split basis only if it is not the empty string.
-        basis = basis.split(',')
-    u = Unroller(ast, JsonBackend(basis))
-    u.execute()
-    json_circuit = u.backend.circuit
-    qcimg = QCircuitImage(json_circuit, scale)
+    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
+    qcimg = QCircuitImage(json_circuit, scale, style=style)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
@@ -197,12 +368,23 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
-    def __init__(self, circuit, scale):
+    def __init__(self, circuit, scale, style=None):
         """
         Args:
             circuit (dict): compiled_circuit from qobj
             scale (float): image scaling
+            style (dict or str): dictionary of style or file name of style file
         """
+        # style sheet
+        self._style = QCStyle()
+        if style:
+            if isinstance(style, dict):
+                self._style.set_style(style)
+            elif isinstance(style, str):
+                with open(style, 'r') as infile:
+                    dic = json.load(infile)
+                self._style.set_style(dic)
+
         # compiled qobj circuit
         self.circuit = circuit
 
@@ -259,15 +441,41 @@ class QCircuitImage(object):
             for item in self.header['clbit_labels']:
                 self.cregs[item[0]] = item[1]
         self.clbit_list = []
-        for cr in self.cregs:
+        cregs = self.cregs
+        if self._style.reverse:
+            self.orig_cregs = self.cregs
+            cregs = reversed(self.cregs)
+        for cr in cregs:
             for i in range(self.cregs[cr]):
                 self.clbit_list.append((cr, i))
         self.ordered_regs = [(item[0], item[1]) for
                              item in self.header['qubit_labels']]
+        if self._style.reverse:
+            reg_size = []
+            reg_labels = []
+            new_ordered_regs = []
+            for regs in self.ordered_regs:
+                if regs[0] in reg_labels:
+                    continue
+                reg_labels.append(regs[0])
+                reg_size.append(len(
+                    [x for x in self.ordered_regs if x[0] == regs[0]]))
+            index = 0
+            for size in reg_size:
+                new_index = index + size
+                for i in range(new_index - 1, index - 1, -1):
+                    new_ordered_regs.append(self.ordered_regs[i])
+                index = new_index
+            self.ordered_regs = new_ordered_regs
+
         if 'clbit_labels' in self.header:
             for clabel in self.header['clbit_labels']:
-                for cind in range(clabel[1]):
-                    self.ordered_regs.append((clabel[0], cind))
+                if self._style.reverse:
+                    for cind in reversed(range(clabel[1])):
+                        self.ordered_regs.append((clabel[0], cind))
+                else:
+                    for cind in range(clabel[1]):
+                        self.ordered_regs.append((clabel[0], cind))
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         self.img_width = len(self.img_regs)
@@ -316,11 +524,16 @@ class QCircuitImage(object):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
                 cell_str = self._latex[i][j]
-                # floats can cause "Dimension too large" latex error in xymatrix
-                # this truncates floats to avoid issue.
-                cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}', _truncate_float,
-                                  cell_str)
-                output.write(cell_str)
+                # Don't truncate offset float if drawing a barrier
+                if 'barrier' in cell_str:
+                    output.write(cell_str)
+                else:
+                    # floats can cause "Dimension too large" latex error in
+                    # xymatrix this truncates floats to avoid issue.
+                    cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
+                                      _truncate_float,
+                                      cell_str)
+                    output.write(cell_str)
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
@@ -376,7 +589,7 @@ class QCircuitImage(object):
         columns = 2     # wires in the beginning and end
         is_occupied = [False] * self.img_width
         max_column_width = {}
-        for op in self.circuit['operations']:
+        for op in self.circuit['instructions']:
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's', 'sdg',
                            't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy', 'crz', 'cu3']
@@ -396,6 +609,8 @@ class QCircuitImage(object):
                                            qarglist[0][1])]
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_2 = self.img_regs[cl_reg]
@@ -421,6 +636,8 @@ class QCircuitImage(object):
 
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_3 = self.img_regs[(if_reg, 0)]
@@ -477,6 +694,8 @@ class QCircuitImage(object):
 
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_4 = self.img_regs[(if_reg, 0)]
@@ -634,6 +853,25 @@ class QCircuitImage(object):
                 count += size
         raise ValueError('qubit index lies outside range of qubit registers')
 
+    def _convert_mask(self, mask):
+        orig_clbit_list = []
+        for cr in self.orig_cregs:
+            for i in range(self.orig_cregs[cr]):
+                orig_clbit_list.append((cr, i))
+        bit_list = [(mask >> bit) & 1 for bit in range(
+            len(orig_clbit_list) - 1, -1, -1)]
+        converted_mask_list = [None] * len(bit_list)
+        converted_mask = 0
+        for pos, bit in enumerate(reversed(bit_list)):
+            new_pos = self.clbit_list.index(orig_clbit_list[pos])
+            converted_mask_list[new_pos] = bit
+        if None in converted_mask_list:
+            raise VisualizationError('Reverse mask creation failed')
+        converted_mask_list = list(reversed(converted_mask_list))
+        for bit in converted_mask_list:
+            converted_mask = (converted_mask << 1) | bit
+        return converted_mask
+
     def _build_latex_array(self, aliases=None):
         """Returns an array of strings containing \\LaTeX for this circuit.
 
@@ -655,9 +893,11 @@ class QCircuitImage(object):
         else:
             qregdata = self.qregs
 
-        for _, op in enumerate(self.circuit['operations']):
+        for _, op in enumerate(self.circuit['instructions']):
             if 'conditional' in op:
                 mask = int(op['conditional']['mask'], 16)
+                if self._style.reverse:
+                    mask = self._convert_mask(mask)
                 cl_reg = self.clbit_list[self._ffs(mask)]
                 if_reg = cl_reg[0]
                 pos_2 = self.img_regs[cl_reg]
@@ -673,6 +913,8 @@ class QCircuitImage(object):
                                            qarglist[0][1])]
                     if 'conditional' in op:
                         mask = int(op['conditional']['mask'], 16)
+                        if self._style.reverse:
+                            mask = self._convert_mask(mask)
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
                         pos_2 = self.img_regs[cl_reg]
@@ -1016,13 +1258,29 @@ class QCircuitImage(object):
 
                 try:
                     self._latex[pos_1][columns] = "\\meter"
+                    prev_column = [x[columns - 1] for x in self._latex]
+                    for item, prev_entry in enumerate(prev_column):
+                        if 'barrier' in prev_entry:
+                            span = re.search('barrier{(.*)}', prev_entry)
+                            if span and (
+                                    item + int(span.group(1))) - pos_1 >= 0:
+                                self._latex[
+                                    item][columns - 1] = prev_entry.replace(
+                                        '\\barrier{', '\\barrier[-1.15em]{')
+
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                 except Exception as e:
                     raise QISKitError('Error during Latex building: %s' %
                                       str(e))
             elif op['name'] == "barrier":
-                pass
+                qarglist = [self.qubit_list[i] for i in op['qubits']]
+                if aliases is not None:
+                    qarglist = map(lambda x: aliases[x], qarglist)
+                start = self.img_regs[(qarglist[0][0],
+                                       qarglist[0][1])]
+                span = len(op['qubits']) - 1
+                self._latex[start][columns] += " \\barrier{" + str(span) + "}"
             else:
                 assert False, "bad node data"
 
@@ -1034,7 +1292,10 @@ class QCircuitImage(object):
         Returns:
             int: index of the first set bit.
         """
-        return (mask & (-mask)).bit_length() - 1
+        origin = (mask & (-mask)).bit_length()
+        if self._style.reverse:
+            return origin + 1
+        return origin - 1
 
 
 def _get_register_specs(bit_labels):
@@ -1074,7 +1335,7 @@ def _truncate_float(matchobj, format_str='0.2g'):
 
 
 # -----------------------------------------------------------------------------
-# definitions for matplotlib_circuit_drawer
+# matplotlib_circuit_drawer
 # -----------------------------------------------------------------------------
 WID = 0.65
 HIG = 0.65
@@ -1089,7 +1350,9 @@ PORDER_SUBP = 4
 def matplotlib_circuit_drawer(circuit,
                               basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
                                     'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                              scale=0.7, filename=None, style=None):
+                              scale=0.7,
+                              filename=None,
+                              style=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -1113,161 +1376,6 @@ def matplotlib_circuit_drawer(circuit,
 
 
 Register = namedtuple('Register', 'name index')
-
-
-class QCStyle:
-    def __init__(self):
-        self.tc = '#000000'
-        self.sc = '#000000'
-        self.lc = '#000000'
-        self.cc = '#778899'
-        self.gc = '#ffffff'
-        self.gt = '#000000'
-        self.bc = '#bdbdbd'
-        self.bg = '#ffffff'
-        self.fs = 13
-        self.sfs = 8
-        self.disptex = {
-            'id': 'id',
-            'u0': 'U_0',
-            'u1': 'U_1',
-            'u2': 'U_2',
-            'u3': 'U_3',
-            'x': 'X',
-            'y': 'Y',
-            'z': 'Z',
-            'h': 'H',
-            's': 'S',
-            'sdg': 'S^\\dagger',
-            't': 'T',
-            'tdg': 'T^\\dagger',
-            'rx': 'R_x',
-            'ry': 'R_y',
-            'rz': 'R_z',
-            'reset': '\\left|0\\right\\rangle'
-        }
-        self.dispcol = {
-            'id': '#ffffff',
-            'u0': '#ffffff',
-            'u1': '#ffffff',
-            'u2': '#ffffff',
-            'u3': '#ffffff',
-            'x': '#ffffff',
-            'y': '#ffffff',
-            'z': '#ffffff',
-            'h': '#ffffff',
-            's': '#ffffff',
-            'sdg': '#ffffff',
-            't': '#ffffff',
-            'tdg': '#ffffff',
-            'rx': '#ffffff',
-            'ry': '#ffffff',
-            'rz': '#ffffff',
-            'reset': '#ffffff',
-            'target': '#ffffff',
-            'meas': '#ffffff'
-        }
-        self.latexmode = True
-        self.pimode = False
-        self.fold = 20
-        self.bundle = False
-        self.barrier = False
-        self.index = False
-        self.compress = False
-        self.figwidth = -1
-        self.dpi = 150
-
-    def set_style(self, dic):
-        self.tc = dic.get('textcolor', self.tc)
-        self.sc = dic.get('subtextcolor', self.sc)
-        self.lc = dic.get('linecolor', self.lc)
-        self.cc = dic.get('creglinecolor', self.cc)
-        self.gt = dic.get('gatetextcolor', self.tc)
-        self.gc = dic.get('gatefacecolor', self.gc)
-        self.bc = dic.get('barrierfacecolor', self.bc)
-        self.bg = dic.get('backgroundcolor', self.bg)
-        self.fs = dic.get('fontsize', self.fs)
-        self.sfs = dic.get('subfontsize', self.sfs)
-        self.disptex = dic.get('displaytext', self.disptex)
-        for key in self.dispcol.keys():
-            self.dispcol[key] = self.gc
-        self.dispcol = dic.get('displaycolor', self.dispcol)
-        self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.pimode = dic.get('usepiformat', self.pimode)
-        self.fold = dic.get('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
-        self.bundle = dic.get('cregbundle', self.bundle)
-        self.barrier = dic.get('plotbarrier', self.barrier)
-        self.index = dic.get('showindex', self.index)
-        self.compress = dic.get('compress', self.compress)
-        self.figwidth = dic.get('figwidth', self.figwidth)
-        self.dpi = dic.get('dpi', self.dpi)
-
-
-def qx_color_scheme():
-    return {
-        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
-        "textcolor": "#000000",
-        "gatetextcolor": "#000000",
-        "subtextcolor": "#000000",
-        "linecolor": "#000000",
-        "creglinecolor": "#b9b9b9",
-        "gatefacecolor": "#ffffff",
-        "barrierfacecolor": "#bdbdbd",
-        "backgroundcolor": "#ffffff",
-        "fold": 20,
-        "fontsize": 13,
-        "subfontsize": 8,
-        "figwidth": -1,
-        "dpi": 150,
-        "displaytext": {
-            "id": "id",
-            "u0": "U_0",
-            "u1": "U_1",
-            "u2": "U_2",
-            "u3": "U_3",
-            "x": "X",
-            "y": "Y",
-            "z": "Z",
-            "h": "H",
-            "s": "S",
-            "sdg": "S^\\dagger",
-            "t": "T",
-            "tdg": "T^\\dagger",
-            "rx": "R_x",
-            "ry": "R_y",
-            "rz": "R_z",
-            "reset": "\\left|0\\right\\rangle"
-        },
-        "displaycolor": {
-            "id": "#ffca64",
-            "u0": "#f69458",
-            "u1": "#f69458",
-            "u2": "#f69458",
-            "u3": "#f69458",
-            "x": "#a6ce38",
-            "y": "#a6ce38",
-            "z": "#a6ce38",
-            "h": "#00bff2",
-            "s": "#00bff2",
-            "sdg": "#00bff2",
-            "t": "#ff6666",
-            "tdg": "#ff6666",
-            "rx": "#ffca64",
-            "ry": "#ffca64",
-            "rz": "#ffca64",
-            "reset": "#d7ddda",
-            "target": "#00bff2",
-            "meas": "#f070aa"
-        },
-        "latexdrawerstyle": True,
-        "usepiformat": False,
-        "cregbundle": False,
-        "plotbarrier": False,
-        "showindex": False,
-        "compress": False
-    }
 
 
 class Anchor:
@@ -1322,13 +1430,13 @@ class MatplotlibDrawer:
                  scale=1.0, style=None):
 
         self._ast = None
-        self._basis = basis.split(',')
+        self._basis = basis
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
         self._ops = []
-        self._qreg_dict = {}
-        self._creg_dict = {}
+        self._qreg_dict = OrderedDict()
+        self._creg_dict = OrderedDict()
         self._cond = {
             'n_lines': 0,
             'xmax': 0,
@@ -1348,19 +1456,18 @@ class MatplotlibDrawer:
         self.figure.patch.set_facecolor(color=self._style.bg)
         self.ax = self.figure.add_subplot(111)
         self.ax.axis('off')
-        self.ax.set_aspect('equal', 'datalim')
+        self.ax.set_aspect('equal')
+        self.ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
 
     def load_qasm_file(self, filename):
-        circuit = load_qasm_file(filename, name='draw', basis_gates=','.join(self._basis))
+        circuit = load_qasm_file(filename, name='draw', basis_gates=self._basis)
         self.parse_circuit(circuit)
 
-    def parse_circuit(self, circuit: QuantumCircuit):
-        ast = Qasm(data=circuit.qasm()).parse()
-        u = Unroller(ast, JsonBackend(self._basis))
-        u.execute()
-        self._ast = u.backend.circuit
+    def parse_circuit(self, circuit):
+        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+        self._ast = transpile(dag_circuit, basis_gates=self._basis, format='json')
         self._registers()
-        self._ops = self._ast['operations']
+        self._ops = self._ast['instructions']
 
     def _registers(self):
         # NOTE: formats of clbit and qubit are different!
@@ -1403,15 +1510,18 @@ class MatplotlibDrawer:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center', va='center',
                              fontsize=self._style.fs,
                              color=self._style.gt,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center', va='center',
                              fontsize=self._style.sfs,
                              color=self._style.sc,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos, disp_text, ha='center', va='center',
                              fontsize=self._style.fs,
                              color=self._style.gt,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
 
     def _subtext(self, xy, text):
@@ -1420,15 +1530,40 @@ class MatplotlibDrawer:
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs,
                      color=self._style.tc,
+                     clip_on=True,
                      zorder=PORDER_TEXT)
 
-    def _line(self, xy0, xy1):
+    def _line(self, xy0, xy1, lc=None, ls=None):
         x0, y0 = xy0
         x1, y1 = xy1
-        self.ax.plot([x0, x1], [y0, y1],
-                     color=self._style.lc,
-                     linewidth=1.0,
-                     zorder=PORDER_LINE)
+        if lc is None:
+            linecolor = self._style.lc
+        else:
+            linecolor = lc
+        if ls is None:
+            linestyle = 'solid'
+        else:
+            linestyle = ls
+        if linestyle == 'doublet':
+            theta = np.arctan2(np.abs(x1 - x0), np.abs(y1 - y0))
+            dx = 0.05 * WID * np.cos(theta)
+            dy = 0.05 * WID * np.sin(theta)
+            self.ax.plot([x0 + dx, x1 + dx], [y0 + dy, y1 + dy],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle='solid',
+                         zorder=PORDER_LINE)
+            self.ax.plot([x0 - dx, x1 - dx], [y0 - dy, y1 - dy],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle='solid',
+                         zorder=PORDER_LINE)
+        else:
+            self.ax.plot([x0, x1], [y0, y1],
+                         color=linecolor,
+                         linewidth=1.0,
+                         linestyle=linestyle,
+                         zorder=PORDER_LINE)
 
     def _measure(self, qxy, cxy, cid):
         qx, qy = qxy
@@ -1443,13 +1578,19 @@ class MatplotlibDrawer:
         self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         # arrow
-        self.ax.arrow(x=qx, y=qy, dx=0, dy=cy - qy, width=0.01, head_width=0.2, head_length=0.2,
-                      length_includes_head=True, color=self._style.cc, zorder=PORDER_LINE)
+        self._line(qxy, [cx, cy+0.35*WID], lc=self._style.cc, ls=self._style.cline)
+        arrowhead = patches.Polygon(((cx-0.20*WID, cy+0.35*WID),
+                                     (cx+0.20*WID, cy+0.35*WID),
+                                     (cx, cy)),
+                                    fc=self._style.cc,
+                                    ec=None)
+        self.ax.add_artist(arrowhead)
         # target
         if self._style.bundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
                          fontsize=0.8 * self._style.fs,
                          color=self._style.tc,
+                         clip_on=True,
                          zorder=PORDER_TEXT)
 
     def _conds(self, xy, istrue=False):
@@ -1530,11 +1671,15 @@ class MatplotlibDrawer:
     def draw(self, filename=None, verbose=False):
         self._draw_regs()
         self._draw_ops(verbose)
-        self.ax.set_xlim(-1.5, self._cond['xmax'] + 1.5)
-        self.ax.set_ylim(self._cond['ymax'] - 1.5, 1.5)
+        _xl = - self._style.margin[0]
+        _xr = self._cond['xmax'] + self._style.margin[1]
+        _yb = - self._cond['ymax'] - self._style.margin[2] + 1 - 0.5
+        _yt = self._style.margin[3] + 0.5
+        self.ax.set_xlim(_xl, _xr)
+        self.ax.set_ylim(_yb, _yt)
         # update figure size
-        fig_w = abs(self._cond['xmax']) + 2
-        fig_h = abs(self._cond['ymax']) + 2
+        fig_w = _xr - _xl
+        fig_h = _yt - _yb
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
@@ -1592,6 +1737,22 @@ class MatplotlibDrawer:
                                            'group': reg.name}
                 self._cond['n_lines'] += 1
                 idx += 1
+        # reverse bit order
+        if self._style.reverse:
+            self._reverse_bits(self._qreg_dict)
+            self._reverse_bits(self._creg_dict)
+
+    def _reverse_bits(self, target_dict):
+        coord = {}
+        # grouping
+        for dict_ in target_dict.values():
+            if dict_['group'] not in coord:
+                coord[dict_['group']] = [dict_['y']]
+            else:
+                coord[dict_['group']].insert(0, dict_['y'])
+        # reverse bit order
+        for key in target_dict.keys():
+            target_dict[key]['y'] = coord[target_dict[key]['group']].pop(0)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -1604,8 +1765,9 @@ class MatplotlibDrawer:
             self.ax.text(-0.5, y, label, ha='right', va='center',
                          fontsize=self._style.fs,
                          color=self._style.tc,
+                         clip_on=True,
                          zorder=PORDER_TEXT)
-            self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.lc, zorder=PORDER_LINE)
+            self._line([0, y], [self._cond['xmax'], y])
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
@@ -1627,12 +1789,14 @@ class MatplotlibDrawer:
                 self.ax.text(0.5, y + .1, str(this_creg['val']), ha='left', va='bottom',
                              fontsize=0.8 * self._style.fs,
                              color=self._style.tc,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
                          fontsize=self._style.fs,
                          color=self._style.tc,
+                         clip_on=True,
                          zorder=PORDER_TEXT)
-            self.ax.plot([0, self._cond['xmax']], [y, y], color=self._style.cc, zorder=PORDER_LINE)
+            self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc, ls=self._style.cline)
 
         # lf line
         if feedline_r:
@@ -1723,22 +1887,29 @@ class MatplotlibDrawer:
             # conditional gate
             if 'conditional' in op.keys():
                 c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in self._creg_dict]
-                if self._style.bundle:
-                    c_xy = list(set(c_xy))
-                    for xy in c_xy:
-                        self._conds(xy, istrue=True)
-                else:
-                    fmt = '{{:0{}b}}'.format(len(c_xy))
-                    vlist = list(fmt.format(int(op['conditional']['val'], 16)))[::-1]
-                    for xy, v in zip(c_xy, vlist):
-                        if v == '0':
-                            bv = False
-                        else:
-                            bv = True
-                        self._conds(xy, istrue=bv)
-                creg_b = sorted(c_xy, key=lambda xy: xy[1])[0]
+                # cbit list to consider
+                fmt_c = '{{:0{}b}}'.format(len(c_xy))
+                mask = int(op['conditional']['mask'], 16)
+                cmask = list(fmt_c.format(mask))[::-1]
+                # value
+                fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
+                val = int(op['conditional']['val'], 16)
+                vlist = list(fmt_v.format(val))[::-1]
+                # plot conditionals
+                v_ind = 0
+                xy_plot = []
+                for xy, m in zip(c_xy, cmask):
+                    if m == '1':
+                        if xy not in xy_plot:
+                            if vlist[v_ind] == '1' or self._style.bundle:
+                                self._conds(xy, istrue=True)
+                            else:
+                                self._conds(xy, istrue=False)
+                            xy_plot.append(xy)
+                        v_ind += 1
+                creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                 self._subtext(creg_b, op['conditional']['val'])
-                self._line(qreg_t, creg_b)
+                self._line(qreg_t, creg_b, lc=self._style.cc, ls=self._style.cline)
             #
             # draw special gates
             #
@@ -1833,10 +2004,10 @@ class MatplotlibDrawer:
         # window size
         if max_anc > self._style.fold > 0:
             self._cond['xmax'] = self._style.fold + 1
-            self._cond['ymax'] = - (n_fold + 1) * (self._cond['n_lines'] + 1) + 1
+            self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
             self._cond['xmax'] = max_anc + 1
-            self._cond['ymax'] = - self._cond['n_lines']
+            self._cond['ymax'] = self._cond['n_lines']
         # add horizontal lines
         for ii in range(n_fold + 1):
             feedline_r = (n_fold > 0 and n_fold > ii)
@@ -1854,6 +2025,7 @@ class MatplotlibDrawer:
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center', va='center',
                              fontsize=self._style.sfs,
                              color=self._style.tc,
+                             clip_on=True,
                              zorder=PORDER_TEXT)
 
     @staticmethod

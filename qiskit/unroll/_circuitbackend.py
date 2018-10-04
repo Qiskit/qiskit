@@ -187,7 +187,7 @@ class CircuitBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits, nested_scope=None):
+    def start_gate(self, name, args, qubits, nested_scope=None, extra_fields=None):
         """Begin a custom gate.
 
         name is name string.

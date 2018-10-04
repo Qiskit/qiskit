@@ -18,6 +18,7 @@ import math
 
 import numpy as np
 import scipy.linalg as la
+from scipy.stats import unitary_group
 
 from qiskit import QISKitError
 from qiskit.tools.qi.pauli import pauli_group
@@ -335,8 +336,7 @@ def random_unitary_matrix(length):
     Returns:
         ndarray: U (length, length) unitary ndarray.
     """
-    q_matrix = la.qr(__ginibre_matrix(length))[0]  # Get only the first element
-    return q_matrix
+    return unitary_group.rvs(length)
 
 
 def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
@@ -490,7 +490,8 @@ def concurrence(state):
     """Calculate the concurrence.
 
     Args:
-        state (np.array): a quantum state
+        state (np.array): a quantum state (1x4 array) or a density matrix (4x4
+                          array)
     Returns:
         float: concurrence.
     Raises:
@@ -500,7 +501,7 @@ def concurrence(state):
     if rho.ndim == 1:
         rho = outer(state)
     if len(state) != 4:
-        raise Exception("Concurence is not defined for more than two qubits")
+        raise Exception("Concurence is only defined for more than two qubits")
 
     YY = np.fliplr(np.diag([-1, 1, 1, -1]))
     A = rho.dot(YY).dot(rho.conj()).dot(YY)

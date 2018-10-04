@@ -12,10 +12,16 @@ import functools
 import inspect
 import logging
 import os
+import time
 import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
-from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from qiskit.backends import JobStatus
+from qiskit.backends.aer import QasmSimulator
+from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
+
+from .http_recorder import http_recorder
+from ._test_options import get_test_options
 
 
 class Path(Enum):
@@ -25,9 +31,11 @@ class Path(Enum):
     # test.python path: qiskit/test/python/
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
-    EXAMPLES = os.path.join(SDK, '../examples')
+    EXAMPLES = os.path.join(SDK, '..', 'examples')
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.join(SDK, 'schemas')
+    # VCR cassettes path: qiskit/test/cassettes/
+    CASSETTES = os.path.join(TEST, '..', 'cassettes')
 
 
 class QiskitTestCase(unittest.TestCase):
@@ -37,6 +45,8 @@ class QiskitTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
+        # Determines if the TestCase is using IBMQ credentials.
+        cls.using_ibmq_credentials = False
 
         # Set logging to file and stdout if the LOG_LEVEL environment variable
         # is set.
@@ -57,12 +67,16 @@ class QiskitTestCase(unittest.TestCase):
             level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'),
                                              logging.INFO)
             cls.log.setLevel(level)
+            cls.log.debug("QISKIT_TESTS: %s", str(TEST_OPTIONS))
 
     def tearDown(self):
-        # Reset the default provider, as in practice it acts as a singleton
+        # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
-        from qiskit.wrapper import _wrapper
-        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
+        from qiskit.backends.ibmq import IBMQ
+        from qiskit.backends.aer import Aer
+
+        IBMQ._accounts.clear()
+        Aer._backends = Aer._verify_aer_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
@@ -81,7 +95,6 @@ class QiskitTestCase(unittest.TestCase):
         Context manager to test that no message is sent to the specified
         logger and level (the opposite of TestCase.assertLogs()).
         """
-        # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
@@ -108,7 +121,6 @@ class QiskitTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -175,6 +187,25 @@ class QiskitTestCase(unittest.TestCase):
         raise self.failureException(msg)
 
 
+class JobTestCase(QiskitTestCase):
+    """Include common functionality when testing jobs."""
+
+    def wait_for_initialization(self, job, timeout=1):
+        """Waits until the job progress from `INITIALIZING` to a different
+        status.
+        """
+        waited = 0
+        wait = 0.1
+        while job.status() is JobStatus.INITIALIZING:
+            time.sleep(wait)
+            waited += wait
+            if waited > timeout:
+                self.fail(
+                    msg="The JOB is still initializing after timeout ({}s)"
+                    .format(timeout)
+                )
+
+
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):
     """A context manager used to implement TestCase.assertNoLogs()."""
 
@@ -213,12 +244,95 @@ def slow_test(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
-        if SKIP_SLOW_TESTS:
+    def _wrapper(*args, **kwargs):
+        skip_slow = not TEST_OPTIONS['run_slow']
+        if skip_slow:
             raise unittest.SkipTest('Skipping slow tests')
+
         return func(*args, **kwargs)
 
-    return _
+    return _wrapper
+
+
+def _get_credentials(test_object, test_options):
+    """
+    Finds the credentials for a specific test and options.
+
+    Args:
+        test_object (QiskitTestCase): The test object asking for credentials
+        test_options (dict): Options after QISKIT_TESTS was parsed by get_test_options.
+
+    Returns:
+        Credentials: set of credentials
+
+    Raises:
+        Exception: When the credential could not be set and they are needed for that set of options
+    """
+
+    dummy_credentials = Credentials('dummyapiusersloginWithTokenid01',
+                                    'https://quantumexperience.ng.bluemix.net/api')
+
+    if test_options['mock_online']:
+        return dummy_credentials
+
+    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
+        # Special case: instead of using the standard credentials mechanism,
+        # load them from different environment variables. This assumes they
+        # will always be in place, as is used by the Travis setup.
+        return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
+    else:
+        # Attempt to read the standard credentials.
+        discovered_credentials = discover_credentials()
+
+        if discovered_credentials:
+            # Decide which credentials to use for testing.
+            if len(discovered_credentials) > 1:
+                try:
+                    # Attempt to use QE credentials.
+                    return discovered_credentials[dummy_credentials.unique_id()]
+                except KeyError:
+                    pass
+
+            # Use the first available credentials.
+            return list(discovered_credentials.values())[0]
+
+    # No user credentials were found.
+    if test_options['rec']:
+        raise Exception('Could not locate valid credentials. You need them for recording '
+                        'tests against the remote API.')
+
+    test_object.log.warning("No user credentials were detected. Running with mocked data.")
+    test_options['mock_online'] = True
+    return dummy_credentials
+
+
+def is_cpp_simulator_available():
+    """
+    Check if executable for C++ simulator is available in the expected
+    location.
+
+    Returns:
+        bool: True if simulator executable is available
+    """
+    try:
+        QasmSimulator()
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def requires_cpp_simulator(test_item):
+    """
+    Decorator that skips test if C++ simulator is not available
+
+    Args:
+        test_item (callable): function or class to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    reason = 'C++ simulator not found, skipping test'
+    return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
 
 
 def requires_qe_access(func):
@@ -226,9 +340,12 @@ def requires_qe_access(func):
     Decorator that signals that the test uses the online API:
         * determines if the test should be skipped by checking environment
             variables.
-        * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
-            `Qconfig.py` or from environment variables.
-        * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
+        * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
+          set, it reads the credentials from an alternative set of environment
+          variables.
+        * if the test is not skipped, it reads `qe_token` and `qe_url` from
+            `Qconfig.py`, environment variables or qiskitrc.
+        * if the test is not skipped, it appends `qe_token` and `qe_url` as
             arguments to the test function.
     Args:
         func (callable): test function to be decorated.
@@ -238,60 +355,32 @@ def requires_qe_access(func):
     """
 
     @functools.wraps(func)
-    def _(*args, **kwargs):
-        # pylint: disable=invalid-name
-        if SKIP_ONLINE_TESTS:
+    def _wrapper(self, *args, **kwargs):
+        if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
-        # Try to read the variables from Qconfig.
-        try:
-            import Qconfig
-            QE_TOKEN = Qconfig.APItoken
-            QE_URL = Qconfig.config['url']
-            QE_HUB = Qconfig.config.get('hub')
-            QE_GROUP = Qconfig.config.get('group')
-            QE_PROJECT = Qconfig.config.get('project')
-        except ImportError:
-            # Try to read them from environment variables (ie. Travis).
-            QE_TOKEN = os.getenv('QE_TOKEN')
-            QE_URL = os.getenv('QE_URL')
-            QE_HUB = os.getenv('QE_HUB')
-            QE_GROUP = os.getenv('QE_GROUP')
-            QE_PROJECT = os.getenv('QE_PROJECT')
-        if not QE_TOKEN or not QE_URL:
-            raise Exception(
-                'Could not locate a valid "Qconfig.py" file nor read the QE '
-                'values from the environment')
+        credentials = _get_credentials(self, TEST_OPTIONS)
+        self.using_ibmq_credentials = credentials.is_ibmq()
+        kwargs.update({'qe_token': credentials.token,
+                       'qe_url': credentials.url})
 
-        kwargs['QE_TOKEN'] = QE_TOKEN
-        kwargs['QE_URL'] = QE_URL
-        kwargs['hub'] = QE_HUB
-        kwargs['group'] = QE_GROUP
-        kwargs['project'] = QE_PROJECT
-        return func(*args, **kwargs)
+        decorated_func = func
+        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
+            # For recording or for replaying existing cassettes, the test should be decorated with
+            # use_cassette.
+            decorated_func = VCR.use_cassette()(decorated_func)
 
-    return _
+        return decorated_func(self, *args, **kwargs)
+
+    return _wrapper
 
 
-def _is_ci_fork_pull_request():
-    """
-    Check if the tests are being run in a CI environment and if it is a pull
-    request.
-
-    Returns:
-        bool: True if the tests are executed inside a CI tool, and the changes
-            are not against the "master" branch.
-    """
-    if os.getenv('TRAVIS'):
-        # Using Travis CI.
-        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
-            return True
-    elif os.getenv('APPVEYOR'):
-        # Using AppVeyor CI.
-        if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
-            return True
-    return False
+def _get_http_recorder(test_options):
+    vcr_mode = 'none'
+    if test_options['rec']:
+        vcr_mode = 'new_episodes'
+    return http_recorder(vcr_mode, Path.CASSETTES.value)
 
 
-SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
-SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
+TEST_OPTIONS = get_test_options()
+VCR = _get_http_recorder(TEST_OPTIONS)
