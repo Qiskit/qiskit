@@ -189,7 +189,7 @@ For more information on how to use Qiskit, tutorial examples, and other helpful 
 at these resources:
 
 * **[Qiskit Aqua](https://github.com/Qiskit/qiskit-aqua)**,
-  the element where algorithms quantum computing are built
+  is the element where algorithms for quantum computing are built
 * **[Tutorials](https://github.com/Qiskit/qiskit-tutorial)**,
   for example notebooks, start with the [index](https://github.com/Qiskit/qiskit-tutorial/blob/master/index.ipynb) and [‘Getting Started’ Jupyter notebook](https://github.com/Qiskit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb)
 * **[OpenQASM](https://github.com/Qiskit/openqasm)**,
