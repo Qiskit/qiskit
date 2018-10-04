@@ -56,14 +56,14 @@ The :func:`~qiskit.Result.get_counts` method outputs a dictionary of
 Quantum Chips
 -------------
 
-You can execute your QASM circuits on a real chip by using the IBM Q experience (QX) cloud platform.
+You can execute your circuits on a real chip by using the IBM Q experience (QX) cloud platform.
 Currently through QX you can use the following chips:
 
 -   ``ibmqx4``: `5-qubit backend <https://ibm.biz/qiskit-ibmqx4>`_
 
--   ``ibmqx5``: `16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`_
+-   ``ibmq_16_melbourne``: `16-qubit backend <https://github.com/Qiskit/qiskit-backend-information/tree/master/backends/melbourne/V1>`_
 
-For chip details and realtime information about availability visit the
+For chip details, and realtime information about availability, visit the
 `IBM Q experience backend information <https://github.com/Qiskit/ibmqx-backend-information>`_
 and the `IBM Q experience devices page <https://quantumexperience.ng.bluemix.net/qx/devices>`_.
 
@@ -73,4 +73,4 @@ Project Organization
 --------------------
 
 Python example programs can be found in the *examples* directory, and test scripts are
-located in *test*. The *qiskit* directory is the main module of the SDK.
+located in *test*. The *qiskit* directory is the main module of Terra.
