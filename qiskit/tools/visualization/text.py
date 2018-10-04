@@ -16,34 +16,27 @@ from qiskit.transpiler import transpile
 class DrawElement():
     """ An element is an instruction or an operation that need to be drawn."""
 
-    def __init__(self, instruction=None):
-        if instruction:
-            params = ""
-            if 'params' in instruction:
-                if instruction['params']:
-                    params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
-            self.label = "%s%s" % (instruction['name'].upper(), params)
-        else:
-            self.label = ""
+    def __init__(self, label=None):
         self._width = None
-        self._top = self._mid = self._bot = "%s"
-        self._top_connect = self._mid_content = self._bot_connect = " "
-        self._top_border = self._mid_padding = self._bot_border = " "
+        self.label = self.mid_content = label
+        self.top_format = self.mid_format = self.bot_format = "%s"
+        self.top_connect = self.bot_connect = " "
+        self.top_pad = self._mid_padding = self.bot_pad = " "
 
     @property
     def top(self):
         """ Constructs the top line of the element"""
-        return self._top % self._top_connect.center(self.width, self._top_border)
+        return self.top_format % self.top_connect.center(self.width, self.top_pad)
 
     @property
     def mid(self):
         """ Constructs the middle line of the element"""
-        return self._mid % self._mid_content.center(self.width, self._mid_padding)
+        return self.mid_format % self.mid_content.center(self.width, self._mid_padding)
 
     @property
     def bot(self):
         """ Constructs the bottom line of the element"""
-        return self._bot % self._bot_connect.center(self.width, self._bot_border)
+        return self.bot_format % self.bot_connect.center(self.width, self.bot_pad)
 
     @property
     def length(self):
@@ -53,14 +46,14 @@ class DrawElement():
     @length.setter
     def length(self, value):
         """ Adjusts width so the length fits."""
-        self.width = value - max([len(getattr(self, i) % '') for i in ["_bot", "_mid", "_top"]])
+        self.width = value - max([len(getattr(self, i) % '') for i in ["bot_format", "mid_format", "top_format"]])
 
     @property
     def width(self):
         """ Returns the width of the label, including padding"""
         if self._width:
             return self._width
-        return len(self._mid_content)
+        return len(self.mid_content)
 
     @width.setter
     def width(self, value):
@@ -68,23 +61,38 @@ class DrawElement():
 
 
 class BoxOnClWire(DrawElement):
-    def __init__(self, instruction=None):
-        super().__init__(instruction)
-        self._top = "┌─%s─┐"
-        self._mid = "╡ %s ╞"
-        self._bot = "└─%s─┘"
-        self._bot_connect = self._bot_border = self._top_connect = self._top_border = '─'
-        self._mid_content = self.label
+    """ Draws a box on the classical wire
+        top: ┌───┐ ┌───────┐
+        mid: ╡ A ╞ ╡   A   ╞
+        bot: └───┘ └───────┘
+    """
+    def __init__(self, label="", top_connect = '─', bot_connect = '─'):
+        super().__init__(label)
+        self.top_format = "┌─%s─┐"
+        self.mid_format = "╡ %s ╞"
+        self.bot_format = "└─%s─┘"
+        self.top_pad = self.bot_pad = '─'
+        self.top_connect = top_connect
+        self.bot_connect = bot_connect
+        self.mid_content = label
 
 
 class BoxOnQuWire(DrawElement):
-    def __init__(self, instruction=None):
-        super().__init__(instruction)
-        self._top = "┌─%s─┐"
-        self._mid = "┤ %s ├"
-        self._bot = "└─%s─┘"
-        self._bot_connect = self._bot_border = self._top_connect = self._top_border = '─'
-        self._mid_content = self.label
+    """ Draws a box on the quantum wire
+        top: ┌───┐ ┌───────┐
+        mid: ┤ A ├ ┤   A   ├
+        bot: └───┘ └───────┘
+    """
+
+    def __init__(self, label="", top_connect = '─', bot_connect = '─'):
+        super().__init__(label)
+        self.top_format = "┌─%s─┐"
+        self.mid_format = "┤ %s ├"
+        self.bot_format = "└─%s─┘"
+        self.top_pad = self.bot_pad = '─'
+        self.top_connect = top_connect
+        self.bot_connect = bot_connect
+        self.mid_content = label
 
 
 class MeasureTo(DrawElement):
@@ -94,11 +102,11 @@ class MeasureTo(DrawElement):
     bot:
     """
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._top_connect = " ║ "
-        self._mid_content = "═╩═"
-        self._bot_connect = "   "
+    def __init__(self):
+        super().__init__()
+        self.top_connect = " ║ "
+        self.mid_content = "═╩═"
+        self.bot_connect = "   "
         self._mid_padding = "═"
 
 
@@ -109,15 +117,15 @@ class MeasureFrom(BoxOnQuWire):
         bot: └╥┘    └╥┘
     """
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._top = self._mid = self._bot = "%s"
-        self._top_connect = "┌─┐"
-        self._mid_content = "┤M├"
-        self._bot_connect = "└╥┘"
+    def __init__(self):
+        super().__init__()
+        self.top_format = self.mid_format = self.bot_format = "%s"
+        self.top_connect = "┌─┐"
+        self.mid_content = "┤M├"
+        self.bot_connect = "└╥┘"
 
 
-class DrawElementMultiBit(DrawElement):
+class MultiBox(DrawElement):
     """Elements that is draw on over multiple wires."""
 
     def center_label(self, input_length, order):
@@ -132,115 +140,91 @@ class DrawElementMultiBit(DrawElement):
         bot_limit = top_limit + 2
         if top_limit <= location_in_the_box < bot_limit:
             if location_in_the_box == top_limit:
-                self._top_connect = self.label
+                self.top_connect = self.label
             elif location_in_the_box == top_limit + 1:
-                self._mid_content = self.label
+                self.mid_content = self.label
             else:
-                self._bot_connect = self.label
+                self.bot_connect = self.label
 
 
-class BoxOnQuWireTop(DrawElementMultiBit, BoxOnQuWire):
+class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
     """ Draws the top part of a box that affects more than one quantum wire"""
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._mid_content = ""  # The label will be put by some other part of the box.
-        self._bot = "│ %s │"
-        self._bot_connect = self._bot_border = " "
+    def __init__(self, label=""):
+        super().__init__(label)
+        self.mid_content = ""  # The label will be put by some other part of the box.
+        self.bot_format = "│ %s │"
+        self.bot_connect = self.bot_pad = " "
 
 
-class BoxOnQuWireMid(DrawElementMultiBit, BoxOnQuWire):
+class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
     """ Draws the middle part of a box that affects more than one quantum wire"""
 
-    def __init__(self, instruction, input_length, order):
-        super().__init__(instruction)
-        self._top = "│ %s │"
-        self._bot = "│ %s │"
+    def __init__(self, label, input_length, order):
+        super().__init__(label)
+        self.top_format = "│ %s │"
+        self.bot_format = "│ %s │"
         self.center_label(input_length, order)
 
 
-class BoxOnQuWireBot(DrawElementMultiBit, BoxOnQuWire):
+class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
-    def __init__(self, instruction, input_length):
-        super().__init__(instruction)
-        self._top = "│ %s │"
+    def __init__(self, label, input_length):
+        super().__init__(label)
+        self.top_format = "│ %s │"
 
-        self._mid_content = self._bot_connect = self._top_connect = ""
+        self.mid_content = self.bot_connect = self.top_connect = ""
         if input_length <= 2:
-            self._top_connect = self.label
+            self.top_connect = label
 
 
-class BoxQuDown(BoxOnQuWire):
-    """ Draws a box with a connector going down. E.g. The quantum part of a conditional.
-        top: ┌───┐ ┌───────┐
-        mid: ┤ A ├ ┤   A   ├
-        bot: └─┬─┘ └───┬───┘
-    """
-
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._bot_connect = '┬'
 
 
-class BoxClUp(BoxOnClWire):
-    """ Draws a box with a connector going up. E.g. The classical part of a conditional.
-        top: ┌─┴─┐ ┌───┴───┐
-        mid: ╡ A ╞ ╡   A   ╞
-        bot: └───┘ └───────┘
-    """
-
-    def __init__(self, instruction=None):
-        super().__init__(instruction)
-        self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
-        self._top_connect = '┴'
-
-
-class ConditionalFromTop(DrawElementMultiBit, BoxOnClWire):
+class BoxOnClWireTop(MultiBox, BoxOnClWire):
     """ Draws the top part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._mid_content = ""  # The label will be put by some other part of the box.
-        self._bot = "│ %s │"
-        self._top_connect = '┴'
-        self._bot_connect = self._bot_border = " "
+    def __init__(self, label="", top_connect='─'):
+        super().__init__(label)
+        self.mid_content = ""  # The label will be put by some other part of the box.
+        self.bot_format = "│ %s │"
+        self.top_connect = top_connect
+        self.bot_connect = self.bot_pad = " "
 
 
-class ConditionalFromMid(DrawElementMultiBit, BoxOnClWire):
+class BoxOnClWireMid(MultiBox, BoxOnClWire):
     """ Draws the middle part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, instruction, input_length, order):
-        super().__init__(instruction)
-        self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
-        self._top = "│ %s │"
-        self._bot = "│ %s │"
-        self._top_border = self._bot_border = ' '
-        self._top_connect = self._bot_connect = self._mid_content = ''
+    def __init__(self, label, input_length, order):
+        super().__init__(label)
+        self.mid_content = label
+        self.top_format = "│ %s │"
+        self.bot_format = "│ %s │"
+        self.top_pad = self.bot_pad = ' '
+        self.top_connect = self.bot_connect = self.mid_content = ''
         self.center_label(input_length, order)
 
 
-class ConditionalFromBot(DrawElementMultiBit, BoxOnClWire):
+class BoxOnClWireBot(MultiBox, BoxOnClWire):
     """ Draws the bottom part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, instruction, input_length):
-        super().__init__(instruction)
-        self.label = self._mid_content = "%s %s" % ('=', instruction['conditional']['val'])
-        self._top = "│ %s │"
-        self._top_border = " "
-        self._bot_border = '─'
+    def __init__(self, label, input_length, bot_connect='─'):
+        super().__init__(label)
+        self.top_format = "│ %s │"
+        self.top_pad = " "
+        self.bot_connect = bot_connect
 
-        self._mid_content = self._bot_connect = self._top_connect = ""
+        self.mid_content = self.top_connect = ""
         if input_length <= 2:
-            self._top_connect = self.label
+            self.top_connect = label
 
 
 class DirectOnQuWire(DrawElement):
-    def __init__(self, instruction=None):
-        super().__init__(instruction)
-        self._top = ' %s '
-        self._mid = '─%s─'
-        self._bot = ' %s '
+    def __init__(self, label=""):
+        super().__init__(label)
+        self.top_format = ' %s '
+        self.mid_format = '─%s─'
+        self.bot_format = ' %s '
         self._mid_padding = '─'
 
 
@@ -251,70 +235,48 @@ class Barrier(DirectOnQuWire):
         bot:  ¦     ¦
     """
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._top_connect = "¦"
-        self._mid_content = "¦"
-        self._bot_connect = "¦"
+    def __init__(self, label=""):
+        super().__init__("¦")
+        self.top_connect = "¦"
+        self.bot_connect = "¦"
 
 
-class ExDown(DirectOnQuWire):
-    """ Draws an X with a connector down. E.g. the top part of a swap gate
+class Ex(DirectOnQuWire):
+    """ Draws an X (usually with a connector). E.g. the top part of a swap gate
     top:
     mid: ─X─ ───X───
     bot:  │     │
     """
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._mid_content = "X"
-        self._bot_connect = "│"
-
-
-class ExUp(DirectOnQuWire):
-    """ Draws an X with a connector going up. E.g. the bottom part of a swap gate.
-    top:  │     │
-    mid: ─X─ ───X───
-    bot:
-    """
-
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._top_connect = "│"
-        self._mid_content = "X"
-
+    def __init__(self, bot_connect=" ", top_connect=" "):
+        super().__init__("X")
+        self.bot_connect = bot_connect
+        self.top_connect = top_connect
 
 class Reset(DirectOnQuWire):
     """ Draws a reset gate"""
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._mid_content = "|0>"
+    def __init__(self):
+        super().__init__("|0>")
 
 
-class BulletDown(DirectOnQuWire):
-    """ Draws a bullet with a connector going down. E.g. the top part of a CX gate.
+class Bullet(DirectOnQuWire):
+    """ Draws a bullet (usuallly with a connector). E.g. the top part of a CX gate.
     top:
     mid: ─■─  ───■───
     bot:  │      │
     """
 
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._mid_content = '■'
-        self._bot_connect = "│"
-
-
-class BoxQuUp(BoxOnQuWire):
-    """ Draws a gate with a qubit conector on top"""
-
-    def __init__(self, instruction):
-        super().__init__(instruction)
-        self._top_connect = '┴'
-
+    def __init__(self, top_connect = " ", bot_connect = " "):
+        super().__init__('■')
+        self.top_connect = top_connect
+        self.bot_connect = bot_connect
 
 class EmptyWire(DrawElement):
     """ This element is just the wire, with no instructions nor operations."""
+    def __init__(self, wire):
+        super().__init__(wire)
+        self._mid_padding = wire
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
@@ -328,7 +290,7 @@ class EmptyWire(DrawElement):
             list: The new layer, with no Nones.
         """
         for nones in [i for i, x in enumerate(layer) if x is None]:
-            layer[nones] = EmptyClbitWire() if nones >= first_clbit else EmptyQubitWire()
+            layer[nones] = EmptyWire('═') if nones >= first_clbit else EmptyWire('─')
         return layer
 
 
@@ -337,10 +299,10 @@ class BreakWire(DrawElement):
 
     def __init__(self, arrow_char):
         super().__init__()
-        self._top = self._mid = self._bot = "%s"
-        self._top_connect = arrow_char
-        self._mid_content = arrow_char
-        self._bot_connect = arrow_char
+        self.top_format = self.mid_format = self.bot_format = "%s"
+        self.top_connect = arrow_char
+        self.mid_content = arrow_char
+        self.bot_connect = arrow_char
 
     @staticmethod
     def fillup_layer(layer_length, arrow_char):
@@ -359,30 +321,11 @@ class BreakWire(DrawElement):
         return breakwire_layer
 
 
-class EmptyQubitWire(DirectOnQuWire):
-    """ This element is just the quantum wire, with no instructions nor operations."""
-
-    def __init__(self):
-        super().__init__()
-        self._mid_content = ''
-
-
-class EmptyClbitWire(EmptyWire):
-    """ This element is just the classic wire, with no instructions nor operations."""
-
-    def __init__(self):
-        super().__init__()
-        self._mid_content = '═'
-        self._mid_padding = '═'
-
-
-class InputWire(EmptyWire):
+class InputWire(DrawElement):
     """ This element is the label and the initial value of a wire."""
 
     def __init__(self, label):
-        super().__init__()
-        self.label = label
-        self._mid_content = label
+        super().__init__(label)
 
     @staticmethod
     def fillup_layer(names):  # pylint: disable=arguments-differ
@@ -531,6 +474,18 @@ class TextDrawing():
         return lines
 
     @staticmethod
+    def label_for_conditional(instruction):
+        return "%s %s" % ('=', instruction['conditional']['val'])
+
+    @staticmethod
+    def label_for_box(instruction):
+        params = ""
+        if 'params' in instruction:
+            if instruction['params']:
+                params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
+        return "%s%s" % (instruction['name'].upper(), params)
+
+    @staticmethod
     def merge_lines(top, bot, icod="top"):
         """
         Merges two lines (top and bot) in the way that the overlapping make senses.
@@ -619,40 +574,42 @@ class TextDrawing():
             clbit_layer = [None] * noclbits
 
             if instruction['name'] == 'measure':
-                qubit_layer[instruction['qubits'][0]] = MeasureFrom(instruction)
-                clbit_layer[instruction['clbits'][0]] = MeasureTo(instruction)
+                qubit_layer[instruction['qubits'][0]] = MeasureFrom()
+                clbit_layer[instruction['clbits'][0]] = MeasureTo()
 
             elif instruction['name'] == 'barrier':
                 # barrier
                 for qubit in instruction['qubits']:
-                    qubit_layer[qubit] = Barrier(instruction)
+                    qubit_layer[qubit] = Barrier()
 
             elif instruction['name'] == 'swap':
                 # swap
-                qubit_layer[instruction['qubits'][0]] = ExDown(instruction)
-                qubit_layer[instruction['qubits'][1]] = ExUp(instruction)
+                qubit_layer[instruction['qubits'][0]] = Ex(bot_connect = "│")
+                qubit_layer[instruction['qubits'][1]] = Ex(top_connect = "│")
 
             elif instruction['name'] == 'cswap':
                 # cswap
-                qubit_layer[instruction['qubits'][0]] = BulletDown(instruction)
-                qubit_layer[instruction['qubits'][1]] = ExUp(instruction)
-                qubit_layer[instruction['qubits'][2]] = ExUp(instruction)
+                qubit_layer[instruction['qubits'][0]] = Bullet(bot_connect="│")
+                qubit_layer[instruction['qubits'][1]] = Ex(top_connect = "│")
+                qubit_layer[instruction['qubits'][2]] = Ex(top_connect = "│")
 
             elif instruction['name'] == 'reset':
-                qubit_layer[instruction['qubits'][0]] = Reset(instruction)
+                qubit_layer[instruction['qubits'][0]] = Reset()
 
             elif 'conditional' in instruction:
                 # conditional
                 clbits = self.clbit_index_from_mask(int(instruction['conditional']['mask'], 16))
+                cllabel = TextDrawing.label_for_conditional(instruction)
+                qulabel = TextDrawing.label_for_box(instruction)
                 if len(clbits) == 1:
-                    clbit_layer[clbits[0]] = BoxClUp(instruction)
+                    clbit_layer[clbits[0]] = BoxOnClWire(cllabel, top_connect='┴')
                 else:
-                    clbit_layer[clbits[0]] = ConditionalFromTop(instruction)
+                    clbit_layer[clbits[0]] = BoxOnClWireTop(cllabel, top_connect='┴')
                     for order, clbit in enumerate(clbits[1:-1], 1):
-                        clbit_layer[clbit] = ConditionalFromMid(instruction, len(clbits), order)
-                    clbit_layer[clbits[-1]] = ConditionalFromBot(instruction, len(clbits))
+                        clbit_layer[clbit] = BoxOnClWireMid(cllabel, len(clbits), order)
+                    clbit_layer[clbits[-1]] = BoxOnClWireBot(cllabel, len(clbits))
 
-                qubit_layer[instruction['qubits'][0]] = BoxQuDown(instruction)
+                qubit_layer[instruction['qubits'][0]] = BoxOnQuWire(qulabel, bot_connect='┬')
 
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
                 # cx/ccx
@@ -660,12 +617,22 @@ class TextDrawing():
                 target = instruction['qubits'][-1]
 
                 for qubit in control:
-                    qubit_layer[qubit] = BulletDown(instruction)
-                qubit_layer[target] = BoxQuUp(instruction)
+                    qubit_layer[qubit] = Bullet()
+                    if qubit < target:
+                        qubit_layer[qubit].bot_connect = "│"
+                    else:
+                        qubit_layer[qubit].top_connect = "│"
+
+                qubit_layer[target] = BoxOnQuWire('X')
+                if target > min(control):
+                    qubit_layer[target].top_connect='┴'
+                if target < max(control):
+                    qubit_layer[target].bot_connect = '┬'
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
                 # unitary gate
-                qubit_layer[instruction['qubits'][0]] = BoxOnQuWire(instruction)
+                qubit_layer[instruction['qubits'][0]] = BoxOnQuWire(
+                    TextDrawing.label_for_box(instruction))
 
             elif len(instruction['qubits']) >= 2 and 'clbits' not in instruction:
                 # multiple qubit gate
@@ -678,10 +645,11 @@ class TextDrawing():
                          "they are not adjacent to each other"),
                         instruction)
 
-                qubit_layer[qubits[0]] = BoxOnQuWireTop(instruction)
+                label = TextDrawing.label_for_box(instruction)
+                qubit_layer[qubits[0]] = BoxOnQuWireTop(label)
                 for order, qubit in enumerate(qubits[1:-1], 1):
-                    qubit_layer[qubit] = BoxOnQuWireMid(instruction, len(qubits), order)
-                qubit_layer[qubits[-1]] = BoxOnQuWireBot(instruction, len(qubits))
+                    qubit_layer[qubit] = BoxOnQuWireMid(label, len(qubits), order)
+                qubit_layer[qubits[-1]] = BoxOnQuWireBot(label, len(qubits))
 
             else:
                 raise Exception("I don't know how to handle this instruction", instruction)
