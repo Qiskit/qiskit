@@ -23,7 +23,7 @@ from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase
 
 
-class FakeBackEnd(object):
+class FakeBackend(object):
     """A fake backend.
     """
 
@@ -288,7 +288,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
-        backend = FakeBackEnd()
+        backend = FakeBackend()
         qr = QuantumRegister(name='qr', size=11)
         cr = ClassicalRegister(name='qc', size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -354,7 +354,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
-        backend = FakeBackEnd()
+        backend = FakeBackend()
         qr = QuantumRegister(3, name='qr')
         qr2 = QuantumRegister(1, name='qr2')
         qr3 = QuantumRegister(4, name='qr3')
@@ -374,7 +374,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling
         """
-        backend = FakeBackEnd()
+        backend = FakeBackend()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(16)
         qc = QuantumCircuit(qr, cr)
@@ -396,7 +396,7 @@ class TestCompiler(QiskitTestCase):
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
-        backend = FakeBackEnd()
+        backend = FakeBackend()
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -536,7 +536,7 @@ class TestCompiler(QiskitTestCase):
     def test_parallel_compile(self):
         """Trigger parallel routines in compile.
         """
-        backend = FakeBackEnd()
+        backend = FakeBackend()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -547,6 +547,25 @@ class TestCompiler(QiskitTestCase):
         qlist = [qc for k in range(10)]
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
+
+    def test_already_matching(self):
+        """Map qubit i -> i if circuit is already compatible with topology.
+        """
+        backend = FakeBackend()
+        qr = QuantumRegister(16, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr)
+        qc.cx(qr[1], qr[0])
+        qc.cx(qr[6], qr[11])
+        qc.cx(qr[8], qr[7])
+        qc.measure(qr[1], cr[0])
+        qc.measure(qr[0], cr[1])
+        qc.measure(qr[6], cr[2])
+        qc.measure(qr[11], cr[3])
+        qobj = compile(qc, backend=backend)
+        for qubit_layout in qobj.experiments[0].config.layout:
+            self.assertEqual(qubit_layout[0][1], qubit_layout[1][1])
 
 
 if __name__ == '__main__':
