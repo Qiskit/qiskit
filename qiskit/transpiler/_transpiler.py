@@ -457,9 +457,10 @@ def _matches_coupling_map(dag, coupling_map):
     for _, data in dag.multi_graph.nodes(data=True):
         if data['type'] == 'op':
             gate_map = [qr[1] for qr in data['qargs']]
-            if gate_map not in coupling_map:
-                match = False
-                break
+            if len(gate_map) > 1:
+                if gate_map not in coupling_map:
+                    match = False
+                    break
     return match
 
 
