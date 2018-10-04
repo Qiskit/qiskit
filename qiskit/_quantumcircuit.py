@@ -265,7 +265,7 @@ class QuantumCircuit(object):
         """Measure quantum bit into classical bit (tuples).
 
         Returns:
-            Gate: the attached measure gate.
+            qiskit.Gate: the attached measure gate.
 
         Raises:
             QISKitError: if qubit is not in this circuit or bad format;

@@ -1,19 +1,20 @@
 """
 Example on how to use: load_qasm_file
-If you want to use your local cloned repository intead of the one installed via pypi,
-you have to run like this:
-    examples/python$ PYTHONPATH=$PYTHONPATH:../.. python load_qasm.py
+
 """
 from qiskit.wrapper import load_qasm_file
-from qiskit import QISKitError, available_backends, execute
+from qiskit import QISKitError, execute, Aer
+
 try:
-    qc = load_qasm_file("../qasm/entangled_registers.qasm")
+    qc = load_qasm_file("examples/qasm/entangled_registers.qasm")
 
     # See a list of available local simulators
-    print("Local backends: ", available_backends({'local': True}))
+    print("Aer backends: ", Aer.backends())
+    sim_backend = Aer.get_backend('qasm_simulator')
+
 
     # Compile and run the Quantum circuit on a local simulator backend
-    job_sim = execute(qc, "local_qasm_simulator")
+    job_sim = execute(qc, sim_backend)
     sim_result = job_sim.result()
 
     # Show the results
@@ -21,5 +22,5 @@ try:
     print(sim_result.get_counts(qc))
 
 except QISKitError as ex:
-    print('There was an internal QISKit error. Error = {}'.format(ex))
+    print('There was an internal Qiskit error. Error = {}'.format(ex))
 

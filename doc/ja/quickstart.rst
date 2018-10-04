@@ -46,7 +46,7 @@ QuantumProgramのメソッドは量子回路を実機やシミュレーターの
 -   `ibmqx5: 16-qubit backend <https://ibm.biz/qiskit-ibmqx5>`__
 
 最新の実機の詳細については
-`IBM Q Experience バックエンド情報 <https://github.com/QISKit/ibmqx-backend-information>`_ を参照してください。
+`IBM Q Experience バックエンド情報 <https://github.com/Qiskit/ibmqx-backend-information>`_ を参照してください。
 
 .. include:: example_real_backend.rst
 

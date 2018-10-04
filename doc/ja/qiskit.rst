@@ -1,4 +1,4 @@
-QISKit 概要
+Qiskit 概要
 ===========
 
 設計思想
@@ -21,15 +21,15 @@ QISKitは、深さが限定的な量子回路を設計して直近の応用を�
 ----------------
 QISKitプロジェクトの構成は以下の通りです:
 
-* `QISKit SDK <https://github.com/QISKit/qiskit-terra>`_:
+* `Qiskit SDK <https://github.com/Qiskit/qiskit-terra>`_:
   量子コンピューターのプログラムやアプリケーションを開発して実験を行うためのPythonソフトウェア開発キット
 
-* `QISKit API <https://github.com/IBM/qiskit-api-py>`_:
+* `Qiskit API <https://github.com/IBM/qiskit-api-py>`_:
   IBM Q ExperienceのHTTP APIのPythonラッパー。
   IBM Q Experienceを通じて量子プログラムの実行が可能。
 
-* `QISKit OpenQASM <https://github.com/IBM/qiskit-openqasm>`_:
+* `Qiskit OpenQASM <https://github.com/IBM/qiskit-openqasm>`_:
   OpenQASMという中間言語の仕様書、例、マニュアルおよびツール群。
 
-* `QISKit Tutorial <https://github.com/IBM/qiskit-tutorial>`_:
+* `Qiskit Tutorial <https://github.com/IBM/qiskit-tutorial>`_:
   Jupyterノートブックで書かれたQISKitのチュートリアル集。

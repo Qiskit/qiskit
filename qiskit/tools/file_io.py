@@ -15,7 +15,7 @@ import os
 import numpy
 from sympy import Basic
 
-import qiskit
+from qiskit.result._utils import result_from_old_style_dict
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseBackend
 
@@ -145,7 +145,20 @@ def load_result_from_file(filename):
         raise QISKitError('File %s does not have the proper dictionary '
                           'structure')
 
-    qresult = qiskit.Result(qresult_dict)
+    # TODO: To keep backwards compatibility with previous saved versions,
+    # the method adapts the recovered JSON to match the new format. Since
+    # the save function takes a Result, not all the fields required by
+    # the new Qobj are saved so they are marked with 'TODO'.
+    qresult_dict['id'] = qresult_dict.get('id', 'TODO')
+    for experiment in qresult_dict['result']:
+        is_done = experiment['status'] == 'DONE'
+        experiment['success'] = experiment.get('success', is_done)
+        experiment['shots'] = experiment.get('shots', 'TODO')
+
+    qresult = result_from_old_style_dict(
+        qresult_dict,
+        [circuit_data['name'] for circuit_data in qresult_dict['result']]
+    )
 
     return qresult, metadata
 
@@ -165,7 +178,7 @@ class ResultEncoder(json.JSONEncoder):
         elif isinstance(o, BaseBackend):
             # TODO: replace when the deprecation is completed (see also note in
             # Result.__iadd__).
-            return o.configuration['name']
+            return o.configuration()['name']
 
         return json.JSONEncoder.default(self, o)
 
@@ -187,7 +200,7 @@ def save_result_to_file(resultobj, filename, metadata=None):
         String: full file path
     """
     master_dict = {
-        'result': copy.deepcopy(resultobj._result)
+        'result': _old_style_dict_from_result(resultobj)
     }
     if metadata is None:
         master_dict['metadata'] = {}
@@ -213,3 +226,26 @@ def save_result_to_file(resultobj, filename, metadata=None):
         json.dump(master_dict, save_file, indent=1, cls=ResultEncoder)
 
     return filename + append_str + '.json'
+
+
+def _old_style_dict_from_result(result):
+    """Convert a ``qiskit.Result`` instance into the old style dict format
+    expected by ``save_result_to_file``.
+
+    Args:
+        result (qiskit.Result): a ``qiskit.Result`` instance.
+
+    Returns:
+        dict: a dictionary with the format previous to Qobj's Result.
+    """
+    return {
+        'job_id': result.job_id,
+        'status': result.status,
+        'backend': result.backend_name,
+        'result': [{
+            'name': name,
+            'compiled_circuit_qasm': experiment.compiled_circuit_qasm,
+            'status': experiment.status,
+            'data': experiment.data
+        } for name, experiment in result.results.items()]
+    }

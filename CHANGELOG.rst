@@ -15,16 +15,101 @@ The format is based on `Keep a Changelog`_.
   - **Security**: in case of vulnerabilities.
 
 
-`0.5.6`_ - 2018-07-06
+`UNRELEASED`_
+=============
+
+Changed
+-------
+
+
+`0.6.0`_ - 2018-10-04
 =====================
 
 Added
 -----
+- Added `SchemaValidationError` to be thrown when schema validation fails (#881)
+- Generalized Qobj schema validation functions for all qiskit schemas (#882).
+- Added decorator to check for C++ simulator availability (#662)
+- It is possible to cancel jobs in non comercial backends (#687)
+- Introduced new `qiskit.IBMQ` provider, with centralized handling of IBMQ
+  credentials (qiskitrc file, environment variables). (#547, #948, #1000)
+- Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
+- Add parallelization utilities (#701)
+- Parallelize transpilation (#701)
+- New interactive visualizations (#765).
+- Added option to reverse the qubit order when plotting a circuit. (#762, #786)
+- Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
+- Add a new function ``qobj_to_circuits`` to convert a Qobj object to
+  a list of QuantumCircuit objects (#877)
+- Allow selective loading of accounts from disk via hub/group/project
+  filters to `IBMQ.load_accounts()`.
+
+Changed
+-------
+- Schema tests in `tests/schemas/test_schemas.py` replaced with proper
+  unit test (#834).
+- Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
+- Use ``Qobj`` as the formally defined schema for sending information to the devices:
+  - introduce the ``qiskit.qobj`` module. (#589, #655)
+  - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
+  - update the local simulators for accepting ``Qobj`` as input. (#667)
+  - update the ``Result`` class. (#773)
+- Use ``get_status_job()`` for checking IBMQJob status. (#641)
+- Q network hub/group/project credentials replaced by new url format. (#740)
+- Breaking change: ``Jobs`` API simplification. (#686)
+- Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
+- Breaking change: ``BaseBackend`` API changed, properties are now methods (#858)
+- When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
+  notebook if there is network connectivity the interactive plots will be used
+  by default (#862, #866)
+- Breaking change: ``BaseJob`` API changed, any job constructor must be passed
+  the backend used to run them and a unique job id (#936).
+- Add support for drawing circuit barriers to the latex circuit drawer. This
+  requires having the LaTeX qcircuit package version >=2.6.0 installed (#764)
+
+Deprecated
+----------
+- The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
+  deprecated. A field of the same name should be used in the ``option``
+  dictionary kwarg instead. (#866)
+- Breaking change: ``backend.properties()`` instead of ``backend.calibration()``
+  and ``backend.parameters()`` (#870)
+
+Removed
+-------
+- Removed the QuantumProgram class. (#724)
+
+Fixed
+-----
+- Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688).
+- Fixed ``probabilities_ket`` computation in C++ simulator (#580).
+- Fixed bug in the definition of ``cswap`` gate and its test (#685).
+- Fixed the examples to be compatible with version 0.5+ (#672).
+- Fixed swap mapper using qubits after measurement (#691).
+- Fixed error in cpp simulator for 3+ qubit operations (#698).
+- Fixed issue with combining or extending circuits that contain CompositeGate (#710).
+- Fixed the random unitary generation from the Haar measure (#760).
+- Fixed the issue with control lines spanning through several classical registers (#762).
+- Fixed visualizations crashing when using simulator extensions (#885).
+- Fixed check for network connection when loading interactive visualizations (#892).
+
+
+`0.5.7`_ - 2018-07-19
+=====================
+
+Changed
+-------
+- Add new backend names support, with aliasing for the old ones.
+
+
+`0.5.6`_ - 2018-07-06
+=====================
 
 Changed
 -------
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
+- Adjust margin of matplotlib_circuit_drawer (#632)
 
 Removed
 -------
@@ -71,22 +156,6 @@ Fixed
 -----
 - Fix issue with unintended inversion of initializer gates (#573).
 - Fix issue with skip_transpiler causing some gates to be ignored silently (#562).
-
-
-`0.5.4`_ - 2018-06-11
-=====================
-
-Added
------
-
-Changed
--------
-
-Removed
--------
-
-Fixed
------
 
 
 `0.5.4`_ - 2018-06-11
@@ -190,8 +259,8 @@ Improvements
     - Each provider derives from the following classes for its specific
       requirements (``BaseProvider``, ``BaseBackend``, ``BaseJob``).
     - Allow querying result by both circuit name and QuantumCircuit instance.
-- Introduce the QISKit ``wrapper`` (#376).
-    - Introduce convenience wrapper functions around commonly used QISKit
+- Introduce the Qiskit ``wrapper`` (#376).
+    - Introduce convenience wrapper functions around commonly used Qiskit
       components (e.g. ``compile`` and ``execute`` functions).
     - Introduce the DefaultQISKitProvider, which acts as a context manager for
       the current session (e.g. providing easy access to all
@@ -533,26 +602,29 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _0.5.5: https://github.com/QISKit/qiskit-terra/compare/0.5.5...0.5.6
-.. _0.5.5: https://github.com/QISKit/qiskit-terra/compare/0.5.4...0.5.5
-.. _0.5.4: https://github.com/QISKit/qiskit-terra/compare/0.5.3...0.5.4
-.. _0.5.3: https://github.com/QISKit/qiskit-terra/compare/0.5.2...0.5.3
-.. _0.5.2: https://github.com/QISKit/qiskit-terra/compare/0.5.1...0.5.2
-.. _0.5.1: https://github.com/QISKit/qiskit-terra/compare/0.5.0...0.5.1
-.. _0.5.0: https://github.com/QISKit/qiskit-terra/compare/0.4.15...0.5.0
-.. _0.4.15: https://github.com/QISKit/qiskit-terra/compare/0.4.14...0.4.15
-.. _0.4.14: https://github.com/QISKit/qiskit-terra/compare/0.4.13...0.4.14
-.. _0.4.13: https://github.com/QISKit/qiskit-terra/compare/0.4.12...0.4.13
-.. _0.4.12: https://github.com/QISKit/qiskit-terra/compare/0.4.11...0.4.12
-.. _0.4.11: https://github.com/QISKit/qiskit-terra/compare/0.4.10...0.4.11
-.. _0.4.10: https://github.com/QISKit/qiskit-terra/compare/0.4.9...0.4.10
-.. _0.4.9: https://github.com/QISKit/qiskit-terra/compare/0.4.8...0.4.9
-.. _0.4.8: https://github.com/QISKit/qiskit-terra/compare/0.4.7...0.4.8
-.. _0.4.7: https://github.com/QISKit/qiskit-terra/compare/0.4.6...0.4.7
-.. _0.4.6: https://github.com/QISKit/qiskit-terra/compare/0.4.5...0.4.6
-.. _0.4.4: https://github.com/QISKit/qiskit-terra/compare/0.4.3...0.4.4
-.. _0.4.3: https://github.com/QISKit/qiskit-terra/compare/0.4.2...0.4.3
-.. _0.4.2: https://github.com/QISKit/qiskit-terra/compare/0.4.1...0.4.2
-.. _0.4.0: https://github.com/QISKit/qiskit-terra/compare/0.3.16...0.4.0
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...HEAD
+.. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
+.. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
+.. _0.5.6: https://github.com/Qiskit/qiskit-terra/compare/0.5.5...0.5.6
+.. _0.5.5: https://github.com/Qiskit/qiskit-terra/compare/0.5.4...0.5.5
+.. _0.5.4: https://github.com/Qiskit/qiskit-terra/compare/0.5.3...0.5.4
+.. _0.5.3: https://github.com/Qiskit/qiskit-terra/compare/0.5.2...0.5.3
+.. _0.5.2: https://github.com/Qiskit/qiskit-terra/compare/0.5.1...0.5.2
+.. _0.5.1: https://github.com/Qiskit/qiskit-terra/compare/0.5.0...0.5.1
+.. _0.5.0: https://github.com/Qiskit/qiskit-terra/compare/0.4.15...0.5.0
+.. _0.4.15: https://github.com/Qiskit/qiskit-terra/compare/0.4.14...0.4.15
+.. _0.4.14: https://github.com/Qiskit/qiskit-terra/compare/0.4.13...0.4.14
+.. _0.4.13: https://github.com/Qiskit/qiskit-terra/compare/0.4.12...0.4.13
+.. _0.4.12: https://github.com/Qiskit/qiskit-terra/compare/0.4.11...0.4.12
+.. _0.4.11: https://github.com/Qiskit/qiskit-terra/compare/0.4.10...0.4.11
+.. _0.4.10: https://github.com/Qiskit/qiskit-terra/compare/0.4.9...0.4.10
+.. _0.4.9: https://github.com/Qiskit/qiskit-terra/compare/0.4.8...0.4.9
+.. _0.4.8: https://github.com/Qiskit/qiskit-terra/compare/0.4.7...0.4.8
+.. _0.4.7: https://github.com/Qiskit/qiskit-terra/compare/0.4.6...0.4.7
+.. _0.4.6: https://github.com/Qiskit/qiskit-terra/compare/0.4.5...0.4.6
+.. _0.4.4: https://github.com/Qiskit/qiskit-terra/compare/0.4.3...0.4.4
+.. _0.4.3: https://github.com/Qiskit/qiskit-terra/compare/0.4.2...0.4.3
+.. _0.4.2: https://github.com/Qiskit/qiskit-terra/compare/0.4.1...0.4.2
+.. _0.4.0: https://github.com/Qiskit/qiskit-terra/compare/0.3.16...0.4.0
 
 .. _Keep a Changelog: http://keepachangelog.com/en/1.0.0/
