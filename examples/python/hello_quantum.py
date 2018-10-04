@@ -1,19 +1,17 @@
 """
 Example used in the README. In this example a Bell state is made.
 
-Note: if you have only cloned the QISKit repository but not
-used `pip install`, the examples only work from the root directory.
 """
 
-# Import the QISKit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import QISKitError, available_backends, execute, register, get_backend, least_busy
-
+# Import the Qiskit
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import execute, IBMQ, Aer
+from qiskit.backends.ibmq import least_busy
 
 # Authenticate for access to remote backends
 try:
     import Qconfig
-    register(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -36,32 +34,33 @@ try:
     qc.measure(q, c)
 
     # See a list of available local simulators
-    print("Local backends: ", available_backends({'local': True}))
+    print("Aer backends: ", Aer.backends())
+    backend_sim = Aer.get_backend('qasm_simulator')
 
     # Compile and run the Quantum circuit on a simulator backend
-    job_sim = execute(qc, "local_qasm_simulator")
-    sim_result = job_sim.result()
+    job_sim = execute(qc, backend_sim)
+    result_sim = job_sim.result()
 
     # Show the results
-    print("simulation: ", sim_result)
-    print(sim_result.get_counts(qc))
+    print("simulation: ", result_sim)
+    print(result_sim.get_counts(qc))
 
     # see a list of available remote backends
-    remote_backends = available_backends({'local': False, 'simulator': False})
+    ibmq_backends = IBMQ.backends()
 
-    print("Remote backends: ", remote_backends)
+    print("Remote backends: ", ibmq_backends)
     # Compile and run the Quantum Program on a real device backend
     try:
-        least_busy_device = least_busy(available_backends())
+        least_busy_device = least_busy(IBMQ.backends(simulator=False))
         print("Running on current least busy device: ", least_busy_device)
 
         #runing the job
         job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
-        exp_result = job_exp.result()
+        result_exp = job_exp.result()
 
         # Show the results
-        print("experiment: ", exp_result)
-        print(exp_result.get_counts(qc))
+        print("experiment: ", result_exp)
+        print(result_exp.get_counts(qc))
     except:
         print("All devices are currently unavailable.")
 

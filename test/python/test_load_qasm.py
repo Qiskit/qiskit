@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
+
+# Copyright 2017, IBM.
 #
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+
+"""Test cases for the load_qasm_file and load_qasm_string method."""
 
 from qiskit import QISKitError
 from qiskit.wrapper import load_qasm_file, load_qasm_string
@@ -25,20 +17,16 @@ class LoadQasmTest(QiskitTestCase):
     """Test load_qasm_* set of methods."""
 
     def setUp(self):
-        self.QASM_FILE_NAME = 'entangled_registers.qasm'
-        self.QASM_FILE_PATH = self._get_resource_path(
-            'qasm/' + self.QASM_FILE_NAME, Path.EXAMPLES)
+        self.qasm_file_name = 'entangled_registers.qasm'
+        self.qasm_file_path = self._get_resource_path(
+            'qasm/' + self.qasm_file_name, Path.EXAMPLES)
 
     def test_load_qasm_file(self):
         """Test load_qasm_file and get_circuit.
 
-        If all is correct we should get the qasm file loaded in QASM_FILE_PATH
-
-        Previously:
-            Libraries:
-                from qiskit.wrapper import load_qasm_file
+        If all is correct we should get the qasm file loaded in _qasm_file_path
         """
-        q_circuit = load_qasm_file(self.QASM_FILE_PATH)
+        q_circuit = load_qasm_file(self.qasm_file_path)
         qasm_string = q_circuit.qasm()
         self.log.info(qasm_string)
         expected_qasm_string = """\
@@ -73,11 +61,6 @@ measure b[3] -> d[3];
         """Test fail_load_qasm_file.
 
         If all is correct we should get a QISKitError
-
-        Previously:
-            Libraries:
-                from qiskit import QISKitError
-                from qiskit.wrapper import load_qasm_file
         """
         self.assertRaises(QISKitError,
                           load_qasm_file, "", name=None)
@@ -86,11 +69,6 @@ measure b[3] -> d[3];
         """Test fail_load_qasm_string.
 
         If all is correct we should get a QISKitError
-
-        Previously:
-            Libraries:
-                from qiskit import QISKitError
-                from qiskit.wrapper import load_qasm_string
         """
         self.assertRaises(QISKitError,
                           load_qasm_string, "", name=None)
@@ -99,10 +77,6 @@ measure b[3] -> d[3];
         """Test load_qasm_text and get_circuit.
 
         If all is correct we should get the qasm file loaded from the string
-
-        Previously:
-            Libraries:
-                from qiskit import QuantumProgram
         """
         qasm_string = "// A simple 8 qubit example\nOPENQASM 2.0;\n"
         qasm_string += "include \"qelib1.inc\";\nqreg a[4];\n"

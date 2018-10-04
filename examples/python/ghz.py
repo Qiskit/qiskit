@@ -6,45 +6,23 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-GHZ state example illustrating mapping onto the backend.
+GHZ state example. It also compares running on experiment and simulator
 
-Note: if you have only cloned the QISKit repository but not
+Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-from qiskit import QuantumProgram
-import Qconfig
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import IBMQ, Aer, execute
+from qiskit.backends.ibmq import least_busy
+
 
 ###############################################################
-# Set the backend name and coupling map.
+# Make a quantum circuit for the GHZ state.
 ###############################################################
-backend = "ibmqx2"
-coupling_map = {0: [1, 2],
-                1: [2],
-                2: [],
-                3: [2, 4],
-                4: [2]}
-
-###############################################################
-# Make a quantum program for the GHZ state.
-###############################################################
-QPS_SPECS = {
-    "circuits": [{
-        "name": "ghz",
-        "quantum_registers": [{
-            "name": "q",
-            "size": 5
-        }],
-        "classical_registers": [
-            {"name": "c",
-             "size": 5}
-        ]}]
-}
-
-qp = QuantumProgram(specs=QPS_SPECS)
-qc = qp.get_circuit("ghz")
-q = qp.get_quantum_register("q")
-c = qp.get_classical_register("c")
+q = QuantumRegister(5, "q")
+c = ClassicalRegister(5, "c")
+qc = QuantumCircuit(q, c, name='ghz')
 
 # Create a GHZ state
 qc.h(q[0])
@@ -59,32 +37,27 @@ for i in range(5):
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-qp.set_api(Qconfig.APItoken, Qconfig.config["url"])
+try:
+    import Qconfig
+    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+except:
+    print("""WARNING: There's no connection with the API for remote backends.
+             Have you initialized a Qconfig.py file with your personal token?
+             For now, there's only access to local simulator backends...""")
 
-# First version: no mapping
-print("no mapping, simulator")
-result = qp.execute(["ghz"], backend='ibmq_qasm_simulator',
-                    coupling_map=None, shots=1024)
+# First version: simulator
+sim_backend = Aer.get_backend('qasm_simulator')
+job = execute(qc, sim_backend, shots=1024)
+result = job.result()
+print('Qasm simulator')
 print(result)
-print(result.get_counts("ghz"))
+print(result.get_counts(qc))
 
-# Second version: map to qx2 coupling graph and simulate
-print("map to %s, simulator" % backend)
-result = qp.execute(["ghz"], backend='ibmq_qasm_simulator',
-                    coupling_map=coupling_map, shots=1024)
+# Second version: real device
+least_busy_device = least_busy(IBMQ.backends(simulator=False,
+                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+print("Running on current least busy device: ", least_busy_device)
+job = execute(qc, least_busy_device, shots=1024)
+result = job.result()
 print(result)
-print(result.get_counts("ghz"))
-
-# Third version: map to qx2 coupling graph and simulate locally
-print("map to %s, local qasm simulator" % backend)
-result = qp.execute(["ghz"], backend='local_qasm_simulator',
-                    coupling_map=coupling_map, shots=1024)
-print(result)
-print(result.get_counts("ghz"))
-
-# Fourth version: map to qx2 coupling graph and run on qx2
-print("map to %s, backend" % backend)
-result = qp.execute(["ghz"], backend=backend,
-                    coupling_map=coupling_map, shots=1024, timeout=120)
-print(result)
-print(result.get_counts("ghz"))
+print(result.get_counts(qc))

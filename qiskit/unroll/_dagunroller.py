@@ -180,6 +180,22 @@ class DagUnroller(object):
                         self.backend.barrier([current_node["qargs"]])
                     elif current_node["name"] == "reset":
                         self.backend.reset(current_node["qargs"][0])
+
+                    # TODO: The schema of the snapshot gate is radically
+                    # different to other QASM instructions. The current model
+                    # of extensions does not support generating custom Qobj
+                    # instructions (only custom QASM strings) and the default
+                    # instruction generator is not enough to produce a valid
+                    # snapshot instruction for the new Qobj format.
+                    #
+                    # This is a hack since there would be mechanisms for the
+                    # extensions to provide their own Qobj instructions.
+                    # Extensions should not be hardcoded in the DAGUnroller.
+                    elif current_node["name"] == "snapshot":
+                        self.backend.start_gate(
+                            "snapshot", params, current_node["qargs"],
+                            extra_fields={'type': 'MISSING', 'label': 'MISSING', 'texparams': []})
+                        self.backend.end_gate("snapshot", params, current_node["qargs"])
                     else:
                         self.backend.start_gate(current_node["name"], params,
                                                 current_node["qargs"])

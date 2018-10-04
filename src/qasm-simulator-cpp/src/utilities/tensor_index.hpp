@@ -67,13 +67,6 @@ public:
   std::array<uint_t, 1ULL << N> indexes_static(const std::array<uint_t, N> &qubitss,
                                                const std::array<uint_t, N> &qubits_sorted,
                                                const uint_t k) const;
-  std::array<uint_t, 4> indexes_static(const std::array<uint_t, 2> &qubits,
-                                       const std::array<uint_t, 2> &qubits_sorted,
-                                       const uint_t k) const;
-
-  std::array<uint_t, 2> indexes_static(const std::array<uint_t, 1> &qubits,
-                                const std::array<uint_t, 1> &qubits_sorted,
-                                const uint_t k) const;
 
 protected:
   std::array<uint_t, 64> masks;
@@ -100,6 +93,8 @@ TensorIndex::TensorIndex() {
     bits[i] = (1ULL << i);
 }
 
+
+
 //------------------------------------------------------------------------------
 // Static Indexing
 //------------------------------------------------------------------------------
@@ -107,22 +102,23 @@ TensorIndex::TensorIndex() {
 template <size_t N>
 uint_t TensorIndex::index0_static(const std::array<uint_t, N> &qubits_sorted,
                                  const uint_t k) const {
-  uint_t lowbits = 0, mask = 0;
+  uint_t lowbits, retval = k;
   for (size_t j = 0; j < N; j++) {
-    mask ^= masks[qubits_sorted[j] - j];
-    lowbits |= (k & mask) << j;
+    lowbits = retval & masks[qubits_sorted[j]];
+    retval >>= qubits_sorted[j];
+    retval <<= qubits_sorted[j] + 1;
+    retval |= lowbits;
   }
-  uint_t retval = k >> (qubits_sorted[N - 1] - N + 1);
-  retval <<= (qubits_sorted[N - 1] + 1);
-  retval |= lowbits;
   return retval;
 }
+
 
 template <size_t N>
 std::array<uint_t, 1ULL << N>
 TensorIndex::indexes_static(const std::array<uint_t, N> &qs,
                             const std::array<uint_t, N> &qubits_sorted,
                             const uint_t k) const {
+
   std::array<uint_t, 1ULL << N> ret;
   ret[0] = index0_static<N>(qubits_sorted, k);
   for (size_t i = 0; i < N; i++) {
@@ -134,6 +130,7 @@ TensorIndex::indexes_static(const std::array<uint_t, N> &qs,
   return ret;
 }
 
+template<>
 std::array<uint_t, 2>
 TensorIndex::indexes_static(const std::array<uint_t, 1> &qs,
                            const std::array<uint_t, 1> &qubits_sorted,
@@ -144,6 +141,7 @@ TensorIndex::indexes_static(const std::array<uint_t, 1> &qs,
   return ret;
 }
 
+template<>
 std::array<uint_t, 4>
 TensorIndex::indexes_static(const std::array<uint_t, 2> &qs,
                            const std::array<uint_t, 2> &qubits_sorted,
@@ -160,23 +158,24 @@ TensorIndex::indexes_static(const std::array<uint_t, 2> &qs,
 // Dynamic Indexing
 //------------------------------------------------------------------------------
 
-uint_t TensorIndex::index0_dynamic(const std::vector<uint_t> &qubits_sorted, const size_t N,
+uint_t TensorIndex::index0_dynamic(const std::vector<uint_t> &qubits_sorted,
+                                   const size_t N,
                                    const uint_t k) const {
-  uint_t lowbits = 0, mask = 0;
+  uint_t lowbits, retval = k;
   for (size_t j = 0; j < N; j++) {
-    mask ^= masks[qubits_sorted[j] - j];
-    lowbits |= (k & mask) << j;
+    lowbits = retval & masks[qubits_sorted[j]];
+    retval >>= qubits_sorted[j];
+    retval <<= qubits_sorted[j] + 1;
+    retval |= lowbits;
   }
-  uint_t retval = k >> (qubits_sorted[N - 1] - N + 1);
-  retval <<= (qubits_sorted[N - 1] + 1);
-  retval |= lowbits;
   return retval;
 }
 
 std::vector<uint_t>
 TensorIndex::indexes_dynamic(const std::vector<uint_t> &qs,
-                             const std::vector<uint_t> &qubits_sorted, const size_t N,
-                           const uint_t k) const {
+                             const std::vector<uint_t> &qubits_sorted,
+                             const size_t N,
+                             const uint_t k) const {
   std::vector<uint_t> ret(1ULL << N);
   ret[0] = index0_dynamic(qubits_sorted, N, k);
   for (size_t i = 0; i < N; i++) {
@@ -188,6 +187,6 @@ TensorIndex::indexes_dynamic(const std::vector<uint_t> &qs,
   return ret;
 }
 
-}
 //------------------------------------------------------------------------------
+}
 #endif // end module

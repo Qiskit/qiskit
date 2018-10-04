@@ -3,6 +3,7 @@
     "id": "http://www.qiskit.org/schemas/result_schema.json",
     "title": "qobj results",
     "description": "The results of executing a qobj",
+    "version": "1.0.0",
     "definitions": {
         "complex": {
             "description": "JSON representation of a complex number",
@@ -29,30 +30,10 @@
                 "$ref": "#/definitions/complex_array"
             }
         },
-        "snapshot": {
-                    "type": "object",
-                    "description": "Snapshot of simulator internal representation",
-                    "properties": {
-                        "statevector": {
-                            "description": "A list of complex state vectors for each shot",
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/complex_array"
-                            }
-                        },
-                        "unitary": {
-                            "description": "A list of circuit unitary matrices for each shot",
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/complex_matrix"
-                            }
-                        }
-                    }
-                },
-        "register": {
+        "memory": {
                 "type": "array",
                 "minItems": 1,
-                "description": "Output of the registers"},
+                "description": "Output of the memory"},
         "resultobj": {
             "type": "object",
             "required": ["success", "shots", "data"],
@@ -80,7 +61,7 @@
                 "meas_return": {
                     "type": "string",
                     "enum": ["single","avg"],
-                    "description": "Is the data in the register/snapshot averaged or from each shot"
+                    "description": "Is the data in the memory/snapshot averaged or from each shot"
                 },
                 "header": {
                     "type": "object",
@@ -91,23 +72,19 @@
                     "properties": {
                         "counts": {
                             "type": "object",
-                            "description": "Histogram of the registers over the indicated shots",
-                            "example": {"01011": 10, "10001": 102},
+                            "description": "Histogram of the memory over the indicated shots",
                             "patternProperties": {
-                                "^0x([0-9A-F])+$": {"type": "integer",
+                                "^0x([0-9A-Fa-f])+$": {"type": "integer",
                                 "minimum": 0 }
                             },
                             "additionalProperties": false
                         }, 
                         "snapshots": {
                             "description": "collection of all snapshots of simulator state",
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/snapshot"
-                            }
+                            "type": "object"
                         },
-                        "register": {
-                            "$ref": "#/definitions/register"
+                        "memory": {
+                            "$ref": "#/definitions/memory"
                         },
                         "statevector": {
                             "type": "array",
@@ -127,7 +104,7 @@
         }
     },                            
     "type": "object",
-    "required": ["backend_name", "backend_version", "id", "job_id", "success", "results"],
+    "required": ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"],
     "properties": {
         "backend_name": {
             "type": "string",
@@ -138,9 +115,9 @@
             "pattern": "[0-9]+.[0-9]+.[0-9]+$",
             "description": "Backend version in the form X.X.X"
             },
-        "id": {
+        "qobj_id": {
             "type": "string",
-            "description": "User generated id"
+            "description": "User generated Qobj id"
         },
         "job_id": {
             "type": "string",

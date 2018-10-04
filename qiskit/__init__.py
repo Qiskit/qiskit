@@ -10,6 +10,9 @@
 
 """Main QISKit public functionality."""
 
+import os
+import pkgutil
+
 # First, check for required Python and API version
 from . import _util
 
@@ -23,24 +26,33 @@ from ._instruction import Instruction
 from ._instructionset import InstructionSet
 from ._reset import Reset
 from ._measure import Measure
+from ._schema_validation import (validate_json_against_schema,
+                                 SchemaValidationError)
+from .result import Result
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
 
-from ._quantumprogram import QuantumProgram
-from ._result import Result
+# Please note these are global instances, not modules.
+from qiskit.backends.ibmq import IBMQ
+from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
 
-from .wrapper._wrapper import (
-    available_backends, local_backends, remote_backends,
-    get_backend, compile, execute, register, unregister,
-    registered_providers, load_qasm_string, load_qasm_file, least_busy)
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code.
+__path__ = pkgutil.extend_path(__path__, __name__)
+
+from .wrapper._wrapper import (compile, execute, load_qasm_string,
+                               load_qasm_file, least_busy, qobj_to_circuits)
+
+# To be deprecated methods
+from .wrapper._wrapper import (available_backends, get_backend, register,
+                               unregister, registered_providers)
+
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper
-
-import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:

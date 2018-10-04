@@ -41,6 +41,10 @@ class DAGCircuit:
 
     def __init__(self):
         """Create an empty circuit."""
+
+        # Circuit name.  Generally, this corresponds to the name
+        # of the QuantumCircuit from which the DAG was generated.
+        self.name = None
         # Map from a wire's name (reg,idx) to a Bool that is True if the
         # wire is a classical bit and False if the wire is a qubit.
         self.wire_type = {}
@@ -70,16 +74,22 @@ class DAGCircuit:
         self.multi_graph = nx.MultiDiGraph()
 
         # Map of qregs to sizes
-        self.qregs = {}
+        self.qregs = OrderedDict()
 
         # Map of cregs to sizes
-        self.cregs = {}
+        self.cregs = OrderedDict()
 
         # Map of user defined gates to ast nodes defining them
         self.gates = {}
 
         # Output precision for printing floats
         self.prec = 10
+
+        # layout of dag quantum registers on the chip
+        # TODO: rethink this. doesn't seem related to concept of DAG,
+        # but if we want to be able to generate qobj
+        # directly from a dag, we need it.
+        self.layout = []
 
     def get_qubits(self):
         """Return a list of qubits as (qreg, index) pairs."""
@@ -1320,13 +1330,20 @@ class DAGCircuit:
         return summary
 
     @staticmethod
-    def fromQuantumCircuit(circuit):
-        """Returns a DAGCircuit object from a QuantumCircuit
+    def fromQuantumCircuit(circuit, expand_gates=True):
+        """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
-        None of the gates are expanded, i.e. the gates that are defined in the
-        circuit are included in the gate basis.
+        Args:
+            circuit (QuantumCircuit): the input circuit.
+            expand_gates (bool): if ``False``, none of the gates are expanded,
+                i.e. the gates that are defined in the circuit are included in
+                the DAG basis.
+
+        Return:
+            DAGCircuit: the DAG representing the input circuit.
         """
         dagcircuit = DAGCircuit()
+        dagcircuit.name = circuit.name
         for register in circuit.regs.values():
             if isinstance(register, QuantumRegister):
                 dagcircuit.add_qreg(register.name, len(register))
@@ -1356,10 +1373,12 @@ class DAGCircuit:
             # TODO: generate definitions and nodes for CompositeGates,
             # for now simply drop their instructions into the DAG
             instruction_list = []
-            if isinstance(main_instruction, CompositeGate):
+            is_composite = isinstance(main_instruction, CompositeGate)
+            if is_composite and expand_gates:
                 instruction_list = main_instruction.instruction_list()
             else:
                 instruction_list.append(main_instruction)
+
             for instruction in instruction_list:
                 # Add OpenQASM built-in gates on demand
                 if instruction.name in builtins:
@@ -1379,7 +1398,15 @@ class DAGCircuit:
                     control = None
                 else:
                     control = (instruction.control[0].name, instruction.control[1])
-                dagcircuit.apply_operation_back(instruction.name, qargs, cargs,
+
+                if is_composite and not expand_gates:
+                    is_inverse = instruction.inverse_flag
+                    name = instruction.name if not is_inverse else instruction.inverse_name
+
+                else:
+                    name = instruction.name
+
+                dagcircuit.apply_operation_back(name, qargs, cargs,
                                                 instruction.param,
                                                 control)
         return dagcircuit

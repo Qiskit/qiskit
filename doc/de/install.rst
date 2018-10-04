@@ -8,7 +8,7 @@ Installation
 1. Abhängigkeiten
 -----------------
 
-Um QISKit verwenden zu können benötigt man mindestens `Python 3.5 oder höher
+Um Qiskit verwenden zu können benötigt man mindestens `Python 3.5 oder höher
 <https://www.python.org/downloads/>`__. `Jupyter Notebooks <https://jupyter
 .readthedocs.io/de/latest/install.html>`__ wird weiters empfohlen für die
 Verwendung von den Beispielen in `tutorials`_.
@@ -21,7 +21,7 @@ vorinstalliert mitliefert.
 2. Installation
 ---------------
 
-Die empfohlene Methode, um QISKit zu installieren, ist durch die Verwendung des
+Die empfohlene Methode, um Qiskit zu installieren, ist durch die Verwendung des
 PIP Tools (Python Paketmanager):
 
 .. code:: sh
@@ -45,7 +45,7 @@ installieren.
    ``Qconfig.py``. Als Beispiel haben wir eine Standardversion dieser Datei
    angelegt, die Sie als Referenz verwenden können: `Qconfig.py.default`_. Nach
    dem Herunterladen dieser Datei kopieren Sie diese in den Ordner von dem Sie
-   das QISKit SDK aufrufen werden (unter Windows ersetzen Sie ``cp`` mit
+   das Qiskit SDK aufrufen werden (unter Windows ersetzen Sie ``cp`` mit
    ``copy``):
 
 .. code:: sh
@@ -91,7 +91,7 @@ Benutzer so aussehen:
 Jupyter basierte Tutorials installieren
 =======================================
 
-Das QISKit Projekt stellt eine Sammlung an Tutorials in Form von Jupyter
+Das Qiskit Projekt stellt eine Sammlung an Tutorials in Form von Jupyter
 Notebooks zur Verfügung. Dabei handelt es sich um Webseiten, die Zellen von
 eingebundenem Python Code beinhalten. Nähere Informationen finden Sie dazu in
 `tutorials repository`_.
@@ -108,19 +108,18 @@ Sie die jeweilige Dokumentation für Anleitungen ihrem Setup betreffend.
 Abhängig von Ihrem System und Setup kann ein angefügtes ``sudo -H`` vor ``pip
 install`` notewndig sein.
 
-Um auf die neueste QISKit Version upzudaten verwenden Sie bitte folgenden
+Um auf die neueste Qiskit Version upzudaten verwenden Sie bitte folgenden
 Befehl:
 
 .. code:: sh
 
     pip install -U --no-cache-dir qiskit
 
-Für zusätzliche Tipps zur Problembehandlung, verwenden Sie bitte die `QISKit
-troubleshooting page <https://github
-.com/QISKit/qiskit-terra/wiki/QISKit-Troubleshooting>`_ auf dem GitHub Wiki
+Für zusätzliche Tipps zur Problembehandlung, verwenden Sie bitte die `Qiskit
+troubleshooting page <https://github.com/Qiskit/qiskit-terra/wiki/QISKit-Troubleshooting>`_ auf dem GitHub Wiki
 des Projektes.
 
-.. _tutorials: https://github.com/QISKit/qiskit-tutorial
-.. _tutorials repository: https://github.com/QISKit/qiskit-tutorial
-.. _documentation for contributors: https://github.com/QISKit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
-.. _Qconfig.py.default: https://github.com/QISKit/qiskit-terra/blob/stable/Qconfig.py.default
+.. _tutorials: https://github.com/Qiskit/qiskit-tutorial
+.. _tutorials repository: https://github.com/Qiskit/qiskit-tutorial
+.. _documentation for contributors: https://github.com/Qiskit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
+.. _Qconfig.py.default: https://github.com/Qiskit/qiskit-terra/blob/stable/Qconfig.py.default

@@ -3,7 +3,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-.PHONY: env env-dev lint test run doc
+.PHONY: env env-dev lint test run doc test_record test_mock
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -29,6 +29,13 @@ style:
 test:
 	python3 -m unittest discover -s test -v
 
+test_mock:
+	env QISKIT_TESTS=mock_online python3 -m unittest discover -s test -v
+
+test_recording:
+	-rm test/cassettes/*
+	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
+
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
 
@@ -39,7 +46,7 @@ coverage:
 doc:
 	export PYTHONPATH=$(PWD); \
 	for LANGUAGE in "." "de" "ja"; do \
-		better-apidoc -f -o doc/$$LANGUAGE/_autodoc -d 5 -e -t doc/_templates/better-apidoc qiskit qiskit/tools "qiskit/extensions/standard/[a-z]*"; \
+		better-apidoc -f -o doc/$$LANGUAGE/_autodoc --no-toc --private --maxdepth=5 --separate --templates=doc/_templates/better-apidoc qiskit qiskit/tools qiskit/wrapper/jupyter "qiskit/extensions/standard/[a-z]*"; \
 		sphinx-autogen -t doc/_templates doc/$$LANGUAGE/_autodoc/*; \
 		make -C doc -e BUILDDIR="_build/$$LANGUAGE" -e SOURCEDIR="./$$LANGUAGE" html; \
 	done

@@ -21,7 +21,7 @@ class FredkinGate(Gate):
 
     def __init__(self, ctl, tgt1, tgt2, circ=None):
         """Create new Fredkin gate."""
-        super().__init__("ccx", [], [ctl, tgt1, tgt2], circ)
+        super().__init__("cswap", [], [ctl, tgt1, tgt2], circ)
 
     def qasm(self):
         """Return OPENQASM string."""

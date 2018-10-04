@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name, missing-docstring
+# pylint: disable=missing-docstring
 
 """Tests for comparing the outputs of visualization tools with expected ones.
 Useful for refactoring purposes."""
@@ -20,7 +20,7 @@ try:
     from qiskit.tools.visualization import (latex_circuit_drawer,
                                             matplotlib_circuit_drawer)
     VALID_MATPLOTLIB = True
-except RuntimeError:
+except (RuntimeError, ImportError):
     # Under some combinations (travis osx vms, or headless configurations)
     # matplotlib might not be fully, raising:
     # RuntimeError: Python is not installed as a framework.
@@ -102,7 +102,7 @@ class TestVisualizationImplementation(QiskitTestCase):
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
-    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.01):
+    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled by the ```diff_tolerance``` argument."""
         from PIL import Image, ImageChops
