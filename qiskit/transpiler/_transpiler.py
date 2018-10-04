@@ -83,7 +83,8 @@ def compile(circuits, backend,
     if seed:
         qobj.config.seed = seed
 
-    qobj.experiments = parallel_map(_build_exp_parallel, list(range(len(circuits))),
+    qobj.experiments = parallel_map(_single_circuit_to_experiment,
+                                    list(range(len(circuits))),
                                     task_args=(circuits, backend),
                                     task_kwargs={'initial_layout': initial_layout,
                                                  'basis_gates': basis_gates,
@@ -101,10 +102,11 @@ def compile(circuits, backend,
     return qobj
 
 
-def _build_exp_parallel(idx, circuits, backend, initial_layout=None,
-                        basis_gates='u1,u2,u3,cx,id', config=None,
-                        coupling_map=None, seed=None, pass_manager=None):
-    """Builds a single Qobj experiment.  Usually called in parallel mode.
+def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
+                                  basis_gates='u1,u2,u3,cx,id', config=None,
+                                  coupling_map=None, seed=None, pass_manager=None):
+    """Builds a single Qobj experiment from a quantum circuit.
+    Usually called in parallel.
     Args:
         idx (int): Index of circuit in circuits list.
         circuits (list): List of circuits passed.
@@ -165,7 +167,7 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     """
 
     index = list(range(len(dags)))
-    final_dags = parallel_map(_transpile_dags_parallel, index,
+    final_dags = parallel_map(_single_dag_transpile, index,
                               task_args=(dags, initial_layouts),
                               task_kwargs={'basis_gates': basis_gates,
                                            'coupling_map': coupling_map,
@@ -174,9 +176,9 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     return final_dags
 
 
-def _transpile_dags_parallel(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,id',
-                             coupling_map=None, seed=None, pass_manager=None):
-    """Helper function for transpiling in parallel (if available).
+def _single_dag_transpile(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,id',
+                          coupling_map=None, seed=None, pass_manager=None):
+    """Transpile a single DAG.  Usually called in parallel.
 
     Args:
         idx (int): Index for dag of interest
