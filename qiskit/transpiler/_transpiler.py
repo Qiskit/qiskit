@@ -138,7 +138,7 @@ def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
                                 basis_gates=basis_gates, coupling_map=coupling_map,
                                 seed=seed, pass_manager=pass_manager)
 
-    experiment = _dags_2_qobj_parallel(
+    experiment = _single_dag_to_experiment(
         dag, basis_gates=basis_gates, config=config, coupling_map=coupling_map)
 
     return experiment
@@ -250,7 +250,7 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
     if seed:
         qobj.config.seed = seed
 
-    qobj.experiments = parallel_map(_dags_2_qobj_parallel, dags,
+    qobj.experiments = parallel_map(_single_dag_to_experiment, dags,
                                     task_kwargs={'basis_gates': basis_gates,
                                                  'config': config,
                                                  'coupling_map': coupling_map})
@@ -269,9 +269,10 @@ def _dags_2_qobj(dags, backend_name, config=None, shots=None,
     return qobj
 
 
-def _dags_2_qobj_parallel(dag, config=None, basis_gates=None,
-                          coupling_map=None):
-    """Helper function for dags to qobj in parallel (if available).
+def _single_dag_to_experiment(dag, config=None, basis_gates=None,
+                              coupling_map=None):
+    """Convert a single DAG to qobj experiment.
+    Usually called in parallel.
 
     Args:
         dag (DAGCircuit): DAG to compile
