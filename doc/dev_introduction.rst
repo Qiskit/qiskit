@@ -5,12 +5,12 @@ Programming interface
 ---------------------
 
 The *qiskit* directory is the main Python module and contains the
-programming interface objects :py:class:`QuantumProgram <qiskit.QuantumProgram>`,
+programming interface objects:
 :py:class:`QuantumRegister <qiskit.QuantumRegister>`,
 :py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
 and :py:class:`QuantumCircuit <qiskit.QuantumCircuit>`.
 
-At the highest level, users construct a *QuantumProgram* to create,
+At the highest level, users construct a *QuantumCircuit* to create,
 modify, compile, and execute a collection of quantum circuits. Each
 *QuantumCircuit* has a set of data registers, each of type
 *QuantumRegister* or *ClassicalRegister*. Methods of these objects are
@@ -104,9 +104,8 @@ family of "`qiskit.*`" loggers, and abides by the standard convention for the lo
 +--------------+----------------------------------------------+
 
 
-For convenience, :py:class:`QuantumProgram <qiskit.QuantumProgram>` provides two convenience
-methods (:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` and
-:py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`) that modify the handlers
+For convenience, two methods are provided in :py:mod<`qiskit_logging.py`>: (:py:func:<`set_qiskit_logger()>` and
+:py:func:<`unset_qiskit_logger`>) that modify the handlers
 and the level of the `qiskit` logger. Using these methods might interfere with the global
 logging setup of your environment - please take it into consideration if developing an
 application on top of the SDK.
@@ -195,7 +194,26 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_apps.py
 
-Additionally, an environment variable ``SKIP_ONLINE_TESTS`` can be used for
-toggling the execution of the tests that require network access to the API and
-``SKIP_SLOW_TESTS`` can be used to toggling execution of tests that are
-particularly slow (default is ``True``).
+Testing options
+^^^^^^^^^^^^^^^
+
+By default, and if there is no user credentials available, the tests that require online access are run with recorded (mocked) information. This is, the remote requests are replayed from a ``test/cassettes`` and not real HTTP requests is generated.
+If user credentials are found, in that cases it use them to make the network requests.
+
+How and which tests are executed is controlled by a environment variable ``QISKIT_TESTS``. The options are (where ``uc_available = True`` if the user credentials are available, and ``False`` otherwise): 
+
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+|  Option           | Description                                                                                                        | Default               |  If ``True``, forces                             |
++===================+====================================================================================================================+=======================+==================================================+
+| ``skip_online``   | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | ``False``             | ``rec = False``                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``mock_online``   | It runs the online tests using mocked information. Does not require user credentials.                              | ``not uc_available``  | ``skip_online = False``                          |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``run_slow``      | It runs tests tagged as *slow*.                                                                                    | ``False``             |                                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``rec``           | It records the remote requests. It requires user credentials.                                                      | ``False``             | ``skip_online = False``                          |
+|                   |                                                                                                                    |                       | ``run_slow = False``                             |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+
+It is possible to provide more than one option separated with commas.
+The order of precedence in the options is right to left. For example, ``QISKIT_TESTS=skip_online,rec`` will set the options as ``skip_online == False`` and ``rec == True``.	

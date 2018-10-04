@@ -65,6 +65,7 @@ class Coupling:
     Nodes correspond to qubits and directed edges correspond to permitted
     CNOT gates
     """
+
     # pylint: disable=invalid-name
 
     def __init__(self, couplingdict=None):
@@ -118,6 +119,11 @@ class Coupling:
         """
         if name in self.qubits:
             raise CouplingError("%s already in coupling graph" % name)
+        if not isinstance(name, tuple):
+            raise CouplingError("name %s is not a tuple")
+        if not (isinstance(name[0], str) and isinstance(name[1], int)):
+            raise CouplingError("name %s is not of the right form, it must"
+                                " be: (regname, idx)")
 
         self.node_counter += 1
         self.G.add_node(self.node_counter)
@@ -144,7 +150,10 @@ class Coupling:
 
         Return True if connected, False otherwise
         """
-        return nx.is_weakly_connected(self.G)
+        try:
+            return nx.is_weakly_connected(self.G)
+        except nx.exception.NetworkXException:
+            return False
 
     def compute_distance(self):
         """
@@ -167,17 +176,21 @@ class Coupling:
         if self.dist is None:
             raise CouplingError("distance has not been computed")
         if q1 not in self.qubits:
-            raise CouplingError("%s not in coupling graph" % q1)
+            raise CouplingError("%s not in coupling graph" % (q1,))
         if q2 not in self.qubits:
-            raise CouplingError("%s not in coupling graph" % q2)
+            raise CouplingError("%s not in coupling graph" % (q2,))
         return self.dist[q1][q2]
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
-        s = "qubits: "
-        s += ", ".join(["%s[%d] @ %d" % (k[0], k[1], v)
-                        for k, v in self.qubits.items()])
-        s += "\nedges: "
-        s += ", ".join(["%s[%d]-%s[%d]" % (e[0][0], e[0][1], e[1][0], e[1][1])
-                        for e in self.get_edges()])
+        s = ""
+        if self.qubits:
+            s += "qubits: "
+            s += ", ".join(["%s[%d] @ %d" % (k[0], k[1], v)
+                            for k, v in self.qubits.items()])
+        if self.get_edges():
+            s += "\nedges: "
+            s += ", ".join(
+                ["%s[%d]-%s[%d]" % (e[0][0], e[0][1], e[1][0], e[1][1])
+                 for e in self.get_edges()])
         return s

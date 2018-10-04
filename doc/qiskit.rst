@@ -1,12 +1,12 @@
-QISKit overview
+Qiskit overview
 ===============
 
 Philosophy
 ----------
 
-QISKit is a collection of software for working with short depth
+Qiskit is a collection of software for working with short depth
 quantum circuits and building near term applications and experiments
-on quantum computers. In QISKit, a quantum program is an array of
+on quantum computers. In Qiskit, a quantum program is an array of
 quantum circuits.  The program workflow consists of three stages:
 Build, Compile, and Run. Build allows you to make different quantum
 circuits that represent the problem you are solving. Compile allows
@@ -19,19 +19,19 @@ you to make a better program for the next instance.
 
 Project Overview
 ----------------
-The QISKit project comprises:
+The Qiskit project comprises:
 
-* `QISKit Terra <https://github.com/QISKit/qiskit-terra>`_: Python science
-  development kit for writing quantum computing experiments, programs, and 
+* `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`_: Python science
+  development kit for writing quantum computing experiments, programs, and
   applications.
 
-* `QISKit API <https://github.com/QISKit/qiskit-api-py>`_: A thin Python
+* `Qiskit API <https://github.com/Qiskit/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to
   connect and and execute quantum programs.
 
-* `QISKit OpenQASM <https://github.com/QISKit/qiskit-openqasm>`_: Contains
+* `Qiskit OpenQASM <https://github.com/Qiskit/qiskit-openqasm>`_: Contains
   specifications, examples, documentation, and tools for the OpenQASM
   intermediate representation.
 
-* `QISKit Tutorial <https://github.com/QISKit/qiskit-tutorial>`_: A 
-  collection of Jupyter notebooks using QISKit.
+* `Qiskit Tutorial <https://github.com/Qiskit/qiskit-tutorial>`_: A
+  collection of Jupyter notebooks using Qiskit.

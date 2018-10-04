@@ -17,9 +17,28 @@ from abc import ABC, abstractmethod
 class BaseJob(ABC):
     """Class to handle asynchronous jobs"""
 
+    def __init__(self, backend, job_id):
+        """Initializes the asynchronous job.
+
+        Args:
+            backend (BaseBackend): the backend used to run the job.
+            job_id (str): a unique id in the context of the backend used to run
+                the job.
+        """
+        self._job_id = job_id
+        self._backend = backend
+
+    def job_id(self):
+        """Return a unique id identifying the job."""
+        return self._job_id
+
+    def backend(self):
+        """Return the backend for this job."""
+        return self._backend
+
     @abstractmethod
-    def __init__(self):
-        """Initializes the asynchronous job"""
+    def submit(self):
+        """Submit the job to the backend."""
         pass
 
     @abstractmethod
@@ -32,28 +51,7 @@ class BaseJob(ABC):
         """Attempt to cancel job."""
         pass
 
-    # Property attributes
-    #####################
-    @property
     @abstractmethod
     def status(self):
-        """Get backend status dictionary"""
-        pass
-
-    @property
-    @abstractmethod
-    def running(self):
-        """True if job is currently running."""
-        pass
-
-    @property
-    @abstractmethod
-    def done(self):
-        """True if call was successfully finished."""
-        pass
-
-    @property
-    @abstractmethod
-    def cancelled(self):
-        """True if call was successfully cancelled"""
+        """Return one of the values of ``JobStatus``"""
         pass
