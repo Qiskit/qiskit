@@ -46,13 +46,27 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit._qiskiterror import QISKitError
 from qiskit._util import local_hardware_info
 from ._receiver import receiver as rec
 from ._progressbar import BaseProgressBar
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
+
+
+class ParallelError(Exception):
+    """An exception that resets the parallel
+    environmental variable when raised.
+    """
+    def __init__(self, *message):
+        """Set the error message."""
+        super().__init__(' '.join(message))
+        self.message = ' '.join(message)
+        os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+
+    def __str__(self):
+        """Return the message."""
+        return repr(self.message)
 
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
@@ -80,7 +94,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
                     each value in ``values``.
 
     Raises:
-        QISKitError: If user interupts via keyboard.
+        ParallelError: If user interupts via keyboard.
     """
     # len(values) == 1
     if len(values) == 1:
@@ -126,7 +140,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
             pool.terminate()
             pool.join()
             progress_bar.finished()
-            raise QISKitError('Keyboard interrupt in parallel_map.')
+            raise ParallelError('Keyboard interrupt in parallel_map.')
 
         progress_bar.finished()
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
