@@ -21,14 +21,14 @@ python distribution, which already comes with all these dependencies pre-install
 2. Installation
 ---------------
 
-The recommended way to install Qiskit is by using the PIP tool (Python
-package manager):
+The recommended way to install Qiskit is by using the PIP (Python
+package manager) tool:
 
 .. code:: sh
 
     pip install qiskit
 
-This will install the latest stable release along with all the dependencies.
+This will install the latest stable release, along with all the dependencies.
 
 
 .. _qconfig-setup:
@@ -39,16 +39,16 @@ This will install the latest stable release along with all the dependencies.
 -  Create an `IBM Q <https://quantumexperience.ng.bluemix.net>`__ account if
    you haven't already done so
 -  Get an API token from the IBM Q website under “My
-   Account” > “Personal Access Token”
+   Account” > “Advanced”
 
 
 3.1 Automatically loading credentials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Since Qiskit 0.6, an automatic method that looks for the credentials in several
-places can be used for streamlining the setting up of the IBM Q authentication.
-This implies that you can set or store your API credentials once after
-installation, and when you want to use them, you can simply run:
+As of Qiskit Terra 0.6, credentials for accessing the IBM Q quantum devices can be loaded
+automatically from several locations, thus streamlining the set up of the IBM Q 
+authentication.  You can set or store your API credentials once after installation, 
+and when you want to use them, you can simply run:
 
 .. code:: python
 
@@ -57,8 +57,8 @@ installation, and when you want to use them, you can simply run:
     IBMQ.load_accounts()
 
 This ``IBMQ.load_accounts()`` call performs the automatic loading of the
-credentials from several sources, and authenticates against IBM Q, making the
-online devices available to your program. Please use one of the following
+credentials from several sources (if needed), and authenticates against IBM Q, 
+making the online devices available to your program. Please use one of the following
 methods for storing the credentials before calling the automatic registration:
 
 3.1.1 Store API credentials locally
@@ -81,7 +81,8 @@ To store your information, simply run:
 where `MY_API_TOKEN` should be replaced with your token.
 
 If you are on the IBM Q network, you must also pass the `url` 
-argument found on your q-console account page to `IBMQ.save_account()`:
+argument found on your q-console account page to `IBMQ.save_account()`,
+along with any other additional information required (e.g. proxy information):
 
 .. code:: python
 
@@ -169,14 +170,14 @@ like:
     }
 
 Note that if a ``Qconfig.py`` file is present in your directory, it will take
-precedence over the environment variables or the credentials stored in disk.
+precedence over the environment variables and/or the credentials stored locally on disk.
 
 3.2 Manually loading credentials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In more complex scenarios or for users that need finer control over multiple
-accounts, please note that you can pass the API token and the other parameters
-directly to the ``IBMQ.enable_account()`` function, which will ignore the automatic
+accounts, one can pass the API token, and the other parameters, directly to the 
+``IBMQ.enable_account()`` function, that will ignore the automatic
 loading of the credentials and use the arguments directly. For example:
 
 .. code:: python
@@ -185,9 +186,19 @@ loading of the credentials and use the arguments directly. For example:
 
     IBMQ.enable_account('MY_API_TOKEN', url='https://my.url')
 
-will try to authenticate using ``MY_API_TOKEN`` and the specified URL,
+will authenticate using ``MY_API_TOKEN`` and the specified URL,
 regardless of the configuration stored in the config file, the environment
 variables, or the ``Qconfig.py`` file, if any.
+
+Manually loading from a ``Qconfig.py`` file can also be done:
+
+.. code:: python
+
+    from qiskit import IBMQ
+    import Qconfig
+
+    IBMQ.enable_account(Qconfig.APIToken, **Qconfig.config)
+
 
 Please refer to the ``qiskit.IBMQ`` documentation for more information about
 using multiple credentials.

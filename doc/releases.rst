@@ -4,8 +4,8 @@ Release history
 Release notes
 *************
 
-Qiskit SDK 0.6.0
-================
+Qiskit Terra 0.6.0
+==================
 
 This release includes a redesign of internal components centered around a new,
 formal communication format (``Qobj``), along with long awaited features to
@@ -100,7 +100,7 @@ the different authentication options.
 Working with backends
 ^^^^^^^^^^^^^^^^^^^^^
 
-A new mechanism has been introduced in 0.6 as the recommended way for obtaining
+A new mechanism has been introduced in Terra 0.6 as the recommended way for obtaining
 a backend, allowing for more powerful and unified filtering and integrated with
 the new credentials system. The previous top-level methods
 :meth:`~qiskit.wrapper._wrapper.register`,
@@ -129,7 +129,7 @@ The previous names can still be used, but it is encouraged to use the new,
 shorter names:
 
 =============================  ========================
-Qiskit 0.5                     Qiskit 0.6
+Qiskit Terra 0.5               Qiskit Terra 0.6
 =============================  ========================
 'local_qasm_simulator'         'qasm_simulator'
 'local_statevector_simulator'  'statevector_simulator'
@@ -165,7 +165,7 @@ how to use the simplified API.
   but methods, and as a result they need to be invoked as functions.
 
 =====================  ========================
-Qiskit 0.5             Qiskit 0.6
+Qiskit Terra 0.5       Qiskit Terra 0.6
 =====================  ========================
 backend.name           backend.name()
 backend.status         backend.status()
@@ -194,8 +194,8 @@ Use ``%%qiskit_job_status`` to keep track of the status of submitted jobs to IBM
 Use ``%%qiskit_progress_bar`` to keep track of the progress of compilation/execution.
 
 
-Qiskit SDK 0.5.0
-================
+Qiskit Terra 0.5.0
+==================
 
 This release brings a number of improvements to Qiskit, both for the user
 experience and under the hood. Please refer to the full changelog for a
