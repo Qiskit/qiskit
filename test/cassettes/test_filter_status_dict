@@ -103,10 +103,19 @@ interactions:
         [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
         [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
         [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_qasm_simulator", "status": "on", "description":
-        "online qasm simulator", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2017-12-09T12:00:00.000Z",
-        "deleted": false, "internalId": "dummyapiBackendsinternalId08", "simulator":
-        true, "allowQObject": false, "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
+        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
+        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
+        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
+        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
+        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
+        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
+        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
+        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
+        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
+        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
+        "nQubits": 32, "couplingMap": "all-to-all"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -198,72 +207,19 @@ interactions:
         [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
         [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
         [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_qasm_simulator", "status": "on", "description":
-        "online qasm simulator", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2017-12-09T12:00:00.000Z",
-        "deleted": false, "internalId": "dummyapiBackendsinternalId08", "simulator":
-        true, "allowQObject": false, "nQubits": 32, "couplingMap": "all-to-all"}]'}
-    headers:
-      Access-Control-Allow-Credentials: ['true']
-      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
-      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
-      Connection: [Keep-Alive]
-      Content-Type: [application/json; charset=utf-8]
-      Expires: ['0']
-      Pragma: [no-cache]
-      Set-Cookie: dummy_cookie
-      Strict-Transport-Security: [max-age=86400]
-      Surrogate-Control: [no-store]
-      Transfer-Encoding: [chunked]
-      Vary: ['Origin, Accept-Encoding']
-      X-Backside-Transport: [OK OK]
-      X-Content-Type-Options: [nosniff]
-      X-Download-Options: [noopen]
-      X-Frame-Options: [SAMEORIGIN]
-      X-Xss-Protection: [1; mode=block]
-    status: {code: 200, message: OK}
-- request:
-    body: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979)
-      q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure
-      q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n", "name": "circuit304", "metadata":
-      {"compiled_circuit": {"header": {"number_of_qubits": 3, "number_of_clbits":
-      3, "qubit_labels": [["q46", 0], ["q46", 1], ["q46", 2]], "clbit_labels": [["c47",
-      3]], "name": "circuit304", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
-      \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979) q46[0];\ncx
-      q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure q46[1]
-      -> c47[1];\nmeasure q46[2] -> c47[2];\n"}, "operations": [{"name": "u2", "params":
-      [0.0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [0]}, {"name":
-      "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name": "measure",
-      "qubits": [0], "clbits": [0], "memory": [0]}, {"name": "cx", "params": [], "texparams":
-      [], "qubits": [1, 2]}, {"name": "measure", "qubits": [2], "clbits": [2], "memory":
-      [2]}, {"name": "measure", "qubits": [1], "clbits": [1], "memory": [1]}]}}}],
-      "shots": 2000, "backend": {"name": "ibmq_qasm_simulator"}, "maxCredits": 10}'
-    headers:
-      Accept: ['*/*']
-      Accept-Encoding: ['gzip, deflate']
-      Connection: [keep-alive]
-      Content-Length: ['1217']
-      Content-Type: [application/json]
-    method: POST
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01
-  response:
-    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg
-        c47[3];\nu2(0,3.14159265358979) q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure
-        q46[0] -> c47[0];\nmeasure q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n",
-        "status": "WORKING_IN_PROGRESS", "name": "circuit304", "executionId": "dummyapiJobsqasms.executionId01",
-        "metadata": {"compiled_circuit": {"header": {"number_of_qubits": 3, "number_of_clbits":
-        3, "qubit_labels": [["q46", 0], ["q46", 1], ["q46", 2]], "clbit_labels": [["c47",
-        3]], "name": "circuit304", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
-        \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979) q46[0];\ncx
-        q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure q46[1]
-        -> c47[1];\nmeasure q46[2] -> c47[2];\n"}, "operations": [{"name": "u2", "params":
-        [0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [0]}, {"name":
-        "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name": "measure",
-        "qubits": [0], "clbits": [0], "memory": [0]}, {"name": "cx", "params": [],
-        "texparams": [], "qubits": [1, 2]}, {"name": "measure", "qubits": [2], "clbits":
-        [2], "memory": [2]}, {"name": "measure", "qubits": [1], "clbits": [1], "memory":
-        [1]}]}}}], "shots": 2000, "backend": {"name": "ibmq_qasm_simulator"}, "status":
-        "RUNNING", "maxCredits": 10, "usedCredits": 0, "creationDate": "dummyapiJobscreationDate01",
-        "id": "dummyapiJobsid01", "userId": "dummyapiusersloginWithTokenuserId01"}'}
+        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
+        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
+        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
+        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
+        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
+        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
+        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
+        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
+        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
+        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
+        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
+        "nQubits": 32, "couplingMap": "all-to-all"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -290,87 +246,9 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs/dummyapiJobsid01/status?access_token=dummyapiusersloginWithTokenid01
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_qasm_simulator/queue/status
   response:
-    body: {string: '{"status": "RUNNING"}'}
-    headers:
-      Access-Control-Allow-Credentials: ['true']
-      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
-      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
-      Connection: [Keep-Alive]
-      Content-Type: [application/json; charset=utf-8]
-      Expires: ['0']
-      Pragma: [no-cache]
-      Set-Cookie: dummy_cookie
-      Strict-Transport-Security: [max-age=86400]
-      Surrogate-Control: [no-store]
-      Transfer-Encoding: [chunked]
-      Vary: ['Origin, Accept-Encoding']
-      X-Backside-Transport: [OK OK]
-      X-Content-Type-Options: [nosniff]
-      X-Download-Options: [noopen]
-      X-Frame-Options: [SAMEORIGIN]
-      X-Xss-Protection: [1; mode=block]
-    status: {code: 200, message: OK}
-- request:
-    body: null
-    headers:
-      Accept: ['*/*']
-      Accept-Encoding: ['gzip, deflate']
-      Connection: [keep-alive]
-    method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs/dummyapiJobsid01/status?access_token=dummyapiusersloginWithTokenid01
-  response:
-    body: {string: '{"status": "COMPLETED"}'}
-    headers:
-      Access-Control-Allow-Credentials: ['true']
-      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
-      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
-      Connection: [Keep-Alive]
-      Content-Type: [application/json; charset=utf-8]
-      Expires: ['0']
-      Pragma: [no-cache]
-      Set-Cookie: dummy_cookie
-      Strict-Transport-Security: [max-age=86400]
-      Surrogate-Control: [no-store]
-      Transfer-Encoding: [chunked]
-      Vary: ['Origin, Accept-Encoding']
-      X-Backside-Transport: [OK OK]
-      X-Content-Type-Options: [nosniff]
-      X-Download-Options: [noopen]
-      X-Frame-Options: [SAMEORIGIN]
-      X-Xss-Protection: [1; mode=block]
-    status: {code: 200, message: OK}
-- request:
-    body: null
-    headers:
-      Accept: ['*/*']
-      Accept-Encoding: ['gzip, deflate']
-      Connection: [keep-alive]
-    method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs/dummyapiJobsid01?access_token=dummyapiusersloginWithTokenid01
-  response:
-    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg
-        c47[3];\nu2(0,3.14159265358979) q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure
-        q46[0] -> c47[0];\nmeasure q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n",
-        "status": "DONE", "name": "circuit304", "executionId": "dummyapiJobsqasms.executionId01",
-        "result": {"date": "dummyapiJobsqasms.result.date01", "data": {"creg_labels":
-        "c47[3]", "additionalData": {"seed": 42}, "time": 0.42, "counts": {"111":
-        1008, "000": 992}}}, "metadata": {"compiled_circuit": {"header": {"number_of_qubits":
-        3, "number_of_clbits": 3, "qubit_labels": [["q46", 0], ["q46", 1], ["q46",
-        2]], "clbit_labels": [["c47", 3]], "name": "circuit304", "compiled_circuit_qasm":
-        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q46[3];\ncreg c47[3];\nu2(0,3.14159265358979)
-        q46[0];\ncx q46[0],q46[1];\ncx q46[1],q46[2];\nmeasure q46[0] -> c47[0];\nmeasure
-        q46[1] -> c47[1];\nmeasure q46[2] -> c47[2];\n"}, "operations": [{"name":
-        "u2", "params": [0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits":
-        [0]}, {"name": "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name":
-        "measure", "qubits": [0], "clbits": [0], "memory": [0]}, {"name": "cx", "params":
-        [], "texparams": [], "qubits": [1, 2]}, {"name": "measure", "qubits": [2],
-        "clbits": [2], "memory": [2]}, {"name": "measure", "qubits": [1], "clbits":
-        [1], "memory": [1]}]}}}], "shots": 2000, "backend": {"name": "ibmq_qasm_simulator"},
-        "status": "COMPLETED", "maxCredits": 10, "usedCredits": 0, "creationDate":
-        "dummyapiJobscreationDate01", "id": "dummyapiJobsid01", "userId": "dummyapiusersloginWithTokenuserId01",
-        "calibration": {}}'}
+    body: {string: '{"state": true, "status": "active", "lengthQueue": 0}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
