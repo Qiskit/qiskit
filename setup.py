@@ -87,7 +87,7 @@ class BinaryDistribution(Distribution):
 
 setup(
     name="qiskit",
-    version="${QISKIT_VERSION}",
+    version="0.7.0",
     description="Software for developing quantum computing programs",
     long_description="""Qiskit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
