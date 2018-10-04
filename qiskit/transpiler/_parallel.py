@@ -38,7 +38,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-"""Routines for running Python functions in parallel using process pools
+"""
+Routines for running Python functions in parallel using process pools
 from the multiprocessing library.
 """
 
@@ -59,12 +60,13 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
+
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
     On Windows this function defaults to a serial implimentation to avoid the
     overhead from spawning processes in Windows.
 
-    Parameters:
+    Args:
         task (func): Function that is to be called for each value in ``task_vec``.
         values (array_like): List or array of values for which the ``task``
                             function is to be evaluated.
