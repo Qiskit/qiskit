@@ -196,9 +196,8 @@ class BoxClUp(BoxOnClWire):
         self._top_connect = '┴'
 
 
-class BoxOnClWireTop(DrawElementMultiBit, BoxOnClWire):
-    """ Draws the top part of a multi box that affects more than one classical wire, with a quantum
-    connector on top."""
+class ConditionalFromTop(DrawElementMultiBit, BoxOnClWire):
+    """ Draws the top part of a conditional box that affects more than one classical wire"""
 
     def __init__(self, instruction):
         super().__init__(instruction)
@@ -648,7 +647,7 @@ class TextDrawing():
                 if len(clbits) == 1:
                     clbit_layer[clbits[0]] = BoxClUp(instruction)
                 else:
-                    clbit_layer[clbits[0]] = BoxOnClWireTop(instruction)
+                    clbit_layer[clbits[0]] = ConditionalFromTop(instruction)
                     for order, clbit in enumerate(clbits[1:-1], 1):
                         clbit_layer[clbit] = ConditionalFromMid(instruction, len(clbits), order)
                     clbit_layer[clbits[-1]] = ConditionalFromBot(instruction, len(clbits))
