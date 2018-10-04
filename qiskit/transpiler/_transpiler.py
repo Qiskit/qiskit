@@ -144,8 +144,20 @@ def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
     return experiment
 
 
-def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layouts=None, seed=None, pass_manager=None):
+def circuits_to_dags(circuits):
+    """Convert a list of circuits into a list of dags.
+    Args:
+        circuits (list[QuantumCircuit]): circuit to compile
+    Returns:
+        list[DAGCircuit]: the dag representation of the circuits
+        to be used in the transpiler
+    """
+    dags = parallel_map(DAGCircuit.fromQuantumCircuit, circuits)
+    return dags
+
+
+def transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+                   initial_layouts=None, seed=None, pass_manager=None):
     """Transform multiple dags through a sequence of passes.
 
     Args:
@@ -209,10 +221,10 @@ def _single_dag_transpile(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,i
     return final_dag
 
 
-def _dags_2_qobj(dags, backend_name, config=None, shots=None,
+def dags_to_qobj(dags, backend_name, config=None, shots=None,
                  max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
                  seed=None):
-    """Convert a list of dags into a qobj.
+    """Convert a list of DAG objects into a qobj.
 
     Args:
         dags (list[DAGCircuit]): dags to compile
