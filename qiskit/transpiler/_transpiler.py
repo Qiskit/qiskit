@@ -135,8 +135,8 @@ def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
         _initial_layout = initial_layout
 
     dag = _single_dag_transpile(0, [dag], [_initial_layout],
-                                   basis_gates=basis_gates, coupling_map=coupling_map,
-                                   seed=seed, pass_manager=pass_manager)
+                                basis_gates=basis_gates, coupling_map=coupling_map,
+                                seed=seed, pass_manager=pass_manager)
 
     experiment = _dags_2_qobj_parallel(
         dag, basis_gates=basis_gates, config=config, coupling_map=coupling_map)
