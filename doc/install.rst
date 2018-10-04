@@ -36,10 +36,9 @@ This will install the latest stable release along with all the dependencies.
 3. Configure your API token and QE credentials
 ----------------------------------------------
 
--  Create an `IBM Q
-   experience <https://quantumexperience.ng.bluemix.net>`__ account if
+-  Create an `IBM Q <https://quantumexperience.ng.bluemix.net>`__ account if
    you haven't already done so
--  Get an API token from the IBM Q experience website under “My
+-  Get an API token from the IBM Q website under “My
    Account” > “Personal Access Token”
 
 
@@ -218,9 +217,6 @@ Depending on the system and setup, appending "sudo -H" before the
     pip install -U --no-cache-dir qiskit
 
 
-For additional troubleshooting tips, see the `Qiskit troubleshooting page
-<https://github.com/Qiskit/qiskit-terra/wiki/QISKit-Troubleshooting>`_
-on the project's GitHub wiki.
 
 .. _tutorials: https://github.com/Qiskit/qiskit-tutorial
 .. _tutorials repository: https://github.com/Qiskit/qiskit-tutorial
