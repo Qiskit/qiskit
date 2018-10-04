@@ -240,41 +240,32 @@ interactions:
       X-Xss-Protection: [1; mode=block]
     status: {code: 200, message: OK}
 - request:
-    body: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979)
-      q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n", "name":
-      "bell", "metadata": {"compiled_circuit": {"header": {"number_of_qubits": 2,
-      "number_of_clbits": 2, "qubit_labels": [["q", 0], ["q", 1]], "clbit_labels":
-      [["c", 2]], "name": "bell", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude
-      \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979) q[0];\ncx q[0],q[1];\nmeasure
-      q[0] -> c[0];\nmeasure q[1] -> c[1];\n"}, "operations": [{"name": "u2", "params":
-      [0.0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [0]}, {"name":
-      "cx", "params": [], "texparams": [], "qubits": [0, 1]}, {"name": "measure",
-      "qubits": [1], "clbits": [1], "memory": [1]}, {"name": "measure", "qubits":
-      [0], "clbits": [0], "memory": [0]}]}}}], "shots": 1024, "backend": {"name":
-      "ibmq_qasm_simulator"}, "maxCredits": 10, "seed": 42}'
+    body: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q42[1];\ncreg c41[1];\nmeasure
+      q42[0] -> c41[0];\n", "name": "qc1", "metadata": {"compiled_circuit": {"header":
+      {"number_of_qubits": 1, "number_of_clbits": 1, "qubit_labels": [["q42", 0]],
+      "clbit_labels": [["c41", 1]], "name": "qc1", "compiled_circuit_qasm": "OPENQASM
+      2.0;\ninclude \"qelib1.inc\";\nqreg q42[1];\ncreg c41[1];\nmeasure q42[0] ->
+      c41[0];\n"}, "operations": [{"name": "measure", "qubits": [0], "clbits": [0],
+      "memory": [0]}]}}}], "shots": 1024, "backend": {"name": "ibmq_qasm_simulator"},
+      "maxCredits": 10}'
     headers:
       Accept: ['*/*']
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
-      Content-Length: ['940']
+      Content-Length: ['574']
       Content-Type: [application/json]
     method: POST
     uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg
-        c[2];\nu2(0,3.14159265358979) q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure
-        q[1] -> c[1];\n", "status": "WORKING_IN_PROGRESS", "name": "bell", "executionId":
-        "dummyapiJobsqasms.executionId01", "metadata": {"compiled_circuit": {"header":
-        {"number_of_qubits": 2, "number_of_clbits": 2, "qubit_labels": [["q", 0],
-        ["q", 1]], "clbit_labels": [["c", 2]], "name": "bell", "compiled_circuit_qasm":
-        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979)
-        q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n"}, "operations":
-        [{"name": "u2", "params": [0, 3.141592653589793], "texparams": ["0", "\\pi"],
-        "qubits": [0]}, {"name": "cx", "params": [], "texparams": [], "qubits": [0,
-        1]}, {"name": "measure", "qubits": [1], "clbits": [1], "memory": [1]}, {"name":
-        "measure", "qubits": [0], "clbits": [0], "memory": [0]}]}}}], "shots": 1024,
-        "seed": "42", "backend": {"name": "ibmq_qasm_simulator"}, "status": "RUNNING",
-        "maxCredits": 10, "usedCredits": 0, "creationDate": "dummyapiJobscreationDate01",
+    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q42[1];\ncreg
+        c41[1];\nmeasure q42[0] -> c41[0];\n", "status": "WORKING_IN_PROGRESS", "name":
+        "qc1", "executionId": "dummyapiJobsqasms.executionId01", "metadata": {"compiled_circuit":
+        {"header": {"number_of_qubits": 1, "number_of_clbits": 1, "qubit_labels":
+        [["q42", 0]], "clbit_labels": [["c41", 1]], "name": "qc1", "compiled_circuit_qasm":
+        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q42[1];\ncreg c41[1];\nmeasure
+        q42[0] -> c41[0];\n"}, "operations": [{"name": "measure", "qubits": [0], "clbits":
+        [0], "memory": [0]}]}}}], "shots": 1024, "backend": {"name": "ibmq_qasm_simulator"},
+        "status": "RUNNING", "maxCredits": 10, "usedCredits": 0, "creationDate": "dummyapiJobscreationDate01",
         "id": "dummyapiJobsid01", "userId": "dummyapiusersloginWithTokenuserId01"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
@@ -362,24 +353,19 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Jobs/dummyapiJobsid01?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg
-        c[2];\nu2(0,3.14159265358979) q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure
-        q[1] -> c[1];\n", "status": "DONE", "name": "bell", "executionId": "dummyapiJobsqasms.executionId01",
-        "result": {"date": "dummyapiJobsqasms.result.date01", "data": {"creg_labels":
-        "c[2]", "additionalData": {"seed": 42}, "versionSimulationRun": "IBM_Q_Simulator:CPU-v0.1.b5cdd73\n",
-        "time": 0.42, "counts": {"11": 522, "00": 502}}}, "metadata": {"compiled_circuit":
-        {"header": {"number_of_qubits": 2, "number_of_clbits": 2, "qubit_labels":
-        [["q", 0], ["q", 1]], "clbit_labels": [["c", 2]], "name": "bell", "compiled_circuit_qasm":
-        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979)
-        q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n"}, "operations":
-        [{"name": "u2", "params": [0, 3.141592653589793], "texparams": ["0", "\\pi"],
-        "qubits": [0]}, {"name": "cx", "params": [], "texparams": [], "qubits": [0,
-        1]}, {"name": "measure", "qubits": [1], "clbits": [1], "memory": [1]}, {"name":
-        "measure", "qubits": [0], "clbits": [0], "memory": [0]}]}}}], "shots": 1024,
-        "seed": "42", "backend": {"name": "ibmq_qasm_simulator"}, "status": "COMPLETED",
-        "maxCredits": 10, "usedCredits": 0, "creationDate": "dummyapiJobscreationDate01",
-        "id": "dummyapiJobsid01", "userId": "dummyapiusersloginWithTokenuserId01",
-        "calibration": {}}'}
+    body: {string: '{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q42[1];\ncreg
+        c41[1];\nmeasure q42[0] -> c41[0];\n", "status": "DONE", "name": "qc1", "executionId":
+        "dummyapiJobsqasms.executionId01", "result": {"date": "dummyapiJobsqasms.result.date01",
+        "data": {"creg_labels": "c41[1]", "additionalData": {"seed": 42}, "versionSimulationRun":
+        "IBM_Q_Simulator:CPU-v0.1.b5cdd73\n", "time": 0.42, "counts": {"0": 1024}}},
+        "metadata": {"compiled_circuit": {"header": {"number_of_qubits": 1, "number_of_clbits":
+        1, "qubit_labels": [["q42", 0]], "clbit_labels": [["c41", 1]], "name": "qc1",
+        "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q42[1];\ncreg
+        c41[1];\nmeasure q42[0] -> c41[0];\n"}, "operations": [{"name": "measure",
+        "qubits": [0], "clbits": [0], "memory": [0]}]}}}], "shots": 1024, "backend":
+        {"name": "ibmq_qasm_simulator"}, "status": "COMPLETED", "maxCredits": 10,
+        "usedCredits": 0, "creationDate": "dummyapiJobscreationDate01", "id": "dummyapiJobsid01",
+        "userId": "dummyapiusersloginWithTokenuserId01", "calibration": {}}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
