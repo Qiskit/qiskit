@@ -982,7 +982,7 @@
             ]
         },
         {
-            "allOf": [
+            "anyOf": [
                 {
                     "$ref": "#/definitions/qobj_qasm"
                 },
