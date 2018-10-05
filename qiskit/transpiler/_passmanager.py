@@ -7,6 +7,7 @@
 """PassManager class for the transpiler."""
 
 from functools import partial
+from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
 from ._propertyset import PropertySet
 from ._basepasses import BasePass
@@ -69,14 +70,14 @@ class PassManager():
         return {**default, **passmanager_level, **passset_level}
 
     def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-                   **partial_controller):
+                   **flow_controller_conditions):
         """
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
             ignore_preserves (bool): ignore the preserves claim of passes. Default: False
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
-            partial_controller (kwargs): See add_flow_controller(): Dictionary of
+            flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
                 control flow plugins. Default:
                 do_while (callable property_set -> boolean): The passes repeat until the
                    callable returns False.
@@ -101,14 +102,14 @@ class PassManager():
             if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
 
-        for name, param in partial_controller.items():
+        for name, param in flow_controller_conditions.items():
             if callable(param):
-                partial_controller[name] = partial(param, self.fenced_property_set)
+                flow_controller_conditions[name] = partial(param, self.fenced_property_set)
             else:
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
 
         self.working_list.append(
-            FlowController.controller_factory(passes, options, **partial_controller))
+            FlowController.controller_factory(passes, options, **flow_controller_conditions))
 
     def run_passes(self, dag):
         """Run all the passes on the dag.
@@ -171,7 +172,7 @@ class FlowController():
     """This class is a base class for multiple types of working list. When you iterate on it, it
     returns the next pass to run. """
 
-    registered_controllers = {}
+    registered_controllers = OrderedDict()
 
     def __init__(self, passes, options, **partial_controller):
         self.passes = FlowController.controller_factory(passes, options, **partial_controller)
@@ -204,11 +205,16 @@ class FlowController():
 
     @classmethod
     def controller_factory(cls, passes, options, **partial_controller):
-        for control_flow, condition in partial_controller.items():
-            if condition and control_flow in cls.registered_controllers:
-                return cls.registered_controllers[control_flow](passes, options,
-                                                                **partial_controller)
-        return FlowControllerLinear(passes, options)
+        if None in partial_controller.values():
+            raise TranspilerError('The controller needs a condition.')
+
+        if partial_controller:
+            for registered_controller in cls.registered_controllers.keys():
+                if registered_controller in partial_controller:
+                    return cls.registered_controllers[registered_controller](passes, options,
+                                                  **partial_controller)
+        else:
+            return FlowControllerLinear(passes, options)
 
 
 class FlowControllerLinear(FlowController):
@@ -241,10 +247,10 @@ class DoWhileController(FlowController):
 class ConditionalController(FlowController):
     """This type of working list item implements a set of passes under certain condition. """
 
-    def __init__(self, passes, options, do_while=None, condition=None,
+    def __init__(self, passes, options, condition=None,
                  **partial_controller):  # pylint: disable=super-init-not-called
         self.condition = condition
-        super().__init__(passes, options, do_while=do_while, **partial_controller)
+        super().__init__(passes, options, **partial_controller)
 
     def __iter__(self):
         if self.condition():
