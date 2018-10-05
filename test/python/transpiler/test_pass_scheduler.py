@@ -346,8 +346,11 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_callable_control_flow_plugin(self):
         """ Removes do_while, then adds it back. Checks max_iteration still working. """
+        controllers_length = len(FlowController.registered_controllers)
         FlowController.remove_flow_controller('do_while')
+        self.assertEqual(controllers_length-1, len(FlowController.registered_controllers))
         FlowController.add_flow_controller('do_while', DoWhileController)
+        self.assertEqual(controllers_length, len(FlowController.registered_controllers))
         self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
                                     do_while=lambda property_set: True, max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
