@@ -8,7 +8,7 @@
 """Utils for transpiler."""
 
 import os
-from ._passmanager import PassManager, ControlFlowPlugin
+from ._passmanager import PassManager, FlowController
 from ._propertyset import PropertySet
 from ._transpilererror import TranspilerError, TranspilerAccessError
 from ._fencedobjs import FencedDAGCircuit, FencedPropertySet

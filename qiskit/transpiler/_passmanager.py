@@ -50,8 +50,8 @@ class PassManager():
         self.options = defaultdict(lambda: self.passmanager_options)
 
         # TODO
-        ControlFlowPlugin.add_flow_controller('condition', PluginConditional)
-        ControlFlowPlugin.add_flow_controller('do_while', PluginDoWhile)
+        FlowController.add_flow_controller('condition', ConditionalController)
+        FlowController.add_flow_controller('do_while', DoWhileController)
 
     def _join_options(self, passset_options):
         """ Set the options of each individual pass, based on precedence rules:
@@ -69,14 +69,14 @@ class PassManager():
         return {**default, **passmanager_level, **passset_level}
 
     def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-                   **control_flow_plugins):
+                   **partial_controller):
         """
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
             ignore_preserves (bool): ignore the preserves claim of passes. Default: False
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
-            control_flow_plugins (kwargs): See add_control_flow_plugin(): Dictionary of
+            partial_controller (kwargs): See add_flow_controller(): Dictionary of
                 control flow plugins. Default:
                 do_while (callable property_set -> boolean): The passes repeat until the
                    callable returns False.
@@ -101,14 +101,14 @@ class PassManager():
             if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
 
-        for name, plugin in control_flow_plugins.items():
-            if callable(plugin):
-                control_flow_plugins[name] = partial(plugin, self.fenced_property_set)
+        for name, param in partial_controller.items():
+            if callable(param):
+                partial_controller[name] = partial(param, self.fenced_property_set)
             else:
-                raise TranspilerError('%s control-flow plugin is not callable' % name)
+                raise TranspilerError('The flow controller parameter %s is not callable' % name)
 
         self.working_list.append(
-            ControlFlowPlugin.controller_factory(passes, options, **control_flow_plugins))
+            FlowController.controller_factory(passes, options, **partial_controller))
 
     def run_passes(self, dag):
         """Run all the passes on the dag.
@@ -167,34 +167,14 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
-    def add_control_flow_plugin(self, name, control_flow_plugin):
-        """
-        Adds a control flow plugin.
-        Args:
-            name (string): Name of the plugin.
-            control_flow_plugin (ControlFlowPlugin): The class implementing a control flow plugin.
-        """
-        ControlFlowPlugin.add_flow_controller(name, control_flow_plugin)
-
-    def remove_control_flow_plugin(self, name):
-        """
-        Removes a control flow plugin.
-        Args:
-            name:
-        """
-        ControlFlowPlugin.remove_flow_controller(name)
-
-
-class ControlFlowPlugin():
+class FlowController():
     """This class is a base class for multiple types of working list. When you iterate on it, it
     returns the next pass to run. """
 
-    # registered_flow_controllers= {'condition': PluginConditional,
-    #                               'do_while': PluginDoWhile}
     registered_controllers = {}
 
-    def __init__(self, passes, options, **control_flow_plugins):
-        self.passes = ControlFlowPlugin.controller_factory(passes, options, **control_flow_plugins)
+    def __init__(self, passes, options, **partial_controller):
+        self.passes = FlowController.controller_factory(passes, options, **partial_controller)
         self.options = options
 
     def __iter__(self):
@@ -202,52 +182,49 @@ class ControlFlowPlugin():
             yield pass_
 
     @classmethod
-    def add_flow_controller(cls, name, control_flow_plugin):
+    def add_flow_controller(cls, name, controller):
         """
-        Adds a control flow plugin.
+        Adds a flow controller.
         Args:
-            name (string): Name of the plugin.
-            control_flow_plugin (ControlFlowPlugin): The class implementing a control flow plugin.
+            name (string): Name of the controller to add.
+            controller (FlowController): The class implementing a flow controller.
         """
-        cls.registered_controllers[name] = control_flow_plugin
+        cls.registered_controllers[name] = controller
 
     @classmethod
     def remove_flow_controller(cls, name):
         """
-        Removes the plugin called name.
-
+        Removes a flow controller.
         Args:
-            name (string): The control flow plugin to remove.
-        Raises:
-            KeyError: If the name is not found.
+            name: Name of the controller to remove.
         """
         if name not in cls.registered_controllers:
             raise KeyError("Flow controller not found: %s" % name)
         del cls.registered_controllers[name]
 
     @classmethod
-    def controller_factory(cls, passes, options, **control_flow_plugins):
-        for control_flow, condition in control_flow_plugins.items():
+    def controller_factory(cls, passes, options, **partial_controller):
+        for control_flow, condition in partial_controller.items():
             if condition and control_flow in cls.registered_controllers:
                 return cls.registered_controllers[control_flow](passes, options,
-                                                                **control_flow_plugins)
+                                                                **partial_controller)
         return FlowControllerLinear(passes, options)
 
 
-class FlowControllerLinear(ControlFlowPlugin):
+class FlowControllerLinear(FlowController):
     def __init__(self, passes, options):
         self.passes = passes
         self.options = options
 
 
-class PluginDoWhile(ControlFlowPlugin):
+class DoWhileController(FlowController):
     """This type of working list item implements a set of passes in a do while loop. """
 
     def __init__(self, passes, options, do_while=None,
-                 **_):  # pylint: disable=super-init-not-called
+                 **partial_controller):
         self.do_while = do_while
         self.max_iteration = options['max_iteration']
-        super().__init__(passes, options)
+        super().__init__(passes, options, **partial_controller)
 
     def __iter__(self):
         iteration = 0
@@ -261,14 +238,13 @@ class PluginDoWhile(ControlFlowPlugin):
             if not self.do_while():
                 break
 
-
-class PluginConditional(ControlFlowPlugin):
+class ConditionalController(FlowController):
     """This type of working list item implements a set of passes under certain condition. """
 
     def __init__(self, passes, options, do_while=None, condition=None,
-                 **control_flow_plugins):  # pylint: disable=super-init-not-called
+                 **partial_controller):  # pylint: disable=super-init-not-called
         self.condition = condition
-        super().__init__(passes, options, do_while=do_while, **control_flow_plugins)
+        super().__init__(passes, options, do_while=do_while, **partial_controller)
 
     def __iter__(self):
         if self.condition():

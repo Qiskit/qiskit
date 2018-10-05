@@ -30,7 +30,7 @@ The transpiler architecture allows passes to declare two kinds of dependency con
 By default, there are two control flow plugins included in the default pass manager: `do_while` and `conditional` (see **Fixed Point** and **Conditional** sue cases). You might want to add more control flow plugins. For example, a for-loop can be implemented in the following way:
 
 ```Python
-class DoXTimesPlugin(ControlFlowPlugin):
+class DoXTimesController(FlowController):
     def __init__(self, passes, do_x_times, **_):
         self.do_x_times = do_x_times()
         super().__init__(passes)
@@ -44,7 +44,7 @@ class DoXTimesPlugin(ControlFlowPlugin):
 The plugin is added to the pass manager in this way:
 
 ```
-self.passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
+self.passmanager.add_flow_controller('do_x_times', DoXTimesController)
 ```
 
 This allows to use the parameter `do_x_times`, which needs to be a callable. In this case, this is used to parametrized the plugin, so it will for-loop 3 times.

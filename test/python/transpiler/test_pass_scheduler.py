@@ -14,8 +14,8 @@ import unittest.mock
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError, \
-    ControlFlowPlugin
-from qiskit.transpiler._passmanager import PluginDoWhile
+    FlowController
+from qiskit.transpiler._passmanager import DoWhileController
 from ._dummy_passes import DummyTP, PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point_property
@@ -312,7 +312,7 @@ class TestUseCases(SchedulerTestCase):
                                     'dag property = 5'], TranspilerError)
 
 
-class DoXTimesPlugin(ControlFlowPlugin):
+class DoXTimesController(FlowController):
     """ A control-flow plugin for running a set of passes an X amount of times."""
 
     def __init__(self, passes, options, do_x_times=0, **_):  # pylint: disable=super-init-not-called
@@ -334,7 +334,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_control_flow_plugin(self):
         """ Adds a control flow plugin with a single parameter and runs it. """
-        self.passmanager.add_control_flow_plugin('do_x_times', DoXTimesPlugin)
+        FlowController.add_flow_controller('do_x_times', DoXTimesController)
         self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassB_TP_RA_PA',
@@ -346,8 +346,8 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_callable_control_flow_plugin(self):
         """ Removes do_while, then adds it back. Checks max_iteration still working. """
-        self.passmanager.remove_control_flow_plugin('do_while')
-        self.passmanager.add_control_flow_plugin('do_while', PluginDoWhile)
+        FlowController.remove_flow_controller('do_while')
+        FlowController.add_flow_controller('do_while', DoWhileController)
         self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
                                     do_while=lambda property_set: True, max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
@@ -359,7 +359,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_remove_nonexistent_plugin(self):
         """ Tries to remove a plugin that does not exist. """
-        self.assertRaises(KeyError, self.passmanager.remove_control_flow_plugin, "foo")
+        self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
 
 
 if __name__ == '__main__':
