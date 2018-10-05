@@ -31,12 +31,6 @@ class DummyAP(AnalysisPass):
     def run(self, dag):
         logging.getLogger(logger).info('run analysis pass %s', self.name())
 
-
-class DummyNI(DummyTP):
-    """ A dummy transformation pass that is not idempotent."""
-    idempotence = False
-
-
 class PassA_TP_NR_NP(DummyTP):
     """ A dummy pass without any requires/preserves.
     TP: Transformation Pass
@@ -113,7 +107,7 @@ class PassE_AP_NR_NP(DummyAP):
         logging.getLogger(logger).info('set property as %s', self.property_set['property'])
 
 
-class PassF_reduce_dag_property(DummyNI):
+class PassF_reduce_dag_property(DummyTP):
     """ A dummy transformation pass that (sets and) reduces a property in the DAG.
     NI: Non-idempotent transformation pass
     NR: No Requires

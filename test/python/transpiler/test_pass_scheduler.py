@@ -101,8 +101,7 @@ class TestUseCases(SchedulerTestCase):
                                                           'run transformation pass PassB_TP_RA_PA'])
 
     def test_do_not_repeat_based_on_idempotence(self):
-        """ By default, passes are idempotent. Therefore, repetition can be optimized to a single
-        execution"""
+        """ Repetition can be optimized to a single execution when the pass is idempotent"""
         self.passmanager.add_passes(PassA_TP_NR_NP())
         self.passmanager.add_passes([PassA_TP_NR_NP(), PassA_TP_NR_NP()])
         self.passmanager.add_passes(PassA_TP_NR_NP())
@@ -199,23 +198,6 @@ class TestUseCases(SchedulerTestCase):
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
 
-    def test_pass_idempotence_single_pass(self):
-        """ A single pass that is not idempotent. """
-        passmanager = PassManager()
-        pass_a = PassA_TP_NR_NP()
-        pass_a.ignore_preserves = True  # Ignoring self-preserves means the pass is not-idempotent
-
-        passmanager.add_passes(pass_a)
-        passmanager.add_passes(pass_a)  # Normally removed for optimization, not here.
-        passmanager.add_passes(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
-        # not here
-        passmanager.add_passes(PassA_TP_NR_NP())  # This is not run because is idempotent and it was
-        # already ran as PassB requirment.
-        self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
-                                                     'run transformation pass PassA_TP_NR_NP',
-                                                     'run transformation pass PassA_TP_NR_NP',
-                                                     'run transformation pass PassB_TP_RA_PA'])
-
     def test_analysis_pass_is_idempotent(self):
         """ Analysis passes are idempotent. """
         passmanager = PassManager()
@@ -237,18 +219,18 @@ class TestUseCases(SchedulerTestCase):
                                                      'run analysis pass PassE_AP_NR_NP',
                                                      'set property as 1'])
 
-    def test_pass_option_precedence(self):
-        """ The precedence of options for a pass is:
-         - The pass
-         - The pass set
-         - The pass manager option
-        """
-        passmanager = PassManager(ignore_preserves=False, ignore_requires=True)
-        tp_pass = DummyTP()
-        passmanager.add_passes(tp_pass, ignore_preserves=True)
-        the_pass_in_the_workinglist = next(iter(passmanager.working_list))
-        self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
-        self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
+    # def test_pass_option_precedence(self):
+    #     """ The precedence of options for a pass is:
+    #      - The pass
+    #      - The pass set
+    #      - The pass manager option
+    #     """
+    #     passmanager = PassManager(ignore_preserves=False, ignore_requires=True)
+    #     tp_pass = DummyTP()
+    #     passmanager.add_passes(tp_pass, ignore_preserves=True)
+    #     the_pass_in_the_workinglist = next(iter(passmanager.working_list))
+    #     self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
+    #     self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
 
     def test_pass_no_return_a_dag(self):
         """ Passes instances with same arguments (independently of the order) are the same. """
@@ -333,13 +315,13 @@ class TestUseCases(SchedulerTestCase):
 class DoXTimesPlugin(ControlFlowPlugin):
     """ A control-flow plugin for running a set of passes an X amount of times."""
 
-    def __init__(self, passes, do_x_times=0, **_):  # pylint: disable=super-init-not-called
+    def __init__(self, passes, options, do_x_times=0, **_):  # pylint: disable=super-init-not-called
         self.do_x_times = do_x_times()
-        super().__init__(passes)
+        super().__init__(passes, options)
 
     def __iter__(self):
         for _ in range(self.do_x_times):
-            for pass_ in self.working_list:
+            for pass_ in self.passes:
                 yield pass_
 
 

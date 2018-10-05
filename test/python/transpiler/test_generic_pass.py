@@ -10,28 +10,12 @@
 """BasePass and generic pass testing"""
 
 import unittest.mock
-from ._dummy_passes import DummyAP, DummyTP, PassD_TP_NR_NP
+from ._dummy_passes import DummyAP, DummyTP, PassA_TP_NR_NP, PassD_TP_NR_NP, PassE_AP_NR_NP
 from ..common import QiskitTestCase
 
 
 class TestGenericPass(QiskitTestCase):
     """ Passes have common characteristics defined in BasePass."""
-
-    def test_pass_setting(self):
-        """ Passes can be set via `set`."""
-        tp_pass = DummyTP()
-
-        self.assertFalse(tp_pass.ignore_preserves)  # By default, passes do not ignore preserves
-        self.assertFalse(tp_pass.ignore_requires)  # By default, passes do not ignore requires
-        self.assertEqual(1000, tp_pass.max_iteration)  # By default, max_iteration is set to 1000
-
-        tp_pass.ignore_preserves = True
-        tp_pass.ignore_requires = True
-        tp_pass.max_iteration = 10
-
-        self.assertTrue(tp_pass.ignore_requires)
-        self.assertTrue(tp_pass.ignore_preserves)
-        self.assertEqual(10, tp_pass.max_iteration)
 
     def test_is_TP_or_AP(self):
         """ Passes have is_transformation_pass and is_analysis_pass properties."""
@@ -42,8 +26,20 @@ class TestGenericPass(QiskitTestCase):
         self.assertFalse(ap_pass.is_transformation_pass)
         self.assertTrue(ap_pass.is_analysis_pass)
 
+    def test_pass_diff_TP_AP(self):
+        """ Different passes are different """
+        pass1 = DummyAP()
+        pass2 = DummyTP()
+        self.assertNotEqual(pass1, pass2)
+
+    def test_pass_diff_parent_child(self):
+        """ Parents are different from their children """
+        pass2 = DummyTP()
+        pass1 = PassD_TP_NR_NP()
+        self.assertNotEqual(pass1, pass2)
+
     def test_pass_diff_args(self):
-        """ Passes instances with different arguments are differnt """
+        """ Same pass with different arguments are different """
         pass1 = PassD_TP_NR_NP(argument1=[1, 2])
         pass2 = PassD_TP_NR_NP(argument1=[2, 1])
         self.assertNotEqual(pass1, pass2)
@@ -54,6 +50,22 @@ class TestGenericPass(QiskitTestCase):
         pass2 = PassD_TP_NR_NP(argument2=2, argument1=1)
         self.assertEqual(pass1, pass2)
 
+    def test_pass_kwargs_and_args(self):
+        """ Passes instances with same arguments (independently if they are named or not) are the
+        same"""
+        pass1 = PassD_TP_NR_NP(1, 2)
+        pass2 = PassD_TP_NR_NP(argument2=2, argument1=1)
+        self.assertEqual(pass1, pass2)
+
+    def test_set_identity(self):
+        """ Two "instances" of the same pass in a set are counted as one."""
+        a_set = set()
+        a_set.add(PassA_TP_NR_NP())
+        a_set.add(PassA_TP_NR_NP())
+        self.assertEqual(len(a_set),1)
+
+    def test_identity_params_same_hash(self):
+        self.assertNotEqual(PassE_AP_NR_NP(True), PassE_AP_NR_NP(1))
 
 if __name__ == '__main__':
     unittest.main()

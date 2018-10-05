@@ -8,23 +8,38 @@
 """This module implements the base pass."""
 
 from abc import abstractmethod
-from collections import OrderedDict
-
+from collections import Hashable
+from inspect import signature
 
 class MetaPass(type):
     """
     Enforces the creation of some fields in the pass
     while allowing passes to override __init__
     """
-
     def __call__(cls, *args, **kwargs):
-        """ Called with __init__"""
-        obj = type.__call__(cls, *args, **kwargs)
-        obj._args = str(args)
-        _kwargs = OrderedDict(sorted(kwargs.items(), key=lambda t: t[0]))
-        obj._kwargs = '(' + ', '.join(["%s=%s" % (i, j) for i, j in _kwargs.items()]) + ')'
-        obj._hash = hash(obj.__repr__())
-        return obj
+        if '_pass_cache' not in cls.__dict__.keys():
+            cls._pass_cache = {}
+        args, kwargs = cls.normalize_parameters(*args, **kwargs)
+        hash_ = hash(MetaPass._freeze_init_parameters(cls.__init__, args, kwargs))
+        if hash_ not in cls._pass_cache:
+            new_pass = type.__call__(cls, *args, **kwargs)
+            cls._pass_cache[hash_] = new_pass
+        return cls._pass_cache[hash_]
+
+    @staticmethod
+    def _freeze_init_parameters(init_method, args, kwargs):
+        self_guard = object()
+        init_signature = signature(init_method)
+        bound_signature = init_signature.bind(self_guard, *args, **kwargs)
+        arguments = []
+        for name,value in bound_signature.arguments.items():
+            if value == self_guard:
+                continue
+            if isinstance(value, Hashable):
+                arguments.append((name, type(value), value))
+            else:
+                arguments.append((name, type(value), str(value)))
+        return frozenset(arguments)
 
 
 class BasePass(metaclass=MetaPass):
@@ -33,31 +48,15 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.ignore_preserves = False  # Ignore preserves for this pass
-        self.ignore_requires = False  # Ignore requires for this pass
-        self.max_iteration = 1000  # Maximum allowed iteration on this pass
-
         self.property_set = {}  # This pass's pointer to the pass manager's property set.
-        self._hash = None
-        self._args = None
-        self._kwargs = None
+
+    @classmethod
+    def normalize_parameters(cls, *args, **kwargs):
+        return args, kwargs
 
     def name(self):
         """ The name of the pass. """
         return self.__class__.__name__
-
-    def __repr__(self):
-        return self.name() + self._args + self._kwargs
-
-    def __eq__(self, other):
-        """
-        Two passes are equal if and only if they are of the same class,
-        and have the same arguments.
-        """
-        return self._hash == hash(other)
-
-    def __hash__(self):
-        return self._hash
 
     @abstractmethod
     def run(self, dag):

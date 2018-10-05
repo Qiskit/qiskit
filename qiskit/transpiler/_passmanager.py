@@ -31,7 +31,7 @@ class PassManager():
         """
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.add_passes().
-        self.working_list = WorkingList()
+        self.working_list = []
 
         # global property set is the context of the circuit held by the pass manager
         # as it runs through its scheduled passes. Analysis passes may update the property_set,
@@ -46,6 +46,12 @@ class PassManager():
         self.passmanager_options = {'ignore_requires': ignore_requires,
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
+        from collections import defaultdict
+        self.options = defaultdict(lambda: self.passmanager_options)
+
+        # TODO
+        ControlFlowPlugin.add_flow_controller('condition', PluginConditional)
+        ControlFlowPlugin.add_flow_controller('do_while', PluginDoWhile)
 
     def _join_options(self, passset_options):
         """ Set the options of each individual pass, based on precedence rules:
@@ -53,11 +59,14 @@ class PassManager():
         passset options (set via ``PassManager.add_passes()``), and those override
         pass options (set via ``BasePass.arg = value``).
 
-        Removes None items.
         """
+        default = {'ignore_preserves': False,  # Ignore preserves for this pass
+                   'ignore_requires': False,  # Ignore requires for this pass
+                   'max_iteration': 1000}  # Maximum allowed iteration on this pass
+
         passmanager_level = {k: v for k, v in self.passmanager_options.items() if v is not None}
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
-        return {**passmanager_level, **passset_level}
+        return {**default, **passmanager_level, **passset_level}
 
     def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
                    **control_flow_plugins):
@@ -83,14 +92,13 @@ class PassManager():
                            'ignore_preserves': ignore_preserves,
                            'max_iteration': max_iteration}
 
+        options = self._join_options(passset_options)
+
         if isinstance(passes, BasePass):
             passes = [passes]
 
         for pass_ in passes:
-            if isinstance(pass_, BasePass):
-                for key, value in self._join_options(passset_options).items():
-                    setattr(pass_, key, value)
-            else:
+            if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
 
         for name, plugin in control_flow_plugins.items():
@@ -99,7 +107,8 @@ class PassManager():
             else:
                 raise TranspilerError('%s control-flow plugin is not callable' % name)
 
-        self.working_list.add(passes, **control_flow_plugins)
+        self.working_list.append(
+            ControlFlowPlugin.controller_factory(passes, options, **control_flow_plugins))
 
     def run_passes(self, dag):
         """Run all the passes on the dag.
@@ -107,10 +116,11 @@ class PassManager():
         Args:
             dag (DAGCircuit): dag circuit to transform via all the registered passes
         """
-        for pass_ in self.working_list:
-            dag = self._do_pass(pass_, dag)
+        for passset in self.working_list:
+            for pass_ in passset:
+                dag = self._do_pass(pass_, dag, passset.options)
 
-    def _do_pass(self, pass_, dag):
+    def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".
 
         Args:
@@ -124,9 +134,9 @@ class PassManager():
         """
 
         # First, do the requires of pass_
-        if not pass_.ignore_requires:
+        if not options["ignore_requires"]:
             for required_pass in pass_.requires:
-                self._do_pass(required_pass, dag)
+                self._do_pass(required_pass, dag, options)
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
@@ -145,14 +155,14 @@ class PassManager():
                 raise TranspilerError("I dont know how to handle this type of pass")
 
             # update the valid_passes property
-            self._update_valid_passes(pass_)
+            self._update_valid_passes(pass_, options['ignore_preserves'])
 
         return dag
 
-    def _update_valid_passes(self, pass_):
+    def _update_valid_passes(self, pass_, ignore_preserves):
         self.valid_passes.add(pass_)
         if not pass_.is_analysis_pass:  # Analysis passes preserve all
-            if pass_.ignore_preserves:
+            if ignore_preserves:
                 self.valid_passes.clear()
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
@@ -164,7 +174,7 @@ class PassManager():
             name (string): Name of the plugin.
             control_flow_plugin (ControlFlowPlugin): The class implementing a control flow plugin.
         """
-        self.working_list.add_control_flow_plugin(name, control_flow_plugin)
+        ControlFlowPlugin.add_flow_controller(name, control_flow_plugin)
 
     def remove_control_flow_plugin(self, name):
         """
@@ -172,30 +182,37 @@ class PassManager():
         Args:
             name:
         """
-        self.working_list.remove_control_flow_plugin(name)
+        ControlFlowPlugin.remove_flow_controller(name)
 
 
-class WorkingList():
-    """
-    A working list is the way that a pass manager organizes the
-    schedule of things to do.
-    """
+class ControlFlowPlugin():
+    """This class is a base class for multiple types of working list. When you iterate on it, it
+    returns the next pass to run. """
 
-    def __init__(self):
-        self.list_of_items = []
-        self.control_flow_plugins = {'condition': PluginConditional,
-                                     'do_while': PluginDoWhile}
+    # registered_flow_controllers= {'condition': PluginConditional,
+    #                               'do_while': PluginDoWhile}
+    registered_controllers = {}
 
-    def add_control_flow_plugin(self, name, control_flow_plugin):
+    def __init__(self, passes, options, **control_flow_plugins):
+        self.passes = ControlFlowPlugin.controller_factory(passes, options, **control_flow_plugins)
+        self.options = options
+
+    def __iter__(self):
+        for pass_ in self.passes:
+            yield pass_
+
+    @classmethod
+    def add_flow_controller(cls, name, control_flow_plugin):
         """
         Adds a control flow plugin.
         Args:
             name (string): Name of the plugin.
             control_flow_plugin (ControlFlowPlugin): The class implementing a control flow plugin.
         """
-        self.control_flow_plugins[name] = control_flow_plugin
+        cls.registered_controllers[name] = control_flow_plugin
 
-    def remove_control_flow_plugin(self, name):
+    @classmethod
+    def remove_flow_controller(cls, name):
         """
         Removes the plugin called name.
 
@@ -204,63 +221,38 @@ class WorkingList():
         Raises:
             KeyError: If the name is not found.
         """
-        if name not in self.control_flow_plugins:
-            raise KeyError("Control flow plugin not found: %s" % name)
-        del self.control_flow_plugins[name]
+        if name not in cls.registered_controllers:
+            raise KeyError("Flow controller not found: %s" % name)
+        del cls.registered_controllers[name]
 
-    def add(self, passes, **control_flow_plugins):
-        """
-        Populates the working list with passes.
-
-        Args:
-            passes (list): a list of passes to add to the working list.
-            control_flow_plugins (kwargs): See add_control_flow_plugin(). Dictionary of control flow
-                plugins. Defaults:
-                do_while (callable property_set -> boolean): The pass (or passes) repeats until the
-                   callable returns False.
-                   Default: lambda x: False # i.e. passes run once
-                condition (callable property_set -> boolean): The pass (or passes) runs only if the
-                   callable returns True.
-                   Default: lambda x: True # i.e. passes run
-        """
+    @classmethod
+    def controller_factory(cls, passes, options, **control_flow_plugins):
         for control_flow, condition in control_flow_plugins.items():
-            if condition and control_flow in self.control_flow_plugins:
-                self.list_of_items.append(
-                    self.control_flow_plugins[control_flow](passes, **control_flow_plugins))
-                break
-        else:
-            self.list_of_items.append(passes)
-
-    def __iter__(self):
-        for item in self.list_of_items:
-            for pass_ in item:
-                yield pass_
+            if condition and control_flow in cls.registered_controllers:
+                return cls.registered_controllers[control_flow](passes, options,
+                                                                **control_flow_plugins)
+        return FlowControllerLinear(passes, options)
 
 
-class ControlFlowPlugin():
-    """This class is a base class for multiple types of working list. When you iterate on it, it
-    returns the next pass to run. """
-
-    def __init__(self, passes, **control_flow_plugins):
-        self.working_list = WorkingList()
-        self.working_list.add(passes, **control_flow_plugins)
-
-    def __iter__(self):
-        raise NotImplementedError
+class FlowControllerLinear(ControlFlowPlugin):
+    def __init__(self, passes, options):
+        self.passes = passes
+        self.options = options
 
 
 class PluginDoWhile(ControlFlowPlugin):
     """This type of working list item implements a set of passes in a do while loop. """
 
-    def __init__(self, passes, do_while=None, **_):  # pylint: disable=super-init-not-called
+    def __init__(self, passes, options, do_while=None,
+                 **_):  # pylint: disable=super-init-not-called
         self.do_while = do_while
-        self.max_iteration = min([pass_.max_iteration for pass_ in passes])
-        super().__init__(passes)
+        self.max_iteration = options['max_iteration']
+        super().__init__(passes, options)
 
     def __iter__(self):
         iteration = 0
         while True:
-            for pass_ in self.working_list:
+            for pass_ in self.passes:
                 yield pass_
             iteration += 1
             if iteration >= self.max_iteration:
@@ -273,12 +265,12 @@ class PluginDoWhile(ControlFlowPlugin):
 class PluginConditional(ControlFlowPlugin):
     """This type of working list item implements a set of passes under certain condition. """
 
-    def __init__(self, passes, do_while=None, condition=None,
+    def __init__(self, passes, options, do_while=None, condition=None,
                  **control_flow_plugins):  # pylint: disable=super-init-not-called
         self.condition = condition
-        super().__init__(passes, do_while=do_while, **control_flow_plugins)
+        super().__init__(passes, options, do_while=do_while, **control_flow_plugins)
 
     def __iter__(self):
         if self.condition():
-            for pass_ in self.working_list:
+            for pass_ in self.passes:
                 yield pass_
