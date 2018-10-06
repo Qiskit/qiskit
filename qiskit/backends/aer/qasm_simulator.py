@@ -36,7 +36,7 @@ DEFAULT_SIMULATOR_PATHS = [
                                  '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
                                  + EXTENSION)),
     # This is the path where PIP installs the simulator
-   os.path.abspath(os.path.join(os.path.dirname(__file__),
+    os.path.abspath(os.path.join(os.path.dirname(__file__),
                                  'qasm_simulator_cpp' + EXTENSION)),
 ]
 
