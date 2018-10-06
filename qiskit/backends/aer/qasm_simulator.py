@@ -180,6 +180,8 @@ class QASMSimulatorEncoder(json.JSONEncoder):
             return obj.tolist()
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
+        if isinstance(obj, set):
+            return list(obj)
         return json.JSONEncoder.default(self, obj)
 
 
