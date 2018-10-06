@@ -11,11 +11,13 @@ from abc import abstractmethod
 from collections import Hashable
 from inspect import signature
 
+
 class MetaPass(type):
     """
     Enforces the creation of some fields in the pass
     while allowing passes to override __init__
     """
+
     def __call__(cls, *args, **kwargs):
         if '_pass_cache' not in cls.__dict__.keys():
             cls._pass_cache = {}
@@ -32,7 +34,7 @@ class MetaPass(type):
         init_signature = signature(init_method)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
         arguments = []
-        for name,value in bound_signature.arguments.items():
+        for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
             if isinstance(value, Hashable):
@@ -52,6 +54,16 @@ class BasePass(metaclass=MetaPass):
 
     @classmethod
     def normalize_parameters(cls, *args, **kwargs):
+        """
+        Because passes with the same args/kwargs are considered the same, this method allows to
+        modify the args/kargs to respect that identity.
+        Args:
+            *args: args to normalize
+            **kwargs: kwargs to normalize
+
+        Returns:
+            Tuple: normalized (args, kwargs)
+        """
         return args, kwargs
 
     def name(self):

@@ -127,6 +127,7 @@ class PassManager():
         Args:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag on which the pass is ran.
+            options (dict): PassManager options.
         Returns:
             DAGCircuit: The transformed dag in case of a transformation pass.
             The same input dag in case of an analysis pass.
@@ -168,6 +169,7 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
+
 class FlowController():
     """This class is a base class for multiple types of working list. When you iterate on it, it
     returns the next pass to run. """
@@ -197,7 +199,9 @@ class FlowController():
         """
         Removes a flow controller.
         Args:
-            name: Name of the controller to remove.
+            name (string): Name of the controller to remove.
+        Raises:
+            KeyError: If the controller to remove was not registered.
         """
         if name not in cls.registered_controllers:
             raise KeyError("Flow controller not found: %s" % name)
@@ -205,6 +209,20 @@ class FlowController():
 
     @classmethod
     def controller_factory(cls, passes, options, **partial_controller):
+        """
+        Constructs a flow controller based on the partially evaluated controller arguments.
+        Args:
+            passes (list[BasePass]): passes to add to the flow controller.
+            options (dict): PassManager options.
+            **partial_controller (dict): Partially evaluated controller arguments in the form
+                                         {name:partial}
+
+        Raises:
+            TranspilerError: When partial_controller is not well-formed.
+
+        Returns:
+            FlowController: A FlowController instance.
+        """
         if None in partial_controller.values():
             raise TranspilerError('The controller needs a condition.')
 
@@ -212,19 +230,21 @@ class FlowController():
             for registered_controller in cls.registered_controllers.keys():
                 if registered_controller in partial_controller:
                     return cls.registered_controllers[registered_controller](passes, options,
-                                                  **partial_controller)
+                                                                             **partial_controller)
+            raise TranspilerError("The controllers for %s are not registered" % partial_controller)
         else:
             return FlowControllerLinear(passes, options)
 
 
 class FlowControllerLinear(FlowController):
-    def __init__(self, passes, options):
+    """ The basic controller run the passes one after the other one. """
+    def __init__(self, passes, options):  # pylint: disable=super-init-not-called
         self.passes = passes
         self.options = options
 
 
 class DoWhileController(FlowController):
-    """This type of working list item implements a set of passes in a do while loop. """
+    """Implements a set of passes in a do while loop. """
 
     def __init__(self, passes, options, do_while=None,
                  **partial_controller):
@@ -244,11 +264,12 @@ class DoWhileController(FlowController):
             if not self.do_while():
                 break
 
+
 class ConditionalController(FlowController):
-    """This type of working list item implements a set of passes under certain condition. """
+    """Implements a set of passes under certain condition. """
 
     def __init__(self, passes, options, condition=None,
-                 **partial_controller):  # pylint: disable=super-init-not-called
+                 **partial_controller):
         self.condition = condition
         super().__init__(passes, options, **partial_controller)
 

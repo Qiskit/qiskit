@@ -94,6 +94,7 @@ class TestUseCases(SchedulerTestCase):
                                                           'set property as False'])
 
     def test_conditional_and_loop(self):
+        """ Run a conditional first, then a loop"""
         self.passmanager.add_passes(PassE_AP_NR_NP(True))
         self.passmanager.add_passes(
             [PassK_check_fixed_point_property(),
@@ -148,6 +149,7 @@ class TestUseCases(SchedulerTestCase):
                               'dag property = 2'])
 
     def test_loop_and_conditional(self):
+        """ Run a loop first, then a conditional"""
         FlowController.remove_flow_controller('condition')
         FlowController.add_flow_controller('condition', ConditionalController)
 

@@ -62,10 +62,12 @@ class TestGenericPass(QiskitTestCase):
         a_set = set()
         a_set.add(PassA_TP_NR_NP())
         a_set.add(PassA_TP_NR_NP())
-        self.assertEqual(len(a_set),1)
+        self.assertEqual(len(a_set), 1)
 
     def test_identity_params_same_hash(self):
+        """ True is 1. They are not the same parameter."""
         self.assertNotEqual(PassE_AP_NR_NP(True), PassE_AP_NR_NP(1))
+
 
 if __name__ == '__main__':
     unittest.main()
