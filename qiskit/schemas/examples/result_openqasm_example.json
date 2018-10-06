@@ -18,6 +18,7 @@
             "qubit_labels": [["q", 0],["q",1]]
             },
         "shots": 1024,
+        "seed": 88,
         "status": "DONE",
         "success": true,
         "data": {
