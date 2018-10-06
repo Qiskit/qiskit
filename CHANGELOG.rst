@@ -18,14 +18,21 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Changed
+-------
+
+
+`0.6.0`_ - 2018-10-04
+=====================
+
 Added
 -----
 - Added `SchemaValidationError` to be thrown when schema validation fails (#881)
 - Generalized Qobj schema validation functions for all qiskit schemas (#882).
 - Added decorator to check for C++ simulator availability (#662)
 - It is possible to cancel jobs in non comercial backends (#687)
-- Introduced new options for handling credentials (qiskitrc file, environment
-  variables) and automatic registration. (#547)
+- Introduced new `qiskit.IBMQ` provider, with centralized handling of IBMQ
+  credentials (qiskitrc file, environment variables). (#547, #948, #1000)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - Add parallelization utilities (#701)
 - Parallelize transpilation (#701)
@@ -34,6 +41,8 @@ Added
 - Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
+- Allow selective loading of accounts from disk via hub/group/project 
+  filters to `IBMQ.load_accounts()`.
 
 Changed
 -------
@@ -53,6 +62,10 @@ Changed
 - When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
   notebook if there is network connectivity the interactive plots will be used
   by default (#862, #866)
+- Breaking change: ``BaseJob`` API changed, any job constructor must be passed
+  the backend used to run them and a unique job id (#936).
+- Add support for drawing circuit barriers to the latex circuit drawer. This
+  requires having the LaTeX qcircuit package version >=2.6.0 installed (#764)
 
 Deprecated
 ----------
@@ -79,6 +92,15 @@ Fixed
 - Fixed the issue with control lines spanning through several classical registers (#762).
 - Fixed visualizations crashing when using simulator extensions (#885).
 - Fixed check for network connection when loading interactive visualizations (#892).
+
+
+`0.5.7`_ - 2018-07-19
+=====================
+
+Changed
+-------
+- Add new backend names support, with aliasing for the old ones.
+
 
 `0.5.6`_ - 2018-07-06
 =====================
@@ -580,7 +602,9 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...HEAD
+.. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
+.. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
 .. _0.5.6: https://github.com/Qiskit/qiskit-terra/compare/0.5.5...0.5.6
 .. _0.5.5: https://github.com/Qiskit/qiskit-terra/compare/0.5.4...0.5.5
 .. _0.5.4: https://github.com/Qiskit/qiskit-terra/compare/0.5.3...0.5.4

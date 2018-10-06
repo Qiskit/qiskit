@@ -15,7 +15,8 @@ scenarios and flows: for more advanced usage, it is encouraged to instead
 refer to the documentation of each component and use them separately.
 """
 
-from ._wrapper import (available_backends, get_backend,
-                       compile, execute, register, unregister,
-                       registered_providers, load_qasm_string, load_qasm_file,
-                       least_busy, store_credentials, qobj_to_circuits)
+from ._wrapper import (compile, execute, load_qasm_string, load_qasm_file, qobj_to_circuits)
+
+# To be deprecated methods
+from ._wrapper import (available_backends, get_backend, register, unregister, least_busy,
+                       registered_providers)

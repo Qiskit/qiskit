@@ -14,16 +14,12 @@ used `pip install`, the examples only work from the root directory.
 
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import register, execute
-import Qconfig
+from qiskit import execute, Aer, IBMQ
+from qiskit.backends.ibmq import least_busy
+
 
 ###############################################################
-# Set the backend name and coupling map.
-###############################################################
-coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-
-###############################################################
-# Make a quantum program for the GHZ state.
+# make the qft
 ###############################################################
 def input_state(circ, q, n):
     """n-qubit input state for QFT that produces output 1."""
@@ -74,18 +70,31 @@ print(qft5.qasm())
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-register(Qconfig.APItoken, Qconfig.config["url"])
+try:
+    import Qconfig
+    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+except:
+    print("""WARNING: There's no connection with the API for remote backends.
+             Have you initialized a Qconfig.py file with your personal token?
+             For now, there's only access to local simulator backends...""")
 
-result = execute([qft3, qft4, qft5], backend='ibmq_qasm_simulator',
-                 coupling_map=coupling_map, shots=1024).result()
+print('Qasm simulator')
+sim_backend = Aer.get_backend('qasm_simulator')
+job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
+result = job.result()
 print(result)
-print(result.get_ran_qasm("qft3"))
-print(result.get_counts("qft3"))
-print(result.get_counts("qft4"))
-print(result.get_counts("qft5"))
+print(result.get_counts(qft3))
+print(result.get_counts(qft4))
+print(result.get_counts(qft5))
 
-
-result = execute([qft3], backend='ibmq_5_tenerife', shots=1024).result()
+# Second version: real device
+least_busy_device = least_busy(IBMQ.backends(simulator=False,
+                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+print("Running on current least busy device: ", least_busy_device)
+job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
+result = job.result()
 print(result)
-print(result.get_ran_qasm("qft3"))
-print(result.get_counts("qft3"))
+print(result.get_counts(qft3))
+print(result.get_counts(qft4))
+print(result.get_counts(qft5))
+

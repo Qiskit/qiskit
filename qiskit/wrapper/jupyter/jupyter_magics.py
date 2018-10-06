@@ -81,6 +81,7 @@ class StatusMagic(Magics):
             job_status = job_var.status()
             job_status_name = job_status.name
             job_status_msg = job_status.value
+            status.value = header % (job_status_msg)
             while job_status_name not in ['DONE', 'CANCELLED']:
                 time.sleep(args.interval)
                 job_status = job_var.status()

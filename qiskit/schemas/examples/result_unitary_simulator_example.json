@@ -1,5 +1,5 @@
 {
-    "backend_name": "local_qasm_simulator_cpp",
+    "backend_name": "qasm_simulator",
     "backend_version": "1.0.3",
     "job_id": "XC1323XG2",
     "qobj_id": "Experiment1",

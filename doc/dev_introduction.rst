@@ -76,7 +76,7 @@ Several unroller backends and their outputs are summarized here:
 Logging
 -------
 
-The SDK uses the `standard Python "logging" library
+Terra uses the `standard Python "logging" library
 <https://docs.python.org/3/library/logging.html>`_ for emitting several messages using the
 family of "`qiskit.*`" loggers, and abides by the standard convention for the log levels:
 
@@ -108,7 +108,7 @@ For convenience, two methods are provided in :py:mod<`qiskit_logging.py`>: (:py:
 :py:func:<`unset_qiskit_logger`>) that modify the handlers
 and the level of the `qiskit` logger. Using these methods might interfere with the global
 logging setup of your environment - please take it into consideration if developing an
-application on top of the SDK.
+application on top of Terra.
 
 The convention for emitting log messages is declare a global variable in the module named
 **logger**, which contains the logger with that module's **__name__**, and use it for emitting
@@ -126,7 +126,7 @@ the messages. For example, if the module is `qiskit/some/module.py`:
 Testing
 -------
 
-The SDK uses the `standard Pyton "unittest" framework
+Terra uses the `standard Pyton "unittest" framework
 <https://docs.python.org/3/library/unittest.html>`_ for the testing of the
 different components and functionality.
 
