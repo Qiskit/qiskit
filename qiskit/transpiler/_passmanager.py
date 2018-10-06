@@ -47,19 +47,16 @@ class PassManager():
         self.passmanager_options = {'ignore_requires': ignore_requires,
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
-        from collections import defaultdict
-        self.options = defaultdict(lambda: self.passmanager_options)
 
-        # TODO
+        # Default controllers
         FlowController.add_flow_controller('condition', ConditionalController)
         FlowController.add_flow_controller('do_while', DoWhileController)
 
     def _join_options(self, passset_options):
-        """ Set the options of each individual pass, based on precedence rules:
-        passmanager options (set via ``PassManager.__init__()``) override
-        passset options (set via ``PassManager.add_passes()``), and those override
-        pass options (set via ``BasePass.arg = value``).
-
+        """ Set the options of each passset, based on precedence rules:
+        passset options (set via ``PassManager.add_passes()``) override
+        passmanager options (set via ``PassManager.__init__()``), which override Default.
+        .
         """
         default = {'ignore_preserves': False,  # Ignore preserves for this pass
                    'ignore_requires': False,  # Ignore requires for this pass
@@ -190,7 +187,7 @@ class FlowController():
         Adds a flow controller.
         Args:
             name (string): Name of the controller to add.
-            controller (FlowController): The class implementing a flow controller.
+            controller (type(FlowController)): The class implementing a flow controller.
         """
         cls.registered_controllers[name] = controller
 

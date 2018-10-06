@@ -330,18 +330,18 @@ class TestUseCases(SchedulerTestCase):
                                                      'run analysis pass PassE_AP_NR_NP',
                                                      'set property as 1'])
 
-    # def test_pass_option_precedence(self):
-    #     """ The precedence of options for a pass is:
-    #      - The pass
-    #      - The pass set
-    #      - The pass manager option
-    #     """
-    #     passmanager = PassManager(ignore_preserves=False, ignore_requires=True)
-    #     tp_pass = DummyTP()
-    #     passmanager.add_passes(tp_pass, ignore_preserves=True)
-    #     the_pass_in_the_workinglist = next(iter(passmanager.working_list))
-    #     self.assertTrue(the_pass_in_the_workinglist.ignore_preserves)
-    #     self.assertTrue(the_pass_in_the_workinglist.ignore_requires)
+    def test_pass_option_precedence(self):
+        """ The precedence of options is, in order of priority:
+         - The passset option
+         - The Pass Manager option
+         - Default
+        """
+        passmanager = PassManager(ignore_preserves=False, ignore_requires=True)
+        tp_pass = PassA_TP_NR_NP()
+        passmanager.add_passes(tp_pass, ignore_preserves=True)
+        the_pass_in_the_workinglist = next(iter(passmanager.working_list))
+        self.assertTrue(the_pass_in_the_workinglist.options['ignore_preserves'])
+        self.assertTrue(the_pass_in_the_workinglist.options['ignore_requires'])
 
     def test_pass_no_return_a_dag(self):
         """ Passes instances with same arguments (independently of the order) are the same. """
