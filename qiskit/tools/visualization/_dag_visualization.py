@@ -41,20 +41,25 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     if style == 'plain':
         pass
     elif style == 'color':
-        for n in G.nodes:
-            G.nodes[n]['label'] = str(G.nodes[n]['name'])
-            if G.nodes[n]['type'] == 'op':
-                G.nodes[n]['color'] = 'blue'
-                G.nodes[n]['style'] = 'filled'
-                G.nodes[n]['fillcolor'] = 'lightblue'
-            if G.nodes[n]['type'] == 'in':
-                G.nodes[n]['color'] = 'black'
-                G.nodes[n]['style'] = 'filled'
-                G.nodes[n]['fillcolor'] = 'green'
-            if G.nodes[n]['type'] == 'out':
-                G.nodes[n]['color'] = 'black'
-                G.nodes[n]['style'] = 'filled'
-                G.nodes[n]['fillcolor'] = 'red'
+        for node in G.nodes:
+            n = G.nodes[node]
+            if n['type'] == 'op':
+                n['label'] = str(n['name'])
+                n['color'] = 'blue'
+                n['style'] = 'filled'
+                n['fillcolor'] = 'lightblue'
+            if n['type'] == 'in':
+                n['label'] = n['name'][0] + '[' + str(n['name'][1]) + ']'
+                n['color'] = 'black'
+                n['style'] = 'filled'
+                n['fillcolor'] = 'green'
+            if n['type'] == 'out':
+                n['label'] = n['name'][0] + '[' + str(n['name'][1]) + ']'
+                n['color'] = 'black'
+                n['style'] = 'filled'
+                n['fillcolor'] = 'red'
+        for e in G.edges(data=True):
+            e[2]['label'] = e[2]['name'][0] + "[" + str(e[2]['name'][1]) + "]"
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 
