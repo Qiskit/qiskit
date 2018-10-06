@@ -93,6 +93,7 @@ Fixed
 - Fixed visualizations crashing when using simulator extensions (#885).
 - Fixed check for network connection when loading interactive visualizations (#892).
 - Fixed bug in checking that a circuit already matches a coupling map (#1024).
+- Fixed issue when data config encoding comes as a set (#630)
 
 
 `0.5.7`_ - 2018-07-19
