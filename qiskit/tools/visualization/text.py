@@ -647,6 +647,12 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][1], Bullet())
                 layer.connect_with("│")
 
+            elif instruction['name'] == 'ch':
+                # ch
+                layer.set_qubit(instruction['qubits'][0], Bullet())
+                layer.set_qubit(instruction['qubits'][1], BoxOnQuWire('H'))
+                layer.connect_with("│")
+
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
                 # unitary gate
                 layer.set_qubit(instruction['qubits'][0],
