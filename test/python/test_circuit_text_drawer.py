@@ -170,15 +170,15 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = '\n'.join(["                 ",
                               "q_0: |0>─■──X──X─",
                               "         │  │  │ ",
-                              "q_1: |0>─X──X──■─",
+                              "q_1: |0>─X──■──X─",
                               "         │  │  │ ",
-                              "q_2: |0>─X──■──X─",
+                              "q_2: |0>─X──X──■─",
                               "                 "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cswap(qr[0], qr[1], qr[2])
-        circuit.cswap(qr[2], qr[1], qr[0])
         circuit.cswap(qr[1], qr[0], qr[2])
+        circuit.cswap(qr[2], qr[1], qr[0])
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_cx(self):
@@ -198,18 +198,18 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_ccx(self):
         """ cx drawing. """
-        expected = '\n'.join(["             ┌───┐     ",
-                              "q_0: |0>──■──┤ X ├──■──",
-                              "          │  └─┬─┘┌─┴─┐",
-                              "q_1: |0>──■────■──┤ X ├",
-                              "        ┌─┴─┐  │  └─┬─┘",
+        expected = '\n'.join(["                  ┌───┐",
+                              "q_0: |0>──■────■──┤ X ├",
+                              "          │  ┌─┴─┐└─┬─┘",
+                              "q_1: |0>──■──┤ X ├──■──",
+                              "        ┌─┴─┐└─┬─┘  │  ",
                               "q_2: |0>┤ X ├──■────■──",
                               "        └───┘          "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.ccx(qr[0], qr[1], qr[2])
-        circuit.ccx(qr[2], qr[1], qr[0])
         circuit.ccx(qr[2], qr[0], qr[1])
+        circuit.ccx(qr[2], qr[1], qr[0])
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_reset(self):
