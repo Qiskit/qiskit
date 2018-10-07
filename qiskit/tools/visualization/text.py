@@ -22,6 +22,8 @@ class DrawElement():
         self.top_format = self.mid_format = self.bot_format = "%s"
         self.top_connect = self.bot_connect = " "
         self.top_pad = self._mid_padding = self.bot_pad = " "
+        self.bot_connector = {}
+        self.top_connector = {}
 
     @property
     def top(self):
@@ -59,6 +61,12 @@ class DrawElement():
     def width(self, value):
         self._width = value
 
+    def connect(self, wire_char, where):
+        if 'top' in where:
+            self.top_connect = self.top_connector[wire_char] if wire_char in self.top_connector else wire_char
+
+        if 'bot' in where:
+            self.bot_connect = self.bot_connector[wire_char] if wire_char in self.bot_connector else wire_char
 
 class BoxOnClWire(DrawElement):
     """ Draws a box on the classical wire
@@ -93,7 +101,8 @@ class BoxOnQuWire(DrawElement):
         self.top_connect = top_connect
         self.bot_connect = bot_connect
         self.mid_content = label
-
+        self.top_connector = {"│": '┴'}
+        self.bot_connector = {"│": '┬'}
 
 class MeasureTo(DrawElement):
     """ The element on the classic wire to which the measure is performed
@@ -226,7 +235,6 @@ class DirectOnQuWire(DrawElement):
         self.mid_format = '─%s─'
         self.bot_format = ' %s '
         self._mid_padding = '─'
-
 
 class Barrier(DirectOnQuWire):
     """ Draws a barrier.
@@ -504,7 +512,7 @@ class TextDrawing():
                 ret += "│"
             elif topc == " ":
                 ret += botc
-            elif topc in '┬╥' and botc == " ":
+            elif topc in '┬╥' and botc in " ║│":
                 ret += topc
             elif topc in '┬│' and botc == "═":
                 ret += '╪'
@@ -618,16 +626,13 @@ class TextDrawing():
 
                 for qubit in control:
                     qubit_layer[qubit] = Bullet()
-                    if qubit < target:
-                        qubit_layer[qubit].bot_connect = "│"
-                    else:
-                        qubit_layer[qubit].top_connect = "│"
-
                 qubit_layer[target] = BoxOnQuWire('X')
-                if target > min(control):
-                    qubit_layer[target].top_connect='┴'
-                if target < max(control):
-                    qubit_layer[target].bot_connect = '┬'
+
+                affected_qubits = [qubit for qubit in qubit_layer if qubit is not None]
+                affected_qubits[0].connect("│", ['bot'])
+                for affected_qubit in affected_qubits[1:-1]:
+                    affected_qubit.connect("│", ['bot', 'top'])
+                affected_qubits[-1].connect("│", ['top'])
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
                 # unitary gate
