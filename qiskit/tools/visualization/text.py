@@ -48,7 +48,8 @@ class DrawElement():
     @length.setter
     def length(self, value):
         """ Adjusts width so the length fits."""
-        self.width = value - max([len(getattr(self, i) % '') for i in ["bot_format", "mid_format", "top_format"]])
+        self.width = value - max(
+            [len(getattr(self, i) % '') for i in ["bot_format", "mid_format", "top_format"]])
 
     @property
     def width(self):
@@ -63,10 +64,13 @@ class DrawElement():
 
     def connect(self, wire_char, where):
         if 'top' in where:
-            self.top_connect = self.top_connector[wire_char] if wire_char in self.top_connector else wire_char
+            self.top_connect = self.top_connector[
+                wire_char] if wire_char in self.top_connector else wire_char
 
         if 'bot' in where:
-            self.bot_connect = self.bot_connector[wire_char] if wire_char in self.bot_connector else wire_char
+            self.bot_connect = self.bot_connector[
+                wire_char] if wire_char in self.bot_connector else wire_char
+
 
 class BoxOnClWire(DrawElement):
     """ Draws a box on the classical wire
@@ -74,7 +78,8 @@ class BoxOnClWire(DrawElement):
         mid: ╡ A ╞ ╡   A   ╞
         bot: └───┘ └───────┘
     """
-    def __init__(self, label="", top_connect = '─', bot_connect = '─'):
+
+    def __init__(self, label="", top_connect='─', bot_connect='─'):
         super().__init__(label)
         self.top_format = "┌─%s─┐"
         self.mid_format = "╡ %s ╞"
@@ -92,7 +97,7 @@ class BoxOnQuWire(DrawElement):
         bot: └───┘ └───────┘
     """
 
-    def __init__(self, label="", top_connect = '─', bot_connect = '─'):
+    def __init__(self, label="", top_connect='─', bot_connect='─'):
         super().__init__(label)
         self.top_format = "┌─%s─┐"
         self.mid_format = "┤ %s ├"
@@ -103,6 +108,7 @@ class BoxOnQuWire(DrawElement):
         self.mid_content = label
         self.top_connector = {"│": '┴'}
         self.bot_connector = {"│": '┬'}
+
 
 class MeasureTo(DrawElement):
     """ The element on the classic wire to which the measure is performed
@@ -159,10 +165,11 @@ class MultiBox(DrawElement):
 class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
     """ Draws the top part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label=""):
+    def __init__(self, label="", top_connect=None):
         super().__init__(label)
         self.mid_content = ""  # The label will be put by some other part of the box.
         self.bot_format = "│ %s │"
+        self.top_connect = top_connect if top_connect else '─'
         self.bot_connect = self.bot_pad = " "
 
 
@@ -188,16 +195,14 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
             self.top_connect = label
 
 
-
-
 class BoxOnClWireTop(MultiBox, BoxOnClWire):
     """ Draws the top part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, label="", top_connect='─'):
+    def __init__(self, label="", top_connect=None):
         super().__init__(label)
         self.mid_content = ""  # The label will be put by some other part of the box.
         self.bot_format = "│ %s │"
-        self.top_connect = top_connect
+        self.top_connect = top_connect if top_connect else '─'
         self.bot_connect = self.bot_pad = " "
 
 
@@ -236,6 +241,7 @@ class DirectOnQuWire(DrawElement):
         self.bot_format = ' %s '
         self._mid_padding = '─'
 
+
 class Barrier(DirectOnQuWire):
     """ Draws a barrier.
         top:  ¦     ¦
@@ -261,6 +267,7 @@ class Ex(DirectOnQuWire):
         self.bot_connect = bot_connect
         self.top_connect = top_connect
 
+
 class Reset(DirectOnQuWire):
     """ Draws a reset gate"""
 
@@ -275,13 +282,15 @@ class Bullet(DirectOnQuWire):
     bot:  │      │
     """
 
-    def __init__(self, top_connect = " ", bot_connect = " "):
+    def __init__(self, top_connect=" ", bot_connect=" "):
         super().__init__('■')
         self.top_connect = top_connect
         self.bot_connect = bot_connect
 
+
 class EmptyWire(DrawElement):
     """ This element is just the wire, with no instructions nor operations."""
+
     def __init__(self, wire):
         super().__init__(wire)
         self._mid_padding = wire
@@ -578,90 +587,62 @@ class TextDrawing():
         layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
 
         for instruction in self.json_circuit['instructions']:
-            qubit_layer = [None] * noqubits
-            clbit_layer = [None] * noclbits
+            layer = Layer(noqubits, noclbits)
+            qubit_layer = layer.qubit_layer
+            clbit_layer = layer.clbit_layer
 
             if instruction['name'] == 'measure':
-                qubit_layer[instruction['qubits'][0]] = MeasureFrom()
-                clbit_layer[instruction['clbits'][0]] = MeasureTo()
+                layer.set_qubit(instruction['qubits'][0], MeasureFrom())
+                layer.set_clbit(instruction['clbits'][0], MeasureTo())
 
             elif instruction['name'] == 'barrier':
                 # barrier
                 for qubit in instruction['qubits']:
-                    qubit_layer[qubit] = Barrier()
+                    layer.qubit_layer[qubit] = Barrier()
 
             elif instruction['name'] == 'swap':
                 # swap
-                qubit_layer[instruction['qubits'][0]] = Ex(bot_connect = "│")
-                qubit_layer[instruction['qubits'][1]] = Ex(top_connect = "│")
+                for qubit in instruction['qubits']:
+                    layer.qubit_layer[qubit] = Ex()
+                layer.connect_with("│")
 
             elif instruction['name'] == 'cswap':
                 # cswap
-                qubit_layer[instruction['qubits'][0]] = Bullet()
-                qubit_layer[instruction['qubits'][1]] = Ex()
-                qubit_layer[instruction['qubits'][2]] = Ex()
+                layer.set_qubit(instruction['qubits'][0], Bullet())
+                layer.set_qubit(instruction['qubits'][1], Ex())
+                layer.set_qubit(instruction['qubits'][2], Ex())
 
-                affected_qubits = [qubit for qubit in qubit_layer if qubit is not None]
-                affected_qubits[0].connect("│", ['bot'])
-                for affected_qubit in affected_qubits[1:-1]:
-                    affected_qubit.connect("│", ['bot', 'top'])
-                affected_qubits[-1].connect("│", ['top'])
-
+                layer.connect_with("│")
 
             elif instruction['name'] == 'reset':
-                qubit_layer[instruction['qubits'][0]] = Reset()
+                layer.set_qubit(instruction['qubits'][0], Reset())
 
             elif 'conditional' in instruction:
                 # conditional
                 clbits = self.clbit_index_from_mask(int(instruction['conditional']['mask'], 16))
                 cllabel = TextDrawing.label_for_conditional(instruction)
                 qulabel = TextDrawing.label_for_box(instruction)
-                if len(clbits) == 1:
-                    clbit_layer[clbits[0]] = BoxOnClWire(cllabel, top_connect='┴')
-                else:
-                    clbit_layer[clbits[0]] = BoxOnClWireTop(cllabel, top_connect='┴')
-                    for order, clbit in enumerate(clbits[1:-1], 1):
-                        clbit_layer[clbit] = BoxOnClWireMid(cllabel, len(clbits), order)
-                    clbit_layer[clbits[-1]] = BoxOnClWireBot(cllabel, len(clbits))
 
-                qubit_layer[instruction['qubits'][0]] = BoxOnQuWire(qulabel, bot_connect='┬')
+                layer.set_cl_multibox(clbits, cllabel, top_connect='┴')
+                layer.set_qubit(instruction['qubits'][0], BoxOnQuWire(qulabel, bot_connect='┬'))
+
 
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
                 # cx/ccx
-                control = [qubit for qubit in instruction['qubits'][:-1]]
-                target = instruction['qubits'][-1]
+                for qubit in [qubit for qubit in instruction['qubits'][:-1]]:
+                    layer.set_qubit(qubit, Bullet())
 
-                for qubit in control:
-                    qubit_layer[qubit] = Bullet()
-                qubit_layer[target] = BoxOnQuWire('X')
-
-                affected_qubits = [qubit for qubit in qubit_layer if qubit is not None]
-                affected_qubits[0].connect("│", ['bot'])
-                for affected_qubit in affected_qubits[1:-1]:
-                    affected_qubit.connect("│", ['bot', 'top'])
-                affected_qubits[-1].connect("│", ['top'])
+                layer.set_qubit(instruction['qubits'][-1], BoxOnQuWire('X'))
+                layer.connect_with("│")
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
                 # unitary gate
-                qubit_layer[instruction['qubits'][0]] = BoxOnQuWire(
-                    TextDrawing.label_for_box(instruction))
+                layer.set_qubit(instruction['qubits'][0],
+                                BoxOnQuWire(TextDrawing.label_for_box(instruction)))
 
             elif len(instruction['qubits']) >= 2 and 'clbits' not in instruction:
                 # multiple qubit gate
-                qubits = sorted(instruction['qubits'])
-
-                # Checks if qubits are consecutive
-                if qubits != [i for i in range(qubits[0], qubits[-1] + 1)]:
-                    raise Exception(
-                        ("I don't know how to build a gate with multiple qubits when"
-                         "they are not adjacent to each other"),
-                        instruction)
-
-                label = TextDrawing.label_for_box(instruction)
-                qubit_layer[qubits[0]] = BoxOnQuWireTop(label)
-                for order, qubit in enumerate(qubits[1:-1], 1):
-                    qubit_layer[qubit] = BoxOnQuWireMid(label, len(qubits), order)
-                qubit_layer[qubits[-1]] = BoxOnQuWireBot(label, len(qubits))
+                layer.set_qu_multibox(instruction['qubits'], TextDrawing.label_for_box(instruction))
 
             else:
                 raise Exception("I don't know how to handle this instruction", instruction)
@@ -669,6 +650,63 @@ class TextDrawing():
             layers.append(qubit_layer + clbit_layer)
 
         return layers
+
+
+class Layer:
+    def __init__(self, noqubits, noclbits):
+        self.qubit_layer = [None] * noqubits
+        self.clbit_layer = [None] * noclbits
+
+    @property
+    def full_layer(self):
+        return self.qubit_layer + self.clbit_layer
+
+    def set_qubit(self, qubit, element):
+        self.qubit_layer[qubit] = element
+
+    def set_clbit(self, clbit, element):
+        self.clbit_layer[clbit] = element
+
+    def _set_multibox(self, wire_type, bits, label, top_connect=None):
+        bits = sorted(bits)
+        if wire_type == "cl":
+            set_bit = self.set_clbit
+            BoxOnWire = BoxOnClWire
+            BoxOnWireTop = BoxOnClWireTop
+            BoxOnWireMid = BoxOnClWireMid
+            BoxOnWireBot = BoxOnClWireBot
+        elif wire_type == "qu":
+            set_bit = self.set_qubit
+            BoxOnWire = BoxOnQuWire
+            BoxOnWireTop = BoxOnQuWireTop
+            BoxOnWireMid = BoxOnQuWireMid
+            BoxOnWireBot = BoxOnQuWireBot
+
+        # Checks if qubits are consecutive
+        if bits != [i for i in range(bits[0], bits[-1] + 1)]:
+            raise Exception("I don't know how to build a gate with multiple bits when"
+                            "they are not adjacent to each other")
+
+        if len(bits) == 1:
+            set_bit(bits[0], BoxOnWire(label, top_connect=top_connect))
+        else:
+            set_bit(bits[0], BoxOnWireTop(label, top_connect=top_connect))
+            for order, bit in enumerate(bits[1:-1], 1):
+                set_bit(bit, BoxOnWireMid(label, len(bits), order))
+            set_bit(bits[-1], BoxOnWireBot(label, len(bits)))
+
+    def set_cl_multibox(self, bits, label, top_connect='┴'):
+        self._set_multibox("cl", bits, label, top_connect=top_connect)
+
+    def set_qu_multibox(self, bits, label):
+        self._set_multibox("qu", bits, label)
+
+    def connect_with(self, wire_char):
+        affected_bits = [bit for bit in self.full_layer if bit is not None]
+        affected_bits[0].connect(wire_char, ['bot'])
+        for affected_qubit in affected_bits[1:-1]:
+            affected_qubit.connect(wire_char, ['bot', 'top'])
+        affected_bits[-1].connect(wire_char, ['top'])
 
 
 def text_drawer(circuit, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
