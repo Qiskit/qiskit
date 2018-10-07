@@ -500,7 +500,7 @@ class TextDrawing():
         if 'params' in instruction:
             if instruction['params']:
                 params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
-        return "%s%s" % (instruction['name'].upper(), params)
+        return "%s%s" % (instruction['name'].capitalize(), params)
 
     @staticmethod
     def merge_lines(top, bot, icod="top"):
