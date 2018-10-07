@@ -597,9 +597,16 @@ class TextDrawing():
 
             elif instruction['name'] == 'cswap':
                 # cswap
-                qubit_layer[instruction['qubits'][0]] = Bullet(bot_connect="│")
-                qubit_layer[instruction['qubits'][1]] = Ex(top_connect = "│")
-                qubit_layer[instruction['qubits'][2]] = Ex(top_connect = "│")
+                qubit_layer[instruction['qubits'][0]] = Bullet()
+                qubit_layer[instruction['qubits'][1]] = Ex()
+                qubit_layer[instruction['qubits'][2]] = Ex()
+
+                affected_qubits = [qubit for qubit in qubit_layer if qubit is not None]
+                affected_qubits[0].connect("│", ['bot'])
+                for affected_qubit in affected_qubits[1:-1]:
+                    affected_qubit.connect("│", ['bot', 'top'])
+                affected_qubits[-1].connect("│", ['top'])
+
 
             elif instruction['name'] == 'reset':
                 qubit_layer[instruction['qubits'][0]] = Reset()

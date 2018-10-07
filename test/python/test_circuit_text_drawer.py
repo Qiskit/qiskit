@@ -59,7 +59,6 @@ class TestTextDrawerBigCircuit(QiskitTestCase):
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.measure(qr, cr)
         path = os.path.dirname(os.path.abspath(__file__))
-        print(text_drawer(circuit))
         with open(os.path.join(path, 'references', 'text_ref.txt')) as file:
             self.assertEqual(file.read().rstrip('\n'), text_drawer(circuit))
 
@@ -168,16 +167,18 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_cswap(self):
         """ CSwap drawing. """
-        expected = '\n'.join(["           ",
-                              "q_0: |0>─■─",
-                              "         │ ",
-                              "q_1: |0>─X─",
-                              "         │ ",
-                              "q_2: |0>─X─",
-                              "           "])
+        expected = '\n'.join(["                 ",
+                              "q_0: |0>─■──X──X─",
+                              "         │  │  │ ",
+                              "q_1: |0>─X──X──■─",
+                              "         │  │  │ ",
+                              "q_2: |0>─X──■──X─",
+                              "                 "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cswap(qr[0], qr[1], qr[2])
+        circuit.cswap(qr[2], qr[1], qr[0])
+        circuit.cswap(qr[1], qr[0], qr[2])
         self.assertEqual(text_drawer(circuit), expected)
 
     def test_text_cx(self):
