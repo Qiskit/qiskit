@@ -24,21 +24,37 @@ class DrawElement():
         self.top_pad = self._mid_padding = self.bot_pad = " "
         self.bot_connector = {}
         self.top_connector = {}
+        self.right_fill = self.left_fill = 0
 
     @property
     def top(self):
         """ Constructs the top line of the element"""
-        return self.top_format % self.top_connect.center(self.width, self.top_pad)
+        ret = self.top_format % self.top_connect.center(self.width-self.left_fill-self.right_fill, self.top_pad)
+        if self.right_fill:
+            ret = ret.ljust(self.right_fill, self.top_pad)
+        if self.left_fill:
+            ret = ret.rjust(self.left_fill, self.top_pad)
+        return ret
 
     @property
     def mid(self):
         """ Constructs the middle line of the element"""
-        return self.mid_format % self.mid_content.center(self.width, self._mid_padding)
+        ret = self.mid_format % self.mid_content.center(self.width-self.left_fill-self.right_fill, self._mid_padding)
+        if self.right_fill:
+            ret = ret.ljust(self.right_fill, self._mid_padding)
+        if self.left_fill:
+            ret = ret.rjust(self.left_fill, self._mid_padding)
+        return ret
 
     @property
     def bot(self):
         """ Constructs the bottom line of the element"""
-        return self.bot_format % self.bot_connect.center(self.width, self.bot_pad)
+        ret = self.bot_format % self.bot_connect.center(self.width-self.left_fill-self.right_fill, self.bot_pad)
+        if self.right_fill:
+            ret = ret.ljust(self.right_fill, self.bot_pad)
+        if self.left_fill:
+            ret = ret.rjust(self.left_fill, self.bot_pad)
+        return ret
 
     @property
     def length(self):
@@ -62,7 +78,7 @@ class DrawElement():
     def width(self, value):
         self._width = value
 
-    def connect(self, wire_char, where):
+    def connect(self, wire_char, where, label=None):
         if 'top' in where:
             self.top_connect = self.top_connector[
                 wire_char] if wire_char in self.top_connector else wire_char
@@ -70,6 +86,9 @@ class DrawElement():
         if 'bot' in where:
             self.bot_connect = self.bot_connector[
                 wire_char] if wire_char in self.bot_connector else wire_char
+
+        if label:
+            self.top_format = self.top_format[:-1] + (label if label else "")
 
 
 class BoxOnClWire(DrawElement):
@@ -653,6 +672,13 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][1], BoxOnQuWire('H'))
                 layer.connect_with("│")
 
+            elif instruction['name'] == 'cu1':
+                # cu1
+                label = '%.5g' % instruction['params'][0]
+                layer.set_qubit(instruction['qubits'][0], Bullet())
+                layer.set_qubit(instruction['qubits'][1], Bullet())
+                layer.connect_with("│", label)
+
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
                 # unitary gate
                 layer.set_qubit(instruction['qubits'][0],
@@ -719,12 +745,16 @@ class Layer:
     def set_qu_multibox(self, bits, label):
         self._set_multibox("qu", bits, label)
 
-    def connect_with(self, wire_char):
+    def connect_with(self, wire_char, label=None):
         affected_bits = [bit for bit in self.full_layer if bit is not None]
         affected_bits[0].connect(wire_char, ['bot'])
-        for affected_qubit in affected_bits[1:-1]:
-            affected_qubit.connect(wire_char, ['bot', 'top'])
-        affected_bits[-1].connect(wire_char, ['top'])
+        for affected_bit in affected_bits[1:-1]:
+            affected_bit.connect(wire_char, ['bot', 'top'])
+        affected_bits[-1].connect(wire_char, ['top'], label)
+
+        if label:
+            for affected_bit in affected_bits:
+                affected_bit.right_fill = len(label)+len(affected_bit.mid)
 
 
 def text_drawer(circuit, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
