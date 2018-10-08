@@ -59,7 +59,7 @@ class TestTextDrawerBigCircuit(QiskitTestCase):
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.measure(qr, cr)
         path = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(path, 'references', 'text_ref.txt')) as file:
+        with open(os.path.join(path, 'references', 'text_ref.txt'), encoding="utf8") as file:
             self.assertEqual(file.read().rstrip('\n'), text_drawer(circuit))
 
     def test_text_pager(self):
