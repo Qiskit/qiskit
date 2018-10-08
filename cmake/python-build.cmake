@@ -12,12 +12,10 @@ function(add_pypi_package_target TARGET_NAME PACKAGE_TYPE)
 	if (NOT PYTHON)
 		message(FATAL_ERROR "We can't find Python in your system. Please, install it and try again...")
 	endif()
-	set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in")
 	set(SETUP_PY    "${CMAKE_CURRENT_SOURCE_DIR}/setup.py")
 	set(EXECUTABLE_FILE_EXTENSION "")
 
 	message("QISKIT_VERSION = ${QISKIT_VERSION}")
-	configure_file(${SETUP_PY_IN} ${SETUP_PY})
 	# For ' make clean' target
 	set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${SETUP_PY})
 

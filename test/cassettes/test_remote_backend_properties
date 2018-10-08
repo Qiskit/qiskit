@@ -246,9 +246,29 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": true, "status": "active", "lengthQueue": 42}'}
+    body: {string: '{"lastUpdateDate": "2018-10-02T09:57:24.000Z", "qubits": [{"gateError":
+        {"date": "2018-10-02T09:57:24Z", "value": 0.0009443532335046134}, "name":
+        "Q0", "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.061}}, {"gateError":
+        {"date": "2018-10-02T09:57:24Z", "value": 0.008079489227428238}, "name": "Q1",
+        "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.072}}, {"gateError":
+        {"date": "2018-10-02T09:57:24Z", "value": 0.0013737021608475342}, "name":
+        "Q2", "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.029}}, {"gateError":
+        {"date": "2018-10-02T09:57:24Z", "value": 0.001889001411209068}, "name": "Q3",
+        "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.036}}, {"gateError":
+        {"date": "2018-10-02T09:57:24Z", "value": 0.0011160854878761173}, "name":
+        "Q4", "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.047}}],
+        "multiQubitGates": [{"qubits": [1, 0], "type": "CX", "gateError": {"date":
+        "2018-10-02T09:57:24Z", "value": 0.0336469083512502}, "name": "CX1_0"}, {"qubits":
+        [2, 0], "type": "CX", "gateError": {"date": "2018-10-02T09:57:24Z", "value":
+        0.034329214436950306}, "name": "CX2_0"}, {"qubits": [2, 1], "type": "CX",
+        "gateError": {"date": "2018-10-02T09:57:24Z", "value": 0.03904602876304941},
+        "name": "CX2_1"}, {"qubits": [3, 2], "type": "CX", "gateError": {"date": "2018-10-02T09:57:24Z",
+        "value": 0.07405953316835223}, "name": "CX3_2"}, {"qubits": [3, 4], "type":
+        "CX", "gateError": {"date": "2018-10-02T09:57:24Z", "value": 0.052530860424229525},
+        "name": "CX3_4"}, {"qubits": [4, 2], "type": "CX", "gateError": {"date": "2018-10-02T09:57:24Z",
+        "value": 0.05946126929500478}, "name": "CX4_2"}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -379,9 +399,35 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": true, "status": "active", "lengthQueue": 42}'}
+    body: {string: '{"lastUpdateDate": "2018-10-02T09:57:24.000Z", "fridgeParameters":
+        {"cooldownDate": "2017-09-07", "Temperature": {"date": "-", "value": [], "unit":
+        "-"}}, "qubits": [{"name": "Q0", "buffer": {"date": "2018-10-02T09:57:24Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value":
+        60, "unit": "ns"}, "T2": {"date": "2018-10-02T09:57:24Z", "value": 37.8, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-10-02T09:57:24Z", "value": 47.8, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.24986,
+        "unit": "GHz"}}, {"name": "Q1", "buffer": {"date": "2018-10-02T09:57:24Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value":
+        60, "unit": "ns"}, "T2": {"date": "2018-10-02T09:57:24Z", "value": 19.5, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-10-02T09:57:24Z", "value": 44, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.29578, "unit": "GHz"}},
+        {"name": "Q2", "buffer": {"date": "2018-10-02T09:57:24Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value": 60, "unit": "ns"},
+        "T2": {"date": "2018-10-02T09:57:24Z", "value": 34.1, "unit": "\u00b5s"},
+        "T1": {"date": "2018-10-02T09:57:24Z", "value": 39.9, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.35319, "unit": "GHz"}},
+        {"name": "Q3", "buffer": {"date": "2018-10-02T09:57:24Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value": 60, "unit": "ns"},
+        "T2": {"date": "2018-10-02T09:57:24Z", "value": 16.1, "unit": "\u00b5s"},
+        "T1": {"date": "2018-10-02T09:57:24Z", "value": 50.6, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.43497, "unit": "GHz"}},
+        {"name": "Q4", "buffer": {"date": "2018-10-02T09:57:24Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value": 60, "unit": "ns"},
+        "T2": {"date": "2018-10-02T09:57:24Z", "value": 12.5, "unit": "\u00b5s"},
+        "T1": {"date": "2018-10-02T09:57:24Z", "value": 60.7, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.17581, "unit": "GHz"}}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -512,9 +558,78 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx5/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx5/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": false, "status": "internal", "lengthQueue": 42}'}
+    body: {string: '{"lastUpdateDate": "2018-09-26T11:49:22.000Z", "qubits": [{"gateError":
+        {"date": "2018-09-26T10:35:59Z", "value": 0.0022144612767176497}, "name":
+        "Q0", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.057599999999999985}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.003689223478283099},
+        "name": "Q1", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.0625}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.003924364754672172},
+        "name": "Q2", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.17079999999999995}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0034167999553882944},
+        "name": "Q3", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.06919999999999993}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0015949641629435796},
+        "name": "Q4", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.06899999999999995}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0018457980526141449},
+        "name": "Q5", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.05579999999999996}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0017713812589367772},
+        "name": "Q6", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.04360000000000008}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.002426658132244186},
+        "name": "Q7", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.03510000000000002}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0017349240609222938},
+        "name": "Q8", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.038799999999999946}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0009695142045068605},
+        "name": "Q9", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.10699999999999998}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.002701937969481094},
+        "name": "Q10", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.07879999999999998}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.001960262678372404},
+        "name": "Q11", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.04919999999999991}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.002640082299054103},
+        "name": "Q12", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.1159}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.001941760442921936},
+        "name": "Q13", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.03490000000000004}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0022723568005368344},
+        "name": "Q14", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.057700000000000085}},
+        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.006471887194796577},
+        "name": "Q15", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.11650000000000005}}],
+        "multiQubitGates": [{"qubits": [1, 0], "type": "CX", "gateError": {"date":
+        "2018-09-26T11:13:32Z", "value": 0.0382188674023784}, "name": "CX1_0"}, {"qubits":
+        [1, 2], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value":
+        0.039472320566802915}, "name": "CX1_2"}, {"qubits": [2, 3], "type": "CX",
+        "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.05402839723969577},
+        "name": "CX2_3"}, {"qubits": [3, 4], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
+        "value": 0.0489936628065242}, "name": "CX3_4"}, {"qubits": [3, 14], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.056353833812310905},
+        "name": "CX3_14"}, {"qubits": [5, 4], "type": "CX", "gateError": {"date":
+        "2018-09-26T11:13:32Z", "value": 0.035952039524115714}, "name": "CX5_4"},
+        {"qubits": [6, 5], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z",
+        "value": 0.04314769536650795}, "name": "CX6_5"}, {"qubits": [6, 7], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.02856154108547948},
+        "name": "CX6_7"}, {"qubits": [6, 11], "type": "CX", "gateError": {"date":
+        "2018-09-26T11:13:32Z", "value": 0.024963053591434775}, "name": "CX6_11"},
+        {"qubits": [7, 10], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
+        "value": 0.04309977386932756}, "name": "CX7_10"}, {"qubits": [8, 7], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.04236769261665141},
+        "name": "CX8_7"}, {"qubits": [9, 8], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z",
+        "value": 0.029488360647307504}, "name": "CX9_8"}, {"qubits": [9, 10], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.03195953115696615},
+        "name": "CX9_10"}, {"qubits": [11, 10], "type": "CX", "gateError": {"date":
+        "2018-09-26T11:13:32Z", "value": 0.039300789277491366}, "name": "CX11_10"},
+        {"qubits": [12, 5], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
+        "value": 0.04504929990651926}, "name": "CX12_5"}, {"qubits": [12, 11], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.042585231589457984},
+        "name": "CX12_11"}, {"qubits": [12, 13], "type": "CX", "gateError": {"date":
+        "2018-09-26T11:13:32Z", "value": 0.03671446327158484}, "name": "CX12_13"},
+        {"qubits": [13, 4], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z",
+        "value": 0.03483954160112332}, "name": "CX13_4"}, {"qubits": [13, 14], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.04752095298204684},
+        "name": "CX13_14"}, {"qubits": [15, 0], "type": "CX", "gateError": {"date":
+        "2018-09-26T11:49:22Z", "value": 0.08349980716649905}, "name": "CX15_0"},
+        {"qubits": [15, 2], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
+        "value": 0.052001274503483935}, "name": "CX15_2"}, {"qubits": [15, 14], "type":
+        "CX", "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.05922012926449796},
+        "name": "CX15_14"}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -645,9 +760,90 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx2/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx5/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": false, "status": "maintenance", "lengthQueue": 0}'}
+    body: {string: '{"lastUpdateDate": "2018-09-26T10:29:51.000Z", "fridgeParameters":
+        {"cooldownDate": "2017-09-15", "Temperature": {"date": "2018-09-26T04:11:46Z",
+        "value": 0.0143814, "unit": "K"}}, "qubits": [{"name": "Q0", "buffer": {"date":
+        "2018-09-26T10:05:10Z", "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z",
+        "value": 80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value":
+        21.4, "unit": "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value":
+        44.6, "unit": "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units":
+        "GHz", "value": 5.2559422}}, {"name": "Q1", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 46.1, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 34.7, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.3960513}}, {"name": "Q2", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 55.9, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 45.2, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.2757198}}, {"name": "Q3", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 28.4, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 22.4, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.0830883}}, {"name": "Q4", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 69.3, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 39.5, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 4.9791939}}, {"name": "Q5", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 54.9, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 68.2, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.1514925}}, {"name": "Q6", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 54.8, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 46.9, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.3058106}}, {"name": "Q7", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 70.5, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 43.4, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.2523746}}, {"name": "Q8", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 81.6, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 24.7, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
+        "value": 5.1152016}}, {"name": "Q9", "buffer": {"date": "2018-09-26T10:05:10Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
+        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 88.3, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 47, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.1554163}},
+        {"name": "Q10", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
+        "T2": {"date": "2018-09-26T10:29:51Z", "value": 89.1, "unit": "\u00b5s"},
+        "T1": {"date": "2018-09-26T10:28:46Z", "value": 51.2, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.0425353}},
+        {"name": "Q11", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
+        "T2": {"date": "2018-09-26T10:29:51Z", "value": 104.4, "unit": "\u00b5s"},
+        "T1": {"date": "2018-09-26T10:28:46Z", "value": 58.1, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.1108736}},
+        {"name": "Q12", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
+        "T2": {"date": "2018-09-26T10:29:51Z", "value": 31.1, "unit": "\u00b5s"},
+        "T1": {"date": "2018-09-26T10:28:46Z", "value": 33.2, "unit": "\u00b5s"},
+        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 4.9468255}},
+        {"name": "Q13", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
+        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
+        "T2": {"date": "2018-09-26T10:29:51Z", "value": 86.8, "unit": "\u00b5s"},
+        "T1": {"date": "2018-09-26T10:28:46Z", "value": 46, "unit": "\u00b5s"}, "frequency":
+        {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.0882581}}, {"name":
+        "Q14", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit": "ns"},
+        "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"}, "T2":
+        {"date": "2018-09-26T10:29:51Z", "value": 57.2, "unit": "\u00b5s"}, "T1":
+        {"date": "2018-09-26T10:28:46Z", "value": 34.3, "unit": "\u00b5s"}, "frequency":
+        {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 4.870491}}, {"name":
+        "Q15", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit": "ns"},
+        "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"}, "T2":
+        {"date": "2018-09-26T10:29:51Z", "value": 35.4, "unit": "\u00b5s"}, "T1":
+        {"date": "2018-09-26T10:28:46Z", "value": 23.7, "unit": "\u00b5s"}, "frequency":
+        {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.1047438}}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -778,9 +974,29 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx2/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": true, "status": "active", "lengthQueue": 169}'}
+    body: {string: '{"lastUpdateDate": "2018-04-13T15:53:48.000Z", "qubits": [{"gateError":
+        {"date": "2018-04-13T15:53:48Z", "value": 0.0013737021608475342}, "name":
+        "Q0", "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.024}}, {"gateError":
+        {"date": "2018-04-13T15:53:48Z", "value": 0.0013737021608475342}, "name":
+        "Q1", "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.026}}, {"gateError":
+        {"date": "2018-04-13T15:53:48Z", "value": 0.002232583111384412}, "name": "Q2",
+        "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.03}}, {"gateError":
+        {"date": "2018-04-13T15:53:48Z", "value": 0.0017172252255832077}, "name":
+        "Q3", "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.022}}, {"gateError":
+        {"date": "2018-04-13T15:53:48Z", "value": 0.0009443532335046134}, "name":
+        "Q4", "readoutError": {"value": 0.045, "date": "2018-04-13T15:53:48Z"}}],
+        "multiQubitGates": [{"gateError": {"date": "2018-04-13T15:53:48Z", "value":
+        0.02724902259050041}, "name": "CX0_1", "qubits": [0, 1], "type": "CX"}, {"qubits":
+        [0, 2], "type": "CX", "gateError": {"date": "2018-04-13T15:53:48Z", "value":
+        0.041787588869506564}, "name": "CX0_2"}, {"qubits": [1, 2], "type": "CX",
+        "gateError": {"date": "2018-04-13T15:53:48Z", "value": 0.03767722967662601},
+        "name": "CX1_2"}, {"qubits": [3, 2], "type": "CX", "gateError": {"date": "2018-04-13T15:53:48Z",
+        "value": 0.039730922592824625}, "name": "CX3_2"}, {"qubits": [3, 4], "type":
+        "CX", "gateError": {"date": "2018-04-13T15:53:48Z", "value": 0.03624140460989725},
+        "name": "CX3_4"}, {"qubits": [4, 2], "type": "CX", "gateError": {"date": "2018-04-13T15:53:48Z",
+        "value": 0.03508012699633578}, "name": "CX4_2"}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -911,9 +1127,36 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx2/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": true, "status": "active", "lengthQueue": 169}'}
+    body: {string: '{"lastUpdateDate": "2018-04-13T15:53:48.000Z", "fridgeParameters":
+        {"cooldownDate": "2017-05-07", "Temperature": {"date": "2018-04-13T15:53:48Z",
+        "value": 0.0159, "unit": "K"}}, "qubits": [{"name": "Q0", "buffer": {"date":
+        "2018-04-13T15:53:48Z", "value": 6.7, "unit": "ns"}, "gateTime": {"value":
+        83.3, "unit": "ns", "date": "2018-04-13T15:53:48Z"}, "T2": {"date": "2018-04-13T15:53:48Z",
+        "value": 77.5, "unit": "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z",
+        "value": 62.4, "unit": "\u00b5s"}, "frequency": {"date": "2018-04-13T15:53:48Z",
+        "value": 5.27603, "unit": "GHz"}}, {"frequency": {"unit": "GHz", "date": "2018-04-13T15:53:48Z",
+        "value": 5.21223}, "name": "Q1", "buffer": {"date": "2018-04-13T15:53:48Z",
+        "value": 6.7, "unit": "ns"}, "gateTime": {"date": "2018-04-13T15:53:48Z",
+        "value": 83.3, "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value":
+        64, "unit": "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z", "value": 55.1,
+        "unit": "\u00b5s"}}, {"name": "Q2", "buffer": {"date": "2018-04-13T15:53:48Z",
+        "value": 6.7, "unit": "ns"}, "gateTime": {"date": "2018-04-13T15:53:48Z",
+        "value": 83.3, "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value":
+        54.7, "unit": "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z", "value":
+        48.4, "unit": "\u00b5s"}, "frequency": {"date": "2018-04-13T15:53:48Z", "value":
+        5.01542, "unit": "GHz"}}, {"buffer": {"unit": "ns", "date": "2018-04-13T15:53:48Z",
+        "value": 6.7}, "gateTime": {"date": "2018-04-13T15:53:48Z", "value": 83.3,
+        "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value": 57.3, "unit":
+        "\u00b5s"}, "T1": {"value": 59, "unit": "\u00b5s", "date": "2018-04-13T15:53:48Z"},
+        "frequency": {"date": "2018-04-13T15:53:48Z", "value": 5.28059, "unit": "GHz"},
+        "name": "Q3"}, {"gateTime": {"date": "2018-04-13T15:53:48Z", "value": 83.3,
+        "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value": 36.4, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z", "value": 53.3, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-04-13T15:53:48Z", "value": 5.07116,
+        "unit": "GHz"}, "name": "Q4", "buffer": {"date": "2018-04-13T15:53:48Z", "value":
+        6.7, "unit": "ns"}}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1044,9 +1287,67 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": true, "status": "active", "lengthQueue": 42}'}
+    body: {string: '{"lastUpdateDate": "2018-10-02T07:37:02.000Z", "qubits": [{"gateError":
+        {"date": "2018-10-02T06:36:04Z", "value": 0.0015857363609939057}, "name":
+        "Q0", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.028000000000000025}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0056075951902537224},
+        "name": "Q1", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.06220000000000003}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.003184316466115056},
+        "name": "Q2", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.03749999999999998}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0020706193920569937},
+        "name": "Q3", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.05889999999999995}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.001957618180380205},
+        "name": "Q4", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.1866}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0024531264298980338},
+        "name": "Q5", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.031500000000000083}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0014455996518510372},
+        "name": "Q6", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.027699999999999947}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0011880877515820787},
+        "name": "Q7", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.049000000000000044}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.001656771894497866},
+        "name": "Q8", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.03269999999999995}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.004604162001280998},
+        "name": "Q9", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.04620000000000002}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.002184431832709499},
+        "name": "Q10", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.048699999999999966}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0012961864744574503},
+        "name": "Q11", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.030299999999999994}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.013824481442434255},
+        "name": "Q12", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.18359999999999999}},
+        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.007639716016684617},
+        "name": "Q13", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.059599999999999986}}],
+        "multiQubitGates": [{"qubits": [1, 0], "type": "CX", "gateError": {"date":
+        "2018-10-02T07:37:02Z", "value": 0.04377610184438224}, "name": "CX1_0"}, {"qubits":
+        [1, 2], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value":
+        0.047319178254632166}, "name": "CX1_2"}, {"qubits": [2, 3], "type": "CX",
+        "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.05239208230611844},
+        "name": "CX2_3"}, {"qubits": [4, 3], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
+        "value": 0.041104976190682485}, "name": "CX4_3"}, {"qubits": [4, 10], "type":
+        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.05641572521926011},
+        "name": "CX4_10"}, {"qubits": [5, 4], "type": "CX", "gateError": {"date":
+        "2018-10-02T07:37:02Z", "value": 0.04470959515530229}, "name": "CX5_4"}, {"qubits":
+        [5, 6], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value":
+        0.051815789449768695}, "name": "CX5_6"}, {"qubits": [5, 9], "type": "CX",
+        "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.07317714002164982},
+        "name": "CX5_9"}, {"qubits": [6, 8], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
+        "value": 0.02122139068635262}, "name": "CX6_8"}, {"qubits": [7, 8], "type":
+        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.020672575596286852},
+        "name": "CX7_8"}, {"qubits": [9, 8], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
+        "value": 0.060384377376845544}, "name": "CX9_8"}, {"qubits": [9, 10], "type":
+        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.10416714859101356},
+        "name": "CX9_10"}, {"qubits": [11, 10], "type": "CX", "gateError": {"date":
+        "2018-10-02T07:37:02Z", "value": 0.0761359648242928}, "name": "CX11_10"},
+        {"qubits": [11, 12], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
+        "value": 0.19104784558994767}, "name": "CX11_12"}, {"qubits": [11, 3], "type":
+        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.045798364715191886},
+        "name": "CX11_3"}, {"qubits": [12, 2], "type": "CX", "gateError": {"date":
+        "2018-10-02T07:37:02Z", "value": 0.34730552814964977}, "name": "CX12_2"},
+        {"qubits": [13, 1], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
+        "value": 0.14300706641651442}, "name": "CX13_1"}, {"qubits": [13, 12], "type":
+        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.19543651607418563},
+        "name": "CX13_12"}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1177,9 +1478,81 @@ interactions:
       Accept-Encoding: ['gzip, deflate']
       Connection: [keep-alive]
     method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/queue/status
+    uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"state": true, "status": "active", "lengthQueue": 169}'}
+    body: {string: '{"lastUpdateDate": "2018-10-02T06:31:53.000Z", "fridgeParameters":
+        {"cooldownDate": "2018-07-10", "Temperature": {"date": "2018-10-02T08:48:19Z",
+        "value": 0.0251758, "unit": "K"}}, "qubits": [{"name": "Q0", "buffer": {"date":
+        "2018-10-02T06:05:19Z", "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z",
+        "value": 100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value":
+        18.4, "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value":
+        81, "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 5.100064}}, {"name": "Q1", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 73.1,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 66.7,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 5.23838}}, {"name": "Q2", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 98.9,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 68.8,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 5.0328802}}, {"name": "Q3", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 102.4,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 62.3,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.8961475}}, {"name": "Q4", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 29, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 63.1, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units": "GHz",
+        "value": 5.0262397}}, {"name": "Q5", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 32.2,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 22.9,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 5.0670439}}, {"name": "Q6", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 49.9,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 60.6,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.9237499}}, {"name": "Q7", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 76.4,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 44.5,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.9744283}}, {"name": "Q8", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 175.1,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 116.1,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.7381183}}, {"name": "Q9", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 38.6,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 32.6,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.9633119}}, {"name": "Q10", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 60, "unit":
+        "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 52.4, "unit":
+        "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units": "GHz",
+        "value": 4.9449811}}, {"name": "Q11", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 105.6,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 68.8,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 5.0046259}}, {"name": "Q12", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 11.5,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 14.1,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.7599086}}, {"name": "Q13", "buffer": {"date": "2018-10-02T06:05:19Z",
+        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
+        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 46.7,
+        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 29.2,
+        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
+        "GHz", "value": 4.9685361}}]}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1199,96 +1572,4 @@ interactions:
       X-Frame-Options: [SAMEORIGIN]
       X-Xss-Protection: [1; mode=block]
     status: {code: 200, message: OK}
-- request:
-    body: null
-    headers:
-      Accept: ['*/*']
-      Accept-Encoding: ['gzip, deflate']
-      Connection: [keep-alive]
-    method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs/BAD_JOB_ID?access_token=dummyapiusersloginWithTokenid01
-  response:
-    body: {string: '{"error": {"name": "Error", "status": 401, "message": "Authorization
-        Required", "statusCode": 401, "code": "AUTHORIZATION_REQUIRED"}}'}
-    headers:
-      Access-Control-Allow-Credentials: ['true']
-      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
-      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
-      Connection: [Keep-Alive]
-      Content-Type: [application/json; charset=utf-8]
-      Expires: ['0']
-      Pragma: [no-cache]
-      Set-Cookie: dummy_cookie
-      Strict-Transport-Security: [max-age=86400]
-      Surrogate-Control: [no-store]
-      Transfer-Encoding: [chunked]
-      Vary: ['Origin, Accept-Encoding']
-      X-Backside-Transport: [FAIL FAIL]
-      X-Content-Type-Options: [nosniff]
-      X-Download-Options: [noopen]
-      X-Frame-Options: [SAMEORIGIN]
-      X-Xss-Protection: [1; mode=block]
-    status: {code: 401, message: Unauthorized}
-- request:
-    body: apiToken=apiToken_dummy
-    headers:
-      Accept: ['*/*']
-      Accept-Encoding: ['gzip, deflate']
-      Connection: [keep-alive]
-      Content-Length: ['137']
-      Content-Type: [application/x-www-form-urlencoded]
-    method: POST
-    uri: https://quantumexperience.ng.bluemix.net/api/users/loginWithToken
-  response:
-    body: {string: '{"id": "dummyapiusersloginWithTokenid02", "ttl": 1209600, "created":
-        "dummyapiusersloginWithTokencreated02", "userId": "dummyapiusersloginWithTokenuserId01"}'}
-    headers:
-      Access-Control-Allow-Credentials: ['true']
-      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
-      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
-      Connection: [Keep-Alive]
-      Content-Type: [application/json; charset=utf-8]
-      Expires: ['0']
-      Pragma: [no-cache]
-      Set-Cookie: dummy_cookie
-      Strict-Transport-Security: [max-age=86400]
-      Surrogate-Control: [no-store]
-      Transfer-Encoding: [chunked]
-      Vary: ['Origin, Accept-Encoding']
-      X-Backside-Transport: [OK OK]
-      X-Content-Type-Options: [nosniff]
-      X-Download-Options: [noopen]
-      X-Frame-Options: [SAMEORIGIN]
-      X-Xss-Protection: [1; mode=block]
-    status: {code: 200, message: OK}
-- request:
-    body: null
-    headers:
-      Accept: ['*/*']
-      Accept-Encoding: ['gzip, deflate']
-      Connection: [keep-alive]
-    method: GET
-    uri: https://quantumexperience.ng.bluemix.net/api/Jobs/BAD_JOB_ID?access_token=dummyapiusersloginWithTokenid01
-  response:
-    body: {string: '{"error": {"name": "Error", "status": 401, "message": "Authorization
-        Required", "statusCode": 401, "code": "AUTHORIZATION_REQUIRED"}}'}
-    headers:
-      Access-Control-Allow-Credentials: ['true']
-      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
-      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
-      Connection: [Keep-Alive]
-      Content-Type: [application/json; charset=utf-8]
-      Expires: ['0']
-      Pragma: [no-cache]
-      Set-Cookie: dummy_cookie
-      Strict-Transport-Security: [max-age=86400]
-      Surrogate-Control: [no-store]
-      Transfer-Encoding: [chunked]
-      Vary: ['Origin, Accept-Encoding']
-      X-Backside-Transport: [FAIL FAIL]
-      X-Content-Type-Options: [nosniff]
-      X-Download-Options: [noopen]
-      X-Frame-Options: [SAMEORIGIN]
-      X-Xss-Protection: [1; mode=block]
-    status: {code: 401, message: Unauthorized}
 version: 1

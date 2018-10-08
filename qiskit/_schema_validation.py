@@ -32,16 +32,16 @@ _VALIDATORS = {}
 
 
 def _load_schema(file_path, name=None):
-    """Loads the QObj schema for use in future validations. Caches schema in
-       _SCHEMAS module attribute.
-       Args:
-            file_path(str): Path to schema.
-            name(str): Given name for schema. Defaults to file_path filename
-                       without schema.
-       Return:
-            schema(dict): Loaded schema.
+    """Loads the QObj schema for use in future validations.
 
+    Caches schema in _SCHEMAS module attribute.
 
+   Args:
+        file_path(str): Path to schema.
+        name(str): Given name for schema. Defaults to file_path filename
+            without schema.
+   Return:
+        schema(dict): Loaded schema.
     """
     if name is None:
         # filename without extension
@@ -60,16 +60,14 @@ def _get_validator(name, schema=None, check_schema=True,
 
     Args:
         name (str): Name for validator. Will be validator key in
-                    `_VALIDATORS` dict.
+            `_VALIDATORS` dict.
         schema (dict): JSON schema `dict`. If not provided searches for schema
-                       in `_SCHEMAS`.
+            in `_SCHEMAS`.
         check_schema (bool): Verify schema is valid.
-
-        validator_class (jsonschema.IValidator): jsonschema IValidator
-                instance. Default behavior is to determine this from the schema
-                `$schema` field.
-
-        **validator_kwargs: Additional keyword arguments for validator.
+        validator_class (jsonschema.IValidator): jsonschema IValidator instance.
+            Default behavior is to determine this from the schema `$schema`
+            field.
+        **validator_kwargs (dict): Additional keyword arguments for validator.
 
     Return:
         jsonschema.IValidator: Validator for JSON schema.
@@ -102,9 +100,7 @@ def _get_validator(name, schema=None, check_schema=True,
 
 
 def _load_schemas_and_validators():
-    """
-    Load all default schemas into `_SCHEMAS`.
-    """
+    """Load all default schemas into `_SCHEMAS`."""
 
     schema_base_path = qiskit_path[0]
     for name, path in _DEFAULT_SCHEMA_PATHS.items():
@@ -118,8 +114,7 @@ _load_schemas_and_validators()
 
 def validate_json_against_schema(json_dict, schema,
                                  err_msg=None):
-    """
-    Validates JSON dict against a schema.
+    """Validates JSON dict against a schema.
 
     Args:
         json_dict (dict): JSON to be validated.
@@ -154,8 +149,9 @@ def validate_json_against_schema(json_dict, schema,
 
 
 def _format_causes(err, level=0):
-    """Return a cascading explanation of the validation error in the form
-    of::
+    """Return a cascading explanation of the validation error.
+
+    Returns a cascading explanation of the validation error in the form of::
 
         <validator> failed @ <subfield_path> because of:
             <validator> failed @ <subfield_path> because of:
@@ -224,7 +220,9 @@ class SchemaValidationError(QISKitError):
 
 
 class _SummaryValidationError(QISKitError):
-    """Cut off the message of a jsonschema.ValidationError to avoid printing
+    """Cut off the message of a jsonschema.ValidationError for compactness.
+
+    Cut off the message of a jsonschema.ValidationError to avoid printing
     noise in the standard output. The original validation error is in the
     `validation_error` property.
 

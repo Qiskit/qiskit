@@ -3,13 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-====================
-Qiskit Documentation
-====================
+==========================
+Qiskit Terra Documentation
+==========================
 
-Quantum Information Science Kit (Qiskit), SDK Python version for working
-with `OpenQASM <https://github.com/Qiskit/openqasm>`_ and the IBM Q experience
-(QX).
+Qiskit (Quantum Information Science Kit) Terra is a Python based set of 
+tools for composing quantum programs at the level of circuits and pulses, 
+optimizing them for the constraints of a particular physical quantum processor, 
+and managing the batched execution of experiments on remote-access backends.
 
 
 Table of Contents
@@ -22,7 +23,7 @@ Table of Contents
    Getting started <quickstart>
    Qiskit overview <qiskit>
    Developer documentation <dev_introduction>
-   SDK reference <_autodoc/qiskit>
+   Software reference <_autodoc/qiskit>
    Release history <releases>
 
 Python Modules

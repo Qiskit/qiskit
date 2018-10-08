@@ -12,6 +12,7 @@
 import unittest
 import qiskit
 import qiskit.extensions.simulator
+from qiskit import Aer
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit.wrapper import execute
 from ..common import QiskitTestCase, requires_cpp_simulator
@@ -36,7 +37,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit.h(qr[1])
         circuit.load(1)
 
-        sim = 'statevector_simulator'
+        sim = Aer.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
         statevector = result.get_statevector()
         target = [0.70710678 + 0.j, 0.70710678 + 0.j, 0. + 0.j, 0. + 0.j]
@@ -56,7 +57,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[1])
 
-        sim = 'statevector_simulator'
+        sim = Aer.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
         snapshot = result.get_snapshot(slot='3')
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
@@ -82,7 +83,7 @@ class TestExtensionsSimulator(QiskitTestCase):
                 'id': {'p_pauli': [1.0, 0.0, 0.0]}
             }
         }
-        sim = 'qasm_simulator'
+        sim = Aer.get_backend('qasm_simulator')
         shots = 1000
         result = execute(circuit, sim, config=config, shots=shots).result()
         counts = result.get_counts()
