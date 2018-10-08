@@ -62,7 +62,7 @@ class BasePass(metaclass=MetaPass):
             **kwargs: kwargs to normalize
 
         Returns:
-            Tuple: normalized (args, kwargs)
+            tuple (list, dict): normalized (list(args), dict(kwargs))
         """
         return args, kwargs
 
