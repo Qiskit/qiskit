@@ -1178,6 +1178,16 @@ class QCircuitImage(object):
                                     is_occupied[j] = True
                                 break
 
+                        prev_column = [x[columns - 1] for x in self._latex]
+                        for item, prev_entry in enumerate(prev_column):
+                            if 'barrier' in prev_entry:
+                                span = re.search('barrier{(.*)}', prev_entry)
+                                if span and any(i in temp for i in range(
+                                        item, int(span.group(1)))):
+                                    self._latex[
+                                        item][columns - 1] = prev_entry.replace(
+                                            '\\barrier{', '\\barrier[-0.65em]{')
+
                         gap = pos_4 - bottom
                         for i in range(self.cregs[if_reg]):
                             if if_value[i] == '1':
@@ -1214,6 +1224,16 @@ class QCircuitImage(object):
                                 for j in range(top, bottom + 1):
                                     is_occupied[j] = True
                                 break
+
+                        prev_column = [x[columns - 1] for x in self._latex]
+                        for item, prev_entry in enumerate(prev_column):
+                            if 'barrier' in prev_entry:
+                                span = re.search('barrier{(.*)}', prev_entry)
+                                if span and any(i in temp for i in range(
+                                        item, int(span.group(1)))):
+                                    self._latex[
+                                        item][columns - 1] = prev_entry.replace(
+                                            '\\barrier{', '\\barrier[-0.65em]{')
 
                         if nm == "ccx":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
