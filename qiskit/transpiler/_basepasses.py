@@ -40,7 +40,7 @@ class MetaPass(type):
             if isinstance(value, Hashable):
                 arguments.append((name, type(value), value))
             else:
-                arguments.append((name, type(value), str(value)))
+                arguments.append((name, type(value), repr(value)))
         return frozenset(arguments)
 
 
