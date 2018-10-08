@@ -266,6 +266,7 @@ class DirectOnQuWire(DrawElement):
     """
     Element to the wire (without the box).
     """
+
     def __init__(self, label=""):
         super().__init__(label)
         self.top_format = ' %s '
@@ -531,7 +532,7 @@ class TextDrawing():
     def params_for_label(instruction):
         """Get the params and format them to add them to a label. None of there is no param."""
         if 'params' in instruction and instruction['params']:
-                return ['%.5g' % i for i in instruction['params']]
+            return ['%.5g' % i for i in instruction['params']]
         return None
 
     @staticmethod
@@ -732,6 +733,7 @@ class TextDrawing():
 
 class Layer:
     """ A layer is the "column" of the circuit. """
+
     def __init__(self, noqubits, noclbits):
         self.qubit_layer = [None] * noqubits
         self.clbit_layer = [None] * noclbits
