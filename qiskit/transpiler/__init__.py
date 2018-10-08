@@ -6,9 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Utils for transpiler."""
+
 import os
-from ._passmanager import PassManager
-from ._transpilererror import TranspilerError
+from ._passmanager import PassManager, FlowController
+from ._propertyset import PropertySet
+from ._transpilererror import TranspilerError, TranspilerAccessError
+from ._fencedobjs import FencedDAGCircuit, FencedPropertySet
+from ._basepasses import AnalysisPass, TransformationPass
 
 # pylint: disable=redefined-builtin
 from ._transpiler import compile, transpile
