@@ -21,6 +21,10 @@ The format is based on `Keep a Changelog`_.
 Changed
 -------
 
+Fixed
+-----
+- Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
+  circuit plots (#1051)
 
 `0.6.0`_ - 2018-10-04
 =====================
