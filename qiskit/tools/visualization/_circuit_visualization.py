@@ -1182,8 +1182,8 @@ class QCircuitImage(object):
                         for item, prev_entry in enumerate(prev_column):
                             if 'barrier' in prev_entry:
                                 span = re.search('barrier{(.*)}', prev_entry)
-                                if span and (
-                                        item + int(span.group(1))) - pos_1 >= 0:
+                                if span and any(i in temp for i in range(
+                                        item, int(span.group(1)))):
                                     self._latex[
                                         item][columns - 1] = prev_entry.replace(
                                             '\\barrier{', '\\barrier[-0.65em]{')
@@ -1229,9 +1229,8 @@ class QCircuitImage(object):
                         for item, prev_entry in enumerate(prev_column):
                             if 'barrier' in prev_entry:
                                 span = re.search('barrier{(.*)}', prev_entry)
-                                if span and (
-                                        item + int(
-                                            span.group(1))) - pos_1 in temp:
+                                if span and any(i in temp for i in range(
+                                        item, int(span.group(1)))):
                                     self._latex[
                                         item][columns - 1] = prev_entry.replace(
                                             '\\barrier{', '\\barrier[-0.65em]{')
