@@ -89,6 +89,9 @@ def circuit_drawer(circuit,
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
+
+    Raises:
+        VisualizationError: when an invalid output method is selected
     """
 
     im = None
@@ -116,8 +119,7 @@ def circuit_drawer(circuit,
                                             style)
     if im and interactive:
         im.show()
-    else:
-        return im
+    return im
 
 
 # -----------------------------------------------------------------------------
@@ -320,8 +322,8 @@ def latex_circuit_drawer(circuit,
                   'be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
                   '`latex`.', DeprecationWarning)
-    _latex_circuit_drawer(circuit, basis=basis, scale=scale, filename=filename,
-                          style=style)
+    return _latex_circuit_drawer(circuit, basis=basis, scale=scale,
+                                 filename=filename, style=style)
 
 
 def _latex_circuit_drawer(circuit,
@@ -426,8 +428,8 @@ def generate_latex_source(circuit, filename=None,
                   ' be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
                   '`latex_source`.', DeprecationWarning)
-    _generate_latex_source(circuit, filename=filename, basis=basis,
-                           scale=scale, style=style)
+    return _generate_latex_source(circuit, filename=filename, basis=basis,
+                                  scale=scale, style=style)
 
 
 def _generate_latex_source(circuit, filename=None,
@@ -1487,8 +1489,8 @@ def matplotlib_circuit_drawer(circuit,
                   'will be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
                   '`python`.', DeprecationWarning)
-    _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
-                               filename=filename, style=style)
+    return _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
+                                      filename=filename, style=style)
 
 
 def _matplotlib_circuit_drawer(circuit,
