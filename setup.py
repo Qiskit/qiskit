@@ -6,88 +6,33 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 import os
-import platform
-from distutils.command.build import build
-from multiprocessing import cpu_count
-from subprocess import call
 
-from setuptools import setup, find_packages
-from setuptools.dist import Distribution
-
+from skbuild import setup
+from setuptools import find_packages
+import unittest
 
 requirements = [
     "jsonschema>=2.6,<2.7",
-    "IBMQuantumExperience>=2.0.3",
+    "IBMQuantumExperience>=1.9.8",
     "matplotlib>=2.1",
     "networkx>=2.0",
     "numpy>=1.13",
     "ply>=3.10",
-    "scipy>=0.19,!=0.19.1",
+    "scipy>=0.19",
     "sympy>=1.0",
     "pillow>=4.2.1",
-    "psutil>=5"
+    "scikit-build>=0.8"
 ]
 
 
-# C++ components compilation
-class QasmSimulatorCppBuild(build):
-    def run(self):
-        super().run()
-        # Store the current working directory, as invoking cmake involves
-        # an out of source build and might interfere with the rest of the steps.
-        current_directory = os.getcwd()
-
-        try:
-            supported_platforms = ['Linux', 'Darwin', 'Windows']
-            current_platform = platform.system()
-            if current_platform not in supported_platforms:
-                # TODO: stdout is silenced by pip if the full setup.py invocation is
-                # successful, unless using '-v' - hence the warnings are not printed.
-                print('WARNING: Qiskit cpp simulator is meant to be built with these '
-                      'platforms: {}. We will support other platforms soon!'
-                      .format(supported_platforms))
-                return
-
-            cmd_cmake = ['cmake', '-vvv']
-            if 'USER_LIB_PATH' in os.environ:
-                cmd_cmake.append('-DUSER_LIB_PATH={}'.format(os.environ['USER_LIB_PATH']))
-            if current_platform == 'Windows':
-                # We only support MinGW so far
-                cmd_cmake.append("-GMinGW Makefiles")
-            cmd_cmake.append('..')
-
-            cmd_make = ['make', 'pypi_package_copy_qasm_simulator_cpp']
-
-            try:
-                cmd_make.append('-j%d' % cpu_count())
-            except NotImplementedError:
-                print('WARNING: Unable to determine number of CPUs. Using single threaded make.')
-
-            def compile_simulator():
-                self.mkpath('out')
-                os.chdir('out')
-                call(cmd_cmake)
-                call(cmd_make)
-
-            self.execute(compile_simulator, [], 'Compiling C++ QASM Simulator')
-        except Exception as e:
-            print(str(e))
-            print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
-                  "install anyway, but won't have this simulator support.")
-
-        # Restore working directory.
-        os.chdir(current_directory)
-
-
-# This is for creating wheel specific platforms
-class BinaryDistribution(Distribution):
-    def has_ext_modules(self):
-        return True
-
+def load_version():
+    qiskit_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(qiskit_dir, "qiskit" + os.path.sep + "VERSION.txt"), "r") as version_file:
+        return version_file.read().strip()
 
 setup(
     name="qiskit",
-    version="0.7.0",
+    version=load_version(),
     description="Software for developing quantum computing programs",
     long_description="""Qiskit is a software development kit for writing
         quantum computing experiments, programs, and applications. Works with
@@ -113,8 +58,5 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
-    cmdclass={
-        'build': QasmSimulatorCppBuild,
-    },
-    distclass=BinaryDistribution
+    test_suite="test"
 )

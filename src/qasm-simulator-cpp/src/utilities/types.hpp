@@ -27,7 +27,7 @@
 #include "qubit_vector.hpp"  // N-qubit vector class
 #include "binary_vector.hpp" // Binary Vector class
 #include "clifford.hpp"      // Clifford tableau class
-#include "json.hpp"          // JSON Class library
+#include "nlohmann_json.hpp" // JSON Class library
 #include "matrix.hpp"        // Matrix class library
 
 /***************************************************************************/ /**

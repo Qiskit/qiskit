@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
 file(STRINGS "qiskit/VERSION.txt" VERSION_NUM)
 project (Qiskit VERSION ${VERSION_NUM} LANGUAGES CXX)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 # Verbose!!
 set(CMAKE_VERBOSE_MAKEFILE True)
 set(QISKIT_VERSION ${PROJECT_VERSION} CACHE INTERNAL "VERSION OF QISKIT")
@@ -9,15 +12,8 @@ set(QISKIT_VERSION ${PROJECT_VERSION} CACHE INTERNAL "VERSION OF QISKIT")
 include(cmake/defaults.cmake)
 
 if (ENABLE_TARGETS_NON_PYTHON)
-    # Add Toolchain utilities for C++ sources
-    include(cmake/toolchain-utils.cmake)
-
     # Add C++ Qiskit Simulator
     add_subdirectory(${PROJECT_SOURCE_DIR}/src/qasm-simulator-cpp)
-
-    # Add Python distributable package generator
-    include(cmake/python-build.cmake)
-    add_pypi_package_target(pypi_package both)
 endif()
 
 include(cmake/tests.cmake)

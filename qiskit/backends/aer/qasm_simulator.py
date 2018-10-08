@@ -17,6 +17,7 @@ import os
 import subprocess
 from subprocess import PIPE
 import platform
+import site
 
 import numpy as np
 
@@ -35,9 +36,11 @@ DEFAULT_SIMULATOR_PATHS = [
     os.path.abspath(os.path.join(os.path.dirname(__file__),
                                  '../../../out/src/qasm-simulator-cpp/qasm_simulator_cpp'
                                  + EXTENSION)),
-    # This is the path where PIP installs the simulator
+    # This is the path where PIP used to install the simulator
     os.path.abspath(os.path.join(os.path.dirname(__file__),
                                  'qasm_simulator_cpp' + EXTENSION)),
+    # This is the path where PIP installs the simulator: the global site-packages.
+    os.path.abspath(os.path.join(site.getsitepackages()[0], 'qasm_simulator_cpp' + EXTENSION))
 ]
 
 

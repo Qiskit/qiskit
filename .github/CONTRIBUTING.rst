@@ -134,13 +134,14 @@ This section include some tips that will help you to push source code.
 Dependencies
 ~~~~~~~~~~~~
 
-Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
+Our build system is based on CMake and scikit-build, which is a third-party package,
+that bridges the Python canonical way of building with CMake. We need to have `CMake 3.5 or higher <https://cmake.org/>`_
 installed. As we will deal with languages that build native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
 
-On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
-we only support `MinGW64 <http://mingw-w64.org>`_ at the moment.
-Note that a prerequiste for the C++ toolchain is that C++14 must be supported.
+On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows, both Visual
+Studio 15 2017 and MingGW are supported, but we recommend using the former one.
+Note that a prerequisite for the C++ toolchain is that C++14 must be supported.
 
 For the python code, we need some libraries that can be installed in this way:
 
@@ -153,32 +154,58 @@ For the python code, we need some libraries that can be installed in this way:
 Building
 ~~~~~~~~
 
-The preferred way CMake is meant to be used, is by setting up an "out of source" build.
-So in order to build our native code, we have to follow these steps:
+Native (or C++) code must be compiled first in order to use the fastest C++ simulator, but
+scikit-build will take care of all the nifty details, we only need to provide some flags in
+case the default compilation is not enough.
 
-Linux and Mac
-
+This is the most simple way to build the sources:
 .. code::
 
-    qiskit-terra$ mkdir out
-    qiskit-terra$ cd out
-    qiskit-terra/out$ cmake ..
-    qiskit-terra/out$ make
+    qiskit-terra$ python setup.py bdist_wheel
 
-Windows
-
+This will build all native code (C++ simulator) and create the wheel package into the
+``dist/`` directory, so you can install it later via pip:
 .. code::
 
-    C:\..\> mkdir out
-    C:\..\> cd out
-    C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a -G "MinGW Makefiles" ..
-    C:\..\out> make
+    qiskit-terra$ cd dist
+    qiskit-terra/dist$ pip install qiskit-x.x.x-cp36-cp36m-linux_x86_64.whl
 
-As you can see, the Windows cmake command invocation is slightly different from
-the Linux and Mac version, this is because we need to provide CMake with some
-more info about where to find libphreads.a for later building. Furthermore,
-we are forcing CMake to generate MingGW makefiles, because we don't support
-other toolchain at the moment.
+If we just want to build the C++ simulator executable, we can make it as usual:
+.. code::
+
+    qiskit-terra$ python setup.py build
+
+This will generate the C++ simulator executable and put it into the directory:
+.. code::
+
+    qiskit-terra$ cd _skbuild/linux-x86_64-3.6/cmake-install/lib/python3.6/site-packages
+    qiskit-terra/site-packages$ ls
+    qasm_simulator_cpp
+
+Scikit-build command invocation has some special syntax so we can pass CMake specific
+varibles, or parameters to de underlying build system:
+.. code::
+
+    python setup.py bdist_wheel -- <parameters_to_cmake> -- <parameters_to_build_system>
+
+For example, let's assume that we are on Linux and wanted to pass some extra parameters
+to CMake and make a parallel compilation. As we know that on Linux, CMake uses ``Make``
+tool to build the sources by default, we should invoke the command like:
+.. code::
+
+    qiskit-terra$ python ./setup.py build_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j8
+
+Where ``-DCMAKE_CXX_COMPILER=g++-7`` will be passed to CMake as if we were executing:
+.. code::
+
+    cmake -DCMAKE_CXX_COMPILER=g++-7
+
+And ``-j8`` will be passed to the underlying build system, which is ``Make`` in our example,
+so it is the same as executing:
+.. code::
+
+    make -j8
+
 
 Useful CMake flags
 ~~~~~~~~~~~~~~~~~~
@@ -188,7 +215,7 @@ will help you change some default behavior. To make use of them, you just need t
 pass them right after ``-D`` cmake argument. Example:
 .. code::
 
-    qiskit-terra/out$ cmake -DUSEFUL_FLAG=Value ..
+    qiskit-terra$ python setup.py bdist_wheel -- -DUSEFUL_FLAG=Value ..
 
 Flags:
 
@@ -239,51 +266,63 @@ WHEEL_TAG
     Example: ``cmake -DWHEEL_TAG="-pmanylinux1_x86_64" ..``
 
 
+Packaging
+~~~~~~~~~
+Qiskit uses ``wheel`` module for packaging their versions.
+In order to avoid problems with the platform-specific code (native C++ simulator executable)
+we are distributing the executables as static executables, so there's no need for the
+user to install any dependency, the exception is Windows, where we are building a dynamic
+executable, and redistributing a binary version of OpenBLAS built by us.
+Depending on the platform, we run the ``bdist_wheel`` command with different flags.
+For example, to create the PyPi distributable package fon Linux we execute:
+.. code::
+
+    qiskit-terra$ python setup.py bdist_wheel --plat-name manylinux1_x86_64 -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True
+
+For Mac we execute:
+.. code::
+
+    qiskit-terra$ python setup.py bdist_wheel --plat-name macosx-10.6-x86_64 -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True
+
+And for Windows, we execute:
+.. code::
+
+    qiskit-terra$ python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+
+
 Test
 ~~~~
 
 New features often imply changes in the existent tests or new ones are
 needed. Once they're updated/added run this be sure they keep passing.
 
-For executing the tests, a ``make test`` target is available.
-The execution of the tests (both via the make target and during manual invocation)
-takes into account the ``LOG_LEVEL`` environment variable. If present, a ``.log``
-file will be created on the test directory with the output of the log calls, which
-will also be printed to stdout. You can adjust the verbosity via the content
+For executing the tests, we just need to invoke de ``test`` command like:
+.. code::
+
+    qiskit-terra$ python setup.py test
+
+This command will handle the compilation of the C++ simulator executable, and it's
+installation so the tests can use it. Of course, you might want to pass extra parameters
+as we already explained above.
+The execution of the tests takes into account the ``LOG_LEVEL`` environment variable.
+If present, a ``.log`` file will be created on the test directory with the output of the
+log calls, which will also be printed to stdout. You can adjust the verbosity via the content
 of that variable, for example:
 
-Linux and Mac:
-
-.. code-block:: bash
-
-    $ cd out
-    out$ LOG_LEVEL="DEBUG" ARGS="-V" make test
-
-Windows:
-
-.. code-block:: bash
-
-    $ cd out
-    C:\..\out> set LOG_LEVEL="DEBUG"
-    C:\..\out> set ARGS="-V"
-    C:\..\out> make test
-
-For executing a simple python test manually, we don't need to change the directory
-to ``out``, just run this command:
-
+For executing a simple python test manually, we just can:
 
 Linux and Mac:
 
 .. code-block:: bash
 
-    $ LOG_LEVEL=INFO python -m unittest test/python/test_circuit.py
+    $ LOG_LEVEL=INFO python -m unittest test.python.test_example.TestExample.test_example
 
 Windows:
 
 .. code-block:: bash
 
     C:\..\> set LOG_LEVEL="INFO"
-    C:\..\> python -m unittest test/python/test_circuit.py
+    C:\..\> python -m unittest test.python.test_example.TestExample.test_example
 
 Note many of the test will not pass unless you have setup an account with the IBMQ. To set this up please go to
 this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account. 
