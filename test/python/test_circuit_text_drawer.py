@@ -202,6 +202,21 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.cu3(pi / 2, pi / 2, pi / 2, qr[2], qr[0])
         self.assertEqual(text_drawer(circuit), expected)
 
+    def test_text_crz(self):
+        """ crz drawing. """
+        expected = '\n'.join(["                      ┌────────────┐",
+                              "q_0: |0>──────■───────┤ Rz(1.5708) ├",
+                              "        ┌─────┴──────┐└─────┬──────┘",
+                              "q_1: |0>┤ Rz(1.5708) ├──────┼───────",
+                              "        └────────────┘      │       ",
+                              "q_2: |0>────────────────────■───────",
+                              "                                    "])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.crz(pi / 2, qr[0], qr[1])
+        circuit.crz(pi / 2, qr[2], qr[0])
+        self.assertEqual(text_drawer(circuit), expected)
+
     def test_text_cx(self):
         """ cx drawing. """
         expected = '\n'.join(["             ┌───┐",

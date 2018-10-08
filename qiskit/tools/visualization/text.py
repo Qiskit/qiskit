@@ -528,13 +528,20 @@ class TextDrawing():
         return "%s %s" % ('=', instruction['conditional']['val'])
 
     @staticmethod
+    def params_for_label(instruction):
+        """Get the params and format them to add them to a label. None of there is no param."""
+        if 'params' in instruction and instruction['params']:
+                return ['%.5g' % i for i in instruction['params']]
+        return None
+
+    @staticmethod
     def label_for_box(instruction):
         """ Creates the label for a box."""
-        params = ""
-        if 'params' in instruction:
-            if instruction['params']:
-                params += "(%s)" % ','.join(['%.5g' % i for i in instruction['params']])
-        return "%s%s" % (instruction['name'].capitalize(), params)
+        label = instruction['name'].capitalize()
+        params = TextDrawing.params_for_label(instruction)
+        if params:
+            label += "(%s)" % ','.join(params)
+        return label
 
     @staticmethod
     def merge_lines(top, bot, icod="top"):
@@ -686,7 +693,7 @@ class TextDrawing():
 
             elif instruction['name'] == 'cu1':
                 # cu1
-                label = '%.5g' % instruction['params'][0]
+                label = TextDrawing.params_for_label(instruction)[0]
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], Bullet())
                 layer.connect_with("│", label)
@@ -696,6 +703,14 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1],
                                 BoxOnQuWire(TextDrawing.label_for_box(instruction)))
+                layer.connect_with("│")
+
+            elif instruction['name'] == 'crz':
+                # crz
+                label = "Rz(%s)" % TextDrawing.params_for_label(instruction)[0]
+                layer.set_qubit(instruction['qubits'][0], Bullet())
+                layer.set_qubit(instruction['qubits'][1],
+                                BoxOnQuWire(label))
                 layer.connect_with("│")
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
