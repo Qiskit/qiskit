@@ -247,17 +247,14 @@ class DoWhileController(FlowController):
         super().__init__(passes, options, **partial_controller)
 
     def __iter__(self):
-        iteration = 0
-        while True:
+        for iteration in range(self.max_iteration):
             for pass_ in self.passes:
                 yield pass_
-            iteration += 1
-            if iteration >= self.max_iteration:
-                raise TranspilerError("Maximum iteration reached. max_iteration=%i" %
-                                      self.max_iteration)
-            if not self.do_while():
-                break
 
+            if not self.do_while():
+                return
+
+        raise TranspilerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
 
 class ConditionalController(FlowController):
     """Implements a set of passes under certain condition. """
