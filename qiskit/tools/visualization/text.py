@@ -607,8 +607,6 @@ class TextDrawing():
 
         for instruction in self.json_circuit['instructions']:
             layer = Layer(noqubits, noclbits)
-            qubit_layer = layer.qubit_layer
-            clbit_layer = layer.clbit_layer
 
             if instruction['name'] == 'measure':
                 layer.set_qubit(instruction['qubits'][0], MeasureFrom())
@@ -697,7 +695,7 @@ class TextDrawing():
             else:
                 raise Exception("I don't know how to handle this instruction", instruction)
 
-            layers.append(qubit_layer + clbit_layer)
+            layers.append(layer.full_layer)
 
         return layers
 
