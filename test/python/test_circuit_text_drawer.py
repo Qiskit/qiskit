@@ -76,11 +76,17 @@ class TestTextDrawerElement(QiskitTestCase):
     """ Draw each element"""
 
     def assertEqualElement(self, expected, element):
+        """
+        Asserts the top,mid,bot trio
+        Args:
+            expected (list[top,mid,bot]): What is expected.
+            element (DrawElement): The element to check.
+        """
         self.assertEqual(expected[0], element.top)
         self.assertEqual(expected[1], element.mid)
         self.assertEqual(expected[2], element.bot)
 
-    def test_MeasureTo(self):
+    def test_measure_to(self):
         """ MeasureTo element. """
         element = elements.MeasureTo()
         expected = [" ║ ",
@@ -88,7 +94,7 @@ class TestTextDrawerElement(QiskitTestCase):
                     "   "]
         self.assertEqualElement(expected, element)
 
-    def test_MeasureFrom(self):
+    def test_measure_from(self):
         """ MeasureFrom element. """
         element = elements.MeasureFrom()
         expected = ["┌─┐",

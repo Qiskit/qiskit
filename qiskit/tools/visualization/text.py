@@ -29,7 +29,8 @@ class DrawElement():
     @property
     def top(self):
         """ Constructs the top line of the element"""
-        ret = self.top_format % self.top_connect.center(self.width-self.left_fill-self.right_fill, self.top_pad)
+        ret = self.top_format % self.top_connect.center(
+            self.width - self.left_fill - self.right_fill, self.top_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
@@ -39,7 +40,8 @@ class DrawElement():
     @property
     def mid(self):
         """ Constructs the middle line of the element"""
-        ret = self.mid_format % self.mid_content.center(self.width-self.left_fill-self.right_fill, self._mid_padding)
+        ret = self.mid_format % self.mid_content.center(
+            self.width - self.left_fill - self.right_fill, self._mid_padding)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self._mid_padding)
         if self.left_fill:
@@ -49,7 +51,8 @@ class DrawElement():
     @property
     def bot(self):
         """ Constructs the bottom line of the element"""
-        ret = self.bot_format % self.bot_connect.center(self.width-self.left_fill-self.right_fill, self.bot_pad)
+        ret = self.bot_format % self.bot_connect.center(
+            self.width - self.left_fill - self.right_fill, self.bot_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
@@ -79,6 +82,13 @@ class DrawElement():
         self._width = value
 
     def connect(self, wire_char, where, label=None):
+        """
+        Connects boxes and elements using wire_char and setting proper connectors.
+        Args:
+            wire_char (char): For example '║' or '│'.
+            where (list["top", "bot"]): Where the connector should be set.
+            label (string): Some connectors have a label (see cu1, for example).
+        """
         if 'top' in where:
             self.top_connect = self.top_connector[
                 wire_char] if wire_char in self.top_connector else wire_char
@@ -253,6 +263,9 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
 
 
 class DirectOnQuWire(DrawElement):
+    """
+    Element to the wire (without the box).
+    """
     def __init__(self, label=""):
         super().__init__(label)
         self.top_format = ' %s '
@@ -511,10 +524,12 @@ class TextDrawing():
 
     @staticmethod
     def label_for_conditional(instruction):
+        """ Creates the label for a conditional instruction."""
         return "%s %s" % ('=', instruction['conditional']['val'])
 
     @staticmethod
     def label_for_box(instruction):
+        """ Creates the label for a box."""
         params = ""
         if 'params' in instruction:
             if instruction['params']:
@@ -643,7 +658,6 @@ class TextDrawing():
                 layer.set_cl_multibox(clbits, cllabel, top_connect='┴')
                 layer.set_qubit(instruction['qubits'][0], BoxOnQuWire(qulabel, bot_connect='┬'))
 
-
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
                 # cx/ccx
                 for qubit in [qubit for qubit in instruction['qubits'][:-1]]:
@@ -680,7 +694,8 @@ class TextDrawing():
             elif instruction['name'] == 'cu3':
                 # cu3
                 layer.set_qubit(instruction['qubits'][0], Bullet())
-                layer.set_qubit(instruction['qubits'][1], BoxOnQuWire(TextDrawing.label_for_box(instruction)))
+                layer.set_qubit(instruction['qubits'][1],
+                                BoxOnQuWire(TextDrawing.label_for_box(instruction)))
                 layer.connect_with("│")
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
@@ -701,21 +716,40 @@ class TextDrawing():
 
 
 class Layer:
+    """ A layer is the "column" of the circuit. """
     def __init__(self, noqubits, noclbits):
         self.qubit_layer = [None] * noqubits
         self.clbit_layer = [None] * noclbits
 
     @property
     def full_layer(self):
+        """
+        Returns the composition of qubits and classic wires.
+        Returns:
+            String: self.qubit_layer + self.clbit_layer
+        """
         return self.qubit_layer + self.clbit_layer
 
     def set_qubit(self, qubit, element):
+        """
+        Sets the qubit to the element
+        Args:
+            qubit (int): Qubit index.
+            element (DrawElement): Element to set in the qubit
+        """
         self.qubit_layer[qubit] = element
 
     def set_clbit(self, clbit, element):
+        """
+        Sets the clbit to the element
+        Args:
+            clbit (int): Clbit index.
+            element (DrawElement): Element to set in the clbit
+        """
         self.clbit_layer[clbit] = element
 
     def _set_multibox(self, wire_type, bits, label, top_connect=None):
+        # pylint: disable=invalid-name
         bits = sorted(bits)
         if wire_type == "cl":
             set_bit = self.set_clbit
@@ -744,12 +778,31 @@ class Layer:
             set_bit(bits[-1], BoxOnWireBot(label, len(bits)))
 
     def set_cl_multibox(self, bits, label, top_connect='┴'):
+        """
+        Sets the multi clbit box.
+        Args:
+            bits (list[int]): A list of affected bits.
+            label (string): The label for the multi clbit box.
+            top_connect (char): The char to connect the box on the top.
+        """
         self._set_multibox("cl", bits, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label):
+        """
+        Sets the multi qubit box.
+        Args:
+            bits (list[int]): A list of affected bits.
+            label (string): The label for the multi qubit box.
+        """
         self._set_multibox("qu", bits, label)
 
     def connect_with(self, wire_char, label=None):
+        """
+        Connects the elements in the layer using wire_char.
+        Args:
+            wire_char (char): For example '║' or '│'.
+            label (string): Some connectors have a label (see cu1, for example).
+        """
         affected_bits = [bit for bit in self.full_layer if bit is not None]
         affected_bits[0].connect(wire_char, ['bot'])
         for affected_bit in affected_bits[1:-1]:
@@ -758,7 +811,7 @@ class Layer:
 
         if label:
             for affected_bit in affected_bits:
-                affected_bit.right_fill = len(label)+len(affected_bit.mid)
+                affected_bit.right_fill = len(label) + len(affected_bit.mid)
 
 
 def text_drawer(circuit, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
