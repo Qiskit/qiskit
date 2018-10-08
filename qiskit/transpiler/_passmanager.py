@@ -48,10 +48,6 @@ class PassManager():
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
 
-        # Default controllers
-        FlowController.add_flow_controller('condition', ConditionalController)
-        FlowController.add_flow_controller('do_while', DoWhileController)
-
     def _join_options(self, passset_options):
         """ Set the options of each passset, based on precedence rules:
         passset options (set via ``PassManager.add_passes()``) override
@@ -235,6 +231,7 @@ class FlowController():
 
 class FlowControllerLinear(FlowController):
     """ The basic controller run the passes one after the other one. """
+
     def __init__(self, passes, options):  # pylint: disable=super-init-not-called
         self.passes = passes
         self.options = options
@@ -274,3 +271,8 @@ class ConditionalController(FlowController):
         if self.condition():
             for pass_ in self.passes:
                 yield pass_
+
+
+# Default controllers
+FlowController.add_flow_controller('condition', ConditionalController)
+FlowController.add_flow_controller('do_while', DoWhileController)
