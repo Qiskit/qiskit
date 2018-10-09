@@ -25,6 +25,7 @@ from fractions import Fraction
 from io import StringIO
 from itertools import groupby, zip_longest
 from math import fmod, isclose, ceil
+import warnings
 
 import numpy as np
 from PIL import Image, ImageChops
@@ -48,6 +49,9 @@ def plot_circuit(circuit,
     """Plot and show circuit (opens new window, cannot inline in Jupyter)
     Defaults to an overcomplete basis, in order to not alter gates.
     """
+    warnings.warn('The plot_circuit() function is deprecated and will be '
+                  'removed in the future. Instead use circuit_drawer() with '
+                  'the `interactive` flag set true', DeprecationWarning)
     im = circuit_drawer(circuit, basis=basis, scale=scale, style=style)
     if im:
         im.show()
@@ -58,7 +62,9 @@ def circuit_drawer(circuit,
                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                    scale=0.7,
                    filename=None,
-                   style=None):
+                   style=None,
+                   output=None,
+                   interactive=False):
     """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
 
     1. latex: high-quality images, but heavy external software dependencies
@@ -72,14 +78,48 @@ def circuit_drawer(circuit,
         scale (float): scale of image to draw (shrink if < 1)
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
+        output (str): Select the output method to use for drawing the circuit.
+            Valid choices are `latex`, `latex_source`, `python`. Note if one is
+            not specified it will use latex and if that fails fallback to
+            python. However this behavior is deprecated and in a future release
+            the default will change.
+        interactive (bool): when set true show the circuit in a new window
+            (cannot inline in Jupyter). Note when used with the latex_source
+            output type this has no effect
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
+
+    Raises:
+        VisualizationError: when an invalid output method is selected
     """
-    try:
-        return latex_circuit_drawer(circuit, basis, scale, filename, style)
-    except (OSError, subprocess.CalledProcessError):
-        return matplotlib_circuit_drawer(circuit, basis, scale, filename, style)
+
+    im = None
+    if not output:
+        warnings.warn('The current behavior for the default output will change'
+                      ' in a future release. Instead of trying latex and '
+                      'falling back to python on failure it will just use '
+                      'python by default', DeprecationWarning)
+        try:
+            im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
+        except (OSError, subprocess.CalledProcessError):
+            im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
+                                            style)
+    else:
+        if output not in ['latex', 'latex_source', 'python']:
+            raise VisualizationError(
+                'Invalid output type %s selected. The only valid choices are '
+                'latex, latex_source, and python' % output)
+        if output == 'latex':
+            im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
+        elif output == 'latex_source':
+            return _generate_latex_source(circuit, basis, scale, filename, style)
+        elif output == 'python':
+            im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
+                                            style)
+    if im and interactive:
+        im.show()
+    return im
 
 
 # -----------------------------------------------------------------------------
@@ -252,6 +292,7 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 # latex_circuit_drawer
 # -----------------------------------------------------------------------------
+
 def latex_circuit_drawer(circuit,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
@@ -277,11 +318,44 @@ def latex_circuit_drawer(circuit,
                  missing.
         CalledProcessError: usually points errors during diagram creation.
     """
+    warnings.warn('The latex_circuit_drawer() function is deprecated and will '
+                  'be removed in a future release. Instead use the '
+                  'circuit_drawer() function with the `output` kwarg set to '
+                  '`latex`.', DeprecationWarning)
+    return _latex_circuit_drawer(circuit, basis=basis, scale=scale,
+                                 filename=filename, style=style)
+
+
+def _latex_circuit_drawer(circuit,
+                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                          scale=0.7,
+                          filename=None,
+                          style=None):
+    """Draw a quantum circuit based on latex (Qcircuit package)
+
+    Requires version >=2.6.0 of the qcircuit LaTeX package.
+
+    Args:
+        circuit (QuantumCircuit): a quantum circuit
+        basis (str): comma separated list of gates
+        scale (float): scaling factor
+        filename (str): file path to save image to
+        style (dict or str): dictionary of style or file name of style file
+
+    Returns:
+        PIL.Image: an in-memory representation of the circuit diagram
+
+    Raises:
+        OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
+                 missing.
+        CalledProcessError: usually points errors during diagram creation.
+    """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        generate_latex_source(circuit, filename=tmppath, basis=basis,
-                              scale=scale, style=style)
+        _generate_latex_source(circuit, filename=tmppath, basis=basis,
+                               scale=scale, style=style)
         im = None
         try:
 
@@ -338,6 +412,30 @@ def generate_latex_source(circuit, filename=None,
                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                           scale=0.7, style=None):
+    """Convert QuantumCircuit to LaTeX string.
+
+    Args:
+        circuit (QuantumCircuit): input circuit
+        scale (float): image scaling
+        filename (str): optional filename to write latex
+        basis (str): optional comma-separated list of gate names
+        style (dict or str): dictionary of style or file name of style file
+
+    Returns:
+        str: Latex string appropriate for writing to file.
+    """
+    warnings.warn('The generate_latex_source() function is deprecated and will'
+                  ' be removed in a future release. Instead use the '
+                  'circuit_drawer() function with the `output` kwarg set to '
+                  '`latex_source`.', DeprecationWarning)
+    return _generate_latex_source(circuit, filename=filename, basis=basis,
+                                  scale=scale, style=style)
+
+
+def _generate_latex_source(circuit, filename=None,
+                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                           scale=0.7, style=None):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -1373,6 +1471,35 @@ def matplotlib_circuit_drawer(circuit,
                               scale=0.7,
                               filename=None,
                               style=None):
+    """Draw a quantum circuit based on matplotlib.
+    If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
+    We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
+
+    Args:
+        circuit (QuantumCircuit): a quantum circuit
+        basis (str): comma separated list of gates
+        scale (float): scaling factor
+        filename (str): file path to save image to
+        style (dict or str): dictionary of style or file name of style file
+
+    Returns:
+        PIL.Image: an in-memory representation of the circuit diagram
+    """
+    warnings.warn('The matplotlib_circuit_drawer() function is deprecated and '
+                  'will be removed in a future release. Instead use the '
+                  'circuit_drawer() function with the `output` kwarg set to '
+                  '`python`.', DeprecationWarning)
+    return _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
+                                      filename=filename, style=style)
+
+
+def _matplotlib_circuit_drawer(circuit,
+                               basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,'
+                                     'ry,rz,cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,'
+                                     'cswap',
+                               scale=0.7,
+                               filename=None,
+                               style=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
