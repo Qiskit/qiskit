@@ -10,6 +10,7 @@
     "results": [
         {"header": {"exp_descrip": "Ground state calibration"},
         "shots": 1024,
+        "seed": 88,
         "status": "DONE",
         "success": true,
         "meas_return": "avg",
@@ -19,6 +20,7 @@
         },
         {"header": {"exp_descrip": "Excited state calibration"},
         "shots": 1024,
+        "seed": 88,
         "status": "DONE",
         "success": true,
         "meas_return": "avg",
@@ -28,6 +30,7 @@
         },
         {"header": {"exp_descrip": "T1", "t1_time": 0},
         "shots": [1020,1024],
+        "seed": 88,
         "status": "DONE",
         "success": true,
         "meas_return": "single",
