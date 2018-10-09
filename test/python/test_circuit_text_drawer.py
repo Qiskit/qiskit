@@ -13,12 +13,23 @@ import os
 import unittest
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.tools.visualization.text import text_drawer
-from qiskit.tools.visualization import text as elements
 from qiskit.wrapper._circuittoolkit import circuit_from_qasm_string
 from .common import QiskitTestCase
 
+try:
+    from qiskit.tools.visualization.text import text_drawer
+    from qiskit.tools.visualization import text as elements
 
+    VALID_MATPLOTLIB = True
+except (RuntimeError, ImportError):
+    # Under some combinations (travis osx vms, or headless configurations)
+    # matplotlib might not be fully, raising:
+    # RuntimeError: Python is not installed as a framework.
+    # when importing. If that is the case, the full test is skipped.
+    VALID_MATPLOTLIB = False
+
+
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestTextDrawerBigCircuit(QiskitTestCase):
     """ General cases and use cases, using big circuits. """
 
