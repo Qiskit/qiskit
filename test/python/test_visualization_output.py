@@ -12,13 +12,16 @@ Useful for refactoring purposes."""
 
 import os
 import unittest
+from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from .common import QiskitTestCase
 
 try:
     from qiskit.tools.visualization import (latex_circuit_drawer,
-                                            matplotlib_circuit_drawer)
+                                            matplotlib_circuit_drawer,
+                                            text_circuit_drawer)
+
     VALID_MATPLOTLIB = True
 except (RuntimeError, ImportError):
     # Under some combinations (travis osx vms, or headless configurations)
@@ -38,14 +41,14 @@ def _this_directory():
 
 # TODO: Enable for refactoring purposes and enable by default when we can
 # decide if the backend is available or not.
-@unittest.skip('Useful for refactoring purposes, skipping by default.')
+# @unittest.skip('Useful for refactoring purposes, skipping by default.')
 @unittest.skipIf(not VALID_MATPLOTLIB, 'matplotlib not available.')
 class TestVisualizationImplementation(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
     latex_reference = _path_to_diagram_reference('latex_ref.png')
-
     matplotlib_reference = _path_to_diagram_reference('matplotlib_ref.png')
+    text_reference = _path_to_diagram_reference('text_ref.txt')
 
     def sample_circuit(self):
         """Generate a sample circuit that includes the most common elements of
@@ -102,6 +105,24 @@ class TestVisualizationImplementation(QiskitTestCase):
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
+    def test_text_drawer(self):
+        filename = self._get_resource_path('current_textplot.txt')
+        qc = self.sample_circuit()
+        output = text_circuit_drawer(qc, filename=filename)
+        self.assertFilesAreEqual(filename, self.text_reference)
+        os.remove(filename)
+        try:
+            encode(output, encoding='cp437')
+        except UnicodeEncodeError:
+            self.fail("text_circuit_drawer() should only use extended ascii (aka code page 437).")
+
+    def assertFilesAreEqual(self, current, expected):
+        """Checks if both file are the same."""
+        self.assertTrue(os.path.exists(current))
+        self.assertTrue(os.path.exists(expected))
+        with open(current, "r") as cur, open(expected, "r") as exp:
+            self.assertEquals(cur.read(), exp.read())
+
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled by the ```diff_tolerance``` argument."""
@@ -115,7 +136,7 @@ class TestVisualizationImplementation(QiskitTestCase):
         diff = ImageChops.difference(expected, current)
         black_pixels = _get_black_pixels(diff)
         total_pixels = diff.size[0] * diff.size[1]
-        similarity_ratio = black_pixels/total_pixels
+        similarity_ratio = black_pixels / total_pixels
         self.assertTrue(
             1 - similarity_ratio < diff_tolerance,
             'The images are different by more than a {}%'

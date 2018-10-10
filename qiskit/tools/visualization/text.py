@@ -9,10 +9,6 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import transpile
-
-
 class DrawElement():
     """ An element is an instruction or an operation that need to be drawn."""
 
@@ -277,15 +273,15 @@ class DirectOnQuWire(DrawElement):
 
 class Barrier(DirectOnQuWire):
     """ Draws a barrier.
-        top:  ¦     ¦
-        mid: ─¦─ ───¦───
-        bot:  ¦     ¦
+        top:  ░     ░
+        mid: ─░─ ───░───
+        bot:  ░     ░
     """
 
     def __init__(self, label=""):
-        super().__init__("¦")
-        self.top_connect = "¦"
-        self.bot_connect = "¦"
+        super().__init__("░")
+        self.top_connect = "░"
+        self.bot_connect = "░"
 
 
 class Ex(DirectOnQuWire):
@@ -569,7 +565,7 @@ class TextDrawing():
                 ret += '╪'
             elif topc in '┬│' and botc == "─":
                 ret += '┼'
-            elif topc in '└┘║│¦' and botc == " ":
+            elif topc in '└┘║│░' and botc == " ":
                 ret += topc
             elif topc in '─═' and botc == " " and icod == "top":
                 ret += topc
@@ -829,22 +825,3 @@ class Layer:
         if label:
             for affected_bit in affected_bits:
                 affected_bit.right_fill = len(label) + len(affected_bit.mid)
-
-
-def text_drawer(circuit, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
-    """
-    Draws a circuit using ascii art.
-    Args:
-        circuit (QuantumCircuit): Input circuit
-        basis (str): Optional. Comma-separated list of gate names
-        line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
-                           you maximum line length your console supports.
-
-    Returns:
-        String: The drawing in a loooong string.
-    """
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
-
-    return "\n".join(TextDrawing(json_circuit).lines(line_length))

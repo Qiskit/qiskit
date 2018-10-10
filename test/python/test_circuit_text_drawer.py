@@ -7,17 +7,17 @@
 
 # pylint: disable = no-member
 
-""" `text_drawer` "draws" a circuit in "ascii art" """
+""" `text_circuit_drawer` "draws" a circuit in "ascii art" """
 
-import os
 import unittest
 from math import pi
+from codecs import encode
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.wrapper._circuittoolkit import circuit_from_qasm_string
 from .common import QiskitTestCase
 
 try:
-    from qiskit.tools.visualization.text import text_drawer
+    from qiskit.tools.visualization import text_circuit_drawer
     from qiskit.tools.visualization import text as elements
 
     VALID_MATPLOTLIB = True
@@ -30,59 +30,6 @@ except (RuntimeError, ImportError):
 
 
 @unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
-class TestTextDrawerBigCircuit(QiskitTestCase):
-    """ General cases and use cases, using big circuits. """
-
-    def test_text_sample_circuit(self):
-        """ Draw a sample circuit that includes the most common elements of quantum circuits. (taken
-        from test/python/test_visualization_output.py:TestVisualizationImplementation:sample_circuit
-        """
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
-        circuit = QuantumCircuit(qr, cr)
-        circuit.x(qr[0])
-        circuit.y(qr[0])
-        circuit.z(qr[0])
-        circuit.barrier(qr)
-        circuit.h(qr[0])
-        circuit.s(qr[0])
-        circuit.sdg(qr[0])
-        circuit.t(qr[0])
-        circuit.tdg(qr[0])
-        circuit.iden(qr[0])
-        circuit.reset(qr[0])
-        circuit.rx(pi, qr[0])
-        circuit.ry(pi, qr[0])
-        circuit.rz(pi, qr[0])
-        circuit.u0(pi, qr[0])
-        circuit.u1(pi, qr[0])
-        circuit.u2(pi, pi, qr[0])
-        circuit.u3(pi, pi, pi, qr[0])
-        circuit.swap(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.cy(qr[0], qr[1])
-        circuit.cz(qr[0], qr[1])
-        circuit.ch(qr[0], qr[1])
-        circuit.cu1(pi, qr[0], qr[1])
-        circuit.cu3(pi, pi, pi, qr[0], qr[1])
-        circuit.crz(pi, qr[0], qr[1])
-        circuit.ccx(qr[0], qr[1], qr[2])
-        circuit.cswap(qr[0], qr[1], qr[2])
-        circuit.measure(qr, cr)
-        path = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(path, 'references', 'text_ref.txt'), encoding="utf8") as file:
-            self.assertEqual(file.read().rstrip('\n'), text_drawer(circuit))
-
-    def test_text_pager(self):
-        """ The pager breaks the circuit when the drawing does not fit in the console."""
-        qr = QuantumRegister(1, 'q')
-        circuit = QuantumCircuit(qr)
-        no_instructions = 50
-        for _ in range(no_instructions):
-            circuit.x(qr[0])
-        self.assertEqual(text_drawer(circuit, line_length=10).count('\n'), no_instructions * 3 + 2)
-
-
 class TestTextDrawerElement(QiskitTestCase):
     """ Draw each element"""
 
@@ -93,6 +40,11 @@ class TestTextDrawerElement(QiskitTestCase):
             expected (list[top,mid,bot]): What is expected.
             element (DrawElement): The element to check.
         """
+        try:
+            encode('\n'.join(expected), encoding='cp437')
+        except UnicodeEncodeError:
+            self.fail("text_circuit_drawer() should only use extended ascii (aka code page 437).")
+
         self.assertEqual(expected[0], element.top)
         self.assertEqual(expected[1], element.mid)
         self.assertEqual(expected[2], element.bot)
@@ -113,7 +65,18 @@ class TestTextDrawerElement(QiskitTestCase):
                     "└╥┘"]
         self.assertEqualElement(expected, element)
 
+    def test_text_pager(self):
+        """ The pager breaks the circuit when the drawing does not fit in the console."""
+        qr = QuantumRegister(1, 'q')
+        circuit = QuantumCircuit(qr)
+        no_instructions = 50
+        for _ in range(no_instructions):
+            circuit.x(qr[0])
+        self.assertEqual(text_circuit_drawer(circuit, line_length=10).count('\n'),
+                         no_instructions * 3 + 2)
 
+
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """ Gate by gate checks in different settings."""
 
@@ -136,7 +99,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_measure_2(self):
         """ The measure operator, using some registers. """
@@ -163,7 +126,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         cr2 = ClassicalRegister(2, 'c2')
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
         circuit.measure(qr2, cr2)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_swap(self):
         """ Swap drawing. """
@@ -180,7 +143,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr2 = QuantumRegister(2, 'q2')
         circuit = QuantumCircuit(qr1, qr2)
         circuit.swap(qr1, qr2)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_cswap(self):
         """ CSwap drawing. """
@@ -196,7 +159,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.cswap(qr[1], qr[0], qr[2])
         circuit.cswap(qr[2], qr[1], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_cu3(self):
         """ cu3 drawing. """
@@ -211,7 +174,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1])
         circuit.cu3(pi / 2, pi / 2, pi / 2, qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_crz(self):
         """ crz drawing. """
@@ -226,7 +189,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.crz(pi / 2, qr[0], qr[1])
         circuit.crz(pi / 2, qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_cx(self):
         """ cx drawing. """
@@ -241,7 +204,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_cy(self):
         """ cy drawing. """
@@ -256,7 +219,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cy(qr[0], qr[1])
         circuit.cy(qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_cz(self):
         """ cz drawing. """
@@ -271,7 +234,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cz(qr[0], qr[1])
         circuit.cz(qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_ch(self):
         """ ch drawing. """
@@ -286,7 +249,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.ch(qr[0], qr[1])
         circuit.ch(qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_cu1(self):
         """ cu1 drawing. """
@@ -301,7 +264,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cu1(pi / 2, qr[0], qr[1])
         circuit.cu1(pi / 2, qr[2], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_ccx(self):
         """ cx drawing. """
@@ -317,7 +280,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.ccx(qr[0], qr[1], qr[2])
         circuit.ccx(qr[2], qr[0], qr[1])
         circuit.ccx(qr[2], qr[1], qr[0])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_reset(self):
         """ Reset drawing. """
@@ -335,7 +298,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.reset(qr1)
         circuit.reset(qr2[1])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_single_gate(self):
         """ Single Qbit gate drawing. """
@@ -353,25 +316,25 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.h(qr1)
         circuit.h(qr2[1])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_barrier(self):
         """ Barrier drawing. """
-        expected = '\n'.join(["             ¦ ",
-                              "q1_0: |0>────¦─",
-                              "             ¦ ",
-                              "q1_1: |0>────¦─",
-                              "             ¦ ",
+        expected = '\n'.join(["             ░ ",
+                              "q1_0: |0>────░─",
+                              "             ░ ",
+                              "q1_1: |0>────░─",
+                              "             ░ ",
                               "q2_0: |0>──────",
-                              "          ¦    ",
-                              "q2_1: |0>─¦────",
-                              "          ¦    "])
+                              "          ░    ",
+                              "q2_1: |0>─░────",
+                              "          ░    "])
         qr1 = QuantumRegister(2, 'q1')
         qr2 = QuantumRegister(2, 'q2')
         circuit = QuantumCircuit(qr1, qr2)
         circuit.barrier(qr1)
         circuit.barrier(qr2[1])
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_1(self):
         """ Conditional drawing with 1-bit-length regs."""
@@ -392,7 +355,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "c1_0: 0 ═════════╡ = 0x1 ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_2(self):
         """ Conditional drawing with 2-bit-length regs."""
@@ -417,7 +380,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "c1_1: 0 ═════════╡       ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_3(self):
         """ Conditional drawing with 3-bit-length regs."""
@@ -446,7 +409,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "c1_2: 0 ═════════╡       ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_4(self):
         """ Conditional drawing with 4-bit-length regs."""
@@ -479,7 +442,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "c1_3: 0 ═════════╡       ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_5(self):
         """ Conditional drawing with 5-bit-length regs."""
@@ -516,7 +479,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "c1_4: 0 ═════════╡       ╞",
                               "                 └───────┘"])
         circuit = circuit_from_qasm_string(qasm_string)
-        self.assertEqual(text_drawer(circuit), expected)
+        self.assertEqual(text_circuit_drawer(circuit), expected)
 
 
 if __name__ == '__main__':

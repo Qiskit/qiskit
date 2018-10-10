@@ -9,6 +9,7 @@
 
 """
 Two quantum circuit drawers based on:
+    0. Ascii art
     1. LaTeX
     2. Matplotlib
 """
@@ -37,6 +38,7 @@ from qiskit.wrapper import load_qasm_file
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization._error import VisualizationError
 from qiskit.transpiler import transpile
+from .text import TextDrawing
 
 logger = logging.getLogger(__name__)
 
@@ -287,6 +289,34 @@ def qx_color_scheme():
         "creglinestyle": "solid",
         "reversebits": False
     }
+
+# -----------------------------------------------------------------------------
+# text_circuit_drawer
+# -----------------------------------------------------------------------------
+
+def text_circuit_drawer(circuit, filename=None, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
+    """
+    Draws a circuit using ascii art.
+    Args:
+        circuit (QuantumCircuit): Input circuit
+        filename (str): optional filename to write the result
+        basis (str): Optional. Comma-separated list of gate names
+        line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
+                           you maximum line length your console supports.
+
+    Returns:
+        String: The drawing in a loooong string.
+    """
+    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
+
+    text = "\n".join(TextDrawing(json_circuit).lines(line_length))
+
+    if filename:
+        with open(filename, 'w') as text_file:
+            text_file.write(text)
+    return text
 
 
 # -----------------------------------------------------------------------------
