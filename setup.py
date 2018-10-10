@@ -17,7 +17,7 @@ from setuptools.dist import Distribution
 
 requirements = [
     "jsonschema>=2.6,<2.7",
-    "IBMQuantumExperience>=2.0.3",
+    "IBMQuantumExperience>=2.0.4",
     "matplotlib>=2.1",
     "networkx>=2.0",
     "numpy>=1.13",
