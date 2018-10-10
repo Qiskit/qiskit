@@ -65,11 +65,11 @@ def circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
                    style=None,
-                   output="text",
+                   output=None,
                    interactive=False,
                    line_length=None):
     """Draw a quantum circuit to different formats (set by output parameter):
-
+    0. text: ASCII art string
     1. latex: high-quality images, but heavy external software dependencies
     2. matplotlib: purely in Python with no external dependencies
 
@@ -82,8 +82,8 @@ def circuit_drawer(circuit,
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
         output (str): Select the output method to use for drawing the circuit.
-            Valid choices are `latex`, `latex_source`, `python`. Note if one is
-            not specified it will use latex and if that fails fallback to
+            Valid choices are `text`, `latex`, `latex_source`, `python`. Note if
+            one is not specified it will use latex and if that fails fallback to
             python. However this behavior is deprecated and in a future release
             the default will change.
         interactive (bool): when set true show the circuit in a new window
@@ -102,7 +102,7 @@ def circuit_drawer(circuit,
         warnings.warn('The current behavior for the default output will change'
                       ' in a future release. Instead of trying latex and '
                       'falling back to python on failure it will just use '
-                      'python by default', DeprecationWarning)
+                      '"text" by default', DeprecationWarning)
         try:
             im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
         except (OSError, subprocess.CalledProcessError):
