@@ -111,12 +111,15 @@ def circuit_drawer(circuit,
                 'Invalid output type %s selected. The only valid choices are '
                 'latex, latex_source, and python' % output)
         if output == 'latex':
-            im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
+            im = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
+                                       filename=filename, style=style)
         elif output == 'latex_source':
-            return _generate_latex_source(circuit, basis, scale, filename, style)
+            return _generate_latex_source(circuit, basis=basis,
+                                          filename=filename, scale=scale,
+                                          style=style)
         elif output == 'python':
-            im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
-                                            style)
+            im = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
+                                            filename=filename, style=style)
     if im and interactive:
         im.show()
     return im
