@@ -123,7 +123,8 @@ class TestVisualizationImplementation(QiskitTestCase):
         """Checks if both file are the same."""
         self.assertTrue(os.path.exists(current))
         self.assertTrue(os.path.exists(expected))
-        with open(current, "r") as cur, open(expected, "r") as exp:
+        with open(current, "r", encoding='cp437') as cur,\
+                open(expected, "r", encoding='cp437') as exp:
             self.assertEqual(cur.read(), exp.read())
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
