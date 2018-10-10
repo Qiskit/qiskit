@@ -109,11 +109,6 @@ def circuit_drawer(circuit,
             im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
                                             style)
     else:
-        if output not in ['latex', 'latex_source', 'python', 'text']:
-            raise VisualizationError(
-                'Invalid output type %s selected. The only valid choices are '
-                'latex, latex_source, text, and python' % output)
-
         if output == 'text':
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
                                         line_length=line_length)
@@ -127,6 +122,9 @@ def circuit_drawer(circuit,
         elif output == 'python':
             im = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
                                             filename=filename, style=style)
+        else:
+            raise VisualizationError('Invalid output type %s selected. The only valid choices '
+                                     'are latex, latex_source, text, and python' % output)
     if im and interactive:
         im.show()
     return im
