@@ -278,7 +278,7 @@ class IBMQJob(BaseJob):
             # TODO: See result values
             api_job = self._api.get_status_job(self._job_id)
             if 'status' not in api_job:
-                raise JobError('get_job didn\'t return status: %s' %
+                raise JobError('get_status_job didn\'t return status: %s' %
                                pprint.pformat(api_job))
         # pylint: disable=broad-except
         except Exception as err:
