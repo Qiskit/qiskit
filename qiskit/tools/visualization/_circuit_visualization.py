@@ -1325,9 +1325,8 @@ class QCircuitImage(object):
                                 span = re.search('barrier{(.*)}', prev_entry)
                                 if span and any(i in temp for i in range(
                                         item, int(span.group(1)))):
-                                    self._latex[
-                                        item][columns - 1] = prev_entry.replace(
-                                        '\\barrier{', '\\barrier[-0.65em]{')
+                                    self._latex[item][columns - 1] = \
+                                        prev_entry.replace('\\barrier{', '\\barrier[-0.65em]{')
 
                         gap = pos_4 - bottom
                         for i in range(self.cregs[if_reg]):
@@ -1372,9 +1371,8 @@ class QCircuitImage(object):
                                 span = re.search('barrier{(.*)}', prev_entry)
                                 if span and any(i in temp for i in range(
                                         item, int(span.group(1)))):
-                                    self._latex[
-                                        item][columns - 1] = prev_entry.replace(
-                                        '\\barrier{', '\\barrier[-0.65em]{')
+                                    self._latex[item][columns - 1] = \
+                                        prev_entry.replace('\\barrier{', '\\barrier[-0.65em]{')
 
                         if nm == "ccx":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -1425,9 +1423,8 @@ class QCircuitImage(object):
                             span = re.search('barrier{(.*)}', prev_entry)
                             if span and (
                                     item + int(span.group(1))) - pos_1 >= 0:
-                                self._latex[
-                                    item][columns - 1] = prev_entry.replace(
-                                    '\\barrier{', '\\barrier[-1.15em]{')
+                                self._latex[item][columns - 1] = \
+                                    prev_entry.replace('\\barrier{', '\\barrier[-1.15em]{')
 
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
