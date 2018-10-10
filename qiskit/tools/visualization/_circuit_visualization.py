@@ -66,8 +66,9 @@ def circuit_drawer(circuit,
                    filename=None,
                    style=None,
                    output="text",
-                   interactive=False):
-    """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
+                   interactive=False,
+                   line_length=None):
+    """Draw a quantum circuit to different formats (set by output parameter):
 
     1. latex: high-quality images, but heavy external software dependencies
     2. matplotlib: purely in Python with no external dependencies
@@ -111,10 +112,11 @@ def circuit_drawer(circuit,
         if output not in ['latex', 'latex_source', 'python', 'text']:
             raise VisualizationError(
                 'Invalid output type %s selected. The only valid choices are '
-                'latex, latex_source, and python' % output)
+                'latex, latex_source, text, and python' % output)
 
         if output == 'text':
-            im = _text_circuit_drawer(circuit, filename=filename, basis=basis)
+            return _text_circuit_drawer(circuit, filename=filename, basis=basis,
+                                        line_length=line_length)
         elif output == 'latex':
             im = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
                                        filename=filename, style=style)
