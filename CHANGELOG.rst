@@ -22,6 +22,7 @@ Added
 -----
 
 - Added DAG visualizer (#1059)
+- Added a ASCII art circuit visualizer (#909)
 
 Changed
 -------
