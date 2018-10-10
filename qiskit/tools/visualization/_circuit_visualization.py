@@ -108,7 +108,7 @@ def circuit_drawer(circuit,
                       '"text" by default', DeprecationWarning)
         try:
             im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
-        except (OSError, subprocess.CalledProcessError):
+        except (OSError, subprocess.CalledProcessError, FileNotFoundError):
             im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
                                             style)
     else:
