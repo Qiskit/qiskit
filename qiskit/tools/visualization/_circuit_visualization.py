@@ -82,9 +82,9 @@ def circuit_drawer(circuit,
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
         output (str): Select the output method to use for drawing the circuit.
-            Valid choices are `text`, `latex`, `latex_source`, `python`. Note if
-            one is not specified it will use latex and if that fails fallback to
-            python. However this behavior is deprecated and in a future release
+            Valid choices are `text`, `latex`, `latex_source`, `mpl`. Note if one
+            is not specified it will use latex and if that fails fallback to
+            mpl. However this behavior is deprecated and in a future release
             the default will change.
         interactive (bool): when set true show the circuit in a new window
             (cannot inline in Jupyter). Note when used with the latex_source
@@ -104,7 +104,7 @@ def circuit_drawer(circuit,
     if not output:
         warnings.warn('The current behavior for the default output will change'
                       ' in a future release. Instead of trying latex and '
-                      'falling back to python on failure it will just use '
+                      'falling back to mpl on failure it will just use '
                       '"text" by default', DeprecationWarning)
         try:
             im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
@@ -122,12 +122,12 @@ def circuit_drawer(circuit,
             return _generate_latex_source(circuit, basis=basis,
                                           filename=filename, scale=scale,
                                           style=style)
-        elif output == 'python':
+        elif output == 'mpl':
             im = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
                                             filename=filename, style=style)
         else:
             raise VisualizationError('Invalid output type %s selected. The only valid choices '
-                                     'are latex, latex_source, text, and python' % output)
+                                     'are latex, latex_source, text, and mpl' % output)
     if im and interactive:
         im.show()
     return im
@@ -1530,7 +1530,7 @@ def matplotlib_circuit_drawer(circuit,
     warnings.warn('The matplotlib_circuit_drawer() function is deprecated and '
                   'will be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
-                  '`python`.', DeprecationWarning)
+                  '`mpl`.', DeprecationWarning)
     return _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
                                       filename=filename, style=style)
 
