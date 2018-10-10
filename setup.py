@@ -25,7 +25,8 @@ requirements = [
     "scipy>=0.19,!=0.19.1",
     "sympy>=1.0",
     "pillow>=4.2.1",
-    "psutil>=5"
+    "psutil>=5",
+    "nxpd>=0.2"
 ]
 
 
