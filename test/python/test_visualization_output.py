@@ -20,7 +20,7 @@ from .common import QiskitTestCase
 try:
     from qiskit.tools.visualization import (latex_circuit_drawer,
                                             matplotlib_circuit_drawer,
-                                            text_circuit_drawer)
+                                            circuit_drawer)
 
     VALID_MATPLOTLIB = True
 except (RuntimeError, ImportError):
@@ -108,20 +108,20 @@ class TestVisualizationImplementation(QiskitTestCase):
     def test_text_drawer(self):
         filename = self._get_resource_path('current_textplot.txt')
         qc = self.sample_circuit()
-        output = text_circuit_drawer(qc, filename=filename)
+        output = circuit_drawer(qc, filename=filename)
         self.assertFilesAreEqual(filename, self.text_reference)
         os.remove(filename)
         try:
             encode(output, encoding='cp437')
         except UnicodeEncodeError:
-            self.fail("text_circuit_drawer() should only use extended ascii (aka code page 437).")
+            self.fail("_text_circuit_drawer() should only use extended ascii (aka code page 437).")
 
     def assertFilesAreEqual(self, current, expected):
         """Checks if both file are the same."""
         self.assertTrue(os.path.exists(current))
         self.assertTrue(os.path.exists(expected))
         with open(current, "r") as cur, open(expected, "r") as exp:
-            self.assertEquals(cur.read(), exp.read())
+            self.assertEqual(cur.read(), exp.read())
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.

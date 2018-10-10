@@ -65,7 +65,7 @@ def circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
                    style=None,
-                   output=None,
+                   output="text",
                    interactive=False):
     """Draw a quantum circuit, via 2 methods (try 1st, if unsuccessful, 2nd):
 
@@ -108,11 +108,13 @@ def circuit_drawer(circuit,
             im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
                                             style)
     else:
-        if output not in ['latex', 'latex_source', 'python']:
+        if output not in ['latex', 'latex_source', 'python', 'text']:
             raise VisualizationError(
                 'Invalid output type %s selected. The only valid choices are '
                 'latex, latex_source, and python' % output)
-        if output == 'latex':
+        if output == 'text':
+            im = _text_circuit_drawer(circuit, filename=filename, basis=basis)
+        elif output == 'latex':
             im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
         elif output == 'latex_source':
             return _generate_latex_source(circuit, basis, scale, filename, style)
@@ -290,11 +292,14 @@ def qx_color_scheme():
         "reversebits": False
     }
 
+
 # -----------------------------------------------------------------------------
-# text_circuit_drawer
+# _text_circuit_drawer
 # -----------------------------------------------------------------------------
 
-def text_circuit_drawer(circuit, filename=None, basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+
+def _text_circuit_drawer(circuit, filename=None,
+                         basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
     """
     Draws a circuit using ascii art.
@@ -440,7 +445,7 @@ def _trim(im):
 
 def generate_latex_source(circuit, filename=None,
                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                          "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                           scale=0.7, style=None):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -464,7 +469,7 @@ def generate_latex_source(circuit, filename=None,
 
 def _generate_latex_source(circuit, filename=None,
                            basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                           "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                            scale=0.7, style=None):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -496,6 +501,7 @@ class QCircuitImage(object):
 
     Thanks to Eric Sabo for the initial implementation for QISKit.
     """
+
     def __init__(self, circuit, scale, style=None):
         """
         Args:
@@ -665,7 +671,7 @@ class QCircuitImage(object):
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r'\\'+'\n')
+                    output.write(r'\\' + '\n')
         output.write('\t }\n')
         output.write('\\end{equation*}\n\n')
         output.write('\\end{document}')
@@ -714,7 +720,7 @@ class QCircuitImage(object):
         Raises:
             QISKitError: if trying to draw unsupported gates
         """
-        columns = 2     # wires in the beginning and end
+        columns = 2  # wires in the beginning and end
         is_occupied = [False] * self.img_width
         max_column_width = {}
         for op in self.circuit['instructions']:
@@ -921,7 +927,7 @@ class QCircuitImage(object):
         # the qubit/cbit labels plus initial states is 2 more
         # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_width.values())
-        return columns+1, ceil(sum_column_widths)+4
+        return columns + 1, ceil(sum_column_widths) + 4
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
@@ -1079,12 +1085,13 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\gate{U_1(%s)}" % (
                                 op["texparams"][0])
                         elif nm == "u2":
-                            self._latex[pos_1][columns] =\
+                            self._latex[pos_1][columns] = \
                                 "\\gate{U_2\\left(%s,%s\\right)}" % (
                                     op["texparams"][0], op["texparams"][1])
                         elif nm == "u3":
                             self._latex[pos_1][columns] = "\\gate{U_3(%s,%s,%s)}" \
-                                % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                                                          % (op["texparams"][0], op["texparams"][1],
+                                                             op["texparams"][2])
                         elif nm == "rx":
                             self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
                                 op["texparams"][0])
@@ -1142,7 +1149,8 @@ class QCircuitImage(object):
                                     op["texparams"][0], op["texparams"][1])
                         elif nm == "u3":
                             self._latex[pos_1][columns] = "\\gate{U_3(%s,%s,%s)}" \
-                                % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                                                          % (op["texparams"][0], op["texparams"][1],
+                                                             op["texparams"][2])
                         elif nm == "rx":
                             self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
                                 op["texparams"][0])
@@ -1219,8 +1227,8 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = \
                                 "\\gate{R_z(%s)}" % (op["texparams"][0])
                         elif nm == "cu1":
-                            self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns-1] = "\\control\\qw"
+                            self._latex[pos_1][columns - 1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns - 1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
                                 "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
@@ -1273,15 +1281,16 @@ class QCircuitImage(object):
                             self._latex[pos_2][columns] = \
                                 "\\gate{R_z(%s)}" % (op["texparams"][0])
                         elif nm == "cu1":
-                            self._latex[pos_1][columns-1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns-1] = "\\control\\qw"
+                            self._latex[pos_1][columns - 1] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                            self._latex[pos_2][columns - 1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
                                 "\\dstick{%s}\\qw" % (op["texparams"][0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = "\\gate{U_3(%s,%s,%s)}" \
-                                % (op["texparams"][0], op["texparams"][1], op["texparams"][2])
+                                                          % (op["texparams"][0], op["texparams"][1],
+                                                             op["texparams"][2])
 
                 elif len(qarglist) == 3:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -1314,7 +1323,7 @@ class QCircuitImage(object):
                                         item, int(span.group(1)))):
                                     self._latex[
                                         item][columns - 1] = prev_entry.replace(
-                                            '\\barrier{', '\\barrier[-0.65em]{')
+                                        '\\barrier{', '\\barrier[-0.65em]{')
 
                         gap = pos_4 - bottom
                         for i in range(self.cregs[if_reg]):
@@ -1361,7 +1370,7 @@ class QCircuitImage(object):
                                         item, int(span.group(1)))):
                                     self._latex[
                                         item][columns - 1] = prev_entry.replace(
-                                            '\\barrier{', '\\barrier[-0.65em]{')
+                                        '\\barrier{', '\\barrier[-0.65em]{')
 
                         if nm == "ccx":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -1376,8 +1385,8 @@ class QCircuitImage(object):
 
             elif op["name"] == "measure":
                 assert len(op['clbits']) == 1 and \
-                    len(op['qubits']) == 1 and \
-                    'params' not in op, "bad operation record"
+                       len(op['qubits']) == 1 and \
+                       'params' not in op, "bad operation record"
 
                 if 'conditional' in op:
                     assert False, "If controlled measures currently not supported."
@@ -1414,7 +1423,7 @@ class QCircuitImage(object):
                                     item + int(span.group(1))) - pos_1 >= 0:
                                 self._latex[
                                     item][columns - 1] = prev_entry.replace(
-                                        '\\barrier{', '\\barrier[-1.15em]{')
+                                    '\\barrier{', '\\barrier[-1.15em]{')
 
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
@@ -1755,9 +1764,9 @@ class MatplotlibDrawer:
         self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         # arrow
-        self._line(qxy, [cx, cy+0.35*WID], lc=self._style.cc, ls=self._style.cline)
-        arrowhead = patches.Polygon(((cx-0.20*WID, cy+0.35*WID),
-                                     (cx+0.20*WID, cy+0.35*WID),
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc, ls=self._style.cline)
+        arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
+                                     (cx + 0.20 * WID, cy + 0.35 * WID),
                                      (cx, cy)),
                                     fc=self._style.cc,
                                     ec=None)
