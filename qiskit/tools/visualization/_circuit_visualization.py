@@ -313,7 +313,6 @@ def _text_circuit_drawer(circuit, filename=None,
         basis (str): Optional. Comma-separated list of gate names
         line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
                            you maximum line length your console supports.
-
     Returns:
         String: The drawing in a loooong string.
     """
@@ -323,7 +322,7 @@ def _text_circuit_drawer(circuit, filename=None,
     text = "\n".join(TextDrawing(json_circuit).lines(line_length))
 
     if filename:
-        with open(filename, 'w') as text_file:
+        with open(filename, mode='w', encoding="utf8") as text_file:
             text_file.write(text)
     return text
 
