@@ -39,9 +39,6 @@ def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-# TODO: Enable for refactoring purposes and enable by default when we can
-# decide if the backend is available or not.
-# @unittest.skip('Useful for refactoring purposes, skipping by default.')
 @unittest.skipIf(not VALID_MATPLOTLIB, 'matplotlib not available.')
 class TestVisualizationImplementation(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
@@ -91,6 +88,9 @@ class TestVisualizationImplementation(QiskitTestCase):
 
         return circuit
 
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_latex_drawer(self):
         filename = self._get_resource_path('current_latex.png')
         qc = self.sample_circuit()
@@ -98,6 +98,9 @@ class TestVisualizationImplementation(QiskitTestCase):
         self.assertImagesAreEqual(filename, self.latex_reference)
         os.remove(filename)
 
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_matplotlib_drawer(self):
         filename = self._get_resource_path('current_matplot.png')
         qc = self.sample_circuit()
