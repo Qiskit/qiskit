@@ -18,8 +18,30 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Added
+-----
+
+- Added DAG visualizer (#1059)
+- Added a ASCII art circuit visualizer (#909)
+
 Changed
 -------
+
+- Evolved pass-based transpiler to support advanced functionality (#1060)
+- Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
+
+Deprecated
+----------
+- ``plot_circuit()``, ``latex_circuit_drawer()``, ``generate_latex_source()``,
+   and ``matplotlib_circuit_drawer()`` from qiskit.tools.visualization are
+   deprecated. Instead the ``circuit_drawer()`` function from the same module
+   should be used. (#1055)
+- The current default output of ``circuit_drawer()`` (using latex and falling
+   back on python) is deprecated and will be changed in the future. (#1055)
+Fixed
+-----
+- Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
+  circuit plots (#1051)
 
 
 `0.6.0`_ - 2018-10-04
@@ -41,7 +63,7 @@ Added
 - Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
-- Allow selective loading of accounts from disk via hub/group/project 
+- Allow selective loading of accounts from disk via hub/group/project
   filters to `IBMQ.load_accounts()`.
 
 Changed
@@ -92,6 +114,7 @@ Fixed
 - Fixed the issue with control lines spanning through several classical registers (#762).
 - Fixed visualizations crashing when using simulator extensions (#885).
 - Fixed check for network connection when loading interactive visualizations (#892).
+- Fixed bug in checking that a circuit already matches a coupling map (#1024).
 
 
 `0.5.7`_ - 2018-07-19

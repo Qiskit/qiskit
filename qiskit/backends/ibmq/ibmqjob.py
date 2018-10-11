@@ -115,19 +115,21 @@ class IBMQJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, api, is_device, qobj=None,
-                 creation_date=None, **kwargs):
+                 creation_date=None, api_status=None, **kwargs):
         """IBMQJob init function.
+
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
         the API servers.
 
         Args:
+            backend (str): The backend instance used to run this job.
+            job_id (str): The job ID of an already submitted job. Pass `None`
+                if you are creating a new one.
             api (IBMQuantumExperience): IBM Q API
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. See notes below
-            job_id (String): The job ID of an already submitted job. Pass `None`
-            if you are creating a new one.
-            creation_date(String): When the job was run.
-            backend (str): The backend instance used to run this job.
+            creation_date (str): When the job was run.
+            api_status (str): `status` field directly from the API response.
             kwargs (dict): You can pass `backend_name` to this function although
                 it has been deprecated.
 
@@ -161,13 +163,25 @@ class IBMQJob(BaseJob):
         self._future_captured_exception = None
         self._api = api
         self._backend = backend
-        self._status = JobStatus.INITIALIZING
-        # In case of not providing a qobj, it assumes job_id has been provided
-        # and query the API for updating the status.
-        if qobj is None:
-            self.status()
-        self._queue_position = None
         self._cancelled = False
+        self._status = JobStatus.INITIALIZING
+        # In case of not providing a `qobj`, it is assumed the job already
+        # exists in the API (with `job_id`).
+        if qobj is None:
+            # Some API calls (`get_status_jobs`, `get_status_job`) provide
+            # enough information to recreate the `Job`. If that is the case, try
+            # to make use of that information during instantiation, as
+            # `self.status()` involves an extra call to the API.
+            if api_status == 'VALIDATING':
+                self._status = JobStatus.VALIDATING
+            elif api_status == 'COMPLETED':
+                self._status = JobStatus.DONE
+            elif api_status == 'CANCELLED':
+                self._status = JobStatus.CANCELLED
+                self._cancelled = True
+            else:
+                self.status()
+        self._queue_position = None
         self._is_device = is_device
 
         def current_utc_time():
@@ -264,7 +278,7 @@ class IBMQJob(BaseJob):
             # TODO: See result values
             api_job = self._api.get_status_job(self._job_id)
             if 'status' not in api_job:
-                raise JobError('get_job didn\'t return status: %s' %
+                raise JobError('get_status_job didn\'t return status: %s' %
                                pprint.pformat(api_job))
         # pylint: disable=broad-except
         except Exception as err:
