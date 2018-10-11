@@ -78,11 +78,12 @@ class DagUnroller(object):
             gatedefs.append(Gate(children))
         # Walk through the DAG and examine each node
         builtins = ["U", "CX", "measure", "reset", "barrier"]
+        simulator_builtins = ['snapshot', 'save', 'load', 'noise']
         topological_sorted_list = list(nx.topological_sort(self.dag_circuit.multi_graph))
         for node in topological_sorted_list:
             current_node = self.dag_circuit.multi_graph.node[node]
             if current_node["type"] == "op" and \
-               current_node["name"] not in builtins + basis and \
+               current_node["name"] not in builtins + basis + simulator_builtins and \
                not self.dag_circuit.gates[current_node["name"]]["opaque"]:
                 subcircuit, wires = self._build_subcircuit(gatedefs,
                                                            basis,

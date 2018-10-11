@@ -17,15 +17,14 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-import itertools
-import copy
 from collections import OrderedDict
+import copy
+import itertools
+
 import networkx as nx
 import sympy
 
-from qiskit import QuantumRegister
-from qiskit import QISKitError
-from qiskit import CompositeGate
+from qiskit import QuantumRegister, QISKitError, CompositeGate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -1139,7 +1138,7 @@ class DAGCircuit:
                 self._remove_op_node(n)
 
     def layers(self):
-        """Yield a layer for all d layers of this circuit.
+        """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
         A layer is a circuit whose gates act on disjoint qubits, i.e.
         a layer has depth 1. The total number of layers equals the
@@ -1153,84 +1152,54 @@ class DAGCircuit:
         layers as this is currently implemented. This may not be
         the desired behavior.
         """
-        # node_map contains an input node or previous layer node for
-        # each wire in the circuit.
-        node_map = self.input_map.copy()
-        # wires_with_ops_remaining is a set of wire names that have
-        # operations we still need to assign to layers
-        wires_with_ops_remaining = sorted(set(self.input_map.keys()))
+        graph_layers = self.multigraph_layers()
+        try:
+            next(graph_layers)  # Remove input nodes
+        except StopIteration:
+            return
 
-        while wires_with_ops_remaining:
-            # Create a new circuit graph and populate with regs and basis
-            new_layer = DAGCircuit()
-            for k, v in self.qregs.items():
-                new_layer.add_qreg(k, v)
-            for k, v in self.cregs.items():
-                new_layer.add_creg(k, v)
-            new_layer.basis = self.basis.copy()
-            new_layer.gates = self.gates.copy()
-            # Save the support of each operation we add to the layer
-            support_list = []
-            # Determine what operations to add in this layer
-            # ops_touched is a map from operation nodes touched in this
-            # iteration to the set of their unvisited input wires. When all
-            # of the inputs of a touched node are visited, the node is a
-            # foreground node we can add to the current layer.
-            ops_touched = {}
-            wires_loop = list(wires_with_ops_remaining)
-            emit = False
-            for w in wires_loop:
-                oe = [x for x in self.multi_graph.out_edges(nbunch=[node_map[w]],
-                                                            data=True) if
-                      x[2]["name"] == w]
-                if len(oe) != 1:
-                    raise QISKitError("should only be one out-edge per (qu)bit")
+        def nodes_data(nodes):
+            """Construct full nodes from just node ids."""
+            return ((node_id, self.multi_graph.nodes[node_id]) for node_id in nodes)
 
-                nxt_nd_idx = oe[0][1]
-                nxt_nd = self.multi_graph.node[nxt_nd_idx]
-                # If we reach an output node, we are done with this wire.
-                if nxt_nd["type"] == "out":
-                    wires_with_ops_remaining.remove(w)
-                # Otherwise, we are somewhere inside the circuit
-                elif nxt_nd["type"] == "op":
-                    # Operation data
-                    qa = copy.copy(nxt_nd["qargs"])
-                    ca = copy.copy(nxt_nd["cargs"])
-                    pa = copy.copy(nxt_nd["params"])
-                    co = copy.copy(nxt_nd["condition"])
-                    cob = self._bits_in_condition(co)
-                    # First time we see an operation, add to ops_touched
-                    if nxt_nd_idx not in ops_touched:
-                        ops_touched[nxt_nd_idx] = set(qa) | set(ca) | set(cob)
-                    # Mark inputs visited by deleting from set
-                    # NOTE: expect trouble with if(c==1) measure q -> c;
-                    if w not in ops_touched[nxt_nd_idx]:
-                        raise QISKitError("expected wire")
+        for graph_layer in graph_layers:
+            # Get the op nodes from the layer, removing any input and ouput nodes.
+            op_nodes = [node for node in nodes_data(graph_layer) if node[1]["type"] == "op"]
 
-                    ops_touched[nxt_nd_idx].remove(w)
-                    # Node becomes "foreground" if set becomes empty,
-                    # i.e. every input is available for this operation
-                    if not ops_touched[nxt_nd_idx]:
-                        # Add node to new_layer
-                        new_layer.apply_operation_back(nxt_nd["name"],
-                                                       qa, ca, pa, co)
-                        # Update node_map to point to this op
-                        for v in itertools.chain(qa, ca, cob):
-                            node_map[v] = nxt_nd_idx
-                        # Add operation to partition
-                        if nxt_nd["name"] not in ["barrier",
-                                                  "snapshot", "save", "load", "noise"]:
-                            # support_list.append(list(set(qa) | set(ca) |
-                            #                          set(cob)))
-                            support_list.append(list(qa))
-                        emit = True
-            if emit:
-                l_dict = {"graph": new_layer, "partition": support_list}
-                yield l_dict
-                emit = False
-            else:
-                if wires_with_ops_remaining:
-                    raise QISKitError("not finished but empty?")
+            # Stop yielding once there are no more op_nodes in a layer.
+            if not op_nodes:
+                return
+
+            # Construct a shallow copy of self
+            new_layer = copy.copy(self)
+            new_layer.multi_graph = nx.MultiDiGraph()
+
+            new_layer.multi_graph.add_nodes_from(nodes_data(self.input_map.values()))
+            new_layer.multi_graph.add_nodes_from(nodes_data(self.output_map.values()))
+
+            # The quantum registers that have an operation in this layer.
+            support_list = [
+                op_node[1]["qargs"]
+                for op_node in op_nodes
+                if op_node[1]["name"] not in {"barrier", "snapshot", "save", "load", "noise"}
+                ]
+            new_layer.multi_graph.add_nodes_from(op_nodes)
+
+            # Now add the edges to the multi_graph
+            # By default we just wire inputs to the outputs.
+            wires = {self.input_map[register]: self.output_map[register]
+                     for register in self.wire_type}
+            # Wire inputs to op nodes, and op nodes to outputs.
+            for op_node in op_nodes:
+                args = self._bits_in_condition(op_node[1]["condition"]) \
+                       + op_node[1]["cargs"] + op_node[1]["qargs"]
+                arg_ids = (self.input_map[arg] for arg in args)  # map from ("q",0) to node id.
+                for arg_id in arg_ids:
+                    wires[arg_id], wires[op_node[0]] = op_node[0], wires[arg_id]
+
+            # Add wiring to/from the operations and between unused inputs & outputs.
+            new_layer.multi_graph.add_edges_from(wires.items())
+            yield {"graph": new_layer, "partition": support_list}
 
     def serial_layers(self):
         """Yield a layer for all gates of this circuit.
@@ -1266,6 +1235,31 @@ class DAGCircuit:
                     support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
                 yield l_dict
+
+    def multigraph_layers(self):
+        """Yield layers of the multigraph."""
+        predecessor_count = dict()  # Dict[node, predecessors not visited]
+        cur_layer = [node for node in self.input_map.values()]
+        yield cur_layer
+        next_layer = []
+        while cur_layer:
+            for node in cur_layer:
+                # Count multiedges with multiplicity.
+                for successor in self.multi_graph.successors(node):
+                    multiplicity = self.multi_graph.number_of_edges(node, successor)
+                    if successor in predecessor_count:
+                        predecessor_count[successor] -= multiplicity
+                    else:
+                        predecessor_count[successor] =\
+                            self.multi_graph.in_degree(successor) - multiplicity
+
+                    if predecessor_count[successor] == 0:
+                        next_layer.append(successor)
+                        del predecessor_count[successor]
+
+            yield next_layer
+            cur_layer = next_layer
+            next_layer = []
 
     def collect_runs(self, namelist):
         """Return a set of runs of "op" nodes with the given names.
