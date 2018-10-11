@@ -698,9 +698,10 @@ class TextDrawing():
 
             elif instruction['name'] == 'cu3':
                 # cu3
+                params = TextDrawing.params_for_label(instruction)
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1],
-                                BoxOnQuWire(TextDrawing.label_for_box(instruction)))
+                                BoxOnQuWire("U3(%s)" % ','.join(params)))
                 layer.connect_with("│")
 
             elif instruction['name'] == 'crz':
