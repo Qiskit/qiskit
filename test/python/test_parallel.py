@@ -43,7 +43,6 @@ class TestParallel(QiskitTestCase):
             ans = parallel_map(_parfunc, list(range(10)))
         self.assertEqual(ans, list(range(10)))
 
-
     def test_parallel_progbar_used(self):
         """Test that correct progressbar is used."""
         not_used = TextProgressBar()
