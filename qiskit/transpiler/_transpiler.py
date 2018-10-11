@@ -320,6 +320,7 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Returns:
         DAGCircuit: transformed dag
         DAGCircuit, dict: transformed dag along with the final layout on backend qubits
+        DAGCircuit, PropertySet: transformed dag along with the final state of the Property set.
 
     Raises:
         TranspilerError: if the format is not valid.
@@ -336,7 +337,8 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     if pass_manager:
         # run the passes specified by the pass manager
-        pass_manager.run_passes(dag)
+        dag = pass_manager.run_passes(dag)
+        return dag, pass_manager.property_set
     else:
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below

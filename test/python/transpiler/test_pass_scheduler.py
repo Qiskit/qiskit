@@ -14,7 +14,7 @@ import unittest.mock
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError, \
-    FlowController
+    FlowController, PropertySet
 from qiskit.transpiler._passmanager import DoWhileController, ConditionalController
 from ._dummy_passes import PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, \
@@ -36,7 +36,9 @@ class SchedulerTestCase(QiskitTestCase):
             expected (list): List of things the passes are logging
         """
         with self.assertLogs(logger, level='INFO') as cm:
-            transpile(dag, pass_manager=passmanager)
+            (dag, property_set) = transpile(dag, pass_manager=passmanager)
+        self.assertIsInstance(dag, DAGCircuit)
+        self.assertIsInstance(property_set, PropertySet)
         self.assertEqual([record.message for record in cm.records], expected)
 
     def assertSchedulerRaises(self, dag, passmanager, expected, exception_type):
