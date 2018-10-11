@@ -8,7 +8,7 @@
 """This module implements the base pass."""
 
 from abc import abstractmethod
-from collections import Hashable
+from collections.abc import Hashable
 from inspect import signature
 
 
