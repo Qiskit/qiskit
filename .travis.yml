@@ -180,6 +180,7 @@ jobs:
       if: branch = master and repo = Qiskit/qiskit-terra and type = push
       python: 3.6
       env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
+      script: make && ARGS='-V' stestr --group-regex="([^\.]*\.)*" run
 
     # "deploy" stage.
     ###########################################################################
