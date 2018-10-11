@@ -28,6 +28,7 @@ Changed
 -------
 
 - Evolved pass-based transpiler to support advanced functionality (#1060)
+- Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
 
 Deprecated
 ----------
