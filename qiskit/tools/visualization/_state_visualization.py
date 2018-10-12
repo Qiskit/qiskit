@@ -20,7 +20,7 @@ from mpl_toolkits.mplot3d import proj3d
 import numpy as np
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 from qiskit.tools.visualization import VisualizationError
-from qiskit.tools.visualization.bloch import Bloch
+from qiskit.tools.visualization._bloch import Bloch
 
 
 class Arrow3D(FancyArrowPatch):

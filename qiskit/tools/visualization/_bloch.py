@@ -126,7 +126,13 @@ class Bloch():
                  background=False):
 
         # Figure and axes
+        self._ext_fig = False
+        if fig is not None:
+            self._ext_fig = True
         self.fig = fig
+        self._ext_axes = False
+        if axes is not None:
+            self._ext_axes = True
         self.axes = axes
         # Background axes, default = False
         self.background = background
@@ -368,9 +374,9 @@ class Bloch():
         """
         Plots Bloch sphere and data sets.
         """
-        self.render(self.fig, self.axes)
+        self.render()
 
-    def render(self, fig=None, axes=None, title=''):
+    def render(self, title=''):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
@@ -380,10 +386,10 @@ class Bloch():
         self._rendered = True
 
         # Figure instance for Bloch sphere plot
-        if not fig:
+        if not self._ext_fig:
             self.fig = plt.figure(figsize=self.figsize)
 
-        if not axes:
+        if not self._ext_axes:
             self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
         if self.background:
@@ -580,7 +586,7 @@ class Bloch():
         """
         Display Bloch sphere and corresponding data sets.
         """
-        self.render(self.fig, self.axes, title=title)
+        self.render(title=title)
         if self.fig:
             plt.show(self.fig)
 
@@ -597,7 +603,7 @@ class Bloch():
                 Directory for output images. Defaults to current working directory.
         """
 
-        self.render(self.fig, self.axes)
+        self.render()
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
