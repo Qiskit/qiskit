@@ -36,7 +36,8 @@ class SchedulerTestCase(QiskitTestCase):
             expected (list): List of things the passes are logging
         """
         with self.assertLogs(logger, level='INFO') as cm:
-            transpile(dag, pass_manager=passmanager)
+            dag = transpile(dag, pass_manager=passmanager)
+        self.assertIsInstance(dag, DAGCircuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
     def assertSchedulerRaises(self, dag, passmanager, expected, exception_type):
