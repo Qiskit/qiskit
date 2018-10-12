@@ -39,7 +39,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_bloch_vector(bloch, title=""):
+def plot_bloch_vector(bloch, title="", filename=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -47,10 +47,15 @@ def plot_bloch_vector(bloch, title=""):
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
     """
     B = Bloch()
     B.add_vectors(bloch)
-    B.show(title=title)
+    if filename:
+        B.save(filename)
+    else:
+       B.show(title=title, filename=filename)
 
 
 def plot_state_city(rho, title=""):
