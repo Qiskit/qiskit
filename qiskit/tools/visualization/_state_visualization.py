@@ -55,7 +55,7 @@ def plot_bloch_vector(bloch, title="", filename=None):
     if filename:
         B.save(filename)
     else:
-       B.show(title=title, filename=filename)
+        B.show(title=title, filename=filename)
 
 
 def plot_state_city(rho, title=""):
