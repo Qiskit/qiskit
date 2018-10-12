@@ -23,6 +23,8 @@ Added
 
 - Added DAG visualizer (#1059)
 - Added a ASCII art circuit visualizer (#909)
+- Added a new kwarg `filename` to `plot_bloch_vector()` to optionally write
+  rendered bloch sphere to a file instead of displaying it (#1096)
 
 Changed
 -------
