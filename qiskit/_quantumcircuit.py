@@ -51,9 +51,9 @@ class QuantumCircuit(object):
         Raises:
             QISKitError: if the circuit name, if given, is not valid.
         """
-        self._increment_instances()
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
+        self._increment_instances()
 
         if not isinstance(name, str):
             raise QISKitError("The circuit name should be a string "
