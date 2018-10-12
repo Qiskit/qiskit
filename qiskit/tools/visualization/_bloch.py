@@ -374,7 +374,7 @@ class Bloch():
         """
         Plots Bloch sphere and data sets.
         """
-        self.render(self.fig, self.axes)
+        self.render()
 
     def render(self, title=''):
         """
