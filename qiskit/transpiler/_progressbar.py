@@ -43,10 +43,9 @@
 import time
 import datetime
 import sys
-from ._receiver import receiver as rec
+from qiskit._pubsub import Subscriber
 
-
-class BaseProgressBar(object):
+class BaseProgressBar(Subscriber):
     """An abstract progress bar with some shared functionality.
     """
 

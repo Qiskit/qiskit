@@ -10,7 +10,6 @@
 import time
 import ipywidgets as widgets                # pylint: disable=import-error
 from IPython.display import display         # pylint: disable=import-error
-import qiskit.transpiler._receiver as rec
 from qiskit.transpiler._progressbar import BaseProgressBar
 
 
@@ -43,4 +42,4 @@ class HTMLProgressBar(BaseProgressBar):
         self.t_done = time.time()
         self.progress_bar.bar_style = 'success'
         self.label.value = "Elapsed time: %s" % self.time_elapsed()
-        rec.receiver.remove_channel(self.channel_id)
+

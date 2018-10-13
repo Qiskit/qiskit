@@ -15,7 +15,6 @@ from IPython.core import magic_arguments                         # pylint: disab
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import qiskit
-from qiskit.transpiler._receiver import receiver as rec
 from qiskit.transpiler._progressbar import TextProgressBar
 from qiskit.wrapper.jupyter.progressbar import HTMLProgressBar
 
@@ -149,6 +148,19 @@ class ProgressBarMagic(Magics):
         else:
             raise qiskit.QISKitError('Invalid progress bar type.')
         self.shell.ex(cell)
-        # Remove progress bar from receiver if not used in cell
-        if progress_bar.channel_id in rec.channels.keys():
-            rec.remove_channel(progress_bar.channel_id)
+
+        def initialize_progress_bar(self, num_tasks):
+            self.start(num_tasks)
+        progress_bar.subscribe("terra.transpiler.compile.start", initialize_progress_bar)
+
+        def update_progress_bar(self, progress):
+            self.update(progress)
+        progress_bar.subscribe("terra.transpiler.compile.done", update_progress_bar)
+
+        def finish_progress_bar(self):
+            self.usubscribe("terra.transpiler.compile.start", initialize_progress_bar)
+            self.usubscribe("terra.transpiler.compile.done", update_progress_bar)
+            self.usubscribe("terra.transpiler.compile.finish", finish_progress_bar)
+            self.finish()
+
+        progress_bar.subscribe("terra.transpiler.compile.finish", finish_progress_bar)

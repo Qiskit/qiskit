@@ -58,8 +58,13 @@ class _Broker(object):
         :param args: Arguments linked with the event
         :param kwargs: Named arguments linked with the event
         """
+        # No event, no subscribers.
+        if event not in self._subscribers:
+            return
+
         for subscriber in self._subscribers[event]:
             subscriber.callback(*args, **kwargs)
+        
 
     def unsubscribe(self, event, callback):
         """ Unsubscribe the specific callback to the event
@@ -91,3 +96,6 @@ class Subscriber(object):
 
     def subscribe(self, event, callback):
         return self._broker.subscribe(event, callback)
+
+    def unsubscribe(self, event, callback):
+        return self._broker.unsubscribe(event, callback)
