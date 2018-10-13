@@ -44,7 +44,7 @@ class TestCrossSimulation(QiskitTestCase):
     @requires_qe_access
     def test_qasm(self, qe_token, qe_url):
         """counts from a GHZ state"""
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         qr = qiskit.QuantumRegister(3)
         cr = qiskit.ClassicalRegister(3)
         circuit = qiskit.QuantumCircuit(qr, cr)
@@ -96,7 +96,7 @@ class TestCrossSimulation(QiskitTestCase):
     @requires_qe_access
     def test_qasm_reset_measure(self, qe_token, qe_url):
         """counts from a qasm program with measure and reset in the middle"""
-        qiskit.IBMQ.use_account(qe_token, qe_url)
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
         qr = qiskit.QuantumRegister(3)
         cr = qiskit.ClassicalRegister(3)
         circuit = qiskit.QuantumCircuit(qr, cr)
