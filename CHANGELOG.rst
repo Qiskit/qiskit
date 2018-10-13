@@ -23,6 +23,11 @@ Added
 
 - Added DAG visualizer (#1059)
 - Added a ASCII art circuit visualizer (#909)
+- Added a new kwarg `filename` to
+  `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
+  rendered bloch sphere to a file instead of displaying it (#1096)
+- Added a new kwarg `filename` to `plot_state()` to optionally write the
+  rendered plot to a file instead of displaying it (#1096)
 
 Changed
 -------
