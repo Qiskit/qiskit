@@ -32,13 +32,15 @@ def once_per_qobj_backend(test):
     @slow_test
     @requires_qe_access
     @functools.wraps(test)
-    def _wrapper(self, *args, qe_tokens=None, qe_urls=None, **kwargs):
-
-        for qe_token, qe_url in zip(qe_tokens, qe_urls):
+    def _wrapper(self, *args, credentials=[], **kwargs):
+        for qe_token, qe_url in credentials:
             IBMQ.enable_account(qe_token, qe_url)
         for backend in IBMQ.backends():
-            if backend.configuration()['allow_q_object']:
+            config = backend.configuration()
+            if config['allow_q_object']:
                 with self.subTest(backend=backend):
+                    if not config['simulator']:
+                        test = slow_test(test)
                     test(self, backend, *args, **kwargs)
     return _wrapper
 

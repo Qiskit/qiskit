@@ -334,10 +334,61 @@ def requires_cpp_simulator(test_item):
     reason = 'C++ simulator not found, skipping test'
     return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
 
+def _get_http_recorder(test_options):
+    vcr_mode = 'none'
+    if test_options['rec']:
+        vcr_mode = 'new_episodes'
+    return http_recorder(vcr_mode, Path.CASSETTES.value)
+
+
+TEST_OPTIONS = get_test_options()
+VCR = _get_http_recorder(TEST_OPTIONS)
+
+
+def _online_test(func):
+    """Decorator for initializing online test with VCR.
+    """
+    @functools.wraps(func)
+    def _wrapper(self):
+        if TEST_OPTIONS['skip_online']:
+            raise unittest.SkipTest('Skipping online tests')
+
+        decorated_func = func
+        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
+            # For recording or for replaying existing cassettes, the test should be decorated with
+            # use_cassette.
+            decorated_func = VCR.use_cassette()(decorated_func)
+
+        return decorated_func(self)
+
+    return _wrapper
+
+
+def require_multiple_credentials(func):
+    """Parses IBMQ_CREDENTIALS and passes it to the tests as a list of
+    tuples (url, token).
+
+    Args:
+        func (callable): Test function to be decorated
+    Returns:
+        callable: The decorated function with the additional keyword argument
+            `credentials` which a list of tuples(url, token).
+    """
+
+    @_online_test
+    @functools.wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        credentials = os.getenv('IBMQ_CREDENTIALS', '')
+        credentials = [entry.replace(' ', '').split(
+                       ':') for entry in credentials.split(',')] if credentials else []
+        kwargs.update({'credentials': credentials})
+        return func(self, *args, **kwargs)
+
+    return _wrapper
+
 
 def requires_qe_access(func):
-    """
-    Decorator that signals that the test uses the online API:
+    """Decorator that signals that the test uses the online API:
         * determines if the test should be skipped by checking environment
             variables.
         * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
@@ -348,39 +399,18 @@ def requires_qe_access(func):
         * if the test is not skipped, it appends `qe_token` and `qe_url` as
             arguments to the test function.
     Args:
-        func (callable): test function to be decorated.
+        func (callable): Test function to be decorated.
 
     Returns:
-        callable: the decorated function.
+        callable: The decorated function.
     """
 
+    @_online_test
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
-        if TEST_OPTIONS['skip_online']:
-            raise unittest.SkipTest('Skipping online tests')
-
         credentials = _get_credentials(self, TEST_OPTIONS)
         self.using_ibmq_credentials = credentials.is_ibmq()
-        kwargs.update({'qe_token': credentials.token,
-                       'qe_url': credentials.url})
-
-        decorated_func = func
-        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
-            # For recording or for replaying existing cassettes, the test should be decorated with
-            # use_cassette.
-            decorated_func = VCR.use_cassette()(decorated_func)
-
-        return decorated_func(self, *args, **kwargs)
+        kwargs.update({'qe_token': credentials.token, 'qe_url': credentials.url})
+        return func(self, *args, **kwargs)
 
     return _wrapper
-
-
-def _get_http_recorder(test_options):
-    vcr_mode = 'none'
-    if test_options['rec']:
-        vcr_mode = 'new_episodes'
-    return http_recorder(vcr_mode, Path.CASSETTES.value)
-
-
-TEST_OPTIONS = get_test_options()
-VCR = _get_http_recorder(TEST_OPTIONS)
