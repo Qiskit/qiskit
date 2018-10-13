@@ -20,7 +20,7 @@ from qiskit import IBMQ, qobj_to_circuits
 
 try:
     import Qconfig
-    IBMQ.use_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
 except:
     print("""WARNING: There's no connection with the API for remote backends.
              Have you initialized a Qconfig.py file with your personal token?
@@ -52,7 +52,7 @@ print(compiled_standard.qasm())
 # 2. custom compile -- customize PassManager to run specific circuit transformations
 from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
-pm.add_pass(CXCancellation())
+pm.add_passes(CXCancellation())
 qobj_custom = transpiler.compile(circ, backend_device, pass_manager=pm)
 [compiled_custom] = qobj_to_circuits(qobj_custom)
 print(compiled_custom.qasm())

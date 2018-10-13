@@ -129,7 +129,6 @@ test/python/*.tex
 out/*
 
 # CMake generates this file on the fly
-setup.py
 qiskit/backends/local/qasm_simulator_cpp
 qiskit/backends/aer/qasm_simulator_cpp
 

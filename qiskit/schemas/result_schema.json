@@ -55,7 +55,7 @@
                     "description": "Human-readable description of status of this experiment"
                 },
                 "seed": {
-                    "type": "string",
+                    "type": "integer",
                     "description": "Experiment-level random seed"
                 },
                 "meas_return": {

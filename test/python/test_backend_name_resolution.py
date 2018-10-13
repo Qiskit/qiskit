@@ -46,7 +46,7 @@ class TestBackendNameResolution(QiskitTestCase):
     def test_aliases(self, qe_token, qe_url):
         """Test that display names of devices map the same backends as the
         regular names."""
-        IBMQ.use_account(qe_token, qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
         aliased_names = IBMQ.aliased_backend_names()
 
         for display_name, backend_name in aliased_names.items():

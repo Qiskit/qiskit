@@ -20,12 +20,46 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+
+- Added DAG visualizer (#1059)
+- Added a ASCII art circuit visualizer (#909)
+- Added a new kwarg `filename` to
+  `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
+  rendered bloch sphere to a file instead of displaying it (#1096)
+- Added a new kwarg `filename` to `plot_state()` to optionally write the
+  rendered plot to a file instead of displaying it (#1096)
+
+Changed
+-------
+
+- Evolved pass-based transpiler to support advanced functionality (#1060)
+- Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
+
+Deprecated
+----------
+- ``plot_circuit()``, ``latex_circuit_drawer()``, ``generate_latex_source()``,
+   and ``matplotlib_circuit_drawer()`` from qiskit.tools.visualization are
+   deprecated. Instead the ``circuit_drawer()`` function from the same module
+   should be used. (#1055)
+- The current default output of ``circuit_drawer()`` (using latex and falling
+   back on python) is deprecated and will be changed in the future. (#1055)
+Fixed
+-----
+- Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
+  circuit plots (#1051)
+
+
+`0.6.0`_ - 2018-10-04
+=====================
+
+Added
+-----
 - Added `SchemaValidationError` to be thrown when schema validation fails (#881)
 - Generalized Qobj schema validation functions for all qiskit schemas (#882).
 - Added decorator to check for C++ simulator availability (#662)
 - It is possible to cancel jobs in non comercial backends (#687)
 - Introduced new `qiskit.IBMQ` provider, with centralized handling of IBMQ
-  credentials (qiskitrc file, environment variables). (#547, #948)
+  credentials (qiskitrc file, environment variables). (#547, #948, #1000)
 - Add OpenMP parallelization for Apple builds of the cpp simulator (#698).
 - Add parallelization utilities (#701)
 - Parallelize transpilation (#701)
@@ -34,7 +68,7 @@ Added
 - Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
-- Allow selective loading of accounts from disk via hub/group/project 
+- Allow selective loading of accounts from disk via hub/group/project
   filters to `IBMQ.load_accounts()`.
 - Add new `job_monitor` function to automaically check the status of a job (#975).
 
@@ -86,6 +120,16 @@ Fixed
 - Fixed the issue with control lines spanning through several classical registers (#762).
 - Fixed visualizations crashing when using simulator extensions (#885).
 - Fixed check for network connection when loading interactive visualizations (#892).
+- Fixed bug in checking that a circuit already matches a coupling map (#1024).
+
+
+`0.5.7`_ - 2018-07-19
+=====================
+
+Changed
+-------
+- Add new backend names support, with aliasing for the old ones.
+
 
 `0.5.6`_ - 2018-07-06
 =====================
@@ -587,7 +631,9 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...HEAD
+.. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
+.. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
 .. _0.5.6: https://github.com/Qiskit/qiskit-terra/compare/0.5.5...0.5.6
 .. _0.5.5: https://github.com/Qiskit/qiskit-terra/compare/0.5.4...0.5.5
 .. _0.5.4: https://github.com/Qiskit/qiskit-terra/compare/0.5.3...0.5.4
