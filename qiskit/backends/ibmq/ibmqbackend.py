@@ -242,20 +242,21 @@ class IBMQBackend(BaseBackend):
             elif status == JobStatus.ERROR:
                 this_filter = {'status': {'regexp': '^ERROR'}}
             else:
-                raise IBMQBackendValueError('unrecongized value for "status" keyword '
+                raise IBMQBackendValueError('unrecognized value for "status" keyword '
                                             'in job filter')
             api_filter.update(this_filter)
         if db_filter:
-            # status takes precendence over db_filter for same keys
+            # status takes precedence over db_filter for same keys
             api_filter = {**db_filter, **api_filter}
-        job_info_list = self._api.get_jobs(limit=limit, skip=skip,
-                                           filter=api_filter)
+        job_info_list = self._api.get_status_jobs(limit=limit, skip=skip,
+                                                  filter=api_filter)
         job_list = []
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
             is_device = not bool(self._configuration.get('simulator'))
             job = job_class(self, job_info.get('id'), self._api, is_device,
-                            creation_date=job_info.get('creationDate'))
+                            creation_date=job_info.get('creationDate'),
+                            api_status=job_info.get('status'))
             job_list.append(job)
         return job_list
 
@@ -272,7 +273,7 @@ class IBMQBackend(BaseBackend):
             IBMQBackendError: if retrieval failed
         """
         try:
-            job_info = self._api.get_job(job_id)
+            job_info = self._api.get_status_job(job_id)
             if 'error' in job_info:
                 raise IBMQBackendError('Failed to get job "{}": {}'
                                        .format(job_id, job_info['error']))
@@ -282,7 +283,8 @@ class IBMQBackend(BaseBackend):
         job_class = _job_class_from_job_response(job_info)
         is_device = not bool(self._configuration.get('simulator'))
         job = job_class(self, job_info.get('id'), self._api, is_device,
-                        creation_date=job_info.get('creationDate'))
+                        creation_date=job_info.get('creationDate'),
+                        api_status=job_info.get('status'))
         return job
 
     def __repr__(self):

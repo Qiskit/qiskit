@@ -20,7 +20,7 @@ from mpl_toolkits.mplot3d import proj3d
 import numpy as np
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 from qiskit.tools.visualization import VisualizationError
-from qiskit.tools.visualization.bloch import Bloch
+from qiskit.tools.visualization._bloch import Bloch
 
 
 class Arrow3D(FancyArrowPatch):
@@ -39,7 +39,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_bloch_vector(bloch, title=""):
+def plot_bloch_vector(bloch, title="", filename=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -47,13 +47,18 @@ def plot_bloch_vector(bloch, title=""):
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
     """
     B = Bloch()
     B.add_vectors(bloch)
-    B.show(title=title)
+    if filename:
+        B.save(filename)
+    else:
+        B.show(title=title)
 
 
-def plot_state_city(rho, title=""):
+def plot_state_city(rho, title="", filename=None):
     """Plot the cityscape of quantum state.
 
     Plot two 3d bargraphs (two dimenstional) of the mixed state rho
@@ -62,6 +67,8 @@ def plot_state_city(rho, title=""):
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
     """
     num = int(np.log2(len(rho)))
 
@@ -114,10 +121,13 @@ def plot_state_city(rho, title=""):
     # ax2.set_ylabel('basis state', fontsize=12)
     ax2.set_zlabel("Imag[rho]")
     plt.title(title)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 
-def plot_state_paulivec(rho, title=""):
+def plot_state_paulivec(rho, title="", filename=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matricies
@@ -126,6 +136,9 @@ def plot_state_paulivec(rho, title=""):
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
+
     """
     num = int(np.log2(len(rho)))
     labels = list(map(lambda x: x.to_label(), pauli_group(num)))
@@ -146,7 +159,10 @@ def plot_state_paulivec(rho, title=""):
     ax.set_xlabel('Pauli', fontsize=12)
     ax.set_ylim([-1, 1])
     plt.title(title)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 
 def n_choose_k(n, k):
@@ -218,7 +234,7 @@ def phase_to_color_wheel(complex_number):
     return color_map[angle_round]
 
 
-def plot_state_qsphere(rho):
+def plot_state_qsphere(rho, filename=None):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
     # get the eigenvectors and egivenvalues
@@ -317,19 +333,26 @@ def plot_state_qsphere(rho):
             ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
                     markeredgecolor=(.5, .5, .5), marker='o', markersize=10,
                     alpha=1)
-            plt.show()
+            if filename:
+                plt.savefig(filename)
+            else:
+                plt.show()
             we[prob_location] = 0
         else:
             break
 
 
-def plot_state(quantum_state, method='city'):
+def plot_state(quantum_state, method='city', filename=None):
     """Plot the quantum state.
 
     Args:
         quantum_state (ndarray): statevector or density matrix
                                  representation of a quantum state.
         method (str): Plotting method to use.
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window. If
+            `bloch` method is used a `-n` will be added to the filename before
+            the extension for each qubit.
 
     Raises:
         VisualizationError: if the input is not a statevector or density
@@ -350,26 +373,32 @@ def plot_state(quantum_state, method='city'):
         raise VisualizationError("Input is not a multi-qubit quantum state.")
 
     if method == 'city':
-        plot_state_city(rho)
+        plot_state_city(rho, filename=filename)
     elif method == "paulivec":
-        plot_state_paulivec(rho)
+        plot_state_paulivec(rho, filename=filename)
     elif method == "qsphere":
-        plot_state_qsphere(rho)
+        plot_state_qsphere(rho, filename=filename)
     elif method == "bloch":
+        orig_filename = filename
         for i in range(num):
+            if orig_filename:
+                filename_parts = orig_filename.split('.')
+                filename_parts[-2] += '-%d' % i
+                filename = '.'.join(filename_parts)
+                print(filename)
             bloch_state = list(
                 map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                     pauli_singles(i, num)))
-            plot_bloch_vector(bloch_state, "qubit " + str(i))
+            plot_bloch_vector(bloch_state, "qubit " + str(i), filename=filename)
     elif method == "wigner":
-        plot_wigner_function(rho)
+        plot_wigner_function(rho, filename=filename)
 
 
 ###############################################################
 # Plotting Wigner functions
 ###############################################################
 
-def plot_wigner_function(state, res=100):
+def plot_wigner_function(state, res=100, filename=None):
     """Plot the equal angle slice spin Wigner function of an arbitrary
     quantum state.
 
@@ -379,6 +408,8 @@ def plot_wigner_function(state, res=100):
             - State Vector of 2**n x 1 complex numbers
         res (int) : number of theta and phi values in meshgrid
             on sphere (creates a res x res grid of points)
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
 
     References:
         [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
@@ -483,25 +514,32 @@ def plot_wigner_function(state, res=100):
     m = cm.ScalarMappable(cmap=cm.seismic_r)
     m.set_array([-w_max, w_max])
     plt.colorbar(m, shrink=0.5, aspect=10)
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
-    plt.show()
 
-
-def plot_wigner_curve(wigner_data, xaxis=None):
+def plot_wigner_curve(wigner_data, xaxis=None, filename=None):
     """Plots a curve for points in phase space of the spin Wigner function.
 
     Args:
         wigner_data(np.array): an array of points to plot as a 2d curve
         xaxis (np.array):  the range of the x axis
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
     """
     if not xaxis:
         xaxis = np.linspace(0, len(wigner_data)-1, num=len(wigner_data))
 
     plt.plot(xaxis, wigner_data)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 
-def plot_wigner_plaquette(wigner_data, max_wigner='local'):
+def plot_wigner_plaquette(wigner_data, max_wigner='local', filename=None):
     """Plots plaquette of wigner function data, the plaquette will
     consist of cicles each colored to match the value of the Wigner
     function at the given point in phase space.
@@ -514,6 +552,8 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local'):
             - 'local' puts the maximum value to maximum of the points
             - 'unit' sets maximum to 1
             - float for a custom maximum.
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
     """
     wigner_data = np.matrix(wigner_data)
     dim = wigner_data.shape
@@ -548,10 +588,13 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local'):
     m = cm.ScalarMappable(cmap=cm.seismic_r)
     m.set_array([-w_max, w_max])
     plt.colorbar(m, shrink=0.5, aspect=10)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 
-def plot_wigner_data(wigner_data, phis=None, method=None):
+def plot_wigner_data(wigner_data, phis=None, method=None, filename=None):
     """Plots Wigner results in appropriate format.
 
     Args:
@@ -562,6 +605,8 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
             point: a single point in phase space
             curve: a two dimensional curve
             plaquette: points plotted as circles
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
     """
     if not method:
         wig_dim = len(np.shape(wigner_data))
@@ -574,13 +619,13 @@ def plot_wigner_data(wigner_data, phis=None, method=None):
             method = 'plaquette'
 
     if method == 'curve':
-        plot_wigner_curve(wigner_data, xaxis=phis)
+        plot_wigner_curve(wigner_data, xaxis=phis, filename=filename)
     elif method == 'plaquette':
-        plot_wigner_plaquette(wigner_data)
+        plot_wigner_plaquette(wigner_data, filename=filename)
     elif method == 'state':
-        plot_wigner_function(wigner_data)
+        plot_wigner_function(wigner_data, filename=filename)
     elif method == 'point':
-        plot_wigner_plaquette(wigner_data)
+        plot_wigner_plaquette(wigner_data, filename=filename)
         print('point in phase space is '+str(wigner_data))
     else:
         print("No method given")
