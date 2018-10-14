@@ -14,6 +14,7 @@ import logging
 import os
 import time
 import unittest
+import regex as re
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
@@ -334,6 +335,7 @@ def requires_cpp_simulator(test_item):
     reason = 'C++ simulator not found, skipping test'
     return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
 
+
 def _get_http_recorder(test_options):
     vcr_mode = 'none'
     if test_options['rec']:
@@ -365,7 +367,8 @@ def _online_test(func):
 
 
 def require_multiple_credentials(func):
-    """Parses IBMQ_CREDENTIALS and passes it to the tests as a list of
+    """Parses IBMQ_CREDENTIALS (which is expected as a string of tuples, ie.,
+    "(token1, url1),(token2,url2),..." and passes it to the tests as a list of
     tuples (url, token).
 
     Args:
@@ -379,8 +382,8 @@ def require_multiple_credentials(func):
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
         credentials = os.getenv('IBMQ_CREDENTIALS', '')
-        credentials = [entry.replace(' ', '').split(
-                       ':') for entry in credentials.split(',')] if credentials else []
+        credentials = [cred.replace(' ', '').split(',') for cred in
+                       re.findall(r'\((.*?,.*?)\)', credentials)] if credentials else []
         kwargs.update({'credentials': credentials})
         return func(self, *args, **kwargs)
 

@@ -17,10 +17,10 @@ import functools
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
-from ..common import requires_qe_access, JobTestCase, slow_test
+from ..common import require_multiple_credentials, JobTestCase, slow_test
 
 # Timeout duration
-TIMEOUT = os.getenv("IBMQ_TIMEOUT", 30)
+TIMEOUT = os.getenv("IBMQ_TIMEOUT", 10)
 
 
 def once_per_qobj_backend(test):
@@ -29,8 +29,7 @@ def once_per_qobj_backend(test):
     This way VCR creates a single cassette for each test.
     """
 
-    @slow_test
-    @requires_qe_access
+    @require_multiple_credentials
     @functools.wraps(test)
     def _wrapper(self, *args, credentials=[], **kwargs):
         for qe_token, qe_url in credentials:
@@ -39,9 +38,8 @@ def once_per_qobj_backend(test):
             config = backend.configuration()
             if config['allow_q_object']:
                 with self.subTest(backend=backend):
-                    if not config['simulator']:
-                        test = slow_test(test)
-                    test(self, backend, *args, **kwargs)
+                    backend_test = test if config['simulator'] else slow_test(test)
+                    backend_test(self, backend, *args, **kwargs)
     return _wrapper
 
 
@@ -175,7 +173,7 @@ class TestBackendQobj(JobTestCase):
         """
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
-        if n_qubits < 4 or config.get('n_registers',n_qubits) < 4:
+        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
             self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
