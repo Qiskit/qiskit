@@ -54,7 +54,7 @@ def register(*args, provider_class=None, **kwargs):
     .. deprecated:: 0.6+
         After 0.6, this function is deprecated. Please use the methods in
         `qiskit.IBMQ` instead (`enable_account()`) for using IBMQ
-        accounts. For custom `Provider`s, please instantiate them directly.
+        accounts. For custom `Providers`, please instantiate them directly.
     """
     if provider_class:
         warnings.warn(
@@ -307,7 +307,7 @@ def execute(circuits, backend,
     """
     # pylint: disable=missing-param-doc, missing-type-doc
     if isinstance(backend, str):
-        warnings.warn('execute() no longer takes backend string names.'
+        warnings.warn('execute() no longer takes backend string names. '
                       'Please pass backend objects, obtained via'
                       'IBMQ.get_backend() or Aer.get_backend().', DeprecationWarning)
         try:

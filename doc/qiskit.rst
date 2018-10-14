@@ -4,12 +4,12 @@ Qiskit overview
 Philosophy
 ----------
 
-Qiskit is a collection of software for working with short depth
-quantum circuits and building near term applications and experiments
+Qiskit is a collection of software for working with short-depth
+quantum circuits, and running near-term applications and experiments
 on quantum computers. In Qiskit, a quantum program is an array of
 quantum circuits.  The program workflow consists of three stages:
-Build, Compile, and Run. Build allows you to make different quantum
-circuits that represent the problem you are solving. Compile allows
+Build, Compile, and Run. Build allows you to generate different quantum
+circuits that represent the algorithm you are solving. Compile allows
 you to rewrite them to run on different backends (simulators/real
 chips of different quantum volumes, sizes, fidelity, etc). Run
 launches the jobs. After the jobs have been run, the data is
@@ -24,6 +24,9 @@ The Qiskit project comprises:
 * `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`_: Python science
   development kit for writing quantum computing experiments, programs, and
   applications.
+
+* `Qiskit Aqua <https://github.com/Qiskit/aqua>`_:  A library and tools to 
+  build applications for Noisy Intermediate-Scale Quantum (NISQ) computers
 
 * `Qiskit API <https://github.com/Qiskit/qiskit-api-py>`_: A thin Python
   wrapper around the Quantum Experience HTTP API that enables you to

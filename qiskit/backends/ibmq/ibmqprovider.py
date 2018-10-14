@@ -98,7 +98,7 @@ class IBMQProvider(BaseProvider):
             }
 
     def enable_account(self, token, url=QE_URL, **kwargs):
-        """Authenticate and use one IBMQ account during this session.
+        """Authenticate a new IBMQ account and add for use during this session.
 
         Login into Quantum Experience or IBMQ using the provided credentials,
         adding the account to the current session. The account is not stored
@@ -117,7 +117,7 @@ class IBMQProvider(BaseProvider):
         self._append_account(credentials)
 
     def save_account(self, token, url=QE_URL, **kwargs):
-        """Authenticate against IBMQ and save the account to disk for future use.
+        """Save the account to disk for future use.
 
         Login into Quantum Experience or IBMQ using the provided credentials,
         adding the account to the current session. The account is stored in

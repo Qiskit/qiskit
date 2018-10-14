@@ -11,6 +11,7 @@
 TODO: Must expand tests. Re-evaluate after Aer."""
 import unittest
 
+from unittest import skip
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpiler
 from qiskit import IBMQ
@@ -76,7 +77,9 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         self.assertDictAlmostEqual(counts1, target1, threshold)
         self.assertDictAlmostEqual(counts2, target2, threshold)
 
-    @unittest.skip('Skipping due to register ordering confusion.')
+    # TODO: Investigate why this test is failing in master:
+    # https://github.com/Qiskit/qiskit-terra/issues/1016
+    @skip('Intermitent failure, see: https://github.com/Qiskit/qiskit-terra/issues/1016 ')
     @requires_qe_access
     def test_online_qasm_simulator_two_registers(self, qe_token, qe_url):
         """Test online_qasm_simulator_two_registers.

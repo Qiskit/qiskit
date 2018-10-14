@@ -72,9 +72,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'Qiskit SDK'
-copyright = '2017-2018 IBM Research'
-author = 'IBM Research'
+project = 'Qiskit Terra'
+copyright = '2017-2018 IBM'
+author = 'IBM'
 
 # Add description
 html_context = {
@@ -194,7 +194,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Qiskit', 'Qiskit Documentation',
+    (master_doc, 'Qiskit Terra', 'Qiskit Terra Documentation',
      author, 'Qiskit', 'One line description of project.',
      'Miscellaneous'),
 ]

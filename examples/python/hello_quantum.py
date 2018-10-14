@@ -35,15 +35,15 @@ try:
 
     # See a list of available local simulators
     print("Aer backends: ", Aer.backends())
-    sim_backend = Aer.get_backend('qasm_simulator')
+    backend_sim = Aer.get_backend('qasm_simulator')
 
     # Compile and run the Quantum circuit on a simulator backend
-    job_sim = execute(qc, sim_backend)
-    sim_result = job_sim.result()
+    job_sim = execute(qc, backend_sim)
+    result_sim = job_sim.result()
 
     # Show the results
-    print("simulation: ", sim_result)
-    print(sim_result.get_counts(qc))
+    print("simulation: ", result_sim)
+    print(result_sim.get_counts(qc))
 
     # see a list of available remote backends
     ibmq_backends = IBMQ.backends()
@@ -56,11 +56,11 @@ try:
 
         #runing the job
         job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
-        exp_result = job_exp.result()
+        result_exp = job_exp.result()
 
         # Show the results
-        print("experiment: ", exp_result)
-        print(exp_result.get_counts(qc))
+        print("experiment: ", result_exp)
+        print(result_exp.get_counts(qc))
     except:
         print("All devices are currently unavailable.")
 

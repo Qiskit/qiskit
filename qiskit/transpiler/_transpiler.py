@@ -336,8 +336,8 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     if pass_manager:
         # run the passes specified by the pass manager
-        for pass_ in pass_manager.passes():
-            pass_.run(dag)
+        # TODO return the property set too. See #1086
+        dag = pass_manager.run_passes(dag)
     else:
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
@@ -457,9 +457,10 @@ def _matches_coupling_map(dag, coupling_map):
     for _, data in dag.multi_graph.nodes(data=True):
         if data['type'] == 'op':
             gate_map = [qr[1] for qr in data['qargs']]
-            if gate_map not in coupling_map:
-                match = False
-                break
+            if len(gate_map) > 1:
+                if gate_map not in coupling_map:
+                    match = False
+                    break
     return match
 
 
