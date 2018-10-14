@@ -13,6 +13,7 @@
 
 import os
 import unittest
+import functools
 from qiskit import transpiler
 from qiskit.backends import JobError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
