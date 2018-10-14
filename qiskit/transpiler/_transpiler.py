@@ -84,8 +84,8 @@ def compile(circuits, backend,
         qobj.config.seed = seed
 
     qobj.experiments = parallel_map(_single_circuit_to_experiment,
-                                    list(range(len(circuits))),
-                                    task_args=(circuits, backend),
+                                    circuits,
+                                    task_args=(backend,),
                                     task_kwargs={'initial_layout': initial_layout,
                                                  'basis_gates': basis_gates,
                                                  'config': config,
@@ -102,14 +102,13 @@ def compile(circuits, backend,
     return qobj
 
 
-def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
+def _single_circuit_to_experiment(circuit, backend, initial_layout=None,
                                   basis_gates='u1,u2,u3,cx,id', config=None,
                                   coupling_map=None, seed=None, pass_manager=None):
     """Builds a single Qobj experiment from a quantum circuit.
     Usually called in parallel.
     Args:
-        idx (int): Index of circuit in circuits list.
-        circuits (list): List of circuits passed.
+        circuit (QuantumCircuit): A quantum circuit.
         backend (BaseBackend or str): a backend to compile for
         initial_layout (list): initial layout of qubits in mapping
         basis_gates (str): comma-separated basis gate set to compile to
@@ -124,8 +123,6 @@ def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
     Returns:
         experiment: An instance of an experiment to be added to a Qobj.
     """
-
-    circuit = circuits[idx]
     dag = DAGCircuit.fromQuantumCircuit(circuit)
 
     if (initial_layout is None and not backend.configuration()['simulator']
@@ -134,7 +131,7 @@ def _single_circuit_to_experiment(idx, circuits, backend, initial_layout=None,
     else:
         _initial_layout = initial_layout
 
-    dag = _single_dag_transpile(0, [dag], [_initial_layout],
+    dag = _single_dag_transpile((dag, _initial_layout),
                                 basis_gates=basis_gates, coupling_map=coupling_map,
                                 seed=seed, pass_manager=pass_manager)
 
@@ -177,10 +174,8 @@ def transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Raises:
         TranspilerError: if the format is not valid.
     """
-
-    index = list(range(len(dags)))
-    final_dags = parallel_map(_single_dag_transpile, index,
-                              task_args=(dags, initial_layouts),
+    dags_layouts = list(zip(dags, initial_layouts))
+    final_dags = parallel_map(_single_dag_transpile, dags_layouts,
                               task_kwargs={'basis_gates': basis_gates,
                                            'coupling_map': coupling_map,
                                            'seed': seed,
@@ -188,14 +183,12 @@ def transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     return final_dags
 
 
-def _single_dag_transpile(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,id',
+def _single_dag_transpile(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
                           coupling_map=None, seed=None, pass_manager=None):
     """Transpile a single DAG.  Usually called in parallel.
 
     Args:
-        idx (int): Index for dag of interest
-        dags (list): List of dags
-        initial_layouts (list): List of initial layouts
+        dag_layout_tuple (tuple): Tuple of dag and its initial_layout
         basis_gates (str): a comma seperated string for the target basis gates
         coupling_map (list): A graph of coupling
         seed (int): random seed for the swap mapper
@@ -206,13 +199,11 @@ def _single_dag_transpile(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,i
     Returns:
         DAGCircuit: DAG circuit after going through transpilation.
     """
-    dag = dags[idx]
-    initial_layout = initial_layouts[idx]
     final_dag, final_layout = transpile(
-        dag,
+        dag_layout_tuple[0],
         basis_gates=basis_gates,
         coupling_map=coupling_map,
-        initial_layout=initial_layout,
+        initial_layout=dag_layout_tuple[1],
         get_layout=True,
         seed=seed,
         pass_manager=pass_manager)
