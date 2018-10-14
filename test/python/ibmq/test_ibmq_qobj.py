@@ -14,9 +14,6 @@
 import os
 import unittest
 import functools
-from qiskit import transpiler
-from qiskit.backends import JobError
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi

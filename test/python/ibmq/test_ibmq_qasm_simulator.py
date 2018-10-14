@@ -76,7 +76,6 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         self.assertDictAlmostEqual(counts1, target1, threshold)
         self.assertDictAlmostEqual(counts2, target2, threshold)
 
-
     # TODO: Investigate why this test is failing in master:
     # https://github.com/Qiskit/qiskit-terra/issues/1016
     @skip('Intermitent failure, see: https://github.com/Qiskit/qiskit-terra/issues/1016 ')
