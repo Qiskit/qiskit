@@ -84,7 +84,7 @@ def _unify_ibmq_url(url, hub=None, group=None, project=None):
             * project (str): the project used for IBM Q.
     """
     # Check if the URL is "new style", and retrieve embedded parameters from it.
-    regex_match = re.match(REGEX_IBMQ_HUBS, url)
+    regex_match = re.match(REGEX_IBMQ_HUBS, url, re.IGNORECASE)
     if regex_match:
         _, hub, group, project = regex_match.groups()
     else:
