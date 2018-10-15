@@ -47,6 +47,7 @@ Fixed
 -----
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
+- Use case insensitive matching when comparing premium account URLs. (#1102)
 
 
 `0.6.0`_ - 2018-10-04
