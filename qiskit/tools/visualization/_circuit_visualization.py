@@ -1435,6 +1435,8 @@ class QCircuitImage(object):
                                       str(e))
             elif op['name'] == "barrier":
                 qarglist = [self.qubit_list[i] for i in op['qubits']]
+                if self._style.reverse:
+                    qarglist = list(reversed(qarglist))
                 if aliases is not None:
                     qarglist = map(lambda x: aliases[x], qarglist)
                 start = self.img_regs[(qarglist[0][0],
