@@ -394,8 +394,9 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, json_circuit):
+    def __init__(self, json_circuit, reversebits=False):
         self.json_circuit = json_circuit
+        self.reversebits = reversebits
 
     def lines(self, line_length=None):
         """
@@ -625,6 +626,9 @@ class TextDrawing():
 
         layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
 
+        if self.reversebits:
+            [layer.reverse() for layer in layers]
+
         for instruction in self.json_circuit['instructions']:
             layer = Layer(noqubits, noclbits)
 
@@ -702,6 +706,8 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1],
                                 BoxOnQuWire("U3(%s)" % ','.join(params)))
+                if self.reversebits:
+                    layer.reverse()
                 layer.connect_with("│")
 
             elif instruction['name'] == 'crz':
@@ -744,6 +750,10 @@ class Layer:
             String: self.qubit_layer + self.clbit_layer
         """
         return self.qubit_layer + self.clbit_layer
+
+    def reverse(self):
+        self.qubit_layer.reverse()
+        self.clbit_layer.reverse()
 
     def set_qubit(self, qubit, element):
         """

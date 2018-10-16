@@ -210,7 +210,8 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
+                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None,
+                         reversebits=False):
     """
     Draws a circuit using ascii art.
     Args:
@@ -225,7 +226,7 @@ def _text_circuit_drawer(circuit, filename=None,
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    text = "\n".join(TextDrawing(json_circuit).lines(line_length))
+    text = "\n".join(TextDrawing(json_circuit, reversebits=reversebits).lines(line_length))
 
     if filename:
         with open(filename, mode='w', encoding="utf8") as text_file:
