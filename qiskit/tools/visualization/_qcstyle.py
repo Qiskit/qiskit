@@ -64,7 +64,7 @@ class QCStyle:
         self.pimode = False
         self.fold = 20
         self.bundle = False
-        self.barrier = False
+        self.barrier = True
         self.index = False
         self.compress = True
         self.figwidth = -1
