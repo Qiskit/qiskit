@@ -652,7 +652,8 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], Ex())
                 layer.set_qubit(instruction['qubits'][2], Ex())
-
+                if self.reversebits:
+                    layer.reverse()
                 layer.connect_with("│")
 
             elif instruction['name'] == 'reset':
