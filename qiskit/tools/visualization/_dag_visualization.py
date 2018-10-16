@@ -21,6 +21,12 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
+    Note this function leverages
+    `pydot <https://github.com/erocarrera/pydot>`_ (via
+    `nxpd <https://github.com/chebee7i/nxpd`_) to generate the graph, which
+    means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
+    system is required for this to work.
+
     Args:
         dag (DAGCircuit): The dag to draw.
         scale (float): scaling factor
