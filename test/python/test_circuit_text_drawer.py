@@ -145,6 +145,23 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.swap(qr1, qr2)
         self.assertEqual(_text_circuit_drawer(circuit), expected)
 
+    def test_text_swap_reversebits(self):
+        """ Swap drawing with reversebits. """
+        expected = '\n'.join(["               ",
+                              "q2_1: |0>─X────",
+                              "          │    ",
+                              "q2_0: |0>─┼──X─",
+                              "          │  │ ",
+                              "q1_1: |0>─X──┼─",
+                              "             │ ",
+                              "q1_0: |0>────X─",
+                              "               "])
+        qr1 = QuantumRegister(2, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.swap(qr1, qr2)
+        self.assertEqual(_text_circuit_drawer(circuit, reversebits=True), expected)
+
     def test_text_cswap(self):
         """ CSwap drawing. """
         expected = '\n'.join(["                 ",

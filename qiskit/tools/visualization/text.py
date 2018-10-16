@@ -645,6 +645,8 @@ class TextDrawing():
                 # swap
                 for qubit in instruction['qubits']:
                     layer.qubit_layer[qubit] = Ex()
+                if self.reversebits:
+                    layer.reverse()
                 layer.connect_with("│")
 
             elif instruction['name'] == 'cswap':
