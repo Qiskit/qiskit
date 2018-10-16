@@ -26,9 +26,10 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization._error import VisualizationError
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _matplotlib
+from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile
-from .text import TextDrawing
+
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +217,7 @@ def _text_circuit_drawer(circuit, filename=None,
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
 
-    text = "\n".join(TextDrawing(json_circuit).lines(line_length))
+    text = "\n".join(_text.TextDrawing(json_circuit).lines(line_length))
 
     if filename:
         with open(filename, mode='w', encoding="utf8") as text_file:
