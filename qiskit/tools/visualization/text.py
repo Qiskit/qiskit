@@ -395,9 +395,10 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, json_circuit, reversebits=False):
+    def __init__(self, json_circuit, reversebits=False, plotbarriers=True):
         self.json_circuit = json_circuit
         self.reversebits = reversebits
+        self.plotbarriers = plotbarriers
 
     def lines(self, line_length=None):
         """
@@ -646,6 +647,9 @@ class TextDrawing():
 
             elif instruction['name'] == 'barrier':
                 # barrier
+                if not self.plotbarriers:
+                    continue
+
                 for qubit in instruction['qubits']:
                     layer.qubit_layer[qubit] = Barrier()
 
