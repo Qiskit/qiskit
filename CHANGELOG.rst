@@ -21,7 +21,8 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-- Added DAG visualizer (#1059)
+- Added DAG visualizer which requires `Graphivz <https://www.graphviz.org/>`_
+  (#1059)
 - Added a ASCII art circuit visualizer (#909)
 - Added a new kwarg `filename` to
   `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
@@ -47,6 +48,7 @@ Fixed
 -----
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
+- Use case insensitive matching when comparing premium account URLs. (#1102)
 
 
 `0.6.0`_ - 2018-10-04
