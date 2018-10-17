@@ -469,7 +469,8 @@ class TextDrawing():
         Returns:
             List: The list of wire names.
         """
-        ret = []
+        qubits = []
+        clbits = []
 
         if with_initial_value:
             initial_value = {'qubit': '|0>', 'clbit': '0 '}
@@ -478,11 +479,19 @@ class TextDrawing():
 
         header = self.json_circuit['header']
         for qubit in header['qubit_labels']:
-            ret.append("%s_%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
+            qubits.append("%s_%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
+
+        if self.reversebits:
+            qubits.reverse()
+
         for creg in header['clbit_labels']:
             for clbit in range(creg[1]):
-                ret.append("%s_%s: %s" % (creg[0], clbit, initial_value['clbit']))
-        return ret
+                clbits.append("%s_%s: %s" % (creg[0], clbit, initial_value['clbit']))
+
+        if self.reversebits:
+            clbits.reverse()
+
+        return qubits+clbits
 
     @staticmethod
     def draw_wires(wires):
@@ -626,9 +635,6 @@ class TextDrawing():
         noclbits = self.json_circuit['header']['number_of_clbits']
 
         layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
-
-        if self.reversebits:
-            [layer.reverse() for layer in layers]
 
         for instruction in self.json_circuit['instructions']:
             layer = Layer(noqubits, noclbits)
