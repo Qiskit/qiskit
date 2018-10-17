@@ -120,5 +120,47 @@ class TestQiskitResult(QiskitTestCase):
         self.assertIsNot(new_result, result2)
 
 
+class TestResultConsistency(QiskitTestCase):
+    """Test consistency of qiskit.Results API across all backends."""
+
+    def test_add_aer(self):
+        """Test combining results on all Aer backends."""
+        qr = qiskit.QuantumRegister(1)
+        cr = qiskit.ClassicalRegister(1)
+        qc1 = qiskit.QuantumCircuit(qr, cr, name='qc1')
+        qc1.h(qr[0])
+        qc2 = qiskit.QuantumCircuit(qr, cr, name='qc2')
+        qc2.x(qr[0])
+        for backend in qiskit.Aer.backends():
+            with self.subTest(backend=backend.name()):
+                result_a = qiskit.execute(qc1, backend).result()
+                result_b = qiskit.execute(qc2, backend).result()
+                res = result_a + result_b
+                self.assertEqual(str(res), 'COMPLETED')
+                self.assertIsNot(res, result_a)
+                self.assertIsNot(res, result_b)
+
+    @requires_qe_access
+    def test_add_ibmq(self, qe_token, qe_url):
+        """Test combining results on all IBMQ backends."""
+        qiskit.IBMQ.enable_account(qe_token, qe_url)
+        qr = qiskit.QuantumRegister(1)
+        cr = qiskit.ClassicalRegister(1)
+        qc1 = qiskit.QuantumCircuit(qr, cr, name='qc1')
+        qc1.h(qr[0])
+        qc1.measure(qr, cr)
+        qc2 = qiskit.QuantumCircuit(qr, cr, name='qc2')
+        qc2.x(qr[0])
+        qc2.measure(qr, cr)
+        for backend in qiskit.IBMQ.backends():
+            with self.subTest(backend=backend.name()):
+                result_a = qiskit.execute(qc1, backend).result()
+                result_b = qiskit.execute(qc2, backend).result()
+                res = result_a + result_b
+                self.assertEqual(str(res), 'COMPLETED')
+                self.assertIsNot(res, result_a)
+                self.assertIsNot(res, result_b)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
