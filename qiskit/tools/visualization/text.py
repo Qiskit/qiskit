@@ -86,13 +86,11 @@ class DrawElement():
             where (list["top", "bot"]): Where the connector should be set.
             label (string): Some connectors have a label (see cu1, for example).
         """
-        if 'top' in where:
-            self.top_connect = self.top_connector[
-                wire_char] if wire_char in self.top_connector else wire_char
+        if 'top' in where and self.top_connector:
+            self.top_connect = self.top_connector[wire_char]
 
-        if 'bot' in where:
-            self.bot_connect = self.bot_connector[
-                wire_char] if wire_char in self.bot_connector else wire_char
+        if 'bot' in where and self.bot_connector:
+            self.bot_connect = self.bot_connector[wire_char]
 
         if label:
             self.top_format = self.top_format[:-1] + (label if label else "")
@@ -270,6 +268,8 @@ class DirectOnQuWire(DrawElement):
         self.mid_format = '─%s─'
         self.bot_format = ' %s '
         self._mid_padding = '─'
+        self.top_connector = {"│": '│'}
+        self.bot_connector = {"│": '│'}
 
 
 class Barrier(DirectOnQuWire):
@@ -283,7 +283,8 @@ class Barrier(DirectOnQuWire):
         super().__init__("░")
         self.top_connect = "░"
         self.bot_connect = "░"
-
+        self.top_connector = {}
+        self.bot_connector = {}
 
 class Ex(DirectOnQuWire):
     """ Draws an X (usually with a connector). E.g. the top part of a swap gate
@@ -631,6 +632,7 @@ class TextDrawing():
 
         for instruction in self.json_circuit['instructions']:
             layer = Layer(noqubits, noclbits)
+            connector_label = None
 
             if instruction['name'] == 'measure':
                 layer.set_qubit(instruction['qubits'][0], MeasureFrom())
@@ -645,18 +647,12 @@ class TextDrawing():
                 # swap
                 for qubit in instruction['qubits']:
                     layer.qubit_layer[qubit] = Ex()
-                if self.reversebits:
-                    layer.reverse()
-                layer.connect_with("│")
 
             elif instruction['name'] == 'cswap':
                 # cswap
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], Ex())
                 layer.set_qubit(instruction['qubits'][2], Ex())
-                if self.reversebits:
-                    layer.reverse()
-                layer.connect_with("│")
 
             elif instruction['name'] == 'reset':
                 layer.set_qubit(instruction['qubits'][0], Reset())
@@ -674,34 +670,28 @@ class TextDrawing():
                 # cx/ccx
                 for qubit in [qubit for qubit in instruction['qubits'][:-1]]:
                     layer.set_qubit(qubit, Bullet())
-
                 layer.set_qubit(instruction['qubits'][-1], BoxOnQuWire('X'))
-                layer.connect_with("│")
 
             elif instruction['name'] == 'cy':
                 # cy
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], BoxOnQuWire('Y'))
-                layer.connect_with("│")
 
             elif instruction['name'] == 'cz':
                 # cz
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], Bullet())
-                layer.connect_with("│")
 
             elif instruction['name'] == 'ch':
                 # ch
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], BoxOnQuWire('H'))
-                layer.connect_with("│")
 
             elif instruction['name'] == 'cu1':
                 # cu1
-                label = TextDrawing.params_for_label(instruction)[0]
+                connector_label = TextDrawing.params_for_label(instruction)[0]
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1], Bullet())
-                layer.connect_with("│", label)
 
             elif instruction['name'] == 'cu3':
                 # cu3
@@ -709,9 +699,6 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1],
                                 BoxOnQuWire("U3(%s)" % ','.join(params)))
-                if self.reversebits:
-                    layer.reverse()
-                layer.connect_with("│")
 
             elif instruction['name'] == 'crz':
                 # crz
@@ -719,7 +706,6 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][0], Bullet())
                 layer.set_qubit(instruction['qubits'][1],
                                 BoxOnQuWire(label))
-                layer.connect_with("│")
 
             elif len(instruction['qubits']) == 1 and 'clbits' not in instruction:
                 # unitary gate
@@ -732,6 +718,10 @@ class TextDrawing():
 
             else:
                 raise Exception("I don't know how to handle this instruction", instruction)
+
+            if self.reversebits:
+                layer.reverse()
+            layer.connect_with("│", connector_label)
 
             layers.append(layer.full_layer)
 
@@ -832,6 +822,11 @@ class Layer:
             label (string): Some connectors have a label (see cu1, for example).
         """
         affected_bits = [bit for bit in self.full_layer if bit is not None]
+
+        if len([qbit for qbit in self.qubit_layer if qbit is not None]) == 1:
+            # Nothing to connect
+            return
+
         affected_bits[0].connect(wire_char, ['bot'])
         for affected_bit in affected_bits[1:-1]:
             affected_bit.connect(wire_char, ['bot', 'top'])
