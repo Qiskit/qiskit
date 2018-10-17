@@ -9,10 +9,11 @@
 Message broker for the Publisher / Subscriber mechanism
 """
 
-import functools
+from ._qiskiterror import QISKitError
 
 
 class _Broker(object):
+    """ The event/message broker. It's a singleton."""
 
     _instance = None
     _subscribers = {}
@@ -34,12 +35,18 @@ class _Broker(object):
             return False
 
     def subscribe(self, event, callback):
-        """ Subscribes to an event, so when it's emitted all the callbacks subscribed to it will be executed
-        We are not allowing double registration
+        """ Subscribes to an event, so when it's emitted all the callbacks subscribed,
+        will be executed. We are not allowing double registration.
 
-        :param event: The event to subscribed
-        :param callback: The callback that will be executed when a event is emitted
+        Args
+            event (string): The event to subscribed in the form of:
+                            "terra.<component>.<method>.<action>"
+            callback (callable): The callback that will be executed when an event is
+                                  emitted.
         """
+        if not callable(callback):
+            raise QISKitError("Callback is not a callable!")
+
         if event not in self._subscribers:
             self._subscribers[event] = []
 
@@ -52,11 +59,12 @@ class _Broker(object):
         return True
 
     def dispatch(self, event, *args, **kwargs):
-        """ Emits an event if there are any subscribers
+        """ Emits an event if there are any subscribers.
 
-        :param event: The event to be emitted
-        :param args: Arguments linked with the event
-        :param kwargs: Named arguments linked with the event
+        Args
+            event (String): The event to be emitted
+            args: Arguments linked with the event
+            kwargs: Named arguments linked with the event
         """
         # No event, no subscribers.
         if event not in self._subscribers:
@@ -66,11 +74,15 @@ class _Broker(object):
             subscriber.callback(*args, **kwargs)
 
     def unsubscribe(self, event, callback):
-        """ Unsubscribe the specific callback to the event
-        :param event: The event to unsubscribe
-        :param callback: The callback that won't be executed anymore
-        :return True: if we have successfully unsubscribed to the event
-        :return False: if there's no callback previously registered
+        """ Unsubscribe the specific callback to the event.
+
+        Args
+            event (String): The event to unsubscribe
+            callback (callable): The callback that won't be executed anymore
+
+        Returns
+            True: if we have successfully unsubscribed to the event
+            False: if there's no callback previously registered
         """
 
         try:
@@ -82,19 +94,33 @@ class _Broker(object):
 
 
 class Publisher(object):
+    """ Represents a Publisher, every component (class) can become a Publisher and
+    send events by inheriting this class. Functions can call this class like:
+    Publisher().publish("event", args, ... )
+    """
     def __init__(self):
         self._broker = _Broker()
 
     def publish(self, event, *args, **kwargs):
+        """ Triggers an event, and associates some data to it, so if there are any
+        subscribers, their callback will be called synchronously. """
         return self._broker.dispatch(event, *args, **kwargs)
 
 
 class Subscriber(object):
+    """ Represents a Subscriber, every component (class) can become a Subscriber and
+    subscribe to events, that will call callback functions when they are emitted.
+    """
     def __init__(self):
         self._broker = _Broker()
 
     def subscribe(self, event, callback):
+        """ Subscribes to an event, associating a callback function to that event, so
+        when the event occurs, the callback will be called.
+        This is a blocking call, so try to keep callbacks as lighweight as possible. """
         return self._broker.subscribe(event, callback)
 
     def unsubscribe(self, event, callback):
+        """ Unsubscribe a pair event-callback, so the callback will not be called anymore
+        when the event occurs."""
         return self._broker.unsubscribe(event, callback)
