@@ -42,4 +42,3 @@ class HTMLProgressBar(BaseProgressBar):
         self.t_done = time.time()
         self.progress_bar.bar_style = 'success'
         self.label.value = "Elapsed time: %s" % self.time_elapsed()
-

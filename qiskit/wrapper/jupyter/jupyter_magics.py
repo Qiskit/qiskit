@@ -147,20 +147,20 @@ class ProgressBarMagic(Magics):
             progress_bar = TextProgressBar()
         else:
             raise qiskit.QISKitError('Invalid progress bar type.')
-        self.shell.ex(cell)
 
-        def initialize_progress_bar(self, num_tasks):
-            self.start(num_tasks)
+        def initialize_progress_bar(num_tasks):
+            progress_bar.start(num_tasks)
         progress_bar.subscribe("terra.transpiler.compile.start", initialize_progress_bar)
 
-        def update_progress_bar(self, progress):
-            self.update(progress)
+        def update_progress_bar(progress):
+            progress_bar.update(progress)
         progress_bar.subscribe("terra.transpiler.compile.done", update_progress_bar)
 
-        def finish_progress_bar(self):
-            self.usubscribe("terra.transpiler.compile.start", initialize_progress_bar)
-            self.usubscribe("terra.transpiler.compile.done", update_progress_bar)
-            self.usubscribe("terra.transpiler.compile.finish", finish_progress_bar)
-            self.finish()
+        def finish_progress_bar():
+            progress_bar.unsubscribe("terra.transpiler.compile.start", initialize_progress_bar)
+            progress_bar.unsubscribe("terra.transpiler.compile.done", update_progress_bar)
+            progress_bar.unsubscribe("terra.transpiler.compile.finish", finish_progress_bar)
+            progress_bar.finished()
 
         progress_bar.subscribe("terra.transpiler.compile.finish", finish_progress_bar)
+        self.shell.ex(cell)

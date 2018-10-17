@@ -45,7 +45,7 @@ class _Broker(object):
 
         new_subscription = self._Subscription(event, callback)
         if new_subscription in self._subscribers[event]:
-            # We are not allowing double subscribing
+            # We are not allowing double subscription
             return False
 
         self._subscribers[event].append(new_subscription)
@@ -64,7 +64,6 @@ class _Broker(object):
 
         for subscriber in self._subscribers[event]:
             subscriber.callback(*args, **kwargs)
-        
 
     def unsubscribe(self, event, callback):
         """ Unsubscribe the specific callback to the event

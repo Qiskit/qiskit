@@ -45,14 +45,15 @@ import datetime
 import sys
 from qiskit._pubsub import Subscriber
 
+
 class BaseProgressBar(Subscriber):
     """An abstract progress bar with some shared functionality.
     """
 
     def __init__(self):
+        super().__init__()
         self.type = 'progressbar'
         self.touched = False
-        self.channel_id = rec.add_channel(self)
         self.iter = None
         self.t_start = None
         self.t_done = None
@@ -103,7 +104,7 @@ class BaseProgressBar(Subscriber):
     def finished(self):
         """Run when progress bar has completed.
         """
-        rec.remove_channel(self.channel_id)
+        pass
 
 
 class TextProgressBar(BaseProgressBar):
