@@ -400,7 +400,7 @@ class TextDrawing():
         self.json_circuit = json_circuit
         self.reversebits = reversebits
         self.plotbarriers = plotbarriers
-
+        
     def lines(self, line_length=None):
         """
         Generates a list with lines. These lines form the text drawing.
@@ -652,12 +652,12 @@ class TextDrawing():
                     continue
 
                 for qubit in instruction['qubits']:
-                    layer.qubit_layer[qubit] = Barrier()
+                    layer.set_qubit(qubit, Barrier())
 
             elif instruction['name'] == 'swap':
                 # swap
                 for qubit in instruction['qubits']:
-                    layer.qubit_layer[qubit] = Ex()
+                    layer.set_qubit(qubit, Ex())
 
             elif instruction['name'] == 'cswap':
                 # cswap
