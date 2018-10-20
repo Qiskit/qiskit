@@ -286,6 +286,7 @@ class Barrier(DirectOnQuWire):
         self.top_connector = {}
         self.bot_connector = {}
 
+
 class Ex(DirectOnQuWire):
     """ Draws an X (usually with a connector). E.g. the top part of a swap gate
     top:
@@ -492,7 +493,7 @@ class TextDrawing():
         if self.reversebits:
             clbits.reverse()
 
-        return qubits+clbits
+        return qubits + clbits
 
     @staticmethod
     def draw_wires(wires):
