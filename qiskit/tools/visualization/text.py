@@ -440,7 +440,7 @@ class TextDrawing():
 
         creg_dest_order = []
         for creg in self.json_circuit['header']['clbit_labels']:
-            bit_nos = [ bit for bit in range(creg[1])]
+            bit_nos = [bit for bit in range(creg[1])]
             bit_nos.reverse()
             for clbit in bit_nos:
                 creg_dest_order.append("%s_%s" % (creg[0], clbit))
