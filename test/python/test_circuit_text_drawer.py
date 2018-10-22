@@ -151,22 +151,22 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_measure_2_reversebits(self):
         """ The measure operator, using some registers, with reversebits """
-        expected = '\n'.join(["         ┌─┐   ",
+        expected = '\n'.join(["               ",
+                              "q1_1: |0>──────",
+                              "               ",
+                              "q1_0: |0>──────",
+                              "         ┌─┐   ",
                               "q2_1: |0>┤M├───",
                               "         └╥┘┌─┐",
                               "q2_0: |0>─╫─┤M├",
                               "          ║ └╥┘",
-                              "q1_1: |0>─╫──╫─",
+                              " c1_1: 0 ═╬══╬═",
                               "          ║  ║ ",
-                              "q1_0: |0>─╫──╫─",
+                              " c1_0: 0 ═╬══╬═",
                               "          ║  ║ ",
                               " c2_1: 0 ═╩══╬═",
                               "             ║ ",
                               " c2_0: 0 ════╩═",
-                              "               ",
-                              " c1_1: 0 ══════",
-                              "               ",
-                              " c1_0: 0 ══════",
                               "               "])
         qr1 = QuantumRegister(2, 'q1')
         cr1 = ClassicalRegister(2, 'c1')
@@ -196,13 +196,13 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_swap_reversebits(self):
         """ Swap drawing with reversebits. """
         expected = '\n'.join(["               ",
-                              "q2_1: |0>─X────",
+                              "q1_1: |0>─X────",
                               "          │    ",
-                              "q2_0: |0>─┼──X─",
+                              "q1_0: |0>─┼──X─",
                               "          │  │ ",
-                              "q1_1: |0>─X──┼─",
+                              "q2_1: |0>─X──┼─",
                               "             │ ",
-                              "q1_0: |0>────X─",
+                              "q2_0: |0>────X─",
                               "               "])
         qr1 = QuantumRegister(2, 'q1')
         qr2 = QuantumRegister(2, 'q2')

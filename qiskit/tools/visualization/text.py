@@ -672,13 +672,11 @@ class TextDrawing():
             Exception: When the drawing is, for some reason, impossible to be drawn.
         """
         layers = []
-        noqubits = self.json_circuit['header']['number_of_qubits']
-        noclbits = self.json_circuit['header']['number_of_clbits']
 
         layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
 
         for instruction in self.json_circuit['instructions']:
-            layer = Layer(noqubits, noclbits)
+            layer = Layer(self.qubitorder, self.clbitorder)
             connector_label = None
 
             if instruction['name'] == 'measure':
@@ -769,8 +767,6 @@ class TextDrawing():
             else:
                 raise Exception("I don't know how to handle this instruction", instruction)
 
-            if self.reversebits:
-                layer.reverse()
             layer.connect_with("│", connector_label)
 
             layers.append(layer.full_layer)
@@ -781,9 +777,11 @@ class TextDrawing():
 class Layer:
     """ A layer is the "column" of the circuit. """
 
-    def __init__(self, noqubits, noclbits):
-        self.qubit_layer = [None] * noqubits
-        self.clbit_layer = [None] * noclbits
+    def __init__(self, qubitorder, clbitorder):
+        self.qubitorder = qubitorder
+        self.clbitorder = clbitorder
+        self.qubit_layer = [None] * len(qubitorder)
+        self.clbit_layer = [None] * len(clbitorder)
 
     @property
     def full_layer(self):
@@ -794,10 +792,6 @@ class Layer:
         """
         return self.qubit_layer + self.clbit_layer
 
-    def reverse(self):
-        self.qubit_layer.reverse()
-        self.clbit_layer.reverse()
-
     def set_qubit(self, qubit, element):
         """
         Sets the qubit to the element
@@ -805,7 +799,7 @@ class Layer:
             qubit (int): Qubit index.
             element (DrawElement): Element to set in the qubit
         """
-        self.qubit_layer[qubit] = element
+        self.qubit_layer[self.qubitorder[qubit]] = element
 
     def set_clbit(self, clbit, element):
         """
@@ -814,7 +808,7 @@ class Layer:
             clbit (int): Clbit index.
             element (DrawElement): Element to set in the clbit
         """
-        self.clbit_layer[clbit] = element
+        self.clbit_layer[self.clbitorder[clbit]] = element
 
     def _set_multibox(self, wire_type, bits, label, top_connect=None):
         # pylint: disable=invalid-name
