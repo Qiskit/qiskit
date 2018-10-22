@@ -522,6 +522,9 @@ class TextDrawing():
         if with_initial_value:
             qubit_labels = ['%s: |0>' % qubit for qubit in qubit_labels]
             clbit_labels = ['%s: 0 ' % clbit for clbit in clbit_labels]
+        else:
+            qubit_labels = ['%s: ' % qubit for qubit in qubit_labels]
+            clbit_labels = ['%s: ' % clbit for clbit in clbit_labels]
 
         qubit_wires = [None] * self.json_circuit['header']['number_of_qubits']
         clbit_wires = [None] * self.json_circuit['header']['number_of_clbits']

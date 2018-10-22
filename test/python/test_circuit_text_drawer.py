@@ -67,13 +67,39 @@ class TestTextDrawerElement(QiskitTestCase):
 
     def test_text_pager(self):
         """ The pager breaks the circuit when the drawing does not fit in the console."""
-        qr = QuantumRegister(1, 'q')
-        circuit = QuantumCircuit(qr)
-        no_instructions = 50
-        for _ in range(no_instructions):
-            circuit.x(qr[0])
-        self.assertEqual(_text_circuit_drawer(circuit, line_length=10).count('\n'),
-                         no_instructions * 3 + 2)
+        expected = '\n'.join(["        ┌───┐     »",
+                              "q_0: |0>┤ X ├──■──»",
+                              "        └─┬─┘┌─┴─┐»",
+                              "q_1: |0>──■──┤ X ├»",
+                              "             └───┘»",
+                              " c_0: 0 ══════════»",
+                              "                  »",
+                              "«     ┌─┐┌───┐     »",
+                              "«q_0: ┤M├┤ X ├──■──»",
+                              "«     └╥┘└─┬─┘┌─┴─┐»",
+                              "«q_1: ─╫───■──┤ X ├»",
+                              "«      ║      └───┘»",
+                              "«c_0: ═╩═══════════»",
+                              "«                  »",
+                              "«     ┌─┐┌───┐     ",
+                              "«q_0: ┤M├┤ X ├──■──",
+                              "«     └╥┘└─┬─┘┌─┴─┐",
+                              "«q_1: ─╫───■──┤ X ├",
+                              "«      ║      └───┘",
+                              "«c_0: ═╩═══════════",
+                              "«                  "])
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(1, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[0], qr[1])
+        self.assertEqual(_text_circuit_drawer(circuit, line_length=20), expected)
 
 
 @unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
