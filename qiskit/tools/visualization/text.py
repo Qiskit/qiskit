@@ -9,6 +9,8 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from itertools import groupby
+
 
 class DrawElement():
     """ An element is an instruction or an operation that need to be drawn."""
@@ -400,7 +402,50 @@ class TextDrawing():
         self.json_circuit = json_circuit
         self.reversebits = reversebits
         self.plotbarriers = plotbarriers
-        
+        self.qubitorder = self._get_qubitorder()
+        self.clbitorder = self._get_clbitorder()
+
+    def _get_qubit_labels(self):
+        qubits = []
+        for qubit in self.json_circuit['header']['qubit_labels']:
+            qubits.append("%s_%s" % (qubit[0], qubit[1]))
+        return qubits
+
+    def _get_clbit_labels(self):
+        clbits = []
+        for creg in self.json_circuit['header']['clbit_labels']:
+            for clbit in range(creg[1]):
+                clbits.append("%s_%s" % (creg[0], clbit))
+        return clbits
+
+    def _get_qubitorder(self):
+        header = self.json_circuit['header']
+
+        if not self.reversebits:
+            return [qub for qub in range(header['number_of_qubits'])]
+
+        qreg_dest_order = []
+        for _, qubits in groupby(header['qubit_labels'], lambda x: x[0]):
+            qubits = [qubit for qubit in qubits]
+            qubits.reverse()
+            for qubit in qubits:
+                qreg_dest_order.append("%s_%s" % (qubit[0], qubit[1]))
+        return [qreg_dest_order.index(ind) for ind in self._get_qubit_labels()]
+
+    def _get_clbitorder(self):
+        header = self.json_circuit['header']
+
+        if not self.reversebits:
+            return [clb for clb in range(header['number_of_clbits'])]
+
+        creg_dest_order = []
+        for creg in self.json_circuit['header']['clbit_labels']:
+            bit_nos = [ bit for bit in range(creg[1])]
+            bit_nos.reverse()
+            for clbit in bit_nos:
+                creg_dest_order.append("%s_%s" % (creg[0], clbit))
+        return [creg_dest_order.index(ind) for ind in self._get_clbit_labels()]
+
     def lines(self, line_length=None):
         """
         Generates a list with lines. These lines form the text drawing.
@@ -471,29 +516,23 @@ class TextDrawing():
         Returns:
             List: The list of wire names.
         """
-        qubits = []
-        clbits = []
+        qubit_labels = self._get_qubit_labels()
+        clbit_labels = self._get_clbit_labels()
 
         if with_initial_value:
-            initial_value = {'qubit': '|0>', 'clbit': '0 '}
-        else:
-            initial_value = {'qubit': '', 'clbit': ''}
+            qubit_labels = ['%s: |0>' % qubit for qubit in qubit_labels]
+            clbit_labels = ['%s: 0 ' % clbit for clbit in clbit_labels]
 
-        header = self.json_circuit['header']
-        for qubit in header['qubit_labels']:
-            qubits.append("%s_%s: %s" % (qubit[0], qubit[1], initial_value['qubit']))
+        qubit_wires = [None] * self.json_circuit['header']['number_of_qubits']
+        clbit_wires = [None] * self.json_circuit['header']['number_of_clbits']
 
-        if self.reversebits:
-            qubits.reverse()
+        for order, label in enumerate(qubit_labels):
+            qubit_wires[self.qubitorder[order]] = label
 
-        for creg in header['clbit_labels']:
-            for clbit in range(creg[1]):
-                clbits.append("%s_%s: %s" % (creg[0], clbit, initial_value['clbit']))
+        for order, label in enumerate(clbit_labels):
+            clbit_wires[self.clbitorder[order]] = label
 
-        if self.reversebits:
-            clbits.reverse()
-
-        return qubits + clbits
+        return qubit_wires + clbit_wires
 
     @staticmethod
     def draw_wires(wires):
