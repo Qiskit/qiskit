@@ -55,7 +55,7 @@ The following packages are required for building:
 Installing these dependencies for MacOS, Ubuntu or RHEL can be achieved by using the `build_dependencies.sh` script. This may be invoved from the command line by running
 
 ```bash
-> make depends
+> make depend
 ```
 
 This script installs the following platform specific dependencies:
