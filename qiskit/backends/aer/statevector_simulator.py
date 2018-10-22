@@ -57,8 +57,6 @@ class StatevectorSimulator(QasmSimulator):
                                 label='MISSING', type='MISSING')
             )
         result = super()._run_job(job_id, qobj)
-        # Replace backend name with current backend
-        result.backend_name = self.name
         # Extract final state snapshot and move to 'statevector' data field
         for experiment_result in result.results.values():
             snapshots = experiment_result.snapshots
