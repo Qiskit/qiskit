@@ -13,78 +13,87 @@
 
 import os
 import unittest
+import functools
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
-
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
-from ..common import JobTestCase
+
+from ..common import require_multiple_credentials, JobTestCase, slow_test
+
+# Timeout duration
+TIMEOUT = os.getenv("IBMQ_TIMEOUT", 10)
 
 
-class TestIBMQQobj(JobTestCase):
-    """Qiskit backend qobj test. Compares remote simulator as
-       configured in environment variables 'IBMQ_QOBJ_DEVICE',
-       'IBMQ_TOKEN' and 'IBMQ_QOBJ_URL' against local simulator
-       'local_qasm_simulator' as ground truth.
+
+def once_per_qobj_backend(test):
+    """
+    Test Qobj support on all backends claiming to support Qobj.
+    This way VCR creates a single cassette for each test.
     """
 
+    @require_multiple_credentials
+    @functools.wraps(test)
+    def _wrapper(self, *args, credentials=[], **kwargs):
+        for qe_token, qe_url in credentials:
+            IBMQ.enable_account(qe_token, qe_url)
+        for backend in IBMQ.backends():
+            config = backend.configuration()
+            if config['allow_q_object']:
+                with self.subTest(backend=backend):
+                    backend_test = test if config['simulator'] else slow_test(test)
+                    backend_test(self, backend, *args, **kwargs)
+    return _wrapper
+
+
+class TestBackendQobj(JobTestCase):
+
     def setUp(self):
+        # pylint: disable=arguments-differ
         super().setUp()
-        self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
-        self._qe_token = os.getenv('IBMQ_TOKEN', None)
-        self._qe_url = os.getenv('IBMQ_QOBJ_URL')
+        self._local_backend = Aer.get_backend('qasm_simulator_py')
 
-        if not self._testing_device or not self._qe_token or not self._qe_url:
-            self.skipTest("No credentials or testing device available for "
-                          "testing Qobj capabilities.")
+    @once_per_qobj_backend
+    def test_operational(self, remote_backend):
+        """Test if backend is operational."""
+        self.assertTrue(remote_backend.status()['operational'])
 
-        IBMQ.enable_account(self._qe_token, self._qe_url)
-        self._local_backend = Aer.get_backend('local_qasm_simulator')
-        self._remote_backend = IBMQ.get_backend(self._testing_device)
-        self.log.info('Remote backend: %s', self._remote_backend.name())
-        self.log.info('Local backend: %s', self._local_backend.name())
-
-    def test_operational(self):
-        """Test if backend is operational.
-        """
-        self.assertTrue(self._remote_backend.status()['operational'])
-
-    def test_allow_qobj(self):
-        """Test if backend support Qobj.
-        """
-        self.assertTrue(self._remote_backend.configuration()['allow_q_object'])
-
-    def test_one_qubit_no_operation(self):
-        """Test one circuit, one register, in-order readout.
-        """
+    @once_per_qobj_backend
+    def test_one_qubit_no_operation(self, remote_backend):
+        """Test one circuit, one register, in-order readout."""
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         circ = QuantumCircuit(qr, cr)
         circ.measure(qr[0], cr[0])
 
-        qobj = compile(circ, self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile(circ, remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_one_qubit_operation(self):
-        """Test one circuit, one register, in-order readout.
-        """
+    @once_per_qobj_backend
+    def test_one_qubit_operation(self, remote_backend):
+        """Test one circuit, one register, in-order readout."""
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         circ = QuantumCircuit(qr, cr)
         circ.x(qr[0])
         circ.measure(qr[0], cr[0])
 
-        qobj = compile(circ, self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile(circ, remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_simple_circuit(self):
-        """Test one circuit, one register, in-order readout.
-        """
+
+    @once_per_qobj_backend
+    def test_simple_circuit(self, remote_backend):
+        """Test one circuit, one register, in-order readout."""
+        config = remote_backend.configuration()
+        n_qubits = config['n_qubits']
+        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+            self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
         circ = QuantumCircuit(qr, cr)
@@ -95,15 +104,19 @@ class TestIBMQQobj(JobTestCase):
         circ.measure(qr[2], cr[2])
         circ.measure(qr[3], cr[3])
 
-        qobj = compile(circ, self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile(circ, remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_readout_order(self):
-        """Test one circuit, one register, out-of-order readout.
-        """
+    @once_per_qobj_backend
+    def test_readout_order(self, remote_backend):
+        """Test one circuit, one register, out-of-order readout."""
+        config = remote_backend.configuration()
+        n_qubits = config['n_qubits']
+        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+            self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
         circ = QuantumCircuit(qr, cr)
@@ -114,16 +127,21 @@ class TestIBMQQobj(JobTestCase):
         circ.measure(qr[2], cr[1])
         circ.measure(qr[3], cr[3])
 
-        qobj_remote = compile(circ, self._remote_backend)
+        qobj_remote = compile(circ, remote_backend)
         qobj_local = compile(circ, self._local_backend)
-        result_remote = self._remote_backend.run(qobj_remote).result()
+        result_remote = remote_backend.run(qobj_remote).result()
         result_local = self._local_backend.run(qobj_local).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_multi_register(self):
-        """Test one circuit, two registers, out-of-order readout.
-        """
+
+    @once_per_qobj_backend
+    def test_multi_register(self, remote_backend):
+        """Test one circuit, two registers, out-of-order readout."""
+        config = remote_backend.configuration()
+        n_qubits = config['n_qubits']
+        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+            self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
         cr1 = ClassicalRegister(3)
@@ -141,15 +159,20 @@ class TestIBMQQobj(JobTestCase):
         circ.measure(qr2[0], cr1[2])
         circ.measure(qr2[1], cr1[1])
 
-        qobj = compile(circ, self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile(circ, remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_multi_circuit(self):
-        """Test two circuits, two registers, out-of-order readout.
-        """
+
+    @once_per_qobj_backend
+    def test_multi_circuit(self, remote_backend):
+        """Test two circuits, two registers, out-of-order readout."""
+        config = remote_backend.configuration()
+        n_qubits = config['n_qubits']
+        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+            self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
         cr1 = ClassicalRegister(3)
@@ -176,34 +199,42 @@ class TestIBMQQobj(JobTestCase):
         circ2.measure(qr1[0], cr1[2])
         circ2.measure(qr2[1], cr1[2])
 
-        qobj = compile([circ1, circ2], self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile([circ1, circ2], remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ1),
                                    result_local.get_counts(circ1), delta=100)
         self.assertDictAlmostEqual(result_remote.get_counts(circ2),
                                    result_local.get_counts(circ2), delta=100)
 
-    def test_conditional_operation(self):
+    @once_per_qobj_backend
+    def test_conditional_operation(self, remote_backend):
         """Test conditional operation.
         """
-        qr = QuantumRegister(4)
-        cr = ClassicalRegister(4)
+        config = remote_backend.configuration()
+        if config.get('conditional', False):
+            self.skipTest('Backend does not support conditional tests')
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
         circ = QuantumCircuit(qr, cr)
         circ.x(qr[0])
-        circ.x(qr[2])
         circ.measure(qr[0], cr[0])
         circ.x(qr[0]).c_if(cr, 1)
 
-        qobj = compile(circ, self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile(circ, remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    def test_atlantic_circuit(self):
-        """Test Atlantis deterministic ry operation.
-        """
+
+    @once_per_qobj_backend
+    def test_atlantic_circuit(self, remote_backend):
+        """Test Atlantis deterministic ry operation."""
+        config = remote_backend.configuration()
+        n_qubits = config['n_qubits']
+        if n_qubits < 3 or config.get('n_registers', n_qubits) < 3:
+            self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circ = QuantumCircuit(qr, cr)
@@ -211,8 +242,8 @@ class TestIBMQQobj(JobTestCase):
         circ.ry(pi, qr[2])
         circ.measure(qr, cr)
 
-        qobj = compile(circ, self._remote_backend)
-        result_remote = self._remote_backend.run(qobj).result()
+        qobj = compile(circ, remote_backend)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
