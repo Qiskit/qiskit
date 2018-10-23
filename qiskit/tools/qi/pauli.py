@@ -168,30 +168,31 @@ def sgn_prod(P1, P2):
 
     if P1.numberofqubits != P2.numberofqubits:
         print('Paulis cannot be multiplied - different number of qubits')
-    v_new = (P1.v + P2.v) % 2
-    w_new = (P1.w + P2.w) % 2
-    paulinew = Pauli(v_new, w_new)
-    phase = 1
-    for i in range(len(P1.v)):
-        if P1.v[i] == 1 and P1.w[i] == 0 and P2.v[i] == 0 and P2.w[i] == 1:
-            # Z*X
-            phase = 1j * phase
-        elif P1.v[i] == 0 and P1.w[i] == 1 and P2.v[i] == 1 and P2.w[i] == 0:
-            # X*Z
-            phase = -1j * phase
-        elif P1.v[i] == 0 and P1.w[i] == 1 and P2.v[i] == 1 and P2.w[i] == 1:
-            # X*Y
-            phase = 1j * phase
-        elif P1.v[i] == 1 and P1.w[i] == 1 and P2.v[i] == 0 and P2.w[i] == 1:
-            # Y*X
-            phase = -1j * phase
-        elif P1.v[i] == 1 and P1.w[i] == 1 and P2.v[i] == 1 and P2.w[i] == 0:
-            # Y*Z
-            phase = 1j * phase
-        elif P1.v[i] == 1 and P1.w[i] == 0 and P2.v[i] == 1 and P2.w[i] == 1:
-            # Z*Y
-            phase = -1j * phase
 
+    p1_v = P1.v.astype(np.bool)
+    p1_w = P1.w.astype(np.bool)
+    p2_v = P2.v.astype(np.bool)
+    p2_w = P2.w.astype(np.bool)
+
+    v_new = np.logical_xor(p1_v, p2_v).astype(np.int)
+    w_new = np.logical_xor(p1_w, p2_w).astype(np.int)
+
+    paulinew = Pauli(v_new, w_new)
+    phase_changes = 0
+
+    for v1, w1, v2, w2 in zip(p1_v, p1_w, p2_v, p2_w):
+        if v1 and not w1:  # Z
+            if w2:
+                phase_changes = phase_changes - 1 if v2 else phase_changes + 1
+        elif not v1 and w1:  # X
+            if v2:
+                phase_changes = phase_changes + 1 if w2 else phase_changes - 1
+        elif v1 and w1:  # Y
+            if not v2 and w2:  # X
+                phase_changes -= 1
+            elif v2 and not w2:  # Z
+                phase_changes += 1
+    phase = (1j) ** (phase_changes % 4)
     return paulinew, phase
 
 
