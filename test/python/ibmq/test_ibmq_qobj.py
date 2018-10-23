@@ -17,10 +17,12 @@ import functools
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
+
 from ..common import require_multiple_credentials, JobTestCase, slow_test
 
 # Timeout duration
 TIMEOUT = os.getenv("IBMQ_TIMEOUT", 10)
+
 
 
 def once_per_qobj_backend(test):
@@ -52,14 +54,12 @@ class TestBackendQobj(JobTestCase):
 
     @once_per_qobj_backend
     def test_operational(self, remote_backend):
-        """Test if backend is operational.
-        """
+        """Test if backend is operational."""
         self.assertTrue(remote_backend.status()['operational'])
 
     @once_per_qobj_backend
     def test_one_qubit_no_operation(self, remote_backend):
-        """Test one circuit, one register, in-order readout.
-        """
+        """Test one circuit, one register, in-order readout."""
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         circ = QuantumCircuit(qr, cr)
@@ -73,8 +73,7 @@ class TestBackendQobj(JobTestCase):
 
     @once_per_qobj_backend
     def test_one_qubit_operation(self, remote_backend):
-        """Test one circuit, one register, in-order readout.
-        """
+        """Test one circuit, one register, in-order readout."""
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         circ = QuantumCircuit(qr, cr)
@@ -87,10 +86,10 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
+
     @once_per_qobj_backend
     def test_simple_circuit(self, remote_backend):
-        """Test one circuit, one register, in-order readout.
-        """
+        """Test one circuit, one register, in-order readout."""
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
         if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
@@ -113,8 +112,7 @@ class TestBackendQobj(JobTestCase):
 
     @once_per_qobj_backend
     def test_readout_order(self, remote_backend):
-        """Test one circuit, one register, out-of-order readout.
-        """
+        """Test one circuit, one register, out-of-order readout."""
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
         if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
@@ -136,10 +134,10 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
+
     @once_per_qobj_backend
     def test_multi_register(self, remote_backend):
-        """Test one circuit, two registers, out-of-order readout.
-        """
+        """Test one circuit, two registers, out-of-order readout."""
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
         if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
@@ -167,10 +165,10 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
+
     @once_per_qobj_backend
     def test_multi_circuit(self, remote_backend):
-        """Test two circuits, two registers, out-of-order readout.
-        """
+        """Test two circuits, two registers, out-of-order readout."""
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
         if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
@@ -229,10 +227,10 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
+
     @once_per_qobj_backend
     def test_atlantic_circuit(self, remote_backend):
-        """Test Atlantis deterministic ry operation.
-        """
+        """Test Atlantis deterministic ry operation."""
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
         if n_qubits < 3 or config.get('n_registers', n_qubits) < 3:
