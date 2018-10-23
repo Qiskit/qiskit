@@ -42,11 +42,12 @@ class QuantumCircuit(object):
     def __init__(self, *regs, name=None):
         """Create a new circuit.
 
+        A circuit is a list of instructions bound to some registers.
+
         Args:
             *regs (Registers): registers to include in the circuit.
             name (str or None): the name of the quantum circuit. If
-                None, an automatically generated identifier will be
-                assigned.
+                None, an automatically generated string will be assigned.
 
         Raises:
             QISKitError: if the circuit name, if given, is not valid.
@@ -57,11 +58,13 @@ class QuantumCircuit(object):
 
         if not isinstance(name, str):
             raise QISKitError("The circuit name should be a string "
-                              "(or None for autogenerate a name).")
+                              "(or None to auto-generate a name).")
 
         self.name = name
+
         # Data contains a list of instructions in the order they were applied.
         self.data = []
+
         # This is a map of registers bound to this circuit, by name.
         self.regs = OrderedDict()
         self.add(*regs)
@@ -85,7 +88,11 @@ class QuantumCircuit(object):
         """
         Test if this circuit has the register r.
 
-        Return True or False.
+        Args:
+            register (Register): a quantum or classical register.
+
+        Returns:
+            bool: True if the register is contained in this circuit.
         """
         if register.name in self.regs:
             registers = self.regs[register.name]
@@ -98,7 +105,7 @@ class QuantumCircuit(object):
         return False
 
     def get_qregs(self):
-        """Get the qregs from the registers."""
+        """Get the qregs of the circuit."""
         qregs = OrderedDict()
         for name, register in self.regs.items():
             if isinstance(register, QuantumRegister):
@@ -106,7 +113,7 @@ class QuantumCircuit(object):
         return qregs
 
     def get_cregs(self):
-        """Get the cregs from the registers."""
+        """Get the cregs of the circuit."""
         cregs = OrderedDict()
         for name, register in self.regs.items():
             if isinstance(register, ClassicalRegister):
