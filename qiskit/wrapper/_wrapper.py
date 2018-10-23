@@ -64,7 +64,7 @@ def execute(circuits, backend,
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
-        backend (BaseBackend or str): a backend to execute the circuits on
+        backend (BaseBackend): a backend to execute the circuits on
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (str): comma-separated basis gate set to compile to
         coupling_map (list): coupling map (perhaps custom) to target in mapping
