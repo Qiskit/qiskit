@@ -14,7 +14,7 @@ To use Qiskit you'll need to have installed at least
 is also recommended for interacting with
 `tutorials`_.
 
-For this reason we recommend installing `Anaconda 3 <https://www.continuum.io/downloads>`__
+For this reason we recommend installing `Anaconda 3 <https://www.anaconda.com/download/>`__
 python distribution, which already comes with all these dependencies pre-installed.
 
 
