@@ -44,11 +44,16 @@ Deprecated
    should be used. (#1055)
 - The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed in the future. (#1055)
+
 Fixed
 -----
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
 - Use case insensitive matching when comparing premium account URLs. (#1102)
+
+Removed
+-------
+- Remove register, available_backends (#1131).
 
 
 `0.6.0`_ - 2018-10-04
