@@ -57,6 +57,9 @@ class StatevectorSimulator(QasmSimulator):
                                 label='MISSING', type='MISSING')
             )
         result = super()._run_job(job_id, qobj)
+        # Remove added snapshot from qobj
+        for experiment in qobj.experiments:
+            del experiment.instructions[-1]
         # Extract final state snapshot and move to 'statevector' data field
         for experiment_result in result.results.values():
             snapshots = experiment_result.snapshots
