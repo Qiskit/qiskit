@@ -27,14 +27,13 @@ class TestWrapper(QiskitTestCase):
         self.circuit.ccx(qr[0], qr[1], qr[2])
         self.circuit.measure(qr, cr)
 
-
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
         backend = Aer.get_backend('qasm_simulator')
         qobj_in = qiskit.wrapper.compile(self.circuit, backend, skip_transpiler=True)
         out_circuit = qiskit.wrapper.qobj_to_circuits(qobj_in)
         self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
-        
+
     def test_qobj_to_circuits_multiple(self):
         """Check that qobj_to_circuits's result with multiple circuits"""
         backend = Aer.get_backend('qasm_simulator')

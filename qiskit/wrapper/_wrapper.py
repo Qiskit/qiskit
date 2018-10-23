@@ -17,6 +17,7 @@ from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=redefined-builtin
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
