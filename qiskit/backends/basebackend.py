@@ -72,7 +72,7 @@ class BaseBackend(ABC):
                 #  Backend version in the form X.X.X
                 'backend_version': qiskit.__version__,
                 #  Backend operational and accepting jobs (true/false)
-                'operational': False,
+                'operational': True,
                 'pending_jobs': 0,
                 'status_msg': ''}
 
