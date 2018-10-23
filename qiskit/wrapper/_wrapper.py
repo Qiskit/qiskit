@@ -127,8 +127,7 @@ def dags_2_qobj(dags, backend_name, config=None, shots=None,
     return qobj
 
 
-def _dags_2_qobj_parallel(dag, config=None, basis_gates=None,
-                          coupling_map=None):
+def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None):
     """Helper function for dags to qobj in parallel (if available).
 
     Args:

@@ -24,6 +24,9 @@ class FakeQX4BackEnd(object):
     """A fake QX4 backend.
     """
 
+    def name(self):
+        return 'qiskit_is_cool'
+
     def configuration(self):
         qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
         return {
