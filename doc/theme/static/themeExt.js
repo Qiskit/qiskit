@@ -137,17 +137,14 @@ $(function() {
         });
     }
     function addIconsDrawer(){
-        $('.mdl-layout-title').append($(`<svg class="iconResponsive iconSize" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-                  <defs>
-                      <style>.cls-1{fill:none;}</style>
-                  </defs>
-                  <title>Duo_SystemIcon_Master_01</title>
-                  <g id="Icon"><polygon points="16 10 26 20 24.586 21.414 16 12.828 7.414 21.414 6 20 16 10"/></g>
-                  <g id="Transparent_Rectangle" data-name="Transparent Rectangle">
-                      <rect class="cls-1" width="32" height="32" transform="translate(32 0) rotate(90)"/>
-                      <rect class="cls-1" width="32" height="32" transform="translate(32 0) rotate(90)"/>
-                  </g>
-              </svg>`));
+        $('.mdl-layout-title').append($(`                         <svg class="iconSize" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                             <defs><style>.cls-1{fill:none;}</style></defs>
+                              <title>Duo_SystemIcon_Master_01</title>
+                              <g id="Icon"><polygon points="16 22 6 12 7.414 10.586 16 19.172 24.586 10.586 26 12 16 22"/></g>
+                              <g id="Transparent_Rectangle" data-name="Transparent Rectangle">
+                               <rect class="cls-1" width="32" height="32" transform="translate(0 32) rotate(-90)"/>
+                              </g>
+                           </svg>`));
         $('.mdl-layout-title').append($(`<svg class="iconMediumResponsiveClose iconSize" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
               <defs>
                   <style>.cls-1{fill:none;}</style>

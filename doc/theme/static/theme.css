@@ -563,4 +563,7 @@ cursor: pointer;
     .document .page-content{
         padding: 40px 14px !important;
     }
+    .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
+        font-family: IBM Plex Mono !important;
+    }
  }
