@@ -44,9 +44,7 @@ header {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin: 0 auto;
-  max-width: 1100px;
-}
+  margin: 0 16px}
 .toolbar {
   display: flex;
   flex-grow: 1;
