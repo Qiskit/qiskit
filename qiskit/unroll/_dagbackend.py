@@ -37,7 +37,7 @@ class DAGBackend(UnrollerBackend):
         self.cval = None
         self.circuit = DAGCircuit()
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []
         self.listen = True
