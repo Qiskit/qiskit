@@ -12,6 +12,7 @@ TODO: Must expand tests. Re-evaluate after Aer."""
 
 from unittest import skip
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+# pylint: disable=redefined-builtin
 from qiskit import compile
 from qiskit import IBMQ
 from ..common import requires_qe_access, QiskitTestCase

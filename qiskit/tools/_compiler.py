@@ -177,6 +177,7 @@ def execute(circuits, backend,
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
+        seed_mapper (int): random seed for swapper mapper
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): skip most of the compile steps and produce qobj directly

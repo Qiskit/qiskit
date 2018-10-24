@@ -13,6 +13,7 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import QISKitError
+# pylint: disable=redefined-builtin
 from qiskit import compile, Aer
 from .common import QiskitTestCase, requires_cpp_simulator
 
