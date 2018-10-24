@@ -1,6 +1,15 @@
 body{
     height: 100%;
 }
+.page-content .code, .page-content .highlight pre, .page-content code:not(.download){
+    font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
+
+p,h1,h2,h3,div,section,li{
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif !important;
+  font-smoothing: antialiased !important;
+  text-rendering: optimizeLegibility !important;
+ }
 html{
     font-size: 16px !important;
 }
@@ -83,12 +92,6 @@ header {
 h2, h3, #h3, #h2, .h3, .h2 {
     font-size: 1.5rem !important;
 }
-* {
-  -moz-osx-font-smoothing: grayscale;
-  font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif !important;
-  font-smoothing: antialiased !important;
-  text-rendering: optimizeLegibility !important;
- }
 main{
     background: white !important;
 }
@@ -563,7 +566,5 @@ cursor: pointer;
     .document .page-content{
         padding: 40px 14px !important;
     }
-    .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
-        font-family: IBM Plex Mono !important;
-    }
+
  }
