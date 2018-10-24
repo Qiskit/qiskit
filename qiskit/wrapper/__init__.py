@@ -16,7 +16,3 @@ refer to the documentation of each component and use them separately.
 """
 
 from ._wrapper import (compile, execute, load_qasm_string, load_qasm_file, qobj_to_circuits)
-
-# To be deprecated methods
-from ._wrapper import (available_backends, get_backend, register, unregister, least_busy,
-                       registered_providers)

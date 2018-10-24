@@ -9,6 +9,7 @@
 
 import unittest
 from qiskit import execute, load_qasm_file
+from qiskit import Aer
 from ..common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -22,7 +23,7 @@ class StatevectorSimulatorTest(QiskitTestCase):
 
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
-        result = execute(self.q_circuit, backend='statevector_simulator').result()
+        result = execute(self.q_circuit, backend=Aer.get_backend('statevector_simulator')).result()
         self.assertEqual(result.get_status(), 'COMPLETED')
         actual = result.get_statevector(self.q_circuit)
 
