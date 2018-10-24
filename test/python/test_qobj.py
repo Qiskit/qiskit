@@ -8,18 +8,18 @@
 # pylint: disable=redefined-builtin
 
 """QOBj test."""
+import uuid
 import unittest
-import json
 import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile
+from qiskit import compile, SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
-from qiskit.qobj import QobjHeader, QobjValidationError
-from qiskit.backends.local import localjob
+from qiskit.qobj import QobjHeader, validate_qobj_against_schema
+from qiskit.backends.aer import aerjob
 from qiskit.backends.ibmq import ibmqjob
 from ._mockutils import FakeBackend
-from .common import QiskitTestCase, Path
+from .common import QiskitTestCase
 
 
 class TestQobj(QiskitTestCase):
@@ -62,13 +62,8 @@ class TestQobj(QiskitTestCase):
 
     def test_as_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
-        schema_file_path = self._get_resource_path('qobj_schema.json', Path.SCHEMAS)
-
-        with open(schema_file_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
         try:
-            jsonschema.validate(self.valid_qobj.as_dict(), schema)
+            validate_qobj_against_schema(self.valid_qobj)
         except jsonschema.ValidationError as validation_error:
             self.fail(str(validation_error))
 
@@ -100,14 +95,14 @@ class TestQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
 
-    def test_localjob_raises_error_when_sending_bad_qobj(self):
-        """Test localjob is denied resource request access when given an invalid Qobj instance."""
-
+    def test_aerjob_raises_error_when_sending_bad_qobj(self):
+        """Test aerjob is denied resource request access when given an invalid Qobj instance."""
+        job_id = str(uuid.uuid4())
         backend = FakeBackend()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
-        with self.assertRaises(QobjValidationError):
-            job = localjob.LocalJob(_nop, self.bad_qobj)
+        with self.assertRaises(SchemaValidationError):
+            job = aerjob.AerJob(backend, job_id, _nop, self.bad_qobj)
             job.submit()
 
     def test_ibmqobj_raises_error_when_sending_bad_qobj(self):
@@ -117,8 +112,8 @@ class TestQobj(QiskitTestCase):
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         api_stub = {}
-        with self.assertRaises(QobjValidationError):
-            job = ibmqjob.IBMQJob(api_stub, 'True', self.bad_qobj)
+        with self.assertRaises(SchemaValidationError):
+            job = ibmqjob.IBMQJob(backend, None, api_stub, 'True', self.bad_qobj)
             job.submit()
 
     def test_change_qobj_after_compile(self):
@@ -135,7 +130,7 @@ class TestQobj(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         shots = 1024
-        backend = 'local_qasm_simulator'
+        backend = 'qasm_simulator'
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
         qobj1.experiments[0].config.shots = 50

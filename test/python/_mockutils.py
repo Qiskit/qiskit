@@ -32,13 +32,17 @@ logger = logging.getLogger(__name__)
 
 class DummyProvider(BaseProvider):
     """Dummy provider just for testing purposes."""
+
+    def get_backend(self, name=None, **kwargs):
+        return self._backend
+
+    def backends(self, name=None, **kwargs):
+        return [self._backend]
+
     def __init__(self):
         self._backend = DummySimulator()
 
         super().__init__()
-
-    def get_backend(self, name):
-        return self._backend
 
     def available_backends(self, filters=None):
         # pylint: disable=arguments-differ
@@ -74,14 +78,14 @@ class DummySimulator(BaseBackend):
         self.time_alive = time_alive
 
     def run(self, qobj):
-        job = DummyJob(self.run_job, qobj)
+        job_id = str(uuid.uuid4())
+        job = DummyJob(self.run_job, qobj, job_id, self)
         job.submit()
         return job
 
     # pylint: disable=unused-argument
-    def run_job(self, qobj):
+    def run_job(self, job_id, qobj):
         """ Main dummy simulator loop """
-        job_id = str(uuid.uuid4())
         time.sleep(self.time_alive)
 
         return Result(
@@ -92,8 +96,10 @@ class DummyJob(BaseJob):
     """Dummy simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, qobj):
+    def __init__(self, fn, qobj, job_id, backend):
         super().__init__()
+        self._job_id = job_id
+        self._backend = backend
         self._qobj = qobj
         self._future = None
         self._future_callback = fn
@@ -125,6 +131,12 @@ class DummyJob(BaseJob):
         _status_msg = None
         return {'status': _status,
                 'status_msg': _status_msg}
+
+    def job_id(self):
+        return self._job_id
+
+    def backend(self):
+        return self._backend
 
     @property
     def _cancelled(self):

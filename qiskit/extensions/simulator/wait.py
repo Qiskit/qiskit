@@ -8,7 +8,7 @@
 # pylint: disable=invalid-name
 
 """
-local_qasm_simulator single qubit wait gate.
+Aer's qasm_simulator single qubit wait gate.
 """
 from qiskit import CompositeGate
 from qiskit import Gate

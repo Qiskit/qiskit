@@ -11,8 +11,9 @@
 
 import unittest
 import qiskit
-from qiskit.wrapper import register, available_backends, get_backend
-from qiskit import transpiler, least_busy
+
+from qiskit import transpiler
+from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -26,12 +27,10 @@ class TestBitReordering(QiskitTestCase):
     @requires_qe_access
     def test_basic_reordering(self, qe_token, qe_url):
         """a simple reordering within a 2-qubit register"""
-        sim_backend_name, real_backend_name = self._get_backends(
-            qe_token, qe_url)
-        sim = get_backend(sim_backend_name)
-        real = get_backend(real_backend_name)
+        sim, real = self._get_backends(qe_token, qe_url)
         if not sim or not real:
             raise unittest.SkipTest('no remote device available')
+
         qr = qiskit.QuantumRegister(2)
         cr = qiskit.ClassicalRegister(2)
         circuit = qiskit.QuantumCircuit(qr, cr)
@@ -55,12 +54,9 @@ class TestBitReordering(QiskitTestCase):
     @requires_qe_access
     def test_multi_register_reordering(self, qe_token, qe_url):
         """a more complicated reordering across 3 registers of different sizes"""
-        sim_backend_name, real_backend_name = self._get_backends(
-            qe_token, qe_url)
-        if not sim_backend_name or not real_backend_name:
+        sim, real = self._get_backends(qe_token, qe_url)
+        if not sim or real:
             raise unittest.SkipTest('no remote device available')
-        sim = get_backend(sim_backend_name)
-        real = get_backend(real_backend_name)
 
         qr0 = qiskit.QuantumRegister(2)
         qr1 = qiskit.QuantumRegister(2)
@@ -92,10 +88,10 @@ class TestBitReordering(QiskitTestCase):
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
     def _get_backends(self, qe_token, qe_url):
-        sim_backend = 'local_qasm_simulator'
+        sim_backend = qiskit.Aer.get_backend('qasm_simulator')
         try:
-            register(qe_token, qe_url)
-            real_backends = available_backends({'simulator': False})
+            qiskit.IBMQ.enable_account(qe_token, qe_url)
+            real_backends = qiskit.IBMQ.backends(simulator=False)
             real_backend = least_busy(real_backends)
         except Exception:
             real_backend = None

@@ -103,10 +103,19 @@ interactions:
         [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
         [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
         [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_qasm_simulator", "status": "on", "description":
-        "online qasm simulator", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2017-12-09T12:00:00.000Z",
-        "deleted": false, "internalId": "dummyapiBackendsinternalId08", "simulator":
-        true, "allowQObject": false, "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
+        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
+        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
+        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
+        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
+        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
+        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
+        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
+        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
+        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
+        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
+        "nQubits": 32, "couplingMap": "all-to-all"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']

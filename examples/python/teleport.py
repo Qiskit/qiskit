@@ -6,20 +6,20 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Quantum teleportation example based on an OpenQASM example.
+Quantum teleportation example.
 
 Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
+from qiskit import compile, Aer
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = "local_qasm_simulator"
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
+backend = Aer.get_backend("qasm_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.
@@ -57,13 +57,18 @@ qc.measure(q[2], c2[0])
 ###############################################################
 
 # First version: not mapped
-result = execute(qc, backend=backend, coupling_map=None, shots=1024).result()
+qobj = compile(qc, backend=backend, coupling_map=None, shots=1024)
+job = backend.run(qobj)
+result = job.result()
 print(result)
-print(result.get_counts("teleport"))
+print(result.get_counts(qc))
 
-# Second version: mapped to qx2 coupling graph
-result = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024).result()
+# Second version: mapped to 2x8 array coupling graph
+qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024)
+job = backend.run(qobj)
+result = job.result()
+
 print(result)
-print(result.get_counts("teleport"))
+print(result.get_counts(qc))
 
 # Both versions should give the same distribution

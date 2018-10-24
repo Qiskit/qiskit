@@ -21,7 +21,7 @@ class TestFileIO(QiskitTestCase):
     def test_results_save_load(self):
         """Test saving and loading the results of a circuit.
 
-        Test for the 'local_unitary_simulator' and 'local_qasm_simulator'
+        Test for the 'unitary_simulator' and 'qasm_simulator'
         """
         metadata = {'testval': 5}
         qr = qiskit.QuantumRegister(2)
@@ -32,8 +32,8 @@ class TestFileIO(QiskitTestCase):
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
 
-        result1 = execute(circuits, backend='local_unitary_simulator').result()
-        result2 = execute(circuits, backend='local_qasm_simulator').result()
+        result1 = execute(circuits, backend='unitary_simulator').result()
+        result2 = execute(circuits, backend='qasm_simulator').result()
 
         test_1_path = self._get_resource_path('test_save_load1.json')
         test_2_path = self._get_resource_path('test_save_load2.json')
