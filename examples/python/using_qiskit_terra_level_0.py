@@ -25,11 +25,10 @@ from qiskit.backends.ibmq import least_busy
 
 
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 try:

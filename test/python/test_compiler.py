@@ -15,10 +15,10 @@ import unittest
 import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpiler
+from qiskit import compile
 from qiskit import Result
-from qiskit.qobj import Qobj
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.wrapper import compile, execute
+from qiskit import execute
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase

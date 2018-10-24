@@ -18,9 +18,8 @@ import numpy
 from scipy.stats import chi2_contingency
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import transpiler
 from qiskit import IBMQ
-from qiskit.wrapper import compile
+from qiskit import compile
 from qiskit.backends import JobStatus, JobError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob

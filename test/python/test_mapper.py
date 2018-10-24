@@ -10,6 +10,7 @@
 import unittest
 
 import qiskit.wrapper
+from qiskit import compile
 from qiskit import load_qasm_string, mapper, qasm, unroll, Aer
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile
@@ -248,10 +249,10 @@ class MapperTest(QiskitTestCase):
         """
         backend = FakeQX4BackEnd()
         circ1 = load_qasm_string(YZY_ZYZ_1)
-        qobj1 = qiskit.wrapper.compile(circ1, backend)
+        qobj1 = compile(circ1, backend)
         self.assertIsInstance(qobj1, Qobj)
         circ2 = load_qasm_string(YZY_ZYZ_2)
-        qobj2 = qiskit.wrapper.compile(circ2, backend)
+        qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
     def test_move_measurements(self):
