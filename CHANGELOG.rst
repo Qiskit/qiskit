@@ -36,6 +36,9 @@ Changed
 - Evolved pass-based transpiler to support advanced functionality (#1060)
 - Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
 - Make `backend.status()` dictionary conform with schema.
+- The different output backends for the circuit_drawer() visualizations
+  have been moved into separate private modules in
+  `qiskit.tools.visualizations`. (#1105, #1111)
 
 Deprecated
 ----------
