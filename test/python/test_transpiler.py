@@ -5,6 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=redefined-builtin
 
 """Tests for transpiler functionality"""
 
@@ -67,7 +68,7 @@ class TestTranspiler(QiskitTestCase):
         transpiler_json = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
 
         qobj = compile(circuit, backend=Aer.get_backend('qasm_simulator'),
-                               coupling_map=coupling_map, basis_gates=basis_gates)
+                       coupling_map=coupling_map, basis_gates=basis_gates)
         compiler_json = qobj.experiments[0].as_dict()
 
         # Remove extra Qobj header parameters.

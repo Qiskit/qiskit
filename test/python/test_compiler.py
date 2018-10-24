@@ -29,6 +29,7 @@ class FakeBackend(object):
     """
 
     def name(self):
+        """ name of fake backend"""
         return 'qiskit_is_cool'
 
     def configuration(self):

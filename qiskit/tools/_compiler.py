@@ -54,7 +54,6 @@ def compile(circuits, backend,
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
-
     dags = transpiler.compile(circuits, backend, basis_gates, coupling_map, initial_layout,
                               seed_mapper, hpc, pass_manager)
 
@@ -65,6 +64,7 @@ def compile(circuits, backend,
                                 coupling_map=coupling_map, seed=seed)
 
     return qobj_standard
+
 
 def dags_2_qobj(dags, backend_name, config=None, shots=None,
                 max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
@@ -160,6 +160,7 @@ def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None)
         qeflag=True, eval_symbols=True)
     # Step 3c: add the Experiment to the Qobj
     return experiment
+
 
 def execute(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,

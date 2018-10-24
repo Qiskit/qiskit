@@ -7,6 +7,8 @@
 
 # pylint: disable=missing-docstring
 
+# pylint: disable=redefined-builtin
+
 import unittest
 
 import qiskit.wrapper

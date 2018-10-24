@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Functions for importing qasm
 
+
 def load_qasm_string(qasm_string, name=None,
                      basis_gates="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
                                  "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap"):

@@ -7,6 +7,8 @@
 
 # pylint: disable=missing-docstring,broad-except
 
+# pylint: disable=redefined-builtin
+
 """IBMQJob Test."""
 
 import os
