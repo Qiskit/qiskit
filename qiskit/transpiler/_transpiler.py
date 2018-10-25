@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # pylint: disable=redefined-builtin
 def compile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
             seed_mapper=None, hpc=None, pass_manager=None):
-    """Compile a list of circuits into a qobj.
+    """transpile a list of circuits into a dags.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
