@@ -166,7 +166,7 @@ result = qs.run(qobj, path=SIM_EXECUTABLE)  # result json as a Python dictionary
 This simulator can also be used as a backend for the Qiskit Python SDK.  This is handled automatically when importing the `qiskit` module. After importing the module the simulator may be run as follows:
 
 ```python
-backend = 'local_qasm_simulator'
+backend = qiskit.Aer.get_backend('qasm_simulator')
 shots = <int>
 config = <dict>
 results = qiskit.execute(circs,
@@ -175,7 +175,7 @@ results = qiskit.execute(circs,
                 config=config)
 ```
 
-You can check the backend was successfully added using the `qiskit.available_backends()` method. If successful the returned list will include `local_qasm_simulator_cpp`.
+You can check the backend was successfully added by calling the function `qiskit.Aer.backends('qasm_simulator')`. If successful the returned list will include `<QasmSimulator('qasm_simulator') from Aer()>`, otherwise it will be empty.
 
 ### Simulator output
 
@@ -448,28 +448,32 @@ The CX and X90 gate have special keys for automatically generating coherent erro
 
 ##### X90 Gate
 
-A coherent error model for X-90 rotations due to calibration errors in the control pulse amplitude, and detuning errors in the control pulse frequency may be implemented directly with the following keywords:
+The unitary error matrix due to calibration errors in the control pulse amplitude, and detuning errors in the control pulse frequency for the X-90 rotation may be computed using the helper function `x90_error_matrix` in `qiskit.backends.qasm_simulator` as follows:
 
 ```python
-"calibration_error": alpha,
-"detuning_error: omega
+from qiskit.backends.qasm_simulator import x90_error_matrix
+
+U_error_x90 = x90_error_matrix(alpha, omega)  # returns np.array for "U_error"
+
+noise_params = {"X90": {"U_error": U_error_x90}}
 ```
 
-In this case the ideal X-90 rotation will be implemented as the unitary $$U_{X90} = \exp\left[ -i (\frac{\pi}{2} + alpha) (\cos(\omega) X + \sin(\omega) Y ) \right]$$. If a `"U_error"` keyword is specified this additional coherent error will then be applied after, followed by any specified incoherent errors.
+In this case the ideal X-90 rotation will be implemented as the unitary $$U_{X90} = \exp\left[ -i (\frac{\pi}{2} + \alpha) (\cos(\omega) X + \sin(\omega) Y ) \right].$$
 
 ##### CX Gate
 
-A coherent error model for a CX gate implemented via a cross-resonance interaction with a the control pulse amplitude calibration error, and a ZZ-interaction error may be implemented directly with the following keywords:
+A unitary error matrix based on a coherent error model for a CX gate implemented via a cross-resonance interaction with a the control pulse amplitude calibration error, and a ZZ-interaction error may be computed using the helper function `cx_error_matrix` in `qiskit.backends.qasm_simulator` as follows:
 
 ```python
-"calibration_error": beta,
-"zz_error": gamma
+from qiskit.backends.qasm_simulator import cx_error_matrix
+
+U_error_cx = cx_error_matrix(beta, gamma)  # returns np.array for "U_error"
+
+noise_params = {"CX": {"U_error": U_error_cx}}
 ```
 
 In this case the unitary for the CX gate is implemented as *U<sub>CX</sub> = U<sub>L</sub>\*U<sub>CR</sub>\*U<sub>R</sub>* where, *U<sub>CR</sub>* is the cross-resonance unitary, and *U<sub>L</sub>*, *U<sub>R</sub>* are the ideal local unitary rotations that would convert this to a CX in the ideal case. The ideal CR unitary is given by $$ U_{CR} = \exp\left[ -i \frac{\pi}{2} \frac{XZ}{2} \right]$$, where qubit-0 is the control, and qubit-1 is the target. The noisy CR gate with the above errors is given by
-$$ U_{CR} = \exp\left[ -i (\frac{\pi}{2} + \beta) ( \frac{X \otimes Z}{2} + \gamma \frac{Z\otimes Z}{2}) \right]$$,
-
-If a `"U_error"` keyword is specified this additional coherent error will then be applied after, followed by any specified incoherent errors.
+$$ U_{CR} = \exp\left[ -i (\frac{\pi}{2} + \beta) ( \frac{X \otimes Z}{2} + \gamma \frac{Z\otimes Z}{2}) \right],.$$
 
 ### Thermal Relaxation Error
 
