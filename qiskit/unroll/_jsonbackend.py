@@ -68,7 +68,7 @@ class JsonBackend(UnrollerBackend):
         self.cval = None
         self.gates = {}
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []  # default, unroll to U, CX
         self.listen = True

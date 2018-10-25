@@ -31,7 +31,7 @@ class CircuitBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = ["cx", "u1", "u2", "u3"]
         self.gates = {}

@@ -30,7 +30,7 @@ class PrinterBackend(UnrollerBackend):
         self.gates = {}
         self.comments = False
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []
         self.listen = True
