@@ -14,7 +14,6 @@ import sys
 import platform
 import warnings
 import socket
-from collections import UserDict
 import psutil
 
 API_NAME = 'IBMQuantumExperience'
@@ -129,23 +128,6 @@ _check_ibmqx_version()
 _enable_deprecation_warnings()
 
 
-class AvailableToOperationalDict(UserDict):
-    """
-    TEMPORARY class for transitioning from `status['available']` to
-    `status['operational']`.
-
-    FIXME: Remove this class as soon as the API is updated, please.
-    """
-    def __getitem__(self, key):
-        if key == 'available':
-            warnings.warn(
-                "status['available'] has been renamed to status['operational'] "
-                " since 0.5.5. Please use status['operational'] accordingly.",
-                DeprecationWarning)
-
-        return super(AvailableToOperationalDict, self).__getitem__(key)
-
-
 def _dict_merge(dct, merge_dct):
     """
     TEMPORARY method for merging backend.calibration & backend.parameters
@@ -161,9 +143,9 @@ def _dict_merge(dct, merge_dct):
         merge_dct (dict): the dictionary to merge
     """
     for k, _ in merge_dct.items():
-        if (k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], dict)):
+        if k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], dict):
             _dict_merge(dct[k], merge_dct[k])
-        elif (k in dct and isinstance(dct[k], list) and isinstance(merge_dct[k], list)):
+        elif k in dct and isinstance(dct[k], list) and isinstance(merge_dct[k], list):
             for i in range(len(dct[k])):
                 _dict_merge(dct[k][i], merge_dct[k][i])
         else:
