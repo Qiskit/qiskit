@@ -54,8 +54,8 @@ def compile(circuits, backend,
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
-    dags = transpiler.compile(circuits, backend, basis_gates, coupling_map, initial_layout,
-                              seed_mapper, hpc, pass_manager)
+    dags = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
+                                seed_mapper, hpc, pass_manager)
 
     # step 3: Making a qobj
     qobj_standard = dags_2_qobj(dags, backend_name=backend.name(),

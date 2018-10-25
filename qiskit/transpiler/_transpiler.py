@@ -24,9 +24,8 @@ from ._parallel import parallel_map
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=redefined-builtin
-def compile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
-            seed_mapper=None, hpc=None, pass_manager=None):
+def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
+              seed_mapper=None, hpc=None, pass_manager=None):
     """transpile a list of circuits into a dags.
 
     Args:
@@ -149,7 +148,7 @@ def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
     Returns:
         DAGCircuit: DAG circuit after going through transpilation.
     """
-    final_dag, final_layout = transpile(
+    final_dag, final_layout = transpile_dag(
         dag_layout_tuple[0],
         basis_gates=basis_gates,
         coupling_map=coupling_map,
@@ -162,9 +161,10 @@ def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
     return final_dag
 
 
-def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-              initial_layout=None, get_layout=False,
-              format='dag', seed_mapper=None, pass_manager=None):
+# pylint: disable=redefined-builtin
+def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+                  initial_layout=None, get_layout=False,
+                  format='dag', seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 

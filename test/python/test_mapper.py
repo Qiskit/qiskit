@@ -15,7 +15,7 @@ import qiskit.wrapper
 from qiskit import compile
 from qiskit import load_qasm_string, mapper, qasm, unroll, Aer
 from qiskit.qobj import Qobj
-from qiskit.transpiler._transpiler import transpile
+from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
@@ -269,8 +269,8 @@ class MapperTest(QiskitTestCase):
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
-        out_dag = transpile(dag_circuit, initial_layout=lay,
-                            coupling_map=cmap, format='dag')
+        out_dag = transpile_dag(dag_circuit, initial_layout=lay,
+                                coupling_map=cmap, format='dag')
         moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
         self.assertEqual(len(moved_meas), len(meas_nodes))

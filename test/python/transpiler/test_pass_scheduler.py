@@ -13,7 +13,7 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile, TranspilerAccessError, TranspilerError, \
+from qiskit.transpiler import PassManager, transpile_dag, TranspilerAccessError, TranspilerError, \
     FlowController
 from qiskit.transpiler._passmanager import DoWhileController, ConditionalController
 from ._dummy_passes import PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
@@ -36,7 +36,7 @@ class SchedulerTestCase(QiskitTestCase):
             expected (list): List of things the passes are logging
         """
         with self.assertLogs(logger, level='INFO') as cm:
-            dag = transpile(dag, pass_manager=passmanager)
+            dag = transpile_dag(dag, pass_manager=passmanager)
         self.assertIsInstance(dag, DAGCircuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
@@ -51,7 +51,7 @@ class SchedulerTestCase(QiskitTestCase):
             exception_type (Exception): Exception that is expected to be raised.
         """
         with self.assertLogs(logger, level='INFO') as cm:
-            self.assertRaises(exception_type, transpile, dag, pass_manager=passmanager)
+            self.assertRaises(exception_type, transpile_dag, dag, pass_manager=passmanager)
         self.assertEqual([record.message for record in cm.records], expected)
 
 

@@ -44,7 +44,7 @@ print(circ.qasm())
 
 # 1. standard compile -- standard qiskit passes, when no PassManager given
 from qiskit import transpiler
-dags = transpiler.compile(circ, backend_device)
+dags = transpiler.transpile(circ, backend_device)
 [compiled_standard] = dags
 print(compiled_standard.qasm())
 
@@ -52,6 +52,6 @@ print(compiled_standard.qasm())
 from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
 pm.add_passes(CXCancellation())
-dags = transpiler.compile(circ, backend_device, pass_manager=pm)
+dags = transpiler.transpile(circ, backend_device, pass_manager=pm)
 [compiled_custom] = dags
 print(compiled_custom.qasm())

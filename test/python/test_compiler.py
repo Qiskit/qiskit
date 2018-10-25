@@ -64,7 +64,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        dags = transpiler.compile(qc, backend)
+        dags = transpiler.transpile(qc, backend)
         self.assertIsInstance(dags[0], DAGCircuit)
 
     def test_compile_two(self):
@@ -84,7 +84,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        dags = transpiler.compile([qc, qc_extra], backend)
+        dags = transpiler.transpile([qc, qc_extra], backend)
         self.assertIsInstance(dags[0], DAGCircuit)
         self.assertIsInstance(dags[1], DAGCircuit)
 
@@ -177,7 +177,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        dags = transpiler.compile(qc, backend)
+        dags = transpiler.transpile(qc, backend)
         self.assertIsInstance(dags[0], DAGCircuit)
 
     @requires_qe_access
@@ -197,7 +197,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        dags = transpiler.compile([qc, qc_extra], backend)
+        dags = transpiler.transpile([qc, qc_extra], backend)
         self.assertIsInstance(dags[0], DAGCircuit)
         self.assertIsInstance(dags[1], DAGCircuit)
 
@@ -345,7 +345,7 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(qr, cr)
 
         try:
-            dags = transpiler.compile(circuit, backend)
+            dags = transpiler.transpile(circuit, backend)
         except QISKitError:
             dags = None
         self.assertIsInstance(dags[0], DAGCircuit)
@@ -365,7 +365,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr, cr)
 
         try:
-            dags = transpiler.compile(qc, backend)
+            dags = transpiler.transpile(qc, backend)
         except QISKitError:
             dags = None
         self.assertIsInstance(dags[0], DAGCircuit)
@@ -406,7 +406,7 @@ class TestCompiler(QiskitTestCase):
             circuit.measure(qr, cr)
             circuits.append(circuit)
 
-        dags = transpiler.compile(circuits, backend)
+        dags = transpiler.transpile(circuits, backend)
         self.assertIsInstance(dags[0], DAGCircuit)
 
     def test_example_multiple_compile(self):

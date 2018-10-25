@@ -11,7 +11,7 @@
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import compile, Aer
-from qiskit.transpiler import PassManager, transpile
+from qiskit.transpiler import PassManager, transpile_dag
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.unroll import DagUnroller, JsonBackend
@@ -38,7 +38,7 @@ class TestTranspiler(QiskitTestCase):
         resources_before = dag_circuit.count_ops()
 
         pass_manager = PassManager()
-        dag_circuit = transpile(dag_circuit, pass_manager=pass_manager)
+        dag_circuit = transpile_dag(dag_circuit, pass_manager=pass_manager)
         resources_after = dag_circuit.count_ops()
 
         self.assertDictEqual(resources_before, resources_after)
@@ -63,8 +63,8 @@ class TestTranspiler(QiskitTestCase):
         basis_gates = 'u1,u2,u3,cx,id'
 
         dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
-        dag_circuit = transpile(dag_circuit, coupling_map=coupling_map,
-                                basis_gates=basis_gates, pass_manager=None)
+        dag_circuit = transpile_dag(dag_circuit, coupling_map=coupling_map,
+                                    basis_gates=basis_gates, pass_manager=None)
         transpiler_json = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
 
         qobj = compile(circuit, backend=Aer.get_backend('qasm_simulator'),
@@ -97,7 +97,7 @@ class TestTranspiler(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.add_passes(CXCancellation())
-        dag_circuit = transpile(dag_circuit, pass_manager=pass_manager)
+        dag_circuit = transpile_dag(dag_circuit, pass_manager=pass_manager)
         resources_after = dag_circuit.count_ops()
 
         self.assertNotIn('cx', resources_after)

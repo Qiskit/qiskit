@@ -36,7 +36,7 @@ from qiskit.tools.visualization._error import VisualizationError
 from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 from .text import TextDrawing
 
 logger = logging.getLogger(__name__)
@@ -303,7 +303,7 @@ def _text_circuit_drawer(circuit, filename=None,
         String: The drawing in a loooong string.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
+    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
 
     text = "\n".join(TextDrawing(json_circuit).lines(line_length))
 
@@ -461,7 +461,7 @@ def _generate_latex_source(circuit, filename=None,
         str: Latex string appropriate for writing to file.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
+    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
     qcimg = QCircuitImage(json_circuit, scale, style=style)
     latex = qcimg.latex()
     if filename:
