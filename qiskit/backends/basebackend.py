@@ -14,7 +14,7 @@ import warnings
 from abc import ABC, abstractmethod
 
 from qiskit._qiskiterror import QISKitError
-from qiskit._util import AvailableToOperationalDict
+import qiskit
 
 
 class BaseBackend(ABC):
@@ -68,8 +68,13 @@ class BaseBackend(ABC):
 
     def status(self):
         """Return backend status"""
-        return AvailableToOperationalDict(
-            {'name': self.name(), 'operational': True, 'pending_jobs': 0})
+        return {'backend_name': self.name(),
+                #  Backend version in the form X.X.X
+                'backend_version': qiskit.__version__,
+                #  Backend operational and accepting jobs (true/false)
+                'operational': True,
+                'pending_jobs': 0,
+                'status_msg': ''}
 
     def name(self):
         """Return backend name"""
