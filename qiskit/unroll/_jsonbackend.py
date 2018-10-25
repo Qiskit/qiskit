@@ -80,7 +80,7 @@ class JsonBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        self.basis = basis
+        self.basis = basis.copy()
 
     def version(self, version):
         """Print the version string.

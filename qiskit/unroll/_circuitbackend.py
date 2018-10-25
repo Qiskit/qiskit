@@ -44,7 +44,7 @@ class CircuitBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        self.basis = basis
+        self.basis = basis.copy()
 
     def version(self, version):
         """Ignore the version string.
