@@ -10,10 +10,10 @@
 """Quick program to test the qi tools modules."""
 
 import unittest
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 from copy import deepcopy
 import math
-
+from io import StringIO
 import numpy as np
 
 from qiskit.tools.qi.pauli import Pauli, random_pauli, inverse_pauli, \
@@ -220,7 +220,10 @@ class TestQI(QiskitTestCase):
 
     def test_entanglement_of_formation_invalid_input(self):
         input_state = np.array([[0, 1], [1, 0]])
-        res = entanglement_of_formation(input_state, 1)
+        expected = "Input must be a state-vector or 2-qubit density matrix."
+        with patch('sys.stdout', new=StringIO()) as fake_stout:
+            res = entanglement_of_formation(input_state, 1)
+        self.assertEqual(fake_stout.getvalue().strip(), expected)
         self.assertIsNone(res)
 
     def test__eof_qubit(self):
