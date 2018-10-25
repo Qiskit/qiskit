@@ -78,9 +78,9 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
             _initial_layout = _pick_best_layout(dag, backend)
         initial_layouts.append(_initial_layout)
 
-    dags = _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
-                           initial_layouts=initial_layouts, seed_mapper=seed_mapper,
-                           pass_manager=pass_manager)
+    dags = _dags_2_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
+                        initial_layouts=initial_layouts, seed_mapper=seed_mapper,
+                        pass_manager=pass_manager)
 
     # TODO: change it to circuits
     # TODO: make it parallel
@@ -101,7 +101,7 @@ def _circuits_2_dags(circuits):
     return dags
 
 
-def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                     initial_layouts=None, seed_mapper=None, pass_manager=None):
     """Transform multiple dags through a sequence of passes.
 
