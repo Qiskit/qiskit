@@ -29,8 +29,6 @@ from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile_dag
-from .text import TextDrawing
-
 
 logger = logging.getLogger(__name__)
 
