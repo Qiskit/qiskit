@@ -167,7 +167,7 @@ class IBMQBackend(BaseBackend):
         base_status = super().status()
         try:
             api_status = self._api.backend_status(base_status['backend_name'])
-            # FIXME: these correctiosn need to be resolved at the API level
+            # FIXME: these corrections need to be resolved at the API level
             # - eventually it will.
             api_status.pop('busy', None)
             if 'available' in api_status:

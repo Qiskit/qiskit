@@ -117,7 +117,7 @@ def circuit_drawer(circuit,
             Defaults to `'#ffffff'` (`mpl` only)
         fontsize (int): The font size to use for text. Defaults to 13 (`mpl`
             only)
-        subfontsize (int): The font size to use for subtext. Defatuls to 8
+        subfontsize (int): The font size to use for subtext. Defaults to 8
             (`mpl` only)
         displaytext (dict): A dictionary of the text to use for each element
             type in the output visualization. The default values are:
@@ -389,7 +389,7 @@ def _latex_circuit_drawer(circuit,
         except subprocess.CalledProcessError as e:
             with open('latex_error.log', 'wb') as error_file:
                 error_file.write(e.stdout)
-            logger.warning('WARNING Unable to complile latex. '
+            logger.warning('WARNING Unable to compile latex. '
                            'The output from the pdflatex command can '
                            'be found in latex_error.log')
             raise
