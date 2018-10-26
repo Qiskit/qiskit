@@ -70,7 +70,7 @@ def iplot_qsphere(rho, options=None):
     # Process data and execute
     num = int(np.log2(len(rho)))
 
-    # get the eigenvectors and egivenvalues
+    # get the eigenvectors and eigenvalues
     weig, stateall = linalg.eigh(rho)
 
     for _ in range(2**num):

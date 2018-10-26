@@ -563,7 +563,7 @@ class MatplotlibDrawer:
                         this_anc += 1
             # qreg coordinate
             q_xy = [q_anchors[ii].plot_coord(this_anc, gw) for ii in q_idxs]
-            # creg corrdinate
+            # creg coordinate
             c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in c_idxs]
             # bottom and top point of qreg
             qreg_b = min(q_xy, key=lambda xy: xy[1])

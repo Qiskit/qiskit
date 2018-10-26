@@ -76,7 +76,7 @@ class TestBackends(QiskitTestCase):
     def test_aer_backend_status(self):
         """Test backend_status.
 
-        If all correct should pass the vaildation.
+        If all correct should pass the validation.
         """
         backend = Aer.backends(name='qasm_simulator')[0]
         status = backend.status()
@@ -107,7 +107,7 @@ class TestBackends(QiskitTestCase):
     def test_aer_backend_configuration(self):
         """Test backend configuration.
 
-        If all correct should pass the vaildation.
+        If all correct should pass the validation.
         """
         aer_backends = Aer.backends()
         for backend in aer_backends:

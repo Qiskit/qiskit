@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name
 
-"""Tranpiler testing"""
+"""Transpiler testing"""
 
 import unittest.mock
 
@@ -32,7 +32,7 @@ class SchedulerTestCase(QiskitTestCase):
         Runs transpiler(dag, passmanager) and checks if the passes run as expected.
         Args:
             dag (DAGCircuit): DAG circuit to transform via transpilation.
-            passmanager (PassManager): pass manager instance for the tranpilation process
+            passmanager (PassManager): pass manager instance for the transpilation process
             expected (list): List of things the passes are logging
         """
         with self.assertLogs(logger, level='INFO') as cm:
@@ -43,10 +43,10 @@ class SchedulerTestCase(QiskitTestCase):
     def assertSchedulerRaises(self, dag, passmanager, expected, exception_type):
         """
         Runs transpiler(dag, passmanager) and checks if the passes run as expected until
-        expcetion_type is raised.
+        exception_type is raised.
         Args:
             dag (DAGCircuit): DAG circuit to transform via transpilation
-            passmanager (PassManager): pass manager instance for the tranpilation process
+            passmanager (PassManager): pass manager instance for the transpilation process
             expected (list): List of things the passes are logging
             exception_type (Exception): Exception that is expected to be raised.
         """
@@ -295,7 +295,7 @@ class TestUseCases(SchedulerTestCase):
         passmanager = PassManager(ignore_preserves=True)
         passmanager.add_passes(PassA_TP_NR_NP())
         passmanager.add_passes(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
-        passmanager.add_passes(PassB_TP_RA_PA())  # Normally requiered is ignored for optimization,
+        passmanager.add_passes(PassB_TP_RA_PA())  # Normally required is ignored for optimization,
         # not here
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',

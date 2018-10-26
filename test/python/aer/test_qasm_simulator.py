@@ -221,7 +221,7 @@ class TestAerQasmSimulator(QiskitTestCase):
                              msg=name + ' snapshot keys')
             # Check number of snapshots
             # there should be 1 for measurement sampling optimization
-            # and there should be >1 for each shot beign simulated.
+            # and there should be >1 for each shot being simulated.
             num_snapshots = len(snapshots['0'].get('statevector', []))
             if sampled_measurements[name] is True:
                 self.assertEqual(num_snapshots, 1,
