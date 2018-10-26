@@ -102,7 +102,7 @@ def _circuits_2_dags(circuits):
 
 
 def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                    initial_layouts=None, seed_mapper=None, pass_manager=None):
+                 initial_layouts=None, seed_mapper=None, pass_manager=None):
     """Transform multiple dags through a sequence of passes.
 
     Args:
