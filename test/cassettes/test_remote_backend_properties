@@ -10,8 +10,8 @@ interactions:
     method: POST
     uri: https://quantumexperience.ng.bluemix.net/api/users/loginWithToken
   response:
-    body: {string: '{"id": "dummyapiusersloginWithTokenid01", "ttl": 1209600, "created":
-        "dummyapiusersloginWithTokencreated01", "userId": "dummyapiusersloginWithTokenuserId01"}'}
+    body: {string: '{"id": "dummyapiusersloginWithTokenid01", "created": "dummyapiusersloginWithTokencreated01",
+        "ttl": 1209600, "userId": "dummyapiusersloginWithTokenuserId01"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -40,82 +40,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -144,82 +143,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -248,27 +246,27 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-10-02T09:57:24.000Z", "qubits": [{"gateError":
-        {"date": "2018-10-02T09:57:24Z", "value": 0.0009443532335046134}, "name":
-        "Q0", "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.061}}, {"gateError":
-        {"date": "2018-10-02T09:57:24Z", "value": 0.008079489227428238}, "name": "Q1",
-        "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.072}}, {"gateError":
-        {"date": "2018-10-02T09:57:24Z", "value": 0.0013737021608475342}, "name":
-        "Q2", "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.029}}, {"gateError":
-        {"date": "2018-10-02T09:57:24Z", "value": 0.001889001411209068}, "name": "Q3",
-        "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.036}}, {"gateError":
-        {"date": "2018-10-02T09:57:24Z", "value": 0.0011160854878761173}, "name":
-        "Q4", "readoutError": {"date": "2018-10-02T09:57:24Z", "value": 0.047}}],
-        "multiQubitGates": [{"qubits": [1, 0], "type": "CX", "gateError": {"date":
-        "2018-10-02T09:57:24Z", "value": 0.0336469083512502}, "name": "CX1_0"}, {"qubits":
-        [2, 0], "type": "CX", "gateError": {"date": "2018-10-02T09:57:24Z", "value":
-        0.034329214436950306}, "name": "CX2_0"}, {"qubits": [2, 1], "type": "CX",
-        "gateError": {"date": "2018-10-02T09:57:24Z", "value": 0.03904602876304941},
-        "name": "CX2_1"}, {"qubits": [3, 2], "type": "CX", "gateError": {"date": "2018-10-02T09:57:24Z",
-        "value": 0.07405953316835223}, "name": "CX3_2"}, {"qubits": [3, 4], "type":
-        "CX", "gateError": {"date": "2018-10-02T09:57:24Z", "value": 0.052530860424229525},
-        "name": "CX3_4"}, {"qubits": [4, 2], "type": "CX", "gateError": {"date": "2018-10-02T09:57:24Z",
-        "value": 0.05946126929500478}, "name": "CX4_2"}]}'}
+    body: {string: '{"qubits": [{"gateError": {"value": 0.0009443532335046134, "date":
+        "2018-10-25T09:57:36Z"}, "name": "Q0", "readoutError": {"value": 0.059, "date":
+        "2018-10-25T09:57:36Z"}}, {"gateError": {"value": 0.033319736671839906, "date":
+        "2018-10-25T09:57:36Z"}, "name": "Q1", "readoutError": {"value": 0.093, "date":
+        "2018-10-25T09:57:36Z"}}, {"gateError": {"value": 0.0013737021608475342, "date":
+        "2018-10-25T09:57:36Z"}, "name": "Q2", "readoutError": {"value": 0.026, "date":
+        "2018-10-25T09:57:36Z"}}, {"gateError": {"value": 0.001889001411209068, "date":
+        "2018-10-25T09:57:36Z"}, "name": "Q3", "readoutError": {"value": 0.029, "date":
+        "2018-10-25T09:57:36Z"}}, {"gateError": {"value": 0.0013737021608475342, "date":
+        "2018-10-25T09:57:36Z"}, "name": "Q4", "readoutError": {"value": 0.057, "date":
+        "2018-10-25T09:57:36Z"}}], "multiQubitGates": [{"gateError": {"value": 0.0739190925970099,
+        "date": "2018-10-25T09:57:36Z"}, "qubits": [1, 0], "name": "CX1_0", "type":
+        "CX"}, {"gateError": {"value": 0.02860789684440007, "date": "2018-10-25T09:57:36Z"},
+        "qubits": [2, 0], "name": "CX2_0", "type": "CX"}, {"gateError": {"value":
+        0.08690147834751508, "date": "2018-10-25T09:57:36Z"}, "qubits": [2, 1], "name":
+        "CX2_1", "type": "CX"}, {"gateError": {"value": 0.057864205553293885, "date":
+        "2018-10-25T09:57:36Z"}, "qubits": [3, 2], "name": "CX3_2", "type": "CX"},
+        {"gateError": {"value": 0.041993419696321255, "date": "2018-10-25T09:57:36Z"},
+        "qubits": [3, 4], "name": "CX3_4", "type": "CX"}, {"gateError": {"value":
+        0.053637405705484226, "date": "2018-10-25T09:57:36Z"}, "qubits": [4, 2], "name":
+        "CX4_2", "type": "CX"}], "lastUpdateDate": "2018-10-25T09:57:36.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -297,82 +295,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -401,33 +398,33 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-10-02T09:57:24.000Z", "fridgeParameters":
-        {"cooldownDate": "2017-09-07", "Temperature": {"date": "-", "value": [], "unit":
-        "-"}}, "qubits": [{"name": "Q0", "buffer": {"date": "2018-10-02T09:57:24Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value":
-        60, "unit": "ns"}, "T2": {"date": "2018-10-02T09:57:24Z", "value": 37.8, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-10-02T09:57:24Z", "value": 47.8, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.24986,
-        "unit": "GHz"}}, {"name": "Q1", "buffer": {"date": "2018-10-02T09:57:24Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value":
-        60, "unit": "ns"}, "T2": {"date": "2018-10-02T09:57:24Z", "value": 19.5, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-10-02T09:57:24Z", "value": 44, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.29578, "unit": "GHz"}},
-        {"name": "Q2", "buffer": {"date": "2018-10-02T09:57:24Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value": 60, "unit": "ns"},
-        "T2": {"date": "2018-10-02T09:57:24Z", "value": 34.1, "unit": "\u00b5s"},
-        "T1": {"date": "2018-10-02T09:57:24Z", "value": 39.9, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.35319, "unit": "GHz"}},
-        {"name": "Q3", "buffer": {"date": "2018-10-02T09:57:24Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value": 60, "unit": "ns"},
-        "T2": {"date": "2018-10-02T09:57:24Z", "value": 16.1, "unit": "\u00b5s"},
-        "T1": {"date": "2018-10-02T09:57:24Z", "value": 50.6, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.43497, "unit": "GHz"}},
-        {"name": "Q4", "buffer": {"date": "2018-10-02T09:57:24Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-10-02T09:57:24Z", "value": 60, "unit": "ns"},
-        "T2": {"date": "2018-10-02T09:57:24Z", "value": 12.5, "unit": "\u00b5s"},
-        "T1": {"date": "2018-10-02T09:57:24Z", "value": 60.7, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-10-02T09:57:24Z", "value": 5.17581, "unit": "GHz"}}]}'}
+    body: {string: '{"qubits": [{"gateTime": {"value": 60, "date": "2018-10-25T09:57:36Z",
+        "unit": "ns"}, "name": "Q0", "buffer": {"value": 10, "date": "2018-10-25T09:57:36Z",
+        "unit": "ns"}, "frequency": {"value": 5.24986, "date": "2018-10-25T09:57:36Z",
+        "unit": "GHz"}, "T1": {"value": 48.5, "date": "2018-10-25T09:57:36Z", "unit":
+        "\u00b5s"}, "T2": {"value": 36.5, "date": "2018-10-25T09:57:36Z", "unit":
+        "\u00b5s"}}, {"gateTime": {"value": 60, "date": "2018-10-25T09:57:36Z", "unit":
+        "ns"}, "name": "Q1", "buffer": {"value": 10, "date": "2018-10-25T09:57:36Z",
+        "unit": "ns"}, "frequency": {"value": 5.29573, "date": "2018-10-25T09:57:36Z",
+        "unit": "GHz"}, "T1": {"value": 16, "date": "2018-10-25T09:57:36Z", "unit":
+        "\u00b5s"}, "T2": {"value": 9.6, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 60, "date": "2018-10-25T09:57:36Z", "unit": "ns"},
+        "name": "Q2", "buffer": {"value": 10, "date": "2018-10-25T09:57:36Z", "unit":
+        "ns"}, "frequency": {"value": 5.35326, "date": "2018-10-25T09:57:36Z", "unit":
+        "GHz"}, "T1": {"value": 34.2, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"},
+        "T2": {"value": 26.6, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 60, "date": "2018-10-25T09:57:36Z", "unit": "ns"},
+        "name": "Q3", "buffer": {"value": 10, "date": "2018-10-25T09:57:36Z", "unit":
+        "ns"}, "frequency": {"value": 5.43497, "date": "2018-10-25T09:57:36Z", "unit":
+        "GHz"}, "T1": {"value": 53.3, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"},
+        "T2": {"value": 18.5, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 60, "date": "2018-10-25T09:57:36Z", "unit": "ns"},
+        "name": "Q4", "buffer": {"value": 10, "date": "2018-10-25T09:57:36Z", "unit":
+        "ns"}, "frequency": {"value": 5.17582, "date": "2018-10-25T09:57:36Z", "unit":
+        "GHz"}, "T1": {"value": 54.2, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"},
+        "T2": {"value": 11.3, "date": "2018-10-25T09:57:36Z", "unit": "\u00b5s"}}],
+        "fridgeParameters": {"Temperature": {"value": [], "date": "-", "unit": "-"},
+        "cooldownDate": "2017-09-07"}, "lastUpdateDate": "2018-10-25T09:57:36.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -456,82 +453,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -560,76 +556,76 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx5/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-09-26T11:49:22.000Z", "qubits": [{"gateError":
-        {"date": "2018-09-26T10:35:59Z", "value": 0.0022144612767176497}, "name":
-        "Q0", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.057599999999999985}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.003689223478283099},
-        "name": "Q1", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.0625}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.003924364754672172},
-        "name": "Q2", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.17079999999999995}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0034167999553882944},
-        "name": "Q3", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.06919999999999993}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0015949641629435796},
-        "name": "Q4", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.06899999999999995}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0018457980526141449},
-        "name": "Q5", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.05579999999999996}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0017713812589367772},
-        "name": "Q6", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.04360000000000008}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.002426658132244186},
-        "name": "Q7", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.03510000000000002}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0017349240609222938},
-        "name": "Q8", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.038799999999999946}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0009695142045068605},
-        "name": "Q9", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.10699999999999998}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.002701937969481094},
-        "name": "Q10", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.07879999999999998}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.001960262678372404},
-        "name": "Q11", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.04919999999999991}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.002640082299054103},
-        "name": "Q12", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.1159}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.001941760442921936},
-        "name": "Q13", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.03490000000000004}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.0022723568005368344},
-        "name": "Q14", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.057700000000000085}},
-        {"gateError": {"date": "2018-09-26T10:35:59Z", "value": 0.006471887194796577},
-        "name": "Q15", "readoutError": {"date": "2018-09-26T10:28:16Z", "value": 0.11650000000000005}}],
-        "multiQubitGates": [{"qubits": [1, 0], "type": "CX", "gateError": {"date":
-        "2018-09-26T11:13:32Z", "value": 0.0382188674023784}, "name": "CX1_0"}, {"qubits":
-        [1, 2], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value":
-        0.039472320566802915}, "name": "CX1_2"}, {"qubits": [2, 3], "type": "CX",
-        "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.05402839723969577},
-        "name": "CX2_3"}, {"qubits": [3, 4], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
-        "value": 0.0489936628065242}, "name": "CX3_4"}, {"qubits": [3, 14], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.056353833812310905},
-        "name": "CX3_14"}, {"qubits": [5, 4], "type": "CX", "gateError": {"date":
-        "2018-09-26T11:13:32Z", "value": 0.035952039524115714}, "name": "CX5_4"},
-        {"qubits": [6, 5], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z",
-        "value": 0.04314769536650795}, "name": "CX6_5"}, {"qubits": [6, 7], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.02856154108547948},
-        "name": "CX6_7"}, {"qubits": [6, 11], "type": "CX", "gateError": {"date":
-        "2018-09-26T11:13:32Z", "value": 0.024963053591434775}, "name": "CX6_11"},
-        {"qubits": [7, 10], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
-        "value": 0.04309977386932756}, "name": "CX7_10"}, {"qubits": [8, 7], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.04236769261665141},
-        "name": "CX8_7"}, {"qubits": [9, 8], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z",
-        "value": 0.029488360647307504}, "name": "CX9_8"}, {"qubits": [9, 10], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.03195953115696615},
-        "name": "CX9_10"}, {"qubits": [11, 10], "type": "CX", "gateError": {"date":
-        "2018-09-26T11:13:32Z", "value": 0.039300789277491366}, "name": "CX11_10"},
-        {"qubits": [12, 5], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
-        "value": 0.04504929990651926}, "name": "CX12_5"}, {"qubits": [12, 11], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.042585231589457984},
-        "name": "CX12_11"}, {"qubits": [12, 13], "type": "CX", "gateError": {"date":
-        "2018-09-26T11:13:32Z", "value": 0.03671446327158484}, "name": "CX12_13"},
-        {"qubits": [13, 4], "type": "CX", "gateError": {"date": "2018-09-26T11:13:32Z",
-        "value": 0.03483954160112332}, "name": "CX13_4"}, {"qubits": [13, 14], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:13:32Z", "value": 0.04752095298204684},
-        "name": "CX13_14"}, {"qubits": [15, 0], "type": "CX", "gateError": {"date":
-        "2018-09-26T11:49:22Z", "value": 0.08349980716649905}, "name": "CX15_0"},
-        {"qubits": [15, 2], "type": "CX", "gateError": {"date": "2018-09-26T11:49:22Z",
-        "value": 0.052001274503483935}, "name": "CX15_2"}, {"qubits": [15, 14], "type":
-        "CX", "gateError": {"date": "2018-09-26T11:49:22Z", "value": 0.05922012926449796},
-        "name": "CX15_14"}]}'}
+    body: {string: '{"qubits": [{"gateError": {"value": 0.0022144612767176497, "date":
+        "2018-09-26T10:35:59Z"}, "name": "Q0", "readoutError": {"value": 0.057599999999999985,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.003689223478283099,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q1", "readoutError": {"value": 0.0625,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.003924364754672172,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q2", "readoutError": {"value": 0.17079999999999995,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.0034167999553882944,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q3", "readoutError": {"value": 0.06919999999999993,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.0015949641629435796,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q4", "readoutError": {"value": 0.06899999999999995,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.0018457980526141449,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q5", "readoutError": {"value": 0.05579999999999996,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.0017713812589367772,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q6", "readoutError": {"value": 0.04360000000000008,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.002426658132244186,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q7", "readoutError": {"value": 0.03510000000000002,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.0017349240609222938,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q8", "readoutError": {"value": 0.038799999999999946,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.0009695142045068605,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q9", "readoutError": {"value": 0.10699999999999998,
+        "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value": 0.002701937969481094,
+        "date": "2018-09-26T10:35:59Z"}, "name": "Q10", "readoutError": {"value":
+        0.07879999999999998, "date": "2018-09-26T10:28:16Z"}}, {"gateError": {"value":
+        0.001960262678372404, "date": "2018-09-26T10:35:59Z"}, "name": "Q11", "readoutError":
+        {"value": 0.04919999999999991, "date": "2018-09-26T10:28:16Z"}}, {"gateError":
+        {"value": 0.002640082299054103, "date": "2018-09-26T10:35:59Z"}, "name": "Q12",
+        "readoutError": {"value": 0.1159, "date": "2018-09-26T10:28:16Z"}}, {"gateError":
+        {"value": 0.001941760442921936, "date": "2018-09-26T10:35:59Z"}, "name": "Q13",
+        "readoutError": {"value": 0.03490000000000004, "date": "2018-09-26T10:28:16Z"}},
+        {"gateError": {"value": 0.0022723568005368344, "date": "2018-09-26T10:35:59Z"},
+        "name": "Q14", "readoutError": {"value": 0.057700000000000085, "date": "2018-09-26T10:28:16Z"}},
+        {"gateError": {"value": 0.006471887194796577, "date": "2018-09-26T10:35:59Z"},
+        "name": "Q15", "readoutError": {"value": 0.11650000000000005, "date": "2018-09-26T10:28:16Z"}}],
+        "multiQubitGates": [{"gateError": {"value": 0.0382188674023784, "date": "2018-09-26T11:13:32Z"},
+        "qubits": [1, 0], "name": "CX1_0", "type": "CX"}, {"gateError": {"value":
+        0.039472320566802915, "date": "2018-09-26T11:13:32Z"}, "qubits": [1, 2], "name":
+        "CX1_2", "type": "CX"}, {"gateError": {"value": 0.05402839723969577, "date":
+        "2018-09-26T11:49:22Z"}, "qubits": [2, 3], "name": "CX2_3", "type": "CX"},
+        {"gateError": {"value": 0.0489936628065242, "date": "2018-09-26T11:49:22Z"},
+        "qubits": [3, 4], "name": "CX3_4", "type": "CX"}, {"gateError": {"value":
+        0.056353833812310905, "date": "2018-09-26T11:49:22Z"}, "qubits": [3, 14],
+        "name": "CX3_14", "type": "CX"}, {"gateError": {"value": 0.035952039524115714,
+        "date": "2018-09-26T11:13:32Z"}, "qubits": [5, 4], "name": "CX5_4", "type":
+        "CX"}, {"gateError": {"value": 0.04314769536650795, "date": "2018-09-26T11:13:32Z"},
+        "qubits": [6, 5], "name": "CX6_5", "type": "CX"}, {"gateError": {"value":
+        0.02856154108547948, "date": "2018-09-26T11:13:32Z"}, "qubits": [6, 7], "name":
+        "CX6_7", "type": "CX"}, {"gateError": {"value": 0.024963053591434775, "date":
+        "2018-09-26T11:13:32Z"}, "qubits": [6, 11], "name": "CX6_11", "type": "CX"},
+        {"gateError": {"value": 0.04309977386932756, "date": "2018-09-26T11:49:22Z"},
+        "qubits": [7, 10], "name": "CX7_10", "type": "CX"}, {"gateError": {"value":
+        0.04236769261665141, "date": "2018-09-26T11:13:32Z"}, "qubits": [8, 7], "name":
+        "CX8_7", "type": "CX"}, {"gateError": {"value": 0.029488360647307504, "date":
+        "2018-09-26T11:13:32Z"}, "qubits": [9, 8], "name": "CX9_8", "type": "CX"},
+        {"gateError": {"value": 0.03195953115696615, "date": "2018-09-26T11:49:22Z"},
+        "qubits": [9, 10], "name": "CX9_10", "type": "CX"}, {"gateError": {"value":
+        0.039300789277491366, "date": "2018-09-26T11:13:32Z"}, "qubits": [11, 10],
+        "name": "CX11_10", "type": "CX"}, {"gateError": {"value": 0.04504929990651926,
+        "date": "2018-09-26T11:49:22Z"}, "qubits": [12, 5], "name": "CX12_5", "type":
+        "CX"}, {"gateError": {"value": 0.042585231589457984, "date": "2018-09-26T11:13:32Z"},
+        "qubits": [12, 11], "name": "CX12_11", "type": "CX"}, {"gateError": {"value":
+        0.03671446327158484, "date": "2018-09-26T11:13:32Z"}, "qubits": [12, 13],
+        "name": "CX12_13", "type": "CX"}, {"gateError": {"value": 0.03483954160112332,
+        "date": "2018-09-26T11:13:32Z"}, "qubits": [13, 4], "name": "CX13_4", "type":
+        "CX"}, {"gateError": {"value": 0.04752095298204684, "date": "2018-09-26T11:13:32Z"},
+        "qubits": [13, 14], "name": "CX13_14", "type": "CX"}, {"gateError": {"value":
+        0.08349980716649905, "date": "2018-09-26T11:49:22Z"}, "qubits": [15, 0], "name":
+        "CX15_0", "type": "CX"}, {"gateError": {"value": 0.052001274503483935, "date":
+        "2018-09-26T11:49:22Z"}, "qubits": [15, 2], "name": "CX15_2", "type": "CX"},
+        {"gateError": {"value": 0.05922012926449796, "date": "2018-09-26T11:49:22Z"},
+        "qubits": [15, 14], "name": "CX15_14", "type": "CX"}], "lastUpdateDate": "2018-09-26T11:49:22.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -658,82 +654,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -762,88 +757,88 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx5/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-09-26T10:29:51.000Z", "fridgeParameters":
-        {"cooldownDate": "2017-09-15", "Temperature": {"date": "2018-09-26T04:11:46Z",
-        "value": 0.0143814, "unit": "K"}}, "qubits": [{"name": "Q0", "buffer": {"date":
-        "2018-09-26T10:05:10Z", "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z",
-        "value": 80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value":
-        21.4, "unit": "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value":
-        44.6, "unit": "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units":
-        "GHz", "value": 5.2559422}}, {"name": "Q1", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 46.1, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 34.7, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.3960513}}, {"name": "Q2", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 55.9, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 45.2, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.2757198}}, {"name": "Q3", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 28.4, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 22.4, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.0830883}}, {"name": "Q4", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 69.3, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 39.5, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 4.9791939}}, {"name": "Q5", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 54.9, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 68.2, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.1514925}}, {"name": "Q6", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 54.8, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 46.9, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.3058106}}, {"name": "Q7", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 70.5, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 43.4, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.2523746}}, {"name": "Q8", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 81.6, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 24.7, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz",
-        "value": 5.1152016}}, {"name": "Q9", "buffer": {"date": "2018-09-26T10:05:10Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value":
-        80, "unit": "ns"}, "T2": {"date": "2018-09-26T10:29:51Z", "value": 88.3, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-09-26T10:28:46Z", "value": 47, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.1554163}},
-        {"name": "Q10", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
-        "T2": {"date": "2018-09-26T10:29:51Z", "value": 89.1, "unit": "\u00b5s"},
-        "T1": {"date": "2018-09-26T10:28:46Z", "value": 51.2, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.0425353}},
-        {"name": "Q11", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
-        "T2": {"date": "2018-09-26T10:29:51Z", "value": 104.4, "unit": "\u00b5s"},
-        "T1": {"date": "2018-09-26T10:28:46Z", "value": 58.1, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.1108736}},
-        {"name": "Q12", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
-        "T2": {"date": "2018-09-26T10:29:51Z", "value": 31.1, "unit": "\u00b5s"},
-        "T1": {"date": "2018-09-26T10:28:46Z", "value": 33.2, "unit": "\u00b5s"},
-        "frequency": {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 4.9468255}},
-        {"name": "Q13", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit":
-        "ns"}, "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"},
-        "T2": {"date": "2018-09-26T10:29:51Z", "value": 86.8, "unit": "\u00b5s"},
-        "T1": {"date": "2018-09-26T10:28:46Z", "value": 46, "unit": "\u00b5s"}, "frequency":
-        {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.0882581}}, {"name":
-        "Q14", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit": "ns"},
-        "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"}, "T2":
-        {"date": "2018-09-26T10:29:51Z", "value": 57.2, "unit": "\u00b5s"}, "T1":
-        {"date": "2018-09-26T10:28:46Z", "value": 34.3, "unit": "\u00b5s"}, "frequency":
-        {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 4.870491}}, {"name":
-        "Q15", "buffer": {"date": "2018-09-26T10:05:10Z", "value": 10, "unit": "ns"},
-        "gateTime": {"date": "2018-09-26T10:05:10Z", "value": 80, "unit": "ns"}, "T2":
-        {"date": "2018-09-26T10:29:51Z", "value": 35.4, "unit": "\u00b5s"}, "T1":
-        {"date": "2018-09-26T10:28:46Z", "value": 23.7, "unit": "\u00b5s"}, "frequency":
-        {"date": "2018-09-26T10:05:10Z", "units": "GHz", "value": 5.1047438}}]}'}
+    body: {string: '{"qubits": [{"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z",
+        "unit": "ns"}, "name": "Q0", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z",
+        "unit": "ns"}, "frequency": {"value": 5.2559422, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 44.6, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 21.4, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q1", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.3960513, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 34.7, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 46.1, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q2", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.2757198, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 45.2, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 55.9, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q3", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.0830883, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 22.4, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 28.4, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q4", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 4.9791939, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 39.5, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 69.3, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q5", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.1514925, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 68.2, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 54.9, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q6", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.3058106, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 46.9, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 54.8, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q7", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.2523746, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 43.4, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 70.5, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q8", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.1152016, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 24.7, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"},
+        "T2": {"value": 81.6, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"},
+        "name": "Q9", "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit":
+        "ns"}, "frequency": {"value": 5.1554163, "units": "GHz", "date": "2018-09-26T10:05:10Z"},
+        "T1": {"value": 47, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2":
+        {"value": 88.3, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}, {"gateTime":
+        {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "name": "Q10",
+        "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "frequency":
+        {"value": 5.0425353, "units": "GHz", "date": "2018-09-26T10:05:10Z"}, "T1":
+        {"value": 51.2, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2":
+        {"value": 89.1, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}, {"gateTime":
+        {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "name": "Q11",
+        "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "frequency":
+        {"value": 5.1108736, "units": "GHz", "date": "2018-09-26T10:05:10Z"}, "T1":
+        {"value": 58.1, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2":
+        {"value": 104.4, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}, {"gateTime":
+        {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "name": "Q12",
+        "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "frequency":
+        {"value": 4.9468255, "units": "GHz", "date": "2018-09-26T10:05:10Z"}, "T1":
+        {"value": 33.2, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2":
+        {"value": 31.1, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}, {"gateTime":
+        {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "name": "Q13",
+        "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "frequency":
+        {"value": 5.0882581, "units": "GHz", "date": "2018-09-26T10:05:10Z"}, "T1":
+        {"value": 46, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2": {"value":
+        86.8, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}, {"gateTime": {"value":
+        80, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "name": "Q14", "buffer":
+        {"value": 10, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "frequency":
+        {"value": 4.870491, "units": "GHz", "date": "2018-09-26T10:05:10Z"}, "T1":
+        {"value": 34.3, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2":
+        {"value": 57.2, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}, {"gateTime":
+        {"value": 80, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "name": "Q15",
+        "buffer": {"value": 10, "date": "2018-09-26T10:05:10Z", "unit": "ns"}, "frequency":
+        {"value": 5.1047438, "units": "GHz", "date": "2018-09-26T10:05:10Z"}, "T1":
+        {"value": 23.7, "date": "2018-09-26T10:28:46Z", "unit": "\u00b5s"}, "T2":
+        {"value": 35.4, "date": "2018-09-26T10:29:51Z", "unit": "\u00b5s"}}], "fridgeParameters":
+        {"Temperature": {"value": 0.0143814, "date": "2018-09-26T04:11:46Z", "unit":
+        "K"}, "cooldownDate": "2017-09-15"}, "lastUpdateDate": "2018-09-26T10:29:51.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -872,82 +867,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -976,27 +970,27 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx2/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-04-13T15:53:48.000Z", "qubits": [{"gateError":
-        {"date": "2018-04-13T15:53:48Z", "value": 0.0013737021608475342}, "name":
-        "Q0", "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.024}}, {"gateError":
-        {"date": "2018-04-13T15:53:48Z", "value": 0.0013737021608475342}, "name":
-        "Q1", "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.026}}, {"gateError":
-        {"date": "2018-04-13T15:53:48Z", "value": 0.002232583111384412}, "name": "Q2",
-        "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.03}}, {"gateError":
-        {"date": "2018-04-13T15:53:48Z", "value": 0.0017172252255832077}, "name":
-        "Q3", "readoutError": {"date": "2018-04-13T15:53:48Z", "value": 0.022}}, {"gateError":
-        {"date": "2018-04-13T15:53:48Z", "value": 0.0009443532335046134}, "name":
-        "Q4", "readoutError": {"value": 0.045, "date": "2018-04-13T15:53:48Z"}}],
-        "multiQubitGates": [{"gateError": {"date": "2018-04-13T15:53:48Z", "value":
-        0.02724902259050041}, "name": "CX0_1", "qubits": [0, 1], "type": "CX"}, {"qubits":
-        [0, 2], "type": "CX", "gateError": {"date": "2018-04-13T15:53:48Z", "value":
-        0.041787588869506564}, "name": "CX0_2"}, {"qubits": [1, 2], "type": "CX",
-        "gateError": {"date": "2018-04-13T15:53:48Z", "value": 0.03767722967662601},
-        "name": "CX1_2"}, {"qubits": [3, 2], "type": "CX", "gateError": {"date": "2018-04-13T15:53:48Z",
-        "value": 0.039730922592824625}, "name": "CX3_2"}, {"qubits": [3, 4], "type":
-        "CX", "gateError": {"date": "2018-04-13T15:53:48Z", "value": 0.03624140460989725},
-        "name": "CX3_4"}, {"qubits": [4, 2], "type": "CX", "gateError": {"date": "2018-04-13T15:53:48Z",
-        "value": 0.03508012699633578}, "name": "CX4_2"}]}'}
+    body: {string: '{"qubits": [{"gateError": {"value": 0.0013737021608475342, "date":
+        "2018-04-13T15:53:48Z"}, "name": "Q0", "readoutError": {"value": 0.024, "date":
+        "2018-04-13T15:53:48Z"}}, {"gateError": {"value": 0.0013737021608475342, "date":
+        "2018-04-13T15:53:48Z"}, "name": "Q1", "readoutError": {"value": 0.026, "date":
+        "2018-04-13T15:53:48Z"}}, {"gateError": {"value": 0.002232583111384412, "date":
+        "2018-04-13T15:53:48Z"}, "name": "Q2", "readoutError": {"value": 0.03, "date":
+        "2018-04-13T15:53:48Z"}}, {"gateError": {"value": 0.0017172252255832077, "date":
+        "2018-04-13T15:53:48Z"}, "name": "Q3", "readoutError": {"value": 0.022, "date":
+        "2018-04-13T15:53:48Z"}}, {"gateError": {"value": 0.0009443532335046134, "date":
+        "2018-04-13T15:53:48Z"}, "name": "Q4", "readoutError": {"value": 0.045, "date":
+        "2018-04-13T15:53:48Z"}}], "multiQubitGates": [{"gateError": {"value": 0.02724902259050041,
+        "date": "2018-04-13T15:53:48Z"}, "qubits": [0, 1], "name": "CX0_1", "type":
+        "CX"}, {"gateError": {"value": 0.041787588869506564, "date": "2018-04-13T15:53:48Z"},
+        "qubits": [0, 2], "name": "CX0_2", "type": "CX"}, {"gateError": {"value":
+        0.03767722967662601, "date": "2018-04-13T15:53:48Z"}, "qubits": [1, 2], "name":
+        "CX1_2", "type": "CX"}, {"gateError": {"value": 0.039730922592824625, "date":
+        "2018-04-13T15:53:48Z"}, "qubits": [3, 2], "name": "CX3_2", "type": "CX"},
+        {"gateError": {"value": 0.03624140460989725, "date": "2018-04-13T15:53:48Z"},
+        "qubits": [3, 4], "name": "CX3_4", "type": "CX"}, {"gateError": {"value":
+        0.03508012699633578, "date": "2018-04-13T15:53:48Z"}, "qubits": [4, 2], "name":
+        "CX4_2", "type": "CX"}], "lastUpdateDate": "2018-04-13T15:53:48.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1025,82 +1019,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1129,34 +1122,33 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx2/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-04-13T15:53:48.000Z", "fridgeParameters":
-        {"cooldownDate": "2017-05-07", "Temperature": {"date": "2018-04-13T15:53:48Z",
-        "value": 0.0159, "unit": "K"}}, "qubits": [{"name": "Q0", "buffer": {"date":
-        "2018-04-13T15:53:48Z", "value": 6.7, "unit": "ns"}, "gateTime": {"value":
-        83.3, "unit": "ns", "date": "2018-04-13T15:53:48Z"}, "T2": {"date": "2018-04-13T15:53:48Z",
-        "value": 77.5, "unit": "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z",
-        "value": 62.4, "unit": "\u00b5s"}, "frequency": {"date": "2018-04-13T15:53:48Z",
-        "value": 5.27603, "unit": "GHz"}}, {"frequency": {"unit": "GHz", "date": "2018-04-13T15:53:48Z",
-        "value": 5.21223}, "name": "Q1", "buffer": {"date": "2018-04-13T15:53:48Z",
-        "value": 6.7, "unit": "ns"}, "gateTime": {"date": "2018-04-13T15:53:48Z",
-        "value": 83.3, "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value":
-        64, "unit": "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z", "value": 55.1,
-        "unit": "\u00b5s"}}, {"name": "Q2", "buffer": {"date": "2018-04-13T15:53:48Z",
-        "value": 6.7, "unit": "ns"}, "gateTime": {"date": "2018-04-13T15:53:48Z",
-        "value": 83.3, "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value":
-        54.7, "unit": "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z", "value":
-        48.4, "unit": "\u00b5s"}, "frequency": {"date": "2018-04-13T15:53:48Z", "value":
-        5.01542, "unit": "GHz"}}, {"buffer": {"unit": "ns", "date": "2018-04-13T15:53:48Z",
-        "value": 6.7}, "gateTime": {"date": "2018-04-13T15:53:48Z", "value": 83.3,
-        "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value": 57.3, "unit":
-        "\u00b5s"}, "T1": {"value": 59, "unit": "\u00b5s", "date": "2018-04-13T15:53:48Z"},
-        "frequency": {"date": "2018-04-13T15:53:48Z", "value": 5.28059, "unit": "GHz"},
-        "name": "Q3"}, {"gateTime": {"date": "2018-04-13T15:53:48Z", "value": 83.3,
-        "unit": "ns"}, "T2": {"date": "2018-04-13T15:53:48Z", "value": 36.4, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-04-13T15:53:48Z", "value": 53.3, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-04-13T15:53:48Z", "value": 5.07116,
-        "unit": "GHz"}, "name": "Q4", "buffer": {"date": "2018-04-13T15:53:48Z", "value":
-        6.7, "unit": "ns"}}]}'}
+    body: {string: '{"qubits": [{"gateTime": {"value": 83.3, "date": "2018-04-13T15:53:48Z",
+        "unit": "ns"}, "name": "Q0", "buffer": {"value": 6.7, "date": "2018-04-13T15:53:48Z",
+        "unit": "ns"}, "frequency": {"value": 5.27603, "date": "2018-04-13T15:53:48Z",
+        "unit": "GHz"}, "T1": {"value": 62.4, "date": "2018-04-13T15:53:48Z", "unit":
+        "\u00b5s"}, "T2": {"value": 77.5, "date": "2018-04-13T15:53:48Z", "unit":
+        "\u00b5s"}}, {"gateTime": {"value": 83.3, "date": "2018-04-13T15:53:48Z",
+        "unit": "ns"}, "name": "Q1", "buffer": {"value": 6.7, "date": "2018-04-13T15:53:48Z",
+        "unit": "ns"}, "frequency": {"value": 5.21223, "date": "2018-04-13T15:53:48Z",
+        "unit": "GHz"}, "T1": {"value": 55.1, "date": "2018-04-13T15:53:48Z", "unit":
+        "\u00b5s"}, "T2": {"value": 64, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 83.3, "date": "2018-04-13T15:53:48Z", "unit": "ns"},
+        "name": "Q2", "buffer": {"value": 6.7, "date": "2018-04-13T15:53:48Z", "unit":
+        "ns"}, "frequency": {"value": 5.01542, "date": "2018-04-13T15:53:48Z", "unit":
+        "GHz"}, "T1": {"value": 48.4, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"},
+        "T2": {"value": 54.7, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 83.3, "date": "2018-04-13T15:53:48Z", "unit": "ns"},
+        "frequency": {"value": 5.28059, "date": "2018-04-13T15:53:48Z", "unit": "GHz"},
+        "buffer": {"value": 6.7, "date": "2018-04-13T15:53:48Z", "unit": "ns"}, "name":
+        "Q3", "T1": {"value": 59, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"},
+        "T2": {"value": 57.3, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 83.3, "date": "2018-04-13T15:53:48Z", "unit": "ns"},
+        "frequency": {"value": 5.07116, "date": "2018-04-13T15:53:48Z", "unit": "GHz"},
+        "buffer": {"value": 6.7, "date": "2018-04-13T15:53:48Z", "unit": "ns"}, "name":
+        "Q4", "T1": {"value": 53.3, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"},
+        "T2": {"value": 36.4, "date": "2018-04-13T15:53:48Z", "unit": "\u00b5s"}}],
+        "fridgeParameters": {"Temperature": {"value": 0.0159, "date": "2018-04-13T15:53:48Z",
+        "unit": "K"}, "cooldownDate": "2017-05-07"}, "lastUpdateDate": "2018-04-13T15:53:48.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1185,82 +1177,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1289,65 +1280,66 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/calibration?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-10-02T07:37:02.000Z", "qubits": [{"gateError":
-        {"date": "2018-10-02T06:36:04Z", "value": 0.0015857363609939057}, "name":
-        "Q0", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.028000000000000025}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0056075951902537224},
-        "name": "Q1", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.06220000000000003}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.003184316466115056},
-        "name": "Q2", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.03749999999999998}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0020706193920569937},
-        "name": "Q3", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.05889999999999995}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.001957618180380205},
-        "name": "Q4", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.1866}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0024531264298980338},
-        "name": "Q5", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.031500000000000083}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0014455996518510372},
-        "name": "Q6", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.027699999999999947}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0011880877515820787},
-        "name": "Q7", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.049000000000000044}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.001656771894497866},
-        "name": "Q8", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.03269999999999995}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.004604162001280998},
-        "name": "Q9", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.04620000000000002}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.002184431832709499},
-        "name": "Q10", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.048699999999999966}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.0012961864744574503},
-        "name": "Q11", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.030299999999999994}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.013824481442434255},
-        "name": "Q12", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.18359999999999999}},
-        {"gateError": {"date": "2018-10-02T06:36:04Z", "value": 0.007639716016684617},
-        "name": "Q13", "readoutError": {"date": "2018-10-02T06:30:05Z", "value": 0.059599999999999986}}],
-        "multiQubitGates": [{"qubits": [1, 0], "type": "CX", "gateError": {"date":
-        "2018-10-02T07:37:02Z", "value": 0.04377610184438224}, "name": "CX1_0"}, {"qubits":
-        [1, 2], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value":
-        0.047319178254632166}, "name": "CX1_2"}, {"qubits": [2, 3], "type": "CX",
-        "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.05239208230611844},
-        "name": "CX2_3"}, {"qubits": [4, 3], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
-        "value": 0.041104976190682485}, "name": "CX4_3"}, {"qubits": [4, 10], "type":
-        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.05641572521926011},
-        "name": "CX4_10"}, {"qubits": [5, 4], "type": "CX", "gateError": {"date":
-        "2018-10-02T07:37:02Z", "value": 0.04470959515530229}, "name": "CX5_4"}, {"qubits":
-        [5, 6], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value":
-        0.051815789449768695}, "name": "CX5_6"}, {"qubits": [5, 9], "type": "CX",
-        "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.07317714002164982},
-        "name": "CX5_9"}, {"qubits": [6, 8], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
-        "value": 0.02122139068635262}, "name": "CX6_8"}, {"qubits": [7, 8], "type":
-        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.020672575596286852},
-        "name": "CX7_8"}, {"qubits": [9, 8], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
-        "value": 0.060384377376845544}, "name": "CX9_8"}, {"qubits": [9, 10], "type":
-        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.10416714859101356},
-        "name": "CX9_10"}, {"qubits": [11, 10], "type": "CX", "gateError": {"date":
-        "2018-10-02T07:37:02Z", "value": 0.0761359648242928}, "name": "CX11_10"},
-        {"qubits": [11, 12], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
-        "value": 0.19104784558994767}, "name": "CX11_12"}, {"qubits": [11, 3], "type":
-        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.045798364715191886},
-        "name": "CX11_3"}, {"qubits": [12, 2], "type": "CX", "gateError": {"date":
-        "2018-10-02T07:37:02Z", "value": 0.34730552814964977}, "name": "CX12_2"},
-        {"qubits": [13, 1], "type": "CX", "gateError": {"date": "2018-10-02T07:37:02Z",
-        "value": 0.14300706641651442}, "name": "CX13_1"}, {"qubits": [13, 12], "type":
-        "CX", "gateError": {"date": "2018-10-02T07:37:02Z", "value": 0.19543651607418563},
-        "name": "CX13_12"}]}'}
+    body: {string: '{"qubits": [{"gateError": {"value": 0.0016482327142106623, "date":
+        "2018-10-25T06:43:17Z"}, "name": "Q0", "readoutError": {"value": 0.1361, "date":
+        "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.00812178729300883, "date":
+        "2018-10-25T06:43:17Z"}, "name": "Q1", "readoutError": {"value": 0.0958, "date":
+        "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.0038671195617325793, "date":
+        "2018-10-25T06:43:17Z"}, "name": "Q2", "readoutError": {"value": 0.03390000000000004,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.005794427103663513,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q3", "readoutError": {"value": 0.07689999999999997,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.0019288715422738356,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q4", "readoutError": {"value": 0.03970000000000007,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.002289388598948172,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q5", "readoutError": {"value": 0.04530000000000001,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.007908007401852046,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q6", "readoutError": {"value": 0.29679999999999995,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.0027046296031941752,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q7", "readoutError": {"value": 0.4132,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.0018804213725198138,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q8", "readoutError": {"value": 0.06240000000000001,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.0031611298181706826,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q9", "readoutError": {"value": 0.043300000000000005,
+        "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.0017873196774164102,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q10", "readoutError": {"value":
+        0.0464, "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value": 0.002085703923045412,
+        "date": "2018-10-25T06:43:17Z"}, "name": "Q11", "readoutError": {"value":
+        0.06180000000000008, "date": "2018-10-25T06:37:26Z"}}, {"gateError": {"value":
+        0.0034276922214009353, "date": "2018-10-25T06:43:17Z"}, "name": "Q12", "readoutError":
+        {"value": 0.02529999999999999, "date": "2018-10-25T06:37:26Z"}}, {"gateError":
+        {"value": 0.006975736107954655, "date": "2018-10-25T06:43:17Z"}, "name": "Q13",
+        "readoutError": {"value": 0.09089999999999998, "date": "2018-10-25T06:37:26Z"}}],
+        "multiQubitGates": [{"gateError": {"value": 0.03288522563246166, "date": "2018-10-25T07:41:40Z"},
+        "qubits": [1, 0], "name": "CX1_0", "type": "CX"}, {"gateError": {"value":
+        0.03815028589273611, "date": "2018-10-25T07:41:40Z"}, "qubits": [1, 2], "name":
+        "CX1_2", "type": "CX"}, {"gateError": {"value": 0.05385709343282977, "date":
+        "2018-10-25T07:41:40Z"}, "qubits": [2, 3], "name": "CX2_3", "type": "CX"},
+        {"gateError": {"value": 0.04509402336712992, "date": "2018-10-25T07:41:40Z"},
+        "qubits": [4, 3], "name": "CX4_3", "type": "CX"}, {"gateError": {"value":
+        0.07471048059128951, "date": "2018-10-25T07:41:40Z"}, "qubits": [4, 10], "name":
+        "CX4_10", "type": "CX"}, {"gateError": {"value": 0.044549167356667224, "date":
+        "2018-10-25T07:41:40Z"}, "qubits": [5, 4], "name": "CX5_4", "type": "CX"},
+        {"gateError": {"value": 0.06067963698426895, "date": "2018-10-25T07:41:40Z"},
+        "qubits": [5, 6], "name": "CX5_6", "type": "CX"}, {"gateError": {"value":
+        0.07293852666692802, "date": "2018-10-25T07:41:40Z"}, "qubits": [5, 9], "name":
+        "CX5_9", "type": "CX"}, {"gateError": {"value": 0.017972249230187504, "date":
+        "2018-10-25T07:41:40Z"}, "qubits": [6, 8], "name": "CX6_8", "type": "CX"},
+        {"gateError": {"value": 0.025115860038273846, "date": "2018-10-25T07:41:40Z"},
+        "qubits": [7, 8], "name": "CX7_8", "type": "CX"}, {"gateError": {"value":
+        0.033644283260475444, "date": "2018-10-25T07:41:40Z"}, "qubits": [9, 8], "name":
+        "CX9_8", "type": "CX"}, {"gateError": {"value": 0.051282885490006314, "date":
+        "2018-10-25T07:41:40Z"}, "qubits": [9, 10], "name": "CX9_10", "type": "CX"},
+        {"gateError": {"value": 0.037719924533944654, "date": "2018-10-25T07:41:40Z"},
+        "qubits": [11, 10], "name": "CX11_10", "type": "CX"}, {"gateError": {"value":
+        0.04641049216572746, "date": "2018-10-25T07:41:40Z"}, "qubits": [11, 12],
+        "name": "CX11_12", "type": "CX"}, {"gateError": {"value": 0.03779880311191028,
+        "date": "2018-10-25T07:41:40Z"}, "qubits": [11, 3], "name": "CX11_3", "type":
+        "CX"}, {"gateError": {"value": 0.093257247658809, "date": "2018-10-25T07:41:40Z"},
+        "qubits": [12, 2], "name": "CX12_2", "type": "CX"}, {"gateError": {"value":
+        0.12288344473458074, "date": "2018-10-25T07:41:40Z"}, "qubits": [13, 1], "name":
+        "CX13_1", "type": "CX"}, {"gateError": {"value": 0.04631045699860842, "date":
+        "2018-10-25T07:41:40Z"}, "qubits": [13, 12], "name": "CX13_12", "type": "CX"}],
+        "lastUpdateDate": "2018-10-25T07:41:40.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1376,82 +1368,81 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '[{"name": "Device Real5Qv1", "status": "off", "serialNumber":
-        "Real5Qv1", "description": "Device Real5Qv1", "deleted": false, "id": "Device
-        Real5Qv1", "topologyId": "dummyapiBackendstopologyId01", "internalId": "dummyapiBackendsinternalId01",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx4", "version":
-        "1.2.0", "status": "on", "serialNumber": "ibmqx4", "description": "5 qubit
-        transmon bowtie chip 3", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-09-18T00:00:00.000Z", "chipName": "Raven", "deleted":
-        false, "id": "ibmqx4", "topologyId": "dummyapiBackendstopologyId02", "url":
-        "https://ibm.biz/qiskit-ibmqx4", "internalId": "dummyapiBackendsinternalId02",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[1,
-        0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmqx5", "version":
-        "1.1.0", "status": "on", "serialNumber": "ibmqx5", "description": "16 transmon
-        2x8 ladder", "gateSet": "SU2+CNOT", "basisGates": "u1,u2,u3,cx,id", "onlineDate":
-        "2017-09-21T00:00:00.000Z", "chipName": "Albatross", "deleted": false, "id":
-        "ibmqx5", "topologyId": "dummyapiBackendstopologyId03", "url": "https://ibm.biz/qiskit-ibmqx5",
-        "internalId": "dummyapiBackendsinternalId03", "simulator": false, "allowQObject":
-        false, "nQubits": 16, "couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
+    body: {string: '[{"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4,
+        2]], "name": "Device Real5Qv1", "status": "off", "serialNumber": "Real5Qv1",
+        "nQubits": 5, "description": "Device Real5Qv1", "internalId": "dummyapiBackendsinternalId01",
+        "simulator": false, "deleted": false, "topologyId": "dummyapiBackendstopologyId01",
+        "id": "Device Real5Qv1", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], "gateSet": "SU2+CNOT", "chipName":
+        "Raven", "name": "ibmqx4", "status": "on", "serialNumber": "ibmqx4", "nQubits":
+        5, "description": "5 qubit transmon bowtie chip 3", "internalId": "dummyapiBackendsinternalId02",
+        "url": "https://ibm.biz/qiskit-ibmqx4", "simulator": false, "version": "1.2.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId02",
+        "id": "ibmqx4", "deleted": false, "onlineDate": "2017-09-18T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[1, 0], [1, 2], [2, 3], [3, 4], [3,
         14], [5, 4], [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11,
         10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0], [15, 2], [15,
-        14]]}, {"name": "ibmqx3", "version": "1", "status": "off", "serialNumber":
-        "ibmqx3", "description": "16 transmon 2x8 ladder", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-06-06T11:00:00.000Z", "chipName": "Albatross", "deleted":
-        false, "id": "ibmqx3", "topologyId": "dummyapiBackendstopologyId04", "url":
-        "https://ibm.biz/qiskit-ibmqx3", "internalId": "dummyapiBackendsinternalId04",
-        "simulator": false, "allowQObject": false, "nQubits": 16, "couplingMap": [[0,
-        1], [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8,
-        7], [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13,
-        14], [15, 0], [15, 14]]}, {"name": "QS1_1", "version": "1", "status": "standby",
-        "serialNumber": "QS1_1", "description": "20 qubit device v1", "basisGates":
-        "SU2+CNOT", "onlineDate": "2017-10-20T11:00:00.000Z", "chipName": "Qubert",
-        "deleted": false, "id": "QS1_1", "topologyId": "dummyapiBackendstopologyId05",
-        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "allowQObject":
-        false, "nQubits": 20, "couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
-        6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4, 3], [4, 8], [4, 9], [5, 0],
-        [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1],
-        [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8, 9], [8, 12], [8, 13], [9, 3],
-        [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11,
-        6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12,
-        13], [12, 16], [12, 17], [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13,
-        19], [14, 9], [14, 13], [14, 18], [14, 19], [15, 10], [15, 16], [16, 11],
-        [16, 12], [16, 15], [16, 17], [17, 11], [17, 12], [17, 16], [17, 18], [18,
-        13], [18, 14], [18, 17], [18, 19], [19, 13], [19, 14], [19, 18]]}, {"name":
-        "ibmqx2", "version": "1.1.0", "status": "on", "serialNumber": "Real5Qv2",
-        "description": "5 qubit transmon bowtie chip 2", "gateSet": "SU2+CNOT", "basisGates":
-        "u1,u2,u3,cx,id", "onlineDate": "2017-01-10T00:00:00.000Z", "chipName": "Sparrow",
-        "deleted": false, "id": "ibmqx2", "topologyId": "dummyapiBackendstopologyId01",
-        "url": "https://ibm.biz/qiskit-ibmqx2", "internalId": "dummyapiBackendsinternalId06",
-        "simulator": false, "allowQObject": false, "nQubits": 5, "couplingMap": [[0,
-        1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]}, {"name": "ibmq_20_tokyo", "version":
-        "1", "status": "standby", "serialNumber": "ibmq_20_tokyo", "description":
-        "20 qubit device Tokyo", "basisGates": "SU2+CNOT", "onlineDate": "2018-05-10T00:00:00.000Z",
-        "chipName": "Qubert", "deleted": false, "id": "ibmq_20_tokyo", "topologyId":
-        "dummyapiBackendstopologyId06", "internalId": "dummyapiBackendsinternalId07",
-        "simulator": false, "allowQObject": false, "nQubits": 20, "couplingMap": [[0,
-        1], [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2],
-        [3, 8], [3, 9], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1],
-        [6, 2], [6, 5], [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-        [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13], [9, 3], [9, 4],
-        [9, 8], [10, 5], [10, 6], [10, 11], [10, 15], [11, 5], [11, 6], [11, 10],
-        [11, 12], [11, 16], [11, 17], [12, 7], [12, 8], [12, 11], [12, 13], [12, 16],
-        [13, 7], [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13], [15, 10],
-        [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17, 16], [18,
-        13], [19, 13]]}, {"name": "ibmq_16_melbourne", "version": "1.0.0", "status":
-        "on", "serialNumber": "ibmq_16_melbourne", "description": "16 transmon 2x8
-        ladder", "basisGates": "u1,u2,u3,cx,id", "onlineDate": "2018-09-07T00:00:00.000Z",
-        "chipName": "Albatross", "deleted": false, "id": "ibmq_16_melbourne", "topologyId":
-        "dummyapiBackendstopologyId07", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
-        "internalId": "dummyapiBackendsinternalId08", "simulator": false, "allowQObject":
-        false, "nQubits": 14, "couplingMap": [[1, 0], [1, 2], [2, 3], [4, 3], [4,
-        10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11,
-        10], [11, 12], [12, 2], [13, 1], [13, 12]]}, {"name": "ibmq_qasm_simulator",
-        "status": "on", "description": "online qasm simulator", "basisGates": "u1,u2,u3,cx,id",
-        "onlineDate": "2017-12-09T12:00:00.000Z", "deleted": false, "internalId":
-        "dummyapiBackendsinternalId09", "simulator": true, "allowQObject": false,
-        "nQubits": 32, "couplingMap": "all-to-all"}]'}
+        14]], "gateSet": "SU2+CNOT", "chipName": "Albatross", "name": "ibmqx5", "status":
+        "on", "serialNumber": "ibmqx5", "nQubits": 16, "description": "16 transmon
+        2x8 ladder", "internalId": "dummyapiBackendsinternalId03", "url": "https://ibm.biz/qiskit-ibmqx5",
+        "simulator": false, "version": "1.1.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId03", "id": "ibmqx5", "deleted": false, "onlineDate":
+        "2017-09-21T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [1, 2], [2, 3], [3, 14], [4, 3], [4, 5], [6, 7], [6, 11], [7, 10], [8, 7],
+        [9, 8], [9, 10], [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+        [15, 0], [15, 14]], "chipName": "Albatross", "name": "ibmqx3", "status": "off",
+        "serialNumber": "ibmqx3", "nQubits": 16, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId04", "url": "https://ibm.biz/qiskit-ibmqx3",
+        "simulator": false, "version": "1", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId04", "id": "ibmqx3", "deleted": false, "onlineDate":
+        "2017-06-06T11:00:00.000Z", "allowQObject": false}, {"couplingMap": [[0, 1],
+        [0, 5], [1, 0], [1, 2], [1, 6], [1, 7], [2, 1], [2, 7], [3, 4], [3, 9], [4,
+        3], [4, 8], [4, 9], [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 5], [6,
+        7], [6, 10], [6, 11], [7, 1], [7, 2], [7, 6], [7, 12], [7, 13], [8, 4], [8,
+        9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [9, 14], [10, 5], [10, 6], [10,
+        11], [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12,
+        7], [12, 8], [12, 11], [12, 13], [12, 16], [12, 17], [13, 7], [13, 8], [13,
+        12], [13, 14], [13, 18], [13, 19], [14, 9], [14, 13], [14, 18], [14, 19],
+        [15, 10], [15, 16], [16, 11], [16, 12], [16, 15], [16, 17], [17, 11], [17,
+        12], [17, 16], [17, 18], [18, 13], [18, 14], [18, 17], [18, 19], [19, 13],
+        [19, 14], [19, 18]], "chipName": "Qubert", "name": "QS1_1", "status": "standby",
+        "serialNumber": "QS1_1", "nQubits": 20, "description": "20 qubit device v1",
+        "internalId": "dummyapiBackendsinternalId05", "simulator": false, "version":
+        "1", "basisGates": "SU2+CNOT", "topologyId": "dummyapiBackendstopologyId05",
+        "id": "QS1_1", "deleted": false, "onlineDate": "2017-10-20T11:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 2], [1, 2], [3, 2], [3,
+        4], [4, 2]], "gateSet": "SU2+CNOT", "chipName": "Sparrow", "name": "ibmqx2",
+        "status": "on", "serialNumber": "Real5Qv2", "nQubits": 5, "description": "5
+        qubit transmon bowtie chip 2", "internalId": "dummyapiBackendsinternalId06",
+        "url": "https://ibm.biz/qiskit-ibmqx2", "simulator": false, "version": "1.1.0",
+        "basisGates": "u1,u2,u3,cx,id", "topologyId": "dummyapiBackendstopologyId01",
+        "id": "ibmqx2", "deleted": false, "onlineDate": "2017-01-10T00:00:00.000Z",
+        "allowQObject": false}, {"couplingMap": [[0, 1], [0, 5], [1, 0], [1, 2], [1,
+        6], [1, 7], [2, 1], [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
+        [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5], [6, 7], [6, 10],
+        [6, 11], [7, 1], [7, 6], [7, 8], [7, 12], [7, 13], [8, 3], [8, 4], [8, 7],
+        [8, 9], [8, 12], [8, 13], [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11],
+        [10, 15], [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17], [12, 7],
+        [12, 8], [12, 11], [12, 13], [12, 16], [13, 7], [13, 8], [13, 12], [13, 14],
+        [13, 18], [13, 19], [14, 13], [15, 10], [15, 16], [16, 11], [16, 12], [16,
+        15], [16, 17], [17, 11], [17, 16], [18, 13], [19, 13]], "chipName": "Qubert",
+        "name": "ibmq_20_tokyo", "status": "standby", "serialNumber": "ibmq_20_tokyo",
+        "nQubits": 20, "description": "20 qubit device Tokyo", "internalId": "dummyapiBackendsinternalId07",
+        "simulator": false, "version": "1", "basisGates": "SU2+CNOT", "topologyId":
+        "dummyapiBackendstopologyId06", "id": "ibmq_20_tokyo", "deleted": false, "onlineDate":
+        "2018-05-10T00:00:00.000Z", "allowQObject": false}, {"couplingMap": [[1, 0],
+        [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8], [9,
+        8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]], "chipName":
+        "Albatross", "name": "ibmq_16_melbourne", "status": "on", "serialNumber":
+        "ibmq_16_melbourne", "nQubits": 14, "description": "16 transmon 2x8 ladder",
+        "internalId": "dummyapiBackendsinternalId08", "url": "https://ibm.biz/qiskit-ibmq_16_melbourne",
+        "simulator": false, "version": "1.0.0", "basisGates": "u1,u2,u3,cx,id", "topologyId":
+        "dummyapiBackendstopologyId07", "id": "ibmq_16_melbourne", "deleted": false,
+        "onlineDate": "2018-09-07T00:00:00.000Z", "allowQObject": false}, {"couplingMap":
+        "all-to-all", "simulator": true, "name": "ibmq_qasm_simulator", "basisGates":
+        "u1,u2,u3,cx,id", "deleted": false, "status": "on", "allowQObject": false,
+        "nQubits": 32, "description": "online qasm simulator", "onlineDate": "2017-12-09T12:00:00.000Z",
+        "internalId": "dummyapiBackendsinternalId09"}]'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
@@ -1480,79 +1471,78 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmq_16_melbourne/parameters?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: '{"lastUpdateDate": "2018-10-02T06:31:53.000Z", "fridgeParameters":
-        {"cooldownDate": "2018-07-10", "Temperature": {"date": "2018-10-02T08:48:19Z",
-        "value": 0.0251758, "unit": "K"}}, "qubits": [{"name": "Q0", "buffer": {"date":
-        "2018-10-02T06:05:19Z", "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z",
-        "value": 100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value":
-        18.4, "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value":
-        81, "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 5.100064}}, {"name": "Q1", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 73.1,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 66.7,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 5.23838}}, {"name": "Q2", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 98.9,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 68.8,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 5.0328802}}, {"name": "Q3", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 102.4,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 62.3,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.8961475}}, {"name": "Q4", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 29, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 63.1, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units": "GHz",
-        "value": 5.0262397}}, {"name": "Q5", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 32.2,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 22.9,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 5.0670439}}, {"name": "Q6", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 49.9,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 60.6,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.9237499}}, {"name": "Q7", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 76.4,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 44.5,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.9744283}}, {"name": "Q8", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 175.1,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 116.1,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.7381183}}, {"name": "Q9", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 38.6,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 32.6,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.9633119}}, {"name": "Q10", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 60, "unit":
-        "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 52.4, "unit":
-        "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units": "GHz",
-        "value": 4.9449811}}, {"name": "Q11", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 105.6,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 68.8,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 5.0046259}}, {"name": "Q12", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 11.5,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 14.1,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.7599086}}, {"name": "Q13", "buffer": {"date": "2018-10-02T06:05:19Z",
-        "value": 10, "unit": "ns"}, "gateTime": {"date": "2018-10-02T06:05:19Z", "value":
-        100, "unit": "ns"}, "T2": {"date": "2018-10-02T06:31:53Z", "value": 46.7,
-        "unit": "\u00b5s"}, "T1": {"date": "2018-10-02T06:30:31Z", "value": 29.2,
-        "unit": "\u00b5s"}, "frequency": {"date": "2018-10-02T06:05:19Z", "units":
-        "GHz", "value": 4.9685361}}]}'}
+    body: {string: '{"qubits": [{"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z",
+        "unit": "ns"}, "name": "Q0", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z",
+        "unit": "ns"}, "frequency": {"value": 5.1000648, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 55.7, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 15.2, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q1", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 5.2383425, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 70.1, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 119.2, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q2", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 5.0328792, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 59.5, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 96.8, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q3", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.8961419, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 44.2, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 96.7, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q4", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 5.0261564, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 57.9, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 25.4, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q5", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 5.0670353, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 27.4, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 30.4, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q6", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.9239111, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 62.5, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 54.6, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q7", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.974451, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 41.4, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 91.7, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q8", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.7381241, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 99.1, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 130.3, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q9", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.9633145, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 45.9, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 85.3, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q10", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.944971, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 47.8, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 71.8, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q11", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 5.0046467, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 60.8, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 85.8, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}},
+        {"gateTime": {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"},
+        "name": "Q12", "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit":
+        "ns"}, "frequency": {"value": 4.7598318, "units": "GHz", "date": "2018-10-25T06:05:43Z"},
+        "T1": {"value": 62.8, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"},
+        "T2": {"value": 82, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}}, {"gateTime":
+        {"value": 100, "date": "2018-10-25T06:05:43Z", "unit": "ns"}, "name": "Q13",
+        "buffer": {"value": 10, "date": "2018-10-25T06:05:43Z", "unit": "ns"}, "frequency":
+        {"value": 4.9685308, "units": "GHz", "date": "2018-10-25T06:05:43Z"}, "T1":
+        {"value": 23.5, "date": "2018-10-25T06:37:50Z", "unit": "\u00b5s"}, "T2":
+        {"value": 23.7, "date": "2018-10-25T06:39:11Z", "unit": "\u00b5s"}}], "fridgeParameters":
+        {"Temperature": {"value": 0.0262789, "date": "2018-10-25T08:52:00Z", "unit":
+        "K"}, "cooldownDate": "2018-07-10"}, "lastUpdateDate": "2018-10-25T06:39:11.000Z"}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
