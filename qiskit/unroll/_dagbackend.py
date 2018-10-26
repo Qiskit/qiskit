@@ -37,7 +37,7 @@ class DAGBackend(UnrollerBackend):
         self.cval = None
         self.circuit = DAGCircuit()
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []
         self.listen = True
@@ -46,7 +46,7 @@ class DAGBackend(UnrollerBackend):
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit."""
-        self.basis = basis
+        self.basis = basis.copy()
 
     def define_gate(self, name, gatedata):
         """Record and pass down the data for this gate."""

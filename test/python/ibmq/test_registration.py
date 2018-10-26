@@ -23,7 +23,7 @@ from qiskit.backends.ibmq.credentials import (
 from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
 from qiskit.backends.ibmq.ibmqprovider import QE_URL
 from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
-from ..common import QiskitTestCase, requires_qe_access
+from ..common import QiskitTestCase
 
 
 IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
@@ -148,12 +148,11 @@ class TestIBMQAccounts(QiskitTestCase):
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
-    @requires_qe_access
-    def test_pass_bad_proxy(self, qe_token, qe_url):
+    def test_pass_bad_proxy(self):
         """Test proxy pass through."""
         failed = False
         try:
-            qiskit.IBMQ.enable_account(qe_token, qe_url, proxies=PROXIES)
+            qiskit.IBMQ.enable_account('dummy_token', 'https://dummy_url', proxies=PROXIES)
         except ConnectionError as excep:
             if 'ProxyError' in str(excep):
                 failed = True
