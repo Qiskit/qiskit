@@ -23,7 +23,7 @@ from qiskit.backends.ibmq.credentials import (
 from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
 from qiskit.backends.ibmq.ibmqprovider import QE_URL
 from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
-from ..common import QiskitTestCase, requires_qe_access
+from ..common import QiskitTestCase
 
 
 IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
