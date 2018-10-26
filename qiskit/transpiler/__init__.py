@@ -16,5 +16,5 @@ from ._transpiler import compile, transpile  # pylint: disable=redefined-builtin
 from ._parallel import parallel_map
 from ._progressbar import TextProgressBar
 
-# Set parallel ennvironmental variable
+# Set parallel environmental variable
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'

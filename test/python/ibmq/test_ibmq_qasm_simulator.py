@@ -78,7 +78,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
     # TODO: Investigate why this test is failing in master:
     # https://github.com/Qiskit/qiskit-terra/issues/1016
-    @skip('Intermitent failure, see: https://github.com/Qiskit/qiskit-terra/issues/1016 ')
+    @skip('Intermittent failure, see: https://github.com/Qiskit/qiskit-terra/issues/1016 ')
     @requires_qe_access
     def test_online_qasm_simulator_two_registers(self, qe_token, qe_url):
         """Test online_qasm_simulator_two_registers.

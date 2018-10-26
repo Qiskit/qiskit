@@ -75,7 +75,7 @@ try:
     # Compiling the job for the experimental backend 
     qobj = compile([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
 
-    # Runing the job
+    # Running the job
     sim_job = my_backend.run(qobj)
 
     # Getting the result
@@ -89,7 +89,7 @@ try:
     # Compile and run the Quantum Program on a real device backend
     # See a list of available remote backends
     try:
-        # Runing the job.
+        # Running the job.
         exp_job = least_busy_device.run(qobj)
 
         lapse = 0

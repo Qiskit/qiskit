@@ -373,7 +373,7 @@ class IBMQJob(BaseJob):
             JobError: If we have already submitted the job.
         """
         # TODO: Validation against the schema should be done here and not
-        # during initiliazation. Once done, we should document that the method
+        # during initialization. Once done, we should document that the method
         # can raise QobjValidationError.
         if self._future is not None or self._job_id is not None:
             raise JobError("We have already submitted the job!")
@@ -403,7 +403,7 @@ class IBMQJob(BaseJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._job_id = submit_info.get('id')
@@ -503,7 +503,7 @@ class IBMQJobPreQobj(IBMQJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._job_id = submit_info.get('id')

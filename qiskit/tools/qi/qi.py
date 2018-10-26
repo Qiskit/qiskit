@@ -61,7 +61,7 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        matrix_like: A density matrix with the appropriate subsytems traced
+        matrix_like: A density matrix with the appropriate subsystems traced
             over.
     Raises:
         Exception: if input is not a multi-qubit state.
@@ -73,7 +73,7 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
         dimensions = [2 for _ in range(num_qubits)]
         if len(state) != 2 ** num_qubits:
             raise Exception("Input is not a multi-qubit state, "
-                            "specifify input state dims")
+                            "specify input state dims")
     else:
         dimensions = list(dimensions)
 
@@ -106,7 +106,7 @@ def __partial_trace_vec(vec, trace_systems, dimensions, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        ndarray: A density matrix with the appropriate subsytems traced over.
+        ndarray: A density matrix with the appropriate subsystems traced over.
     """
 
     # trace sys positions
@@ -139,12 +139,12 @@ def __partial_trace_mat(mat, trace_systems, dimensions, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        ndarray: A density matrix with the appropriate subsytems traced over.
+        ndarray: A density matrix with the appropriate subsystems traced over.
     """
 
     trace_systems = sorted(trace_systems, reverse=True)
     for j in trace_systems:
-        # Partition subsytem dimensions
+        # Partition subsystem dimensions
         dimension_trace = int(dimensions[j])  # traced out system
         if reverse:
             left_dimensions = dimensions[j + 1:]
@@ -249,7 +249,7 @@ def choi_to_rauli(choi, order=1):
     Convert a Choi-matrix to a Pauli-basis superoperator.
 
     Note that this function assumes that the Choi-matrix
-    is defined in the standard column-stacking converntion
+    is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
     is defined as: choi = (I \\otimes E)(bell_state).
 
@@ -366,7 +366,7 @@ def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
 
 def __ginibre_matrix(nrow, ncol=None):
     """
-    Return a normaly distributed complex random matrix.
+    Return a normally distributed complex random matrix.
 
     Args:
         nrow (int): number of rows in output matrix.
@@ -501,7 +501,7 @@ def concurrence(state):
     if rho.ndim == 1:
         rho = outer(state)
     if len(state) != 4:
-        raise Exception("Concurence is only defined for more than two qubits")
+        raise Exception("Concurrence is only defined for more than two qubits")
 
     YY = np.fliplr(np.diag([-1, 1, 1, -1]))
     A = rho.dot(YY).dot(rho.conj()).dot(YY)

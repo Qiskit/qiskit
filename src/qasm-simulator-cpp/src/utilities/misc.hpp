@@ -68,7 +68,7 @@ void write_file(std::string outfile, std::string contents);
 std::string read_stream(std::istream &input);
 
 /**
- * Reads an input stream until seperating the stream into multiple strings when
+ * Reads an input stream until separating the stream into multiple strings when
  * a specified file break string is reached. The output is returned as a vector
  * of each of the resulting strings. Note this adds a newline character to the
  * end of each file.
@@ -277,7 +277,7 @@ cket_t vec2ket(const cvector_t &psi, double epsilon = 0.);
 //------------------------------------------------------------------------------
 
 /**
- * Convet a hexadecimal string to a binary vector.
+ * Convert a hexadecimal string to a binary vector.
  * @param str: a hex string.
  * @returns: a binary vector.
  */

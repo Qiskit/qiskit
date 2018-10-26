@@ -8,7 +8,7 @@ The main goal of Qiskit Terra's transpiler is to provide an extensible infrastru
 - Analysis passes analyze the DAG and write conclusions to a common context, a `PropertySet` object. They cannot modify the DAG.
 - Transformation passes can alter the DAG, but have read-only access to the property set.
 
-### Pass Mananger
+### Pass Manager
 - A `PassManager` instance determines the schedule for running registered passes.
 - The pass manager is in charge of deciding the next pass to run, not the pass itself.
 - Registering passes in the pass manager pipeline is done by the `add_passes` method.
