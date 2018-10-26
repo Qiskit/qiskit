@@ -264,7 +264,7 @@ If a qobj contains multiple circuits failure of one circuit will not terminate e
 }
 ```
 
-where for any circuit that encounted an error `<circ-n result>` will be given by `{"status": "FAILED", "message": "error message"}`.
+where for any circuit that encountered an error `<circ-n result>` will be given by `{"status": "FAILED", "message": "error message"}`.
 
 ## Config Settings
 
@@ -312,7 +312,7 @@ There are two types of parallel speedups available:
 
 If M1 threads are used in parallel shot evaluation, and M2 threads are used in parallel gate updates, then the total number of threads used is M = M1 * M2.
 
-The total number of threads used is always limited by the available number of CPU cores on a system and is additionally controlled by several other heuristics which will be discussed below. These may be restricted further using the following configuration options: `"max_memory"`, `"max_threads_shot"`, `"max_threads_gate"` `"theshold_omp_gate"`.
+The total number of threads used is always limited by the available number of CPU cores on a system and is additionally controlled by several other heuristics which will be discussed below. These may be restricted further using the following configuration options: `"max_memory"`, `"max_threads_shot"`, `"max_threads_gate"` `"threshold_omp_gate"`.
 
 #### Parallel evaluation of shots
 
@@ -320,7 +320,7 @@ If multiple shots are being simulated parallel evaluation of shots takes precede
 
 #### Parallel state vector update
 
-The second type of parallelization is used to update large N-qubit state vectors in parallel. This is only available if the simulator is compiled with **OpenMP** using the `-fopenmp` option. Parallelization is activated when the number of qubits in a circuit is greater than the number specified by `"theshold_omp_gate"`, and it uses any remaining threads *after* shot parallelization. Once above the threshold the number of threads used *per shot thread* is given by the minimum of: the number of CPU cores/number of shot threads (rounded down), the `"max_threads_gate"` config setting. The default threshold is 20 qubits. Lowering this may reduce performance due to the overhead of thread management on the shared state vector.
+The second type of parallelization is used to update large N-qubit state vectors in parallel. This is only available if the simulator is compiled with **OpenMP** using the `-fopenmp` option. Parallelization is activated when the number of qubits in a circuit is greater than the number specified by `"threshold_omp_gate"`, and it uses any remaining threads *after* shot parallelization. Once above the threshold the number of threads used *per shot thread* is given by the minimum of: the number of CPU cores/number of shot threads (rounded down), the `"max_threads_gate"` config setting. The default threshold is 20 qubits. Lowering this may reduce performance due to the overhead of thread management on the shared state vector.
 
 ### Using a custom initial state
 
@@ -417,7 +417,7 @@ In terms of X90 pulses single qubit gates are affected as:
 * `U, u3, x, y` have double gate error (two X-90 pulses)
 * `u0`: has multiples of X-90 pulse relaxation error only
 
-The following keys specifify the implemented error models for single qubit gates:
+The following keys specify the implemented error models for single qubit gates:
 
 | Key | Values | Description |
 | --- | --- | --- |

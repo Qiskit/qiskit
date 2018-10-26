@@ -100,7 +100,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.qr, self.qr2, self.cr)
-        self.c_header = 69  # lenght of the header
+        self.c_header = 69  # length of the header
 
     def test_barrier(self):
         self.circuit.barrier(self.qr[1])
@@ -755,7 +755,7 @@ class TestStandard2Q(StandardExtensionTest):
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.qr, self.qr2, self.cr)
-        self.c_header = 69  # lenght of the header
+        self.c_header = 69  # length of the header
 
     def test_barrier_none(self):
         self.circuit.barrier()
@@ -1077,7 +1077,7 @@ class TestStandard3Q(StandardExtensionTest):
         self.qr3 = QuantumRegister(3, "s")
         self.cr = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.qr, self.qr2, self.qr3, self.cr)
-        self.c_header = 80  # lenght of the header
+        self.c_header = 80  # length of the header
 
     def test_barrier_none(self):
         self.circuit.barrier()

@@ -83,7 +83,7 @@ def rb_epc(fit, rb_pattern):
     """Take the rb fit data and convert it into EPC (error per Clifford)
 
     Args:
-        fit (dict): dictionary of the fit quanties (A, alpha, B) with the
+        fit (dict): dictionary of the fit quantities (A, alpha, B) with the
             keys 'qn' where n is  the qubit and subkeys 'fit', e.g.
             {'q0':{'fit': [1, 0, 0.9], 'fiterr': [0, 0, 0]}}}
         rb_pattern (list): (see randomized benchmarking functions). Pattern

@@ -42,7 +42,7 @@ class IBMQProvider(BaseProvider):
         Args:
             name (str): backend name to filter by
             filters (callable): more complex filters, such as lambda functions
-                e.g. IBMQ.backends(filters=lambda b: b.congiguration['n_qubits'] > 5)
+                e.g. IBMQ.backends(filters=lambda b: b.configuration['n_qubits'] > 5)
             kwargs: simple filters specifying a true/false criteria in the
                 backend configuration or backend status or provider credentials
                 e.g. IBMQ.backends(n_qubits=5, operational=True, hub='internal')

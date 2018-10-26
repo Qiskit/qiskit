@@ -154,7 +154,7 @@ class QasmSimulatorPy(BaseBackend):
         return retval
 
     def _add_qasm_single(self, gate, qubit):
-        """Apply an arbitary 1-qubit operator to a qubit.
+        """Apply an arbitrary 1-qubit operator to a qubit.
 
         Gate is the single qubit applied.
         qubit is the qubit the gate is applied to.

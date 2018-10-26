@@ -15,7 +15,7 @@ from .common import QiskitTestCase
 
 
 class CompileSkipTranslationTest(QiskitTestCase):
-    """Test compilaton with skip translation."""
+    """Test compilation with skip translation."""
 
     def test_simple_compile(self):
         """Test compile with and without skip_transpiler."""

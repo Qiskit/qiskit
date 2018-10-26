@@ -63,7 +63,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
-    On Windows this function defaults to a serial implimentation to avoid the
+    On Windows this function defaults to a serial implementation to avoid the
     overhead from spawning processes in Windows.
 
     Args:
@@ -80,7 +80,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
                     each value in ``values``.
 
     Raises:
-        QISKitError: If user interupts via keyboard.
+        QISKitError: If user interrupts via keyboard.
     """
     # len(values) == 1
     if len(values) == 1:

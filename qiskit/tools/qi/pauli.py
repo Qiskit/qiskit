@@ -99,7 +99,7 @@ class Pauli:
         Order is q_n x q_{n-1} .... q_0
 
         Returns:
-            numpy.array: a matrix that represnets the pauli.
+            numpy.array: a matrix that represents the pauli.
         """
         x = np.array([[0, 1], [1, 0]], dtype=complex)
         y = np.array([[0, -1j], [1j, 0]], dtype=complex)
@@ -128,7 +128,7 @@ class Pauli:
 
         Returns:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
-            represnets the pauli.
+            represents the pauli.
         """
         x = sparse.csr_matrix(np.array([[0, 1], [1, 0]], dtype=complex))
         y = sparse.csr_matrix(np.array([[0, -1j], [1j, 0]], dtype=complex))

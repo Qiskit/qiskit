@@ -30,16 +30,16 @@ namespace QISKIT {
  * This class is derived from the BaseEngine class. It includes all options
  * and results of the BaseEngine, and in addition may compute properties
  * related to the state vector of the backend. These include:
- * - The density matrix of the snapshoted quantum states of the system system
+ * - The density matrix of the snapshotted quantum states of the system system
  *   averaged over all shots
- * - The Z-basis measurement probabilities of the snapshoted quantum states of the
+ * - The Z-basis measurement probabilities of the snapshotted quantum states of the
  *   system averaged over all shots. Note that this is equal to the diagonal of
  *   the density matrix.
- * - The ket representation of the snapshoted quantum states of the sytem for each
+ * - The ket representation of the snapshotted quantum states of the system for each
  *   shot
- * - The inner product with a set of target states of the snapshoted quantum states
+ * - The inner product with a set of target states of the snapshotted quantum states
  *   of the system for each shot.
- * - The expectation values of a set  of target states of the snapshoted quantum
+ * - The expectation values of a set  of target states of the snapshotted quantum
  *   states of the system averaged over shots.
  *
  ******************************************************************************/

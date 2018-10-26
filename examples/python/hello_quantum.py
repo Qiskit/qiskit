@@ -54,7 +54,7 @@ try:
         least_busy_device = least_busy(IBMQ.backends(simulator=False))
         print("Running on current least busy device: ", least_busy_device)
 
-        #runing the job
+        #running the job
         job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
         result_exp = job_exp.result()
 
