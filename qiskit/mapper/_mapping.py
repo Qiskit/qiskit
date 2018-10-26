@@ -591,7 +591,8 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Parse openqasm_output into DAGCircuit object
     dag_unrolled = DagUnroller(dagcircuit_output,
-                                DAGBackend(basis.split(",")))
+dag_unrolled = DagUnroller(dagcircuit_output,
+                           DAGBackend(basis.split(",")))
     dagcircuit_output = dag_unrolled.expand_gates()
     return dagcircuit_output, initial_layout, last_layout
 
