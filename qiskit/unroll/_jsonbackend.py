@@ -68,7 +68,7 @@ class JsonBackend(UnrollerBackend):
         self.cval = None
         self.gates = {}
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []  # default, unroll to U, CX
         self.listen = True
@@ -80,7 +80,7 @@ class JsonBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        self.basis = basis
+        self.basis = basis.copy()
 
     def version(self, version):
         """Print the version string.

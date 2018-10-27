@@ -9,7 +9,7 @@
 """Tests for transpiler functionality"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit import wrapper
+from qiskit import wrapper, Aer
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.dagcircuit import DAGCircuit
@@ -66,7 +66,7 @@ class TestTranspiler(QiskitTestCase):
                                 basis_gates=basis_gates, pass_manager=None)
         transpiler_json = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
 
-        qobj = wrapper.compile(circuit, backend='qasm_simulator',
+        qobj = wrapper.compile(circuit, backend=Aer.get_backend('qasm_simulator'),
                                coupling_map=coupling_map, basis_gates=basis_gates)
         compiler_json = qobj.experiments[0].as_dict()
 

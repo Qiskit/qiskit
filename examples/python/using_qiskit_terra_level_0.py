@@ -52,7 +52,7 @@ try:
     print("(AER Backends)")
     print(Aer.backends())
 
-    # runing the job
+    # running the job
     job_sim = execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
     sim_result = job_sim.result()
 

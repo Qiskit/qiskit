@@ -24,7 +24,7 @@ except (RuntimeError, ImportError):
     VALID_MATPLOTLIB = False
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestQCVVFitters(QiskitTestCase):
     """Tests for functions in qiskit.tools.qcvv.fitters."""
 

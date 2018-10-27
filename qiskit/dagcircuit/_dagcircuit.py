@@ -1163,7 +1163,7 @@ class DAGCircuit:
             return ((node_id, self.multi_graph.nodes[node_id]) for node_id in nodes)
 
         for graph_layer in graph_layers:
-            # Get the op nodes from the layer, removing any input and ouput nodes.
+            # Get the op nodes from the layer, removing any input and output nodes.
             op_nodes = [node for node in nodes_data(graph_layer) if node[1]["type"] == "op"]
 
             # Stop yielding once there are no more op_nodes in a layer.

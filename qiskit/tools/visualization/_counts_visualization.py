@@ -30,7 +30,7 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None):
         number_to_keep (int): DEPRECATED the number of terms to plot and rest
             is made into a single bar called other values
         legend(list): A list of strings to use for labels of the data.
-            The number of entries must match the lenght of data (if data is a
+            The number of entries must match the length of data (if data is a
             list or 1 if it's a dict)
         options (dict): Representation settings containing
             - width (integer): graph horizontal size, must be specified with

@@ -30,7 +30,7 @@ class PrinterBackend(UnrollerBackend):
         self.gates = {}
         self.comments = False
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []
         self.listen = True
@@ -46,7 +46,7 @@ class PrinterBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        self.basis = basis
+        self.basis = basis.copy()
 
     def version(self, version):
         """Print the version string.

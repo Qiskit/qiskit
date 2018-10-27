@@ -88,6 +88,7 @@ def compile(circuits, backend,
                 and not _matches_coupling_map(dag, coupling_map)):
             _initial_layout = _pick_best_layout(dag, backend)
         initial_layouts.append(_initial_layout)
+
     dags = _transpile_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
                            initial_layouts=initial_layouts, seed=seed,
                            pass_manager=pass_manager)
@@ -121,11 +122,11 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     Args:
         dags (list[DAGCircuit]): dag circuits to transform
-        basis_gates (str): a comma seperated string for the target basis gates
+        basis_gates (str): a comma separated string for the target basis gates
         coupling_map (list): A graph of coupling
         initial_layouts (list[dict]): A mapping of qubit to qubit for each dag
         seed (int): random seed for the swap mapper
-        pass_manager (PassManager): pass manager instance for the tranpilation process
+        pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
             Otherwise, the passes defined in it will run.
             If contains no passes in it, no dag transformations occur.
@@ -137,9 +138,8 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         TranspilerError: if the format is not valid.
     """
 
-    index = list(range(len(dags)))
-    final_dags = parallel_map(_transpile_dags_parallel, index,
-                              task_args=(dags, initial_layouts),
+    dags_layouts = list(zip(dags, initial_layouts))
+    final_dags = parallel_map(_transpile_dags_parallel, dags_layouts,
                               task_kwargs={'basis_gates': basis_gates,
                                            'coupling_map': coupling_map,
                                            'seed': seed,
@@ -147,31 +147,27 @@ def _transpile_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     return final_dags
 
 
-def _transpile_dags_parallel(idx, dags, initial_layouts, basis_gates='u1,u2,u3,cx,id',
+def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
                              coupling_map=None, seed=None, pass_manager=None):
     """Helper function for transpiling in parallel (if available).
 
     Args:
-        idx (int): Index for dag of interest
-        dags (list): List of dags
-        initial_layouts (list): List of initial layouts
-        basis_gates (str): a comma seperated string for the target basis gates
+        dag_layout_tuple (tuple): Tuples of dags and their initial_layouts
+        basis_gates (str): a comma separated string for the target basis gates
         coupling_map (list): A graph of coupling
         seed (int): random seed for the swap mapper
-        pass_manager (PassManager): pass manager instance for the tranpilation process
+        pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
             Otherwise, the passes defined in it will run.
             If contains no passes in it, no dag transformations occur.
     Returns:
         DAGCircuit: DAG circuit after going through transpilation.
     """
-    dag = dags[idx]
-    initial_layout = initial_layouts[idx]
     final_dag, final_layout = transpile(
-        dag,
+        dag_layout_tuple[0],
         basis_gates=basis_gates,
         coupling_map=coupling_map,
-        initial_layout=initial_layout,
+        initial_layout=dag_layout_tuple[1],
         get_layout=True,
         seed=seed,
         pass_manager=pass_manager)
@@ -285,7 +281,7 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     Args:
         dag (DAGCircuit): dag circuit to transform via transpilation
-        basis_gates (str): a comma seperated string for the target basis gates
+        basis_gates (str): a comma separated string for the target basis gates
         coupling_map (list): A graph of coupling::
 
             [
@@ -312,7 +308,7 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         format (str): The target format of the compilation:
             {'dag', 'json', 'qasm'}
         seed (int): random seed for the swap mapper
-        pass_manager (PassManager): pass manager instance for the tranpilation process
+        pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
             Otherwise, the passes defined in it will run.
             If contains no passes in it, no dag transformations occur.
@@ -336,7 +332,8 @@ def transpile(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     if pass_manager:
         # run the passes specified by the pass manager
-        pass_manager.run_passes(dag)
+        # TODO return the property set too. See #1086
+        dag = pass_manager.run_passes(dag)
     else:
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
