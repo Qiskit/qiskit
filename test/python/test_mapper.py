@@ -7,12 +7,15 @@
 
 # pylint: disable=missing-docstring
 
+# pylint: disable=redefined-builtin
+
 import unittest
 
 import qiskit.wrapper
+from qiskit import compile
 from qiskit import load_qasm_string, mapper, qasm, unroll, Aer
 from qiskit.qobj import Qobj
-from qiskit.transpiler._transpiler import transpile
+from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
@@ -23,6 +26,9 @@ from .common import QiskitTestCase
 class FakeQX4BackEnd(object):
     """A fake QX4 backend.
     """
+
+    def name(self):
+        return 'qiskit_is_cool'
 
     def configuration(self):
         qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
@@ -245,10 +251,10 @@ class MapperTest(QiskitTestCase):
         """
         backend = FakeQX4BackEnd()
         circ1 = load_qasm_string(YZY_ZYZ_1)
-        qobj1 = qiskit.wrapper.compile(circ1, backend)
+        qobj1 = compile(circ1, backend)
         self.assertIsInstance(qobj1, Qobj)
         circ2 = load_qasm_string(YZY_ZYZ_2)
-        qobj2 = qiskit.wrapper.compile(circ2, backend)
+        qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
     def test_move_measurements(self):
@@ -263,8 +269,8 @@ class MapperTest(QiskitTestCase):
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
-        out_dag = transpile(dag_circuit, initial_layout=lay,
-                            coupling_map=cmap, format='dag')
+        out_dag = transpile_dag(dag_circuit, initial_layout=lay,
+                                coupling_map=cmap, format='dag')
         moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
         self.assertEqual(len(moved_meas), len(meas_nodes))
