@@ -13,7 +13,8 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import QISKitError
-from qiskit import wrapper, Aer
+# pylint: disable=redefined-builtin
+from qiskit import compile, Aer
 from .common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -32,7 +33,7 @@ class TestQobjIdentifiers(QiskitTestCase):
 
     def test_aer_qasm_simulator_py(self):
         backend = Aer.get_backend('qasm_simulator_py')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -43,7 +44,7 @@ class TestQobjIdentifiers(QiskitTestCase):
     @requires_cpp_simulator
     def test_aer_clifford_simulator(self):
         backend = Aer.get_backend('clifford_simulator')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -54,7 +55,7 @@ class TestQobjIdentifiers(QiskitTestCase):
     @requires_cpp_simulator
     def test_aer_qasm_simulator(self):
         backend = Aer.get_backend('qasm_simulator')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -64,7 +65,7 @@ class TestQobjIdentifiers(QiskitTestCase):
 
     def test_aer_unitary_simulator(self):
         backend = Aer.get_backend('unitary_simulator')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))

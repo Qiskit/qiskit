@@ -5,6 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=redefined-builtin
 
 """Tests for the wrapper functionality."""
 
@@ -13,6 +14,7 @@ import unittest
 import qiskit.wrapper
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import Aer
+from qiskit import compile
 
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
@@ -30,7 +32,7 @@ class TestWrapper(QiskitTestCase):
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
         backend = Aer.get_backend('qasm_simulator')
-        qobj_in = qiskit.wrapper.compile(self.circuit, backend, skip_transpiler=True)
+        qobj_in = compile(self.circuit, backend, skip_transpiler=True)
         out_circuit = qiskit.wrapper.qobj_to_circuits(qobj_in)
         self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
 
@@ -46,7 +48,7 @@ class TestWrapper(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = qiskit.wrapper.compile([self.circuit, circuit_b], backend, skip_transpiler=True)
+        qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True)
         qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
         self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
 

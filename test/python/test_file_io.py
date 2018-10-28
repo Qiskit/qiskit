@@ -11,7 +11,7 @@ import os
 import unittest
 import qiskit
 from qiskit import Aer
-from qiskit.wrapper import execute
+from qiskit import execute
 from qiskit.tools import file_io
 from .common import QiskitTestCase
 
