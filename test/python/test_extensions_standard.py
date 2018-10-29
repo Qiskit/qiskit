@@ -45,7 +45,7 @@ from .common import QiskitTestCase
 
 
 class StandardExtensionTest(QiskitTestCase):
-    def assertResult(self, type_, qasm_txt, qasm_txt_inv=None):
+    def assertResult(self, type_, qasm_txt, type_inv=None, qasm_txt_inv=None):
         """
         Assert the single gate in self.circuit is of the type type_, the QASM
         representation matches qasm_txt and the QASM representation of
@@ -54,15 +54,18 @@ class StandardExtensionTest(QiskitTestCase):
         Args:
             type_ (type): a gate type.
             qasm_txt (str): QASM representation of the gate.
+            type_type (type): a inverse gate type. If None, same as type_.
             qasm_txt_inv (str): QASM representation of the inverse gate. If None, same as qasm_txt.
         """
+        if not qasm_txt_inv:
+            qasm_txt_inv = qasm_txt
+        if not type_inv:
+            type_inv = type_
         circuit = self.circuit
         self.assertEqual(type(circuit[0]), type_)
         self.assertQasm(qasm_txt)
         circuit[0].reapply(circuit)
         self.assertQasm(qasm_txt + '\n' + qasm_txt)
-        if not qasm_txt_inv:
-            qasm_txt_inv = qasm_txt
         self.assertEqual(circuit[0].inverse(), circuit[0])
         self.assertQasm(qasm_txt_inv + '\n' + qasm_txt)
 
@@ -157,7 +160,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
-        self.assertResult(CrzGate, 'crz(1) q[0],q[1];', 'crz(-1) q[0],q[1];')
+        self.assertResult(CrzGate, 'crz(1) q[0],q[1];', qasm_txt_inv='crz(-1) q[0],q[1];')
 
     def test_crz_invalid(self):
         qc = self.circuit
@@ -189,7 +192,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_cu1(self):
         self.circuit.cu1(1, self.qr[1], self.qr[2])
-        self.assertResult(Cu1Gate, 'cu1(1) q[1],q[2];', 'cu1(-1) q[1],q[2];')
+        self.assertResult(Cu1Gate, 'cu1(1) q[1],q[2];', qasm_txt_inv='cu1(-1) q[1],q[2];')
 
     def test_cu1_invalid(self):
         qc = self.circuit
@@ -207,7 +210,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_cu3(self):
         self.circuit.cu3(1, 2, 3, self.qr[1], self.qr[2])
-        self.assertResult(Cu3Gate, 'cu3(1,2,3) q[1],q[2];', 'cu3(-1,-3,-2) q[1],q[2];')
+        self.assertResult(Cu3Gate, 'cu3(1,2,3) q[1],q[2];', qasm_txt_inv='cu3(-1,-3,-2) q[1],q[2];')
 
     def test_cu3_invalid(self):
         qc = self.circuit
@@ -303,7 +306,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_iden(self):
         self.circuit.iden(self.qr[1])
-        self.assertResult(IdGate, 'id q[1];', 'id q[1];')
+        self.assertResult(IdGate, 'id q[1];')
 
     def test_iden_invalid(self):
         qc = self.circuit
@@ -327,7 +330,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_rx(self):
         self.circuit.rx(1, self.qr[1])
-        self.assertResult(RXGate, 'rx(1) q[1];', 'rx(-1) q[1];')
+        self.assertResult(RXGate, 'rx(1) q[1];', qasm_txt_inv='rx(-1) q[1];')
 
     def test_rx_invalid(self):
         qc = self.circuit
@@ -356,11 +359,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_rx_pi(self):
         qc = self.circuit
         qc.rx(pi / 2, self.qr[1])
-        self.assertResult(RXGate, 'rx(pi/2) q[1];', 'rx(-pi/2) q[1];')
+        self.assertResult(RXGate, 'rx(pi/2) q[1];', qasm_txt_inv='rx(-pi/2) q[1];')
 
     def test_ry(self):
         self.circuit.ry(1, self.qr[1])
-        self.assertResult(RYGate, 'ry(1) q[1];', 'ry(-1) q[1];')
+        self.assertResult(RYGate, 'ry(1) q[1];', qasm_txt_inv='ry(-1) q[1];')
 
     def test_ry_invalid(self):
         qc = self.circuit
@@ -389,11 +392,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_ry_pi(self):
         qc = self.circuit
         qc.ry(pi / 2, self.qr[1])
-        self.assertResult(RYGate, 'ry(pi/2) q[1];', 'ry(-pi/2) q[1];')
+        self.assertResult(RYGate, 'ry(pi/2) q[1];', qasm_txt_inv='ry(-pi/2) q[1];')
 
     def test_rz(self):
         self.circuit.rz(1, self.qr[1])
-        self.assertResult(RZGate, 'rz(1) q[1];', 'rz(-1) q[1];')
+        self.assertResult(RZGate, 'rz(1) q[1];', qasm_txt_inv='rz(-1) q[1];')
 
     def test_rz_invalid(self):
         qc = self.circuit
@@ -422,11 +425,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_rz_pi(self):
         qc = self.circuit
         qc.rz(pi / 2, self.qr[1])
-        self.assertResult(RZGate, 'rz(pi/2) q[1];', 'rz(-pi/2) q[1];')
+        self.assertResult(RZGate, 'rz(pi/2) q[1];', qasm_txt_inv='rz(-pi/2) q[1];')
 
     def test_s(self):
         self.circuit.s(self.qr[1])
-        self.assertResult(SGate, 's q[1];', 'sdg q[1];')
+        self.assertResult(SGate, 's q[1];', qasm_txt_inv='sdg q[1];')
 
     def test_s_invalid(self):
         qc = self.circuit
@@ -450,7 +453,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_sdg(self):
         self.circuit.sdg(self.qr[1])
-        self.assertResult(SdgGate, 'sdg q[1];', 's q[1];')
+        self.assertResult(SdgGate, 'sdg q[1];', qasm_txt_inv='s q[1];')
 
     def test_sdg_invalid(self):
         qc = self.circuit
@@ -474,7 +477,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_swap(self):
         self.circuit.swap(self.qr[1], self.qr[2])
-        self.assertResult(SwapGate, 'swap q[1],q[2];', 'swap q[1],q[2];')
+        self.assertResult(SwapGate, 'swap q[1],q[2];', qasm_txt_inv='swap q[1],q[2];')
 
     def test_swap_invalid(self):
         qc = self.circuit
@@ -492,7 +495,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, qc.t, self.cr[0])
         # TODO self.assertRaises(QISKitError, qc.t, 1)
         qc.t(self.qr[1])
-        self.assertResult(TGate, 't q[1];', 'tdg q[1];')
+        self.assertResult(TGate, 't q[1];', qasm_txt_inv='tdg q[1];')
 
     def test_t_invalid(self):
         qc = self.circuit
@@ -519,7 +522,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, qc.tdg, self.cr[0])
         # TODO self.assertRaises(QISKitError, qc.tdg, 1)
         qc.tdg(self.qr[1])
-        self.assertResult(TGate, 'tdg q[1];', 't q[1];')
+        self.assertResult(TGate, 'tdg q[1];', qasm_txt_inv='t q[1];')
 
     def test_tdg_invalid(self):
         qc = self.circuit
@@ -543,7 +546,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_u1(self):
         self.circuit.u1(1, self.qr[1])
-        self.assertResult(U1Gate, 'u1(1) q[1];', 'u1(-1) q[1];')
+        self.assertResult(U1Gate, 'u1(1) q[1];', qasm_txt_inv='u1(-1) q[1];')
 
     def test_u1_invalid(self):
         qc = self.circuit
@@ -573,11 +576,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_u1_pi(self):
         qc = self.circuit
         qc.u1(pi / 2, self.qr[1])
-        self.assertResult(U1Gate, 'u1(pi/2) q[1];', 'u1(-pi/2) q[1];')
+        self.assertResult(U1Gate, 'u1(pi/2) q[1];', qasm_txt_inv='u1(-pi/2) q[1];')
 
     def test_u2(self):
         self.circuit.u2(1, 2, self.qr[1])
-        self.assertResult(U2Gate, 'u2(1,2) q[1];', 'u2(-pi - 2,-1 + pi) q[1];')
+        self.assertResult(U2Gate, 'u2(1,2) q[1];', qasm_txt_inv='u2(-pi - 2,-1 + pi) q[1];')
 
     def test_u2_invalid(self):
         qc = self.circuit
@@ -607,11 +610,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_u2_pi(self):
         qc = self.circuit
         qc.u2(pi / 2, 0.3 * pi, self.qr[1])
-        self.assertResult(U2Gate, 'u2(pi/2,0.3*pi) q[1];', 'u2(-1.3*pi,pi/2) q[1];')
+        self.assertResult(U2Gate, 'u2(pi/2,0.3*pi) q[1];', qasm_txt_inv='u2(-1.3*pi,pi/2) q[1];')
 
     def test_u3(self):
         self.circuit.u3(1, 2, 3, self.qr[1])
-        self.assertResult(U3Gate, 'u3(1,2,3) q[1];', 'u3(-1,-3,-2) q[1];')
+        self.assertResult(U3Gate, 'u3(1,2,3) q[1];', qasm_txt_inv='u3(-1,-3,-2) q[1];')
 
     def test_u3_invalid(self):
         qc = self.circuit
@@ -641,11 +644,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_u3_pi(self):
         qc = self.circuit
         qc.u3(pi, pi / 2, 0.3 * pi, self.qr[1])
-        self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];', 'u3(-pi,-0.3*pi,-pi/2) q[1];')
+        self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];', qasm_txt_inv='u3(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_ubase(self):
         self.circuit.u_base(1, 2, 3, self.qr[1])
-        self.assertResult(UBase, 'U(1,2,3) q[1];', 'U(-1,-3,-2) q[1];')
+        self.assertResult(UBase, 'U(1,2,3) q[1];', qasm_txt_inv='U(-1,-3,-2) q[1];')
 
     def test_ubase_invalid(self):
         qc = self.circuit
@@ -675,11 +678,11 @@ class TestStandard1Q(StandardExtensionTest):
     def test_ubase_pi(self):
         qc = self.circuit
         qc.u_base(pi, pi / 2, 0.3 * pi, self.qr[1])
-        self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];', 'U(-pi,-0.3*pi,-pi/2) q[1];')
+        self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];', qasm_txt_inv='U(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_x(self):
         self.circuit.x(self.qr[1])
-        self.assertResult(XGate, 'x q[1];', 'x q[1];')
+        self.assertResult(XGate, 'x q[1];', qasm_txt_inv='x q[1];')
 
     def test_x_invalid(self):
         qc = self.circuit
@@ -703,7 +706,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_y(self):
         self.circuit.y(self.qr[1])
-        self.assertResult(YGate, 'y q[1];', 'y q[1];')
+        self.assertResult(YGate, 'y q[1];')
 
     def test_y_invalid(self):
         qc = self.circuit
@@ -727,14 +730,14 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_z(self):
         self.circuit.z(self.qr[1])
-        self.assertResult(ZGate, 'z q[1];', 'z q[1];')
+        self.assertResult(ZGate, 'z q[1];')
 
     def test_rzz(self):
         qc = self.circuit
         self.assertRaises(QISKitError, qc.rzz, 0.1, self.cr[1], self.cr[2])
         self.assertRaises(QISKitError, qc.rzz, 0.1, self.qr[0], self.qr[0])
         qc.rzz(pi/2, self.qr[1], self.qr[2])
-        self.assertResult(RZZGate, 'rzz(pi/2) q[1],q[2];', 'rzz(-pi/2) q[1],q[2];')
+        self.assertResult(RZZGate, 'rzz(pi/2) q[1],q[2];', qasm_txt_inv='rzz(-pi/2) q[1],q[2];')
 
     def test_z_reg(self):
         qasm_txt = 'z q[0];\nz q[1];\nz q[2];'
