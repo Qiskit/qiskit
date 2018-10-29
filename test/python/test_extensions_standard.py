@@ -45,7 +45,7 @@ from .common import QiskitTestCase
 
 
 class StandardExtensionTest(QiskitTestCase):
-    def assertResult(self, type_, qasm_txt, qasm_txt_):
+    def assertResult(self, type_, qasm_txt, qasm_txt_inv=None):
         """
         Assert the single gate in self.circuit is of the type type_, the QASM
         representation matches qasm_txt and the QASM representation of
@@ -54,16 +54,17 @@ class StandardExtensionTest(QiskitTestCase):
         Args:
             type_ (type): a gate type.
             qasm_txt (str): QASM representation of the gate.
-            qasm_txt_ (str): QASM representation of the inverse gate.
+            qasm_txt_inv (str): QASM representation of the inverse gate. If None, same as qasm_txt.
         """
         circuit = self.circuit
         self.assertEqual(type(circuit[0]), type_)
         self.assertQasm(qasm_txt)
         circuit[0].reapply(circuit)
         self.assertQasm(qasm_txt + '\n' + qasm_txt)
-        if qasm_txt == qasm_txt_:
-            self.assertEqual(circuit[0].inverse(), circuit[0])
-            self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
+        if not qasm_txt_inv:
+            qasm_txt_inv = qasm_txt
+        self.assertEqual(circuit[0].inverse(), circuit[0])
+        self.assertQasm(qasm_txt_inv + '\n' + qasm_txt)
 
     def assertStmtsType(self, stmts, type_):
         """
@@ -106,7 +107,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_barrier(self):
         self.circuit.barrier(self.qr[1])
         qasm_txt = 'barrier q[1];'
-        self.assertResult(Barrier, qasm_txt, qasm_txt)
+        self.assertResult(Barrier, qasm_txt)
 
     def test_barrier_invalid(self):
         qc = self.circuit
@@ -119,17 +120,17 @@ class TestStandard1Q(StandardExtensionTest):
     def test_barrier_reg(self):
         self.circuit.barrier(self.qr)
         qasm_txt = 'barrier q[0],q[1],q[2];'
-        self.assertResult(Barrier, qasm_txt, qasm_txt)
+        self.assertResult(Barrier, qasm_txt)
 
     def test_barrier_none(self):
         self.circuit.barrier()
         qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
-        self.assertResult(Barrier, qasm_txt, qasm_txt)
+        self.assertResult(Barrier, qasm_txt)
 
     def test_ccx(self):
         self.circuit.ccx(self.qr[0], self.qr[1], self.qr[2])
         qasm_txt = 'ccx q[0],q[1],q[2];'
-        self.assertResult(ToffoliGate, qasm_txt, qasm_txt)
+        self.assertResult(ToffoliGate, qasm_txt)
 
     def test_ccx_invalid(self):
         qc = self.circuit
@@ -143,7 +144,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_ch(self):
         self.circuit.ch(self.qr[0], self.qr[1])
         qasm_txt = 'ch q[0],q[1];'
-        self.assertResult(CHGate, qasm_txt, qasm_txt)
+        self.assertResult(CHGate, qasm_txt)
 
     def test_ch_invalid(self):
         qc = self.circuit
@@ -172,7 +173,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_cswap(self):
         self.circuit.cswap(self.qr[0], self.qr[1], self.qr[2])
         qasm_txt = 'cswap q[0],q[1],q[2];'
-        self.assertResult(FredkinGate, qasm_txt, qasm_txt)
+        self.assertResult(FredkinGate, qasm_txt)
 
     def test_cswap_invalid(self):
         qc = self.circuit
@@ -222,7 +223,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_cx(self):
         self.circuit.cx(self.qr[1], self.qr[2])
         qasm_txt = 'cx q[1],q[2];'
-        self.assertResult(CnotGate, qasm_txt, qasm_txt)
+        self.assertResult(CnotGate, qasm_txt)
 
     def test_cx_invalid(self):
         qc = self.circuit
@@ -236,7 +237,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_cxbase(self):
         qasm_txt = 'CX q[1],q[2];'
         self.circuit.cx_base(self.qr[1], self.qr[2])
-        self.assertResult(CXBase, qasm_txt, qasm_txt)
+        self.assertResult(CXBase, qasm_txt)
 
     def test_cxbase_invalid(self):
         qc = self.circuit
@@ -250,7 +251,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_cy(self):
         qasm_txt = 'cy q[1],q[2];'
         self.circuit.cy(self.qr[1], self.qr[2])
-        self.assertResult(CyGate, qasm_txt, qasm_txt)
+        self.assertResult(CyGate, qasm_txt)
 
     def test_cy_invalid(self):
         qc = self.circuit
@@ -264,7 +265,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_cz(self):
         qasm_txt = 'cz q[1],q[2];'
         self.circuit.cz(self.qr[1], self.qr[2])
-        self.assertResult(CzGate, qasm_txt, qasm_txt)
+        self.assertResult(CzGate, qasm_txt)
 
     def test_cz_invalid(self):
         qc = self.circuit
@@ -278,7 +279,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_h(self):
         qasm_txt = 'h q[1];'
         self.circuit.h(self.qr[1])
-        self.assertResult(HGate, qasm_txt, qasm_txt)
+        self.assertResult(HGate, qasm_txt)
 
     def test_h_invalid(self):
         qc = self.circuit
@@ -761,12 +762,12 @@ class TestStandard2Q(StandardExtensionTest):
     def test_barrier_none(self):
         self.circuit.barrier()
         qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2];'
-        self.assertResult(Barrier, qasm_txt, qasm_txt)
+        self.assertResult(Barrier, qasm_txt)
 
     def test_barrier_reg_bit(self):
         self.circuit.barrier(self.qr, self.qr2[0])
         qasm_txt = 'barrier q[0],q[1],q[2],r[0];'
-        self.assertResult(Barrier, qasm_txt, qasm_txt)
+        self.assertResult(Barrier, qasm_txt)
 
     def test_ch_reg_reg(self):
         qasm_txt = 'ch q[0],r[0];\nch q[1],r[1];\nch q[2],r[2];'
@@ -1083,7 +1084,7 @@ class TestStandard3Q(StandardExtensionTest):
     def test_barrier_none(self):
         self.circuit.barrier()
         qasm_txt = 'barrier q[0],q[1],q[2],r[0],r[1],r[2],s[0],s[1],s[2];'
-        self.assertResult(Barrier, qasm_txt, qasm_txt)
+        self.assertResult(Barrier, qasm_txt)
 
     def test_ccx_reg_reg_reg(self):
         qasm_txt = 'ccx q[0],r[0],s[0];\nccx q[1],r[1],s[1];\nccx q[2],r[2],s[2];'
