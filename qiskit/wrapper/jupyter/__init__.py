@@ -10,7 +10,7 @@
 
 from IPython import get_ipython          # pylint: disable=import-error
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
-from .htmlprogressbar import HTMLProgressBar, TextProgressBar
+from .progressbar import HTMLProgressBar, TextProgressBar
 
 _IP = get_ipython()
 _IP.register_magics(ProgressBarMagic)
