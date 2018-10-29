@@ -645,7 +645,8 @@ class TestStandard1Q(StandardExtensionTest):
     def test_u3_pi(self):
         qc = self.circuit
         qc.u3(pi, pi / 2, 0.3 * pi, self.qr[1])
-        self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];', qasm_txt_inv='u3(-pi,-0.3*pi,-pi/2) q[1];')
+        self.assertResult(U3Gate, 'u3(pi,pi/2,0.3*pi) q[1];',
+                          qasm_txt_inv='u3(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_ubase(self):
         self.circuit.u_base(1, 2, 3, self.qr[1])
@@ -679,7 +680,8 @@ class TestStandard1Q(StandardExtensionTest):
     def test_ubase_pi(self):
         qc = self.circuit
         qc.u_base(pi, pi / 2, 0.3 * pi, self.qr[1])
-        self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];', qasm_txt_inv='U(-pi,-0.3*pi,-pi/2) q[1];')
+        self.assertResult(UBase, 'U(pi,pi/2,0.3*pi) q[1];',
+                          qasm_txt_inv='U(-pi,-0.3*pi,-pi/2) q[1];')
 
     def test_x(self):
         self.circuit.x(self.qr[1])
@@ -737,7 +739,7 @@ class TestStandard1Q(StandardExtensionTest):
         qc = self.circuit
         self.assertRaises(QISKitError, qc.rzz, 0.1, self.cr[1], self.cr[2])
         self.assertRaises(QISKitError, qc.rzz, 0.1, self.qr[0], self.qr[0])
-        qc.rzz(pi/2, self.qr[1], self.qr[2])
+        qc.rzz(pi / 2, self.qr[1], self.qr[2])
         self.assertResult(RZZGate, 'rzz(pi/2) q[1],q[2];', qasm_txt_inv='rzz(-pi/2) q[1],q[2];')
 
     def test_z_reg(self):
