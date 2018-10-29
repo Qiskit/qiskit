@@ -13,7 +13,7 @@ import unittest
 import qiskit
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
-from qiskit.wrapper import execute
+from qiskit import execute
 from qiskit import Aer, IBMQ
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
