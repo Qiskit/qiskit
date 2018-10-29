@@ -40,7 +40,7 @@ class Instruction(object):
             name (str): instruction name
             param (list[float]): list of real parameters
             arg (list[(Register, index)]): list of args
-            instruction (list[Instruction]) = for composite instructions
+            instruction (list[Instruction]): for composite instructions
             circuit(QuantumCircuit or Instruction): where the instruction is attached
 
         Raises:
