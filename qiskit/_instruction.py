@@ -21,8 +21,6 @@ Instructions are identified by the following fields, and are serialized as such 
     param: List of parameters to specialize a specific intruction instance.
 
     arg: List of pairs (Register, index) that the instruction acts on.
-
-    instruction: List of other instructions into which this instruction can be decomposed.
 """
 from sympy import Number, Basic
 
@@ -40,7 +38,6 @@ class Instruction(object):
             name (str): instruction name
             param (list[float]): list of real parameters
             arg (list[(Register, index)]): list of args
-            instruction (list[Instruction]): for composite instructions
             circuit(QuantumCircuit or Instruction): where the instruction is attached
 
         Raises:

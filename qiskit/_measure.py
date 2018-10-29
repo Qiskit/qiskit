@@ -9,7 +9,10 @@
 Quantum measurement in the computational basis.
 """
 from ._instruction import Instruction
+from ._instructionset import InstructionSet
 from ._quantumcircuit import QuantumCircuit
+from ._quantumregister import QuantumRegister
+from ._classicalregister import ClassicalRegister
 
 
 class Measure(Instruction):

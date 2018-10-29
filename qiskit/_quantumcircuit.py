@@ -14,7 +14,6 @@ from ._qiskiterror import QISKitError
 from ._register import Register
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
-from ._instructionset import InstructionSet
 
 
 class QuantumCircuit(object):
@@ -185,10 +184,10 @@ class QuantumCircuit(object):
         """Return indexed operation."""
         return self.data[item]
 
-    def _attach(self, gate):
-        """Attach a gate."""
-        self.data.append(gate)
-        return gate
+    def _attach(self, instruction):
+        """Attach an instruction."""
+        self.data.append(instruction)
+        return instruction
 
     def add(self, *regs):
         """Add registers."""
