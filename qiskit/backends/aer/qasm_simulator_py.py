@@ -141,7 +141,8 @@ class QasmSimulatorPy(BaseBackend):
         Takes a bitstring k and inserts bits b1 as the i1th bit
         and b2 as the i2th bit
         """
-        assert i1 != i2
+        if i1 == i2:
+            raise SimulatorError("can't insert two bits to same place")
 
         if i1 > i2:
             # insert as (i1-1)th bit, will be shifted left 1 by next line
