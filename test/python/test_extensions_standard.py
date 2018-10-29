@@ -29,7 +29,7 @@ from qiskit.extensions.standard.iden import IdGate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.s import SGate, SdgGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.u1 import U1Gate
@@ -61,8 +61,9 @@ class StandardExtensionTest(QiskitTestCase):
         self.assertQasm(qasm_txt)
         circuit[0].reapply(circuit)
         self.assertQasm(qasm_txt + '\n' + qasm_txt)
-        self.assertEqual(circuit[0].inverse(), circuit[0])
-        self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
+        if qasm_txt == qasm_txt_:
+            self.assertEqual(circuit[0].inverse(), circuit[0])
+            self.assertQasm(qasm_txt_ + '\n' + qasm_txt)
 
     def assertStmtsType(self, stmts, type_):
         """
@@ -443,12 +444,12 @@ class TestStandard1Q(StandardExtensionTest):
     def test_s_reg_inv(self):
         qasm_txt = 'sdg q[0];\nsdg q[1];\nsdg q[2];'
         instruction_set = self.circuit.s(self.qr).inverse()
-        self.assertStmtsType(instruction_set.instructions, SGate)
+        self.assertStmtsType(instruction_set.instructions, SdgGate)
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 28)
 
     def test_sdg(self):
         self.circuit.sdg(self.qr[1])
-        self.assertResult(SGate, 'sdg q[1];', 's q[1];')
+        self.assertResult(SdgGate, 'sdg q[1];', 's q[1];')
 
     def test_sdg_invalid(self):
         qc = self.circuit
@@ -461,7 +462,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_sdg_reg(self):
         qasm_txt = 'sdg q[0];\nsdg q[1];\nsdg q[2];'
         instruction_set = self.circuit.sdg(self.qr)
-        self.assertStmtsType(instruction_set.instructions, SGate)
+        self.assertStmtsType(instruction_set.instructions, SdgGate)
         self.assertQasm(qasm_txt)
 
     def test_sdg_reg_inv(self):
