@@ -29,7 +29,7 @@ except (RuntimeError, ImportError):
     VALID_MATPLOTLIB = False
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerElement(QiskitTestCase):
     """ Draw each element"""
 
@@ -102,7 +102,7 @@ class TestTextDrawerElement(QiskitTestCase):
         self.assertEqual(_text_circuit_drawer(circuit, line_length=20), expected)
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """ Gate by gate checks in different settings."""
 

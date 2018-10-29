@@ -28,7 +28,7 @@ from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +116,7 @@ def circuit_drawer(circuit,
             Defaults to `'#ffffff'` (`mpl` only)
         fontsize (int): The font size to use for text. Defaults to 13 (`mpl`
             only)
-        subfontsize (int): The font size to use for subtext. Defatuls to 8
+        subfontsize (int): The font size to use for subtext. Defaults to 8
             (`mpl` only)
         displaytext (dict): A dictionary of the text to use for each element
             type in the output visualization. The default values are:
@@ -297,7 +297,7 @@ def _text_circuit_drawer(circuit, filename=None,
         String: The drawing in a loooong string.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
+    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
 
     text = "\n".join(
         _text.TextDrawing(json_circuit, reversebits=reversebits, plotbarriers=plotbarriers).lines(
@@ -393,7 +393,7 @@ def _latex_circuit_drawer(circuit,
         except subprocess.CalledProcessError as e:
             with open('latex_error.log', 'wb') as error_file:
                 error_file.write(e.stdout)
-            logger.warning('WARNING Unable to complile latex. '
+            logger.warning('WARNING Unable to compile latex. '
                            'The output from the pdflatex command can '
                            'be found in latex_error.log')
             raise
@@ -457,7 +457,7 @@ def _generate_latex_source(circuit, filename=None,
         str: Latex string appropriate for writing to file.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile(dag_circuit, basis_gates=basis, format='json')
+    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
     qcimg = _latex.QCircuitImage(json_circuit, scale, style=style)
     latex = qcimg.latex()
     if filename:

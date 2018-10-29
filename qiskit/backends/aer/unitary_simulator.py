@@ -95,7 +95,7 @@ from ._simulatortools import single_gate_matrix, einsum_matmul_index
 logger = logging.getLogger(__name__)
 
 
-# TODO add ["status"] = 'DONE', 'ERROR' especitally for empty circuit error
+# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
 
 
@@ -223,7 +223,7 @@ class UnitarySimulator(BaseBackend):
             'name': circuit.header.name
         }
 
-        # Initilize unitary as rank 2*N tensor
+        # Initialize unitary as rank 2*N tensor
         self._unitary_state = np.reshape(np.eye(2 ** self._number_of_qubits,
                                                 dtype=complex),
                                          self._number_of_qubits * [2, 2])

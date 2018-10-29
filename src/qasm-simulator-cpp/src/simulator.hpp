@@ -101,7 +101,7 @@ public:
 
 json_t Simulator::execute_json(){
 
-  // Initialize ouput JSON
+  // Initialize output JSON
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
   json_t ret;
   ret["id"] = id;

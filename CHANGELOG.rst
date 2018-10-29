@@ -51,6 +51,7 @@ Deprecated
 
 Fixed
 -----
+- Fixed a variety of typos throughout sources (#1139)
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
 - Use case insensitive matching when comparing premium account URLs. (#1102)

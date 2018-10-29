@@ -10,11 +10,10 @@ from qiskit.backends.ibmq import least_busy
 
 # Authenticate for access to remote backends
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 try:
@@ -54,7 +53,7 @@ try:
         least_busy_device = least_busy(IBMQ.backends(simulator=False))
         print("Running on current least busy device: ", least_busy_device)
 
-        #runing the job
+        #running the job
         job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
         result_exp = job_exp.result()
 

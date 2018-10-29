@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Utilities (based on VCRpy) to record remote requets and allow testing offline/cached."""
+"""Utilities (based on VCRpy) to record remote requests and allow testing offline/cached."""
 
 import json
 from contextlib import suppress
@@ -90,7 +90,7 @@ class IdRemoverPersister(FilesystemPersister):
     def remove_id_in_a_json(jsonobj, field, path, id_tracker):
         """
         Replaces in jsonobj (in-place) the field with dummy value (which is constructed with
-        id_tracker, if it was already reaplced, or path, if it needs to be created).
+        id_tracker, if it was already replaced, or path, if it needs to be created).
 
         Args:
             jsonobj (dict): json dictionary from the response body
@@ -112,7 +112,7 @@ class IdRemoverPersister(FilesystemPersister):
     def remove_ids_in_a_response(response, fields, path, id_tracker):
         """
         Replaces in response (in-place) the fields with dummy values (which is constructed with
-        id_tracker, if it was already reaplced, or path, if it needs to be created).
+        id_tracker, if it was already replaced, or path, if it needs to be created).
 
         Args:
             response (dict): dictionary of the response body
@@ -150,7 +150,7 @@ class IdRemoverPersister(FilesystemPersister):
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
         """
-        Extendeds FilesystemPersister.save_cassette. Replaces particular values (defined by
+        Extends FilesystemPersister.save_cassette. Replaces particular values (defined by
         ids2remove) which are replaced by a dummy value. The full manipulation is in
         cassette_dict, before saving it using FilesystemPersister.save_cassette
 

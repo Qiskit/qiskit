@@ -69,7 +69,7 @@ class QasmParser(object):
             raise QasmError("Duplicate declaration for", obj.type + " '"
                             + obj.name + "' at line", str(obj.line)
                             + ', file', obj.file
-                            + '.\nPrevious occurence at line',
+                            + '.\nPrevious occurrence at line',
                             str(prev.line) + ', file', prev.file)
         self.current_symtab[obj.name] = obj
 
@@ -599,7 +599,7 @@ class QasmParser(object):
     #
     # unitary_op : U '(' exp_list ')'  primary
     #            | CX                  primary ',' primary
-    #            | id                  pirmary_list
+    #            | id                  primary_list
     #            | id '(' ')'          primary_list
     #            | id '(' exp_list ')' primary_list
     #
@@ -780,7 +780,7 @@ class QasmParser(object):
     #        | OPAQUE id gate_scope '(' ')'              bit_list
     #        | OPAQUE id gate_scope '(' gate_id_list ')' bit_list
     #
-    # These are like gate declaratons only wihtout a body.
+    # These are like gate declarations only wihtout a body.
     # ----------------------------------------
     def p_opaque_0(self, program):
         """
