@@ -10,7 +10,6 @@
 """
 Aer's qasm_simulator single qubit wait gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -55,7 +54,6 @@ def wait(self, t, q):
 
 # Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.wait = wait
-CompositeGate.wait = wait
 
 
 # idle for time t (identity)
