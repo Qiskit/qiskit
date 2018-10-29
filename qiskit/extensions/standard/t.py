@@ -10,16 +10,15 @@
 """
 T=sqrt(S) phase gate or its inverse.
 """
-from qiskit import CompositeGate
+from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit.qasm import pi
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
-class TGate(CompositeGate):
-    """T=sqrt(S) Clifford phase gate or its inverse."""
+class TGate(Gate):
+    """T Gate: pi/4 rotation around Z axis."""
 
     def __init__(self, qubit, circ=None):
         """Create new T gate."""
@@ -29,14 +28,39 @@ class TGate(CompositeGate):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.t(self.arg[0]))
 
+    def inverse(self):
+        """Invert this gate."""
+        inv = TdgGate(self.arg[0])
+        self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
+        return inv
+
     def qasm(self):
         """Return OPENQASM string."""
-        qubit = self.data[0].arg[0]
-        phi = self.data[0].param[0]
-        if phi > 0:
-            return self.data[0]._qasmif("t %s[%d];" % (qubit[0].name, qubit[1]))
+        qubit = self.arg[0]
+        return self._qasmif("t %s[%d];" % (qubit[0].name, qubit[1]))
 
-        return self.data[0]._qasmif("tdg %s[%d];" % (qubit[0].name, qubit[1]))
+
+class TdgGate(Gate):
+    """T Gate: -pi/4 rotation around Z axis."""
+
+    def __init__(self, qubit, circ=None):
+        """Create new Tdg gate."""
+        super().__init__("tdg", [], [qubit], circ)
+
+    def reapply(self, circ):
+        """Reapply this gate to corresponding qubits in circ."""
+        self._modifiers(circ.tdg(self.arg[0]))
+
+    def inverse(self):
+        """Invert this gate."""
+        inv = TGate(self.arg[0])
+        self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
+        return inv
+
+    def qasm(self):
+        """Return OPENQASM string."""
+        qubit = self.arg[0]
+        return self._qasmif("tdg %s[%d];" % (qubit[0].name, qubit[1]))
 
 
 def t(self, q):
@@ -50,11 +74,16 @@ def t(self, q):
     self._check_qubit(q)
     return self._attach(TGate(q, self))
 
-
 def tdg(self, q):
     """Apply Tdg to q."""
-    return self.t(q).inverse()
+    if isinstance(q, QuantumRegister):
+        instructions = InstructionSet()
+        for j in range(q.size):
+            instructions.add(self.tdg((q, j)))
+        return instructions
 
+    self._check_qubit(q)
+    return self._attach(TdgGate(q, self))
 
 QuantumCircuit.t = t
 QuantumCircuit.tdg = tdg

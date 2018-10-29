@@ -31,7 +31,7 @@ from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 from qiskit.extensions.standard.s import SGate, SdgGate
 from qiskit.extensions.standard.swap import SwapGate
-from qiskit.extensions.standard.t import TGate
+from qiskit.extensions.standard.t import TGate, TdgGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -496,7 +496,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, qc.t, self.cr[0])
         # TODO self.assertRaises(QISKitError, qc.t, 1)
         qc.t(self.qr[1])
-        self.assertResult(TGate, 't q[1];', qasm_txt_inv='tdg q[1];')
+        self.assertResult(TGate, 't q[1];', type_inv=TdgGate, qasm_txt_inv='tdg q[1];')
 
     def test_t_invalid(self):
         qc = self.circuit
@@ -515,7 +515,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_t_reg_inv(self):
         qasm_txt = 'tdg q[0];\ntdg q[1];\ntdg q[2];'
         instruction_set = self.circuit.t(self.qr).inverse()
-        self.assertStmtsType(instruction_set.instructions, TGate)
+        self.assertStmtsType(instruction_set.instructions, TdgGate)
         self.assertQasm(qasm_txt, offset=len(qasm_txt) - 28)
 
     def test_tdg(self):
@@ -523,7 +523,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, qc.tdg, self.cr[0])
         # TODO self.assertRaises(QISKitError, qc.tdg, 1)
         qc.tdg(self.qr[1])
-        self.assertResult(TGate, 'tdg q[1];', qasm_txt_inv='t q[1];')
+        self.assertResult(TdgGate, 'tdg q[1];', type_inv=TGate, qasm_txt_inv='t q[1];')
 
     def test_tdg_invalid(self):
         qc = self.circuit
@@ -536,7 +536,7 @@ class TestStandard1Q(StandardExtensionTest):
     def test_tdg_reg(self):
         qasm_txt = 'tdg q[0];\ntdg q[1];\ntdg q[2];'
         instruction_set = self.circuit.tdg(self.qr)
-        self.assertStmtsType(instruction_set.instructions, TGate)
+        self.assertStmtsType(instruction_set.instructions, TdgGate)
         self.assertQasm(qasm_txt)
 
     def test_tdg_reg_inv(self):
