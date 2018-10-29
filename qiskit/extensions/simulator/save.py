@@ -80,5 +80,5 @@ def save(self, slot):
     return self._attach(Save(slot, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.save = save

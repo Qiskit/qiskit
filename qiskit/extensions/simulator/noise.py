@@ -79,5 +79,5 @@ def noise(self, switch):
     return self._attach(Noise(switch, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.noise = noise

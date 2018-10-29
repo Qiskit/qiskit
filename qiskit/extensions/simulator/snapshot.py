@@ -80,5 +80,5 @@ def snapshot(self, slot):
     return self._attach(Snapshot(slot, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.snapshot = snapshot
