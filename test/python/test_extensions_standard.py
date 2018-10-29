@@ -68,6 +68,7 @@ class StandardExtensionTest(QiskitTestCase):
         self.assertQasm(qasm_txt + '\n' + qasm_txt)
         self.assertEqual(circuit[0].inverse(), circuit[0])
         self.assertQasm(qasm_txt_inv + '\n' + qasm_txt)
+        self.assertEqual(type(circuit[0]), type_inv)
 
     def assertStmtsType(self, stmts, type_):
         """
@@ -429,7 +430,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_s(self):
         self.circuit.s(self.qr[1])
-        self.assertResult(SGate, 's q[1];', qasm_txt_inv='sdg q[1];')
+        self.assertResult(SGate, 's q[1];', type_inv=SdgGate, qasm_txt_inv='sdg q[1];')
 
     def test_s_invalid(self):
         qc = self.circuit
@@ -453,7 +454,7 @@ class TestStandard1Q(StandardExtensionTest):
 
     def test_sdg(self):
         self.circuit.sdg(self.qr[1])
-        self.assertResult(SdgGate, 'sdg q[1];', qasm_txt_inv='s q[1];')
+        self.assertResult(SdgGate, 'sdg q[1];', type_inv=SGate, qasm_txt_inv='s q[1];')
 
     def test_sdg_invalid(self):
         qc = self.circuit
