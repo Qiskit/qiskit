@@ -183,8 +183,12 @@ def circuit_drawer(circuit,
                                             style)
     else:
         if output == 'text':
+            reversebits = style['reversebits'] if style and 'reversebits' in style else False
+            plotbarriers = style['plotbarriers'] if style and 'plotbarriers' in style else True
+
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
-                                        line_length=line_length)
+                                        line_length=line_length,
+                                        reversebits=reversebits, plotbarriers=plotbarriers)
         elif output == 'latex':
             im = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
                                        filename=filename, style=style)
