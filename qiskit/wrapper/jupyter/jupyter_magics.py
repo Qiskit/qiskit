@@ -15,8 +15,7 @@ from IPython.core import magic_arguments                         # pylint: disab
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import qiskit
-from qiskit.transpiler._progressbar import TextProgressBar
-from qiskit.wrapper.jupyter.htmlprogressbar import HTMLProgressBar
+from .progressbar import HTMLProgressBar, TextProgressBar
 
 
 @magics_class
@@ -142,40 +141,10 @@ class ProgressBarMagic(Magics):
         """
         args = magic_arguments.parse_argstring(self.qiskit_progress_bar, line)
         if args.type == 'html':
-            progress_bar = HTMLProgressBar()
+            HTMLProgressBar()
         elif args.type == 'text':
-            progress_bar = TextProgressBar()
+            TextProgressBar()
         else:
             raise qiskit.QISKitError('Invalid progress bar type.')
 
-        def initialize_progress_bar(num_tasks):
-            """ When an event of compilation starts, this function will be called, and
-            will initialize the progress bar.
-
-            Args
-                num_tasks: Number of compilation tasks the progress bar will track
-            """
-            progress_bar.start(num_tasks)
-        progress_bar.subscribe("terra.transpiler.compile.start", initialize_progress_bar)
-
-        def update_progress_bar(progress):
-            """ When an event of compilation completes, this function will be called, and
-            will update the progress bar indication.
-
-            Args
-                progress: Number of tasks completed
-            """
-            progress_bar.update(progress)
-        progress_bar.subscribe("terra.transpiler.compile.done", update_progress_bar)
-
-        def finish_progress_bar():
-            """ When an event of compilation finishes (meaning that there's no more circuits to
-            compile), this function will be called, unsubscribing from all events and
-            finishing the progress bar."""
-            progress_bar.unsubscribe("terra.transpiler.compile.start", initialize_progress_bar)
-            progress_bar.unsubscribe("terra.transpiler.compile.done", update_progress_bar)
-            progress_bar.unsubscribe("terra.transpiler.compile.finish", finish_progress_bar)
-            progress_bar.finished()
-
-        progress_bar.subscribe("terra.transpiler.compile.finish", finish_progress_bar)
         self.shell.ex(cell)

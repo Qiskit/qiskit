@@ -118,6 +118,43 @@ class HTMLProgressBar(BaseProgressBar):
         self.progress_bar = None
         self.label = None
         self.box = None
+        self._init_subscriber()
+
+    def _init_subscriber(self):
+        print("_init_subscriber")
+        def _initialize_progress_bar(num_tasks):
+            """ When an event of compilation starts, this function will be called, and
+            will initialize the progress bar.
+
+            Args
+                num_tasks: Number of compilation tasks the progress bar will track
+            """
+            print("_initialize_progress_bar")
+            self.start(num_tasks)
+        self.subscribe("terra.transpiler.compile.start", _initialize_progress_bar)
+
+        def _update_progress_bar(progress):
+            """ When an event of compilation completes, this function will be called, and
+            will update the progress bar indication.
+
+            Args
+                progress: Number of tasks completed
+            """
+            print("_update_progress_bar")
+            self.update(progress)
+        self.subscribe("terra.transpiler.compile.done", _update_progress_bar)
+
+        def _finish_progress_bar():
+            """ When an event of compilation finishes (meaning that there's no more circuits to
+            compile), this function will be called, unsubscribing from all events and
+            finishing the progress bar."""
+            print("_finish_progress_bar")
+            self.unsubscribe("terra.transpiler.compile.start", _initialize_progress_bar)
+            self.unsubscribe("terra.transpiler.compile.done", _update_progress_bar)
+            self.unsubscribe("terra.transpiler.compile.finish", _finish_progress_bar)
+            self.finished()
+
+        self.subscribe("terra.transpiler.compile.finish", _finish_progress_bar)
 
     def start(self, iterations):
         self.touched = True
