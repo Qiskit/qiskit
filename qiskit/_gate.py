@@ -22,7 +22,7 @@ class Gate(Instruction):
         name = instruction name string
         param = list of real parameters (will be converted to symbolic)
         args = list of pairs (Register, index)
-        circuit = QuantumCircuit or CompositeGate containing this gate
+        circuit = QuantumCircuit containing this gate
         """
         self._is_multi_qubit = False
         self._qubit_coupling = [arg[1] for arg in args]

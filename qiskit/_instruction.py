@@ -23,7 +23,7 @@ class Instruction(object):
         name = instruction name string
         param = list of real parameters
         arg = list of pairs (Register, index)
-        circuit = QuantumCircuit or CompositeGate containing this instruction
+        circuit = QuantumCircuit containing this instruction
         """
         for i in arg:
             if not isinstance(i[0], Register):
