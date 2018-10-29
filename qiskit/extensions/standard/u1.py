@@ -10,7 +10,6 @@
 """
 Diagonal single qubit gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -55,4 +54,3 @@ def u1(self, theta, q):
 
 
 QuantumCircuit.u1 = u1
-CompositeGate.u1 = u1

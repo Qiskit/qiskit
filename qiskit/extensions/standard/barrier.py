@@ -10,7 +10,6 @@ Barrier instruction.
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
@@ -70,4 +69,3 @@ def barrier(self, *args):
 
 
 QuantumCircuit.barrier = barrier
-CompositeGate.barrier = barrier
