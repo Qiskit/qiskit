@@ -306,7 +306,7 @@ class Reset(DirectOnQuWire):
 
 
 class Bullet(DirectOnQuWire):
-    """ Draws a bullet (usuallly with a connector). E.g. the top part of a CX gate.
+    """ Draws a bullet (usually with a connector). E.g. the top part of a CX gate.
     top:
     mid: ─■─  ───■───
     bot:  │      │

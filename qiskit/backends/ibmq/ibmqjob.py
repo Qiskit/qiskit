@@ -24,7 +24,7 @@ import numpy
 from IBMQuantumExperience import ApiError
 
 from qiskit.qobj import qobj_to_dict
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
@@ -373,7 +373,7 @@ class IBMQJob(BaseJob):
             JobError: If we have already submitted the job.
         """
         # TODO: Validation against the schema should be done here and not
-        # during initiliazation. Once done, we should document that the method
+        # during initialization. Once done, we should document that the method
         # can raise QobjValidationError.
         if self._future is not None or self._job_id is not None:
             raise JobError("We have already submitted the job!")
@@ -403,7 +403,7 @@ class IBMQJob(BaseJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._job_id = submit_info.get('id')
@@ -503,7 +503,7 @@ class IBMQJobPreQobj(IBMQJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._job_id = submit_info.get('id')
@@ -616,7 +616,7 @@ def _create_api_job_from_circuit(circuit):
     """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
     if not circuit.get('compiled_circuit_qasm'):
-        compiled_circuit = transpile(circuit['circuit'])
+        compiled_circuit = transpile_dag(circuit['circuit'])
         circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
 
     if isinstance(circuit['compiled_circuit_qasm'], bytes):

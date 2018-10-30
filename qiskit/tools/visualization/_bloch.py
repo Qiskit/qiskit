@@ -138,7 +138,7 @@ class Bloch():
         self.background = background
         # The size of the figure in inches, default = [5,5].
         self.figsize = figsize if figsize else [5, 5]
-        # Azimuthal and Elvation viewing angles, default = [-60,30].
+        # Azimuthal and Elevation viewing angles, default = [-60,30].
         self.view = view if view else [-60, 30]
         # Color of Bloch sphere, default = #FFDDDD
         self.sphere_color = '#FFDDDD'
@@ -346,7 +346,7 @@ class Bloch():
 
         Args:
             state_or_vector (array_like):
-                Position for the annotaion.
+                Position for the annotation.
                 Qobj of a qubit or a vector of 3 elements.
             text (str):
                 Annotation text.

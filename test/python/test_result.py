@@ -12,6 +12,7 @@ import unittest
 from numpy import array_equal
 
 import qiskit
+from qiskit import Aer
 from .common import QiskitTestCase, requires_qe_access
 
 
@@ -26,8 +27,7 @@ class TestQiskitResult(QiskitTestCase):
         self._qc1.measure(qr[0], cr[0])
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
-
-        self.backend = 'qasm_simulator'
+        self.backend = Aer.get_backend('qasm_simulator')
         self._result1 = qiskit.execute(self._qc1, self.backend).result()
         self._result2 = qiskit.execute(self._qc2, self.backend).result()
 

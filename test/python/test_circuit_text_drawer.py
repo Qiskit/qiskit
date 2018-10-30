@@ -29,7 +29,7 @@ except (RuntimeError, ImportError):
     VALID_MATPLOTLIB = False
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerElement(QiskitTestCase):
     """ Draw each element"""
 
@@ -76,7 +76,7 @@ class TestTextDrawerElement(QiskitTestCase):
                          no_instructions * 3 + 2)
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """ Gate by gate checks in different settings."""
 

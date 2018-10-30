@@ -7,7 +7,7 @@
 
 /**
  * @file    base_backend.hpp
- * @brief   Base simualor backend for QISKIT simulator
+ * @brief   Base simulator backend for QISKIT simulator
  * @author  Christopher J. Wood <cjwood@us.ibm.com>
  */
 
@@ -124,7 +124,7 @@ public:
 
   /**
    * Returns a reference to the map of saved qreg states. These states are
-   * chached during execution of a QISKIT program by the "save(j)" gate command.
+   * cached during execution of a QISKIT program by the "save(j)" gate command.
    * The keys of the map are the integer arguments j.
    * @return a reference to saved qreg states
    */
@@ -132,7 +132,7 @@ public:
 
   /**
    * Returns a reference to the map of qreg state snapshots. These states are
-   * chached during execution of a QISKIT program by the "snapshot(j)" gate command.
+   * cached during execution of a QISKIT program by the "snapshot(j)" gate command.
    * The keys of the map are the integer arguments j.
    * @return a reference to qreg state snapshots
    */
@@ -211,7 +211,7 @@ protected:
    * program is executed. Different backends may have different representations
    * of state, for example a complex vector, a density matrix, or Clifford
    * tableau. The Type for this representation is the template argument for the
-   * BaseBackend class. This templating is necessary so that derrived classes
+   * BaseBackend class. This templating is necessary so that derived classes
    * can return their state, no matter the type, using the 'access_qreg' method.
    */
   StateType qreg;

@@ -47,7 +47,7 @@ Qiskit SDK 레파지토리를 여러분의 로컬 머신에 Clone하는 다른 �
     cd qiskit-terra
 ```
 
-#### Setup your enviroment
+#### Setup your environment
 
 우리는 여러분의 사용자 경험을 향상시키기 위해 파이썬의 가상 환경을 사용하는 걸 추천합니다. 우리의 [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) 을 더 많은 정보를 얻기위해 참조하세요.
 

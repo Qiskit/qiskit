@@ -31,7 +31,7 @@ class CircuitBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = ["cx", "u1", "u2", "u3"]
         self.gates = {}
@@ -44,7 +44,7 @@ class CircuitBackend(UnrollerBackend):
 
         basis is a list of operation name strings.
         """
-        self.basis = basis
+        self.basis = basis.copy()
 
     def version(self, version):
         """Ignore the version string.
