@@ -56,9 +56,9 @@ class AStarCX(TransformationPass):
         A modified DAGCircuit object that satisfies an input coupling_map
         and has as low a gate_cost as possible.
         """
-        from group_gates import GroupGates
-        from a_star_mapper import a_star_mapper
-        import post_mapping_optimization
+        from qiskit.transpiler.passes.group_gates import GroupGates
+        from qiskit.transpiler.passes.a_star_mapper import a_star_mapper
+        from qiskit.transpiler.passes import post_mapping_optimization
         from qiskit.dagcircuit import DAGCircuit
         #import time
 
