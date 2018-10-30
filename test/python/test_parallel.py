@@ -9,7 +9,7 @@
 import os
 import time
 from qiskit.transpiler._parallel import parallel_map
-from qiskit.transpiler._progressbar import TextProgressBar
+from qiskit.wrapper.jupyter import TextProgressBar
 from .common import QiskitTestCase
 
 

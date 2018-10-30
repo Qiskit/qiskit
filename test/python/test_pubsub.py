@@ -15,13 +15,6 @@ class DummySubscriber(Subscriber):
     def __del__(self):
         self.clear()
 
-    def subscribe(self, event, callback):
-        """ Dummy method for activating the subscription to an event.
-        Args
-            event (string): The event to subsribe
-            callback (callable): The callback to execute when the event is emitted """
-        super().subscribe(event, callback)
-
 
 class TestPubSub(QiskitTestCase):
     """A class for testing Publisher/Subscriber functionality.
@@ -67,13 +60,11 @@ class TestPubSub(QiskitTestCase):
 
         def callback(_who, test):
             """ This should have ever been called """
-            test.assertTrue(False)
+            test.fail("We shouldn't have reach this code!")
 
         sub.subscribe("publisher.action", callback)
         sub.unsubscribe("publisher.action", callback)
         Publisher().publish("publisher.action", self)
-        # As we are not async yet, this should be executed after any possible event handler
-        self.assertTrue(True)
 
     def test_unsubscribe_multiple(self):
         """ Testing unsubscribe works with many other subscribed event works """
@@ -82,15 +73,13 @@ class TestPubSub(QiskitTestCase):
 
         def callback(test):
             """ This should have ever been called """
-            test.assertTrue(False)
+            test.fail("We shouldn't have reach this code!")
 
-        def callback2(_test):
+        def dummy_callback(_test):
+            """ Just a dummy callback, it won't be executed"""
             pass
 
         sub.subscribe("publisher.action", callback)
-        sub.subscribe("publisher.action", callback2)
+        sub.subscribe("publisher.action", dummy_callback)
         sub.unsubscribe("publisher.action", callback)
         Publisher().publish("publisher.action", self)
-        # As we are not async yet, this should be executed after any possible event handler
-        self.assertTrue(True)
-
