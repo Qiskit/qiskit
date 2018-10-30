@@ -80,17 +80,22 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
     Raises:
         QISKitError: If user interupts via keyboard.
+
+    Events:
+        terra.transpiler.parallel.start: The collection of parallel tasks are about to start.
+        terra.transpiler.parallel.update: One of the parallel task has finished.
+        terra.transpiler.parallel.finish: All the parallel tasks have finished.
     """
-    Publisher().publish("terra.transpiler.compile.start", len(values))
+    Publisher().publish("terra.transpiler.parallel.start", len(values))
     if len(values) == 1:
-        Publisher().publish("terra.transpiler.compile.finish")
+        Publisher().publish("terra.transpiler.parallel.finish")
         return [task(values[0], *task_args, **task_kwargs)]
 
     nfinished = [0]
 
     def _callback(_):
         nfinished[0] += 1
-        Publisher().publish("terra.transpiler.compile.done", nfinished[0])
+        Publisher().publish("terra.transpiler.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
     if platform.system() != 'Windows' and num_processes > 1 \
@@ -112,10 +117,10 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         except KeyboardInterrupt:
             pool.terminate()
             pool.join()
-            Publisher().publish("terra.transpiler.compile.finish")
+            Publisher().publish("terra.parallel.parallel.finish")
             raise QISKitError('Keyboard interrupt in parallel_map.')
 
-        Publisher().publish("terra.transpiler.compile.finish")
+        Publisher().publish("terra.transpiler.parallel.finish")
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
         return [ar.get() for ar in async_res]
 
@@ -126,5 +131,5 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         result = task(value, *task_args, **task_kwargs)
         results.append(result)
         _callback(0)
-    Publisher().publish("terra.transpiler.compile.finish")
+    Publisher().publish("terra.transpiler.parallel.finish")
     return results

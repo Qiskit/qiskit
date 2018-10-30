@@ -10,23 +10,17 @@ from qiskit import Publisher, Subscriber
 from .common import QiskitTestCase
 
 
-class TestSubscriber(Subscriber):
+class DummySubscriber(Subscriber):
     """ Simulates a component behaving like a Subscriber """
-    def subscribe_event(self, event, callback):
+    def __del__(self):
+        self.clear()
+
+    def subscribe(self, event, callback):
         """ Dummy method for activating the subscription to an event.
         Args
             event (string): The event to subsribe
             callback (callable): The callback to execute when the event is emitted """
-        self.subscribe(event, callback)
-
-
-class TestPublisher(Publisher):
-    """ Simulates a component behaving like a Publisher """
-    def action(self, test):
-        """ Dummy method to trigger an event.
-         Args
-            test: Dummy parameter to pass to the emitted"""
-        self.publish("publisher.action", self.__class__, test)
+        super().subscribe(event, callback)
 
 
 class TestPubSub(QiskitTestCase):
@@ -35,22 +29,21 @@ class TestPubSub(QiskitTestCase):
 
     def test_pusbsub(self):
         """ Test subscribing works"""
-        pub = TestPublisher()
-        sub = TestSubscriber()
+        sub = DummySubscriber()
 
-        def action_callback(who, test):
+        def action_callback(test):
             """ Callback called when 'publisher.action` event occurs """
-            test.assertTrue(who == TestPublisher)
+            test.assertTrue(True)
 
-        sub.subscribe_event("publisher.action", action_callback)
-        pub.action(self)
+        sub.subscribe("publisher.action", action_callback)
+        Publisher().publish("publisher.action", self)
 
     def test_single_broker(self):
         """ Testing a single broker is instantiated no matter how many
         Publishers or Subscribers we have """
 
-        publishers = [TestPublisher() for _ in range(10)]
-        subscribers = [TestSubscriber() for _ in range(10)]
+        publishers = [Publisher() for _ in range(10)]
+        subscribers = [DummySubscriber() for _ in range(10)]
 
         for pub, sub in zip(publishers, subscribers):
             self.assertEqual(id(pub._broker), id(sub._broker))
@@ -61,9 +54,43 @@ class TestPubSub(QiskitTestCase):
             """ This should be ever called """
             pass
 
-        sub = TestSubscriber()
-        sub2 = TestSubscriber()
+        sub = DummySubscriber()
+        sub2 = DummySubscriber()
 
         sub.subscribe("event", callback)
         self.assertFalse(sub.subscribe("event", callback))
         self.assertFalse(sub2.subscribe("event", callback))
+
+    def test_unsubscribe_simple(self):
+        """ Testing a simple unsubscribe works """
+        sub = DummySubscriber()
+
+        def callback(_who, test):
+            """ This should have ever been called """
+            test.assertTrue(False)
+
+        sub.subscribe("publisher.action", callback)
+        sub.unsubscribe("publisher.action", callback)
+        Publisher().publish("publisher.action", self)
+        # As we are not async yet, this should be executed after any possible event handler
+        self.assertTrue(True)
+
+    def test_unsubscribe_multiple(self):
+        """ Testing unsubscribe works with many other subscribed event works """
+
+        sub = DummySubscriber()
+
+        def callback(test):
+            """ This should have ever been called """
+            test.assertTrue(False)
+
+        def callback2(_test):
+            pass
+
+        sub.subscribe("publisher.action", callback)
+        sub.subscribe("publisher.action", callback2)
+        sub.unsubscribe("publisher.action", callback)
+        Publisher().publish("publisher.action", self)
+        # As we are not async yet, this should be executed after any possible event handler
+        self.assertTrue(True)
+

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# Copyright 2018, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
@@ -13,7 +13,22 @@ from ._qiskiterror import QISKitError
 
 
 class _Broker(object):
-    """ The event/message broker. It's a singleton."""
+    """The event/message broker. It's a singleton.
+
+    In order to keep consistency across all the components, it would be great to
+    have a specific format for new events, documenting their usage.
+    It's the responsibility of the component emitting an event to document it's usage in
+    the component docstring.
+
+    Event format:
+        "terra.<component>.<method>.<action>"
+
+    Examples:
+        "terra.transpiler.compile.start"
+        "terra.job.status.changed"
+        "terra.backend.run.start"
+        "terra.job.result.received"
+    """
 
     _instance = None
     _subscribers = {}
@@ -31,11 +46,12 @@ class _Broker(object):
         def __eq__(self, other):
             """Overrides the default implementation"""
             if isinstance(other, self.__class__):
-                return self.event == other.event and self.callback == other.callback
+                return self.event == other.event and \
+                       self.callback.__name__ == other.callback.__name__
             return False
 
     def subscribe(self, event, callback):
-        """ Subscribes to an event, so when it's emitted all the callbacks subscribed,
+        """Subscribes to an event, so when it's emitted all the callbacks subscribed,
         will be executed. We are not allowing double registration.
 
         Args
@@ -59,7 +75,7 @@ class _Broker(object):
         return True
 
     def dispatch(self, event, *args, **kwargs):
-        """ Emits an event if there are any subscribers.
+        """Emits an event if there are any subscribers.
 
         Args
             event (String): The event to be emitted
@@ -91,6 +107,11 @@ class _Broker(object):
             return False
 
         return True
+
+    def clear(self):
+        """ Unsubscribe everything, leaving the Broker without subscribers/events.
+        """
+        self._subscribers.clear()
 
 
 class Publisher(object):
@@ -124,3 +145,7 @@ class Subscriber(object):
         """ Unsubscribe a pair event-callback, so the callback will not be called anymore
         when the event occurs."""
         return self._broker.unsubscribe(event, callback)
+
+    def clear(self):
+        """ Unsubscribe everything"""
+        self._broker.clear()
