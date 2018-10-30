@@ -24,7 +24,7 @@ import itertools
 import networkx as nx
 import sympy
 
-from qiskit import QuantumRegister, QISKitError
+from qiskit import QuantumRegister, QISKitError, CompositeGate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -1364,8 +1364,14 @@ class DAGCircuit:
             "noise": ["noise", -1, 0, 1]
         }
         for main_instruction in circuit.data:
+            # TODO: generate definitions and nodes for CompositeGates,
+            # for now simply drop their instructions into the DAG
             instruction_list = []
-            instruction_list.append(main_instruction)
+            is_composite = isinstance(main_instruction, CompositeGate)
+            if is_composite and expand_gates:
+                instruction_list = main_instruction.instruction_list()
+            else:
+                instruction_list.append(main_instruction)
 
             for instruction in instruction_list:
                 # Add OpenQASM built-in gates on demand
@@ -1387,7 +1393,7 @@ class DAGCircuit:
                 else:
                     control = (instruction.control[0].name, instruction.control[1])
 
-                if not expand_gates:
+                if is_composite and not expand_gates:
                     is_inverse = instruction.inverse_flag
                     name = instruction.name if not is_inverse else instruction.inverse_name
 
