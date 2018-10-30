@@ -21,7 +21,7 @@ def _exec_notebook(path):
         args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
                 "--ExecutePreprocessor.timeout=1000",
                 "--output", fout.name, path]
-    subprocess.check_call(args)
+        subprocess.check_call(args)
 
 
 class TestJupyter(QiskitTestCase):
@@ -31,13 +31,7 @@ class TestJupyter(QiskitTestCase):
 
     def test_jupyter(self):
         "Test Jupyter functionality"
-        success = True
-        try:
-            _exec_notebook(self.path+'/notebooks/test_jupyter.ipynb')
-        except Exception as excep:  # pylint: disable=w0703
-            success = False
-            print(excep)
-        self.assertTrue(success)
+        _exec_notebook(self.path+'/notebooks/test_jupyter.ipynb')
 
 
 if __name__ == '__main__':
