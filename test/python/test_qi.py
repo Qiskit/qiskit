@@ -93,31 +93,6 @@ class TestQI(QiskitTestCase):
                      np.linalg.norm(outer(v_z, v_y) - op_zy) == 0)
         self.assertTrue(test_pass)
 
-    def test_state_fidelity(self):
-        psi1 = [0.70710678118654746, 0, 0, 0.70710678118654746]
-        psi2 = [0., 0.70710678118654746, 0.70710678118654746, 0.]
-        rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
-               [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
-        self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7,
-                               msg='vector-vector input')
-        self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7,
-                               msg='vector-vector input')
-        self.assertAlmostEqual(state_fidelity(psi1, rho1), 1.0, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(psi1, mix), 0.25, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(psi2, rho1), 0.0, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(psi2, mix), 0.25, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(rho1, psi1), 1.0, places=7,
-                               msg='matrix-vector input')
-        self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7,
-                               msg='matrix-matrix input')
-        self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7,
-                               msg='matrix-matrix input')
-
     def test_purity(self):
         rho1 = [[1, 0], [0, 0]]
         rho2 = [[0.5, 0], [0, 0.5]]
