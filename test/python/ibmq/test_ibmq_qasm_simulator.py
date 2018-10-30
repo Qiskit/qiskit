@@ -12,7 +12,8 @@ TODO: Must expand tests. Re-evaluate after Aer."""
 
 from unittest import skip
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import transpiler
+# pylint: disable=redefined-builtin
+from qiskit import compile
 from qiskit import IBMQ
 from ..common import requires_qe_access, QiskitTestCase
 
@@ -34,7 +35,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
-        qobj = transpiler.compile(qc, backend, seed=73846087)
+        qobj = compile(qc, backend=backend, seed=73846087)
         shots = qobj.config.shots
         job = backend.run(qobj)
         result = job.result()
@@ -64,7 +65,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         qcr2.measure(qr[0], cr[0])
         qcr2.measure(qr[1], cr[1])
         shots = 1024
-        qobj = transpiler.compile([qcr1, qcr2], backend, seed=73846087, shots=shots)
+        qobj = compile([qcr1, qcr2], backend=backend, seed=73846087, shots=shots)
         job = backend.run(qobj)
         result = job.result()
         counts1 = result.get_counts(qcr1)
@@ -105,7 +106,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         qcr2.measure(qr2[0], cr2[0])
         qcr2.measure(qr2[1], cr2[1])
         shots = 1024
-        qobj = transpiler.compile([qcr1, qcr2], backend, seed=8458, shots=shots)
+        qobj = compile([qcr1, qcr2], backend, seed=8458, shots=shots)
         job = backend.run(qobj)
         result = job.result()
         result1 = result.get_counts(qcr1)

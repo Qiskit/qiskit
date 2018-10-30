@@ -24,7 +24,7 @@ import numpy
 from IBMQuantumExperience import ApiError
 
 from qiskit.qobj import qobj_to_dict
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
@@ -616,7 +616,7 @@ def _create_api_job_from_circuit(circuit):
     """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
     if not circuit.get('compiled_circuit_qasm'):
-        compiled_circuit = transpile(circuit['circuit'])
+        compiled_circuit = transpile_dag(circuit['circuit'])
         circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
 
     if isinstance(circuit['compiled_circuit_qasm'], bytes):
