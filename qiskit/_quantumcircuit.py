@@ -12,6 +12,7 @@ Quantum circuit object.
 """
 import itertools
 from collections import OrderedDict
+import shutil
 
 from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
@@ -338,3 +339,7 @@ class QuantumCircuit(object):
                                             output=output,
                                             interactive=interactive,
                                             line_length=line_length)
+
+    def __str__(self):
+       width, _ = shutil.get_terminal_size()
+       return self.draw(output='text', line_length=width)
