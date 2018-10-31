@@ -58,7 +58,7 @@ def circuit_drawer(circuit,
                    interactive=False,
                    line_length=None):
     """Draw a quantum circuit to different formats (set by output parameter):
-    0. text: ASCII art string
+    0. text: ASCII art TextDrawing that can be printed in the console.
     1. latex: high-quality images, but heavy external software dependencies
     2. matplotlib: purely in Python with no external dependencies
 
@@ -77,7 +77,7 @@ def circuit_drawer(circuit,
             output types. If a str is passed in that is the path to a json
             file which contains that will be open, parsed, and then used just
             as the input dict.
-        output (str): Select the output method to use for drawing the circuit.
+        output (TextDrawing): Select the output method to use for drawing the circuit.
             Valid choices are `text`, `latex`, `latex_source`, `mpl`. Note if
             one is not specified it will use latex and if that fails fallback
             to mpl. However this behavior is deprecated and in a future release
@@ -89,8 +89,8 @@ def circuit_drawer(circuit,
     Returns:
         PIL.Image: (outputs `latex` and `python`) an in-memory representation of
                    the circuit diagram.
-        String: (outputs `text` and `latex_source`). The ascii art or the LaTeX
-                source code.
+        String: (output `latex_source`). The LaTeX source code.
+        TextDrawing: (output `text`). A drawing that can be printed as ascii art
     Raises:
         VisualizationError: when an invalid output method is selected
 
@@ -306,7 +306,7 @@ def _text_circuit_drawer(circuit, filename=None,
         reversebits (bool): Rearrange the bits in reverse order.
         plotbarriers (bool): Draws the barriers when they are there.
     Returns:
-        String: The drawing in a loooong string.
+        TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
@@ -314,11 +314,9 @@ def _text_circuit_drawer(circuit, filename=None,
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
-    text = text_drawing.single_string()
-
     if filename:
         text_drawing.dump(filename)
-    return text
+    return text_drawing
 
 
 # -----------------------------------------------------------------------------

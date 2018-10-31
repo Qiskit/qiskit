@@ -406,6 +406,9 @@ class TextDrawing():
         self.qubitorder = self._get_qubitorder()
         self.clbitorder = self._get_clbitorder()
 
+    def __str__(self):
+        return self.single_string()
+
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.json_circuit['header']['qubit_labels']:
