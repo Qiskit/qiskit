@@ -34,8 +34,8 @@ The input is a AST and a basis set and returns a json memory object::
         ]
     }
 """
-from qiskit.unroll import BackendError
-from qiskit.unroll import UnrollerBackend
+from qiskit.unrollers._backenderror import BackendError
+from qiskit.unrollers._unrollerbackend import UnrollerBackend
 from qiskit import QISKitError
 
 
