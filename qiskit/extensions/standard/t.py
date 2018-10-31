@@ -74,6 +74,7 @@ def t(self, q):
     self._check_qubit(q)
     return self._attach(TGate(q, self))
 
+
 def tdg(self, q):
     """Apply Tdg to q."""
     if isinstance(q, QuantumRegister):
@@ -84,6 +85,7 @@ def tdg(self, q):
 
     self._check_qubit(q)
     return self._attach(TdgGate(q, self))
+
 
 QuantumCircuit.t = t
 QuantumCircuit.tdg = tdg

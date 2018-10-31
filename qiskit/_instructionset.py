@@ -28,7 +28,7 @@ class InstructionSet(object):
 
     def inverse(self):
         """Invert all instructions."""
-        for index,instruction in enumerate(self.instructions):
+        for index, instruction in enumerate(self.instructions):
             self.instructions[index] = instruction.inverse()
         return self
 
