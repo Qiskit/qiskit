@@ -277,6 +277,19 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 # _text_circuit_drawer
 # -----------------------------------------------------------------------------
+class CircuitString():
+    """A class for holding the text string
+    instance of a quantum circuit
+    """
+
+    def __init__(self, string):
+        self.string = string
+
+    def __repr__(self):
+        return self.string
+
+    def __str__(self):
+        return self.string
 
 
 def _text_circuit_drawer(circuit, filename=None,
@@ -301,7 +314,7 @@ def _text_circuit_drawer(circuit, filename=None,
     if filename:
         with open(filename, mode='w', encoding="utf8") as text_file:
             text_file.write(text)
-    return text
+    return CircuitString(text)
 
 
 # -----------------------------------------------------------------------------
