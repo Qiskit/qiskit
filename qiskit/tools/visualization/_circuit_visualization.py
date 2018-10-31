@@ -194,7 +194,6 @@ def circuit_drawer(circuit,
         if output == 'text':
             reversebits = style['reversebits'] if style and 'reversebits' in style else False
             plotbarriers = style['plotbarriers'] if style and 'plotbarriers' in style else True
-
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
                                         line_length=line_length,
                                         reversebits=reversebits, plotbarriers=plotbarriers)
@@ -311,14 +310,14 @@ def _text_circuit_drawer(circuit, filename=None,
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
+    text_drawing = _text.TextDrawing(json_circuit, reversebits=reversebits)
+    text_drawing.plotbarriers = plotbarriers
+    text_drawing.line_length = line_length
 
-    text = "\n".join(
-        _text.TextDrawing(json_circuit, reversebits=reversebits, plotbarriers=plotbarriers).lines(
-            line_length))
+    text = text_drawing.single_string()
 
     if filename:
-        with open(filename, mode='w', encoding="utf8") as text_file:
-            text_file.write(text)
+        text_drawing.dump(filename)
     return text
 
 

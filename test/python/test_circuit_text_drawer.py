@@ -17,8 +17,8 @@ from qiskit.wrapper._circuittoolkit import circuit_from_qasm_string
 from .common import QiskitTestCase
 
 try:
+    from qiskit.tools.visualization import _text as elements
     from qiskit.tools.visualization import _text_circuit_drawer
-    from qiskit.tools.visualization import text as elements
 
     VALID_MATPLOTLIB = True
 except (RuntimeError, ImportError):
