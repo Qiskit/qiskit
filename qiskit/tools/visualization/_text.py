@@ -409,6 +409,9 @@ class TextDrawing():
     def __str__(self):
         return self.single_string()
 
+    def _repr_html_(self):
+        return '<pre>'+self.single_string()+'</pre>'
+
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.json_circuit['header']['qubit_labels']:
