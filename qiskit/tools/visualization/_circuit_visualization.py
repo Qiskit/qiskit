@@ -277,19 +277,12 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 # _text_circuit_drawer
 # -----------------------------------------------------------------------------
-class CircuitString():
-    """A class for holding the text string
-    instance of a quantum circuit
+class CircuitString(str):
+    """A subclass of str for holding the text string
+    representation of a quantum circuit
     """
-
-    def __init__(self, string):
-        self.string = string
-
     def __repr__(self):
-        return self.string
-
-    def __str__(self):
-        return self.string
+        return self
 
 
 def _text_circuit_drawer(circuit, filename=None,
