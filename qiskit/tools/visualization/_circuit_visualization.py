@@ -50,8 +50,7 @@ def plot_circuit(circuit,
 
 
 def circuit_drawer(circuit,
-                   basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                         "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
+                   basis=None,
                    scale=0.7,
                    filename=None,
                    style=None,
@@ -67,7 +66,10 @@ def circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        basis (str): the basis to unroll to prior to drawing
+        basis (str): the basis to unroll to prior to drawing. Defaults to
+            `"id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,cx,cy,cz,ch,crz,cu1,
+            cu3,swap,ccx,cswap"` This option is deprecated and will be removed
+            in the future.
         scale (float): scale of image to draw (shrink if < 1)
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file.
@@ -169,6 +171,13 @@ def circuit_drawer(circuit,
             registers for the output visualization.
 
     """
+    if basis is None:
+        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
+    else:
+        warnings.warn('The basis kwarg is deprecated and the circuit drawer '
+                      'function will not be able to adjust basis gates itself '
+                      'in a future release', DeprecationWarning)
 
     im = None
     if not output:
