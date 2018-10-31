@@ -192,9 +192,8 @@ def circuit_drawer(circuit,
                                             style)
     else:
         if output == 'text':
-            if style:
-                reversebits = style.get('reversebits', False)
-                plotbarriers = style.get('plotbarriers', True)
+            reversebits = style['reversebits'] if style and 'reversebits' in style else False
+            plotbarriers = style['plotbarriers'] if style and 'plotbarriers' in style else True
 
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
                                         line_length=line_length,
