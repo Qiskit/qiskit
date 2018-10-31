@@ -304,7 +304,7 @@ def _text_circuit_drawer(circuit, filename=None,
         line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
                            you maximum line length your console supports.
     Returns:
-        String: The drawing in a loooong string.
+        CircuitString: A class holding the drawing string.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
