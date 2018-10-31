@@ -87,8 +87,8 @@ def circuit_drawer(circuit,
     Returns:
         PIL.Image: (outputs `latex` and `python`) an in-memory representation of
                    the circuit diagram.
-        String: (outputs `text` and `latex_source`). The ascii art or the LaTeX
-                source code.
+        String: (outputs`latex_source`). The LaTeX source code.
+        CircuitString: (outputs `text`). A class holding the ascii drawing string.
     Raises:
         VisualizationError: when an invalid output method is selected
 
