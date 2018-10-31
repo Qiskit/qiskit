@@ -88,7 +88,7 @@ def circuit_drawer(circuit,
         PIL.Image: (outputs `latex` and `python`) an in-memory representation of
                    the circuit diagram.
         String: (outputs`latex_source`). The LaTeX source code.
-        CircuitString: (outputs `text`). A class holding the ascii drawing string.
+        CircuitString: (outputs `text`). A subclass of string with ascii drawing.
     Raises:
         VisualizationError: when an invalid output method is selected
 
@@ -297,7 +297,7 @@ def _text_circuit_drawer(circuit, filename=None,
         line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
                            you maximum line length your console supports.
     Returns:
-        CircuitString: A class holding the drawing string.
+        CircuitString: A subclass of string holding the ascii drawing.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
