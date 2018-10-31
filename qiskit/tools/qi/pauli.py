@@ -82,10 +82,11 @@ class Pauli:
         v = [x for x in self._v.astype(np.int)]
         w = [x for x in self._w.astype(np.int)]
 
-        ret = "Pauli(v={}, w={})".format(v, w)
+        ret = self.__class__.__name__ + "(v={}, w={})".format(v, w)
         return ret
 
     def __str__(self):
+        # TODO: the order of qubit
         """Output the Pauli label."""
         label = ''
         for v, w in zip(self._v, self._w):
@@ -359,6 +360,7 @@ class Pauli:
         self._w = np.concatenate((self._w, pauli.w))
 
         return self
+
 
 
 def pauli_group(number_of_qubits, case='weight'):
