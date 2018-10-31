@@ -54,7 +54,7 @@ class StandardExtensionTest(QiskitTestCase):
         Args:
             type_ (type): a gate type.
             qasm_txt (str): QASM representation of the gate.
-            type_type (type): a inverse gate type. If None, same as type_.
+            type_inv (type): a inverse gate type. If None, same as type_.
             qasm_txt_inv (str): QASM representation of the inverse gate. If None, same as qasm_txt.
         """
         if not qasm_txt_inv:
