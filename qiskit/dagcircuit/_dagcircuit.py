@@ -899,6 +899,9 @@ class DAGCircuit:
 
         return full_pred_map, full_succ_map
 
+    def node_nums_in_topological_order(self):
+        return nx.topological_sort(self.multi_graph)
+
     def substitute_circuit_all(self, name, input_circuit, wires=None):
         """Replace every occurrence of named operation with input_circuit."""
         # TODO: rewrite this method to call substitute_circuit_one
@@ -934,7 +937,7 @@ class DAGCircuit:
         #       that we add from the input_circuit.
         self.basis = union_basis
         self.gates = union_gates
-        for n in nx.topological_sort(self.multi_graph):
+        for n in self.node_nums_in_topological_order:
             nd = self.multi_graph.node[n]
             if nd["type"] == "op" and nd["name"] == name:
                 if nd["condition"] is None:
@@ -1207,7 +1210,7 @@ class DAGCircuit:
         A serial layer is a circuit with one gate. The layers have the
         same structure as in layers().
         """
-        for n in nx.topological_sort(self.multi_graph):
+        for n in self.node_nums_in_topological_order:
             nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
                 new_layer = DAGCircuit()
@@ -1278,7 +1281,7 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        ts = list(nx.topological_sort(self.multi_graph))
+        ts = list(self.node_nums_in_topological_order)
         nodes_seen = dict(zip(ts, [False] * len(ts)))
         for node in ts:
             nd = self.multi_graph.node[node]
@@ -1303,7 +1306,7 @@ class DAGCircuit:
         Returns a dictionary of counts keyed on the operation name.
         """
         op_dict = {}
-        for node in nx.topological_sort(self.multi_graph):
+        for node in self.node_nums_in_topological_order:
             nd = self.multi_graph.node[node]
             name = nd["name"]
             if nd["type"] == "op":
