@@ -11,7 +11,7 @@ DAG Unroller
 
 import networkx as nx
 
-from qiskit.unroll import Unroller
+from qiskit.unrollers._unroller import Unroller
 from qiskit.qasm._node import Real, Id, IdList, ExpressionList, Gate, \
                               PrimaryList, Int, IndexedId, Qreg, If, Creg, \
                               Program, CustomUnitary

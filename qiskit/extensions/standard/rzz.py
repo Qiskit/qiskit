@@ -23,15 +23,6 @@ class RZZGate(Gate):
         """Create new rzz gate."""
         super().__init__("rzz", [theta], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        theta = self.param[0]
-        return self._qasmif("rzz(%s) %s[%d],%s[%d];" % (theta,
-                                                        ctl[0].name, ctl[1],
-                                                        tgt[0].name, tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]

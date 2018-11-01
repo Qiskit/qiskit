@@ -27,19 +27,6 @@ class Noise(Instruction):
         """Special case. Return self."""
         return self
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        string = "noise(%d) " % self.param[0]
-        for j in range(len(self.arg)):
-            if len(self.arg[j]) == 1:
-                string += "%s" % self.arg[j].name
-            else:
-                string += "%s[%d]" % (self.arg[j][0].name, self.arg[j][1])
-            if j != len(self.arg) - 1:
-                string += ","
-        string += ";"
-        return string
-
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
         self._modifiers(circ.noise(self.param[0]))
