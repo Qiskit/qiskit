@@ -192,8 +192,12 @@ def circuit_drawer(circuit,
                                             style)
     else:
         if output == 'text':
+            reversebits = style['reversebits'] if style and 'reversebits' in style else False
+            plotbarriers = style['plotbarriers'] if style and 'plotbarriers' in style else True
+
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
-                                        line_length=line_length)
+                                        line_length=line_length,
+                                        reversebits=reversebits, plotbarriers=plotbarriers)
         elif output == 'latex':
             im = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
                                        filename=filename, style=style)
@@ -290,7 +294,8 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None,
                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None):
+                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None,
+                         reversebits=False, plotbarriers=True):
     """
     Draws a circuit using ascii art.
     Args:
@@ -299,13 +304,17 @@ def _text_circuit_drawer(circuit, filename=None,
         basis (str): Optional. Comma-separated list of gate names
         line_length (int): Optional. Sometimes, your console is too small of the drawing. Give me
                            you maximum line length your console supports.
+        reversebits (bool): Rearrange the bits in reverse order.
+        plotbarriers (bool): Draws the barriers when they are there.
     Returns:
         String: The drawing in a loooong string.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
 
-    text = "\n".join(_text.TextDrawing(json_circuit).lines(line_length))
+    text = "\n".join(
+        _text.TextDrawing(json_circuit, reversebits=reversebits, plotbarriers=plotbarriers).lines(
+            line_length))
 
     if filename:
         with open(filename, mode='w', encoding="utf8") as text_file:

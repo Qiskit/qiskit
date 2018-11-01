@@ -25,13 +25,6 @@ class CnotGate(Gate):
         """Create new CNOT gate."""
         super().__init__("cx", [], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("cx %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse

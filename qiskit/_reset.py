@@ -9,6 +9,9 @@
 Qubit reset to computational zero.
 """
 from ._instruction import Instruction
+from ._instructionset import InstructionSet
+from ._quantumcircuit import QuantumCircuit
+from ._quantumregister import QuantumRegister
 
 
 class Reset(Instruction):
@@ -18,11 +21,20 @@ class Reset(Instruction):
         """Create new reset instruction."""
         super().__init__("reset", [], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("reset %s[%d];" % (qubit[0].name, qubit[1]))
-
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.reset(self.arg[0]))
+
+
+def reset(self, quantum_register):
+    """Reset q."""
+    if isinstance(quantum_register, QuantumRegister):
+        instructions = InstructionSet()
+        for sizes in range(quantum_register.size):
+            instructions.add(self.reset((quantum_register, sizes)))
+        return instructions
+    self._check_qubit(quantum_register)
+    return self._attach(Reset(quantum_register, self))
+
+
+QuantumCircuit.reset = reset
