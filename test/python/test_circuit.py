@@ -9,7 +9,9 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import os
 import tempfile
+import unittest
 
 import qiskit.extensions.simulator
 from qiskit import Aer
@@ -120,6 +122,8 @@ measure qr2[1] -> cr[2];\n"""
         self.assertEqual(len(qc.get_qregs()), 2)
         self.assertEqual(qasm_str, qc.qasm())
 
+    @unittest.skipIf(os.getenv('APPVEYOR', None),
+                     'Cannot make temp file in Appveyor.')
     def test_circuit_from_qasm_file(self):
         """Test qasm constructor from file."""
         qasm_str = """OPENQASM 2.0;
