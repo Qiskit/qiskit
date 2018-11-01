@@ -49,7 +49,7 @@ class StandardExtensionTest(QiskitTestCase):
         """
         Assert the single gate in self.circuit is of the type type_, the QASM
         representation matches qasm_txt and the QASM representation of
-        inverse maches qasm_txt_.
+        inverse matches qasm_txt_inv and type_inv.
 
         Args:
             type_ (type): a gate type.
