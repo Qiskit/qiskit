@@ -25,11 +25,6 @@ class IdGate(Gate):
         """Create new Identity gate."""
         super().__init__("id", [], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("id %s[%d];" % (qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
