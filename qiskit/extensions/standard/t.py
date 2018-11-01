@@ -34,11 +34,6 @@ class TGate(Gate):
         self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
         return inv
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("t %s[%d];" % (qubit[0].name, qubit[1]))
-
 
 class TdgGate(Gate):
     """T Gate: -pi/4 rotation around Z axis."""
@@ -56,11 +51,6 @@ class TdgGate(Gate):
         inv = TGate(self.arg[0])
         self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
         return inv
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("tdg %s[%d];" % (qubit[0].name, qubit[1]))
 
 
 def t(self, q):
