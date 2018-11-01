@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""C++ qasm_simulator gates."""
+"""Instructions usable by simulator backends."""
 from .load import load
 from .noise import noise
 from .save import save

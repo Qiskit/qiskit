@@ -25,14 +25,6 @@ class WaitGate(Gate):
         """Create new wait gate."""
         super().__init__("wait", [t], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        t = self.param[0]
-        return self._qasmif("wait(%f) %s[%d];" % (t,
-                                                  qubit[0].name,
-                                                  qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
