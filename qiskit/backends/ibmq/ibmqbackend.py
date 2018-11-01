@@ -12,12 +12,13 @@ This module is used for connecting to the Quantum Experience.
 import warnings
 import logging
 
-from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case, _dict_merge
 from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
 from qiskit.backends import JobStatus
+
+from .api import ApiError
+from .ibmqjob import IBMQJob, IBMQJobPreQobj
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class IBMQBackend(BaseBackend):
             configuration (dict): configuration of backend.
             provider (IBMQProvider): provider.
             credentials (Credentials): credentials.
-            api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+            api (IBMQConnector):
                 api for communicating with the Quantum Experience.
         """
         super().__init__(provider=provider, configuration=configuration)
