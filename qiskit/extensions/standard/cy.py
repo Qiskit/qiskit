@@ -10,7 +10,6 @@
 """
 controlled-Y gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -62,4 +61,3 @@ def cy(self, ctl, tgt):
 
 
 QuantumCircuit.cy = cy
-CompositeGate.cy = cy

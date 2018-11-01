@@ -10,7 +10,6 @@
 """
 controlled-NOT gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -62,4 +61,3 @@ def cx(self, ctl, tgt):
 
 
 QuantumCircuit.cx = cx
-CompositeGate.cx = cx
