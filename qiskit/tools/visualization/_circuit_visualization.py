@@ -404,6 +404,10 @@ def _latex_circuit_drawer(circuit,
         scale (float): scaling factor
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
+        reverse_bits (bool): When set to True reverse the bit order inside
+            registers for the output visualization.
+        plot_barriers (bool): Enable/disable drawing barriers in the output
+            circuit. Defaults to True.
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -497,6 +501,10 @@ def _generate_latex_source(circuit, filename=None,
         filename (str): optional filename to write latex
         basis (str): optional comma-separated list of gate names
         style (dict or str): dictionary of style or file name of style file
+        reverse_bits (bool): When set to True reverse the bit order inside
+            registers for the output visualization.
+        plot_barriers (bool): Enable/disable drawing barriers in the output
+            circuit. Defaults to True.
 
     Returns:
         str: Latex string appropriate for writing to file.
@@ -564,6 +572,11 @@ def _matplotlib_circuit_drawer(circuit,
         scale (float): scaling factor
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
+        reverse_bits (bool): When set to True reverse the bit order inside
+            registers for the output visualization.
+        plot_barriers (bool): Enable/disable drawing barriers in the output
+            circuit. Defaults to True.
+
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram

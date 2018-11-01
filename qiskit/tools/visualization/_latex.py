@@ -40,6 +40,10 @@ class QCircuitImage(object):
             circuit (dict): compiled_circuit from qobj
             scale (float): image scaling
             style (dict or str): dictionary of style or file name of style file
+            reverse_bits (bool): When set to True reverse the bit order inside
+               registers for the output visualization.
+            plot_barriers (bool): Enable/disable drawing barriers in the output
+               circuit. Defaults to True.
         """
         # style sheet
         self._style = _qcstyle.QCStyle()
