@@ -10,7 +10,6 @@ Simulator command to load a saved quantum state.
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -68,6 +67,5 @@ def load(self, slot):
     return self._attach(Load(slot, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.load = load
-CompositeGate.load = load
