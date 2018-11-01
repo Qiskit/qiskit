@@ -115,7 +115,7 @@ class TestVisualizationImplementation(QiskitTestCase):
         self.assertFilesAreEqual(filename, self.text_reference)
         os.remove(filename)
         try:
-            encode(output, encoding='cp437')
+            encode(str(output), encoding='cp437')
         except UnicodeEncodeError:
             self.fail("_text_circuit_drawer() should only use extended ascii (aka code page 437).")
 
