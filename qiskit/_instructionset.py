@@ -17,19 +17,19 @@ class InstructionSet(object):
 
     def __init__(self):
         """New collection of instructions."""
-        self.instructions = set([])
+        self.instructions = []
 
     def add(self, gate):
         """Add instruction to set."""
         if not isinstance(gate, Instruction):
             raise QISKitError("attempt to add non-Instruction" +
                               " to InstructionSet")
-        self.instructions.add(gate)
+        self.instructions.append(gate)
 
     def inverse(self):
         """Invert all instructions."""
-        for instruction in self.instructions:
-            instruction.inverse()
+        for index, instruction in enumerate(self.instructions):
+            self.instructions[index] = instruction.inverse()
         return self
 
     def q_if(self, *qregs):
