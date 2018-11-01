@@ -6,7 +6,21 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Quantum computer instruction.
+A generic quantum instruction.
+
+Instructions can be implementable on hardware (U, CX, etc.) or in simulation
+(snapshot, noise, etc.).
+
+Instructions can be unitary (a.k.a Gate) or non-unitary.
+
+Instructions are identified by the following fields, and are serialized as such in Qobj.
+
+    name: A string to identify the type of instruction.
+          Used to request a specific instruction on the backend, or in visualizing circuits.
+
+    param: List of parameters to specialize a specific intruction instance.
+
+    arg: List of pairs (Register, index) that the instruction acts on.
 """
 from sympy import Number, Basic
 
@@ -15,18 +29,22 @@ from ._register import Register
 
 
 class Instruction(object):
-    """Generic quantum computer instruction."""
+    """Generic quantum instruction."""
 
     def __init__(self, name, param, arg, circuit=None):
         """Create a new instruction.
 
-        name = instruction name string
-        param = list of real parameters
-        arg = list of pairs (Register, index)
-        circuit = QuantumCircuit or CompositeGate containing this instruction
+        Args:
+            name (str): instruction name
+            param (list[float]): list of real parameters
+            arg (list[(Register, index)]): list of args
+            circuit(QuantumCircuit or Instruction): where the instruction is attached
+
+        Raises:
+            QISKitError: when the register is not in the correct format.
         """
         for i in arg:
-            if not isinstance(i[0], Register):
+            if not isinstance(i[0], Register) or not isinstance(i[1], int):
                 raise QISKitError("argument not (Register, int) tuple")
         self.name = name
         self.param = []
@@ -69,3 +87,19 @@ class Instruction(object):
         if self.control is None:
             return string
         return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
+
+    def qasm(self):
+        """Return a default OpenQASM string for the instruction.
+
+        Derived instructions may override this to print in a
+        different format (e.g. measure).
+        """
+        name_and_param = self.name
+        if self.param:
+            name_and_param = "%s(%s)" % (name_and_param,
+                                         ",".join([str(i)
+                                                   for i in self.param]))
+
+        return self._qasmif("%s %s;" % (name_and_param,
+                                        ",".join(["%s[%d]" % (j[0].name, j[1])
+                                                  for j in self.arg])))

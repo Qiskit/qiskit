@@ -25,13 +25,6 @@ class U1Gate(Gate):
         """Create new diagonal single-qubit gate."""
         super().__init__("u1", [theta], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        return self._qasmif("u1(%s) %s[%d];" % (
-            theta, qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
