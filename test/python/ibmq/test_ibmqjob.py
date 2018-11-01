@@ -333,6 +333,7 @@ class TestIBMQJob(JobTestCase):
             job.submit()
 
 
+@unittest.skip('Temporarily disabled, see #1162')
 class TestQObjectBasedIBMQJob(JobTestCase):
     """Test jobs supporting QObject."""
 
