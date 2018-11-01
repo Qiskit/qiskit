@@ -447,7 +447,7 @@ class _Request(object):
         return True
 
 
-class IBMQuantumExperience(object):
+class IBMQConnector(object):
     """
     The Connector Class to do request to QX Platform
     """
@@ -1049,7 +1049,7 @@ class IBMQuantumExperience(object):
 
 class ApiError(Exception):
     """
-    IBMQuantumExperience API error handling base class.
+    IBMQConnector API error handling base class.
     """
     def __init__(self, usr_msg=None, dev_msg=None):
         """
