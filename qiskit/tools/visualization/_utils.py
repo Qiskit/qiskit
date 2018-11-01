@@ -33,8 +33,19 @@ def _get_instructions(dag, reversebits=False):
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
     ops = []
-    for node_no in dag.node_nums_in_topological_order:
+    qregs = []
+    cregs = []
+    for node_no in dag.node_nums_in_topological_order():
         node = dag.multi_graph.node[node_no]
         if node['type'] == 'op':
             ops.append(node)
-    return dag.qregs, dag.cregs, ops
+
+    for qreg,amount in dag.qregs.items():
+        labels = [(qreg,bitno) for bitno in range(amount)]
+        qregs += labels
+
+    for creg, amount in dag.cregs.items():
+        labels = [(creg, bitno) for bitno in range(amount)]
+        cregs += labels
+
+    return qregs, cregs, ops
