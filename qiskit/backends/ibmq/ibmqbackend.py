@@ -13,7 +13,7 @@ import warnings
 import logging
 
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case, _dict_merge
+from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
 from qiskit.backends import JobStatus
 
@@ -310,3 +310,27 @@ def _job_class_from_job_response(job_response):
 def _job_class_from_backend_support(backend):
     support_qobj = backend.configuration().get('allow_q_object')
     return IBMQJob if support_qobj else IBMQJobPreQobj
+
+
+def _dict_merge(dct, merge_dct):
+    """
+    TEMPORARY method for merging backend.calibration & backend.parameters
+    into backend.properties.
+
+    Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
+    updating only top-level keys, dict_merge recurses down into dicts nested
+    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
+    ``dct``.
+
+    Args:
+        dct (dict): the dictionary to merge into
+        merge_dct (dict): the dictionary to merge
+    """
+    for k, _ in merge_dct.items():
+        if k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], dict):
+            _dict_merge(dct[k], merge_dct[k])
+        elif k in dct and isinstance(dct[k], list) and isinstance(merge_dct[k], list):
+            for i in range(len(dct[k])):
+                _dict_merge(dct[k][i], merge_dct[k][i])
+        else:
+            dct[k] = merge_dct[k]
