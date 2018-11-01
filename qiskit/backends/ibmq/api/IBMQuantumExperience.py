@@ -85,6 +85,7 @@ class _Credentials(object):
                 self.ntlm_credentials['password'])
 
         if not verify:
+            # pylint: disable=import-error
             import requests.packages.urllib3 as urllib3
             urllib3.disable_warnings()
             print('-- Ignoring SSL errors.  This is not recommended --')
@@ -653,11 +654,8 @@ class IBMQuantumExperience(object):
                         result["bloch"] = valsxyz
                     respond["result"] = result
                     respond.pop('infoQueue', None)
-
-                    return respond
             elif status == "ERROR":
                 respond.pop('infoQueue', None)
-                return respond
             else:
                 if timeout:
                     for _ in range(1, timeout):
@@ -672,12 +670,10 @@ class IBMQuantumExperience(object):
                             return respond
                         else:
                             time.sleep(2)
-                    return respond
-                else:
-                    return respond
         except Exception:  # pylint: disable=broad-except
             respond["error"] = execution
-            return respond
+
+        return respond
 
     def run_job(self, job, backend='simulator', shots=1,
                 max_credits=None, seed=None, hub=None, group=None,
