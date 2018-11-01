@@ -200,8 +200,6 @@ class TestVisualizationUtils(QiskitTestCase):
         (qregs, cregs, ops) = _utils._get_instructions(self.dag)
         self.assertEqual([('qr1', 0), ('qr1', 1), ('qr2', 0), ('qr2', 1)], qregs)
         self.assertEqual([('cr1', 0), ('cr1', 1), ('cr2', 0), ('cr2', 1)], cregs)
-        # {'type': 'op', 'name': 'measure', 'qargs': [('qr1', 0)], 'cargs': [('cr1', 0)],
-        #  'params': [], 'condition': None}
         self.assertEqual(['cx', 'measure', 'measure', 'cx', 'measure', 'measure'],
                          [op['name'] for op in ops])
         self.assertEqual(
@@ -211,6 +209,11 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual([[], [('cr2', 1)], [('cr2', 0)], [], [('cr1', 1)], [('cr1', 0)]],
                          [op['cargs'] for op in ops])
 
+    def test_get_instructions_reversebits(self):
+        """ _get_instructions with reversebits=True """
+        (qregs, cregs, ops) = _utils._get_instructions(self.dag, reversebits=True)
+        self.assertEqual([('qr1', 1), ('qr1', 0), ('qr2', 1), ('qr2', 0)], qregs)
+        self.assertEqual([('cr1', 1), ('cr1', 0), ('cr2', 1), ('cr2', 0)], cregs)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

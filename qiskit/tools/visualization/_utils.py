@@ -42,10 +42,14 @@ def _get_instructions(dag, reversebits=False):
 
     for qreg,amount in dag.qregs.items():
         labels = [(qreg,bitno) for bitno in range(amount)]
+        if reversebits:
+            labels.reverse()
         qregs += labels
 
     for creg, amount in dag.cregs.items():
         labels = [(creg, bitno) for bitno in range(amount)]
+        if reversebits:
+            labels.reverse()
         cregs += labels
 
     return qregs, cregs, ops
