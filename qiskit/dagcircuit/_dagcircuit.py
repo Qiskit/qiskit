@@ -1285,7 +1285,7 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        ts = list(self.node_nums_in_topological_order)
+        ts = list(self.node_nums_in_topological_order())
         nodes_seen = dict(zip(ts, [False] * len(ts)))
         for node in ts:
             nd = self.multi_graph.node[node]
