@@ -29,6 +29,7 @@ class TestJupyter(QiskitTestCase):
     def setUp(self):
         self.path = os.path.dirname(os.path.realpath(__file__))
 
+    @unittest.skipIf(os.getenv('APPVEYOR'), False)
     def test_jupyter(self):
         "Test Jupyter functionality"
         _exec_notebook(self.path+'/notebooks/test_jupyter.ipynb')
