@@ -25,11 +25,6 @@ class ZGate(Gate):
         """Create new Z gate."""
         super().__init__("z", [], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("z %s[%d];" % (qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse

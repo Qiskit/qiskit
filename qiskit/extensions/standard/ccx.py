@@ -23,18 +23,6 @@ class ToffoliGate(Gate):
         """Create new Toffoli gate."""
         super().__init__("ccx", [], [ctl1, ctl2, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl1 = self.arg[0]
-        ctl2 = self.arg[1]
-        tgt = self.arg[2]
-        return self._qasmif("ccx %s[%d],%s[%d],%s[%d];" % (ctl1[0].name,
-                                                           ctl1[1],
-                                                           ctl2[0].name,
-                                                           ctl2[1],
-                                                           tgt[0].name,
-                                                           tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
