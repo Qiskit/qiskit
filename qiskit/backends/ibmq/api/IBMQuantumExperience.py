@@ -1,21 +1,22 @@
-"""
-    IBM Quantum Experience Python API Client
-"""
-try:
-    import simplejson as json
-except ImportError:
-    import json
-import time
-import logging
-from datetime import datetime
-import sys
-import traceback
-import requests
-import re
-from requests_ntlm import HttpNtlmAuth
-# from .HTTPProxyDigestAuth import HTTPProxyDigestAuth
+# -*- coding: utf-8 -*-
 
-log = logging.getLogger(__name__)
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""IBM Q API connector."""
+
+import json
+import logging
+import re
+import time
+from datetime import datetime
+
+import requests
+from requests_ntlm import HttpNtlmAuth
+
+logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
 
 
@@ -23,23 +24,24 @@ def get_job_url(config, hub, group, project):
     """
     Util method to get job url
     """
-    if ((config is not None) and ('hub' in config) and (hub is None)):
+    if (config is not None) and ('hub' in config) and (hub is None):
         hub = config["hub"]
-    if ((config is not None) and ('group' in config) and (group is None)):
+    if (config is not None) and ('group' in config) and (group is None):
         group = config["group"]
-    if ((config is not None) and ('project' in config) and (project is None)):
+    if (config is not None) and ('project' in config) and (project is None):
         project = config["project"]
-    if ((hub is not None) and (group is not None) and (project is not None)):
+    if (hub is not None) and (group is not None) and (project is not None):
         return '/Network/{}/Groups/{}/Projects/{}/jobs'.format(hub, group, project)
     return '/Jobs'
+
 
 def get_backend_stats_url(config, hub, backend_type):
     """
     Util method to get backend stats url
     """
-    if ((config is not None) and ('hub' in config) and (hub is None)):
+    if (config is not None) and ('hub' in config) and (hub is None):
         hub = config["hub"]
-    if (hub is not None):
+    if hub is not None:
         return '/Network/{}/devices/{}'.format(hub, backend_type)
     return '/Backends/{}'.format(backend_type)
 
@@ -48,15 +50,16 @@ def get_backend_url(config, hub, group, project):
     """
     Util method to get backend url
     """
-    if ((config is not None) and ('hub' in config) and (hub is None)):
+    if (config is not None) and ('hub' in config) and (hub is None):
         hub = config["hub"]
-    if ((config is not None) and ('group' in config) and (group is None)):
+    if (config is not None) and ('group' in config) and (group is None):
         group = config["group"]
-    if ((config is not None) and ('project' in config) and (project is None)):
+    if (config is not None) and ('project' in config) and (project is None):
         project = config["project"]
-    if ((hub is not None) and (group is not None) and (project is not None)):
+    if (hub is not None) and (group is not None) and (project is not None):
         return '/Network/{}/Groups/{}/Projects/{}/devices'.format(hub, group, project)
     return '/Backends'
+
 
 class _Credentials(object):
     """
@@ -125,8 +128,8 @@ class _Credentials(object):
                                          verify=self.verify,
                                          headers=headers,
                                          **self.extra_args)
-            except requests.RequestException as e:
-                raise ApiError('error during login: %s' % str(e))
+            except requests.RequestException as ex:
+                raise ApiError('error during login: %s' % str(ex))
         elif config and ("email" in config) and ("password" in config):
             email = config.get('email', None)
             password = config.get('password', None)
@@ -141,8 +144,8 @@ class _Credentials(object):
                                          verify=self.verify,
                                          headers=headers,
                                          **self.extra_args)
-            except requests.RequestException as e:
-                raise ApiError('error during login: %s' % str(e))
+            except requests.RequestException as ex:
+                raise ApiError('error during login: %s' % str(ex))
         else:
             raise CredentialsError('invalid token')
 
@@ -152,7 +155,7 @@ class _Credentials(object):
                 # For 401: ACCEPT_LICENSE_REQUIRED, a detailed message is
                 # present in the response and passed to the exception.
                 error_message = response.json()['error']['message']
-            except:
+            except Exception:  # pylint: disable=broad-except
                 pass
 
             if error_message:
@@ -162,8 +165,8 @@ class _Credentials(object):
         try:
             response.raise_for_status()
             self.data_credentials = response.json()
-        except (requests.HTTPError, ValueError) as e:
-            raise ApiError('error during login: %s' % str(e))
+        except (requests.HTTPError, ValueError) as ex:
+            raise ApiError('error during login: %s' % str(ex))
 
         if self.get_token() is None:
             raise CredentialsError('invalid token')
@@ -208,7 +211,7 @@ class _Request(object):
         self.verify = verify
         self.client_application = CLIENT_APPLICATION
         self.config = config
-        self.errorsNotRetry = [401, 403, 413]
+        self.errors_not_retry = [401, 403, 413]
 
         # Set the proxy information, if present, from the configuration,
         # with the following format:
@@ -373,7 +376,7 @@ class _Request(object):
         """check response
 
         Args:
-            respond (str): HTTP response.
+            respond (requests.Response): HTTP response.
 
         Returns:
             bool: True if the response is good, else False.
@@ -382,19 +385,19 @@ class _Request(object):
             ApiError: response isn't formatted properly.
         """
         if respond.status_code != requests.codes.ok:
-            log.warning('Got a {} code response to {}: {}'.format(
-                respond.status_code,
-                respond.url,
-                respond.text))
-            if respond.status_code in self.errorsNotRetry:
-              raise ApiError(usr_msg='Got a {} code response to {}: {}'.format(
-                respond.status_code,
-                respond.url,
-                respond.text))
+            logger.warning('Got a %s code response to %s: %s',
+                           respond.status_code,
+                           respond.url,
+                           respond.text)
+            if respond.status_code in self.errors_not_retry:
+                raise ApiError(usr_msg='Got a {} code response to {}: {}'.format(
+                    respond.status_code,
+                    respond.url,
+                    respond.text))
             else:
-              return self._parse_response(respond)
+                return self._parse_response(respond)
         try:
-            if (str(respond.headers['content-type']).startswith("text/html;")):
+            if str(respond.headers['content-type']).startswith("text/html;"):
                 self.result = respond.text
                 return True
             else:
@@ -414,9 +417,9 @@ class _Request(object):
                 ('status' not in self.result['error'] or
                  self.result['error']['status'] != 400)):
             return True
-        else:
-            log.warning("Got a 400 code JSON response to %s", respond.url)
-            return False
+
+        logger.warning("Got a 400 code JSON response to %s", respond.url)
+        return False
 
     def _parse_response(self, respond):
         """parse text of response for HTTP errors
@@ -433,7 +436,7 @@ class _Request(object):
                 if not.
 
         Raises:
-            RegisterSizeError
+            RegisterSizeError: if invalid device register size.
         """
         # convert error messages into exceptions
         mobj = self._max_qubit_error_re.match(respond.text)
@@ -457,23 +460,23 @@ class IBMQuantumExperience(object):
         self.config = config
 
         if self.config and ('url' in self.config):
-          url_parsed = self.config['url'].split('/api')
-          if len(url_parsed) == 2:
-            hub = group = project = None
-            project_parse = url_parsed[1].split('/Projects/')
-            if len(project_parse) == 2:
-              project = project_parse[1]
-              group_parse = project_parse[0].split('/Groups/')
-              if len(group_parse) == 2:
-                group = group_parse[1]
-                hub_parse = group_parse[0].split('/Hubs/')
-                if len(hub_parse) == 2:
-                  hub = hub_parse[1]
-            if (hub and group and project):
-              self.config['project'] = project
-              self.config['group'] = group
-              self.config['hub'] = hub
-              self.config['url'] = url_parsed[0] + '/api'
+            url_parsed = self.config['url'].split('/api')
+            if len(url_parsed) == 2:
+                hub = group = project = None
+                project_parse = url_parsed[1].split('/Projects/')
+                if len(project_parse) == 2:
+                    project = project_parse[1]
+                    group_parse = project_parse[0].split('/Groups/')
+                    if len(group_parse) == 2:
+                        group = group_parse[1]
+                        hub_parse = group_parse[0].split('/Hubs/')
+                        if len(hub_parse) == 2:
+                            hub = hub_parse[1]
+                if hub and group and project:
+                    self.config['project'] = project
+                    self.config['group'] = group
+                    self.config['hub'] = hub
+                    self.config['url'] = url_parsed[0] + '/api'
 
         self.req = _Request(token, config=config, verify=verify)
 
@@ -494,9 +497,9 @@ class IBMQuantumExperience(object):
 
         # Check for new-style backends
         backends = self.available_backends()
-        for backend in backends:
-            if backend['name'] == original_backend:
-              return original_backend
+        for backend_ in backends:
+            if backend_['name'] == original_backend:
+                return original_backend
         # backend unrecognized
         return None
 
@@ -672,7 +675,7 @@ class IBMQuantumExperience(object):
                     return respond
                 else:
                     return respond
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             respond["error"] = execution
             return respond
 
@@ -695,38 +698,38 @@ class IBMQuantumExperience(object):
             raise BadBackendError(backend)
 
         if isinstance(job, (list, tuple)):
-          qasms = job
-          for qasm in qasms:
-              qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
-              qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
+            qasms = job
+            for qasm in qasms:
+                qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
+                qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
 
-          data = {'qasms': qasms,
-                  'shots': shots,
-                  'backend': {}}
+            data = {'qasms': qasms,
+                    'shots': shots,
+                    'backend': {}}
 
-          if max_credits:
-            data['maxCredits'] = max_credits
+            if max_credits:
+                data['maxCredits'] = max_credits
 
-          if seed and len(str(seed)) < 11 and str(seed).isdigit():
-              data['seed'] = seed
-          elif seed:
-              return {"error": "Not seed allowed. Max 10 digits."}
+            if seed and len(str(seed)) < 11 and str(seed).isdigit():
+                data['seed'] = seed
+            elif seed:
+                return {"error": "Not seed allowed. Max 10 digits."}
 
-          data['backend']['name'] = backend_type
+            data['backend']['name'] = backend_type
         elif isinstance(job, dict):
-          q_obj = job
-          data = {'qObject': q_obj,
-                  'backend': {}}
+            q_obj = job
+            data = {'qObject': q_obj,
+                    'backend': {}}
 
-          data['backend']['name'] = backend_type
+            data['backend']['name'] = backend_type
         else:
-          return {"error": "Not a valid data to send"}
+            return {"error": "Not a valid data to send"}
 
         if hpc:
-          data['hpc'] = hpc
+            data['hpc'] = hpc
 
         url = get_job_url(self.config, hub, group, project)
-        
+
         job = self.req.post(url, data=json.dumps(data))
 
         return job
@@ -757,7 +760,7 @@ class IBMQuantumExperience(object):
 
         job = self.req.get(url)
 
-        if 'qasms' in job: 
+        if 'qasms' in job:
             for qasm in job['qasms']:
                 if ('result' in qasm) and ('data' in qasm['result']):
                     qasm['data'] = qasm['result']['data']
@@ -768,10 +771,14 @@ class IBMQuantumExperience(object):
 
         return job
 
-    def get_jobs(self, limit=10, skip=0, backend=None, only_completed=False, filter=None, hub=None, group=None, project=None, access_token=None, user_id=None):
+    def get_jobs(self, limit=10, skip=0, backend=None, only_completed=False,
+                 filter=None, hub=None, group=None, project=None,
+                 access_token=None, user_id=None):
         """
         Get the information about the user jobs
         """
+        # pylint: disable=redefined-builtin
+
         if access_token:
             self.req.credential.set_token(access_token)
         if user_id:
@@ -782,19 +789,19 @@ class IBMQuantumExperience(object):
         url = get_job_url(self.config, hub, group, project)
         url_filter = '&filter='
         query = {
-          "order": "creationDate DESC",
-          "limit": limit,
-          "skip": skip,
-          "where" : {}
+            "order": "creationDate DESC",
+            "limit": limit,
+            "skip": skip,
+            "where": {}
         }
         if filter is not None:
-          query['where'] = filter
+            query['where'] = filter
         else:
-          if backend is not None:
-            query['where']['backend.name'] = backend
-          if only_completed:
-            query['where']['status'] = 'COMPLETED'
-  
+            if backend is not None:
+                query['where']['backend.name'] = backend
+            if only_completed:
+                query['where']['status'] = 'COMPLETED'
+
         url_filter = url_filter + json.dumps(query)
         jobs = self.req.get(url, url_filter)
         return jobs
@@ -827,10 +834,14 @@ class IBMQuantumExperience(object):
 
         return status
 
-    def get_status_jobs(self, limit=10, skip=0, backend=None, filter=None, hub=None, group=None, project=None, access_token=None, user_id=None):
+    def get_status_jobs(self, limit=10, skip=0, backend=None, filter=None,
+                        hub=None, group=None, project=None, access_token=None,
+                        user_id=None):
         """
         Get the information about the user jobs
         """
+        # pylint: disable=redefined-builtin
+
         if access_token:
             self.req.credential.set_token(access_token)
         if user_id:
@@ -841,21 +852,21 @@ class IBMQuantumExperience(object):
         url = get_job_url(self.config, hub, group, project)
         url_filter = '&filter='
         query = {
-          "order": "creationDate DESC",
-          "limit": limit,
-          "skip": skip,
-          "where" : {}
+            "order": "creationDate DESC",
+            "limit": limit,
+            "skip": skip,
+            "where": {}
         }
         if filter is not None:
-          query['where'] = filter
+            query['where'] = filter
         else:
-          if backend is not None:
-            query['where']['backend.name'] = backend
-  
+            if backend is not None:
+                query['where']['backend.name'] = backend
+
         url += '/status'
 
         url_filter = url_filter + json.dumps(query)
-        
+
         jobs = self.req.get(url, url_filter)
 
         return jobs
@@ -879,7 +890,7 @@ class IBMQuantumExperience(object):
             respond["status"] = 'Error'
             respond["error"] = "Job ID not specified"
             return respond
-        
+
         url = get_job_url(self.config, hub, group, project)
 
         url += '/{}/cancel'.format(id_job)
@@ -910,7 +921,7 @@ class IBMQuantumExperience(object):
             ret['busy'] = bool(status['busy'])
         if 'lengthQueue' in status:
             ret['pending_jobs'] = status['lengthQueue']
-        
+
         ret['backend'] = backend_type
 
         return ret
@@ -939,9 +950,9 @@ class IBMQuantumExperience(object):
 
         ret = self.req.get(url + '/calibration')
         if not bool(ret):
-          ret = {}
+            ret = {}
         else:
-          ret["backend"] = backend_type
+            ret["backend"] = backend_type
         return ret
 
     def backend_parameters(self, backend='ibmqx4', hub=None, access_token=None, user_id=None):
@@ -968,12 +979,13 @@ class IBMQuantumExperience(object):
 
         ret = self.req.get(url + '/parameters')
         if not bool(ret):
-          ret = {}
+            ret = {}
         else:
-          ret["backend"] = backend_type
+            ret["backend"] = backend_type
         return ret
 
-    def available_backends(self, hub=None, group=None, project=None, access_token=None, user_id=None):
+    def available_backends(self, hub=None, group=None, project=None,
+                           access_token=None, user_id=None):
         """
         Get the backends available to use in the QX Platform
         """
@@ -1047,7 +1059,7 @@ class ApiError(Exception):
         """
         Args:
             usr_msg (str): Short user facing message describing error.
-            dev_msg (str or None, optional): More detailed message to assist
+            dev_msg (str or None): More detailed message to assist
                 developer with resolving issue.
         """
         Exception.__init__(self, usr_msg)
