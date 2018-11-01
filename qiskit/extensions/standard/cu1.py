@@ -8,7 +8,6 @@
 """
 controlled-u1 gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -61,4 +60,3 @@ def cu1(self, theta, ctl, tgt):
 
 
 QuantumCircuit.cu1 = cu1
-CompositeGate.cu1 = cu1

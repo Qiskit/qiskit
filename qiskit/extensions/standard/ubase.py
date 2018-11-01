@@ -10,7 +10,6 @@
 """
 Element of SU(2).
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -54,4 +53,3 @@ def u_base(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u_base = u_base
-CompositeGate.u_base = u_base

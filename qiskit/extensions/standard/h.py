@@ -10,7 +10,6 @@
 """
 Hadamard gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -53,4 +52,3 @@ def h(self, q):
 
 
 QuantumCircuit.h = h
-CompositeGate.h = h

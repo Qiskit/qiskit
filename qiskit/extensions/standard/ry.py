@@ -10,7 +10,6 @@
 """
 Rotation around the y-axis.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -51,4 +50,3 @@ def ry(self, theta, q):
 
 
 QuantumCircuit.ry = ry
-CompositeGate.ry = ry
