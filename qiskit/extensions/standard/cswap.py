@@ -23,18 +23,6 @@ class FredkinGate(Gate):
         """Create new Fredkin gate."""
         super().__init__("cswap", [], [ctl, tgt1, tgt2], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt1 = self.arg[1]
-        tgt2 = self.arg[2]
-        return self._qasmif("cswap %s[%d],%s[%d],%s[%d];" % (ctl[0].name,
-                                                             ctl[1],
-                                                             tgt1[0].name,
-                                                             tgt1[1],
-                                                             tgt2[0].name,
-                                                             tgt2[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
