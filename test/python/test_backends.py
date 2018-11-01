@@ -76,18 +76,14 @@ class TestBackends(QiskitTestCase):
     def test_aer_backend_status(self):
         """Test backend_status.
 
-        If all correct should pass the vaildation.
+        If all correct should pass the validation.
         """
-        # FIXME: reintroduce in 0.6
-        self.skipTest('Skipping due to available vs operational')
-
         backend = Aer.backends(name='qasm_simulator')[0]
         status = backend.status()
         schema_path = self._get_resource_path(
-            'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
+            'backend_status_schema.json', path=Path.SCHEMAS)
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
-
         jsonschema.validate(status, schema)
 
     @requires_qe_access
@@ -96,17 +92,14 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        # FIXME: reintroduce in 0.6
-        self.skipTest('Skipping due to available vs operational')
-
         IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends()
         remotes = remove_backends_from_list(remotes)
         for backend in remotes:
-            self.log.info(backend.status())
             status = backend.status()
+            self.log.debug(status)
             schema_path = self._get_resource_path(
-                'deprecated/backends/backend_status_schema_py.json', path=Path.SCHEMAS)
+                'backend_status_schema.json', path=Path.SCHEMAS)
             with open(schema_path, 'r') as schema_file:
                 schema = json.load(schema_file)
             jsonschema.validate(status, schema)
@@ -114,7 +107,7 @@ class TestBackends(QiskitTestCase):
     def test_aer_backend_configuration(self):
         """Test backend configuration.
 
-        If all correct should pass the vaildation.
+        If all correct should pass the validation.
         """
         aer_backends = Aer.backends()
         for backend in aer_backends:

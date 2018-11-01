@@ -60,7 +60,7 @@ def SPSA_optimization(obj_fun, initial_theta, SPSA_parameters, max_trials,
     theta_best = np.zeros(initial_theta.shape)
     circuits = []
     for k in range(max_trials):
-        # SPSA Paramaters
+        # SPSA Parameters
         a_spsa = float(SPSA_parameters[0]) / np.power(k + 1 +
                                                       SPSA_parameters[4],
                                                       SPSA_parameters[2])
@@ -148,7 +148,7 @@ def SPSA_calibration(obj_fun, initial_theta, initial_c, target_update, stat):
 def measure_pauli_z(data, pauli):
     """Compute the expectation value of Z.
 
-    Z is represented by Z^v where v has lenght number of qubits and is 1
+    Z is represented by Z^v where v has length number of qubits and is 1
     if Z is present and 0 otherwise.
 
     Args:

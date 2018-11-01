@@ -7,12 +7,15 @@
 
 # pylint: disable=missing-docstring
 
+# pylint: disable=redefined-builtin
+
 import unittest
 
 import qiskit.wrapper
-from qiskit import load_qasm_string, mapper, qasm, unroll
+from qiskit import compile
+from qiskit import load_qasm_string, mapper, qasm, unroll, Aer
 from qiskit.qobj import Qobj
-from qiskit.transpiler._transpiler import transpile
+from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
@@ -23,6 +26,9 @@ from .common import QiskitTestCase
 class FakeQX4BackEnd(object):
     """A fake QX4 backend.
     """
+
+    def name(self):
+        return 'qiskit_is_cool'
 
     def configuration(self):
         qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
@@ -63,10 +69,10 @@ class MapperTest(QiskitTestCase):
         """
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'))
         coupling_map = [[0, 2], [1, 2], [2, 3]]
-        result1 = qiskit.execute(circ, backend="qasm_simulator",
+        result1 = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator"),
                                  coupling_map=coupling_map, seed=self.seed)
         count1 = result1.result().get_counts()
-        result2 = qiskit.execute(circ, backend="qasm_simulator", coupling_map=None,
+        result2 = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator"), coupling_map=None,
                                  seed=self.seed)
         count2 = result2.result().get_counts()
         self.assertEqual(count1.keys(), count2.keys(), )
@@ -81,7 +87,7 @@ class MapperTest(QiskitTestCase):
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'))
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
-        qobj = qiskit.execute(circ, backend="qasm_simulator",
+        qobj = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator"),
                               coupling_map=coupling_map,
                               seed=self.seed, shots=shots)
         counts = qobj.result().get_counts()
@@ -102,7 +108,7 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[1], qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        backend = 'qasm_simulator'
+        backend = Aer.get_backend('qasm_simulator')
         coupling_map = [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
         initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
         qobj = qiskit.compile(qc, backend=backend,
@@ -118,7 +124,7 @@ class MapperTest(QiskitTestCase):
         circ = qiskit.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
-        qobj = qiskit.execute(circ, backend="qasm_simulator",
+        qobj = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator"),
                               coupling_map=coupling_map, shots=shots,
                               seed=self.seed)
         counts = qobj.result().get_counts()
@@ -226,7 +232,7 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[13], qr[4])
         for j in range(16):
             qc.measure(qr[j], cr[j])
-        backend = 'qasm_simulator'
+        backend = Aer.get_backend('qasm_simulator')
         coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
                         [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
                         [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
@@ -245,10 +251,10 @@ class MapperTest(QiskitTestCase):
         """
         backend = FakeQX4BackEnd()
         circ1 = load_qasm_string(YZY_ZYZ_1)
-        qobj1 = qiskit.wrapper.compile(circ1, backend)
+        qobj1 = compile(circ1, backend)
         self.assertIsInstance(qobj1, Qobj)
         circ2 = load_qasm_string(YZY_ZYZ_2)
-        qobj2 = qiskit.wrapper.compile(circ2, backend)
+        qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
     def test_move_measurements(self):
@@ -263,8 +269,8 @@ class MapperTest(QiskitTestCase):
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
-        out_dag = transpile(dag_circuit, initial_layout=lay,
-                            coupling_map=cmap, format='dag')
+        out_dag = transpile_dag(dag_circuit, initial_layout=lay,
+                                coupling_map=cmap, format='dag')
         moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
         self.assertEqual(len(moved_meas), len(meas_nodes))

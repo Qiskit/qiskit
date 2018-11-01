@@ -23,7 +23,8 @@ from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit.unroll import DagUnroller, DAGBackend
+from qiskit.unrollers._dagunroller import DagUnroller
+from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.mapper._quaternion import quaternion_from_euler
 
 logger = logging.getLogger(__name__)
@@ -590,9 +591,9 @@ def swap_mapper(circuit_graph, coupling_graph,
             dagcircuit_output.compose_back(layer["graph"], layout)
 
     # Parse openqasm_output into DAGCircuit object
-    dag_unrrolled = DagUnroller(dagcircuit_output,
-                                DAGBackend(basis.split(",")))
-    dagcircuit_output = dag_unrrolled.expand_gates()
+    dag_unrolled = DagUnroller(dagcircuit_output,
+                               DAGBackend(basis.split(",")))
+    dagcircuit_output = dag_unrolled.expand_gates()
     return dagcircuit_output, initial_layout, last_layout
 
 
