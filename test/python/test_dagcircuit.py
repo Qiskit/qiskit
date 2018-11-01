@@ -44,7 +44,7 @@ class TestDagCircuit(QiskitTestCase):
         self.assertEqual(len(dag.multi_graph.edges), 16)
 
     def test_get_named_nodes(self):
-        qreg = QuantumRegister(3, 'q')        
+        qreg = QuantumRegister(3, 'q')
         dag = DAGCircuit()
         dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
         dag.add_basis_element('cx', 2)
@@ -67,7 +67,7 @@ class TestDagCircuit(QiskitTestCase):
 
     def test_layers_basic(self):
         qreg = QuantumRegister(2, 'qr')
-        creg = ClassicalRegister(2, 'cr')        
+        creg = ClassicalRegister(2, 'cr')
         qubit0 = ('qr', 0)
         qubit1 = ('qr', 1)
         clbit0 = ('cr', 0)

@@ -331,7 +331,7 @@ class DAGCircuit:
             all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0]].size)])
         return all_bits
 
-    def _add_op_node(self, nname, nqargs, ncargs, nparams, ncondition):
+    def _add_op_node(self, nname, nqargs, ncargs, nparams, ncondition, nop):
         """Add a new operation node to the graph and assign properties.
 
         nname node name
@@ -339,6 +339,7 @@ class DAGCircuit:
         ncargs classical arguments
         nparams parameters
         ncondition classical condition (or None)
+        nop Instruction instance representing this operation
         """
         # Add a new operation node to the graph
         self.node_counter += 1
@@ -350,9 +351,10 @@ class DAGCircuit:
         self.multi_graph.node[self.node_counter]["cargs"] = ncargs
         self.multi_graph.node[self.node_counter]["params"] = nparams
         self.multi_graph.node[self.node_counter]["condition"] = ncondition
+        self.multi_graph.node[self.node_counter]["op"] = nop
 
     def apply_operation_back(self, name, qargs, cargs=None, params=None,
-                             condition=None):
+                             condition=None, op=None):
         """Apply an operation to the output of the circuit.
 
         name is a string
@@ -360,6 +362,7 @@ class DAGCircuit:
         cargs is a list of tuples like ("c",0)
         params is a list of symbols that represent numbers
         condition is either None or a tuple (string,int) giving (creg,value)
+        op is an Instruction instance representing this node
         """
         cargs = cargs or []
         params = params or []
@@ -371,7 +374,7 @@ class DAGCircuit:
         self._check_bits(qargs, self.output_map, False)
         self._check_bits(all_cbits, self.output_map, True)
 
-        self._add_op_node(name, qargs, cargs, params, condition)
+        self._add_op_node(name, qargs, cargs, params, condition, op)
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
         # and adding new edges from the operation node to each output node
@@ -387,7 +390,7 @@ class DAGCircuit:
                 self.node_counter, self.output_map[q], name=q)
 
     def apply_operation_front(self, name, qargs, cargs=None, params=None,
-                              condition=None):
+                              condition=None, op=None):
         """Apply an operation to the input of the circuit.
 
         name is a string
@@ -406,8 +409,7 @@ class DAGCircuit:
         self._check_bits(qargs, self.input_map, False)
         self._check_bits(all_cbits, self.input_map, True)
 
-        self._add_op_node(name, qargs, cargs, params,
-                          condition)
+        self._add_op_node(name, qargs, cargs, params, condition, op)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
@@ -608,7 +610,7 @@ class DAGCircuit:
                 m_qargs = list(map(lambda x: wire_map.get(x, x), nd["qargs"]))
                 m_cargs = list(map(lambda x: wire_map.get(x, x), nd["cargs"]))
                 self.apply_operation_back(nd["name"], m_qargs, m_cargs,
-                                          nd["params"], condition)
+                                          nd["params"], condition, nd["op"])
             else:
                 raise QISKitError("bad node type %s" % nd["type"])
 
@@ -669,7 +671,7 @@ class DAGCircuit:
                 m_qargs = list(map(lambda x: wire_map.get(x, x), nd["qargs"]))
                 m_cargs = list(map(lambda x: wire_map.get(x, x), nd["cargs"]))
                 self.apply_operation_front(nd["name"], m_qargs, m_cargs,
-                                           nd["params"], condition)
+                                           nd["params"], condition, nd["op"])
             else:
                 raise QISKitError("bad node type %s" % nd["type"])
 
@@ -966,7 +968,7 @@ class DAGCircuit:
                             m_qargs = [wire_map.get(x, x) for x in md["qargs0"]]
                             m_cargs = [wire_map.get(x, x) for x in md["cargs0"]]
                             self._add_op_node(md["name"], m_qargs, m_cargs,
-                                              md["params"], condition)
+                                              md["params"], condition, md["op"])
                             # Add edges from predecessor nodes to new node
                             # and update predecessor nodes that change
                             all_cbits = self._bits_in_condition(condition)
@@ -1060,7 +1062,7 @@ class DAGCircuit:
                 m_cargs = list(map(lambda x: wire_map.get(x, x),
                                    md["cargs"]))
                 self._add_op_node(md["name"], m_qargs, m_cargs,
-                                  md["params"], condition)
+                                  md["params"], condition, md["op"])
                 # Add edges from predecessor nodes to new node
                 # and update predecessor nodes that change
                 all_cbits = self._bits_in_condition(condition)
@@ -1231,10 +1233,11 @@ class DAGCircuit:
                 ca = copy.copy(nxt_nd["cargs"])
                 pa = copy.copy(nxt_nd["params"])
                 co = copy.copy(nxt_nd["condition"])
+                op = copy.copy(nxt_nd["op"])
                 _ = self._bits_in_condition(co)
                 # Add node to new_layer
                 new_layer.apply_operation_back(nxt_nd["name"],
-                                               qa, ca, pa, co)
+                                               qa, ca, pa, co, op)
                 # Add operation to partition
                 if nxt_nd["name"] not in ["barrier",
                                           "snapshot", "save", "load", "noise"]:
@@ -1409,5 +1412,5 @@ class DAGCircuit:
 
                 dagcircuit.apply_operation_back(name, qargs, cargs,
                                                 instruction.param,
-                                                control)
+                                                control, instruction)
         return dagcircuit
