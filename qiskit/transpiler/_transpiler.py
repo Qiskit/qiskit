@@ -215,7 +215,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     # TODO: `coupling_map`, `initial_layout`, `get_layout`, `seed_mapper` removed after mapper pass.
 
     # TODO: move this to the mapper pass
-    num_qubits = sum(dag.qregs.values())
+    num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     if num_qubits == 1 or coupling_map == "all-to-all":
         coupling_map = None
 
@@ -365,12 +365,12 @@ def _pick_best_layout(dag, backend):
         dict: A special ordered initial_layout
 
     """
-    num_qubits = sum(dag.qregs.values())
+    num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     best_sub = _best_subset(backend, num_qubits)
     layout = {}
     map_iter = 0
     for key, value in dag.qregs.items():
-        for i in range(value):
+        for i in range(value.size):
             layout[(key, i)] = ('q', best_sub[map_iter])
             map_iter += 1
     return layout

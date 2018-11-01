@@ -24,7 +24,8 @@ import itertools
 import networkx as nx
 import sympy
 
-from qiskit import QuantumRegister, QISKitError, CompositeGate
+from qiskit import QuantumRegister, ClassicalRegister
+from qiskit import QISKitError, CompositeGate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -44,6 +45,7 @@ class DAGCircuit:
         # Circuit name.  Generally, this corresponds to the name
         # of the QuantumCircuit from which the DAG was generated.
         self.name = None
+
         # Map from a wire's name (reg,idx) to a Bool that is True if the
         # wire is a classical bit and False if the wire is a qubit.
         self.wire_type = {}
@@ -92,7 +94,7 @@ class DAGCircuit:
 
     def get_qubits(self):
         """Return a list of qubits as (qreg, index) pairs."""
-        return [(k, i) for k, v in self.qregs.items() for i in range(v)]
+        return [(k, i) for k, v in self.qregs.items() for i in range(v.size)]
 
     def rename_register(self, regname, newname):
         """Rename a classical or quantum register throughout the circuit.
@@ -110,11 +112,11 @@ class DAGCircuit:
         if regname in self.qregs:
             self.qregs[newname] = self.qregs[regname]
             self.qregs.pop(regname, None)
-            reg_size = self.qregs[newname]
+            reg_size = self.qregs[newname].size
         if regname in self.cregs:
             self.cregs[newname] = self.cregs[regname]
             self.cregs.pop(regname, None)
-            reg_size = self.cregs[newname]
+            reg_size = self.cregs[newname].size
             iscreg = True
         for i in range(reg_size):
             self.wire_type[(newname, i)] = iscreg
@@ -159,21 +161,25 @@ class DAGCircuit:
         fmt = "{0:0.%snumber}" % self.prec
         return fmt.format(number)
 
-    def add_qreg(self, name, size):
-        """Add all wires in a quantum register named name with size."""
-        if name in self.qregs or name in self.cregs:
-            raise DAGCircuitError("duplicate register name %s" % name)
-        self.qregs[name] = size
-        for j in range(size):
-            self._add_wire((name, j))
+    def add_qreg(self, qreg):
+        """Add all wires in a quantum register."""
+        if not isinstance(qreg, QuantumRegister):
+            raise DAGCircuitError("not a QuantumRegister instance.")
+        if qreg.name in self.qregs:
+            raise DAGCircuitError("duplicate register %s" % qreg.name)
+        self.qregs[qreg.name] = qreg
+        for j in range(qreg.size):
+            self._add_wire((qreg.name, j))
 
-    def add_creg(self, name, size):
-        """Add all wires in a classical register named name with size."""
-        if name in self.qregs or name in self.cregs:
-            raise DAGCircuitError("duplicate register name %s" % name)
-        self.cregs[name] = size
-        for j in range(size):
-            self._add_wire((name, j), True)
+    def add_creg(self, creg):
+        """Add all wires in a classical register."""
+        if not isinstance(creg, ClassicalRegister):
+            raise DAGCircuitError("not a ClassicalRegister instance.")
+        if creg.name in self.cregs:
+            raise DAGCircuitError("duplicate register %s" % creg.name)
+        self.cregs[creg.name] = creg
+        for j in range(creg.size):
+            self._add_wire((creg.name, j), True)
 
     def _add_wire(self, name, isClassical=False):
         """Add a qubit or bit to the circuit.
@@ -322,7 +328,7 @@ class DAGCircuit:
         """
         all_bits = []
         if cond is not None:
-            all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0]])])
+            all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0]].size)])
         return all_bits
 
     def _add_op_node(self, nname, nqargs, ncargs, nparams, ncondition):
@@ -467,16 +473,16 @@ class DAGCircuit:
 
         wire_map is a map from (regname,idx) in keyregs to (regname,idx)
         in valregs
-        keyregs is a map from register names to sizes
-        valregs is a map from register names to sizes
+        keyregs is a map from register names to Register objects
+        valregs is a map from register names to Register objects
         valreg is a Bool, if False the method ignores valregs and does not
         add regs for bits in the wire_map image that don't appear in valregs
         Return the set of regs to add to self
         """
-        add_regs = set([])
+        add_regs = set()
         reg_frag_chk = {}
         for k, v in keyregs.items():
-            reg_frag_chk[k] = {j: False for j in range(v)}
+            reg_frag_chk[k] = {j: False for j in range(v.size)}
         for k in wire_map.keys():
             if k[0] in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
@@ -490,7 +496,7 @@ class DAGCircuit:
                     raise DAGCircuitError("unmapped duplicate reg %s" % rname)
                 else:
                     # Add registers that appear only in keyregs
-                    add_regs.add((k, keyregs[k]))
+                    add_regs.add(keyregs[k])
             else:
                 if valreg:
                     # If mapping to a register not in valregs, add it.
@@ -501,7 +507,8 @@ class DAGCircuit:
                                        filter(lambda x: x[0]
                                               == wire_map[(k, 0)][0],
                                               wire_map.values())))
-                        add_regs.add((wire_map[(k, 0)][0], size + 1))
+                        qreg = QuantumRegister(wire_map[(k, 0)][0], size + 1)
+                        add_regs.add(qreg)
         return add_regs
 
     def _check_wiremap_validity(self, wire_map, keymap, valmap, input_circuit):
@@ -564,14 +571,14 @@ class DAGCircuit:
         add_qregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
-        for register in add_qregs:
-            self.add_qreg(register[0], register[1])
+        for qreg in add_qregs:
+            self.add_qreg(qreg)
 
         add_cregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
-        for register in add_cregs:
-            self.add_creg(register[0], register[1])
+        for creg in add_cregs:
+            self.add_creg(creg)
 
         self._check_wiremap_validity(wire_map, input_circuit.input_map,
                                      self.output_map, input_circuit)
@@ -624,14 +631,14 @@ class DAGCircuit:
         add_qregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
-        for r in add_qregs:
-            self.add_qreg(r[0], r[1])
+        for qreg in add_qregs:
+            self.add_qreg(qreg)
 
         add_cregs = self._check_wiremap_registers(wire_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
-        for r in add_cregs:
-            self.add_creg(r[0], r[1])
+        for creg in add_cregs:
+            self.add_creg(creg)
 
         self._check_wiremap_validity(wire_map, input_circuit.output_map,
                                      self.input_map, input_circuit)
@@ -746,9 +753,9 @@ class DAGCircuit:
             if qeflag:
                 out += "include \"qelib1.inc\";\n"
             for k, v in sorted(qregdata.items()):
-                out += "qreg %s[%d];\n" % (k, v)
+                out += "qreg %s[%d];\n" % (k, v.size)
             for k, v in sorted(self.cregs.items()):
-                out += "creg %s[%d];\n" % (k, v)
+                out += "creg %s[%d];\n" % (k, v.size)
             omit = ["U", "CX", "measure", "reset", "barrier"]
             # TODO: dagcircuit shouldn't know about extensions
             if qeflag:
@@ -844,7 +851,7 @@ class DAGCircuit:
 
         wire_tot = self.basis[name][0] + self.basis[name][1]
         if condition is not None:
-            wire_tot += self.cregs[condition[0]]
+            wire_tot += self.cregs[condition[0]].size
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
                                   % (wire_tot, len(wires)))
@@ -917,14 +924,14 @@ class DAGCircuit:
         add_qregs = self._check_wiremap_registers(proxy_map,
                                                   input_circuit.qregs,
                                                   {}, False)
-        for r in add_qregs:
-            self.add_qreg(r[0], r[1])
+        for qreg in add_qregs:
+            self.add_qreg(qreg)
 
         add_cregs = self._check_wiremap_registers(proxy_map,
                                                   input_circuit.cregs,
                                                   {}, False)
-        for r in add_cregs:
-            self.add_creg(r[0], r[1])
+        for creg in add_cregs:
+            self.add_creg(creg)
 
         # Iterate through the nodes of self and replace the selected nodes
         # by iterating through the input_circuit, constructing and
@@ -1007,14 +1014,14 @@ class DAGCircuit:
         add_qregs = self._check_wiremap_registers(proxy_map,
                                                   input_circuit.qregs,
                                                   {}, False)
-        for r in add_qregs:
-            self.add_qreg(r[0], r[1])
+        for qreg in add_qregs:
+            self.add_qreg(qreg)
 
         add_cregs = self._check_wiremap_registers(proxy_map,
                                                   input_circuit.cregs,
                                                   {}, False)
-        for r in add_cregs:
-            self.add_creg(r[0], r[1])
+        for creg in add_cregs:
+            self.add_creg(creg)
 
         # Replace the node by iterating through the input_circuit.
         # Constructing and checking the validity of the wire_map.
@@ -1211,10 +1218,10 @@ class DAGCircuit:
             nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
                 new_layer = DAGCircuit()
-                for k, v in self.qregs.items():
-                    new_layer.add_qreg(k, v)
-                for k, v in self.cregs.items():
-                    new_layer.add_creg(k, v)
+                for qreg in self.qregs.values():
+                    new_layer.add_qreg(qreg)
+                for creg in self.cregs.values():
+                    new_layer.add_creg(creg)
                 new_layer.basis = self.basis.copy()
                 new_layer.gates = self.gates.copy()
                 # Save the support of the operation we add to the layer
@@ -1340,9 +1347,9 @@ class DAGCircuit:
         dagcircuit.name = circuit.name
         for register in circuit.regs.values():
             if isinstance(register, QuantumRegister):
-                dagcircuit.add_qreg(register.name, len(register))
+                dagcircuit.add_qreg(register)
             else:
-                dagcircuit.add_creg(register.name, len(register))
+                dagcircuit.add_creg(register)
         # Add user gate definitions
         for name, data in circuit.definitions.items():
             dagcircuit.add_basis_element(name, data["n_bits"], 0,
