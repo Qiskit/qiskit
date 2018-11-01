@@ -63,7 +63,7 @@ Fixed
 Removed
 -------
 - Remove register, available_backends (#1131).
-
+- Remove tools/apps (#1184).
 
 `0.6.0`_ - 2018-10-04
 =====================
