@@ -21,7 +21,7 @@ from qiskit import QISKitError
 class Pauli:
     """A simple class representing Pauli Operators.
 
-    The form is P = (-i)^dot(v,w) Z^v X^w where v and w are elements of Z_2^n.
+    The form is P_vw = (-i)^dot(v,w) Z^v X^w where v and w are elements of Z_2^n.
     That is, there are 4^n elements (no phases in this group).
 
     For example, for 1 qubit
@@ -33,7 +33,7 @@ class Pauli:
     Multiplication is P1*P2 = (-i)^dot(v1+v2,w1+w2) Z^(v1+v2) X^(w1+w2)
     where the sums are taken modulo 2.
 
-    Pauli vectors v and w are supposed to be defined as numpy arrays.
+    Pauli vectors v and w are supposed to be defined as boolean numpy arrays.
 
     Ref.
     Jeroen Dehaene and Bart De Moor
@@ -42,8 +42,73 @@ class Pauli:
     Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
 
-    def __init__(self, v, w):
-        """Make the Pauli object."""
+    def __init__(self, v=None, w=None, label=None):
+        r"""Make the Pauli object.
+
+        Note that, for the qubit index:
+            - Order of v, w vectors is q_0 ... q_{n-1},
+            - Order of pauli label is q_{n-1} ... q_0
+
+        E.g.,
+            - v and w vectors: v = [v_0 ... v_{n-1}], w = [w_0 ... w_{n-1}]
+            - a pauli is $P_{n-1} \otimes ... \otimes P_0$
+
+        Args:
+            v (numpy.ndarray): boolean, v vector
+            w (numpy.ndarray): boolean, w vector
+            label (str): pauli label
+        """
+        if label is not None:
+            Pauli.from_label(label)
+        else:
+            self._init_from_bool(v, w)
+
+    @classmethod
+    def from_label(cls, label):
+        r"""Take pauli string to construct pauli.
+
+        The qubit index of pauli label is q_{n-1} ... q_0.
+        E.g., a pauli is $P_{n-1} \otimes ... \otimes P_0$
+
+        Args:
+            label (str): pauli label
+
+        Returns:
+            Pauli: the constructed pauli
+
+        Raises:
+            QISKitError: invalid character in the label
+        """
+        v = np.zeros(len(label), dtype=np.bool)
+        w = np.zeros(len(label), dtype=np.bool)
+        for i, char in enumerate(label):
+            if char == 'X':
+                w[-i - 1] = True
+            elif char == 'Z':
+                v[-i - 1] = True
+            elif char == 'Y':
+                v[-i - 1] = True
+                w[-i - 1] = True
+            elif char != 'I':
+                raise QISKitError("Pauli string must be only consisted of 'I', 'X', "
+                                  "'Y' or 'Z' but you have {}.".format(char))
+        return cls(v=v, w=w)
+
+    def _init_from_bool(self, v, w):
+        """Construct pauli from boolean array.
+
+        Args:
+            v (numpy.ndarray): boolean, v vector
+            w (numpy.ndarray): boolean, w vector
+        """
+        if v is None:
+            raise QISKitError("v vector must not be None.")
+        if w is None:
+            raise QISKitError("w vector must not be None.")
+        if len(v) != len(w):
+            raise QISKitError("length of v and w vectors must be "
+                              "the same. (v: {} vs w: {})".format(len(v), len(w)))
+
         if isinstance(v, list) and isinstance(w, list):
             v = np.asarray(v).astype(np.bool)
             w = np.asarray(w).astype(np.bool)
@@ -55,23 +120,7 @@ class Pauli:
         self._v = v
         self._w = w
 
-    @classmethod
-    def from_label(cls, labels):
-        """Take pauli string to construct pauli."""
-        v = np.zeros(len(labels), dtype=np.bool)
-        w = np.zeros(len(labels), dtype=np.bool)
-        for i, label in enumerate(labels):
-            if label == 'X':
-                w[i] = True
-            elif label == 'Z':
-                v[i] = True
-            elif label == 'Y':
-                v[i] = True
-                w[i] = True
-            elif label != 'I':
-                raise QISKitError("Pauli string must be only consisted of 'I', 'X', "
-                                  "'Y' or 'Z' but you have {}.".format(label))
-        return cls(v, w)
+        return self
 
     def __len__(self):
         """Return number of qubits."""
@@ -79,17 +128,16 @@ class Pauli:
 
     def __repr__(self):
         """Return the representation of self."""
-        v = [x for x in self._v.astype(np.int)]
-        w = [x for x in self._w.astype(np.int)]
+        v = [x for x in self._v]
+        w = [x for x in self._w]
 
         ret = self.__class__.__name__ + "(v={}, w={})".format(v, w)
         return ret
 
     def __str__(self):
-        # TODO: the order of qubit
         """Output the Pauli label."""
         label = ''
-        for v, w in zip(self._v, self._w):
+        for v, w in zip(self._v[::-1], self._w[::-1]):
             if not v and not w:
                 label += 'I'
             elif not v and w:
@@ -98,7 +146,6 @@ class Pauli:
                 label += 'Z'
             else:
                 label += 'Y'
-
         return label
 
     def __eq__(self, other):
@@ -114,13 +161,21 @@ class Pauli:
         return not self.__eq__(other)
 
     def __mul__(self, other):
-        """Multiply two Paulis."""
+        """Multiply two Paulis.
+
+        Raises:
+            QISKitError: if the number of qubits of two paulis are different.
+        """
         if len(self) != len(other):
-            raise QISKitError('These Paulis cannot be multiplied - different number '
-                              'of qubits')
+            raise QISKitError("These Paulis cannot be multiplied - different "
+                              "number of qubits. ({} vs {})".format(len(self), len(other)))
         v_new = np.logical_xor(self._v, other.v)
         w_new = np.logical_xor(self._w, other.w)
         return Pauli(v_new, w_new)
+
+    def __hash__(self):
+        """Make object is hashable, based on the pauli label to hash."""
+        return hash(str(self))
 
     @property
     def v(self):
@@ -134,10 +189,10 @@ class Pauli:
 
     @staticmethod
     def sgn_prod(p1, p2):
-        """
-        Multiply two Paulis p1*p2 and track the sign.
+        r"""
+        Multiply two Paulis and track the sign.
 
-        p3 = p1*p2: X*Y
+        $P_3 = P_1 \otimes P_2$: X*Y
 
         Args:
             p1 (Pauli): pauli 1
@@ -145,11 +200,11 @@ class Pauli:
 
         Returns:
             Pauli: the multiplied pauli
-            phase: the sign of the multiplication
+            complex: the sign of the multiplication, 1, -1, 1j or -1j
         """
         new_pauli = p1 * p2
         phase_changes = 0
-        for v1, w1, v2, w2 in zip(p1._v, p1._w, p2._v, p2._w):
+        for v1, w1, v2, w2 in zip(p1.v, p1.w, p2.v, p2.w):
             if v1 and not w1:  # Z
                 if w2:
                     phase_changes = phase_changes - 1 if v2 else phase_changes + 1
@@ -170,8 +225,9 @@ class Pauli:
         return len(self)
 
     def to_label(self):
-        # TODO: the order of qubits.
-        """Print out the labels in X, Y, Z format.
+        """Present the pauli labels in I, X, Y, Z format.
+
+        Order is $q_{n-1} .... q_0$
 
         Returns:
             str: pauli label
@@ -182,20 +238,19 @@ class Pauli:
         """
         Convert Pauli to a matrix representation.
 
-        Order is q_n x q_{n-1} .... q_0
+        Order is q_{n-1} .... q_0
 
         Returns:
             numpy.array: a matrix that represents the pauli.
         """
-        mat = self.to_spmatrix
+        mat = self.to_spmatrix()
         return mat.toarray()
 
     def to_spmatrix(self):
-        # TODO: the order of qubits.
         """
         Convert Pauli to a sparse matrix representation (CSR format).
 
-        Order is q_n x q_{n-1} .... q_0
+        Order is q_{n-1} .... q_0
 
         Returns:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
@@ -215,111 +270,122 @@ class Pauli:
 
         return mat.tocsr()
 
-    def update_v(self, v, pos=None):
-        # TODO: the order of qubits.
+    def update_v(self, v, indices=None):
         """
         Update partial of entire v.
 
         Args:
             v (numpy.ndarray): to-be-updated v.
-            pos (numpy.ndarray or list or None): to-be-updated position
+            indices (numpy.ndarray or list or optional): to-be-updated qubit indices
+
+        Returns:
+            Pauli: self
+
+        Raises:
+            QISKitError: when updating whole v, the number of qubits must be the same.
         """
-        if pos is None:
+        if indices is None:
+            if len(self._v) != len(v):
+                raise QISKitError("During updating whole v, you can not chagne the number of qubits.")
             self._v = v
         else:
-            if not isinstance(pos, list) or not isinstance(pos, np.ndarray):
-                pos = [pos]
-            for p, idx in enumerate(pos):
+            if not isinstance(indices, list) or not isinstance(indices, np.ndarray):
+                indices = [indices]
+            for p, idx in enumerate(indices):
                 self._v[idx] = v[p]
 
         return self
 
-    def update_w(self, w, pos=None):
-        # TODO: the order of qubits.
+    def update_w(self, w, indices=None):
         """
         Update partial of entire w.
 
         Args:
             w (numpy.ndarray): to-be-updated w.
-            pos (numpy.ndarray or list or None): to-be-updated position
+            indices (numpy.ndarray or list or optional): to-be-updated qubit indices
+
+        Returns:
+            Pauli: self
+
+        Raises:
+            QISKitError: when updating whole w, the number of qubits must be the same.
         """
-        if pos is None:
+        if indices is None:
+            if len(self._w) != len(w):
+                raise QISKitError("During updating whole w, you can not chagne the number of qubits.")
             self._w = w
         else:
-            if not isinstance(pos, list) or not isinstance(pos, np.ndarray):
-                pos = [pos]
-            for p, idx in enumerate(pos):
+            if not isinstance(indices, list) or not isinstance(indices, np.ndarray):
+                indices = [indices]
+            for p, idx in enumerate(indices):
                 self._w[idx] = w[p]
 
         return self
 
-    def insert_qubits(self, pos, pauli_labels):
-        # TODO: the order of qubits.
+    def insert_qubits(self, indices, pauli_labels):
         """
-        Insert pauli to the targeted positions.
+        Insert pauli to the targeted indices.
 
         Args:
-            pos ([int]): the position to be inserted.
+            indices ([int]): the qubit indices to be inserted.
             paulis_label([str]): to-be-inserted pauli
 
         Note:
-            the pos refers to the localion of original paulis,
-            e.g. if pos = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'IXYZ'
-            the pauli will be updated to 'Z'IX'I'YZ.
-            'Z' and 'I' are inserted before the index at 0 and 2.
+            the indices refers to the localion of original paulis,
+            e.g. if indices = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'ZYXI'
+            the pauli will be updated to ZY'I'XI'Z'
+            'Z' and 'I' are inserted before the qubit at 0 and 2.
         """
-        if not isinstance(pos, list):
-            pos = [pos]
+        if not isinstance(indices, list):
+            indices = [indices]
 
         if not isinstance(pauli_labels, list):
             pauli_labels = [pauli_labels]
 
-        tmp = Pauli.from_pauli_string(pauli_labels)
+        tmp = Pauli.from_label(pauli_labels)
 
-        new_v = self._v
-        new_w = self._w
-        self._v = np.insert(new_v, pos, tmp.v)
-        self._w = np.insert(new_w, pos, tmp.w)
+        self._v = np.insert(self._v, indices, tmp.v)
+        self._w = np.insert(self._w, indices, tmp.w)
 
         return self
 
     def append_qubits(self, pauli_labels):
-        # TODO: the order of qubits.
-        """
-        Append pauli to the end.
+        r"""Append pauli to the higher order of qubit.
+
+        The resulted pauli is $P_{new} \otimes P_{old}$
 
         Args:
-            paulis_labels([str]): to-be-inserted pauli
+            paulis_labels(str): to-be-inserted pauli
+
+        Returns:
+            Pauli: self
         """
-        if not isinstance(pauli_labels, list):
-            pauli_labels = [pauli_labels]
-
-        tmp = Pauli.from_pauli_string(pauli_labels)
-
-        self._v = np.concatenate((self._v, tmp.v))
-        self._w = np.concatenate((self._w, tmp.w))
+        tmp = Pauli.from_label(pauli_labels)
+        self.kron(tmp)
 
         return self
 
-    def delete_qubits(self, pos):
-        # TODO: the order of qubits.
+    def delete_qubits(self, indices):
         """
-        Delete pauli at the position.
+        Delete pauli at the indices.
 
         Args:
-            pos([int]): the positions of to-be-deleted paulis.
-        """
-        if not isinstance(pos, list):
-            pos = [pos]
+            indices([int]): the indices of to-be-deleted paulis.
 
-        self._v = np.delete(self._v, pos)
-        self._w = np.delete(self._w, pos)
+        Returns:
+            Pauli: self
+        """
+        if not isinstance(indices, list):
+            indices = [indices]
+
+        self._v = np.delete(self._v, indices)
+        self._w = np.delete(self._w, indices)
 
         return self
 
     @staticmethod
     def generate_random_pauli(num_qubits):
-        """Return a random Pauli on numberofqubits.
+        """Return a random Pauli on number of qubits.
 
         Args:
             num_qubits (int): the number of qubits.
@@ -332,35 +398,41 @@ class Pauli:
         return Pauli(v, w)
 
     @staticmethod
-    def generate_single_qubit_pauli(pos, pauli_label, num_qubits):
-        # TODO: the order of qubits.
+    def generate_single_qubit_pauli(index, pauli_label, num_qubits):
         """
-        Generate single qubit pauli at pos with pauli_label with length num_qubits.
+        Generate single qubit pauli at index with pauli_label with length num_qubits.
 
         Args:
-            pos (int): the position to insert the single qubii
+            index (int): the qubit index to insert the single qubii
             pauli_label (str): pauli
             num_qubits (int): the length of pauli
 
+        Returns:
+            Pauli: single qubit pauli
         """
-        tmp = Pauli.from_pauli_string(pauli_label)
+        tmp = Pauli.from_label(pauli_label)
         v = np.zeros(num_qubits, dtype=np.bool)
         w = np.zeros(num_qubits, dtype=np.bool)
 
-        v[pos] = tmp._v[0]
-        w[pos] = tmp._w[0]
+        v[index] = tmp.v[0]
+        w[index] = tmp.w[0]
 
         return Pauli(v, w)
 
-    def kron(self, pauli):
-        # TODO: the order of qubits.
-        """kron product of two paulis"""
+    def kron(self, other):
+        r"""Kron product of two paulis.
 
-        self._v = np.concatenate((self._v, pauli.v))
-        self._w = np.concatenate((self._w, pauli.w))
+        Order is $P_2 (other) \otimes P_1 (self)$
 
+        Args:
+            other (Pauli): P2
+
+        Returns:
+            Pauli: self
+        """
+        self._v = np.concatenate((self._v, other.v))
+        self._w = np.concatenate((self._w, other.w))
         return self
-
 
 
 def pauli_group(number_of_qubits, case='weight'):
@@ -434,12 +506,23 @@ def pauli_singles(j_index, number_qubits):
 
 
 if __name__ == '__main__':
-    p = Pauli.from_label('IIII')
-    # p.insert_qubits([0, 2], ['Z', 'X'])
+    p = Pauli.from_label('ZIII')
+    p.insert_qubits([0, 2], ['Z', 'X'])
+    print(p)
     # p.append_qubits(list('ZX'))
+    p.append_qubits('ZXY')
     print(p)
     print(repr(p))
+    p2 = eval(repr(p))
     a = np.zeros(4)
     b = np.ones(4)
     c = Pauli(a, b)
     print(c._v.dtype)
+
+    p1 = Pauli(v=[0, 0, 0, 1], w=[0, 0, 0, 0])
+    print(p1)
+
+    dict_p = {}
+
+    dict_p[p] = 1
+    print(dict_p[p1])
