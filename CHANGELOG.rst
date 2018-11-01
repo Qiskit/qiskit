@@ -48,6 +48,10 @@ Deprecated
    should be used. (#1055)
 - The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed in the future. (#1055)
+- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
+  alternative list of basis gates is deprecated and will be removed in the
+  future. Instead users should adjust the basis gates prior to visualizing
+  the circuit. (#1151)
 
 Fixed
 -----

@@ -15,7 +15,9 @@ from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QISKitError
 from qiskit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.unroll import DagUnroller, DAGBackend, JsonBackend
+from qiskit.unrollers import _dagunroller
+from qiskit.unrollers import _dagbackend
+from qiskit.unrollers import _jsonbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
@@ -227,7 +229,8 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
         basis = basis_gates.split(',') if basis_gates else []
-        dag_unroller = DagUnroller(dag, DAGBackend(basis))
+        dag_unroller = _dagunroller.DagUnroller(
+            dag, _dagbackend.DAGBackend(basis))
         dag = dag_unroller.expand_gates()
         # if a coupling map is given compile to the map
         if coupling_map:
@@ -242,7 +245,8 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
-            dag_unroller = DagUnroller(dag, DAGBackend(basis))
+            dag_unroller = _dagunroller.DagUnroller(
+                dag, _dagbackend.DAGBackend(basis))
             dag = dag_unroller.expand_gates()
             # Change cx directions
             dag = direction_mapper(dag, coupling)
@@ -261,7 +265,8 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         compiled_circuit = dag
     elif format == 'json':
         # FIXME: JsonBackend is wrongly taking an ordered dict as basis, not list
-        dag_unroller = DagUnroller(dag, JsonBackend(dag.basis))
+        dag_unroller = _dagunroller.DagUnroller(
+            dag, _jsonbackend.JsonBackend(dag.basis))
         compiled_circuit = dag_unroller.execute()
     elif format == 'qasm':
         compiled_circuit = dag.qasm()

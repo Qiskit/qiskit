@@ -25,13 +25,6 @@ class CHGate(Gate):
         """Create new CH gate."""
         super().__init__("ch", [], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("ch %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
