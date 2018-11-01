@@ -20,6 +20,7 @@ def _trim(image):
         image = image.crop(bbox)
     return image
 
+
 def _get_instructions(dag, reversebits=False):
     """
     Given a dag, return a tuple (qregs, cregs, ops) where
@@ -40,8 +41,8 @@ def _get_instructions(dag, reversebits=False):
         if node['type'] == 'op':
             ops.append(node)
 
-    for qreg,amount in dag.qregs.items():
-        labels = [(qreg,bitno) for bitno in range(amount)]
+    for qreg, amount in dag.qregs.items():
+        labels = [(qreg, bitno) for bitno in range(amount)]
         if reversebits:
             labels.reverse()
         qregs += labels

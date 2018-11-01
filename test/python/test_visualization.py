@@ -15,7 +15,6 @@ from inspect import signature
 import unittest
 import qiskit
 from .common import QiskitTestCase
-from qiskit.dagcircuit import DAGCircuit
 
 try:
     from qiskit.tools.visualization import generate_latex_source
@@ -181,7 +180,7 @@ class TestVisualizationUtils(QiskitTestCase):
         clbit2_0 = ('cr2', 0)
         clbit2_1 = ('cr2', 1)
 
-        self.dag = DAGCircuit()
+        self.dag = qiskit.dagcircuit.DAGCircuit()
         self.dag.add_basis_element('cx', 2)
         self.dag.add_basis_element('measure', 1, number_classical=1, number_parameters=0)
         self.dag.add_qreg('qr1', 2)
@@ -211,9 +210,10 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_instructions_reversebits(self):
         """ _get_instructions with reversebits=True """
-        (qregs, cregs, ops) = _utils._get_instructions(self.dag, reversebits=True)
+        (qregs, cregs, _) = _utils._get_instructions(self.dag, reversebits=True)
         self.assertEqual([('qr1', 1), ('qr1', 0), ('qr2', 1), ('qr2', 0)], qregs)
         self.assertEqual([('cr1', 1), ('cr1', 0), ('cr2', 1), ('cr2', 0)], cregs)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
