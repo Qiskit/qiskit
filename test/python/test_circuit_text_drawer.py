@@ -236,7 +236,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.swap(qr1, qr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, reversebits=True)), expected)
 
-
     def test_text_cswap(self):
         """ CSwap drawing. """
         expected = '\n'.join(["                 ",
