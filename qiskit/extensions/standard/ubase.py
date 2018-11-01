@@ -24,15 +24,6 @@ class UBase(Gate):
     def __init__(self, theta, phi, lam, qubit, circ=None):
         super().__init__("U", [theta, phi, lam], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        theta = self.param[0]
-        phi = self.param[1]
-        lamb = self.param[2]
-        qubit = self.arg[0]
-        return self._qasmif("U(%s,%s,%s) %s[%d];" % (
-            theta, phi, lamb, qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate.
 
