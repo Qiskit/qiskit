@@ -16,8 +16,8 @@ from .cz import cz
 from .swap import swap
 from .h import h
 from .iden import iden
-from .s import s
-from .t import t
+from .s import s, sdg
+from .t import t, tdg
 from .u0 import u0
 from .u1 import u1
 from .u2 import u2
