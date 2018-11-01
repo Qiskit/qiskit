@@ -93,6 +93,7 @@ measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_from_qasm_str(self):
+        """Test qasm constructor from string."""
         qasm_str = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg qr1[1];
@@ -120,6 +121,7 @@ measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qasm_str, qc.qasm())
 
     def test_circuit_from_qasm_file(self):
+        """Test qasm constructor from file."""
         qasm_str = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg qr1[1];
@@ -141,10 +143,10 @@ barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
-        with tempfile.NamedTemporaryFile(suffix='.qasm') as fd:
-            fd.write(qasm_str.encode('utf8'))
-            fd.flush()
-            qc = QuantumCircuit.from_qasm_file(fd.name)
+        with tempfile.NamedTemporaryFile(suffix='.qasm') as qasm_file:
+            qasm_file.write(qasm_str.encode('utf8'))
+            qasm_file.flush()
+            qc = QuantumCircuit.from_qasm_file(qasm_file.name)
         self.assertEqual(len(qc.get_cregs()), 1)
         self.assertEqual(len(qc.get_qregs()), 2)
         self.assertEqual(qasm_str, qc.qasm())
