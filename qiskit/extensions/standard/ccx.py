@@ -8,7 +8,6 @@
 """
 Toffoli gate. Controlled-Controlled-X.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -51,4 +50,3 @@ def ccx(self, ctl1, ctl2, tgt):
 
 
 QuantumCircuit.ccx = ccx
-CompositeGate.ccx = ccx

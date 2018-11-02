@@ -10,7 +10,6 @@
 """
 Pauli Z (phase-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -47,4 +46,3 @@ def z(self, q):
 
 
 QuantumCircuit.z = z
-CompositeGate.z = z

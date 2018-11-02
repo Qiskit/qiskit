@@ -39,6 +39,8 @@ Changed
 - The different output backends for the circuit_drawer() visualizations
   have been moved into separate private modules in
   `qiskit.tools.visualizations`. (#1105, #1111)
+- DAG nodes contain pointers to Register and Instruction objects, rather
+  than their string names (#1189).
 
 Deprecated
 ----------
@@ -63,7 +65,7 @@ Fixed
 Removed
 -------
 - Remove register, available_backends (#1131).
-
+- Remove tools/apps (#1184).
 
 `0.6.0`_ - 2018-10-04
 =====================
