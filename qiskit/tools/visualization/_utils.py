@@ -41,14 +41,14 @@ def _get_instructions(dag, reversebits=False):
         if node['type'] == 'op':
             ops.append(node)
 
-    for qreg, amount in dag.qregs.items():
-        labels = [(qreg, bitno) for bitno in range(amount)]
+    for qreg in dag.qregs.values():
+        labels = [(qreg.name, bitno) for bitno in range(qreg.size)]
         if reversebits:
             labels.reverse()
         qregs += labels
 
-    for creg, amount in dag.cregs.items():
-        labels = [(creg, bitno) for bitno in range(amount)]
+    for creg in dag.cregs.values():
+        labels = [(creg.name, bitno) for bitno in range(creg.size)]
         if reversebits:
             labels.reverse()
         cregs += labels
