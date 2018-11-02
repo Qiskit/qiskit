@@ -23,6 +23,7 @@ import numpy as np
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
+from qiskit.qobj import Qobj
 from qiskit.qobj import qobj_to_dict
 
 logger = logging.getLogger(__name__)
@@ -146,13 +147,18 @@ class CliffordSimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
+        if isinstance(qobj, Qobj):
+            qobj_dict = qobj.as_dict()
+        else:
+            qobj_dict = qobj
         self._validate()
         # set backend to Clifford simulator
-        if 'config' in qobj:
-            qobj['config']['simulator'] = 'clifford'
+        if 'config' in qobj_dict:
+            qobj_dict['config']['simulator'] = 'clifford'
         else:
-            qobj['config'] = {'simulator': 'clifford'}
+            qobj_dict['config'] = {'simulator': 'clifford'}
 
+        qobj = Qobj.from_dict(qobj_dict)
         result = run(qobj, self._configuration['exe'])
         result['job_id'] = job_id
 
