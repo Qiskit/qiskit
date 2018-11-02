@@ -20,6 +20,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     import ipywidgets as widgets                                     # pylint: disable=import-error
     from qiskit.wrapper.jupyter.jupyter_magics import _html_checker  # pylint: disable=C0412
 
+
 def _text_checker(job, interval):
     """A text-based job status checker
 
