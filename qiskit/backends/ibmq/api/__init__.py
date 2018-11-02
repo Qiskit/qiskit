@@ -7,4 +7,5 @@
 
 """IBM Q API connector."""
 
-from .ibmqconnector import ApiError, IBMQConnector
+from .ibmqconnector import ApiError, BadBackendError, RegisterSizeError
+from .ibmqconnector import IBMQConnector
