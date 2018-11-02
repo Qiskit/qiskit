@@ -141,12 +141,12 @@ class DagUnroller(object):
                 gate_node
             ])
             new_wires += [(gate_condition[0], j)
-                          for j in range(self.dag_circuit.cregs[gate_condition[0]])]
+                          for j in range(self.dag_circuit.cregs[gate_condition[0]].size)]
             reg_nodes.append(
                 Creg([
                     IndexedId([
                         Id(gate_condition[0], 0, ""),
-                        Int(self.dag_circuit.cregs[gate_condition[0]])
+                        Int(self.dag_circuit.cregs[gate_condition[0]].size)
                     ])
                 ])
             )
@@ -158,10 +158,10 @@ class DagUnroller(object):
         return sub_circuit, new_wires
 
     def _process(self):
-        for name, width in self.dag_circuit.qregs.items():
-            self.backend.new_qreg(name, width)
-        for name, width in self.dag_circuit.cregs.items():
-            self.backend.new_creg(name, width)
+        for qreg in self.dag_circuit.qregs.values():
+            self.backend.new_qreg(qreg)
+        for creg in self.dag_circuit.cregs.values():
+            self.backend.new_creg(creg)
         for name, data in self.dag_circuit.gates.items():
             self.backend.define_gate(name, data)
         for n in nx.topological_sort(self.dag_circuit.multi_graph):

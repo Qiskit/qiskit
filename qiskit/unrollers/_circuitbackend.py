@@ -10,8 +10,6 @@ Backend for the unroller that produces a QuantumCircuit.
 """
 
 from qiskit import QuantumCircuit
-from qiskit import ClassicalRegister
-from qiskit import QuantumRegister
 from ._backenderror import BackendError
 from ._unrollerbackend import UnrollerBackend
 
@@ -53,25 +51,19 @@ class CircuitBackend(UnrollerBackend):
         """
         pass
 
-    def new_qreg(self, name, size):
+    def new_qreg(self, qreg):
         """Create a new quantum register.
 
-        name = name of the register
-        sz = size of the register
+        qreg = QuantumRegister object
         """
-        assert size >= 0, "invalid qreg size"
-        q_register = QuantumRegister(size, name)
-        self.circuit.add(q_register)
+        self.circuit.add(qreg)
 
-    def new_creg(self, name, size):
+    def new_creg(self, creg):
         """Create a new classical register.
 
-        name = name of the register
-        sz = size of the register
+        creg = ClassicalRegister object
         """
-        assert size >= 0, "invalid creg size"
-        c_register = ClassicalRegister(size, name)
-        self.circuit.add(c_register)
+        self.circuit.add(creg)
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
