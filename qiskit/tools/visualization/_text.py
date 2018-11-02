@@ -11,6 +11,8 @@ A module for drawing circuits in ascii art or some other text representation
 
 from itertools import groupby
 
+from ._error import VisualizationError
+
 
 class DrawElement():
     """ An element is an instruction or an operation that need to be drawn."""
@@ -672,7 +674,7 @@ class TextDrawing():
         Returns:
             list: List of DrawElements.
         Raises:
-            Exception: When the drawing is, for some reason, impossible to be drawn.
+            VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
         layers = []
 
@@ -768,7 +770,8 @@ class TextDrawing():
                 layer.set_qu_multibox(instruction['qubits'], TextDrawing.label_for_box(instruction))
 
             else:
-                raise Exception("I don't know how to handle this instruction", instruction)
+                raise VisualizationError(
+                    "Text visualizer does not know how to handle this instruction", instruction)
 
             layer.connect_with("│", connector_label)
 
@@ -831,8 +834,8 @@ class Layer:
 
         # Checks if qubits are consecutive
         if bits != [i for i in range(bits[0], bits[-1] + 1)]:
-            raise Exception("I don't know how to build a gate with multiple bits when"
-                            "they are not adjacent to each other")
+            raise VisualizationError("Text visualizaer does know how to build a gate with multiple"
+                                     "bits when they are not adjacent to each other")
 
         if len(bits) == 1:
             set_bit(bits[0], BoxOnWire(label, top_connect=top_connect))
