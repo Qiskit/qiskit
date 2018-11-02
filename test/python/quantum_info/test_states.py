@@ -98,6 +98,5 @@ class TestStates(QiskitTestCase):
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
 
-
 if __name__ == '__main__':
     unittest.main()
