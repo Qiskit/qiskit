@@ -33,7 +33,7 @@ stage_generic: &stage_generic
     - mkdir out && cd out && cmake $CMAKE_FLAGS ..
   script:
     # Compile the executables and run the tests.
-    - make && ARGS="-V" make test
+    - make && pip install -e .. && ARGS="-V" make test
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -136,7 +136,7 @@ jobs:
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
-      script: make style VERBOSE="" && make lint VERBOSE=""
+      script: pip install . && make style VERBOSE="" && make lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test

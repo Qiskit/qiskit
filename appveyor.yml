@@ -37,6 +37,7 @@ install:
     - pip.exe install stestr
 # TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
+    - pip.exe install -e .
 
 # Use py.test for output of xunit test results.
 test_script:
