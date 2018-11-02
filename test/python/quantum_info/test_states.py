@@ -87,7 +87,7 @@ class TestStates(QiskitTestCase):
             E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state,
                                                         random_state(3))/(ii+1)
             E_P0_last = E_P0
-        self.assertAlmostEqual(E_P0, 1/8, places=3)
+        self.assertAlmostEqual(E_P0, 1/8, places=2)
 
     def test_random_state_circuit(self):
         state = random_state(3)
