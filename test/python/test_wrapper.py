@@ -67,8 +67,8 @@ class TestWrapper(QiskitTestCase):
         qc.measure(qreg, creg)
         backend = Aer.get_backend('qasm_simulator')
         job_sim = execute([qc]*100, backend)
-        #qiskit.wrapper.job_monitor(job_sim)
-        #self.assertEqual(job_sim.status().name, 'DONE')
+        # qiskit.wrapper.job_monitor(job_sim)
+        # self.assertEqual(job_sim.status().name, 'DONE')
 
 
 if __name__ == '__main__':
