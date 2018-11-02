@@ -33,7 +33,7 @@ def basis_state(str_state, num):
         num (int): the number of qubits
     Returns:
         ndarray:  state(2**num) a quantum state with basis basis state.
-    Raise:
+     Raises:
         QISKitError: if the dimensions is wrong
     """
     n = int(str_state, 2)

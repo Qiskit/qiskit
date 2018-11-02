@@ -83,7 +83,7 @@ class TestStates(QiskitTestCase):
         number = 10000
         E_P0_last = 0
         for ii in range(number):
-            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(basis('000', 3), random_state(3))/(ii+1)
+            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(basis_state('000', 3), random_state(3))/(ii+1)
             E_P0_last = E_P0
         self.assertAlmostEqual(E_P0, 1/8, places=2)
 
