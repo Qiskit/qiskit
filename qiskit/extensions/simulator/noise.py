@@ -10,7 +10,6 @@ Simulator command to toggle noise off or on.
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -26,19 +25,6 @@ class Noise(Instruction):
     def inverse(self):
         """Special case. Return self."""
         return self
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        string = "noise(%d) " % self.param[0]
-        for j in range(len(self.arg)):
-            if len(self.arg[j]) == 1:
-                string += "%s" % self.arg[j].name
-            else:
-                string += "%s[%d]" % (self.arg[j][0].name, self.arg[j][1])
-            if j != len(self.arg) - 1:
-                string += ","
-        string += ";"
-        return string
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
@@ -80,6 +66,5 @@ def noise(self, switch):
     return self._attach(Noise(switch, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.noise = noise
-CompositeGate.noise = noise

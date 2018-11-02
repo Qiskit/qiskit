@@ -10,7 +10,6 @@
 """
 Identity gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -24,11 +23,6 @@ class IdGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Identity gate."""
         super().__init__("id", [], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("id %s[%d];" % (qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -52,4 +46,3 @@ def iden(self, q):
 
 
 QuantumCircuit.iden = iden
-CompositeGate.iden = iden

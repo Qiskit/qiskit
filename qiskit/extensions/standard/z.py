@@ -10,7 +10,6 @@
 """
 Pauli Z (phase-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -24,11 +23,6 @@ class ZGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Z gate."""
         super().__init__("z", [], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("z %s[%d];" % (qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -52,4 +46,3 @@ def z(self, q):
 
 
 QuantumCircuit.z = z
-CompositeGate.z = z
