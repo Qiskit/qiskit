@@ -18,17 +18,17 @@ import math
 import os
 import tempfile
 
+import numpy as np
+import PIL
 from matplotlib import get_backend as get_matplotlib_backend
 from matplotlib import patches
 from matplotlib import pyplot as plt
-import numpy as np
-import PIL
 
 from qiskit import dagcircuit
-from qiskit import _qiskiterror
+from qiskit import transpiler
+from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
-from qiskit import transpiler
 
 
 logger = logging.getLogger(__name__)
@@ -143,11 +143,13 @@ class MatplotlibDrawer:
         for e in header['clbit_labels']:
             for i in range(e[1]):
                 self._creg.append(Register(name=e[0], index=i))
-        assert len(self._creg) == header['number_of_clbits']
+        if len(self._creg) != header['number_of_clbits']:
+            raise _error.VisualizationError('internal error')
         self._qreg = []
         for e in header['qubit_labels']:
             self._qreg.append(Register(name=e[0], index=e[1]))
-        assert len(self._qreg) == header['number_of_qubits']
+        if len(self._qreg) != header['number_of_qubits']:
+            raise _error.VisualizationError('internal error')
 
     @property
     def ast(self):
@@ -693,7 +695,7 @@ class MatplotlibDrawer:
                 self._line(qreg_b, qreg_t)
             else:
                 logger.critical('Invalid gate %s', op)
-                raise _qiskiterror.QISKitError('invalid gate {}'.format(op))
+                raise _error.VisualizationError('invalid gate {}'.format(op))
         #
         # adjust window size and draw horizontal lines
         #
