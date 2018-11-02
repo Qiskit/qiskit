@@ -80,13 +80,14 @@ class TestStates(QiskitTestCase):
 
     def test_random_state(self):
         # this test that a random state converges to 1/d
-        number = 10000
+        number = 100000
         E_P0_last = 0
         for ii in range(number):
-            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(basis_state('000', 3),
+            state = basis_state(bin(np.random.randint(0, 8))[2:].zfill(3),3)
+            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state,
                                                         random_state(3))/(ii+1)
             E_P0_last = E_P0
-        self.assertAlmostEqual(E_P0, 1/8, places=2)
+        self.assertAlmostEqual(E_P0, 1/8, places=3)
 
     def test_random_state_circuit(self):
         state = random_state(3)
