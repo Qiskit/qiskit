@@ -83,7 +83,7 @@ class TestStates(QiskitTestCase):
         number = 100000
         E_P0_last = 0
         for ii in range(number):
-            state = basis_state(bin(np.random.randint(0, 8))[2:].zfill(3),3)
+            state = basis_state(bin(np.random.randint(0, 8))[2:].zfill(3), 3)
             E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state,
                                                         random_state(3))/(ii+1)
             E_P0_last = E_P0
