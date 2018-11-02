@@ -188,10 +188,12 @@ class TestVisualizationUtils(QiskitTestCase):
         self.dag.add_qreg('qr2', 2)
         self.dag.add_creg('cr2', 2)
         self.dag.apply_operation_back('cx', [qubit1_0, qubit1_1], [], [])
-        self.dag.apply_operation_back('cx', [qubit2_0, qubit2_1], [], [])
         self.dag.apply_operation_back('measure', [qubit1_0], [clbit1_0], [])
+        self.dag.apply_operation_back('cx', [qubit1_1, qubit1_0], [], [])
         self.dag.apply_operation_back('measure', [qubit1_1], [clbit1_1], [])
+        self.dag.apply_operation_back('cx', [qubit2_0, qubit2_1], [], [])
         self.dag.apply_operation_back('measure', [qubit2_0], [clbit2_0], [])
+        self.dag.apply_operation_back('cx', [qubit2_1, qubit2_0], [], [])
         self.dag.apply_operation_back('measure', [qubit2_1], [clbit2_1], [])
 
     def test_get_instructions(self):
@@ -199,13 +201,18 @@ class TestVisualizationUtils(QiskitTestCase):
         (qregs, cregs, ops) = _utils._get_instructions(self.dag)
         self.assertEqual([('qr1', 0), ('qr1', 1), ('qr2', 0), ('qr2', 1)], qregs)
         self.assertEqual([('cr1', 0), ('cr1', 1), ('cr2', 0), ('cr2', 1)], cregs)
-        self.assertEqual(['cx', 'measure', 'measure', 'cx', 'measure', 'measure'],
+        self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
                          [op['name'] for op in ops])
-        self.assertEqual(
-            [[('qr2', 0), ('qr2', 1)], [('qr2', 1)], [('qr2', 0)], [('qr1', 0), ('qr1', 1)],
-             [('qr1', 1)], [('qr1', 0)]],
-            [op['qargs'] for op in ops])
-        self.assertEqual([[], [('cr2', 1)], [('cr2', 0)], [], [('cr1', 1)], [('cr1', 0)]],
+        self.assertEqual([[('qr2', 0), ('qr2', 1)],
+                          [('qr2', 0)],
+                          [('qr2', 1), ('qr2', 0)],
+                          [('qr2', 1)],
+                          [('qr1', 0), ('qr1', 1)],
+                          [('qr1', 0)],
+                          [('qr1', 1), ('qr1', 0)],
+                          [('qr1', 1)]],
+                         [op['qargs'] for op in ops])
+        self.assertEqual([[], [('cr2', 0)], [], [('cr2', 1)], [], [('cr1', 0)], [], [('cr1', 1)]],
                          [op['cargs'] for op in ops])
 
     def test_get_instructions_reversebits(self):
