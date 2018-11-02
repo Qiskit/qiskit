@@ -59,10 +59,14 @@ class TestIBMQConnector(QiskitTestCase):
         self.assertIsNotNone(api.get_last_codes())
 
     @requires_qe_access
+    @unittest.skip('run_experiment is not used by terra')
     def test_api_run_experiment(self, qe_token, qe_url):
         """
         Check run an experiment by user authenticated
         """
+        # TODO: the api.run_experiments tests are disabled because they are not
+        # used by terra directly, and incur in extra time and printing to
+        # stdout.
         api = self._get_api(qe_token, qe_url)
         backend = 'ibmq_qasm_simulator'
         shots = 1
@@ -73,6 +77,7 @@ class TestIBMQConnector(QiskitTestCase):
         self.assertIsNotNone(check_status)
 
     @requires_qe_access
+    @unittest.skip('run_experiment is not used by terra')
     def test_api_run_experiment_with_seed(self, qe_token, qe_url):
         """
         Check run an experiment with seed by user authenticated
@@ -91,6 +96,7 @@ class TestIBMQConnector(QiskitTestCase):
         self.assertEqual(check_seed, seed)
 
     @requires_qe_access
+    @unittest.skip('run_experiment is not used by terra')
     def test_api_run_experiment_fail_backend(self, qe_token, qe_url):
         """
         Check run an experiment by user authenticated is not run because the
