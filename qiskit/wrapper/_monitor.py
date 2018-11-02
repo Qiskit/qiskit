@@ -51,6 +51,7 @@ def _text_checker(job, interval):
         if msg != prev_msg:
             print('\r%s: %s' % ('Job Status', msg), end='')
             prev_msg = msg
+    print('')
 
 
 def job_monitor(job, interval=2, monitor_async=False):

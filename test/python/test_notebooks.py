@@ -32,7 +32,7 @@ class TestJupyter(QiskitTestCase):
     @unittest.skipIf(os.getenv('APPVEYOR', None), 'Cannot make temp file in Appveyor.')
     def test_jupyter(self):
         "Test Jupyter functionality"
-        _exec_notebook(self.path+'/notebooks/test_jupyter.ipynb')
+        _exec_notebook(self.path+'/notebooks/test_pbar_status.ipynb')
 
 
 if __name__ == '__main__':
