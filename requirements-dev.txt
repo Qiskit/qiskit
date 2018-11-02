@@ -7,3 +7,5 @@ sphinxcontrib-fulltoc==1.2.0
 coverage>=4.4.0
 wheel
 vcrpy
+jupyter
+ipywidgets
