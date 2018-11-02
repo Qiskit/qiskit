@@ -23,8 +23,10 @@ from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit.unroll import DagUnroller, DAGBackend
+from qiskit.unrollers._dagunroller import DagUnroller
+from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.mapper._quaternion import quaternion_from_euler
+from qiskit import QuantumRegister
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +189,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         logger.debug("layer_permutation: done already")
         logger.debug("layer_permutation: ----- exit -----")
         circ = DAGCircuit()
-        circ.add_qreg('q', layout_max_index)
+        circ.add_qreg(QuantumRegister(layout_max_index, "q"))
         circ.add_basis_element("CX", 2)
         circ.add_basis_element("cx", 2)
         circ.add_basis_element("swap", 2)
@@ -207,7 +209,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         rev_trial_layout = rev_layout.copy()
         # SWAP circuit constructed this trial
         trial_circ = DAGCircuit()
-        trial_circ.add_qreg('q', layout_max_index)
+        trial_circ.add_qreg(QuantumRegister(layout_max_index, "q"))
 
         # Compute Sergey's randomized distance
         xi = {}
@@ -223,7 +225,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         d = 1
         # Circuit for this swap slice
         circ = DAGCircuit()
-        circ.add_qreg('q', layout_max_index)
+        circ.add_qreg(QuantumRegister(layout_max_index, "q"))
         circ.add_basis_element("CX", 2)
         circ.add_basis_element("cx", 2)
         circ.add_basis_element("swap", 2)
@@ -339,7 +341,7 @@ def direction_mapper(circuit_graph, coupling_graph):
                           circuit_graph.basis["cx"])
 
     flipped_cx_circuit = DAGCircuit()
-    flipped_cx_circuit.add_qreg('q', 2)
+    flipped_cx_circuit.add_qreg(QuantumRegister(2, "q"))
     flipped_cx_circuit.add_basis_element("CX", 2)
     flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
     flipped_cx_circuit.add_basis_element("cx", 2)
@@ -392,7 +394,7 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     layout = best_layout
     layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
     dagcircuit_output = DAGCircuit()
-    dagcircuit_output.add_qreg("q", layout_max_index)
+    dagcircuit_output.add_qreg(QuantumRegister(layout_max_index, "q"))
     # Identity wire-map for composing the circuits
     identity_wire_map = {('q', j): ('q', j) for j in range(layout_max_index)}
 
@@ -482,9 +484,9 @@ def swap_mapper(circuit_graph, coupling_graph,
     # and the same set of cregs as the input circuit
     dagcircuit_output = DAGCircuit()
     dagcircuit_output.name = circuit_graph.name
-    dagcircuit_output.add_qreg("q", layout_max_index)
-    for name, size in circuit_graph.cregs.items():
-        dagcircuit_output.add_creg(name, size)
+    dagcircuit_output.add_qreg(QuantumRegister(layout_max_index, "q"))
+    for creg in circuit_graph.cregs.values():
+        dagcircuit_output.add_creg(creg)
 
     # Make a trivial wire mapping between the subcircuits
     # returned by swap_mapper_layer_update and the circuit
@@ -492,9 +494,9 @@ def swap_mapper(circuit_graph, coupling_graph,
     identity_wire_map = {}
     for j in range(layout_max_index):
         identity_wire_map[("q", j)] = ("q", j)
-    for name, size in circuit_graph.cregs.items():
-        for j in range(size):
-            identity_wire_map[(name, j)] = (name, j)
+    for creg in circuit_graph.cregs.values():
+        for j in range(creg.size):
+            identity_wire_map[(creg.name, j)] = (creg.name, j)
 
     first_layer = True  # True until first layer is output
     logger.debug("initial_layout = %s", layout)
@@ -590,9 +592,9 @@ def swap_mapper(circuit_graph, coupling_graph,
             dagcircuit_output.compose_back(layer["graph"], layout)
 
     # Parse openqasm_output into DAGCircuit object
-    dag_unrrolled = DagUnroller(dagcircuit_output,
-                                DAGBackend(basis.split(",")))
-    dagcircuit_output = dag_unrrolled.expand_gates()
+    dag_unrolled = DagUnroller(dagcircuit_output,
+                               DAGBackend(basis.split(",")))
+    dagcircuit_output = dag_unrolled.expand_gates()
     return dagcircuit_output, initial_layout, last_layout
 
 

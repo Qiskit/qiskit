@@ -13,7 +13,8 @@ import unittest
 import qiskit
 import qiskit.extensions.simulator
 from qiskit.tools.qi.qi import state_fidelity
-from qiskit.wrapper import execute
+from qiskit import execute
+from qiskit import Aer, IBMQ
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
@@ -30,8 +31,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
 
-        sim_cpp = 'statevector_simulator'
-        sim_py = 'statevector_simulator_py'
+        sim_cpp = Aer.get_backend('statevector_simulator')
+        sim_py = Aer.get_backend('statevector_simulator_py')
         result_cpp = execute(circuit, sim_cpp).result()
         result_py = execute(circuit, sim_py).result()
         statevector_cpp = result_cpp.get_statevector()
@@ -41,10 +42,8 @@ class TestCrossSimulation(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "cpp vs. py statevector has low fidelity{0:.2g}.".format(fidelity))
 
-    @requires_qe_access
-    def test_qasm(self, qe_token, qe_url):
+    def test_qasm(self):
         """counts from a GHZ state"""
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
         qr = qiskit.QuantumRegister(3)
         cr = qiskit.ClassicalRegister(3)
         circuit = qiskit.QuantumCircuit(qr, cr)
@@ -53,18 +52,14 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        sim_cpp = 'qasm_simulator'
-        sim_py = 'qasm_simulator_py'
-        sim_ibmq = 'ibmq_qasm_simulator'
+        sim_cpp = Aer.get_backend('qasm_simulator')
+        sim_py = Aer.get_backend('qasm_simulator_py')
         shots = 2000
         result_cpp = execute(circuit, sim_cpp, shots=shots).result()
         result_py = execute(circuit, sim_py, shots=shots).result()
-        result_ibmq = execute(circuit, sim_ibmq, shots=shots).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
-        counts_ibmq = result_ibmq.get_counts()
         self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.05)
-        self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.05)
 
     def test_qasm_snapshot(self):
         """snapshot a circuit at multiple places"""
@@ -80,8 +75,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.snapshot(3)
         circuit.measure(qr, cr)
 
-        sim_cpp = 'qasm_simulator'
-        sim_py = 'qasm_simulator_py'
+        sim_cpp = Aer.get_backend('qasm_simulator')
+        sim_py = Aer.get_backend('qasm_simulator_py')
         result_cpp = execute(circuit, sim_cpp, shots=2).result()
         result_py = execute(circuit, sim_py, shots=2).result()
         snapshots_cpp = result_cpp.get_snapshots()
@@ -93,10 +88,8 @@ class TestCrossSimulation(QiskitTestCase):
         fidelity = state_fidelity(snapshot_cpp_1[0], snapshot_py_1[0])
         self.assertGreater(fidelity, self._desired_fidelity)
 
-    @requires_qe_access
-    def test_qasm_reset_measure(self, qe_token, qe_url):
+    def test_qasm_reset_measure(self):
         """counts from a qasm program with measure and reset in the middle"""
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
         qr = qiskit.QuantumRegister(3)
         cr = qiskit.ClassicalRegister(3)
         circuit = qiskit.QuantumCircuit(qr, cr)
@@ -109,20 +102,14 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[2])
         circuit.measure(qr[2], cr[2])
 
-        # TODO: bring back online simulator tests when reset/measure doesn't
-        # get rejected by the api
-        sim_cpp = 'qasm_simulator'
-        sim_py = 'qasm_simulator_py'
-        # sim_ibmq = 'ibmq_qasm_simulator'
+        sim_cpp = Aer.get_backend('qasm_simulator')
+        sim_py = Aer.get_backend('qasm_simulator_py')
         shots = 1000
         result_cpp = execute(circuit, sim_cpp, shots=shots, seed=1).result()
         result_py = execute(circuit, sim_py, shots=shots, seed=1).result()
-        # result_ibmq = execute(circ, sim_ibmq, {'shots': shots}).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
-        # counts_ibmq = result_ibmq.get_counts()
-        self.assertDictAlmostEqual(counts_cpp, counts_py, shots * 0.04)
-        # self.assertDictAlmostEqual(counts_py, counts_ibmq, shots*0.04)
+        self.assertDictAlmostEqual(counts_cpp, counts_py, shots * 0.042)
 
 
 if __name__ == '__main__':

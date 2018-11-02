@@ -147,7 +147,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         self.assertRaises(QISKitError, qc1.__add__, qcr3)
 
     def test_combine_circuit_extension_instructions(self):
-        """Test combining circuits contining barrier, initializer, snapshot
+        """Test combining circuits containing barrier, initializer, snapshot
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -224,7 +224,7 @@ class TestCircuitCombineExtend(QiskitTestCase):
         self.assertRaises(QISKitError, qc1.__iadd__, qcr3)
 
     def test_extend_circuit_extension_instructions(self):
-        """Test extending circuits contining barrier, initializer, snapshot
+        """Test extending circuits containing barrier, initializer, snapshot
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)

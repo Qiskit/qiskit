@@ -21,7 +21,8 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-- Added DAG visualizer (#1059)
+- Added DAG visualizer which requires `Graphivz <https://www.graphviz.org/>`_
+  (#1059)
 - Added a ASCII art circuit visualizer (#909)
 - Added a new kwarg `filename` to
   `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
@@ -34,6 +35,12 @@ Changed
 
 - Evolved pass-based transpiler to support advanced functionality (#1060)
 - Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
+- Make `backend.status()` dictionary conform with schema.
+- The different output backends for the circuit_drawer() visualizations
+  have been moved into separate private modules in
+  `qiskit.tools.visualizations`. (#1105, #1111)
+- DAG nodes contain pointers to Register and Instruction objects, rather
+  than their string names (#1189).
 
 Deprecated
 ----------
@@ -43,11 +50,22 @@ Deprecated
    should be used. (#1055)
 - The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed in the future. (#1055)
+- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
+  alternative list of basis gates is deprecated and will be removed in the
+  future. Instead users should adjust the basis gates prior to visualizing
+  the circuit. (#1151)
+
 Fixed
 -----
+- Fixed a variety of typos throughout sources (#1139)
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
+- Use case insensitive matching when comparing premium account URLs. (#1102)
 
+Removed
+-------
+- Remove register, available_backends (#1131).
+- Remove tools/apps (#1184).
 
 `0.6.0`_ - 2018-10-04
 =====================

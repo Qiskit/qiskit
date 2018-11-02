@@ -12,9 +12,9 @@ from collections import OrderedDict
 from qiskit._qiskiterror import QISKitError
 
 
-class Reciever(object):
+class Receiver(object):
     """A receiver class that holds instances of objects
-    (such as) progressbars that recieve call back info.
+    (such as) progressbars that receive call back info.
     """
     def __init__(self):
         self._channels = OrderedDict()
@@ -26,7 +26,7 @@ class Reciever(object):
         return self._channels
 
     def add_channel(self, transmitter):
-        """Add channel to the recievers channels.
+        """Add channel to the receivers channels.
 
         Parameters:
             transmitter (object): Object to be added to channels.
@@ -56,4 +56,4 @@ class Reciever(object):
     channels = property(get_channels, add_channel)
 
 
-receiver = Reciever()  # pylint: disable=C0103
+receiver = Receiver()  # pylint: disable=C0103

@@ -61,7 +61,7 @@ def plot_bloch_vector(bloch, title="", filename=None):
 def plot_state_city(rho, title="", filename=None):
     """Plot the cityscape of quantum state.
 
-    Plot two 3d bargraphs (two dimenstional) of the mixed state rho
+    Plot two 3d bargraphs (two dimensional) of the mixed state rho
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -130,7 +130,7 @@ def plot_state_city(rho, title="", filename=None):
 def plot_state_paulivec(rho, title="", filename=None):
     """Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matricies
+    Plot a bargraph of the mixed state rho over the pauli matrices
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -237,7 +237,7 @@ def phase_to_color_wheel(complex_number):
 def plot_state_qsphere(rho, filename=None):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
-    # get the eigenvectors and egivenvalues
+    # get the eigenvectors and eigenvalues
     we, stateall = linalg.eigh(rho)
     for k in range(2**num):
         # start with the max
@@ -541,7 +541,7 @@ def plot_wigner_curve(wigner_data, xaxis=None, filename=None):
 
 def plot_wigner_plaquette(wigner_data, max_wigner='local', filename=None):
     """Plots plaquette of wigner function data, the plaquette will
-    consist of cicles each colored to match the value of the Wigner
+    consist of circles each colored to match the value of the Wigner
     function at the given point in phase space.
 
     Args:

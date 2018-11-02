@@ -10,7 +10,8 @@
 import os
 import unittest
 import qiskit
-from qiskit.wrapper import execute
+from qiskit import Aer
+from qiskit import execute
 from qiskit.tools import file_io
 from .common import QiskitTestCase
 
@@ -32,8 +33,8 @@ class TestFileIO(QiskitTestCase):
         qc2.cx(qr[0], qr[1])
         circuits = [qc1, qc2]
 
-        result1 = execute(circuits, backend='unitary_simulator').result()
-        result2 = execute(circuits, backend='qasm_simulator').result()
+        result1 = execute(circuits, backend=Aer.get_backend('unitary_simulator')).result()
+        result2 = execute(circuits, backend=Aer.get_backend('qasm_simulator')).result()
 
         test_1_path = self._get_resource_path('test_save_load1.json')
         test_2_path = self._get_resource_path('test_save_load2.json')

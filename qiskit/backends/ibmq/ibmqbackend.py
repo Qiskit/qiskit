@@ -14,7 +14,7 @@ import logging
 
 from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict, _dict_merge
+from qiskit._util import _camel_case_to_snake_case, _dict_merge
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
 from qiskit.backends import JobStatus
@@ -162,30 +162,25 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             LookupError: If status for the backend can't be found.
+            IBMQBackendError: If the status can't be formatted properly.
         """
+        base_status = super().status()
         try:
-            backend_name = self.configuration()['name']
-            status = self._api.backend_status(backend_name)
-            # FIXME a hack to rename the key. Needs to be fixed in api
-            status['name'] = status['backend']
-            del status['backend']
-            # FIXME a hack to remove the key busy.  Needs to be fixed in api
-            if 'busy' in status:
-                del status['busy']
-            # FIXME a hack to add available to the hpc simulator.  Needs to
-            # be fixed in api
-            if status['name'] == 'ibmqx_hpc_qasm_simulator':
-                status['available'] = True
-
-            # FIXME: this needs to be replaced at the API level - eventually
-            # it will.
-            if 'available' in status:
-                status['operational'] = status['available']
-                del status['available']
+            api_status = self._api.backend_status(base_status['backend_name'])
+            # FIXME: these corrections need to be resolved at the API level
+            # - eventually it will.
+            api_status.pop('busy', None)
+            if 'available' in api_status:
+                api_status['operational'] = api_status.pop('available')
+            if 'backend' in api_status:
+                api_status['backend_name'] = api_status.pop('backend')
+            if 'pending_jobs' in api_status:
+                if api_status['pending_jobs'] < 0:
+                    api_status['pending_jobs'] = 0
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-        return AvailableToOperationalDict(status)
+        return {**base_status, **api_status}
 
     def jobs(self, limit=50, skip=0, status=None, db_filter=None):
         """Attempt to get the jobs submitted to the backend.

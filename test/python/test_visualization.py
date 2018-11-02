@@ -27,7 +27,7 @@ except (RuntimeError, ImportError):
     VALID_MATPLOTLIB = False
 
 
-@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
+@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestLatexSourceGenerator(QiskitTestCase):
     """QISKit latex source generator tests."""
 

@@ -37,7 +37,7 @@ class DAGBackend(UnrollerBackend):
         self.cval = None
         self.circuit = DAGCircuit()
         if basis:
-            self.basis = basis
+            self.basis = basis.copy()
         else:
             self.basis = []
         self.listen = True
@@ -46,7 +46,7 @@ class DAGBackend(UnrollerBackend):
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit."""
-        self.basis = basis
+        self.basis = basis.copy()
 
     def define_gate(self, name, gatedata):
         """Record and pass down the data for this gate."""
@@ -60,21 +60,19 @@ class DAGBackend(UnrollerBackend):
         """
         pass
 
-    def new_qreg(self, name, size):
+    def new_qreg(self, qreg):
         """Create a new quantum register.
 
-        name = name of the register
-        sz = size of the register
+        qreg = QuantumRegister object
         """
-        self.circuit.add_qreg(name, size)
+        self.circuit.add_qreg(qreg)
 
-    def new_creg(self, name, size):
+    def new_creg(self, creg):
         """Create a new classical register.
 
-        name = name of the register
-        sz = size of the register
+        creg = ClassicalRegister object
         """
-        self.circuit.add_creg(name, size)
+        self.circuit.add_creg(creg)
 
     def u(self, arg, qubit, nested_scope=None):
         """Fundamental single qubit gate.

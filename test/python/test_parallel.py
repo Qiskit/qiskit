@@ -8,6 +8,7 @@
 """Tests for qiskit/_util.py"""
 import os
 import time
+from unittest.mock import patch
 from qiskit.transpiler._receiver import receiver as rec
 from qiskit.transpiler._parallel import parallel_map
 from qiskit.transpiler._progressbar import TextProgressBar
@@ -37,14 +38,18 @@ class TestParallel(QiskitTestCase):
     def test_parallel_progressbar(self):
         """Test parallel_map with progress bar"""
         TextProgressBar()
-        ans = parallel_map(_parfunc, list(range(10)))
+        with patch('sys.stdout.write') as stdout_mock:  # Mute the progress bar itself
+            ans = parallel_map(_parfunc, list(range(10)))
         self.assertEqual(ans, list(range(10)))
+        self.assertTrue(stdout_mock.called)
 
     def test_parallel_progbar_used(self):
         """Test that correct progressbar is used."""
         not_used = TextProgressBar()
         not_used.touched = True
         used = TextProgressBar()
-        parallel_map(_parfunc, list(range(10)))
+        with patch('sys.stdout.write') as stdout_mock:  # Mute the progress bar itself
+            parallel_map(_parfunc, list(range(10)))
         self.assertTrue(used.channel_id not in rec.channels.keys())
         self.assertTrue(not_used.channel_id in rec.channels.keys())
+        self.assertTrue(stdout_mock.called)
