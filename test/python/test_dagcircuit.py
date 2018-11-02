@@ -69,7 +69,7 @@ class TestDagCircuit(QiskitTestCase):
         dag = DAGCircuit()
         dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
         dag.add_basis_element('cx', 2)
-        dag.add_qreg('q', 3)
+        dag.add_qreg(QuantumRegister(3, "q"))
         dag.apply_operation_back('cx', [('q', 0), ('q', 1)])
         dag.apply_operation_back('h', [('q', 0)])
         dag.apply_operation_back('cx', [('q', 2), ('q', 1)])
