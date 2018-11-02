@@ -10,7 +10,6 @@
 """
 Pauli X (bit-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -47,4 +46,3 @@ def x(self, q):
 
 
 QuantumCircuit.x = x
-CompositeGate.x = x
