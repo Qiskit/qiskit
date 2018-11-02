@@ -55,22 +55,19 @@ class PrinterBackend(UnrollerBackend):
         """
         print("OPENQASM %s;" % version)
 
-    def new_qreg(self, name, size):
+    def new_qreg(self, qreg):
         """Create a new quantum register.
 
-        name = name of the register
-        sz = size of the register
+        qreg = QuantumRegister object
         """
-        assert size >= 0, "invalid qreg size"
-        print("qreg %s[%d];" % (name, size))
+        print("qreg %s[%d];" % (qreg.name, qreg.size))
 
-    def new_creg(self, name, size):
+    def new_creg(self, creg):
         """Create a new classical register.
 
-        name = name of the register
-        sz = size of the register
+        creg = ClassicalRegister object
         """
-        print("creg %s[%d];" % (name, size))
+        print("creg %s[%d];" % (creg.name, creg.size))
 
     def _gate_string(self, name):
         """Print OPENQASM for the named gate."""

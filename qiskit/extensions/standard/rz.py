@@ -10,7 +10,6 @@
 """
 Rotation around the z-axis.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -51,4 +50,3 @@ def rz(self, phi, q):
 
 
 QuantumCircuit.rz = rz
-CompositeGate.rz = rz

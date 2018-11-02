@@ -24,6 +24,8 @@ install:
     - pip.exe install -r requirements.txt
     - pip.exe install pytest
     - pip.exe install vcrpy
+    - pip.exe install jupyter
+    - pip.exe install ipywidgets
 
 # Use py.test for output of xunit test results.
 test_script:
