@@ -24,20 +24,20 @@ from qiskit import QISKitError
 ###############################################################
 
 
-def basis(basis_state, num):
+def basis_state(str_state, num):
     """
     Return a basis state ndarray.
 
     Args:
-        basis_state (string): a string representing the state.
+        str_state (string): a string representing the state.
         num (int): the number of qubits
     Returns:
         ndarray:  state(2**num) a quantum state with basis basis state.
     Raise:
-        QISKitError if the dimensions is wrong
+        QISKitError: if the dimensions is wrong
     """
-    n = int(basis_state, 2)
-    if num >= len(basis_state):
+    n = int(str_state, 2)
+    if num >= len(str_state):
         state = np.zeros(1 << num, dtype=complex)
         state[n] = 1
         return state

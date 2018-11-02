@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 from qiskit import execute, QuantumRegister, QuantumCircuit, Aer
 
-from qiskit.quantum_info.states import basis, random_state
+from qiskit.quantum_info.states import basis_state, random_state
 from qiskit.quantum_info.states import state_fidelity
 from qiskit.quantum_info.states import projector
 
@@ -55,7 +55,7 @@ class TestStates(QiskitTestCase):
         self.assertEqual(state_fidelity(state1, state1), 1.0)
         self.assertEqual(state_fidelity(state0, state1), 0.0)
 
-    def test_psi_2_state(self):
+    def test_projector(self):
         state0 = np.array([1.+0.j, 0.+0.j])
         state1 = projector(np.array([0.+0.j, 1.+0.j]))
         self.assertEqual(state_fidelity(state0, state0), 1.0)
@@ -64,13 +64,13 @@ class TestStates(QiskitTestCase):
 
     def test_basis(self):
         # reference
-        state = basis('010', 3)
+        state = basis_state('010', 3)
         state_ideal = np.array([0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j])
         state_fidelity(state, state_ideal)
         self.assertEqual(state_fidelity(state, state_ideal), 1.0)
 
     def test_basis_state_circuit(self):
-        state = state = (basis('001', 3)+basis('111', 3))/np.sqrt(2)
+        state = state = (basis_state('001', 3)+basis_state('111', 3))/np.sqrt(2)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
