@@ -13,11 +13,10 @@ import unittest
 import numpy as np
 from qiskit import execute, QuantumRegister, QuantumCircuit, Aer
 
-from qiskit.tools.qi.states import basis, random_state
-from qiskit.tools.qi.states import state_fidelity
-from qiskit.tools.qi.states import psi_2_rho
+from qiskit.quantum_info.states import basis, random_state
+from qiskit.quantum_info.states import state_fidelity
+from qiskit.quantum_info.states import projector
 
-from qiskit import QISKitError
 from ..common import QiskitTestCase
 
 
@@ -52,48 +51,50 @@ class TestStates(QiskitTestCase):
     def test_state_fidelity_qubit(self):
         state0 = np.array([1.+0.j, 0.+0.j])
         state1 = np.array([0.+0.j, 1.+0.j])
-        self.assertEqual(state_fidelity(state0,state0), 1.0)
-        self.assertEqual(state_fidelity(state1,state1), 1.0)
-        self.assertEqual(state_fidelity(state0,state1), 0.0)
+        self.assertEqual(state_fidelity(state0, state0), 1.0)
+        self.assertEqual(state_fidelity(state1, state1), 1.0)
+        self.assertEqual(state_fidelity(state0, state1), 0.0)
 
     def test_psi_2_state(self):
         state0 = np.array([1.+0.j, 0.+0.j])
-        state1 = psi_2_rho(np.array([0.+0.j, 1.+0.j]))
-        self.assertEqual(state_fidelity(state0,state0), 1.0)
-        self.assertEqual(state_fidelity(state1,state1), 1.0)
-        self.assertEqual(state_fidelity(state0,state1), 0.0)
+        state1 = projector(np.array([0.+0.j, 1.+0.j]))
+        self.assertEqual(state_fidelity(state0, state0), 1.0)
+        self.assertEqual(state_fidelity(state1, state1), 1.0)
+        self.assertEqual(state_fidelity(state0, state1), 0.0)
 
     def test_basis(self):
         # reference
         state = basis('010', 3)
         state_ideal = np.array([0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j])
-        state_fidelity(state,state_ideal)
-        self.assertEqual(state_fidelity(state,state_ideal), 1.0)
+        state_fidelity(state, state_ideal)
+        self.assertEqual(state_fidelity(state, state_ideal), 1.0)
 
     def test_basis_state_circuit(self):
         state = state = (basis('001', 3)+basis('111', 3))/np.sqrt(2)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
-        qc.initialize(state, [q[0],q[1],q[2]])
-        qc_state = execute(qc, Aer.get_backend('statevector_simulator')).result().get_statevector(qc)
-        self.assertAlmostEqual(state_fidelity(qc_state,state), 1.0, places=7)
+        qc.initialize(state, [q[0], q[1], q[2]])
+        backend = Aer.get_backend('statevector_simulator')
+        qc_state = execute(qc, backend).result().get_statevector(qc)
+        self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
     def test_random_state(self):
         # this test that a random state converges to 1/d
         number = 10000
         E_P0_last = 0
         for ii in range(number):
-            E_P0= (E_P0_last*ii)/(ii+1)+state_fidelity(basis('000', 3),random_state(3))/(ii+1)
-            E_P0_last=E_P0
+            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(basis('000', 3), random_state(3))/(ii+1)
+            E_P0_last = E_P0
         self.assertAlmostEqual(E_P0, 1/8, places=2)
 
     def test_random_state_circuit(self):
         state = random_state(3)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
-        qc.initialize(state, [q[0],q[1],q[2]])
-        qc_state = execute(qc, Aer.get_backend('statevector_simulator')).result().get_statevector(qc)
-        self.assertAlmostEqual(state_fidelity(qc_state,state), 1.0, places=7)
+        qc.initialize(state, [q[0], q[1], q[2]])
+        backend = Aer.get_backend('statevector_simulator')
+        qc_state = execute(qc, backend).result().get_statevector(qc)
+        self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
 
 

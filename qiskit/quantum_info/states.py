@@ -47,7 +47,7 @@ def basis(basis_state, num):
 
 def random_state(num):
     """
-    Return a random quantum state from the uniform (Haar) measure on 
+    Return a random quantum state from the uniform (Haar) measure on
     state space.
 
     Args:
@@ -62,16 +62,21 @@ def random_state(num):
     return np.sqrt(x/sumx)*np.exp(1j*phases)
 
 
-def psi_2_rho(state):
+def projector(state, flatten=False):
     """
     maps a pure state to a state matrix
 
     Args:
         state (ndarray): the number of qubits
+        flatten (bool): determine if state matrix of column work
     Returns:
-        ndarray:  state_mat(2**num, 2**num).
+        ndarray:  state_mat(2**num, 2**num) if flatten is false
+        ndarray:  state_mat(4**num) if flatten is true stacked on by the column
     """
-    return np.outer(state.conjugate(), state)
+    density_matrix = np.outer(state.conjugate(), state)
+    if flatten:
+        return density_matrix.flatten(order='F')
+    return density_matrix
 
 
 ###############################################################

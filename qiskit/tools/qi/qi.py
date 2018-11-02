@@ -15,16 +15,16 @@ over time.
 """
 
 import math
+import warnings
 
 import numpy as np
 import scipy.linalg as la
 from scipy.stats import unitary_group
-import warnings
 
 
 from qiskit import QISKitError
 from qiskit.tools.qi.pauli import pauli_group
-from qiskit.tools.qi.states import state_fidelity as new_state_fidelity
+from qiskit.quantum_info.states import state_fidelity as new_state_fidelity
 
 
 ###############################################################
@@ -441,8 +441,7 @@ def state_fidelity(state1, state2):
         array_like: The state fidelity F(state1, state2).
     """
     warnings.warn('The state_fidelity() function has moved to states not qi', DeprecationWarning)
-    return new_state_fidelity(state1,state2)
-    
+    return new_state_fidelity(state1, state2)
 
 
 def purity(state):
