@@ -70,5 +70,6 @@ class TestWrapper(QiskitTestCase):
         qiskit.wrapper.job_monitor(job_sim)
         self.assertEqual(job_sim.status().name, 'DONE')
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
