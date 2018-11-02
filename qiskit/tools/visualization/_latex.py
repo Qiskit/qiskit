@@ -19,7 +19,6 @@ import re
 
 import numpy as np
 
-from qiskit import _qiskiterror
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 
@@ -249,7 +248,7 @@ class QCircuitImage(object):
             int: total size of columns in the circuit
 
         Raises:
-            QISKitError: if trying to draw unsupported gates
+            VisualizationError: if trying to draw unsupported gates
         """
         columns = 2  # wires in the beginning and end
         is_occupied = [False] * self.img_width
@@ -408,9 +407,10 @@ class QCircuitImage(object):
                 max_column_width[columns] = max(arg_str_len,
                                                 max_column_width[columns])
             elif op['name'] == "measure":
-                assert len(op['clbits']) == 1 and len(op['qubits']) == 1
+                if len(op['clbits']) != 1 or len(op['qubits']) != 1:
+                    raise _error.VisualizationError("bad operation record")
                 if 'conditional' in op:
-                    raise _qiskiterror.QISKitError(
+                    raise _error.VisualizationError(
                         'conditional measures currently not supported.')
                 qname, qindex = self.total_2_register_index(
                     op['qubits'][0], self.qregs)
@@ -439,7 +439,7 @@ class QCircuitImage(object):
                     max_column_width[columns] = 0
             elif op['name'] == "reset":
                 if 'conditional' in op:
-                    raise _qiskiterror.QISKitError(
+                    raise _error.VisualizationError(
                         'conditional reset currently not supported.')
                 qname, qindex = self.total_2_register_index(
                     op['qubits'][0], self.qregs)
@@ -457,7 +457,7 @@ class QCircuitImage(object):
             elif op['name'] == "barrier":
                 pass
             else:
-                assert False, "bad node data"
+                raise _error.VisualizationError("bad node data")
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
         # the qubit/cbit labels plus initial states is 2 more
@@ -626,10 +626,10 @@ class QCircuitImage(object):
                                 "\\gate{U_2\\left(%s,%s\\right)}" % (
                                     op["texparams"][0], op["texparams"][1])
                         elif nm == "u3":
-                            self._latex[pos_1][columns] = (
-                                "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
-                                                           op["texparams"][1],
-                                                           op["texparams"][2]))
+                            self._latex[pos_1][columns] = ("\\gate{U_3(%s,%s,%s)}" % (
+                                op["texparams"][0],
+                                op["texparams"][1],
+                                op["texparams"][2]))
                         elif nm == "rx":
                             self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
                                 op["texparams"][0])
@@ -686,10 +686,10 @@ class QCircuitImage(object):
                                 "\\gate{U_2\\left(%s,%s\\right)}" % (
                                     op["texparams"][0], op["texparams"][1])
                         elif nm == "u3":
-                            self._latex[pos_1][columns] = (
-                                "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
-                                                           op["texparams"][1],
-                                                           op["texparams"][2]))
+                            self._latex[pos_1][columns] = ("\\gate{U_3(%s,%s,%s)}" % (
+                                op["texparams"][0],
+                                op["texparams"][1],
+                                op["texparams"][2]))
                         elif nm == "rx":
                             self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
                                 op["texparams"][0])
@@ -836,10 +836,10 @@ class QCircuitImage(object):
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(
                                 pos_2 - pos_1) + "}"
-                            self._latex[pos_2][columns] = (
-                                "\\gate{U_3(%s,%s,%s)}" % (op["texparams"][0],
-                                                           op["texparams"][1],
-                                                           op["texparams"][2]))
+                            self._latex[pos_2][columns] = ("\\gate{U_3(%s,%s,%s)}" % (
+                                op["texparams"][0],
+                                op["texparams"][1],
+                                op["texparams"][2]))
 
                 elif len(qarglist) == 3:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -941,12 +941,13 @@ class QCircuitImage(object):
                                 "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
 
             elif op["name"] == "measure":
-                assert len(op['clbits']) == 1 and \
-                    len(op['qubits']) == 1 and \
-                    'params' not in op, "bad operation record"
-
+                if (len(op['clbits']) != 1
+                        or len(op['qubits']) != 1
+                        or 'params' in op):
+                    raise _error.VisualizationError("bad operation record")
                 if 'conditional' in op:
-                    assert False, "If controlled measures currently not supported."
+                    raise _error.VisualizationError(
+                        "If controlled measures currently not supported.")
                 qname, qindex = self.total_2_register_index(
                     op['qubits'][0], self.qregs)
                 cname, cindex = self.total_2_register_index(
@@ -986,7 +987,7 @@ class QCircuitImage(object):
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                 except Exception as e:
-                    raise _qiskiterror.QISKitError(
+                    raise _error.VisualizationError(
                         'Error during Latex building: %s' % str(e))
             elif op['name'] == "barrier":
                 if self._style.barrier:
@@ -1001,7 +1002,7 @@ class QCircuitImage(object):
                     self._latex[start][columns] += " \\barrier{" + str(
                         span) + "}"
             else:
-                assert False, "bad node data"
+                raise _error.VisualizationError("bad node data")
 
     def _ffs(self, mask):
         """Find index of first set bit.
