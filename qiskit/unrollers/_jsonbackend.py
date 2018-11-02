@@ -89,32 +89,27 @@ class JsonBackend(UnrollerBackend):
         """
         pass
 
-    def new_qreg(self, name, size):
+    def new_qreg(self, qreg):
         """Create a new quantum register.
 
-        name = name of the register
-        sz = size of the register
+        qreg = QuantumRegister object
         """
-        assert size >= 0, "invalid qreg size"
-
-        for j in range(size):
-            self._qubit_order.append([name, j])
-            self._qubit_order_internal[(name, j)] = self._number_of_qubits + j
-        self._number_of_qubits += size
+        for j in range(qreg.size):
+            self._qubit_order.append([qreg.name, j])
+            self._qubit_order_internal[(qreg.name, j)] = self._number_of_qubits + j
+        self._number_of_qubits += qreg.size
         self.circuit['header']['number_of_qubits'] = self._number_of_qubits
         self.circuit['header']['qubit_labels'] = self._qubit_order
 
-    def new_creg(self, name, size):
+    def new_creg(self, creg):
         """Create a new classical register.
 
-        name = name of the register
-        sz = size of the register
+        creg = ClassicalRegister object
         """
-        assert size >= 0, "invalid creg size"
-        self._cbit_order.append([name, size])
-        for j in range(size):
-            self._cbit_order_internal[(name, j)] = self._number_of_cbits + j
-        self._number_of_cbits += size
+        self._cbit_order.append([creg.name, creg.size])
+        for j in range(creg.size):
+            self._cbit_order_internal[(creg.name, j)] = self._number_of_cbits + j
+        self._number_of_cbits += creg.size
         self.circuit['header']['number_of_clbits'] = self._number_of_cbits
         self.circuit['header']['clbit_labels'] = self._cbit_order
 
