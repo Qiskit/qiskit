@@ -5,15 +5,35 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=cyclic-import
+
 """
 Quantum circuit object.
 """
 import itertools
 from collections import OrderedDict
+
+from qiskit.qasm import _qasm
+from qiskit.unrollers import _unroller
+from qiskit.unrollers import _circuitbackend
 from ._qiskiterror import QISKitError
 from ._register import Register
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
+
+
+def _circuit_from_qasm(qasm, basis=None):
+    default_basis = ["id", "u0", "u1", "u2", "u3", "x", "y", "z", "h", "s",
+                     "sdg", "t", "tdg", "rx", "ry", "rz", "cx", "cy", "cz",
+                     "ch", "crz", "cu1", "cu3", "swap", "ccx", "cswap"]
+    if not basis:
+        basis = default_basis
+
+    ast = qasm.parse()
+    unroll = _unroller.Unroller(
+        ast, _circuitbackend.CircuitBackend(basis))
+    circuit = unroll.execute()
+    return circuit
 
 
 class QuantumCircuit(object):
@@ -35,6 +55,30 @@ class QuantumCircuit(object):
     #   "bits"   = list of qubit names
     #   "body"   = GateBody AST node
     definitions = OrderedDict()
+
+    @staticmethod
+    def from_qasm_file(path):
+        """Take in a QASM file and generate a QuantumCircuit object.
+
+        Args:
+          path (str): Path to the file for a QASM program
+        Return:
+          QuantumCircuit: The QuantumCircuit object for the input QASM
+        """
+        qasm = _qasm.Qasm(filename=path)
+        return _circuit_from_qasm(qasm)
+
+    @staticmethod
+    def from_qasm_str(qasm_str):
+        """Take in a QASM string and generate a QuantumCircuit object.
+
+        Args:
+          qasm_str (str): A QASM program string
+        Return:
+          QuantumCircuit: The QuantumCircuit object for the input QASM
+        """
+        qasm = _qasm.Qasm(data=qasm_str)
+        return _circuit_from_qasm(qasm)
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
