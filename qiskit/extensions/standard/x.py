@@ -10,7 +10,6 @@
 """
 Pauli X (bit-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -24,11 +23,6 @@ class XGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new X gate."""
         super().__init__("x", [], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("x %s[%d];" % (qubit[0].name, qubit[1]))
 
     def inverse(self):
         """Invert this gate."""
@@ -52,4 +46,3 @@ def x(self, q):
 
 
 QuantumCircuit.x = x
-CompositeGate.x = x

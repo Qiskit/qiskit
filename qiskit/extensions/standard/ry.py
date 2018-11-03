@@ -10,7 +10,6 @@
 """
 Rotation around the y-axis.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -24,13 +23,6 @@ class RYGate(Gate):
     def __init__(self, theta, qubit, circ=None):
         """Create new ry single qubit gate."""
         super().__init__("ry", [theta], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        return self._qasmif("ry(%s) %s[%d];" % (theta, qubit[0].name,
-                                                qubit[1]))
 
     def inverse(self):
         """Invert this gate.
@@ -58,4 +50,3 @@ def ry(self, theta, q):
 
 
 QuantumCircuit.ry = ry
-CompositeGate.ry = ry

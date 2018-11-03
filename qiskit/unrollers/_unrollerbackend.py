@@ -40,19 +40,17 @@ class UnrollerBackend(object):
         """
         raise BackendError("Backend version unimplemented")
 
-    def new_qreg(self, name, size):
+    def new_qreg(self, qreg):
         """Create a new quantum register.
 
-        name = name of the register
-        sz = size of the register
+        qreg = QuantumRegister object
         """
         raise BackendError("Backend new_qreg unimplemented")
 
-    def new_creg(self, name, size):
+    def new_creg(self, creg):
         """Create a new classical register.
 
-        name = name of the register
-        sz = size of the register
+        creg = ClassicalRegister object
         """
         raise BackendError("Backend new_creg unimplemented")
 

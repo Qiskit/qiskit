@@ -39,6 +39,8 @@ Changed
 - The different output backends for the circuit_drawer() visualizations
   have been moved into separate private modules in
   `qiskit.tools.visualizations`. (#1105, #1111)
+- DAG nodes contain pointers to Register and Instruction objects, rather
+  than their string names (#1189).
 
 Deprecated
 ----------
@@ -48,6 +50,10 @@ Deprecated
    should be used. (#1055)
 - The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed in the future. (#1055)
+- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
+  alternative list of basis gates is deprecated and will be removed in the
+  future. Instead users should adjust the basis gates prior to visualizing
+  the circuit. (#1151)
 
 Fixed
 -----
@@ -59,7 +65,7 @@ Fixed
 Removed
 -------
 - Remove register, available_backends (#1131).
-
+- Remove tools/apps (#1184).
 
 `0.6.0`_ - 2018-10-04
 =====================

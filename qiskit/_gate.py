@@ -16,23 +16,23 @@ from ._qiskiterror import QISKitError
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, param, args, circuit=None):
+    def __init__(self, name, param, arg, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string
         param = list of real parameters (will be converted to symbolic)
-        args = list of pairs (Register, index)
-        circuit = QuantumCircuit or CompositeGate containing this gate
+        arg = list of pairs (Register, index)
+        circuit = QuantumCircuit containing this gate
         """
         self._is_multi_qubit = False
-        self._qubit_coupling = [arg[1] for arg in args]
-        self._is_multi_qubit = (len(args) > 1)
-        for argument in args:
+        self._qubit_coupling = [argument[1] for argument in arg]
+        self._is_multi_qubit = (len(arg) > 1)
+        for argument in arg:
             if not isinstance(argument[0], QuantumRegister):
                 raise QISKitError("argument not (QuantumRegister, int) "
                                   + "tuple")
 
-        super().__init__(name, param, args, circuit)
+        super().__init__(name, param, arg, circuit)
 
     def inverse(self):
         """Invert this gate."""
