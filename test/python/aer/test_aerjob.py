@@ -88,17 +88,20 @@ class TestAerJob(QiskitTestCase):
                 call_count))
 
     def test_aer_status(self):
-        """Test job_aer_states"""
+        """This will break"""
         qreg = QuantumRegister(2)
         creg = ClassicalRegister(2)
         qc = QuantumCircuit(qreg, creg)
         qc.h(qreg[0])
         qc.cx(qreg[0], qreg[1])
         qc.measure(qreg, creg)
+
         backend = Aer.get_backend('qasm_simulator')
-        job_sim = execute([qc]*10, backend)
-        job_sim.result()
-        self.assertEqual(job_sim.status().name, 'DONE')
+        job_sim = execute(qc, backend)
+        job_sim.status()
+
+        job_sim = execute(qc, backend)
+        job_sim.status()
 
 
 class FakeBackend():
