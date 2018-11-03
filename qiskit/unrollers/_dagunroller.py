@@ -83,26 +83,22 @@ class DagUnroller(object):
         for node in topological_sorted_list:
             current_node = self.dag_circuit.multi_graph.node[node]
             if current_node["type"] == "op" and \
-               current_node["name"] not in builtins + basis + simulator_builtins and \
-               not self.dag_circuit.gates[current_node["name"]]["opaque"]:
+               current_node["op"].name not in builtins + basis + simulator_builtins and \
+               not self.dag_circuit.gates[current_node["op"].name]["opaque"]:
                 subcircuit, wires = self._build_subcircuit(gatedefs,
                                                            basis,
-                                                           current_node["name"],
-                                                           current_node["params"],
-                                                           current_node["qargs"],
+                                                           current_node["op"],
                                                            current_node["condition"])
                 self.dag_circuit.substitute_circuit_one(node, subcircuit, wires)
         return self.dag_circuit
 
-    def _build_subcircuit(self, gatedefs, basis, gate_name, gate_params, gate_args,
-                          gate_condition):
+    def _build_subcircuit(self, gatedefs, basis, gate, gate_condition):
         """Build DAGCircuit for a given user-defined gate node.
 
         gatedefs = dictionary of Gate AST nodes for user-defined gates
-        gate_name = name of gate to expand to target_basis (nd["name"])
-        gate_params = list of gate parameters (nd["params"])
-        gate_args = list of gate arguments (nd["qargs"])
-        gate_condition = None or tuple (string, int) (nd["condition"])
+        basis = basis gates used by unroller
+        gate = the gate to be expanded/unrolled
+        gate_condition = None or tuple (string, int)
 
         Returns (subcircuit, wires) where subcircuit is the DAGCircuit
         corresponding to the user-defined gate node expanded to target_basis
@@ -110,12 +106,12 @@ class DagUnroller(object):
         corresponding to the gate's arguments.
         """
 
-        children = [Id(gate_name, 0, "")]
-        if gate_params:
+        children = [Id(gate.name, 0, "")]
+        if gate.param:
             children.append(
-                ExpressionList(list(map(Real, gate_params)))
+                ExpressionList(list(map(Real, gate.param)))
             )
-        new_wires = [("q", j) for j in range(len(gate_args))]
+        new_wires = [("q", j) for j in range(len(gate.qargs))]
         children.append(
             PrimaryList(
                 list(map(lambda x: IndexedId(
@@ -124,7 +120,7 @@ class DagUnroller(object):
             )
         )
         gate_node = CustomUnitary(children)
-        id_int = [Id("q", 0, ""), Int(len(gate_args))]
+        id_int = [Id("q", 0, ""), Int(len(gate.qargs))]
         # Make a list of register declaration nodes
         reg_nodes = [
             Qreg(
@@ -167,20 +163,20 @@ class DagUnroller(object):
         for n in nx.topological_sort(self.dag_circuit.multi_graph):
             current_node = self.dag_circuit.multi_graph.node[n]
             if current_node["type"] == "op":
-                params = map(Real, current_node["params"])
+                params = map(Real, current_node["op"].param)
                 params = list(params)
                 if current_node["condition"] is not None:
                     self.backend.set_condition(current_node["condition"][0],
                                                current_node["condition"][1])
-                if not current_node["cargs"]:
-                    if current_node["name"] == "U":
-                        self.backend.u(params, current_node["qargs"][0])
-                    elif current_node["name"] == "CX":
-                        self.backend.cx(current_node["qargs"][0], current_node["qargs"][1])
-                    elif current_node["name"] == "barrier":
-                        self.backend.barrier([current_node["qargs"]])
-                    elif current_node["name"] == "reset":
-                        self.backend.reset(current_node["qargs"][0])
+                if not current_node["op"].cargs:
+                    if current_node["op"].name == "U":
+                        self.backend.u(params, current_node["op"].qargs[0])
+                    elif current_node["op"].name == "CX":
+                        self.backend.cx(current_node["op"].qargs[0], current_node["op"].qargs[1])
+                    elif current_node["op"].name == "barrier":
+                        self.backend.barrier([current_node["op"].qargs])
+                    elif current_node["op"].name == "reset":
+                        self.backend.reset(current_node["op"].qargs[0])
 
                     # TODO: The schema of the snapshot gate is radically
                     # different to other QASM instructions. The current model
@@ -192,22 +188,22 @@ class DagUnroller(object):
                     # This is a hack since there would be mechanisms for the
                     # extensions to provide their own Qobj instructions.
                     # Extensions should not be hardcoded in the DAGUnroller.
-                    elif current_node["name"] == "snapshot":
+                    elif current_node["op"].name == "snapshot":
                         self.backend.start_gate(
-                            "snapshot", params, current_node["qargs"],
+                            "snapshot", params, current_node["op"].qargs,
                             extra_fields={'type': 'MISSING', 'label': 'MISSING', 'texparams': []})
-                        self.backend.end_gate("snapshot", params, current_node["qargs"])
+                        self.backend.end_gate("snapshot", params, current_node["op"].qargs)
                     else:
-                        self.backend.start_gate(current_node["name"], params,
-                                                current_node["qargs"])
-                        self.backend.end_gate(current_node["name"], params, current_node["qargs"])
+                        self.backend.start_gate(current_node["op"].name, params,
+                                                current_node["op"].qargs)
+                        self.backend.end_gate(current_node["op"].name, params, current_node["op"].qargs)
                 else:
-                    if current_node["name"] == "measure":
-                        if len(current_node["cargs"]) != 1 or len(current_node["qargs"]) != 1 \
-                           or current_node["params"]:
+                    if current_node["op"].name == "measure":
+                        if len(current_node["op"].cargs) != 1 or len(current_node["op"].qargs) != 1 \
+                           or current_node["op"].param:
                             raise UnrollerError("Bad node data!!")
 
-                        self.backend.measure(current_node["qargs"][0], current_node["cargs"][0])
+                        self.backend.measure(current_node["op"].qargs[0], current_node["op"].cargs[0])
                     else:
                         raise UnrollerError("Bad node data!")
 

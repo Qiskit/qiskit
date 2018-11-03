@@ -9,6 +9,9 @@
 
 import unittest
 
+from qiskit._measure import Measure
+from qiskit._reset import Reset
+from qiskit.extensions.standard import *
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
@@ -24,11 +27,11 @@ class TestDagCircuit(QiskitTestCase):
         Creation using add_basis_element(), add_qreg(), add_creg(), and apply_operation_back()."""
         qreg = QuantumRegister(2, 'qr')
         creg = ClassicalRegister(2, 'cr')
-        qubit0 = ('qr', 0)
-        qubit1 = ('qr', 1)
-        clbit0 = ('cr', 0)
-        clbit1 = ('cr', 1)
-        condition = ('cr', 3)
+        qubit0 = qreg[0]
+        qubit1 = qreg[1]
+        clbit0 = creg[0]
+        clbit1 = creg[1]
+        condition = (creg, 3)
         dag = DAGCircuit()
         dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
         dag.add_basis_element('cx', 2)
@@ -36,12 +39,12 @@ class TestDagCircuit(QiskitTestCase):
         dag.add_basis_element('measure', 1, number_classical=1, number_parameters=0)
         dag.add_qreg(qreg)
         dag.add_creg(creg)
-        dag.apply_operation_back('h', [qubit0], [], [], condition=None)
-        dag.apply_operation_back('cx', [qubit0, qubit1], [], [], condition=None)
-        dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition=None)
-        dag.apply_operation_back('x', [qubit1], [], [], condition=condition)
-        dag.apply_operation_back('measure', [qubit0], [clbit0], [], condition=None)
-        dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition=None)
+        dag.apply_operation_back(HGate(qubit0), condition=None)
+        dag.apply_operation_back(CnotGate(qubit0, qubit1), condition=None)
+        dag.apply_operation_back(Measure(qubit1, clbit1), condition=None)
+        dag.apply_operation_back(XGate(qubit1), condition=condition)
+        dag.apply_operation_back(Measure(qubit0, clbit0), condition=None)
+        dag.apply_operation_back(Measure(qubit1, clbit1), condition=None)
         self.assertEqual(len(dag.multi_graph.nodes), 14)
         self.assertEqual(len(dag.multi_graph.edges), 16)
 
@@ -52,21 +55,21 @@ class TestDagCircuit(QiskitTestCase):
         dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
         dag.add_basis_element('cx', 2)
         dag.add_qreg(qreg)
-        dag.apply_operation_back('cx', [('q', 0), ('q', 1)])
-        dag.apply_operation_back('h', [('q', 0)])
-        dag.apply_operation_back('cx', [('q', 2), ('q', 1)])
-        dag.apply_operation_back('cx', [('q', 0), ('q', 2)])
-        dag.apply_operation_back('h', [('q', 2)])
+        dag.apply_operation_back(CnotGate(qreg[0], qreg[1]))
+        dag.apply_operation_back(HGate(qreg[0]))
+        dag.apply_operation_back(CnotGate(qreg[2], qreg[1]))
+        dag.apply_operation_back(CnotGate(qreg[0], qreg[2]))
+        dag.apply_operation_back(HGate(qreg[2]))
 
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
         named_nodes = dag.get_named_nodes('cx')
-        node_qargs = {tuple(dag.multi_graph.node[node_id]["qargs"]) for node_id in named_nodes}
-        expected_gates = {
-            (('q', 0), ('q', 1)),
-            (('q', 2), ('q', 1)),
-            (('q', 0), ('q', 2))}
-        self.assertEqual(expected_gates, node_qargs)
+        node_qargs = {tuple(dag.multi_graph.node[node_id]["op"].qargs) for node_id in named_nodes}
+        expected_qargs = {
+            ((qreg, 0), (qreg, 1)),
+            ((qreg, 2), (qreg, 1)),
+            ((qreg, 0), (qreg, 2))}
+        self.assertEqual(expected_qargs, node_qargs)
 
     def test_nodes_in_topological_order(self):
         """ The node_nums_in_topological_order() method"""
@@ -87,11 +90,11 @@ class TestDagCircuit(QiskitTestCase):
         """ The layers() method."""
         qreg = QuantumRegister(2, 'qr')
         creg = ClassicalRegister(2, 'cr')
-        qubit0 = ('qr', 0)
-        qubit1 = ('qr', 1)
-        clbit0 = ('cr', 0)
-        clbit1 = ('cr', 1)
-        condition = ('cr', 3)
+        qubit0 = qreg[0]
+        qubit1 = qreg[1]
+        clbit0 = creg[0]
+        clbit1 = creg[1]
+        condition = (creg, 3)
         dag = DAGCircuit()
         dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
         dag.add_basis_element('cx', 2)
@@ -99,18 +102,18 @@ class TestDagCircuit(QiskitTestCase):
         dag.add_basis_element('measure', 1, number_classical=1, number_parameters=0)
         dag.add_qreg(qreg)
         dag.add_creg(creg)
-        dag.apply_operation_back('h', [qubit0], [], [], condition=None)
-        dag.apply_operation_back('cx', [qubit0, qubit1], [], [], condition=None)
-        dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition=None)
-        dag.apply_operation_back('x', [qubit1], [], [], condition=condition)
-        dag.apply_operation_back('measure', [qubit0], [clbit0], [], condition=None)
-        dag.apply_operation_back('measure', [qubit1], [clbit1], [], condition=None)
+        dag.apply_operation_back(HGate(qubit0))
+        dag.apply_operation_back(CnotGate(qubit0, qubit1), condition=None)
+        dag.apply_operation_back(Measure(qubit1, clbit1), condition=None)
+        dag.apply_operation_back(XGate(qubit1), condition=condition)
+        dag.apply_operation_back(Measure(qubit0, clbit0), condition=None)
+        dag.apply_operation_back(Measure(qubit1, clbit1), condition=None)
 
         layers = list(dag.layers())
         self.assertEqual(5, len(layers))
 
         name_layers = [
-            [node[1]["name"]
+            [node[1]["op"].name
              for node in layer["graph"].multi_graph.nodes(data=True)
              if node[1]["type"] == "op"] for layer in layers]
 
