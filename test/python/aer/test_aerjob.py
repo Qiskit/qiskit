@@ -16,7 +16,11 @@ import unittest
 from unittest.mock import patch
 
 from qiskit.backends.aer import QasmSimulator
+from qiskit import QuantumRegister
+from qiskit import ClassicalRegister
+from qiskit import QuantumCircuit, execute, Aer
 from qiskit.backends.aer import QasmSimulatorPy
+
 from qiskit.backends.aer import StatevectorSimulator
 from qiskit.backends.aer import StatevectorSimulatorPy
 from qiskit.backends.aer import UnitarySimulator
@@ -82,6 +86,19 @@ class TestAerJob(QiskitTestCase):
             call_count, 1,
             'Callable object has been called more than once ({})'.format(
                 call_count))
+
+    def test_aer_status(self):
+        """Test job_aer_states"""
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(qreg[0])
+        qc.cx(qreg[0], qreg[1])
+        qc.measure(qreg, creg)
+        backend = Aer.get_backend('qasm_simulator')
+        job_sim = execute([qc]*10, backend)
+        job_sim.result()
+        self.assertEqual(job_sim.status().name, 'DONE')
 
 
 class FakeBackend():
