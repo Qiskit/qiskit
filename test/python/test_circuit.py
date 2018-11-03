@@ -9,6 +9,10 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import os
+import tempfile
+import unittest
+
 import qiskit.extensions.simulator
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -89,6 +93,67 @@ measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_from_qasm_str(self):
+        """Test qasm constructor from string."""
+        qasm_str = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr1[1];
+qreg qr2[2];
+creg cr[3];
+u1(0.300000000000000) qr1[0];
+u2(0.200000000000000,0.100000000000000) qr2[0];
+u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
+s qr2[1];
+sdg qr2[1];
+cx qr1[0],qr2[1];
+barrier qr2[0],qr2[1];
+cx qr2[1],qr1[0];
+h qr2[1];
+if(cr==0) x qr2[1];
+if(cr==1) y qr1[0];
+if(cr==2) z qr1[0];
+barrier qr1[0],qr2[0],qr2[1];
+measure qr1[0] -> cr[0];
+measure qr2[0] -> cr[1];
+measure qr2[1] -> cr[2];\n"""
+        qc = QuantumCircuit.from_qasm_str(qasm_str)
+        self.assertEqual(len(qc.get_cregs()), 1)
+        self.assertEqual(len(qc.get_qregs()), 2)
+        self.assertEqual(qasm_str, qc.qasm())
+
+    @unittest.skipIf(os.getenv('APPVEYOR', None),
+                     'Cannot make temp file in Appveyor.')
+    def test_circuit_from_qasm_file(self):
+        """Test qasm constructor from file."""
+        qasm_str = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr1[1];
+qreg qr2[2];
+creg cr[3];
+u1(0.300000000000000) qr1[0];
+u2(0.200000000000000,0.100000000000000) qr2[0];
+u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
+s qr2[1];
+sdg qr2[1];
+cx qr1[0],qr2[1];
+barrier qr2[0],qr2[1];
+cx qr2[1],qr1[0];
+h qr2[1];
+if(cr==0) x qr2[1];
+if(cr==1) y qr1[0];
+if(cr==2) z qr1[0];
+barrier qr1[0],qr2[0],qr2[1];
+measure qr1[0] -> cr[0];
+measure qr2[0] -> cr[1];
+measure qr2[1] -> cr[2];\n"""
+        with tempfile.NamedTemporaryFile(suffix='.qasm') as qasm_file:
+            qasm_file.write(qasm_str.encode('utf8'))
+            qasm_file.flush()
+            qc = QuantumCircuit.from_qasm_file(qasm_file.name)
+        self.assertEqual(len(qc.get_cregs()), 1)
+        self.assertEqual(len(qc.get_qregs()), 2)
+        self.assertEqual(qasm_str, qc.qasm())
 
 
 class TestCircuitCombineExtend(QiskitTestCase):

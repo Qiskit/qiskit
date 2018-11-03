@@ -23,7 +23,7 @@ import warnings
 from PIL import Image
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.tools.visualization._error import VisualizationError
+from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _text
@@ -209,8 +209,9 @@ def circuit_drawer(circuit,
             im = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
                                             filename=filename, style=style)
         else:
-            raise VisualizationError('Invalid output type %s selected. The only valid choices '
-                                     'are latex, latex_source, text, and mpl' % output)
+            raise _error.VisualizationError(
+                'Invalid output type %s selected. The only valid choices '
+                'are latex, latex_source, text, and mpl' % output)
     if im and interactive:
         im.show()
     return im
