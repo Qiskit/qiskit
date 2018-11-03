@@ -18,7 +18,7 @@ from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QISKitError
-from qiskit.tools.qi.qi import state_fidelity
+from qiskit.quantum_info.states import state_fidelity
 from .common import QiskitTestCase
 
 
