@@ -1391,10 +1391,10 @@ class DAGCircuit:
                     dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
                 # Separate classical arguments to measurements
                 if instruction.name == "measure":
-                    qargs = [(instruction.arg[0][0].name, instruction.arg[0][1])]
-                    cargs = [(instruction.arg[1][0].name, instruction.arg[1][1])]
+                    qargs = [(instruction.qargs[0][0].name, instruction.qargs[0][1])]
+                    cargs = [(instruction.cargs[0][0].name, instruction.cargs[0][1])]
                 else:
-                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.arg))
+                    qargs = list(map(lambda x: (x[0].name, x[1]), instruction.qargs))
                     cargs = []
                 # Get arguments for classical control (if any)
                 if instruction.control is None:

@@ -20,7 +20,7 @@ class Snapshot(Instruction):
 
     def __init__(self, slot, qubits, circ):
         """Create new snapshot instruction."""
-        super().__init__("snapshot", [slot], list(qubits), circ)
+        super().__init__("snapshot", [slot], list(qubits), [], circ)
 
     def inverse(self):
         """Special case. Return self."""

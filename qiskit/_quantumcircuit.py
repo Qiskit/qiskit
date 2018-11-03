@@ -17,7 +17,6 @@ from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
 from qiskit.unrollers import _circuitbackend
 from ._qiskiterror import QISKitError
-from ._register import Register
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
 
@@ -138,7 +137,7 @@ class QuantumCircuit(object):
         """
         has_reg = False
         if (isinstance(register, QuantumRegister) and
-            register in self.qregs.values()):
+                register in self.qregs.values()):
             has_reg = True
         elif (isinstance(register, ClassicalRegister) and
               register in self.cregs.values()):
