@@ -14,7 +14,7 @@ import unittest
 import qiskit.wrapper
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import Aer
-from qiskit import compile
+from qiskit import compile, execute
 
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
@@ -56,6 +56,22 @@ class TestWrapper(QiskitTestCase):
         """Verify that qobj_to_circuits returns None without QASM."""
         qobj = Qobj('abc123', {}, {}, {})
         self.assertIsNone(qiskit.wrapper.qobj_to_circuits(qobj))
+
+    def test_this_will_break(self):
+        """This will break"""
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(qreg[0])
+        qc.cx(qreg[0], qreg[1])
+        qc.measure(qreg, creg)
+
+        backend = Aer.get_backend('qasm_simulator')
+        job_sim = execute(qc, backend)
+        job_sim.status()
+
+        job_sim = execute(qc, backend)
+        job_sim.status()
 
 
 if __name__ == '__main__':
