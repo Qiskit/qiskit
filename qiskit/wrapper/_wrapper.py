@@ -7,6 +7,7 @@
 
 """Helper module for simplified QISKit usage."""
 import logging
+import warnings
 
 from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
 
@@ -30,6 +31,9 @@ def load_qasm_string(qasm_string, name=None,
     Raises:
         QISKitError: if the string is not valid QASM
     """
+    warnings.warn('The load_qasm_string() function is deprecated and will be '
+                  'removed in a future release. Instead use '
+                  'QuantumCircuit.from_qasm_str().', DeprecationWarning)
     return circuit_from_qasm_string(qasm_string, name, basis_gates)
 
 
@@ -49,6 +53,9 @@ def load_qasm_file(qasm_file, name=None,
     Raises:
         QISKitError: if the file cannot be read.
     """
+    warnings.warn('The load_qasm_file() function is deprecated and will be '
+                  'removed in a future release. Instead use '
+                  'QuantumCircuit.from_qasm_file().', DeprecationWarning)
     return circuit_from_qasm_file(qasm_file, name, basis_gates)
 
 
