@@ -13,7 +13,6 @@ import unittest
 from math import pi
 from codecs import encode
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.wrapper._circuittoolkit import circuit_from_qasm_string
 from .common import QiskitTestCase
 
 try:
@@ -511,7 +510,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "        └───────┘┌───┴───┐",
                               "c1_0: 0 ═════════╡ = 0x1 ╞",
                               "                 └───────┘"])
-        circuit = circuit_from_qasm_string(qasm_string)
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(_text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_2(self):
@@ -536,7 +535,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "                 │ = 0x2 │",
                               "c1_1: 0 ═════════╡       ╞",
                               "                 └───────┘"])
-        circuit = circuit_from_qasm_string(qasm_string)
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(_text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_3(self):
@@ -565,7 +564,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "                 │       │",
                               "c1_2: 0 ═════════╡       ╞",
                               "                 └───────┘"])
-        circuit = circuit_from_qasm_string(qasm_string)
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(_text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_4(self):
@@ -598,7 +597,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "                 │       │",
                               "c1_3: 0 ═════════╡       ╞",
                               "                 └───────┘"])
-        circuit = circuit_from_qasm_string(qasm_string)
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(_text_circuit_drawer(circuit), expected)
 
     def test_text_conditional_5(self):
@@ -635,7 +634,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "                 │       │",
                               "c1_4: 0 ═════════╡       ╞",
                               "                 └───────┘"])
-        circuit = circuit_from_qasm_string(qasm_string)
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(_text_circuit_drawer(circuit), expected)
 
 
