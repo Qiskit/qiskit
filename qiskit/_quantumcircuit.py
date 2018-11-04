@@ -291,7 +291,9 @@ class QuantumCircuit(object):
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
                 string_temp += self._gate_string(gate_name)
-        for register in OrderedDict({**self.qregs, **self.cregs}).values():
+        for register in self.qregs.values():
+            string_temp += register.qasm() + "\n"
+        for register in self.cregs.values():
             string_temp += register.qasm() + "\n"
         for instruction in self.data:
             string_temp += instruction.qasm() + "\n"
