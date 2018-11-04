@@ -47,9 +47,8 @@ def snapshot(self, slot):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                tuples.append(register)
+        for register in self.qregs.values():
+            tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for snapshot")
     if slot is None:

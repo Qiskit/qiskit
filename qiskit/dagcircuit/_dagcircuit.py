@@ -1348,11 +1348,10 @@ class DAGCircuit:
         """
         dagcircuit = DAGCircuit()
         dagcircuit.name = circuit.name
-        for register in circuit.regs.values():
-            if isinstance(register, QuantumRegister):
-                dagcircuit.add_qreg(register)
-            else:
-                dagcircuit.add_creg(register)
+        for register in circuit.qregs.values():
+            dagcircuit.add_qreg(register)
+        for register in circuit.cregs.values():
+            dagcircuit.add_creg(register)
         # Add user gate definitions
         for name, data in circuit.definitions.items():
             dagcircuit.add_basis_element(name, data["n_bits"], 0,
