@@ -28,7 +28,7 @@ class ToffoliGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ccx(self.arg[0], self.arg[1], self.arg[2]))
+        self._modifiers(circ.ccx(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
 def ccx(self, ctl1, ctl2, tgt):
