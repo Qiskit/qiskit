@@ -56,8 +56,8 @@ measure b[2] -> d[2];
 measure b[3] -> d[3];
 """
         self.assertEqual(qasm_string, expected_qasm_string)
-        self.assertEqual(len(q_circuit.get_cregs()), 2)
-        self.assertEqual(len(q_circuit.get_qregs()), 2)
+        self.assertEqual(len(q_circuit.cregs), 2)
+        self.assertEqual(len(q_circuit.qregs), 2)
 
     def test_fail_qasm_file(self):
         """Test fail_qasm_file.
@@ -118,5 +118,5 @@ measure b[2] -> d[2];
 measure b[3] -> d[3];
 """
         self.assertEqual(qasm_data_string, expected_qasm_data_string)
-        self.assertEqual(len(q_circuit.get_cregs()), 2)
-        self.assertEqual(len(q_circuit.get_qregs()), 2)
+        self.assertEqual(len(q_circuit.cregs), 2)
+        self.assertEqual(len(q_circuit.qregs), 2)
