@@ -30,7 +30,7 @@ class CHGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ch(self.arg[0], self.arg[1]))
+        self._modifiers(circ.ch(self.qargs[0], self.qargs[1]))
 
 
 def ch(self, ctl, tgt):
