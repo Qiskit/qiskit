@@ -6,27 +6,27 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Test cases for the load_qasm_file and load_qasm_string method."""
+"""Test cases for the circuit qasm_file and qasm_string method."""
 
 from qiskit import QISKitError
-from qiskit.wrapper import load_qasm_file, load_qasm_string
-from .common import QiskitTestCase, Path
+from qiskit import QuantumCircuit
+from ..common import QiskitTestCase, Path
 
 
-class LoadQasmTest(QiskitTestCase):
-    """Test load_qasm_* set of methods."""
+class FromQasmTest(QiskitTestCase):
+    """Test circuit.from_qasm_* set of methods."""
 
     def setUp(self):
         self.qasm_file_name = 'entangled_registers.qasm'
         self.qasm_file_path = self._get_resource_path(
             'qasm/' + self.qasm_file_name, Path.EXAMPLES)
 
-    def test_load_qasm_file(self):
-        """Test load_qasm_file and get_circuit.
+    def test_qasm_file(self):
+        """Test qasm_file and get_circuit.
 
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
-        q_circuit = load_qasm_file(self.qasm_file_path)
+        q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
         qasm_string = q_circuit.qasm()
         self.log.info(qasm_string)
         expected_qasm_string = """\
@@ -56,25 +56,27 @@ measure b[2] -> d[2];
 measure b[3] -> d[3];
 """
         self.assertEqual(qasm_string, expected_qasm_string)
+        self.assertEqual(len(q_circuit.get_cregs()), 2)
+        self.assertEqual(len(q_circuit.get_qregs()), 2)
 
-    def test_fail_load_qasm_file(self):
-        """Test fail_load_qasm_file.
-
-        If all is correct we should get a QISKitError
-        """
-        self.assertRaises(QISKitError,
-                          load_qasm_file, "", name=None)
-
-    def test_fail_load_qasm_string(self):
-        """Test fail_load_qasm_string.
+    def test_fail_qasm_file(self):
+        """Test fail_qasm_file.
 
         If all is correct we should get a QISKitError
         """
         self.assertRaises(QISKitError,
-                          load_qasm_string, "", name=None)
+                          QuantumCircuit.from_qasm_file, "")
 
-    def test_load_qasm_text(self):
-        """Test load_qasm_text and get_circuit.
+    def test_fail_qasm_string(self):
+        """Test fail_qasm_string.
+
+        If all is correct we should get a QISKitError
+        """
+        self.assertRaises(QISKitError,
+                          QuantumCircuit.from_qasm_str, "")
+
+    def test_qasm_text(self):
+        """Test qasm_text and get_circuit.
 
         If all is correct we should get the qasm file loaded from the string
         """
@@ -86,7 +88,7 @@ measure b[3] -> d[3];
         qasm_string += "measure a[3]->c[3];\nmeasure b[0]->d[0];\n"
         qasm_string += "measure b[1]->d[1];\nmeasure b[2]->d[2];\n"
         qasm_string += "measure b[3]->d[3];"
-        q_circuit = load_qasm_string(qasm_string)
+        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
         qasm_data_string = q_circuit.qasm()
         self.log.info(qasm_data_string)
         expected_qasm_data_string = """\
@@ -116,3 +118,5 @@ measure b[2] -> d[2];
 measure b[3] -> d[3];
 """
         self.assertEqual(qasm_data_string, expected_qasm_data_string)
+        self.assertEqual(len(q_circuit.get_cregs()), 2)
+        self.assertEqual(len(q_circuit.get_qregs()), 2)
