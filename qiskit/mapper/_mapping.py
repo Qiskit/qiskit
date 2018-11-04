@@ -687,11 +687,12 @@ def optimize_1q_gates(circuit):
         right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for current_node in run:
             nd = unrolled.multi_graph.node[current_node]
-            assert nd["condition"] is None, "internal error"
-            assert len(nd["qargs"]) == 1, "internal error"
-            assert nd["qargs"][0] == qname, "internal error"
             left_name = nd["name"]
-            assert left_name in ["u1", "u2", "u3", "id"], "internal error"
+            if (nd["condition"] is not None
+                    or len(nd["qargs"]) != 1
+                    or nd["qargs"][0] != qname
+                    or left_name not in ["u1", "u2", "u3", "id"]):
+                raise MapperError("internal error")
             if left_name == "u1":
                 left_parameters = (N(0), N(0), nd["params"][0])
             elif left_name == "u2":
