@@ -20,7 +20,7 @@ class Load(Instruction):
 
     def __init__(self, slot, qubits, circ):
         """Create new load instruction."""
-        super().__init__("load", [slot], list(qubits), circ)
+        super().__init__("load", [slot], list(qubits), [], circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -47,9 +47,8 @@ def load(self, slot):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                tuples.append(register)
+        for register in self.qregs.values():
+            tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for load")
     if slot is None:
