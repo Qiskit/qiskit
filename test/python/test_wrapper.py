@@ -14,7 +14,7 @@ import unittest
 import qiskit.wrapper
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import Aer
-from qiskit import compile, execute
+from qiskit import compile
 
 from qiskit.qobj import Qobj
 from .common import QiskitTestCase
