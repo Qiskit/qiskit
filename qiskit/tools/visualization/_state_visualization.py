@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string
+# pylint: disable=invalid-name,anomalous-backslash-in-string,ungrouped-imports
 
 """
 Visualization functions for quantum states.
