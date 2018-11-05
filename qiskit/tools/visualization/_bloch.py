@@ -45,10 +45,24 @@
 __all__ = ['Bloch']
 
 import os
+import sys
+
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import (Axes3D, proj3d)
+
+if sys.platform == "darwin":
+    try:
+        from matplotlib import pyplot as plt
+    except ImportError:
+        # NOTE(mtreinish): On OSX if python not installed as a framework the
+        # default OSX interactive framework will not work. In that case use
+        # a different backend.
+        import matplotlib
+        matplotlib.use('PS')
+        from matplotlib import pyplot as plt
+else:
+    from matplotlib import pyplot as plt
 
 
 class Arrow3D(FancyArrowPatch):

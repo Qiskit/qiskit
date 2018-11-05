@@ -16,13 +16,13 @@ import json
 import logging
 import math
 import os
+import sys
 import tempfile
 
 import numpy as np
 import PIL
 from matplotlib import get_backend as get_matplotlib_backend
 from matplotlib import patches
-from matplotlib import pyplot as plt
 
 from qiskit import dagcircuit
 from qiskit import transpiler
@@ -30,6 +30,18 @@ from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
 
+if sys.platform == "darwin":
+    try:
+        from matplotlib import pyplot as plt
+    except ImportError:
+        # NOTE(mtreinish): On OSX if python not installed as a framework the
+        # default OSX interactive framework will not work. In that case use
+        # a different backend.
+        import matplotlib
+        matplotlib.use('PS')
+        from matplotlib import pyplot as plt
+else:
+    from matplotlib import pyplot as plt
 
 logger = logging.getLogger(__name__)
 
