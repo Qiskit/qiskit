@@ -189,7 +189,8 @@ class QasmParser(object):
 
     def id_tuple_list(self, id_node):
         """Return a list of (name, index) tuples for this id node."""
-        assert id_node.type == "id", "internal error, id_tuple_list"
+        if id_node.type != "id":
+            raise QasmError("internal error, id_tuple_list")
         bit_list = []
         try:
             g_sym = self.current_symtab[id_node.name]
@@ -243,7 +244,7 @@ class QasmParser(object):
                     line_number = child.line
                     filename = child.file
             else:
-                assert False, "internal error, verify_distinct"
+                raise QasmError("internal error, verify_distinct")
         if len(bit_list) != len(set(bit_list)):
             raise QasmError("duplicate identifiers at line %d file %s"
                             % (line_number, filename))

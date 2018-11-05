@@ -10,7 +10,6 @@
 """
 Two-pulse single-qubit gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -24,16 +23,6 @@ class U3Gate(Gate):
     def __init__(self, theta, phi, lam, qubit, circ=None):
         """Create new two-pulse single qubit gate."""
         super().__init__("u3", [theta, phi, lam], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        phi = self.param[1]
-        lam = self.param[2]
-        return self._qasmif("u3(%s,%s,%s) %s[%d];" % (theta, phi, lam,
-                                                      qubit[0].name,
-                                                      qubit[1]))
 
     def inverse(self):
         """Invert this gate.
@@ -65,4 +54,3 @@ def u3(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u3 = u3
-CompositeGate.u3 = u3
