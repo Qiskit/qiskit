@@ -12,10 +12,20 @@ Tools for working with Pauli Operators.
 
 A simple pauli class and some tools.
 """
+import warnings
+
 import numpy as np
 from scipy import sparse
 
 from qiskit import QISKitError
+
+
+def _make_np_bool(arr):
+    if isinstance(arr, list):
+        arr = np.asarray(arr).astype(np.bool)
+    elif arr.dtype != np.bool:
+        arr = arr.astype(np.bool)
+    return arr
 
 
 class Pauli:
@@ -44,7 +54,7 @@ class Pauli:
     """
 
     def __init__(self, z=None, x=None, label=None):
-        r"""Make the Pauli object.
+        """Make the Pauli object.
 
         Note that, for the qubit index:
             - Order of z, x vectors is q_0 ... q_{n-1},
@@ -66,7 +76,7 @@ class Pauli:
 
     @classmethod
     def from_label(cls, label):
-        r"""Take pauli string to construct pauli.
+        """Take pauli string to construct pauli.
 
         The qubit index of pauli label is q_{n-1} ... q_0.
         E.g., a pauli is $P_{n-1} \otimes ... \otimes P_0$
@@ -110,13 +120,8 @@ class Pauli:
             raise QISKitError("length of z and x vectors must be "
                               "the same. (z: {} vs x: {})".format(len(z), len(x)))
 
-        if isinstance(z, list) and isinstance(x, list):
-            z = np.asarray(z).astype(np.bool)
-            x = np.asarray(x).astype(np.bool)
-
-        if z.dtype != np.bool or x.dtype != np.bool:
-            z = z.astype(np.bool)
-            x = x.astype(np.bool)
+        z = _make_np_bool(z)
+        x = _make_np_bool(x)
 
         self._z = z
         self._x = x
@@ -157,11 +162,21 @@ class Pauli:
                 res = True
         return res
 
-    def __ne__(self, other):
-        """Return True if all Pauli terms are not equal."""
-        return not self.__eq__(other)
-
     def __mul__(self, other):
+        """Multiply two Paulis.
+
+        Raises:
+            QISKitError: if the number of qubits of two paulis are different.
+        """
+
+        if len(self) != len(other):
+            raise QISKitError("These Paulis cannot be multiplied - different "
+                              "number of qubits. ({} vs {})".format(len(self), len(other)))
+        z_new = np.logical_xor(self._z, other.z)
+        x_new = np.logical_xor(self._x, other.x)
+        return Pauli(z_new, x_new)
+
+    def __imul__(self, other):
         """Multiply two Paulis.
 
         Raises:
@@ -170,13 +185,29 @@ class Pauli:
         if len(self) != len(other):
             raise QISKitError("These Paulis cannot be multiplied - different "
                               "number of qubits. ({} vs {})".format(len(self), len(other)))
-        z_new = np.logical_xor(self._z, other.z)
-        x_new = np.logical_xor(self._x, other.x)
-        return Pauli(z_new, x_new)
+        self._z = np.logical_xor(self._z, other.z)
+        self._x = np.logical_xor(self._x, other.x)
+        return self
 
     def __hash__(self):
         """Make object is hashable, based on the pauli label to hash."""
         return hash(str(self))
+
+    @property
+    def v(self):
+        """Old getter of z."""
+        warnings.warn('Accessing property `v` is deprecated, please access `z` instead,'
+                      'Furthermore, use the `update_z` method if you would like to update'
+                      'the z vector', DeprecationWarning)
+        return self._z
+
+    @property
+    def w(self):
+        """Old getter of x."""
+        warnings.warn('Accessing property `w` is deprecated, please access `x` instead,'
+                      'Furthermore, use the `update_x` method if you would like to update'
+                      'the x vector', DeprecationWarning)
+        return self._x
 
     @property
     def z(self):
@@ -188,10 +219,27 @@ class Pauli:
         """Getter of x."""
         return self._x
 
+    def sgn_prod(self, other):
+        """
+        Multiply two Paulis and track the phase.
+
+        $P_3 = P_1 \otimes P_2$: X*Y
+
+        Args:
+            other (Pauli): the other pauli
+
+        Returns:
+            Pauli: the multiplied pauli (in-place)
+            complex: the sign of the multiplication, 1, -1, 1j or -1j
+        """
+        phase = Pauli._prod_phase(self, other)
+        self *= other
+        return self, phase
+
     @staticmethod
     def sgn_prod(p1, p2):
-        r"""
-        Multiply two Paulis and track the sign.
+        """
+        Multiply two Paulis and track the phase.
 
         $P_3 = P_1 \otimes P_2$: X*Y
 
@@ -203,22 +251,8 @@ class Pauli:
             Pauli: the multiplied pauli
             complex: the sign of the multiplication, 1, -1, 1j or -1j
         """
+        phase = Pauli._prod_phase(p1, p2)
         new_pauli = p1 * p2
-        phase_changes = 0
-        for z1, x1, z2, x2 in zip(p1.z, p1.x, p2.z, p2.x):
-            if z1 and not x1:  # Z
-                if x2:
-                    phase_changes = phase_changes - 1 if z2 else phase_changes + 1
-            elif not z1 and x1:  # X
-                if z2:
-                    phase_changes = phase_changes + 1 if x2 else phase_changes - 1
-            elif z1 and x1:  # Y
-                if not z2 and x2:  # X
-                    phase_changes -= 1
-                elif z2 and not x2:  # Z
-                    phase_changes += 1
-        phase = (1j) ** (phase_changes % 4)
-
         return new_pauli, phase
 
     @property
@@ -237,7 +271,7 @@ class Pauli:
         return str(self)
 
     def to_matrix(self):
-        r"""
+        """
         Convert Pauli to a matrix representation.
 
         Order is q_{n-1} .... q_0, i.e., $P_{n-1} \otimes ... P_0$
@@ -249,7 +283,7 @@ class Pauli:
         return mat.toarray()
 
     def to_spmatrix(self):
-        r"""
+        """
         Convert Pauli to a sparse matrix representation (CSR format).
 
         Order is q_{n-1} .... q_0, i.e., $P_{n-1} \otimes ... P_0$
@@ -286,6 +320,7 @@ class Pauli:
         Raises:
             QISKitError: when updating whole z, the number of qubits must be the same.
         """
+        z = _make_np_bool(z)
         if indices is None:
             if len(self._z) != len(z):
                 raise QISKitError("During updating whole z, you can not "
@@ -313,6 +348,7 @@ class Pauli:
         Raises:
             QISKitError: when updating whole x, the number of qubits must be the same.
         """
+        x = _make_np_bool(x)
         if indices is None:
             if len(self._x) != len(x):
                 raise QISKitError("During updating whole x, you can not change "
@@ -392,8 +428,8 @@ class Pauli:
 
         return self
 
-    @staticmethod
-    def generate_random_pauli(num_qubits):
+    @classmethod
+    def random(cls, num_qubits):
         """Return a random Pauli on number of qubits.
 
         Args:
@@ -404,17 +440,17 @@ class Pauli:
         """
         z = np.random.randint(2, size=num_qubits).astype(np.bool)
         x = np.random.randint(2, size=num_qubits).astype(np.bool)
-        return Pauli(z, x)
+        return cls(z, x)
 
-    @staticmethod
-    def generate_single_qubit_pauli(index, pauli_label, num_qubits):
+    @classmethod
+    def pauli_single(cls, num_qubits, index, pauli_label):
         """
         Generate single qubit pauli at index with pauli_label with length num_qubits.
 
         Args:
+            num_qubits (int): the length of pauli
             index (int): the qubit index to insert the single qubii
             pauli_label (str): pauli
-            num_qubits (int): the length of pauli
 
         Returns:
             Pauli: single qubit pauli
@@ -426,10 +462,10 @@ class Pauli:
         z[index] = tmp.z[0]
         x[index] = tmp.x[0]
 
-        return Pauli(z, x)
+        return cls(z, x)
 
     def kron(self, other):
-        r"""Kron product of two paulis.
+        """Kron product of two paulis.
 
         Order is $P_2 (other) \otimes P_1 (self)$
 
@@ -441,6 +477,25 @@ class Pauli:
         """
         self.insert_paulis(indices=None, paulis=other)
         return self
+
+    @staticmethod
+    def _prod_phase(p1, p2):
+        phase_changes = 0
+        for z1, x1, z2, x2 in zip(p1.z, p1.x, p2.z, p2.x):
+            if z1 and not x1:  # Z
+                if x2:
+                    phase_changes = phase_changes - 1 if z2 else phase_changes + 1
+            elif not z1 and x1:  # X
+                if z2:
+                    phase_changes = phase_changes + 1 if x2 else phase_changes - 1
+            elif z1 and x1:  # Y
+                if not z2 and x2:  # X
+                    phase_changes -= 1
+                elif z2 and not x2:  # Z
+                    phase_changes += 1
+        phase = (1j) ** (phase_changes % 4)
+
+        return phase
 
 
 def pauli_group(number_of_qubits, case='weight'):
@@ -491,51 +546,3 @@ def pauli_group(number_of_qubits, case='weight'):
             raise QISKitError("Only support 'weight' or 'tensor' cases")
 
     raise QISKitError("Only support number of qubits is less than 5")
-
-
-def pauli_singles(j_index, number_qubits):
-    """Return the single qubit pauli in number_qubits."""
-    # looping over all the qubits
-    tempset = []
-    z = np.zeros(number_qubits, dtype=np.bool)
-    x = np.zeros(number_qubits, dtype=np.bool)
-    x[j_index] = True
-    tempset.append(Pauli(z, x))
-    z = np.zeros(number_qubits, dtype=np.bool)
-    x = np.zeros(number_qubits, dtype=np.bool)
-    z[j_index] = True
-    x[j_index] = True
-    tempset.append(Pauli(z, x))
-    z = np.zeros(number_qubits, dtype=np.bool)
-    x = np.zeros(number_qubits, dtype=np.bool)
-    z[j_index] = True
-    tempset.append(Pauli(z, x))
-    return tempset
-
-
-if __name__ == '__main__':
-    p = Pauli.from_label('ZIII')
-    p.insert_paulis(0, pauli_labels=['Z', 'X'])
-    print(p)
-    # p.append_qubits(list('ZX'))
-    p.append_paulis(pauli_labels='ZXY')
-    print(p)
-    print(repr(p))
-    p2 = eval(repr(p))
-    a = np.zeros(4)
-    b = np.ones(4)
-    c = Pauli(a, b)
-    print(c._z.dtype)
-
-    p1 = Pauli(z=[0, 0, 0, 1], x=[0, 0, 0, 0])
-    print(p1)
-
-    # dict_p = {}
-
-    # dict_p[p] = 1
-    # print(dict_p[p1])
-
-    pp = Pauli.generate_random_pauli(1)
-    qq = Pauli.generate_random_pauli(1)
-    print(pp, qq)
-    pq = Pauli.sgn_prod(pp, qq)
