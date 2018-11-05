@@ -11,28 +11,41 @@
 
 import os
 import unittest
-import subprocess
-import tempfile
-from .common import QiskitTestCase
+
+import nbformat
+from nbconvert.preprocessors import ExecutePreprocessor
+
+from .common import QiskitTestCase, Path
 
 
-def _exec_notebook(path):
-    with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
-        args = ["jupyter", "nbconvert", "--to", "notebook", "--execute",
-                "--ExecutePreprocessor.timeout=1000",
-                "--output", fout.name, path]
-        subprocess.check_call(args)
+# Timeout (in seconds) for a single notebook.
+TIMEOUT = 1000
+# Jupyter kernel to execute the notebook in.
+JUPYTER_KERNEL = 'python3'
 
 
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):
-        self.path = os.path.dirname(os.path.realpath(__file__))
+        self.filename = self._get_resource_path('notebooks/test_jupyter.ipynb')
+        self.execution_path = os.path.join(Path.SDK.value, '..')
 
-    @unittest.skipIf(os.getenv('APPVEYOR', None), 'Cannot make temp file in Appveyor.')
+    def _execute_notebook(self, filename):
+        # Create the preprocessor.
+        execute_preprocessor = ExecutePreprocessor(timeout=TIMEOUT,
+                                                   kernel_name=JUPYTER_KERNEL)
+
+        # Read the notebook.
+        with open(filename) as file_:
+            notebook = nbformat.read(file_, as_version=4)
+
+        # Run the notebook into the folder containing the `qiskit/` module.
+        execute_preprocessor.preprocess(
+            notebook, {'metadata': {'path': self.execution_path}})
+
     def test_jupyter(self):
         "Test Jupyter functionality"
-        _exec_notebook(self.path+'/notebooks/test_jupyter.ipynb')
+        self._execute_notebook(self.filename)
 
 
 if __name__ == '__main__':
