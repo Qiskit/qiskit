@@ -9,37 +9,41 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import os
+import tempfile
+import unittest
+
 import qiskit.extensions.simulator
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QISKitError
-from qiskit.tools.qi.qi import state_fidelity
+from qiskit.quantum_info.states import state_fidelity
 from .common import QiskitTestCase
 
 
 class TestCircuit(QiskitTestCase):
     """QuantumCircuit basic tests."""
 
-    def test_get_qregs(self):
+    def test_qregs(self):
         """Test getting quantum registers from circuit.
         """
         qr1 = QuantumRegister(1)
         qr2 = QuantumRegister(2)
         qc = QuantumCircuit(qr1, qr2)
-        q_regs = qc.get_qregs()
+        q_regs = qc.qregs
         self.assertEqual(len(q_regs), 2)
         self.assertEqual(q_regs[qr1.name], qr1)
         self.assertEqual(q_regs[qr2.name], qr2)
 
-    def test_get_cregs(self):
+    def test_cregs(self):
         """Test getting classical registers from circuit.
         """
         cr1 = ClassicalRegister(1)
         cr2 = ClassicalRegister(2)
         cr3 = ClassicalRegister(3)
         qc = QuantumCircuit(cr1, cr2, cr3)
-        c_regs = qc.get_cregs()
+        c_regs = qc.cregs
         self.assertEqual(len(c_regs), 3)
         self.assertEqual(c_regs[cr1.name], cr1)
         self.assertEqual(c_regs[cr2.name], cr2)

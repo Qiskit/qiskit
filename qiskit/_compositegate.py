@@ -15,15 +15,15 @@ from ._qiskiterror import QISKitError
 class CompositeGate(Gate):
     """Composite gate, a sequence of unitary gates."""
 
-    def __init__(self, name, param, args, circuit=None, inverse_name=None):
+    def __init__(self, name, param, qargs, circuit=None, inverse_name=None):
         """Create a new composite gate.
 
         name = instruction name string
         param = list of real parameters
-        arg = list of pairs (Register, index)
+        qarg = list of pairs (QuantumRegister, index)
         circ = QuantumCircuit or CompositeGate containing this gate
         """
-        super().__init__(name, param, args, circuit)
+        super().__init__(name, param, qargs, circuit)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
         self.inverse_name = inverse_name or (name + 'dg')
@@ -63,7 +63,7 @@ class CompositeGate(Gate):
         self.check_circuit()
         self.circuit._check_qubit(qubit)
         if (qubit[0].name, qubit[1]) not in map(
-                lambda x: (x[0].name, x[1]), self.arg):
+                lambda x: (x[0].name, x[1]), self.qargs):
             raise QISKitError("qubit '%s[%d]' not argument of gate"
                               % (qubit[0].name, qubit[1]))
 
