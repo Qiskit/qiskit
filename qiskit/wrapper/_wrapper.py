@@ -7,35 +7,34 @@
 
 """Helper module for simplified QISKit usage."""
 import logging
-
-from ._circuittoolkit import circuit_from_qasm_file, circuit_from_qasm_string
+import warnings
+from qiskit import QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
 # Functions for importing qasm
 
 
-def load_qasm_string(qasm_string, name=None,
-                     basis_gates="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap"):
+def load_qasm_string(qasm_string, name=None):
     """Construct a quantum circuit from a qasm representation (string).
 
     Args:
         qasm_string (str): a string of qasm, or a filename containing qasm.
-        basis_gates (str): basis gates for the quantum circuit.
         name (str or None): the name of the quantum circuit after loading qasm
             text into it. If no name given, assign automatically.
     Returns:
         QuantumCircuit: circuit constructed from qasm.
-    Raises:
-        QISKitError: if the string is not valid QASM
     """
-    return circuit_from_qasm_string(qasm_string, name, basis_gates)
+    warnings.warn('The load_qasm_string() function is deprecated and will be '
+                  'removed in a future release. Instead use '
+                  'QuantumCircuit.from_qasm_str().', DeprecationWarning)
+    qc = QuantumCircuit.from_qasm_str(qasm_string)
+    if name:
+        qc.name = name
+    return qc
 
 
-def load_qasm_file(qasm_file, name=None,
-                   basis_gates="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap"):
+def load_qasm_file(qasm_file, name=None):
     """Construct a quantum circuit from a qasm representation (file).
 
     Args:
@@ -43,13 +42,16 @@ def load_qasm_file(qasm_file, name=None,
         name (str or None): the name of the quantum circuit after
             loading qasm text into it. If no name is give the name is of
             the text file.
-        basis_gates (str): basis gates for the quantum circuit.
     Returns:
          QuantumCircuit: circuit constructed from qasm.
-    Raises:
-        QISKitError: if the file cannot be read.
     """
-    return circuit_from_qasm_file(qasm_file, name, basis_gates)
+    warnings.warn('The load_qasm_file() function is deprecated and will be '
+                  'removed in a future release. Instead use '
+                  'QuantumCircuit.from_qasm_file().', DeprecationWarning)
+    qc = QuantumCircuit.from_qasm_file(qasm_file)
+    if name:
+        qc.name = name
+    return qc
 
 
 def qobj_to_circuits(qobj):

@@ -30,7 +30,7 @@ class XGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.x(self.arg[0]))
+        self._modifiers(circ.x(self.qargs[0]))
 
 
 def x(self, q):

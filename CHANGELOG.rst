@@ -61,6 +61,7 @@ Fixed
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
 - Use case insensitive matching when comparing premium account URLs. (#1102)
+- Fixed AerJob status when the submitted Job is in a PENDING state. (#1215)
 
 Removed
 -------
