@@ -70,7 +70,9 @@ class Pauli:
             label (str): pauli label
         """
         if label is not None:
-            Pauli.from_label(label)
+            a = Pauli.from_label(label)
+            self._z = a.z
+            self._x = a.x
         else:
             self._init_from_bool(z, x)
 
@@ -122,7 +124,6 @@ class Pauli:
 
         z = _make_np_bool(z)
         x = _make_np_bool(x)
-
         self._z = z
         self._x = x
 
@@ -395,8 +396,8 @@ class Pauli:
         else:
             if not isinstance(indices, list):
                 indices = [indices]
-            self._z = np.insert(self._z, indices, paulis.z)
-            self._x = np.insert(self._x, indices, paulis.x)
+            self._z = np.insert(self._z, indices, paulis.z[::-1])
+            self._x = np.insert(self._x, indices, paulis.x[::-1])
 
         return self
 
@@ -518,6 +519,16 @@ def pauli_group(number_of_qubits, case='weight'):
     """
     if number_of_qubits < 5:
         temp_set = []
+        if isinstance(case, int):
+            warnings.warn('Passing case as integer is deprecated, please pass `weight`'
+                          ' or `tensor` instead,', DeprecationWarning)
+            if case == 0:
+                case == 'weight'
+            elif case == 1:
+                case == 'tensor'
+            else:
+                case == 'na'
+
         if case == 'weight':
             tmp = pauli_group(number_of_qubits, case='tensor')
             # sort on the weight of the Pauli operator
