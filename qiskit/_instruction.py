@@ -20,42 +20,48 @@ Instructions are identified by the following fields, and are serialized as such 
 
     param: List of parameters to specialize a specific intruction instance.
 
-    arg: List of pairs (Register, index) that the instruction acts on.
+    qargs: List of qubits (QuantumRegister, index) that the instruction acts on.
+
+    cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
 """
-from sympy import Number, Basic
+import sympy
 
 from ._qiskiterror import QISKitError
-from ._register import Register
+from ._quantumregister import QuantumRegister
+from ._classicalregister import ClassicalRegister
 
 
 class Instruction(object):
     """Generic quantum instruction."""
 
-    def __init__(self, name, param, arg, circuit=None):
+    def __init__(self, name, param, qargs, cargs, circuit=None):
         """Create a new instruction.
 
         Args:
             name (str): instruction name
-            param (list[float]): list of real parameters
-            arg (list[(Register, index)]): list of args
+            param (list[sympy.Number or complex]): list of parameters
+            qargs (list[(QuantumRegister, index)]): list of quantum args
+            cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit(QuantumCircuit or Instruction): where the instruction is attached
 
         Raises:
             QISKitError: when the register is not in the correct format.
         """
-        for i in arg:
-            if not isinstance(i[0], Register) or not isinstance(i[1], int):
-                raise QISKitError("argument not (Register, int) tuple")
+        if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
+            raise QISKitError("qarg not (QuantumRegister, int) tuple")
+        if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
+            raise QISKitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
         self.param = []
         for single_param in param:
-            if not isinstance(single_param, (Basic, complex)):
-                # If the item in param is not symbolic and not complex (used
+            if not isinstance(single_param, (sympy.Basic, complex)):
+                # If the item in param is not symbolic or complex (used
                 # by InitializeGate), make it symbolic.
-                self.param.append(Number(single_param))
+                self.param.append(sympy.Number(single_param))
             else:
                 self.param.append(single_param)
-        self.arg = arg
+        self.qargs = qargs
+        self.cargs = cargs
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 
@@ -94,12 +100,12 @@ class Instruction(object):
         Derived instructions may override this to print in a
         different format (e.g. measure).
         """
-        name_and_param = self.name
+        name_param = self.name
         if self.param:
-            name_and_param = "%s(%s)" % (name_and_param,
-                                         ",".join([str(i)
-                                                   for i in self.param]))
+            name_param = "%s(%s)" % (name_param,
+                                     ",".join([str(i) for i in self.param]))
 
-        return self._qasmif("%s %s;" % (name_and_param,
-                                        ",".join(["%s[%d]" % (j[0].name, j[1])
-                                                  for j in self.arg])))
+        name_param_arg = "%s %s;" % (name_param,
+                                     ",".join(["%s[%d]" % (j[0].name, j[1])
+                                               for j in self.qargs + self.cargs]))
+        return self._qasmif(name_param_arg)
