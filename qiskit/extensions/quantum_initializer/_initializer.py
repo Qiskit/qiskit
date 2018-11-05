@@ -43,10 +43,10 @@ class InitializeGate(CompositeGate):
     be applied to implement this meta-gate.
 
     param = list of complex amplitudes
-    arg = list of qubits
+    qargs = list of qubits
     circ = QuantumCircuit or CompositeGate containing this gate
     """
-    def __init__(self, param, arg, circ=None):
+    def __init__(self, param, qargs, circ=None):
         """Create new initialize composite gate."""
         num_qubits = math.log2(len(param))
 
@@ -57,7 +57,7 @@ class InitializeGate(CompositeGate):
         self.num_qubits = int(num_qubits)
 
         # Check if number of desired qubits agrees with available qubits
-        if len(arg) != self.num_qubits:
+        if len(qargs) != self.num_qubits:
             raise QISKitError("Number of complex amplitudes do not correspond "
                               "to the number of qubits.")
 
@@ -66,7 +66,7 @@ class InitializeGate(CompositeGate):
                             abs_tol=_EPS):
             raise QISKitError("Sum of amplitudes-squared does not equal one.")
 
-        super().__init__("init", param, arg, circ)
+        super().__init__("init", param, qargs, circ)
 
         # call to generate the circuit that takes the desired vector to zero
         self.gates_to_uncompute()
@@ -86,15 +86,15 @@ class InitializeGate(CompositeGate):
         """
         # if LSB is first (as is the case with the IBM QE) and significance is
         # in order:
-        return self.arg[nth]
-        # if MSB is first: return self.arg[self.num_qubits - 1 - n]
-        #  equivalent to self.arg[-(n+1)]
+        return self.qargs[nth]
+        # if MSB is first: return self.qargs[self.num_qubits - 1 - n]
+        #  equivalent to self.qargs[-(n+1)]
         # to generalize any mapping could be placed here or even taken from
         # the user
 
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
-        self._modifiers(circ.initialize(self.param, self.arg))
+        self._modifiers(circ.initialize(self.param, self.qargs))
 
     def gates_to_uncompute(self):
         """
@@ -211,7 +211,7 @@ class InitializeGate(CompositeGate):
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
         combine_composite_gates = CompositeGate(
-            "multiplex" + local_num_qubits.__str__(), [], self.arg)
+            "multiplex" + local_num_qubits.__str__(), [], self.qargs)
 
         # recursive step on half the angles fulfilling the above assumption
         combine_composite_gates._attach(
@@ -386,8 +386,8 @@ def remove_double_cnots_once(self):
 
             if (right_gate_host is not None) \
                     and right_gate_host[right_gate_index].name == "cx" \
-                    and (left_gate_host[left_gate_index].arg ==
-                         right_gate_host[right_gate_index].arg):
+                    and (left_gate_host[left_gate_index].qargs ==
+                         right_gate_host[right_gate_index].qargs):
                 del right_gate_host[right_gate_index]
                 del left_gate_host[left_gate_index]
                 double_cnot_removed = True

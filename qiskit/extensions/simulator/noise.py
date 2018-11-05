@@ -20,7 +20,7 @@ class Noise(Instruction):
 
     def __init__(self, switch, qubits, circ):
         """Create new noise instruction."""
-        super().__init__("noise", [switch], list(qubits), circ)
+        super().__init__("noise", [switch], list(qubits), [], circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -46,9 +46,8 @@ def noise(self, switch):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                tuples.append(register)
+        for register in self.qregs.values():
+            tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for noise")
     if switch is None:
