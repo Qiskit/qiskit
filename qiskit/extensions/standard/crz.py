@@ -29,7 +29,7 @@ class CrzGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.crz(self.param[0], self.arg[0], self.arg[1]))
+        self._modifiers(circ.crz(self.param[0], self.qargs[0], self.qargs[1]))
 
 
 def crz(self, theta, ctl, tgt):
