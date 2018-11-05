@@ -77,7 +77,7 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
     def _map_qubit(self, qubit):
         """Map qubit tuple (regname, index) to (QuantumRegister, index)."""
-        qregs = self.circuit.get_qregs()
+        qregs = self.circuit.qregs
         if qubit[0] not in qregs:
             raise _backenderror.BackendError(
                 "qreg %s does not exist" % qubit[0])
@@ -85,7 +85,7 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
     def _map_bit(self, bit):
         """Map bit tuple (regname, index) to (ClassicalRegister, index)."""
-        cregs = self.circuit.get_cregs()
+        cregs = self.circuit.cregs
         if bit[0] not in cregs:
             raise _backenderror.BackendError(
                 "creg %s does not exist" % bit[0])
@@ -93,7 +93,7 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
     def _map_creg(self, creg):
         """Map creg name to ClassicalRegister."""
-        cregs = self.circuit.get_cregs()
+        cregs = self.circuit.cregs
         if creg not in cregs:
             raise _backenderror.BackendError("creg %s does not exist" % creg)
         return cregs[creg]
