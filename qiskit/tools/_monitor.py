@@ -18,7 +18,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     _NOTEBOOK_ENV = True
     from IPython.display import display                              # pylint: disable=import-error
     import ipywidgets as widgets                                     # pylint: disable=import-error
-    from qiskit.wrapper.jupyter.jupyter_magics import _html_checker  # pylint: disable=C0412
+    from qiskit.tools.jupyter.jupyter_magics import _html_checker    # pylint: disable=C0412
 
 
 def _text_checker(job, interval):

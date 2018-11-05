@@ -16,7 +16,7 @@ import ipywidgets as widgets                                     # pylint: disab
 import qiskit
 from qiskit.transpiler._receiver import receiver as rec
 from qiskit.transpiler._progressbar import TextProgressBar
-from qiskit.wrapper.jupyter.progressbar import HTMLProgressBar
+from qiskit.tools.jupyter.progressbar import HTMLProgressBar
 
 
 def _html_checker(job_var, interval, status, header):

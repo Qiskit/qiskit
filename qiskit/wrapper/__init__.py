@@ -16,4 +16,3 @@ refer to the documentation of each component and use them separately.
 """
 
 from ._wrapper import (load_qasm_string, load_qasm_file, qobj_to_circuits)
-from ._monitor import job_monitor
