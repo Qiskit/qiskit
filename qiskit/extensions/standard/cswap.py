@@ -28,7 +28,7 @@ class FredkinGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cswap(self.arg[0], self.arg[1], self.arg[2]))
+        self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
 def cswap(self, ctl, tgt1, tgt2):
