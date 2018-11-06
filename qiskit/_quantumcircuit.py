@@ -17,7 +17,6 @@ from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
 from qiskit.unrollers import _circuitbackend
 from ._qiskiterror import QISKitError
-from ._register import Register
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
 
@@ -107,7 +106,8 @@ class QuantumCircuit(object):
         self.data = []
 
         # This is a map of registers bound to this circuit, by name.
-        self.regs = OrderedDict()
+        self.qregs = OrderedDict()
+        self.cregs = OrderedDict()
         self.add(*regs)
 
     @classmethod
@@ -135,31 +135,14 @@ class QuantumCircuit(object):
         Returns:
             bool: True if the register is contained in this circuit.
         """
-        if register.name in self.regs:
-            registers = self.regs[register.name]
-            if registers.size == register.size:
-                if ((isinstance(register, QuantumRegister) and
-                     isinstance(registers, QuantumRegister)) or
-                        (isinstance(register, ClassicalRegister) and
-                         isinstance(registers, ClassicalRegister))):
-                    return True
-        return False
-
-    def get_qregs(self):
-        """Get the qregs of the circuit."""
-        qregs = OrderedDict()
-        for name, register in self.regs.items():
-            if isinstance(register, QuantumRegister):
-                qregs[name] = register
-        return qregs
-
-    def get_cregs(self):
-        """Get the cregs of the circuit."""
-        cregs = OrderedDict()
-        for name, register in self.regs.items():
-            if isinstance(register, ClassicalRegister):
-                cregs[name] = register
-        return cregs
+        has_reg = False
+        if (isinstance(register, QuantumRegister) and
+                register in self.qregs.values()):
+            has_reg = True
+        elif (isinstance(register, ClassicalRegister) and
+              register in self.cregs.values()):
+            has_reg = True
+        return has_reg
 
     def combine(self, rhs):
         """
@@ -172,26 +155,20 @@ class QuantumCircuit(object):
 
         Return self + rhs as a new object.
         """
-        combined_registers = []
         # Check registers in LHS are compatible with RHS
-        for name, register in self.regs.items():
-            if name in rhs.regs and register != rhs.regs[name]:
-                raise QISKitError("circuits are not compatible")
-            else:
-                combined_registers.append(register)
-        # Add registers in RHS not in LHS
-        complement_registers = set(rhs.regs) - set(self.regs)
-        for name in complement_registers:
-            combined_registers.append(rhs.regs[name])
+        self._check_compatible_regs(rhs)
+
         # Make new circuit with combined registers
-        circuit = QuantumCircuit(*combined_registers)
+        combined_qregs = {**self.qregs, **rhs.qregs}.values()
+        combined_cregs = {**self.cregs, **rhs.cregs}.values()
+        circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
         return circuit
 
     def extend(self, rhs):
         """
-        Append rhs to self if self if it contains compatible registers.
+        Append rhs to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -200,12 +177,12 @@ class QuantumCircuit(object):
 
         Modify and return self.
         """
-        # Check compatibility and add new registers
-        for name, register in rhs.regs.items():
-            if name not in self.regs:
-                self.add(register)
-            elif name in self.regs and register != self.regs[name]:
-                raise QISKitError("circuits are not compatible")
+        # Check registers in LHS are compatible with RHS
+        self._check_compatible_regs(rhs)
+
+        # Add new registers
+        self.qregs.update(rhs.qregs)
+        self.cregs.update(rhs.cregs)
 
         # Add new gates
         for gate in rhs.data:
@@ -236,13 +213,15 @@ class QuantumCircuit(object):
     def add(self, *regs):
         """Add registers."""
         for register in regs:
-            if not isinstance(register, Register):
-                raise QISKitError("expected a register")
-            if register.name not in self.regs:
-                self.regs[register.name] = register
-            else:
+            if register.name in self.qregs or register.name in self.cregs:
                 raise QISKitError("register name \"%s\" already exists"
                                   % register.name)
+            if isinstance(register, QuantumRegister):
+                self.qregs[register.name] = register
+            elif isinstance(register, ClassicalRegister):
+                self.cregs[register.name] = register
+            else:
+                raise QISKitError("expected a register")
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
@@ -281,6 +260,15 @@ class QuantumCircuit(object):
         if len(squbits) != len(qubits):
             raise QISKitError("duplicate qubit arguments")
 
+    def _check_compatible_regs(self, rhs):
+        """Raise exception if the circuits are defined on incompatible registers"""
+        lhs_regs = {**self.qregs, **self.cregs}
+        rhs_regs = {**rhs.qregs, **rhs.cregs}
+        common_registers = lhs_regs.keys() & rhs_regs.keys()
+        for name in common_registers:
+            if lhs_regs[name] != rhs_regs[name]:
+                raise QISKitError("circuits are not compatible")
+
     def _gate_string(self, name):
         """Return a QASM string for the named gate."""
         out = ""
@@ -303,7 +291,9 @@ class QuantumCircuit(object):
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
                 string_temp += self._gate_string(gate_name)
-        for register in self.regs.values():
+        for register in self.qregs.values():
+            string_temp += register.qasm() + "\n"
+        for register in self.cregs.values():
             string_temp += register.qasm() + "\n"
         for instruction in self.data:
             string_temp += instruction.qasm() + "\n"

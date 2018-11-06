@@ -26,11 +26,11 @@ class SGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.s(self.arg[0]))
+        self._modifiers(circ.s(self.qargs[0]))
 
     def inverse(self):
         """Invert this gate."""
-        inv = SdgGate(self.arg[0])
+        inv = SdgGate(self.qargs[0])
         self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
         return inv
 
@@ -44,11 +44,11 @@ class SdgGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.sdg(self.arg[0]))
+        self._modifiers(circ.sdg(self.qargs[0]))
 
     def inverse(self):
         """Invert this gate."""
-        inv = SGate(self.arg[0])
+        inv = SGate(self.qargs[0])
         self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
         return inv
 
