@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 from qiskit.backends import BaseProvider
 
-from .credentials._configrc import remove_credentials
+from .credentials.configrc import remove_credentials
 from .credentials import (Credentials,
                           read_credentials_from_qiskitrc, store_credentials, discover_credentials)
 from .ibmqaccounterror import IBMQAccountError

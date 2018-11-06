@@ -22,7 +22,7 @@ from sympy import Number as N
 from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
+from qiskit.dagcircuit.dagcircuiterror import DAGCircuitError
 from qiskit.unrollers._dagunroller import DagUnroller
 from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.mapper._quaternion import quaternion_from_euler
@@ -836,7 +836,7 @@ def remove_last_measurements(dag_circuit, perform_remove=True):
     This operation is done in-place on the input DAG circuit if perform_pop=True.
 
     Parameters:
-        dag_circuit (qiskit.dagcircuit._dagcircuit.DAGCircuit): DAG circuit.
+        dag_circuit (qiskit.dagcircuit.dagcircuit.DAGCircuit): DAG circuit.
         perform_remove (bool): Whether to perform removal, or just return node list.
 
     Returns:
@@ -867,7 +867,7 @@ def return_last_measurements(dag_circuit, removed_meas, final_layout):
     This operation is done in-place on the input DAG circuit.
 
     Parameters:
-        dag_circuit (qiskit.dagcircuit._dagcircuit.DAGCircuit): DAG circuit.
+        dag_circuit (qiskit.dagcircuit.dagcircuit.DAGCircuit): DAG circuit.
         removed_meas (list): List of measurements previously removed.
         final_layout (dict): Qubit layout after swap mapping.
     """

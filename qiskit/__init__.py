@@ -43,8 +43,8 @@ from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
 # to be placed *before* the wrapper imports or any non-import code.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
-from .wrapper._wrapper import (load_qasm_string, load_qasm_file, qobj_to_circuits)
-from .tools._compiler import (compile, execute)
+from .wrapper.wrapper import (load_qasm_string, load_qasm_file, qobj_to_circuits)
+from .tools.compiler import (compile, execute)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper

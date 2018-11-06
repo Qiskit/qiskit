@@ -13,7 +13,7 @@ import logging
 
 from qiskit import QISKitError
 from .credentials import Credentials
-from ._configrc import read_credentials_from_qiskitrc, store_credentials
+from .configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ
 from ._qconfig import read_credentials_from_qconfig
 

@@ -26,7 +26,7 @@ import sympy
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import QISKitError, CompositeGate
-from ._dagcircuiterror import DAGCircuitError
+from .dagcircuiterror import DAGCircuitError
 
 
 class DAGCircuit:

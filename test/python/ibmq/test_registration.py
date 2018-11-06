@@ -18,7 +18,7 @@ from unittest.mock import patch
 import qiskit
 from qiskit import QISKitError
 from qiskit.backends.ibmq.credentials import (
-    _configrc, _qconfig, discover_credentials, store_credentials, Credentials,
+    configrc, _qconfig, discover_credentials, store_credentials, Credentials,
     read_credentials_from_qiskitrc)
 from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
 from qiskit.backends.ibmq.ibmqprovider import QE_URL
@@ -266,13 +266,13 @@ def custom_qiskitrc(contents=b''):
     tmp_file.flush()
 
     # Temporarily modify the default location of the qiskitrc file.
-    default_qiskitrc_file_original = _configrc.DEFAULT_QISKITRC_FILE
-    _configrc.DEFAULT_QISKITRC_FILE = tmp_file.name
+    default_qiskitrc_file_original = configrc.DEFAULT_QISKITRC_FILE
+    configrc.DEFAULT_QISKITRC_FILE = tmp_file.name
     yield
 
     # Delete the temporary file and restore the default location.
     tmp_file.close()
-    _configrc.DEFAULT_QISKITRC_FILE = default_qiskitrc_file_original
+    configrc.DEFAULT_QISKITRC_FILE = default_qiskitrc_file_original
 
 
 @contextmanager
