@@ -8,9 +8,7 @@
 """Tests for qiskit/_util.py"""
 import os
 import time
-from unittest.mock import patch
 from qiskit.transpiler._parallel import parallel_map
-from qiskit.wrapper.jupyter import TextProgressBar
 from .common import QiskitTestCase
 
 
@@ -34,10 +32,3 @@ class TestParallel(QiskitTestCase):
         ans = parallel_map(_parfunc, list(range(10)))
         self.assertEqual(ans, list(range(10)))
 
-    def test_parallel_progressbar(self):
-        """Test parallel_map with progress bar"""
-        TextProgressBar()
-        with patch('sys.stdout.write') as stdout_mock:  # Mute the progress bar itself
-            ans = parallel_map(_parfunc, list(range(10)))
-        self.assertEqual(ans, list(range(10)))
-        self.assertTrue(stdout_mock.called)
