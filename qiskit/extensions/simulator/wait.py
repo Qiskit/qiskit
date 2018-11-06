@@ -30,7 +30,7 @@ class WaitGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.wait(self.param[0], self.arg[0]))
+        self._modifiers(circ.wait(self.param[0], self.qargs[0]))
 
 
 def wait(self, t, q):
