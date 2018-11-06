@@ -37,21 +37,18 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_validating_job(self):
         job = self.run_with_api(ValidatingAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.VALIDATING)
 
     def test_error_while_creating_job(self):
         job = self.run_with_api(ErrorWhileCreatingAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.ERROR)
 
     def test_error_while_validating_job(self):
         job = self.run_with_api(ErrorWhileValidatingAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.VALIDATING)
@@ -61,7 +58,6 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_status_flow_for_non_queued_job(self):
         job = self.run_with_api(NonQueuedAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.RUNNING)
@@ -71,7 +67,6 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_status_flow_for_queued_job(self):
         job = self.run_with_api(QueuedAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.QUEUED)
@@ -84,7 +79,6 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_status_flow_for_cancellable_job(self):
         job = self.run_with_api(CancellableAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.RUNNING)
@@ -97,7 +91,6 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_status_flow_for_non_cancellable_job(self):
         job = self.run_with_api(NonCancellableAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.RUNNING)
@@ -110,7 +103,6 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_status_flow_for_errored_cancellation(self):
         job = self.run_with_api(ErroredCancellationAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.RUNNING)
@@ -153,7 +145,6 @@ class TestIBMQJobStates(JobTestCase):
 
     def test_error_while_running_job(self):
         job = self.run_with_api(ErrorWhileRunningAPI())
-        self.assertEqual(job.status(), JobStatus.INITIALIZING)
 
         self.wait_for_initialization(job)
         self.assertEqual(job.status(), JobStatus.RUNNING)
