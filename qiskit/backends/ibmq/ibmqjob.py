@@ -21,8 +21,6 @@ import json
 import datetime
 import numpy
 
-from IBMQuantumExperience import ApiError
-
 from qiskit.qobj import qobj_to_dict
 from qiskit.transpiler import transpile_dag
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
@@ -32,6 +30,9 @@ from qiskit.result._utils import result_from_old_style_dict
 from qiskit.qobj import Result as QobjResult
 from qiskit.qobj import ExperimentResult as QobjExperimentResult
 from qiskit.qobj import validate_qobj_against_schema
+
+from .api import ApiError
+
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class IBMQJob(BaseJob):
             backend (str): The backend instance used to run this job.
             job_id (str): The job ID of an already submitted job. Pass `None`
                 if you are creating a new one.
-            api (IBMQuantumExperience): IBM Q API
+            api (IBMQConnector): IBMQ connector.
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. See notes below
             creation_date (str): When the job was run.
