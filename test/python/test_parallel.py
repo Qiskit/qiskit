@@ -31,4 +31,3 @@ class TestParallel(QiskitTestCase):
         """Test parallel_map """
         ans = parallel_map(_parfunc, list(range(10)))
         self.assertEqual(ans, list(range(10)))
-
