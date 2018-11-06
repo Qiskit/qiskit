@@ -8,8 +8,8 @@
 """
 OPENQASM interpreter.
 """
-from qiskit._quantumregister import QuantumRegister
-from qiskit._classicalregister import ClassicalRegister
+from qiskit.quantumregister import QuantumRegister
+from qiskit.classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
 
 

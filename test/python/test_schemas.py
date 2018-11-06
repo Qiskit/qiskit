@@ -10,7 +10,7 @@
 """Schemas test."""
 import json
 import os
-from qiskit._schema_validation import (validate_json_against_schema,
+from qiskit.schema_validation import (validate_json_against_schema,
                                        _get_validator)
 from qiskit import __path__ as qiskit_path
 from .common import QiskitTestCase

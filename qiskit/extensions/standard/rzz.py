@@ -10,8 +10,8 @@ two-qubit ZZ-rotation gate.
 """
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit.instructionset import InstructionSet
+from qiskit.quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 

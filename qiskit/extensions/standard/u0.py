@@ -12,8 +12,8 @@ Single qubit gate cycle idle.
 """
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit.instructionset import InstructionSet
+from qiskit.quantumregister import QuantumRegister
 
 
 class U0Gate(Gate):

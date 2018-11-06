@@ -12,8 +12,8 @@
 import unittest
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit._quantumregister import QuantumRegister
-from qiskit._classicalregister import ClassicalRegister
+from qiskit.quantumregister import QuantumRegister
+from qiskit.classicalregister import ClassicalRegister
 from .common import QiskitTestCase
 
 

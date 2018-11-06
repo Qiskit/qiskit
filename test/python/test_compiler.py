@@ -19,7 +19,7 @@ from qiskit import compile
 from qiskit import Result
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import execute
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase
 

@@ -13,7 +13,7 @@ Doing so requires that the required backend interface is implemented.
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 import qiskit
 
 

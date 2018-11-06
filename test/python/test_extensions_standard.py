@@ -11,7 +11,7 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import ToffoliGate

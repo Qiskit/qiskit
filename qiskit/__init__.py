@@ -16,18 +16,18 @@ import pkgutil
 # First, check for required Python and API version
 from . import _util
 
-from ._qiskiterror import QISKitError
-from ._classicalregister import ClassicalRegister
-from ._quantumregister import QuantumRegister
-from ._quantumcircuit import QuantumCircuit
-from ._gate import Gate
-from ._compositegate import CompositeGate
-from ._instruction import Instruction
-from ._instructionset import InstructionSet
-from ._reset import Reset
-from ._measure import Measure
-from ._schema_validation import (validate_json_against_schema,
-                                 SchemaValidationError)
+from .qiskiterror import QISKitError
+from .classicalregister import ClassicalRegister
+from .quantumregister import QuantumRegister
+from .quantumcircuit import QuantumCircuit
+from .gate import Gate
+from .compositegate import CompositeGate
+from .instruction import Instruction
+from .instructionset import InstructionSet
+from .reset import Reset
+from .measure import Measure
+from .schema_validation import (validate_json_against_schema,
+                                SchemaValidationError)
 from .result import Result
 
 # The qiskit.extensions.x imports needs to be placed here due to the

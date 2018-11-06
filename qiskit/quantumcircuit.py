@@ -16,9 +16,9 @@ from collections import OrderedDict
 from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
 from qiskit.unrollers import _circuitbackend
-from ._qiskiterror import QISKitError
-from ._quantumregister import QuantumRegister
-from ._classicalregister import ClassicalRegister
+from .qiskiterror import QISKitError
+from .quantumregister import QuantumRegister
+from .classicalregister import ClassicalRegister
 
 
 def _circuit_from_qasm(qasm, basis=None):

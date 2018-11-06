@@ -46,7 +46,7 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 from qiskit._util import local_hardware_info
 from ._receiver import receiver as rec
 from ._progressbar import BaseProgressBar

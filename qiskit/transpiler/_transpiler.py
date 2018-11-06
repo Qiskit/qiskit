@@ -12,7 +12,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler._transpilererror import TranspilerError
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 from qiskit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.unrollers import _dagunroller

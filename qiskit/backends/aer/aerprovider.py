@@ -11,7 +11,7 @@
 from collections import OrderedDict
 import logging
 
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 from qiskit.backends import BaseProvider
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
 

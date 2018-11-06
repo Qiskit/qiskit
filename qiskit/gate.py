@@ -8,8 +8,8 @@
 """
 Unitary gate.
 """
-from ._instruction import Instruction
-from ._qiskiterror import QISKitError
+from .instruction import Instruction
+from .qiskiterror import QISKitError
 
 
 class Gate(Instruction):
