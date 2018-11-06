@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 from IBMQuantumExperience import IBMQuantumExperience
 
-from qiskit._util import _camel_case_to_snake_case
+from qiskit.util import _camel_case_to_snake_case
 from qiskit.backends import BaseProvider
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.backends.providerutils import filter_backends

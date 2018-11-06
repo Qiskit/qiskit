@@ -14,7 +14,7 @@ import logging
 
 from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case, _dict_merge
+from qiskit.util import _camel_case_to_snake_case, _dict_merge
 from qiskit.backends import BaseBackend
 from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
 from qiskit.backends import JobStatus

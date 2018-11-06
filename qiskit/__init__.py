@@ -14,7 +14,7 @@ import os
 import pkgutil
 
 # First, check for required Python and API version
-from . import _util
+from . import util
 
 from .qiskiterror import QISKitError
 from .classicalregister import ClassicalRegister
