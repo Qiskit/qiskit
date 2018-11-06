@@ -169,7 +169,6 @@ class Pauli:
         Raises:
             QISKitError: if the number of qubits of two paulis are different.
         """
-
         if len(self) != len(other):
             raise QISKitError("These Paulis cannot be multiplied - different "
                               "number of qubits. ({} vs {})".format(len(self), len(other)))
@@ -312,7 +311,7 @@ class Pauli:
         Update partial or entire z.
 
         Args:
-            z (numpy.ndarray): to-be-updated z
+            z (numpy.ndarray or list): to-be-updated z
             indices (numpy.ndarray or list or optional): to-be-updated qubit indices
 
         Returns:
@@ -340,7 +339,7 @@ class Pauli:
         Update partial or entire x.
 
         Args:
-            x (numpy.ndarray): to-be-updated x
+            x (numpy.ndarray or list): to-be-updated x
             indices (numpy.ndarray or list or optional): to-be-updated qubit indices
 
         Returns:
@@ -388,16 +387,16 @@ class Pauli:
                 raise QISKitError("Please only provide either `paulis` or `pauli_labels`")
             if isinstance(pauli_labels, str):
                 pauli_labels = list(pauli_labels)
-            paulis = Pauli.from_label(pauli_labels)
-
+            paulis = Pauli.from_label(pauli_labels[::-1])  # since pauli label is in reversed order.
+            print(paulis)
         if indices is None:  # append
             self._z = np.concatenate((self._z, paulis.z))
             self._x = np.concatenate((self._x, paulis.x))
         else:
             if not isinstance(indices, list):
                 indices = [indices]
-            self._z = np.insert(self._z, indices, paulis.z[::-1])
-            self._x = np.insert(self._x, indices, paulis.x[::-1])
+            self._z = np.insert(self._z, indices, paulis.z)
+            self._x = np.insert(self._x, indices, paulis.x)
 
         return self
 
