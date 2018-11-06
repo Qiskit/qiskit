@@ -58,6 +58,7 @@ coverage.xml
 test/python/*.log
 test/python/*.pdf
 test/python/*.prof
+.stestr/
 
 # Translations
 *.mo
