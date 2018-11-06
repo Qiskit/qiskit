@@ -9,3 +9,4 @@ wheel
 vcrpy
 jupyter
 ipywidgets
+stestr>=2.0.0
