@@ -9,6 +9,7 @@
 import os
 import time
 from unittest.mock import patch
+
 from qiskit.transpiler._receiver import receiver as rec
 from qiskit.transpiler._parallel import parallel_map
 from qiskit.transpiler._progressbar import TextProgressBar
