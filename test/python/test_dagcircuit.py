@@ -19,8 +19,56 @@ from qiskit._quantumcircuit import QuantumCircuit
 from .common import QiskitTestCase
 
 
+class TestDagRegisters(QiskitTestCase):
+    """Test qreg and creg inside the dag"""
+
+    def test_add_qreg_creg(self):
+        dag = DAGCircuit()
+        dag.add_qreg(QuantumRegister(2))
+        dag.add_creg(ClassicalRegister(1))
+
+    def test_add_reg_duplicate(self):
+        dag = DAGCircuit()
+        q = QuantumRegister(2)
+        dag.add_qreg(q)
+        dag.add_qreg(q)
+        self.assertRaises(DAGCircuitError)
+
+    def test_add_reg_duplicate_name(self):
+        dag = DAGCircuit()
+        dag.add_qreg(QuantumRegister(3, 'q'))
+        dag.add_creg(QuantumRegister(2, 'q'))
+        self.assertRaises(DAGCircuitError)
+
+    def test_add_reg_bad_type(self):
+        dag = DAGCircuit()
+        dag.add_qreg(ClassicalRegister(2))
+
+    def test_add_reg_bad_size(self):
+        dag = DAGCircuit()
+        dag.add_qreg(QuantumRegister(0))
+        self.assertRaises(DAGCircuitError)
+
+    def test_rename_register(self):
+        dag = DAGCircuit()
+        q = QuantumRegister(2, 'q')
+        dag.add_qreg(q)
+        dag.rename_register('q', 'v')
+        self.assertTrue('v' in dag.qregs)
+        self.assertEqual(dag.qregs['v'], q)
+
+
+class TestDagOperations(QiskitTestCase):
+    """Test ops inside the dag"""
+
+    def test_apply_operation_back():
+        pass
+
+    def test_apply_operation_front():
+        pass
+
 class TestDagCircuit(QiskitTestCase):
-    """Testing the dag circuit representation"""
+    """Integration tests for the dag"""
 
     def test_create(self):
         """
