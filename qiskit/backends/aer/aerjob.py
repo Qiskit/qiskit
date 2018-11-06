@@ -114,8 +114,12 @@ class AerJob(BaseJob):
         elif self._future.done():
             _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
         else:
-            raise JobError('Unexpected behavior of {0}'.format(
-                self.__class__.__name__))
+            # Note: There is an undocumented Future state: PENDING, that seems to show up when
+            # the job is enqueued, waiting for someone to pick it up. We need to deal with this
+            # state but there's no public API for it, so we are assuming that if the job is not
+            # in any of the previous states, is PENDING, ergo INITIALIZING for us.
+            _status = JobStatus.INITIALIZING
+
         return _status
 
     def backend_name(self):
