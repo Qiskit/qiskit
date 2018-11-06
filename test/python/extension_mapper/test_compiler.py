@@ -5,19 +5,20 @@ from typing import Any, Mapping, Iterable, Tuple, TypeVar, List
 from unittest import TestCase, mock
 
 import networkx as nx
+from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import Qasm
 from qiskit.unroll import Unroller, DAGBackend
 
-import src.mapping.size
-import src.permutation.util
-import src.mapping.util
-from src import mapping as mp, compiler, permutation as pm  # pylint: disable=wrong-import-order
-from src.mapping.placement import Placement
-from src.permutation import Swap, Permutation
-from src.permutation.util import PermutationCircuit, swap_permutation
-from src.permutation.general import ApproximateTokenSwapper
-from test.test_util import TestUtil  # pylint: disable=wrong-import-order
+import qiskit.transpiler.passes.extension_mapper.src.mapping.size
+import qiskit.transpiler.passes.extension_mapper.src.permutation.util
+import qiskit.transpiler.passes.extension_mapper.src.mapping.util
+from qiskit.transpiler.passes.extension_mapper.src import mapping as mp, compiler, permutation as pm  # pylint: disable=wrong-import-order
+from qiskit.transpiler.passes.extension_mapper.src.mapping.placement import Placement
+from qiskit.transpiler.passes.extension_mapper.src.permutation import Swap, Permutation
+from qiskit.transpiler.passes.extension_mapper.src.permutation.util import PermutationCircuit, swap_permutation
+from qiskit.transpiler.passes.extension_mapper.src.permutation.general import ApproximateTokenSwapper
+from .test_util import TestUtil  # pylint: disable=wrong-import-order
 
 ArchNode = TypeVar('ArchNode')
 _V = TypeVar('_V')
@@ -43,7 +44,7 @@ class TestCompiler(TestCase):
 
     def test_compile_simple(self) -> None:
         """Test if a single CNOT can be compiled on to the architecture 1, 2<->3"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
 
         # Only one place to perform the cx
@@ -60,7 +61,7 @@ class TestCompiler(TestCase):
 
     def test_compile_simple_2(self) -> None:
         """Test whether a Hadamard and CNOT can be compiled to the architecture 1, 2<->3"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard on q[2]
 
@@ -82,7 +83,7 @@ class TestCompiler(TestCase):
 
             A circuit to prepare a Bell state 1/sqrt(2)(|00> + |11>)
         """
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         # Hadamard followed by cx
         self.circuit.apply_operation_back('u2', [('q', 0)], params=['0', 'pi'])  # Hadamard on q[0]
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
@@ -93,7 +94,7 @@ class TestCompiler(TestCase):
 
         mapper_mock = mock.create_autospec(mp.size.SizeMapper.greedy,
                                            return_value={('q', 0): 0, ('q', 1): 1, ('q', 2): 2})
-        with mock.patch('src.mapping.size.SizeMapper.greedy', mapper_mock):
+        with mock.patch('qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy', mapper_mock):
             compiled_circuit, mapping = compiler.compile_to_arch(self.circuit, self.arch_graph,
                                                                  _trivial_mapper)
         op_nodes = list(
@@ -109,7 +110,7 @@ class TestCompiler(TestCase):
 
     def test_compile_too_many_nodes(self) -> None:
         """Test whether the compiler can handle an architecture with too many qubits."""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
 
         self.arch_graph.add_edge(2, 3)
         self.arch_graph.add_node(1)
@@ -122,8 +123,8 @@ class TestCompiler(TestCase):
 
     def test_compile_cregs(self) -> None:
         """Test the compiler for a circuit with classical registers."""
-        self.circuit.add_qreg('q', 2)
-        self.circuit.add_creg('c', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
+        self.circuit.add_creg(ClassicalRegister(2, name="c"))
         self.circuit.apply_operation_back('u2', [('q', 0)], params=['0', 'pi'])  # Hadamard on q[0]
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])  # Make bell state
         # measure both qubits
@@ -137,7 +138,7 @@ class TestCompiler(TestCase):
         arch_mapper = mock.MagicMock(return_value=(fixed_mapping,
                                                    PermutationCircuit(DAGCircuit(), {})))
 
-        with mock.patch('src.mapping.size.SizeMapper.greedy', mapper_mock):
+        with mock.patch('qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy', mapper_mock):
             compiled_circuit, mapping = compiler.compile_to_arch(self.circuit,
                                                                  self.arch_graph,
                                                                  arch_mapper)
@@ -164,8 +165,8 @@ class TestCompiler(TestCase):
 
     def test_compile_swap_needed(self) -> None:
         """Test whether the compiler can perform a circuit that requires a SWAP in the mapping."""
-        self.circuit.add_qreg('q', 3)
-        self.circuit.add_creg('c', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
+        self.circuit.add_creg(ClassicalRegister(3, name="c"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
         self.circuit.apply_operation_back("cx", [("q", 1), ("q", 2)])
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 2)])
@@ -200,7 +201,7 @@ class TestCompiler(TestCase):
             swaps = list(swapper.map(permutation))
             return mapping, pm.util.circuit(([el] for el in swaps), allow_swaps=True)
 
-        with mock.patch('src.mapping.size.SizeMapper.greedy', mapper_mock):
+        with mock.patch('qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy', mapper_mock):
             compiled_circuit, mapping = compiler.compile_to_arch(self.circuit,
                                                                       self.arch_graph,
                                                                       arch_mapper)

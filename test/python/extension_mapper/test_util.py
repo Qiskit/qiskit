@@ -1,9 +1,10 @@
 """Test cases for the util package"""
 from unittest import TestCase
 
+from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
 
-from src import util
+from qiskit.transpiler.passes.extension_mapper.src import util
 
 
 class TestUtil(TestCase):
@@ -13,8 +14,8 @@ class TestUtil(TestCase):
 
     def test_empty_circuit_simple(self) -> None:
         """Test whether empty circuit does produce an empty circuit from a simple DAG."""
-        self.circuit.add_creg('c', 2)
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_creg(ClassicalRegister(2, name="c"))
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)], condition=("c", 0))
         emptied_circuit = util.empty_circuit(self.circuit)
 
@@ -28,15 +29,16 @@ class TestUtil(TestCase):
         self.assertEqual(0, len(op_nodes))
 
     def test_empty_circuit_qregs(self) -> None:
-        self.circuit.add_creg('c', 2)
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_creg(ClassicalRegister(2, name="c"))
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)], condition=("c", 0))
-        emptied_circuit = util.empty_circuit(self.circuit, qregs=[("0", 1), ("1", 1)])
+        qregs_in = {"q0": QuantumRegister(1, name="q0"), "q1": QuantumRegister(1, name="q1")}
+        emptied_circuit = util.empty_circuit(self.circuit, qregs=qregs_in)
 
         # The emptied circuit should only have the specified qregs.
         self.assertEqual(2, len(emptied_circuit.qregs))
-        qregs = set(emptied_circuit.qregs.items())
-        self.assertEqual({("0", 1), ("1", 1)}, qregs)
+        qregs_out = set(emptied_circuit.qregs.items())
+        self.assertEqual({(name, qreg) for name, qreg in qregs_in.items()}, qregs_out)
 
     @staticmethod
     def basic_dag() -> DAGCircuit:

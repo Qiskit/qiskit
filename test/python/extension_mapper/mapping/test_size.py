@@ -7,13 +7,14 @@ from unittest import TestCase
 import networkx as nx
 import numpy as np
 import random
+from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
 
-from src.mapping.size import SizeMapper
-from src.permutation import general
-from src.permutation.general import ApproximateTokenSwapper
-from src.permutation.util import sequential_permuter
-from src.util import first_layer
+from qiskit.transpiler.passes.extension_mapper.src.mapping.size import SizeMapper
+from qiskit.transpiler.passes.extension_mapper.src.permutation import general
+from qiskit.transpiler.passes.extension_mapper.src.permutation.general import ApproximateTokenSwapper
+from qiskit.transpiler.passes.extension_mapper.src.permutation.util import sequential_permuter
+from qiskit.transpiler.passes.extension_mapper.src.util import first_layer
 
 ArchNode = TypeVar('ArchNode')
 _V = TypeVar('_V')
@@ -41,7 +42,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_simple_empty(self) -> None:
         """Test the mapping of an empty circuit on 2 interacting qubits."""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.arch_graph.add_edge(0, 1)
         current_mapping = {("q", i): i for i in range(2)}
         mapper: SizeMapper[Reg[str], int] = SizeMapper(self.arch_graph, dummy_permuter)
@@ -52,7 +53,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_simple_small(self) -> None:
         """Test the mapping of a single CNOT onto a 2-qubit path"""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.arch_graph.add_edge(0, 1, weight=2)
         current_mapping = {("q", i): i for i in range(2)}
@@ -65,7 +66,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_simple_small_2(self) -> None:
         """Test the mapping of a parallel Hadamard and CNOT on 0, 1<->2 (weight=2)"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard
         # G: 0, 1<->2
@@ -83,7 +84,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_simple_two_layers(self) -> None:
         """Test mapping two sequential CNOTs"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 1), ('q', 2)])
         self.arch_graph.add_edge(0, 1)
@@ -97,7 +98,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_simple_choice(self) -> None:
         """Given two gates map the cheapest one."""
-        self.circuit.add_qreg('q', 4)
+        self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 2), ('q', 3)])
         self.arch_graph = nx.path_graph(8)
@@ -111,7 +112,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_greedy_empty(self) -> None:
         """Test mapping an empty circuit."""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.arch_graph.add_edge(0, 1)
         current_mapping: Dict[Tuple[str, int], int] = {('q', i): 1 - i for i in [0, 1]}
         swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected())
@@ -122,7 +123,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_greedy_small(self) -> None:
         """Test mapping a single CNOT to the architecture (weight=2)"""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.arch_graph.add_edge(0, 1, weight=2)
         current_mapping0 = {('q', i): i for i in [0, 1]}
@@ -138,7 +139,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_greedy_small_2(self) -> None:
         """Test mapping a parallel Hadamard and CNOT to 0, 1<->2 (weight=2)"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard
         # G: 0, 1<->2
@@ -154,7 +155,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_greedy_cnots_modular(self) -> None:
         """Test mapping two sequential CNOTs on modular graph."""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name='q'))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 1), ('q', 2)])
         # Modular graph, m = n = 2
@@ -172,7 +173,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_greedy_two_layers_move(self) -> None:
         """Test mapping two sequential CNOTs that require a shuffling of qubits."""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 1), ('q', 2)])
         # Modular graph, m = n = 2
@@ -193,7 +194,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_extend_empty(self) -> None:
         """Test the mapping of an empty circuit on 2 interacting qubits."""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.arch_graph.add_edge(0, 1)
         current_mapping = {("q", i): i for i in range(2)}
         mapper: SizeMapper[Reg[str], int] = SizeMapper(self.arch_graph, dummy_permuter)
@@ -204,7 +205,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_extend_small(self) -> None:
         """Test the mapping of a single CNOT onto a 2-qubit path"""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.arch_graph.add_edge(0, 1, weight=2)
         current_mapping = {("q", i): i for i in range(2)}
@@ -217,7 +218,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_extend_small_2(self) -> None:
         """Test the mapping of a parallel Hadamard and CNOT on 0, 1<->2 (weight=2)"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard
         # G: 0, 1<->2
@@ -235,7 +236,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_extend_two_layers(self) -> None:
         """Test mapping two sequential CNOTs"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 1), ('q', 2)])
         self.arch_graph.add_edge(0, 1)
@@ -249,7 +250,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_extend_choice(self) -> None:
         """Given two gates map both."""
-        self.circuit.add_qreg('q', 4)
+        self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 2), ('q', 3)])
         self.circuit.add_basis_element("swap", 2)
@@ -269,7 +270,7 @@ class TestSizeMapper(TestCase):
 
     def test_map_extend_free(self) -> None:
         """Test that the extension mapper will take advantage of a "free" SWAP gate."""
-        self.circuit.add_qreg('q', 4)
+        self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 2), ('q', 3)])
         self.circuit.add_basis_element("swap", 2)
@@ -291,7 +292,7 @@ class TestSizeMapper(TestCase):
     @unittest.skip('Unpredictable behavior.')
     def test_map_extend_lookahead(self) -> None:
         """Test that larger subsets of gates can be mapped simultaneously."""
-        self.circuit.add_qreg('q', 6)
+        self.circuit.add_qreg(QuantumRegister(6, name="q"))
         for i in range(0, 6, 2):
             self.circuit.apply_operation_back('cx', [('q', i), ('q', i + 1)])
         self.circuit.add_basis_element("swap", 2)
@@ -318,7 +319,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_empty(self) -> None:
         """Test the mapping of an empty circuit on 2 interacting qubits."""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.arch_graph.add_edge(0, 1)
         current_mapping = {("q", i): i for i in range(2)}
         mapper: SizeMapper[Reg[str], int] = SizeMapper(self.arch_graph, dummy_permuter)
@@ -329,7 +330,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_small(self) -> None:
         """Test the mapping of a single CNOT onto a 2-qubit path"""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.arch_graph.add_edge(0, 1, weight=2)
         current_mapping = {("q", i): i for i in range(2)}
@@ -342,7 +343,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_small_2(self) -> None:
         """Test the mapping of a parallel Hadamard and CNOT on 0, 1<->2 (weight=2)"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard
         # G: 0, 1<->2
@@ -360,7 +361,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_two_layers(self) -> None:
         """Test mapping two sequential CNOTs"""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 1), ('q', 2)])
         self.arch_graph.add_edge(0, 1)
@@ -374,7 +375,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_choice(self) -> None:
         """Given two gates map one."""
-        self.circuit.add_qreg('q', 4)
+        self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 2), ('q', 3)])
         self.circuit.add_basis_element("swap", 2)
@@ -393,7 +394,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_free(self) -> None:
         """Test that the extension mapper will take advantage of a "free" SWAP gate."""
-        self.circuit.add_qreg('q', 4)
+        self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('cx', [('q', 2), ('q', 3)])
         self.circuit.add_basis_element("swap", 2)
@@ -414,7 +415,7 @@ class TestSizeMapper(TestCase):
 
     def test_qiskit_map_subsets(self) -> None:
         """Test that larger subsets of gates can be mapped simultaneously."""
-        self.circuit.add_qreg('q', 6)
+        self.circuit.add_qreg(QuantumRegister(6, name="q"))
         for i in range(0, 6, 2):
             self.circuit.apply_operation_back('cx', [('q', i), ('q', i + 1)])
         self.circuit.add_basis_element("swap", 2)

@@ -5,8 +5,8 @@ from unittest import TestCase
 import networkx as nx
 from numpy import random
 
-from src.permutation import Swap
-from src.permutation.util import cycles, flatten_swaps, circuit
+from qiskit.transpiler.passes.extension_mapper.src.permutation import Swap
+from qiskit.transpiler.passes.extension_mapper.src.permutation.util import cycles, flatten_swaps, circuit
 
 _V = TypeVar('_V')
 
@@ -25,7 +25,6 @@ class TestUtil(TestCase):
     def test_cycles_simple2(self) -> None:
         """A simple test of cycles for a fixed permutation."""
         permutation = {0: 2, 1: 3, 2: 4, 3: 1, 4: 0}
-
         out = cycles(permutation)
 
         self.assertCountEqual([{0: 2, 2: 4, 4: 0}, {1: 3, 3: 1}], out)

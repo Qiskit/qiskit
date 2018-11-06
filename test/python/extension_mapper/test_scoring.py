@@ -2,9 +2,10 @@
 from unittest import TestCase
 
 import networkx as nx
+from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
 
-from src import scoring
+from qiskit.transpiler.passes.extension_mapper.src import scoring
 
 
 class TestScoring(TestCase):
@@ -26,7 +27,7 @@ class TestScoring(TestCase):
 
             Circuit consists of only a CNOT on an architecture with a single weighted(=2) edge
         """
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         permutation = {('q', 0): 0, ('q', 1): 1}
         self.arch_graph.add_edge(0, 1, weight=2)
@@ -41,7 +42,7 @@ class TestScoring(TestCase):
 
     def test_cost_small_2(self) -> None:
         """Test computing the score on a small circuit of a CNOT and Hadamard in parallel."""
-        self.circuit.add_qreg('q', 3)
+        self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard
         placement = {('q', 0): 0, ('q', 1): 1, ('q', 2): 2}
@@ -57,7 +58,7 @@ class TestScoring(TestCase):
 
     def test_async_cost_small(self) -> None:
         """Test the asynchronous cost versus synchronous cost of a circuit."""
-        self.circuit.add_qreg('q', 4)
+        self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard
         self.circuit.apply_operation_back('cx', [('q', 2), ('q', 3)])
@@ -75,7 +76,7 @@ class TestScoring(TestCase):
 
     def test_cost_noedge(self) -> None:
         """Test the case where an edge is used that does not exist in the architecture graph."""
-        self.circuit.add_qreg('q', 2)
+        self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
         permutation = {('q', 0): 0, ('q', 1): 1}
         self.arch_graph.add_nodes_from([0, 1])  # no edge!

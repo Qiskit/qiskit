@@ -5,8 +5,8 @@ from unittest import TestCase
 import networkx as nx
 from numpy import random
 
-from src.permutation import util
-from src.permutation.general import ApproximateTokenSwapper
+from qiskit.transpiler.passes.extension_mapper.src.permutation import util
+from qiskit.transpiler.passes.extension_mapper.src.permutation.general import ApproximateTokenSwapper
 
 
 class TestGeneral(TestCase):

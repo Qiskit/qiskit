@@ -189,7 +189,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
                 # Try all matchings and find the minimum cost placement.
                 placements: Iterable[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]] = [
                     (Placement(binop_map, dict(zip(binop_qargs, matching_nodes))), binop_qargs)
-                    for matching_nodes in matching.items()
+                    for matching_nodes in matching
                     ]
 
                 min_placement = min(placements, key=current_placement_cost)
@@ -217,7 +217,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
             else:
                 # Otherwise both directions of the matching are now used.
                 for mapped_to in extremal_min_placement[0].mapped_to.values():
-                    matching.pop(mapped_to)
+                    matching = { m for m in matching if m[0] != mapped_to }
 
         return current_placement.mapped_to
 
