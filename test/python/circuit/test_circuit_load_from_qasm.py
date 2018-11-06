@@ -13,7 +13,7 @@ from qiskit import QuantumCircuit
 from ..common import QiskitTestCase, Path
 
 
-class FromQasmTest(QiskitTestCase):
+class LoadFromQasmTest(QiskitTestCase):
     """Test circuit.from_qasm_* set of methods."""
 
     def setUp(self):
