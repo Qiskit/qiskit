@@ -54,7 +54,7 @@ class Pauli:
     """
 
     def __init__(self, z=None, x=None, label=None):
-        """Make the Pauli object.
+        r"""Make the Pauli object.
 
         Note that, for the qubit index:
             - Order of z, x vectors is q_0 ... q_{n-1},
@@ -78,7 +78,7 @@ class Pauli:
 
     @classmethod
     def from_label(cls, label):
-        """Take pauli string to construct pauli.
+        r"""Take pauli string to construct pauli.
 
         The qubit index of pauli label is q_{n-1} ... q_0.
         E.g., a pauli is $P_{n-1} \otimes ... \otimes P_0$
@@ -113,6 +113,12 @@ class Pauli:
         Args:
             z (numpy.ndarray): boolean, z vector
             x (numpy.ndarray): boolean, x vector
+
+        Returns:
+            Pauli: self
+
+        Raises:
+            QISKitError: if z or x are None or the length of z and x are different.
         """
         if z is None:
             raise QISKitError("z vector must not be None.")
@@ -156,7 +162,14 @@ class Pauli:
         return label
 
     def __eq__(self, other):
-        """Return True if all Pauli terms are equal."""
+        """Return True if all Pauli terms are equal.
+
+        Args:
+            other (Pauli): other pauli
+
+        Returns:
+            bool: are self and other equal.
+        """
         res = False
         if len(self) == len(other):
             if np.all(self._z == other.z) and np.all(self._x == other.x):
@@ -165,6 +178,9 @@ class Pauli:
 
     def __mul__(self, other):
         """Multiply two Paulis.
+
+        Returns:
+            Pauli: the multiplied pauli.
 
         Raises:
             QISKitError: if the number of qubits of two paulis are different.
@@ -178,6 +194,9 @@ class Pauli:
 
     def __imul__(self, other):
         """Multiply two Paulis.
+
+        Returns:
+            Pauli: the multiplied pauli and save to itself, in-place computation.
 
         Raises:
             QISKitError: if the number of qubits of two paulis are different.
@@ -219,26 +238,9 @@ class Pauli:
         """Getter of x."""
         return self._x
 
-    def sgn_prod(self, other):
-        """
-        Multiply two Paulis and track the phase.
-
-        $P_3 = P_1 \otimes P_2$: X*Y
-
-        Args:
-            other (Pauli): the other pauli
-
-        Returns:
-            Pauli: the multiplied pauli (in-place)
-            complex: the sign of the multiplication, 1, -1, 1j or -1j
-        """
-        phase = Pauli._prod_phase(self, other)
-        self *= other
-        return self, phase
-
     @staticmethod
     def sgn_prod(p1, p2):
-        """
+        r"""
         Multiply two Paulis and track the phase.
 
         $P_3 = P_1 \otimes P_2$: X*Y
@@ -271,7 +273,7 @@ class Pauli:
         return str(self)
 
     def to_matrix(self):
-        """
+        r"""
         Convert Pauli to a matrix representation.
 
         Order is q_{n-1} .... q_0, i.e., $P_{n-1} \otimes ... P_0$
@@ -283,7 +285,7 @@ class Pauli:
         return mat.toarray()
 
     def to_spmatrix(self):
-        """
+        r"""
         Convert Pauli to a sparse matrix representation (CSR format).
 
         Order is q_{n-1} .... q_0, i.e., $P_{n-1} \otimes ... P_0$
@@ -369,15 +371,18 @@ class Pauli:
         If indices is None, it means append at the end.
 
         Args:
-            indices ([int]): the qubit indices to be inserted
+            indices (list[int]): the qubit indices to be inserted
             paulis (Pauli): the to-be-inserted or appended pauli
-            paulis_label([str]): the to-be-inserted or appended pauli label
+            pauli_labels (list[str]): the to-be-inserted or appended pauli label
 
         Note:
             the indices refers to the localion of original paulis,
             e.g. if indices = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'ZYXI'
             the pauli will be updated to ZY'I'XI'Z'
             'Z' and 'I' are inserted before the qubit at 0 and 2.
+
+        Returns:
+            Pauli: self
 
         Raises:
             QISKitError: provide both `paulis` and `pauli_labels` at the same time
@@ -387,8 +392,9 @@ class Pauli:
                 raise QISKitError("Please only provide either `paulis` or `pauli_labels`")
             if isinstance(pauli_labels, str):
                 pauli_labels = list(pauli_labels)
-            paulis = Pauli.from_label(pauli_labels[::-1])  # since pauli label is in reversed order.
-            print(paulis)
+            # since pauli label is in reversed order.
+            paulis = Pauli.from_label(pauli_labels[::-1])
+
         if indices is None:  # append
             self._z = np.concatenate((self._z, paulis.z))
             self._x = np.concatenate((self._x, paulis.x))
@@ -406,7 +412,10 @@ class Pauli:
 
         Args:
             paulis (Pauli): the to-be-inserted or appended pauli
-            paulis_label([str]): the to-be-inserted or appended pauli label
+            pauli_labels (list[str]): the to-be-inserted or appended pauli label
+
+        Returns:
+            Pauli: self
         """
         return self.insert_paulis(None, paulis=paulis, pauli_labels=pauli_labels)
 
@@ -415,7 +424,7 @@ class Pauli:
         Delete pauli at the indices.
 
         Args:
-            indices([int]): the indices of to-be-deleted paulis
+            indices(list[int]): the indices of to-be-deleted paulis
 
         Returns:
             Pauli: self
@@ -465,7 +474,7 @@ class Pauli:
         return cls(z, x)
 
     def kron(self, other):
-        """Kron product of two paulis.
+        r"""Kron product of two paulis.
 
         Order is $P_2 (other) \otimes P_1 (self)$
 
@@ -522,11 +531,11 @@ def pauli_group(number_of_qubits, case='weight'):
             warnings.warn('Passing case as integer is deprecated, please pass `weight`'
                           ' or `tensor` instead,', DeprecationWarning)
             if case == 0:
-                case == 'weight'
+                case = 'weight'
             elif case == 1:
-                case == 'tensor'
+                case = 'tensor'
             else:
-                case == 'na'
+                case = 'na'
 
         if case == 'weight':
             tmp = pauli_group(number_of_qubits, case='tensor')
@@ -553,6 +562,7 @@ def pauli_group(number_of_qubits, case='weight'):
                 temp_set.append(Pauli(z, x))
             return temp_set
         else:
-            raise QISKitError("Only support 'weight' or 'tensor' cases")
+            raise QISKitError("Only support 'weight' or 'tensor' cases "
+                              "but you have {}.".format(case))
 
     raise QISKitError("Only support number of qubits is less than 5")

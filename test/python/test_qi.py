@@ -11,7 +11,6 @@
 
 import unittest
 from unittest.mock import Mock, call, patch
-from copy import deepcopy
 import math
 from io import StringIO
 import numpy as np
@@ -260,6 +259,7 @@ class TestQI(QiskitTestCase):
     def test_random_density_matrix_invalid_method(self):
         self.assertRaises(QISKitError, random_density_matrix, 2,
                           method='Special')
+
 
 if __name__ == '__main__':
     unittest.main()

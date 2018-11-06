@@ -21,42 +21,75 @@ class TestPauli(QiskitTestCase):
     """Tests for Pauli class."""
 
     def setUp(self):
+        """Setup."""
         z = np.asarray([1, 0, 1, 0]).astype(np.bool)
         x = np.asarray([1, 1, 0, 0]).astype(np.bool)
         self.ref_p = Pauli(z, x)
         self.ref_label = 'IZXY'
-        self.ref_matrix = np.array([[0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+1.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+1.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+1.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+1.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+1.j, 0.+0.j, 0.+0.j],
-                                   [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
-                                    0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 0.+0.j]])
+        self.ref_matrix = np.array([[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 1.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 1.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. - 1.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 1.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. - 1.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 1.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. - 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 1.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 1.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. - 1.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 1.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. - 1.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 1.j, 0. + 0.j, 0. + 0.j],
+                                    [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j,
+                                     0. - 1.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]])
 
     def test_create_from_label(self):
         """Test creation from pauli label."""
@@ -75,9 +108,6 @@ class TestPauli(QiskitTestCase):
     def test_repr(self):
         """Test __repr__."""
         p = repr(self.ref_p)
-        new_p = eval(p)
-
-        self.assertEqual(new_p, self.ref_p)
         self.assertEqual(p, "Pauli(z=[True, False, True, False], x=[True, True, False, False])")
 
     def test_random_pauli(self):
@@ -112,9 +142,7 @@ class TestPauli(QiskitTestCase):
         """Test equality operator: equal Paulis."""
         p1 = self.ref_p
         p2 = deepcopy(p1)
-
         self.assertTrue(p1 == p2)
-
         self.assertEqual(p1.to_label(), self.ref_label)
         self.assertEqual(p2.to_label(), self.ref_label)
 
@@ -125,7 +153,6 @@ class TestPauli(QiskitTestCase):
 
         p2.update_z([True], 1)
         self.assertFalse(p1 == p2)
-
         self.assertEqual(p1.to_label(), self.ref_label)
         self.assertEqual(p2.to_label(), 'IZYY')
 
@@ -140,21 +167,20 @@ class TestPauli(QiskitTestCase):
         """Test inequality operator: different Paulis."""
         p1 = self.ref_p
         p2 = deepcopy(p1)
-
         p2.update_x([False], 1)
         self.assertTrue(p1 != p2)
         self.assertEqual(p2.to_label(), 'IZIY')
 
     def test_update_z(self):
         """Test update_z method."""
-        updated_z = np.asarray([0, 0, 0 ,0]).astype(np.bool)
+        updated_z = np.asarray([0, 0, 0, 0]).astype(np.bool)
         self.ref_p.update_z(updated_z)
         np.testing.assert_equal(self.ref_p.z, np.asarray([False, False, False, False]))
         self.assertEqual(self.ref_p.to_label(), 'IIXX')
 
     def test_update_x(self):
         """Test update_x method."""
-        updated_x = np.asarray([0, 1, 0 ,1]).astype(np.bool)
+        updated_x = np.asarray([0, 1, 0, 1]).astype(np.bool)
         self.ref_p.update_x(updated_x)
         np.testing.assert_equal(self.ref_p.x, np.asarray([False, True, False, True]))
         self.assertEqual(self.ref_p.to_label(), 'XZXZ')
@@ -221,7 +247,6 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(p2), 6)
         self.assertEqual(p2.to_label(), 'IYZIXY')
 
-
     def test_insert_paulis(self):
         """Test inserting paulis via pauli object."""
         p1 = deepcopy(self.ref_p)
@@ -229,7 +254,7 @@ class TestPauli(QiskitTestCase):
         new_p = Pauli.from_label('XY')
 
         p1.insert_paulis(indices=[0], paulis=new_p)
-        print(p1)
+
         self.assertTrue(p1 != self.ref_p)
         self.assertEqual(len(p1), 6)
         self.assertEqual(p1.to_label(), self.ref_label + 'XY')
@@ -309,6 +334,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'Y')
         self.assertEqual(p3.to_label(), 'Z')
         self.assertEqual(sgn, -1j)
+
 
 if __name__ == '__main__':
     unittest.main()
