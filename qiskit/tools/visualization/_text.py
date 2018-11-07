@@ -488,6 +488,8 @@ class TextDrawing():
             list: A list of lines with the text drawing.
         """
         if line_length is None:
+            line_length = self.line_length
+        if line_length is None:
             line_length, _ = get_terminal_size()
 
         noqubits = self.json_circuit['header']['number_of_qubits']

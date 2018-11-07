@@ -106,7 +106,7 @@ class TestTextDrawerElement(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         for _ in range(100):
             circuit.h(qr[0])
-        amount_of_lines = _text_circuit_drawer(circuit, line_length=-1).count('\n')
+        amount_of_lines = str(_text_circuit_drawer(circuit, line_length=-1)).count('\n')
         self.assertEqual(amount_of_lines, 2)
 
 
