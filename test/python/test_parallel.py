@@ -8,6 +8,7 @@
 """Tests for qiskit/_util.py"""
 import os
 import time
+
 from qiskit.transpiler._parallel import parallel_map
 from .common import QiskitTestCase
 
