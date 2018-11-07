@@ -10,7 +10,6 @@ Simulator command to load a saved quantum state.
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -21,7 +20,7 @@ class Load(Instruction):
 
     def __init__(self, slot, qubits, circ):
         """Create new load instruction."""
-        super().__init__("load", [slot], list(qubits), circ)
+        super().__init__("load", [slot], list(qubits), [], circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -48,9 +47,8 @@ def load(self, slot):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                tuples.append(register)
+        for register in self.qregs.values():
+            tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for load")
     if slot is None:
@@ -68,6 +66,5 @@ def load(self, slot):
     return self._attach(Load(slot, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.load = load
-CompositeGate.load = load

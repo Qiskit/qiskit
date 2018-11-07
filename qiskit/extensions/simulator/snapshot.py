@@ -10,7 +10,6 @@ Simulator command to snapshot internal simulator representation.
 """
 from qiskit import Instruction
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -21,7 +20,7 @@ class Snapshot(Instruction):
 
     def __init__(self, slot, qubits, circ):
         """Create new snapshot instruction."""
-        super().__init__("snapshot", [slot], list(qubits), circ)
+        super().__init__("snapshot", [slot], list(qubits), [], circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -48,9 +47,8 @@ def snapshot(self, slot):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                tuples.append(register)
+        for register in self.qregs.values():
+            tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for snapshot")
     if slot is None:
@@ -68,6 +66,5 @@ def snapshot(self, slot):
     return self._attach(Snapshot(slot, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.snapshot = snapshot
-CompositeGate.snapshot = snapshot

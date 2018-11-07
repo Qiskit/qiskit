@@ -10,7 +10,6 @@
 """
 Two-pulse single-qubit gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -39,7 +38,7 @@ class U3Gate(Gate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.u3(self.param[0], self.param[1], self.param[2],
-                                self.arg[0]))
+                                self.qargs[0]))
 
 
 def u3(self, theta, phi, lam, q):
@@ -55,4 +54,3 @@ def u3(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u3 = u3
-CompositeGate.u3 = u3

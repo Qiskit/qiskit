@@ -19,11 +19,11 @@ class Reset(Instruction):
 
     def __init__(self, qubit, circ=None):
         """Create new reset instruction."""
-        super().__init__("reset", [], [qubit], circ)
+        super().__init__("reset", [], [qubit], [], circ)
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.reset(self.arg[0]))
+        self._modifiers(circ.reset(self.qargs[0]))
 
 
 def reset(self, quantum_register):

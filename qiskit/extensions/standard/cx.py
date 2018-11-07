@@ -10,7 +10,6 @@
 """
 controlled-NOT gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -31,7 +30,7 @@ class CnotGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cx(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cx(self.qargs[0], self.qargs[1]))
 
 
 def cx(self, ctl, tgt):
@@ -62,4 +61,3 @@ def cx(self, ctl, tgt):
 
 
 QuantumCircuit.cx = cx
-CompositeGate.cx = cx

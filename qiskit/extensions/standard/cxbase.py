@@ -8,7 +8,6 @@
 """
 Fundamental controlled-NOT gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -29,7 +28,7 @@ class CXBase(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cx_base(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cx_base(self.qargs[0], self.qargs[1]))
 
 
 def cx_base(self, ctl, tgt):
@@ -62,4 +61,3 @@ def cx_base(self, ctl, tgt):
 
 
 QuantumCircuit.cx_base = cx_base
-CompositeGate.cx_base = cx_base

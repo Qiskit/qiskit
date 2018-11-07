@@ -18,17 +18,17 @@ import math
 import os
 import tempfile
 
+import numpy as np
+import PIL
 from matplotlib import get_backend as get_matplotlib_backend
 from matplotlib import patches
 from matplotlib import pyplot as plt
-import numpy as np
-import PIL
 
 from qiskit import dagcircuit
-from qiskit import _qiskiterror
+from qiskit import transpiler
+from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
-from qiskit import transpiler
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +94,8 @@ class MatplotlibDrawer:
     def __init__(self,
                  basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
                        'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                 scale=1.0, style=None):
+                 scale=1.0, style=None, plot_barriers=True,
+                 reverse_bits=False):
 
         self._ast = None
         self._basis = basis
@@ -111,6 +112,8 @@ class MatplotlibDrawer:
         }
 
         self._style = _qcstyle.QCStyle()
+        self.plot_barriers = plot_barriers
+        self.reverse_bits = reverse_bits
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -143,11 +146,13 @@ class MatplotlibDrawer:
         for e in header['clbit_labels']:
             for i in range(e[1]):
                 self._creg.append(Register(name=e[0], index=i))
-        assert len(self._creg) == header['number_of_clbits']
+        if len(self._creg) != header['number_of_clbits']:
+            raise _error.VisualizationError('internal error')
         self._qreg = []
         for e in header['qubit_labels']:
             self._qreg.append(Register(name=e[0], index=e[1]))
-        assert len(self._qreg) == header['number_of_qubits']
+        if len(self._qreg) != header['number_of_qubits']:
+            raise _error.VisualizationError('internal error')
 
     @property
     def ast(self):
@@ -426,7 +431,7 @@ class MatplotlibDrawer:
                 self._cond['n_lines'] += 1
                 idx += 1
         # reverse bit order
-        if self._style.reverse:
+        if self.reverse_bits:
             self._reverse_bits(self._qreg_dict)
             self._reverse_bits(self._creg_dict)
 
@@ -554,7 +559,7 @@ class MatplotlibDrawer:
                         this_anc, gw) for jj in q_list]
                     if all(locs):
                         for ii in q_list:
-                            if op['name'] == 'barrier' and not self._style.barrier:
+                            if op['name'] == 'barrier' and not self.plot_barriers:
                                 q_anchors[ii].set_index(this_anc - 1, gw)
                             else:
                                 q_anchors[ii].set_index(this_anc, gw)
@@ -619,7 +624,7 @@ class MatplotlibDrawer:
                 if op_next and op_next['name'] == 'barrier':
                     continue
                 else:
-                    if self._style.barrier:
+                    if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
                     _barriers['group'].clear()
                     _barriers['coord'].clear()
@@ -693,7 +698,7 @@ class MatplotlibDrawer:
                 self._line(qreg_b, qreg_t)
             else:
                 logger.critical('Invalid gate %s', op)
-                raise _qiskiterror.QISKitError('invalid gate {}'.format(op))
+                raise _error.VisualizationError('invalid gate {}'.format(op))
         #
         # adjust window size and draw horizontal lines
         #

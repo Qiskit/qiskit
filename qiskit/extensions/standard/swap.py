@@ -10,7 +10,6 @@
 """
 SWAP gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -31,7 +30,7 @@ class SwapGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.swap(self.arg[0], self.arg[1]))
+        self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
 
 
 def swap(self, ctl, tgt):
@@ -50,4 +49,3 @@ def swap(self, ctl, tgt):
 
 
 QuantumCircuit.swap = swap
-CompositeGate.swap = swap

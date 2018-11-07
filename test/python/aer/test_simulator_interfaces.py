@@ -12,7 +12,7 @@
 import unittest
 import qiskit
 import qiskit.extensions.simulator
-from qiskit.tools.qi.qi import state_fidelity
+from qiskit.quantum_info.states import state_fidelity
 from qiskit import execute
 from qiskit import Aer, IBMQ
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
@@ -109,7 +109,7 @@ class TestCrossSimulation(QiskitTestCase):
         result_py = execute(circuit, sim_py, shots=shots, seed=1).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
-        self.assertDictAlmostEqual(counts_cpp, counts_py, shots * 0.04)
+        self.assertDictAlmostEqual(counts_cpp, counts_py, shots * 0.042)
 
 
 if __name__ == '__main__':

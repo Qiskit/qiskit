@@ -10,7 +10,6 @@
 """
 controlled-Phase gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -31,7 +30,7 @@ class CzGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cz(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cz(self.qargs[0], self.qargs[1]))
 
 
 def cz(self, ctl, tgt):
@@ -62,4 +61,3 @@ def cz(self, ctl, tgt):
 
 
 QuantumCircuit.cz = cz
-CompositeGate.cz = cz

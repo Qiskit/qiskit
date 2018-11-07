@@ -8,7 +8,6 @@
 """
 controlled-u1 gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -30,7 +29,7 @@ class Cu1Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu1(self.param[0], self.arg[0], self.arg[1]))
+        self._modifiers(circ.cu1(self.param[0], self.qargs[0], self.qargs[1]))
 
 
 def cu1(self, theta, ctl, tgt):
@@ -61,4 +60,3 @@ def cu1(self, theta, ctl, tgt):
 
 
 QuantumCircuit.cu1 = cu1
-CompositeGate.cu1 = cu1

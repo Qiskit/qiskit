@@ -9,14 +9,12 @@
 Backend for the unroller that produces a QuantumCircuit.
 """
 
-from qiskit import QuantumCircuit
-from qiskit import ClassicalRegister
-from qiskit import QuantumRegister
-from ._backenderror import BackendError
-from ._unrollerbackend import UnrollerBackend
+from qiskit import _quantumcircuit
+from qiskit.unrollers import _backenderror
+from qiskit.unrollers import _unrollerbackend
 
 
-class CircuitBackend(UnrollerBackend):
+class CircuitBackend(_unrollerbackend.UnrollerBackend):
     """Backend for the unroller that produces a QuantumCircuit.
 
     By default, basis gates are the QX gates.
@@ -37,7 +35,7 @@ class CircuitBackend(UnrollerBackend):
         self.gates = {}
         self.listen = True
         self.in_gate = ""
-        self.circuit = QuantumCircuit()
+        self.circuit = _quantumcircuit.QuantumCircuit()
 
     def set_basis(self, basis):
         """Declare the set of user-defined gates to emit.
@@ -53,25 +51,19 @@ class CircuitBackend(UnrollerBackend):
         """
         pass
 
-    def new_qreg(self, name, size):
+    def new_qreg(self, qreg):
         """Create a new quantum register.
 
-        name = name of the register
-        sz = size of the register
+        qreg = QuantumRegister object
         """
-        assert size >= 0, "invalid qreg size"
-        q_register = QuantumRegister(size, name)
-        self.circuit.add(q_register)
+        self.circuit.add(qreg)
 
-    def new_creg(self, name, size):
+    def new_creg(self, creg):
         """Create a new classical register.
 
-        name = name of the register
-        sz = size of the register
+        creg = ClassicalRegister object
         """
-        assert size >= 0, "invalid creg size"
-        c_register = ClassicalRegister(size, name)
-        self.circuit.add(c_register)
+        self.circuit.add(creg)
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -85,23 +77,25 @@ class CircuitBackend(UnrollerBackend):
 
     def _map_qubit(self, qubit):
         """Map qubit tuple (regname, index) to (QuantumRegister, index)."""
-        qregs = self.circuit.get_qregs()
+        qregs = self.circuit.qregs
         if qubit[0] not in qregs:
-            raise BackendError("qreg %s does not exist" % qubit[0])
+            raise _backenderror.BackendError(
+                "qreg %s does not exist" % qubit[0])
         return (qregs[qubit[0]], qubit[1])
 
     def _map_bit(self, bit):
         """Map bit tuple (regname, index) to (ClassicalRegister, index)."""
-        cregs = self.circuit.get_cregs()
+        cregs = self.circuit.cregs
         if bit[0] not in cregs:
-            raise BackendError("creg %s does not exist" % bit[0])
+            raise _backenderror.BackendError(
+                "creg %s does not exist" % bit[0])
         return (cregs[bit[0]], bit[1])
 
     def _map_creg(self, creg):
         """Map creg name to ClassicalRegister."""
-        cregs = self.circuit.get_cregs()
+        cregs = self.circuit.cregs
         if creg not in cregs:
-            raise BackendError("creg %s does not exist" % creg)
+            raise _backenderror.BackendError("creg %s does not exist" % creg)
         return cregs[creg]
 
     def u(self, arg, qubit, nested_scope=None):
@@ -198,7 +192,8 @@ class CircuitBackend(UnrollerBackend):
         """
         if self.listen and name not in self.basis \
            and self.gates[name]["opaque"]:
-            raise BackendError("opaque gate %s not in basis" % name)
+            raise _backenderror.BackendError(
+                "opaque gate %s not in basis" % name)
         if self.listen and name in self.basis:
             self.in_gate = name
             self.listen = False
@@ -246,14 +241,15 @@ class CircuitBackend(UnrollerBackend):
                    "y": [(0, 1), lambda x: self.circuit.y(x[1][0])],
                    "z": [(0, 1), lambda x: self.circuit.z(x[1][0])]}
             if name not in lut:
-                raise BackendError("gate %s not in standard extensions" %
-                                   name)
+                raise _backenderror.BackendError(
+                    "gate %s not in standard extensions" % name)
             gate_data = lut[name]
             if gate_data[0] != (len(args), len(qubits)):
-                raise BackendError("gate %s signature (%d, %d) is " %
-                                   (name, len(args), len(qubits)) +
-                                   "incompatible with the standard " +
-                                   "extensions")
+                raise _backenderror.BackendError(
+                    "gate %s signature (%d, %d) is " %
+                    (name, len(args), len(qubits)) +
+                    "incompatible with the standard " +
+                    "extensions")
             this_gate = gate_data[1]([list(map(lambda x:
                                                x.sym(nested_scope), args)),
                                       list(map(self._map_qubit, qubits))])

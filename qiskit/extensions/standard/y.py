@@ -10,7 +10,6 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -31,7 +30,7 @@ class YGate(Gate):
 
     def reapply(self, circuit):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circuit.y(self.arg[0]))
+        self._modifiers(circuit.y(self.qargs[0]))
 
 
 def y(self, q):
@@ -47,4 +46,3 @@ def y(self, q):
 
 
 QuantumCircuit.y = y
-CompositeGate.y = y

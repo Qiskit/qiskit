@@ -10,7 +10,6 @@
 """
 controlled-Y gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -31,7 +30,7 @@ class CyGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cy(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cy(self.qargs[0], self.qargs[1]))
 
 
 def cy(self, ctl, tgt):
@@ -62,4 +61,3 @@ def cy(self, ctl, tgt):
 
 
 QuantumCircuit.cy = cy
-CompositeGate.cy = cy

@@ -8,6 +8,8 @@
 """
 OPENQASM interpreter.
 """
+from qiskit._quantumregister import QuantumRegister
+from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
 
 
@@ -177,12 +179,14 @@ class Unroller(object):
             self._process_children(node)
 
         elif node.type == "qreg":
-            self.qregs[node.name] = int(node.index)
-            self.backend.new_qreg(node.name, int(node.index))
+            qreg = QuantumRegister(node.index, node.name)
+            self.qregs[node.name] = qreg.size
+            self.backend.new_qreg(qreg)
 
         elif node.type == "creg":
-            self.cregs[node.name] = int(node.index)
-            self.backend.new_creg(node.name, int(node.index))
+            creg = ClassicalRegister(node.index, node.name)
+            self.cregs[node.name] = creg.size
+            self.backend.new_creg(creg)
 
         elif node.type == "id":
             raise UnrollerError("internal error: _process_node on id")

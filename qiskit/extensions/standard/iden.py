@@ -10,7 +10,6 @@
 """
 Identity gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -31,7 +30,7 @@ class IdGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.iden(self.arg[0]))
+        self._modifiers(circ.iden(self.qargs[0]))
 
 
 def iden(self, q):
@@ -47,4 +46,3 @@ def iden(self, q):
 
 
 QuantumCircuit.iden = iden
-CompositeGate.iden = iden

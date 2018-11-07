@@ -8,7 +8,6 @@
 """
 controlled-u3 gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -34,7 +33,7 @@ class Cu3Gate(Gate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.cu3(self.param[0], self.param[1],
-                                 self.param[2], self.arg[0], self.arg[1]))
+                                 self.param[2], self.qargs[0], self.qargs[1]))
 
 
 def cu3(self, theta, phi, lam, ctl, tgt):
@@ -65,4 +64,3 @@ def cu3(self, theta, phi, lam, ctl, tgt):
 
 
 QuantumCircuit.cu3 = cu3
-CompositeGate.cu3 = cu3

@@ -10,7 +10,6 @@
 """
 Element of SU(2).
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -38,7 +37,7 @@ class UBase(Gate):
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.u_base(self.param[0], self.param[1], self.param[2],
-                                    self.arg[0]))
+                                    self.qargs[0]))
 
 
 def u_base(self, theta, phi, lam, q):
@@ -54,4 +53,3 @@ def u_base(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u_base = u_base
-CompositeGate.u_base = u_base
