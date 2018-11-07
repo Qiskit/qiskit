@@ -305,7 +305,7 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=self.circuit.*,qcs.h,qc1.h,qc2.cx,qc.h,self.u1,self.cx,self.ccx,trial_circuit
+generated-members=self.circuit.*,qcs.h,qc1.h,qc2.cx,qc.h,self.u1,self.cx,self.ccx,trial_circuit,requests.codes.ok
 # self.circuit.*: false positives when self.circuit == QuantumCircuit, as it
 # provides a "__getitem__" dynamic method and gate definition is dynamic.
 # For qiskit.extensions.standard, self.foo is also needed.
