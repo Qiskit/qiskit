@@ -24,6 +24,12 @@ th.field-name{
     padding: 16px;
 
 }
+.second a:not(.external){
+    color: #d4d4d4;
+}
+.second a:not(.external):hover{
+    color: #fff;
+}
 td.field-body {
    padding-top: 16px;
    padding-left: 8px;
