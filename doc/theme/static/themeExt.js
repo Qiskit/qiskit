@@ -34,6 +34,13 @@ $(function() {
             if(isActive){
                 $div.addClass('active');
             }
+             let $toggleWrapper;
+            if(!isCurrent){
+                $toggleWrapper = $('<span class="nav-toggle"></span>');
+                $ul.hide();
+            } else {
+                $toggleWrapper = $('<span class="nav-toggle show"></span>');
+            }
             if ($ul.length && $ul[0].children.length > 0) {
                 const ulId = `globalnav-${index}`;
                 if($ul.hasClass('current')){
@@ -41,7 +48,6 @@ $(function() {
                 }
                 $ul.attr('id', ulId);
                 $ul.addClass('collapse sublist');
-                const $toggleWrapper = $('<span class="nav-toggle show"></span>');
                 $linkWrapper.addClass('title');
                 $linkWrapper.children('a').addClass('ibm-type-b-tight semibold');
                 $div.addClass('title');
