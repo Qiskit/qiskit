@@ -357,7 +357,6 @@ def plot_coupling_map(backend, figsize=(5, 5),
 
     ax.set_xlim([-1, x_max+1])
     ax.set_ylim([-1, y_max+1])
-    ax.set_aspect('equal', adjustable='datalim')
     ax.axis('off')
     fig.tight_layout()
     return fig
