@@ -1,5 +1,6 @@
 body{
     height: 100%;
+    overflow: hidden;
 }
 .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
     font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
