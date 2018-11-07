@@ -17,7 +17,7 @@ from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from qiskit._quantumcircuit import QuantumCircuit
 from .common import QiskitTestCase
-
+from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
 
 class TestDagRegisters(QiskitTestCase):
     """Test qreg and creg inside the dag"""
@@ -31,23 +31,19 @@ class TestDagRegisters(QiskitTestCase):
         dag = DAGCircuit()
         q = QuantumRegister(2)
         dag.add_qreg(q)
-        dag.add_qreg(q)
-        self.assertRaises(DAGCircuitError)
+        self.assertRaises(DAGCircuitError, dag.add_qreg, q)
 
     def test_add_reg_duplicate_name(self):
         dag = DAGCircuit()
-        dag.add_qreg(QuantumRegister(3, 'q'))
-        dag.add_creg(QuantumRegister(2, 'q'))
-        self.assertRaises(DAGCircuitError)
+        q1 = QuantumRegister(3, 'q')
+        dag.add_qreg(q1)
+        q2 = QuantumRegister(2, 'q')
+        self.assertRaises(DAGCircuitError, dag.add_qreg, q2)
 
     def test_add_reg_bad_type(self):
         dag = DAGCircuit()
-        dag.add_qreg(ClassicalRegister(2))
-
-    def test_add_reg_bad_size(self):
-        dag = DAGCircuit()
-        dag.add_qreg(QuantumRegister(0))
-        self.assertRaises(DAGCircuitError)
+        c = ClassicalRegister(2)
+        self.assertRaises(DAGCircuitError, dag.add_qreg, c)
 
     def test_rename_register(self):
         dag = DAGCircuit()
