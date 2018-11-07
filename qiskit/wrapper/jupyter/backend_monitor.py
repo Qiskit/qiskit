@@ -125,7 +125,7 @@ def backend_widget(backend):
         if n_qubits == 20 or n_qubits == 5:
             _fig_size = (3.5, 3.5)
         else:
-            _fig_size = (3.5, 1.5)
+            _fig_size = (3.5, 1.65)
         _cmap_fig = plot_coupling_map(backend,
                                       figsize=_fig_size,
                                       plot_directed=False,
@@ -235,6 +235,33 @@ def generate_jobs_pending_widget():
     return jobs_widget
 
 
+class GraphDist():
+    """Transform the circles properly for non-square axes.
+    """
+    def __init__(self, size, ax, x=True):
+        self.size = size
+        self.ax = ax
+        self.x = x
+
+    @property
+    def dist_real(self):
+        x0, y0 = self.ax.transAxes.transform((0, 0))  # lower left in pixels
+        x1, y1 = self.ax.transAxes.transform((1, 1))  # upper right in pixes
+        value = x1 - x0 if self.x else y1 - y0
+        return value
+
+    @property
+    def dist_abs(self):
+        bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
+        return bounds[0] - bounds[1]
+
+    @property
+    def value(self):
+        return (self.size / self.dist_real) * self.dist_abs
+
+    def __mul__(self, obj):
+        return self.value * obj
+
 def plot_coupling_map(backend, figsize=(5, 5),
                       plot_directed=True,
                       label_qubits=True,
@@ -319,8 +346,9 @@ def plot_coupling_map(backend, figsize=(5, 5),
 
     # Add circles for qubits
     for kk, idx in enumerate(mpl_data):
-        ax.add_artist(plt.Circle(idx, 0.2, color='#648fff', zorder=1))
-        #ax.add_artist(plt.Circle(idx, 0.1, color='1'))
+        width = GraphDist(12, ax, True)
+        height = GraphDist(12, ax, False)
+        ax.add_artist(mpatches.Ellipse(idx, width, height, color='#648fff', zorder=1))
         if label_qubits:
             ax.text(*idx, s=str(kk),
                     horizontalalignment='center',
