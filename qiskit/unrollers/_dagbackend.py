@@ -32,7 +32,6 @@ class DAGBackend(UnrollerBackend):
         basis is a list of operation name strings.
         """
         super().__init__(basis)
-        self.prec = 15
         self.creg = None
         self.cval = None
         self.circuit = DAGCircuit()

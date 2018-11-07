@@ -17,14 +17,12 @@ from ._unrollererror import UnrollerError
 class Unroller(object):
     """OPENQASM interpreter object expands subroutines and unrolls loops."""
 
-    def __init__(self, ast, backend=None, precision=15, filename=None):
+    def __init__(self, ast, backend=None, filename=None):
         """Initialize interpreter's data."""
         # Abstract syntax tree from parser
         self.ast = ast
         # Backend object
         self.backend = backend
-        # Number of digits of precision
-        self.precision = precision
         # Input file name
         if filename:
             self.filename = filename

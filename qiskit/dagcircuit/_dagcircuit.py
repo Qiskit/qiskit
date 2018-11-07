@@ -84,9 +84,6 @@ class DAGCircuit:
         # Map of user defined gates to ast nodes defining them
         self.gates = OrderedDict()
 
-        # Output precision for printing floats
-        self.prec = 10
-
         # layout of dag quantum registers on the chip
         # TODO: rethink this. doesn't seem related to concept of DAG,
         # but if we want to be able to generate qobj
@@ -152,11 +149,6 @@ class DAGCircuit:
         """Remove all operation nodes with the given name."""
         for n in self.get_named_nodes(opname):
             self._remove_op_node(n)
-
-    def fs(self, number):
-        """Format a float f as a string with self.prec digits."""
-        fmt = "{0:0.%snumber}" % self.prec
-        return fmt.format(number)
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
