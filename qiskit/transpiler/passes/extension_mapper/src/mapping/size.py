@@ -27,7 +27,7 @@ ArchNode = TypeVar('ArchNode')
 logger = logging.getLogger(__name__)
 
 
-class SizeMapper(Generic[Reg, ArchNode]):
+class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-object
     """A container for various mapping functions that optimize for size.
 
     Internally caches outcomes of placement_cost for Placements in placement_costs."""
@@ -96,6 +96,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
         :param binops_qargs: A set containing the quantum registers of 2-qubit operations involved
             in this layer of the DAG circuit.
         :param current_mapping: The current mapping of quantum registers to architecture nodes.
+        :param remaining_arch: Sub-graph of architecture containing edges not yet used in placement.
         :param place_score: A function that gives a score to a placement.
         :returns: A Placement of a gate together with the qargs of that gate."""
         max_max_placement: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]] = None
@@ -131,10 +132,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
         then we try to perform the operation locally instead.
 
         :param circuit: A circuit to execute
-        :param arch_graph: The architecture graph,optionally with weights on edges.
-            Default weights are 1.
         :param current_mapping:
-        :param arch_permuter:
         :param max_first: Place the most expensive binop first.
         :return: A partial mapping
         """
@@ -172,7 +170,8 @@ class SizeMapper(Generic[Reg, ArchNode]):
         remaining_arch = self.arch_graph.copy()
         current_placement: Placement[Reg, ArchNode] = Placement({}, {})
 
-        current_placement_cost = lambda place: self.placement_cost(current_placement + place[0])
+        def current_placement_cost(place):
+            return self.placement_cost(current_placement + place[0])
 
         # We wish to minimize the size of the circuit.
         # We try to find a good mapping of all binary ops to the matching,
@@ -217,7 +216,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
             else:
                 # Otherwise both directions of the matching are now used.
                 for mapped_to in extremal_min_placement[0].mapped_to.values():
-                    matching = { m for m in matching if m[0] != mapped_to }
+                    matching = {m for m in matching if m[0] != mapped_to}
 
         return current_placement.mapped_to
 
@@ -283,7 +282,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
             new_remaining_arch = \
                 remaining_arch.subgraph(node for node in remaining_arch.nodes()
                                         if node not in placement.mapped_to.values())
-            if remaining_binops and len(new_remaining_arch.edges()) > 0:
+            if remaining_binops and new_remaining_arch.edges():
                 cur_place: Placement[Reg, ArchNode]
                 if current_placement is None:
                     cur_place = Placement({}, {})
@@ -292,7 +291,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
 
                 # The extra cost incurred by placing 'placement'.
                 place_cost_diff = self.placement_cost(placement + cur_place) \
-                                  - self.placement_cost(cur_place)
+                    - self.placement_cost(cur_place)
 
                 def placement_diff(place: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]) -> int:
                     """Approximates saved_gates but it easier to compute.
@@ -301,7 +300,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
                     gate versus the cost of placing everything together.
                     This does not require a lookahead."""
                     return self.placement_cost(place[0] + cur_place) + place_cost_diff \
-                           - self.placement_cost(place[0] + placement + cur_place)
+                        - self.placement_cost(place[0] + placement + cur_place)
 
                 next_placement = self._inner_simple(remaining_binops,
                                                     current_mapping,
@@ -349,7 +348,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
                     # There are no advantageous gates to place left.
                     break
                 if score > 0:
-                    logger.debug(f"Saved cost! Placement score: {score}")
+                    logger.debug("Saved cost! Placement score: %s", score)
                 current_placement += max_max_placement[0]
 
             # Remove the placed binop from datastructure.
@@ -358,7 +357,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
             remaining_arch.remove_nodes_from(max_max_placement[0].mapped_to.values())
             placed_gates += 1
 
-        logger.debug(f"Number of gates placed: {placed_gates}/{total_gates}")
+        logger.debug("Number of gates placed: %s/%s", placed_gates, total_gates)
         return current_placement.mapped_to
 
     def qiskit_mapper(self,
@@ -367,6 +366,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
                       trials: int = 40,
                       seed: int = None,
                       lookahead: bool = False) -> Mapping[Reg, ArchNode]:
+        # pylint: disable=too-many-return-statements
         """This mapper tries to minimize the size of the mapping circuit by an objective function.
 
         The main loop is in _qiskit_trial which tries swaps that lower the objective function,
@@ -416,8 +416,8 @@ class SizeMapper(Generic[Reg, ArchNode]):
 
         # If any binop can be mapped in place, return the trivial mapping
         if any(self.arch_graph.to_undirected(as_view=True)
-                       .has_edge(current_mapping[binop_qargs[0]],
-                                 current_mapping[binop_qargs[1]])
+               .has_edge(current_mapping[binop_qargs[0]],
+                         current_mapping[binop_qargs[1]])
                for binop_qargs in binops_qargs):
             return {}
 
@@ -448,10 +448,10 @@ class SizeMapper(Generic[Reg, ArchNode]):
                                                 mapped_qargs),
                                                Placement({}, {}),
                                                current_mapping)
-            logger.debug(f"Extension saved {extension_saved} cost.")
+            logger.debug("Extension saved %s cost.", extension_saved)
             # Saved half a swap per binop after the first one.
             if extension_saved // max(1, len(mapped_qargs) // 2 - 1) >= 17:
-                logger.debug(f"Using extension layout")
+                logger.debug("Using extension layout")
                 return extension_layout
 
             # Otherwise just map a single gate.
@@ -477,7 +477,7 @@ class SizeMapper(Generic[Reg, ArchNode]):
         # Compute Sergey's randomized distance.
         nr_nodes = len(self.arch_graph.nodes)
         # IDEA: Rewrite to numpy matrix
-        xi: Dict[ArchNode, Dict[ArchNode, float]] = {}
+        xi: Dict[ArchNode, Dict[ArchNode, float]] = {}  # pylint: disable=invalid-name
         for i in self.arch_graph.nodes:
             xi[i] = {}
         for i in self.arch_graph.nodes:
@@ -536,7 +536,8 @@ class SizeMapper(Generic[Reg, ArchNode]):
         """Compute the correction cost of this CNOT gate.
 
         :param placement: Asserts that mapped_to of this placement is of size 2.
-        :param qargs: The registers of this CNOT."""
+        :param qargs: The registers of this CNOT.
+        :return: Correction cost."""
         # Hadamards to correct the CNOT
         return sum(4 for qarg0, qarg1 in qargs
                    if
@@ -573,12 +574,12 @@ class SizeMapper(Generic[Reg, ArchNode]):
                                                   # The first placement score is simple.
                                                   lambda t: self.saved_gates((t[0], [t[1]])))[0]
             future_cost += self.placement_cost(future_placement) \
-                           + self.correction_cost(future_placement, [binop_qargs])
+                + self.correction_cost(future_placement, [binop_qargs])
 
         return self.placement_cost(current_placement) \
-               + future_cost \
-               - self.placement_cost(current_placement + placement) \
-               - self.correction_cost(placement, binops_qargs)
+            + future_cost \
+            - self.placement_cost(current_placement + placement) \
+            - self.correction_cost(placement, binops_qargs)
 
     def placement_cost(self, placement: Placement) -> int:
         """Find the cost of performing the placement in size.

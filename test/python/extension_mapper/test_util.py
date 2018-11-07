@@ -29,6 +29,7 @@ class TestUtil(TestCase):
         self.assertEqual(0, len(op_nodes))
 
     def test_empty_circuit_qregs(self) -> None:
+        """Test whether empty circuit preserves provided qregs."""
         self.circuit.add_creg(ClassicalRegister(2, name="c"))
         self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)], condition=("c", 0))

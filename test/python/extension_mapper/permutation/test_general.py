@@ -6,7 +6,8 @@ import networkx as nx
 from numpy import random
 
 from qiskit.transpiler.passes.extension_mapper.src.permutation import util
-from qiskit.transpiler.passes.extension_mapper.src.permutation.general import ApproximateTokenSwapper
+from qiskit.transpiler.passes.extension_mapper.src.permutation.general \
+    import ApproximateTokenSwapper
 
 
 class TestGeneral(TestCase):
@@ -30,7 +31,7 @@ class TestGeneral(TestCase):
         """Test an inverting permutation on a small path graph of size 8"""
         graph = nx.path_graph(8)
         permutation = {i: 7 - i for i in range(8)}
-        swapper : ApproximateTokenSwapper[int]= ApproximateTokenSwapper(graph)
+        swapper: ApproximateTokenSwapper[int] = ApproximateTokenSwapper(graph)
 
         out = list(swapper.map(permutation))
         util.swap_permutation([out], permutation)
@@ -52,7 +53,7 @@ class TestGeneral(TestCase):
         """Test a partial mapping on a small graph."""
         graph = nx.path_graph(4)
         mapping = {0: 3}
-        swapper : ApproximateTokenSwapper[int]= ApproximateTokenSwapper(graph)
+        swapper: ApproximateTokenSwapper[int] = ApproximateTokenSwapper(graph)
         out = list(swapper.map(mapping))
         self.assertEqual(3, len(out))
         util.swap_permutation([out], mapping, allow_missing_keys=True)
@@ -67,7 +68,7 @@ class TestGeneral(TestCase):
         out = list(swapper.map(permutation))
         self.assertEqual(5, len(out))
         util.swap_permutation([out], permutation, allow_missing_keys=True)
-        self.assertEqual({i:i for i in permutation.values()}, permutation)
+        self.assertEqual({i: i for i in permutation.values()}, permutation)
 
     def test_large_partial_random(self) -> None:
         """Test a random (partial) mapping on a large randomly generated graph"""

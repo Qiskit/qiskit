@@ -10,7 +10,6 @@ import networkx as nx
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import QuantumRegister
 
-from . import mapping
 from . import mapping as mp, util
 from .mapping.placement import Placement
 from .permutation.util import PermutationCircuit
@@ -53,7 +52,7 @@ def compile_to_arch(circuit: DAGCircuit,
         sorted(arch_graph.nodes),
         ((qreg.name, i) for qname, qreg in arch_circuit.qregs.items() for i in range(qreg.size))
         ))
-    logger.debug(f"Arch mapping: %s", arch_mapping)
+    logger.debug("Arch mapping: %s", arch_mapping)
 
     ###
     # We now have an empty DAGCircuit with the same parameters as the original circuit,
@@ -78,9 +77,9 @@ def compile_to_arch(circuit: DAGCircuit,
     # an initial placement
     cnot_circuit = util.empty_circuit(todo_circuit)
     for node in nx.topological_sort(cnot_circuit.multi_graph):
-        nd = cnot_circuit.multi_graph.node[node]
-        if nd["type"] == "op" and nd["name"] == "cx":
-            cnot_circuit.apply_operation_back("cx", nd["qargs"])
+        cnot_node = cnot_circuit.multi_graph.node[node]
+        if cnot_node["type"] == "op" and cnot_node["name"] == "cx":
+            cnot_circuit.apply_operation_back("cx", cnot_node["qargs"])
 
     # Permutations are free.
     size_mapper: mp.size.SizeMapper[Reg[_V], ArchNode] = \
@@ -96,7 +95,7 @@ def compile_to_arch(circuit: DAGCircuit,
     # Begin placing circuits.
     counter = 0
     while layer:
-        logger.debug(f"Iteration {counter}")
+        logger.debug("Iteration %s", counter)
         counter += 1
 
         mapping: Mapping[Reg[_V], ArchNode]

@@ -14,7 +14,7 @@ ArchNode = TypeVar('ArchNode')
 _V = TypeVar("_V")
 
 
-class Placement(Generic[Reg, ArchNode]):
+class Placement(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-object
     """A Placement represents a placement of quantum registers on architecture graph nodes.
 
     IDEA: Replace with NamedTuple once it supports constructors/preconditions.
@@ -97,7 +97,8 @@ class Placement(Generic[Reg, ArchNode]):
 
         :param arch_permuter: The permuter for the architecture graph, must support partial
             mappings.
-        :param allow_swaps:"""
+        :param allow_swaps:
+        :return: Tuple of swaps and mapping_circuit implementing the placement."""
         # Construct the partial mapping of architecture nodes.
         swaps = list(arch_permuter(self.arch_mapping))
         mapping_circuit = pm.util.circuit(swaps, allow_swaps=allow_swaps)
@@ -113,7 +114,8 @@ class Placement(Generic[Reg, ArchNode]):
         :param arch_permuter: The permuter of this circuit.
             Also could support partial mappings. Function arguments are contravariant.
         :param arch_graph: The architecture graph. Used to complete the mapping.
-        :param allow_swaps:"""
+        :param allow_swaps:
+        :return: Mapping circuit."""
         arch_perm = {i: i for i in arch_graph.nodes}
         self.place(arch_perm)
         swaps = arch_permuter(arch_perm)

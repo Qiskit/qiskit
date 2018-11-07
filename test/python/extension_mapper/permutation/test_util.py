@@ -1,12 +1,13 @@
 """Test cases for the permutation.util package"""
-from typing import List, Set, TypeVar
+from typing import List, TypeVar
 from unittest import TestCase
 
 import networkx as nx
 from numpy import random
 
 from qiskit.transpiler.passes.extension_mapper.src.permutation import Swap
-from qiskit.transpiler.passes.extension_mapper.src.permutation.util import cycles, flatten_swaps, circuit
+from qiskit.transpiler.passes.extension_mapper.src.permutation.util \
+    import cycles, flatten_swaps, circuit
 
 _V = TypeVar('_V')
 

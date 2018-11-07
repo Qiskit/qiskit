@@ -1,24 +1,20 @@
 """Test functionality for the compiler package."""
 import random
-from pathlib import Path
-from typing import Any, Mapping, Iterable, Tuple, TypeVar, List
+from typing import Mapping, Tuple, TypeVar
 from unittest import TestCase, mock
 
 import networkx as nx
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, DAGBackend
 
-import qiskit.transpiler.passes.extension_mapper.src.mapping.size
-import qiskit.transpiler.passes.extension_mapper.src.permutation.util
-import qiskit.transpiler.passes.extension_mapper.src.mapping.util
-from qiskit.transpiler.passes.extension_mapper.src import mapping as mp, compiler, permutation as pm  # pylint: disable=wrong-import-order
+from qiskit.transpiler.passes.extension_mapper.src \
+    import mapping as mp, compiler, permutation as pm  # pylint: disable=wrong-import-order
 from qiskit.transpiler.passes.extension_mapper.src.mapping.placement import Placement
-from qiskit.transpiler.passes.extension_mapper.src.permutation import Swap, Permutation
-from qiskit.transpiler.passes.extension_mapper.src.permutation.util import PermutationCircuit, swap_permutation
-from qiskit.transpiler.passes.extension_mapper.src.permutation.general import ApproximateTokenSwapper
+from qiskit.transpiler.passes.extension_mapper.src.permutation.util import PermutationCircuit
+from qiskit.transpiler.passes.extension_mapper.src.permutation.general \
+    import ApproximateTokenSwapper
 from .test_util import TestUtil  # pylint: disable=wrong-import-order
+
 
 ArchNode = TypeVar('ArchNode')
 _V = TypeVar('_V')
@@ -26,8 +22,8 @@ Reg = Tuple[_V, int]
 ArchReg = Reg[str]
 
 
-def _trivial_mapper(dag: DAGCircuit, current_mapping: Mapping) -> Tuple[
-    Mapping, PermutationCircuit]:
+def _trivial_mapper(dag: DAGCircuit, current_mapping: Mapping) -> \
+        Tuple[Mapping, PermutationCircuit]:
     """Always returns the trivial (empty) list of swaps."""
     # pylint: disable=unused-argument
     pcircuit = PermutationCircuit(DAGCircuit(), {})
@@ -94,7 +90,8 @@ class TestCompiler(TestCase):
 
         mapper_mock = mock.create_autospec(mp.size.SizeMapper.greedy,
                                            return_value={('q', 0): 0, ('q', 1): 1, ('q', 2): 2})
-        with mock.patch('qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy', mapper_mock):
+        mock_path = 'qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy'
+        with mock.patch(mock_path, mapper_mock):
             compiled_circuit, mapping = compiler.compile_to_arch(self.circuit, self.arch_graph,
                                                                  _trivial_mapper)
         op_nodes = list(
@@ -116,8 +113,8 @@ class TestCompiler(TestCase):
         self.arch_graph.add_node(1)
         self.arch_graph.add_node(4)
 
-        compiled_circuit, mapping = compiler.compile_to_arch(self.circuit, self.arch_graph,
-                                                             _trivial_mapper)
+        compiled_circuit, _ = compiler.compile_to_arch(self.circuit, self.arch_graph,
+                                                       _trivial_mapper)
         self.assertEqual(4, len(compiled_circuit.input_map))
         self.assertEqual(4, len(compiled_circuit.output_map))
 
@@ -138,7 +135,8 @@ class TestCompiler(TestCase):
         arch_mapper = mock.MagicMock(return_value=(fixed_mapping,
                                                    PermutationCircuit(DAGCircuit(), {})))
 
-        with mock.patch('qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy', mapper_mock):
+        mock_path = 'qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy'
+        with mock.patch(mock_path, mapper_mock):
             compiled_circuit, mapping = compiler.compile_to_arch(self.circuit,
                                                                  self.arch_graph,
                                                                  arch_mapper)
@@ -187,9 +185,11 @@ class TestCompiler(TestCase):
 
         calls = 0
         swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected())
+
         def arch_mapper(dag: DAGCircuit, current_mapping: Mapping[Reg[str], int]) \
                 -> Tuple[Mapping[Reg[str], int], PermutationCircuit]:
             """The mapper function for a mapping to mapped_to."""
+            # pylint: disable=unused-argument
             nonlocal calls
             if calls >= 2:
                 mapping = {("q", 0): 1, ("q", 1): 0, ("q", 2): 2}
@@ -201,10 +201,11 @@ class TestCompiler(TestCase):
             swaps = list(swapper.map(permutation))
             return mapping, pm.util.circuit(([el] for el in swaps), allow_swaps=True)
 
-        with mock.patch('qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy', mapper_mock):
+        mock_path = 'qiskit.transpiler.passes.extension_mapper.src.mapping.size.SizeMapper.greedy'
+        with mock.patch(mock_path, mapper_mock):
             compiled_circuit, mapping = compiler.compile_to_arch(self.circuit,
-                                                                      self.arch_graph,
-                                                                      arch_mapper)
+                                                                 self.arch_graph,
+                                                                 arch_mapper)
 
         node_data = map(lambda n: n[1], compiled_circuit.multi_graph.nodes(data=True))
         op_nodes = list(filter(lambda n: n["type"] == "op", node_data))
@@ -229,4 +230,3 @@ class TestCompiler(TestCase):
             else:
                 corrected_qargs = tuple(measure_nodes[qarg][1] for qarg in arch_node["qargs"])
                 self.assertEqual(corrected_qargs, next(expected_cnots))
-

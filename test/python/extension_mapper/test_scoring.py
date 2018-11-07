@@ -2,7 +2,7 @@
 from unittest import TestCase
 
 import networkx as nx
-from qiskit import QuantumRegister, ClassicalRegister
+from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 
 from qiskit.transpiler.passes.extension_mapper.src import scoring
@@ -82,4 +82,3 @@ class TestScoring(TestCase):
         self.arch_graph.add_nodes_from([0, 1])  # no edge!
         self.assertRaises(KeyError, scoring.cost, self.circuit, permutation, self.arch_graph,
                           gate_costs=self.gate_costs)
-

@@ -2,7 +2,7 @@
 
 For a mapping we can calculate the cost to permute to that mapping.
 """
-from typing import Dict, NamedTuple, Any, Iterator, List, TypeVar, Mapping, Union
+from typing import Dict, NamedTuple, Any, TypeVar, Mapping, Union
 
 import networkx as nx
 from qiskit.dagcircuit import DAGCircuit
@@ -167,7 +167,7 @@ def op_cost(op_node: Any,
             allow_missing_edge: bool = False) -> int:
     """Calculate the cost of performing the operation in the architecture.
 
-    :raises: KeyError when a 2-qubit operation is between nodes
+    :raises KeyError: when a 2-qubit operation is between nodes
         that does not exist in the arch_graph (by the permutation).
     :param op_node: A DAGCircuit operation node to compute the cost for performing it.
     :param current_mapping: A mapping from circuit nodes to arch_graph nodes.
@@ -207,4 +207,3 @@ def op_cost(op_node: Any,
 
     # Single-qubit gate.
     return gcosts[op_node['name']]
-

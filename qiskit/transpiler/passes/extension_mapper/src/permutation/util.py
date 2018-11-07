@@ -8,7 +8,7 @@ from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper._mapping import cx_data, swap_data
 
-from .. import mapping
+from ..mapping.placement import Placement
 from .. import permutation as pm
 
 _K = TypeVar('_K')
@@ -161,7 +161,7 @@ def sequential_permuter(permuter: Callable[[pm.Permutation[_V]], Iterable[List[p
     def mapping_permuter(mapping: Mapping[_V, _V]) -> Iterable[pm.Swap[_V]]:
         # Extend mapping to permutation
         id_mapping = {i: i for i in mapping}
-        placement = src.mapping.placement.Placement(id_mapping, mapping)
+        placement = Placement(id_mapping, mapping)
         permutation = {i: i for i in arch_graph.nodes()}
         placement.place(permutation)
         parallel_swaps = permuter(permutation)

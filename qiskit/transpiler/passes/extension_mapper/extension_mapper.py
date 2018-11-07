@@ -61,23 +61,22 @@ Future work:
 * Tweak the limit for the qiskit mapper from |V|^2/8 to something better.
 * Compute both extension mapper and qiskit mapper circuits and pick the 'best' one.
 
-
-
 """
 
 import re
 import copy
 import pprint
 import logging
+from typing import Mapping, Tuple, TypeVar, Any
+
 import networkx as nx
-from typing import Mapping, Tuple, TypeVar, Any, List
 
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.mapper import cx_cancellation, optimize_1q_gates
 
-from .src import mapping, permutation
+from .src import permutation
 
 from .src.mapping import size
 from .src.compiler import compile_to_arch
@@ -88,22 +87,21 @@ from .src.permutation.general import ApproximateTokenSwapper
 
 logger = logging.getLogger(__name__)
 
-class ExtensionMapper(TransformationPass):
-    """ """
 
+class ExtensionMapper(TransformationPass):
+    """Extension mapper implemented as a transpiler pass."""
     def __init__(self, coupling_map, desired_layout=None):
         self._coupling_map = coupling_map
         self._desired_layout = desired_layout
 
         super().__init__()
 
-
-    def run(self, dag_circuit):
+    def run(self, dag):
         _V = TypeVar('_V')
         Reg = Tuple[_V, int]
         ArchNode = TypeVar('ArchNode')
 
-        circuit = copy.deepcopy(dag_circuit)
+        circuit = copy.deepcopy(dag)
         circuit.add_basis_element("swap", 2)
         coupling_graph = self._coupling_map.G
 
@@ -147,7 +145,7 @@ class ExtensionMapper(TransformationPass):
             # Construct a circuit that implements a swap.
             swap_circuit = DAGCircuit()
             swap_circuit.add_basis_element('cx', 2)
-            swap_qreg = QuantumRegister(2,name="q")
+            swap_qreg = QuantumRegister(2, name="q")
             swap_circuit.add_qreg(swap_qreg)
             swap_circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
             swap_circuit.apply_operation_back("cx", [("q", 1), ("q", 0)])
@@ -182,7 +180,7 @@ class ExtensionMapper(TransformationPass):
         cx_cancellation(compiled_dag)
         # Change cx directions
         flipped_cnots = direction_mapper(compiled_dag, mapping, coupling_graph)
-        logger.debug(f"Corrected CNOTs: {flipped_cnots - removed_swaps}")
+        logger.debug("Corrected CNOTs: %s", (flipped_cnots - removed_swaps))
         # Simplify single qubit gates
         logger.debug("Running optimize_1q_gates... (This can cause errors)")
         compiled_dag = optimize_1q_gates(compiled_dag)
@@ -192,11 +190,11 @@ class ExtensionMapper(TransformationPass):
         for register in compiled_dag.qregs:
             if not identifier_regex.match(register):
                 # IDEA: Use a UUID instead.
-                logger.debug(f"Quantum register {register} is not a valid identifier, renaming.")
+                logger.debug("Quantum register %s is not a valid identifier, renaming.", register)
                 compiled_dag.rename_register(register, 'mapper' + register)
         for register in compiled_dag.cregs:
             if not identifier_regex.match(register):
-                logger.debug(f"Classical register {register} is not a valid identifier, renaming.")
+                logger.debug("Classical register %s is not a valid identifier, renaming.", register)
                 compiled_dag.rename_register(register, 'mapper' + register)
 
         # nlist = compiled_dag.get_named_nodes("measure")
@@ -206,8 +204,5 @@ class ExtensionMapper(TransformationPass):
         #     perm[nd["qargs"][0][1]] = nd["cargs"][0][1]
         # print(perm)
         logger.info("Done with mapping and optimizing.")
-        #####################
-        # Put your code here
-        #####################
-        # Return the compiled dag circuit
+
         return compiled_dag

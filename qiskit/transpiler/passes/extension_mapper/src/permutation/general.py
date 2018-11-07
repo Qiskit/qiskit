@@ -13,7 +13,7 @@ _T = TypeVar('_T')
 logger = logging.getLogger(__name__)
 
 
-class ApproximateTokenSwapper(Generic[_V]):
+class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-object
     """A class for computing approximate solutions to the Token Swapping problem.
 
     Internally caches the graph and associated datastructures for re-use."""
@@ -43,6 +43,7 @@ class ApproximateTokenSwapper(Generic[_V]):
 
         :param mapping: The partial mapping to implement in swaps.
         :param trials: The number of trials to try to perform the mapping. Minimize over the trials.
+        :return: Best found list of edges which implement mapping.
         """
         tokens = dict(mapping)
         digraph = nx.DiGraph()
@@ -115,7 +116,7 @@ class ApproximateTokenSwapper(Generic[_V]):
                     assert len(cycle) == 1, "The cycle was not unhappy."
                     unhappy_node = cycle[0][0]
                     # Find a node that wants to swap with this node.
-                    predecessor = next(
+                    predecessor = next(  # pylint: disable=stop-iteration-return
                         predecessor for predecessor in digraph.predecessors(unhappy_node)
                         if predecessor != unhappy_node)
                     yield unhappy_node, predecessor

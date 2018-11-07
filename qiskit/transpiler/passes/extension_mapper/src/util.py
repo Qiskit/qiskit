@@ -22,9 +22,9 @@ def empty_circuit(circuit: DAGCircuit, qregs: List[Tuple[str, int]] = None) -> D
     # And gates
     copied_circuit.gates = circuit.gates.copy()
     # Also copy over classical wires, since we do not care about placing them.
-    for cname, creg in circuit.cregs.items():
+    for creg in circuit.cregs.values():
         copied_circuit.add_creg(creg)
-    for qname, qreg in qregs.items():
+    for qreg in qregs.values():
         copied_circuit.add_qreg(qreg)
     return copied_circuit
 
