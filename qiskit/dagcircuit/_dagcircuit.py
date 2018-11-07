@@ -1096,6 +1096,26 @@ class DAGCircuit:
 
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
+    def get_op_nodes(self, op=None):
+        """Get the set of "op" node ids with the given op.
+
+        Args:
+            op (Instruction or None): op nodes to return.
+
+        Returns:
+            set(int): the set of node ids containing the given op.
+                if op=None, return all "op" nodes.
+        """
+        nodes = set()
+        for node_id, data in self.multi_graph.nodes(data=True):
+            if data["type"] == "op":
+                if op is None:
+                    nodes.add(node_id)
+                elif type(data["op"]) == type(op):
+                    nodes.add(node_id)
+
+        return nodes
+
     def get_named_nodes(self, name):
         """Get the set of "op" node ids with the given name."""
         if name not in self.basis:

@@ -9,15 +9,19 @@
 
 import unittest
 
-from qiskit._measure import Measure
-from qiskit._reset import Reset
-from qiskit.extensions.standard import *
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from qiskit._quantumcircuit import QuantumCircuit
-from .common import QiskitTestCase
+from qiskit._measure import Measure
+from qiskit._reset import Reset
+from qiskit._gate import Gate
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import XGate
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
+from .common import QiskitTestCase
+
 
 class TestDagRegisters(QiskitTestCase):
     """Test qreg and creg inside the dag"""
@@ -77,10 +81,11 @@ class TestDagCircuit(QiskitTestCase):
         clbit1 = creg[1]
         condition = (creg, 3)
         dag = DAGCircuit()
-        dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
-        dag.add_basis_element('cx', 2)
-        dag.add_basis_element('x', 1)
-        dag.add_basis_element('measure', 1, number_classical=1, number_parameters=0)
+        dag.add_basis_element(name='h', number_qubits=1,
+                              number_classical=0, number_parameters=0)
+        dag.add_basis_element('cx', 2, 0, 0)
+        dag.add_basis_element('x', 1, 0, 0)
+        dag.add_basis_element('measure', 1, 1, 0)
         dag.add_qreg(qreg)
         dag.add_creg(creg)
         dag.apply_operation_back(HGate(qubit0), condition=None)
@@ -92,12 +97,65 @@ class TestDagCircuit(QiskitTestCase):
         self.assertEqual(len(dag.multi_graph.nodes), 14)
         self.assertEqual(len(dag.multi_graph.edges), 16)
 
+    @unittest.expectedFailure
+    # expected to fail until this function is fixed
+    # see: https://github.com/Qiskit/qiskit-terra/issues/1235
+    def test_apply_operation_front(self):
+        qreg = QuantumRegister(2, 'qr')
+        qubit0 = qreg[0]
+        qubit1 = qreg[1]
+        dag = DAGCircuit()
+        dag.add_basis_element('h', 1, 0, 0)
+        dag.add_basis_element('reset', 1, 0, 0)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(HGate(qubit0))
+        dag.apply_operation_front(Reset(qubit0))
+        h_node = dag.get_op_nodes(op=HGate(qubit0)).pop()
+        reset_node = dag.get_op_nodes(op=Reset(qubit0)).pop()
+
+        self.assertIn(reset_node, set(dag.multi_graph.predecessors(h_node)))
+
+    def test_get_op_nodes_all(self):
+        qreg = QuantumRegister(3, 'q')
+        dag = DAGCircuit()
+        dag.add_basis_element('h', 1, 0, 0)
+        dag.add_basis_element('cx', 2, 0, 0)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(HGate(qreg[0]))
+        dag.apply_operation_back(CnotGate(qreg[0], qreg[1]))
+
+        op_nodes = dag.get_op_nodes()
+        self.assertEqual(len(op_nodes), 2)
+
+        op_node_1 = op_nodes.pop()
+        op_node_2 = op_nodes.pop()
+        self.assertIsInstance(dag.multi_graph.nodes[op_node_1]["op"], Gate)
+        self.assertIsInstance(dag.multi_graph.nodes[op_node_2]["op"], Gate)
+
+    def test_get_op_nodes_particular(self):
+        qreg = QuantumRegister(3, 'q')
+        dag = DAGCircuit()
+        dag.add_basis_element('h', 1, 0, 0)
+        dag.add_basis_element('cx', 2, 0, 0)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(HGate(qreg[0]))
+        dag.apply_operation_back(HGate(qreg[1]))
+        dag.apply_operation_back(CnotGate(qreg[0], qreg[1]))
+
+        op_nodes = dag.get_op_nodes(op=HGate(qreg[0]))
+        self.assertEqual(len(op_nodes), 2)
+
+        op_node_1 = op_nodes.pop()
+        op_node_2 = op_nodes.pop()
+        self.assertIsInstance(dag.multi_graph.nodes[op_node_1]["op"], HGate)
+        self.assertIsInstance(dag.multi_graph.nodes[op_node_2]["op"], HGate)
+
     def test_get_named_nodes(self):
         """ The get_named_nodes() method """
         qreg = QuantumRegister(3, 'q')
         dag = DAGCircuit()
-        dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
-        dag.add_basis_element('cx', 2)
+        dag.add_basis_element('h', 1, 0, 0)
+        dag.add_basis_element('cx', 2, 0, 0)
         dag.add_qreg(qreg)
         dag.apply_operation_back(CnotGate(qreg[0], qreg[1]))
         dag.apply_operation_back(HGate(qreg[0]))
@@ -130,6 +188,9 @@ class TestDagCircuit(QiskitTestCase):
         named_nodes = dag.node_nums_in_topological_order()
         self.assertEqual([5, 3, 1, 7, 9, 4, 8, 10, 11, 6, 2], [i for i in named_nodes])
 
+class TestDagLayers(QiskitTestCase):
+    """Test finding layers on the dag"""
+
     def test_layers_basic(self):
         """ The layers() method."""
         qreg = QuantumRegister(2, 'qr')
@@ -140,10 +201,10 @@ class TestDagCircuit(QiskitTestCase):
         clbit1 = creg[1]
         condition = (creg, 3)
         dag = DAGCircuit()
-        dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
-        dag.add_basis_element('cx', 2)
-        dag.add_basis_element('x', 1)
-        dag.add_basis_element('measure', 1, number_classical=1, number_parameters=0)
+        dag.add_basis_element('h', 1, 0, 0)
+        dag.add_basis_element('cx', 2, 0, 0)
+        dag.add_basis_element('x', 1, 0, 0)
+        dag.add_basis_element('measure', 1, 1, 0)
         dag.add_qreg(qreg)
         dag.add_creg(creg)
         dag.apply_operation_back(HGate(qubit0))
