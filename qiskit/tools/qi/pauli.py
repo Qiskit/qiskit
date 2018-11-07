@@ -21,7 +21,10 @@ from qiskit import QISKitError
 
 
 def _make_np_bool(arr):
-    if isinstance(arr, list):
+
+    if not isinstance(arr, list) and not isinstance(arr, np.ndarray):
+        arr = np.asarray([arr]).astype(np.bool)
+    elif isinstance(arr, list):
         arr = np.asarray(arr).astype(np.bool)
     elif arr.dtype != np.bool:
         arr = arr.astype(np.bool)
@@ -329,7 +332,7 @@ class Pauli:
                                   "change the number of qubits.")
             self._z = z
         else:
-            if not isinstance(indices, list) or not isinstance(indices, np.ndarray):
+            if not isinstance(indices, list) and not isinstance(indices, np.ndarray):
                 indices = [indices]
             for p, idx in enumerate(indices):
                 self._z[idx] = z[p]
@@ -357,9 +360,10 @@ class Pauli:
                                   "the number of qubits.")
             self._x = x
         else:
-            if not isinstance(indices, list) or not isinstance(indices, np.ndarray):
+            if not isinstance(indices, list) and not isinstance(indices, np.ndarray):
                 indices = [indices]
             for p, idx in enumerate(indices):
+                print(p, idx)
                 self._x[idx] = x[p]
 
         return self

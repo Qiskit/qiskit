@@ -151,7 +151,7 @@ class TestPauli(QiskitTestCase):
         p1 = self.ref_p
         p2 = deepcopy(p1)
 
-        p2.update_z([True], 1)
+        p2.update_z(True, 1)
         self.assertFalse(p1 == p2)
         self.assertEqual(p1.to_label(), self.ref_label)
         self.assertEqual(p2.to_label(), 'IZYY')
@@ -167,7 +167,7 @@ class TestPauli(QiskitTestCase):
         """Test inequality operator: different Paulis."""
         p1 = self.ref_p
         p2 = deepcopy(p1)
-        p2.update_x([False], 1)
+        p2.update_x(False, 1)
         self.assertTrue(p1 != p2)
         self.assertEqual(p2.to_label(), 'IZIY')
 
@@ -178,12 +178,26 @@ class TestPauli(QiskitTestCase):
         np.testing.assert_equal(self.ref_p.z, np.asarray([False, False, False, False]))
         self.assertEqual(self.ref_p.to_label(), 'IIXX')
 
+    def test_update_z_2(self):
+        """Test update_z method, update partial z."""
+        updated_z = np.asarray([0, 1]).astype(np.bool)
+        self.ref_p.update_z(updated_z, [0, 1])
+        np.testing.assert_equal(self.ref_p.z, np.asarray([False, True, True, False]))
+        self.assertEqual(self.ref_p.to_label(), 'IZYX')
+
     def test_update_x(self):
         """Test update_x method."""
         updated_x = np.asarray([0, 1, 0, 1]).astype(np.bool)
         self.ref_p.update_x(updated_x)
         np.testing.assert_equal(self.ref_p.x, np.asarray([False, True, False, True]))
         self.assertEqual(self.ref_p.to_label(), 'XZXZ')
+
+    def test_update_x_2(self):
+        """Test update_x method, update partial x."""
+        updated_x = np.asarray([0, 1]).astype(np.bool)
+        self.ref_p.update_x(updated_x, [1, 2])
+        np.testing.assert_equal(self.ref_p.x, np.asarray([True, False, True, False]))
+        self.assertEqual(self.ref_p.to_label(), 'IYIY')
 
     def test_to_matrix(self):
         """Test pauli to matrix."""
