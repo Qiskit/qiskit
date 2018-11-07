@@ -33,7 +33,12 @@ class DagUnroller(object):
         self.backend = backend
 
     def execute(self):
-        """Interpret OPENQASM and make appropriate backend calls."""
+        """Interpret OPENQASM and make appropriate backend calls.
+        
+        This does not expand gates. So self.expand_gates() must have
+        been previously called. Otherwise non-basis gates will be ignored
+        by this method.
+        """
         if self.backend is not None:
             self._process()
             return self.backend.get_output()
@@ -154,6 +159,9 @@ class DagUnroller(object):
         return sub_circuit, new_wires
 
     def _process(self):
+        """Process dag nodes, assuming that expand_gates has already been called."""
+        print(self.dag_circuit.qregs)
+        print(self.dag_circuit.cregs)
         for qreg in self.dag_circuit.qregs.values():
             self.backend.new_qreg(qreg)
         for creg in self.dag_circuit.cregs.values():
@@ -165,11 +173,15 @@ class DagUnroller(object):
             if current_node["type"] == "op":
                 params = map(Real, current_node["op"].param)
                 params = list(params)
+                print("name: ", current_node["name"])
+                print("params: ", params)
                 if current_node["condition"] is not None:
                     self.backend.set_condition(current_node["condition"][0],
                                                current_node["condition"][1])
                 if not current_node["op"].cargs:
                     if current_node["op"].name == "U":
+                        print("U params: ", params)
+                        print("U qargs: ", current_node["op"].qargs[0])
                         self.backend.u(params, current_node["op"].qargs[0])
                     elif current_node["op"].name == "CX":
                         self.backend.cx(current_node["op"].qargs[0], current_node["op"].qargs[1])
@@ -189,14 +201,12 @@ class DagUnroller(object):
                     # extensions to provide their own Qobj instructions.
                     # Extensions should not be hardcoded in the DAGUnroller.
                     elif current_node["op"].name == "snapshot":
-                        self.backend.start_gate(
-                            "snapshot", params, current_node["op"].qargs,
+                        self.backend.start_gate(current_node["op"],
                             extra_fields={'type': 'MISSING', 'label': 'MISSING', 'texparams': []})
-                        self.backend.end_gate("snapshot", params, current_node["op"].qargs)
+                        self.backend.end_gate(current_node["op"])
                     else:
-                        self.backend.start_gate(current_node["op"].name, params,
-                                                current_node["op"].qargs)
-                        self.backend.end_gate(current_node["op"].name, params, current_node["op"].qargs)
+                        self.backend.start_gate(current_node["op"])
+                        self.backend.end_gate(current_node["op"])
                 else:
                     if current_node["op"].name == "measure":
                         if len(current_node["op"].cargs) != 1 or len(current_node["op"].qargs) != 1 \

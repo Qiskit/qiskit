@@ -11,9 +11,17 @@ Backend for the unroller that creates a DAGCircuit object.
 
 from collections import OrderedDict
 
+from qiskit.extensions.standard.ubase import UBase
+from qiskit.extensions.standard.cxbase import CXBase
+from qiskit.extensions.standard.barrier import Barrier
+from qiskit._measure import Measure
+from qiskit._reset import Reset
 from qiskit.dagcircuit import DAGCircuit
 from ._unrollerbackend import UnrollerBackend
 from ._backenderror import BackendError
+
+
+logger = logging.getLogger(__name__)
 
 
 class DAGBackend(UnrollerBackend):
@@ -40,7 +48,7 @@ class DAGBackend(UnrollerBackend):
         else:
             self.basis = []
         self.listen = True
-        self.in_gate = ""
+        self.in_gate = None
         self.gates = OrderedDict()
 
     def set_basis(self, basis):
@@ -77,10 +85,11 @@ class DAGBackend(UnrollerBackend):
         """Fundamental single qubit gate.
 
         arg is 3-tuple of Node expression objects.
-        qubit is (regname,idx) tuple.
+        qubit is (reg,idx) tuple.
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
+        print("qubit passed to dagbackend: ", qubit)
         if self.listen:
             if self.creg is not None:
                 condition = (self.creg, self.cval)
@@ -89,15 +98,15 @@ class DAGBackend(UnrollerBackend):
             if "U" not in self.basis:
                 self.basis.append("U")
                 self.circuit.add_basis_element("U", 1, 0, 3)
-            self.circuit.apply_operation_back(
-                "U", [qubit], [], list(map(lambda x: x.sym(nested_scope),
-                                           arg)), condition)
+            theta, phi, lam = map(lambda x: x.sym(nested_scope), arg)
+            self.circuit.apply_operation_back(UBase(theta, phi, lam, qubit),
+                                              condition)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
 
-        qubit0 is (regname, idx) tuple for the control qubit.
-        qubit1 is (regname, idx) tuple for the target qubit.
+        qubit0 is (reg, idx) tuple for the control qubit.
+        qubit1 is (reg, idx) tuple for the target qubit.
         """
         if self.listen:
             if self.creg is not None:
@@ -107,14 +116,14 @@ class DAGBackend(UnrollerBackend):
             if "CX" not in self.basis:
                 self.basis.append("CX")
                 self.circuit.add_basis_element("CX", 2)
-            self.circuit.apply_operation_back("CX", [qubit0, qubit1], [],
-                                              [], condition)
+            self.circuit.apply_operation_back(CXBase(qubit0, qubit1),
+                                              condition)
 
     def measure(self, qubit, bit):
         """Measurement operation.
 
-        qubit is (regname, idx) tuple for the input qubit.
-        bit is (regname, idx) tuple for the output bit.
+        qubit is (reg, idx) tuple for the input qubit.
+        bit is (reg, idx) tuple for the output bit.
         """
         if self.creg is not None:
             condition = (self.creg, self.cval)
@@ -124,28 +133,27 @@ class DAGBackend(UnrollerBackend):
             self.basis.append("measure")
         if "measure" not in self.circuit.basis:
             self.circuit.add_basis_element("measure", 1, 1)
-        self.circuit.apply_operation_back(
-            "measure", [qubit], [bit], [], condition)
+        self.circuit.apply_operation_back(Measure(qubit, bit), condition)
 
     def barrier(self, qubitlists):
         """Barrier instruction.
 
-        qubitlists is a list of lists of (regname, idx) tuples.
+        qubitlists is a list of lists of (reg, idx) tuples.
         """
         if self.listen:
-            names = []
-            for qubit in qubitlists:
-                for j, _ in enumerate(qubit):
-                    names.append(qubit[j])
+            qubits = []
+            for qubitlist in qubitlists:
+                for qubit in qubitlist:
+                    qubits.append(qubit)
             if "barrier" not in self.basis:
                 self.basis.append("barrier")
                 self.circuit.add_basis_element("barrier", -1)
-            self.circuit.apply_operation_back("barrier", names)
+            self.circuit.apply_operation_back(Barrier(qubits))
 
     def reset(self, qubit):
         """Reset instruction.
 
-        qubit is a (regname, idx) tuple.
+        qubit is a (reg, idx) tuple.
         """
         if self.creg is not None:
             condition = (self.creg, self.cval)
@@ -154,13 +162,14 @@ class DAGBackend(UnrollerBackend):
         if "reset" not in self.basis:
             self.basis.append("reset")
             self.circuit.add_basis_element("reset", 1)
-        self.circuit.apply_operation_back("reset", [qubit], [], [], condition)
+        self.circuit.apply_operation_back(Reset(qubit), condition)
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
 
-        creg is a name string.
-        cval is the integer value for the test.
+        Args:
+            creg (ClassicalRegister): creg to condition on.
+            cval (int): value for the condition comparison.
         """
         self.creg = creg
         self.cval = cval
@@ -170,41 +179,46 @@ class DAGBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits, nested_scope=None, extra_fields=None):
+    def start_gate(self, op, nested_scope=None, extra_fields=None):
         """Begin a custom gate.
 
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
+        Args:
+            op (Instruction): operation to apply to the dag.
+            nested_scope (list[dict]): list of dictionaries mapping expression variables
+                to Node expression objects in order of increasing nesting depth.
+            extra_fields: extra_fields used by non-standard instructions for now
+                (e.g. snapshot)
         """
-        if self.listen and name not in self.basis \
-                and self.gates[name]["opaque"]:
-            raise BackendError("opaque gate %s not in basis" % name)
-        if self.listen and name in self.basis:
-            if self.creg is not None:
-                condition = (self.creg, self.cval)
-            else:
-                condition = None
-            self.in_gate = name
-            self.listen = False
-            self.circuit.add_basis_element(name, len(qubits), 0, len(args))
-            self.circuit.apply_operation_back(
-                name, qubits, [], list(map(lambda x: x.sym(nested_scope),
-                                           args)), condition)
+        if not self.listen:
+            return
 
-    def end_gate(self, name, args, qubits, nested_scope=None):
+        if op.name not in self.basis:
+            if self.gates[name]["opaque"]:
+                raise BackendError("opaque gate %s not in basis" % op.name)
+            else:
+                logger.info("ignoring non-basis gate %s. Make sure the gates are
+                        first expanded to basis via the DagUnroller." % op.name)
+                return
+
+        if self.creg is not None:
+            condition = (self.creg, self.cval)
+        else:
+            condition = None
+        self.in_gate = op
+        self.listen = False
+        self.circuit.add_basis_element(op.name, len(op.qargs), len(op.cargs), len(op.param))
+        self.circuit.apply_operation_back(op, condition)
+
+    def end_gate(self, op, nested_scope=None):
         """End a custom gate.
 
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
+        Args:
+            op (Instruction): operation to apply to the dag.
+            nested_scope (list[dict]): list of dictionaries mapping expression variables
+                to Node expression objects in order of increasing nesting depth.
         """
-        if name == self.in_gate:
-            self.in_gate = ""
+        if op == self.in_gate:
+            self.in_gate = None
             self.listen = True
 
     def get_output(self):

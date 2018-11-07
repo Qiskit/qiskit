@@ -44,30 +44,34 @@ class Unroller(object):
     def _process_bit_id(self, node):
         """Process an Id or IndexedId node as a bit or register type.
 
-        Return a list of tuples (name,index).
+        Return a list of tuples (Register,index).
         """
         # pylint: disable=inconsistent-return-statements
+        reg = None
+        print("node.name: ", node.name)
+        print("self.qregs: ", self.qregs)
+        if node.name in self.qregs:
+            reg = self.qregs[node.name]
+        elif node.name in self.cregs:
+            reg = self.cregs[node.name]
+        else:
+            raise UnrollerError("expected qreg or creg name:",
+                                "line=%s" % node.line,
+                                "file=%s" % node.file) 
+
         if node.type == "indexed_id":
             # An indexed bit or qubit
-            return [(node.name, node.index)]
+            return [(reg, node.index)]
         elif node.type == "id":
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
-                if node.name in self.qregs:
-                    return [(node.name, j)
-                            for j in range(self.qregs[node.name])]
-                elif node.name in self.cregs:
-                    return [(node.name, j)
-                            for j in range(self.cregs[node.name])]
-                raise UnrollerError("expected qreg or creg name:",
-                                    "line=%s" % node.line,
-                                    "file=%s" % node.file)
+                return [(reg, j) for j in range(reg.size)]
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
-                raise UnrollerError("excepted local bit name:",
+                raise UnrollerError("expected local bit name:",
                                     "line=%s" % node.line,
                                     "file=%s" % node.file)
         return None
@@ -75,6 +79,7 @@ class Unroller(object):
     def _process_custom_unitary(self, node):
         """Process a custom unitary node."""
         name = node.name
+        print(name)
         if node.arguments is not None:
             args = self._process_node(node.arguments)
         else:
@@ -179,12 +184,12 @@ class Unroller(object):
 
         elif node.type == "qreg":
             qreg = QuantumRegister(node.index, node.name)
-            self.qregs[node.name] = qreg.size
+            self.qregs[node.name] = qreg
             self.backend.new_qreg(qreg)
 
         elif node.type == "creg":
             creg = ClassicalRegister(node.index, node.name)
-            self.cregs[node.name] = creg.size
+            self.cregs[node.name] = creg
             self.backend.new_creg(creg)
 
         elif node.type == "id":
@@ -218,6 +223,7 @@ class Unroller(object):
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
+                print(element)
                 self.backend.u(args, element, self.arg_stack)
 
         elif node.type == "cnot":

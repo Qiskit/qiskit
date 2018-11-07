@@ -119,6 +119,8 @@ measure r[0] -> d[0];
 measure r[1] -> d[1];
 measure r[2] -> d[2];
 """
+        print(expanded_dag_circuit.qasm())
+        print(expected_result)        
         self.assertEqual(expanded_dag_circuit.qasm(), expected_result)
 
     def test_expand_gates_with_basis(self):
