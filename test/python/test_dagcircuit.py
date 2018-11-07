@@ -57,10 +57,10 @@ class TestDagRegisters(QiskitTestCase):
 class TestDagOperations(QiskitTestCase):
     """Test ops inside the dag"""
 
-    def test_apply_operation_back():
+    def test_apply_operation_back(self):
         pass
 
-    def test_apply_operation_front():
+    def test_apply_operation_front(self):
         pass
 
 class TestDagCircuit(QiskitTestCase):

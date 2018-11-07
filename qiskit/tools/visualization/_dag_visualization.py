@@ -50,7 +50,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         for node in G.nodes:
             n = G.nodes[node]
             if n['type'] == 'op':
-                n['label'] = str(n['name'])
+                n['label'] = n['name']
                 n['color'] = 'blue'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'lightblue'

@@ -48,26 +48,14 @@ class DAGCircuit:
         # of the QuantumCircuit from which the DAG was generated.
         self.name = None
 
-<<<<<<< HEAD
-        # Map from a wire's name (reg,idx) to a Bool that is True if the
-        # wire is a classical bit and False if the wire is a qubit.
-        self.wire_type = OrderedDict()
-
-        # Map from wire names (reg,idx) to input nodes of the graph
-        self.input_map = OrderedDict()
-
-        # Map from wire names (reg,idx) to output nodes of the graph
-        self.output_map = OrderedDict()
-=======
         # Set of wires (Register,idx) in the dag
         self.wires = set()
 
         # Map from wire (Register,idx) to input nodes of the graph
-        self.input_map = {}
+        self.input_map = OrderedDict()
 
         # Map from wire (Register,idx) to output nodes of the graph
-        self.output_map = {}
->>>>>>> remove wire_type and index input/output_map over objects
+        self.output_map = OrderedDict()
 
         # Running count of the total number of nodes
         self.node_counter = 0
@@ -210,10 +198,8 @@ class DAGCircuit:
             self.multi_graph.node[out_node]["type"] = "out"
             self.multi_graph.node[in_node]["name"] = (wire[0].name, wire[1])
             self.multi_graph.node[out_node]["name"] = (wire[0].name, wire[1])
-            self.multi_graph.node[in_node]["reg"] = wire[0]
-            self.multi_graph.node[out_node]["reg"] = wire[0]
-            self.multi_graph.node[in_node]["index"] = wire[1]
-            self.multi_graph.node[out_node]["index"] = wire[1]
+            self.multi_graph.node[in_node]["wire"] = wire
+            self.multi_graph.node[out_node]["wire"] = wire
             self.multi_graph.adj[in_node][out_node][0]["name"] = (wire[0].name, wire[1])
         else:
             raise DAGCircuitError("duplicate wire %s" % (wire,))
@@ -385,10 +371,10 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise DAGCircuitError("output node has multiple in-edges")
 
-            self.multi_graph.add_edge(ie[0], self.node_counter, name=q[0].name)
+            self.multi_graph.add_edge(ie[0], self.node_counter, name=(q[0].name, q[1]))
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
             self.multi_graph.add_edge(
-                self.node_counter, self.output_map[q], name=q[0].name)
+                self.node_counter, self.output_map[q], name=(q[0].name, q[1]))
 
     def apply_operation_front(self, op, condition=None):
         """Apply an operation to the output of the circuit.
@@ -415,10 +401,10 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise QISKitError("input node has multiple out-edges")
 
-            self.multi_graph.add_edge(ie[0], self.node_counter, name=q[0].name)
+            self.multi_graph.add_edge(ie[0], self.node_counter, name=(q[0].name, q[1]))
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(
-                self.input_map[q], self.node_counter, name=q[0].name)
+                self.input_map[q], self.node_counter, name=(q[0].name, q[1]))
 
     def _make_union_basis(self, input_circuit):
         """Return a new basis map.
@@ -460,8 +446,7 @@ class DAGCircuit:
                                       % k)
         return union_gates
 
-    def _check_wiremap_registers(self, wire_map, keyregs, valregs,
-                                 valreg=True):
+    def _check_wiremap_registers(self, wire_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
 
         1. There are no fragmented registers. A register in keyregs
@@ -469,41 +454,46 @@ class DAGCircuit:
         2. There are no duplicate registers. A register is duplicate if
         it appears in both self and keyregs but not in wire_map.
 
-        wire_map is a map from (regname,idx) in keyregs to (regname,idx)
-        in valregs
-        keyregs is a map from register names to Register objects
-        valregs is a map from register names to Register objects
-        valreg is a Bool, if False the method ignores valregs and does not
-        add regs for bits in the wire_map image that don't appear in valregs
-        Return the set of regs to add to self
+        Args:
+            wire_map: map from (register,idx) in keyregs to (register,idx) in valregs
+            keyregs: a map from register names to Register objects
+            valregs: a map from register names to Register objects
+            valreg: a Bool, if False the method ignores valregs and does not
+                add regs for bits in the wire_map image that don't appear in valregs
+
+        Returns:
+            set(Register): the set of regs to add to self
         """
+        # FIXME: some mixing of objects and strings here are awkward (due to
+        # qregs/cregs still indexing on string.
         add_regs = set()
         reg_frag_chk = {}
-        for k, v in keyregs.items():
-            reg_frag_chk[k] = {j: False for j in range(v.size)}
+        for v in keyregs.values():
+            reg_frag_chk[v] = {j: False for j in range(v.size)}
         for k in wire_map.keys():
-            if k[0] in keyregs:
+            if k[0].name in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
         for k, v in reg_frag_chk.items():
-            rname = ",".join(map(str, k))
             s = set(v.values())
             if len(s) == 2:
-                raise DAGCircuitError("wire_map fragments reg %s" % rname)
+                raise DAGCircuitError("wire_map fragments reg %s" % k)
             elif s == set([False]):
-                if k in self.qregs or k in self.cregs:
-                    raise DAGCircuitError("unmapped duplicate reg %s" % rname)
+                if k in self.qregs.values() or k in self.cregs.values():
+                    raise DAGCircuitError("unmapped duplicate reg %s" % k)
                 else:
                     # Add registers that appear only in keyregs
-                    add_regs.add(keyregs[k])
+                    add_regs.add(k)
             else:
                 if valreg:
                     # If mapping to a register not in valregs, add it.
                     # (k,0) exists in wire_map because wire_map doesn't
                     # fragment k
-                    if not wire_map[(k, 0)][0] in valregs:
-                        size = max(map(lambda x: x[1], filter(lambda x: x[0] == wire_map[(k, 0)][0],
-                                                              wire_map.values())))
-                        qreg = QuantumRegister(wire_map[(k, 0)][0], size + 1)
+                    if not wire_map[(k, 0)][0].name in valregs:
+                        size = max(map(lambda x: x[1],
+                                       filter(lambda x: x[0]
+                                              == wire_map[(k, 0)][0],
+                                              wire_map.values())))
+                        qreg = QuantumRegister(size + 1, wire_map[(k, 0)][0].name)
                         add_regs.add(qreg)
         return add_regs
 
@@ -519,15 +509,15 @@ class DAGCircuit:
         input_circuit: a DAGCircuit
         """
         for k, v in wire_map.items():
-            kname = "%s[%d]" % k[0].name, k[1]
-            vname = "%s[%d]" % v[0].name, v[1]
+            kname = "%s[%d]" % (k[0].name, k[1])
+            vname = "%s[%d]" % (v[0].name, v[1])
             if k not in keymap:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
                 raise DAGCircuitError("invalid wire mapping value %s" % vname)
-            if type(input_circuit.wires.find(k)) != type(self.wires(v)):
+            if type(k) != type(v):
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)"
-                                      % (kname, vname))
+                                       (kname, vname))
 
     def _map_condition(self, wire_map, condition):
         """Use the wire_map dict to change the condition tuple's creg name.
@@ -595,7 +585,7 @@ class DAGCircuit:
                     raise DAGCircuitError("wire (%s,%d) not in self" % (m_name[0].name, m_name[1]))
 
                 if nd["wire"] not in input_circuit.wires:
-                    raise DAGCircuitError("inconsistent wire_type for (%s,%d) in input_circuit"
+                    raise DAGCircuitError("inconsistent wire type for (%s,%d) in input_circuit"
                             % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "out":
@@ -610,12 +600,19 @@ class DAGCircuit:
             else:
                 raise DAGCircuitError("bad node type %s" % nd["type"])
 
+    # FIXME: this does not work as expected. it is also not used anywhere
     def compose_front(self, input_circuit, wire_map=None):
         """Apply the input circuit to the input of this circuit.
 
         The two bases must be "compatible" or an exception occurs.
         A subset of output qubits of the input circuit are mapped
         to a subset of input qubits of this circuit.
+
+        Args:
+            input_circuit (DAGCircuit): circuit to append
+            wire_map (dict{(Register, int): (Register, int)}): map
+                from the output wires of input_circuit to input wires
+                of self.
         """
         wire_map = wire_map or {}
         union_basis = self._make_union_basis(input_circuit)
@@ -647,15 +644,15 @@ class DAGCircuit:
             nd = input_circuit.multi_graph.node[n]
             if nd["type"] == "out":
                 # if in wire_map, get new name, else use existing name
-                m_name = wire_map.get(nd["name"], nd["name"])
+                m_name = wire_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
-                    raise DAGCircuitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+                    raise DAGCircuitError("wire (%s,%d) not in self" % (m_name[0].name, m_name[1]))
 
-                if nd["name"] not in input_circuit.wire_type:
+                if nd["wire"] not in input_circuit.wires:
                     raise DAGCircuitError(
-                        "inconsistent wire_type for (%s,%d) in input_circuit"
-                        % (nd["name"][0], nd["name"][1]))
+                        "inconsistent wire for (%s,%d) in input_circuit"
+                        % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "in":
                 # ignore input nodes
@@ -671,7 +668,7 @@ class DAGCircuit:
 
     def size(self):
         """Return the number of operations."""
-        return self.multi_graph.order() - 2 * len(self.wire_type)
+        return self.multi_graph.order() - 2 * len(self.wires)
 
     def depth(self):
         """Return the circuit depth."""
@@ -682,11 +679,11 @@ class DAGCircuit:
 
     def width(self):
         """Return the total number of qubits used by the circuit."""
-        return len(self.wire_type) - self.num_cbits()
+        return len(self.wires) - self.num_cbits()
 
     def num_cbits(self):
         """Return the total number of bits used by the circuit."""
-        return list(self.wire_type.values()).count(True)
+        return sum(creg.size for creg in self.cregs.values())
 
     def num_tensor_factors(self):
         """Compute how many components the circuit can decompose into."""
@@ -853,7 +850,7 @@ class DAGCircuit:
                                   % (wire_tot, len(wires)))
 
         for w in wires:
-            if w not in input_circuit.wire_type:
+            if w not in input_circuit.wires:
                 raise DAGCircuitError("wire (%s,%d) not in input circuit"
                                       % (w[0], w[1]))
 
@@ -1224,8 +1221,8 @@ class DAGCircuit:
 
             # Now add the edges to the multi_graph
             # By default we just wire inputs to the outputs.
-            wires = {self.input_map[register]: self.output_map[register]
-                     for register in self.wire_type}
+            wires = {self.input_map[wire]: self.output_map[wire]
+                     for wire in self.wires}
             # Wire inputs to op nodes, and op nodes to outputs.
             for op_node in op_nodes:
                 args = self._bits_in_condition(op_node[1]["condition"]) \
