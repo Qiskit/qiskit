@@ -224,7 +224,7 @@ a.reference.external:hover{
     max-width: 26rem;
 }
 .mdl-layout{
-   height: calc(100vh - 49px);
+   height: calc(100vh - 60px) !important;
 }
 .globaltoc .nav-toggle{
     height: initial !important;
@@ -392,6 +392,10 @@ cursor: pointer;
     .iconMediumResponsiveTableOfContent{
         display: none !important;
     }
+    .mdl-layout-drawer.close .mdl-layout-title .title{
+        display: none;
+        background: red;
+    }
 }
 @media only screen and (min-width: 672px) and (max-width: 1056px) {
     .item{
@@ -445,7 +449,7 @@ cursor: pointer;
 
      }
     .mdl-layout__drawer.close .mdl-layout-title .title{
-        display: none;
+        display: none !important;
     }
     .mdl-layout__drawer.close .globaltoc{
         display: none !important;
