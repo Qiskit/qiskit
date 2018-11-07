@@ -401,12 +401,19 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, json_circuit, reversebits=False, plotbarriers=True):
+    def __init__(self, json_circuit, reversebits=False, plotbarriers=True, line_length=None):
         self.json_circuit = json_circuit
         self.reversebits = reversebits
         self.plotbarriers = plotbarriers
+        self.line_length = line_length
         self.qubitorder = self._get_qubitorder()
         self.clbitorder = self._get_clbitorder()
+
+    def __str__(self):
+        return self.single_string()
+
+    def _repr_html_(self):
+        return '<pre style="line-height: 15px;">%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
         qubits = []
@@ -449,6 +456,24 @@ class TextDrawing():
                 creg_dest_order.append("%s_%s" % (creg[0], clbit))
         return [creg_dest_order.index(ind) for ind in self._get_clbit_labels()]
 
+    def single_string(self):
+        """
+        Creates a loong string with the ascii art
+        Returns:
+            str: The lines joined by '\n'
+        """
+        return "\n".join(self.lines())
+
+    def dump(self, filename, encoding="utf8"):
+        """
+        Dumps the ascii art in the file.
+        Args:
+            filename (str): File to dump the ascii art.
+            encoding (str): Optional. Default "utf-8".
+        """
+        with open(filename, mode='w', encoding=encoding) as text_file:
+            text_file.write(self.single_string())
+
     def lines(self, line_length=None):
         """
         Generates a list with lines. These lines form the text drawing.
@@ -463,6 +488,8 @@ class TextDrawing():
             list: A list of lines with the text drawing.
         """
         if line_length is None:
+            line_length = self.line_length
+        if line_length is None:
             line_length, _ = get_terminal_size()
 
         noqubits = self.json_circuit['header']['number_of_qubits']
@@ -474,6 +501,9 @@ class TextDrawing():
         # should be
         # -| H |---
         # -| H |---
+
+        if not line_length:
+            line_length = self.line_length
 
         layer_groups = [[]]
         rest_of_the_line = line_length
