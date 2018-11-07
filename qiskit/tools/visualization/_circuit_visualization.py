@@ -98,8 +98,10 @@ def circuit_drawer(circuit,
             circuit. Defaults to True.
 
     Returns:
-        PIL.Image: (outputs `latex` and `python`) an in-memory representation of
-                   the circuit diagram.
+        PIL.Image: (output `latex`) an in-memory representation of the image
+            of the circuit diagram.
+        matplotlib.figure: (output `mpl`) a matplotlib figure object for the
+            circuit diagram.
         String: (output `latex_source`). The LaTeX source code.
         TextDrawing: (output `text`). A drawing that can be printed as ascii art
     Raises:
@@ -585,7 +587,7 @@ def _matplotlib_circuit_drawer(circuit,
 
 
     Returns:
-        PIL.Image: an in-memory representation of the circuit diagram
+        matplotlib.figure: a matplotlib figure object for the circuit diagram
     """
     if ',' not in basis:
         logger.warning('Warning: basis is not comma separated: "%s". '
