@@ -100,6 +100,15 @@ class TestTextDrawerElement(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         self.assertEqual(_text_circuit_drawer(circuit, line_length=20), expected)
 
+    def test_text_no_pager(self):
+        """ The pager can be disable."""
+        qr = QuantumRegister(1, 'q')
+        circuit = QuantumCircuit(qr)
+        for _ in range(100):
+            circuit.h(qr[0])
+        amount_of_lines = _text_circuit_drawer(circuit, line_length=-1).count('\n')
+        self.assertEqual(amount_of_lines, 2)
+
 
 @unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
