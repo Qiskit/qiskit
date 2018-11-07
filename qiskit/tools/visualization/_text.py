@@ -10,6 +10,7 @@ A module for drawing circuits in ascii art or some other text representation
 """
 
 from itertools import groupby
+from shutil import get_terminal_size
 
 from ._error import VisualizationError
 
@@ -452,12 +453,18 @@ class TextDrawing():
         """
         Generates a list with lines. These lines form the text drawing.
         Args:
-            line_length (int): Optional. When given, breaks the circuit drawing to this length. This
-                               useful when the drawing does not fit in the console.
+            line_length (int): Optional. Breaks the circuit drawing to this length. This
+                               useful when the drawing does not fit in the console. If
+                               None (default), it will try to guess the console width using
+                               shutil.get_terminal_size(). If you don't want pagination
+                               at all, set line_length=-1.
 
         Returns:
             list: A list of lines with the text drawing.
         """
+        if line_length is None:
+            line_length, _ = get_terminal_size()
+
         noqubits = self.json_circuit['header']['number_of_qubits']
         layers = self.build_layers()
 
@@ -476,8 +483,8 @@ class TextDrawing():
 
             TextDrawing.normalize_width(layer)
 
-            if line_length is None:
-                # does not page
+            if line_length == -1:
+                # Do not use pagination (aka line breaking. aka ignore line_length).
                 layer_groups[-1].append(layer)
                 continue
 
