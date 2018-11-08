@@ -246,7 +246,6 @@ class TestAuthentication(QiskitTestCase):
     def test_url_404(self, qe_token, qe_url):
         """Test accessing a 404 URL"""
         url_404 = re.sub(r'\/api.*$', '/api/TEST_404', qe_url)
-        print(url_404)
         with self.assertRaises(ApiError):
             _ = IBMQConnector(qe_token,
                               config={'url': url_404})
