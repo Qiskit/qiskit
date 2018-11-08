@@ -12,12 +12,13 @@ This module is used for connecting to the Quantum Experience.
 import warnings
 import logging
 
-from IBMQuantumExperience import ApiError
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict, _dict_merge
+from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
 from qiskit.backends import JobStatus
+
+from .api import ApiError
+from .ibmqjob import IBMQJob, IBMQJobPreQobj
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class IBMQBackend(BaseBackend):
             configuration (dict): configuration of backend.
             provider (IBMQProvider): provider.
             credentials (Credentials): credentials.
-            api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+            api (IBMQConnector):
                 api for communicating with the Quantum Experience.
         """
         super().__init__(provider=provider, configuration=configuration)
@@ -162,30 +163,25 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             LookupError: If status for the backend can't be found.
+            IBMQBackendError: If the status can't be formatted properly.
         """
+        base_status = super().status()
         try:
-            backend_name = self.configuration()['name']
-            status = self._api.backend_status(backend_name)
-            # FIXME a hack to rename the key. Needs to be fixed in api
-            status['name'] = status['backend']
-            del status['backend']
-            # FIXME a hack to remove the key busy.  Needs to be fixed in api
-            if 'busy' in status:
-                del status['busy']
-            # FIXME a hack to add available to the hpc simulator.  Needs to
-            # be fixed in api
-            if status['name'] == 'ibmqx_hpc_qasm_simulator':
-                status['available'] = True
-
-            # FIXME: this needs to be replaced at the API level - eventually
-            # it will.
-            if 'available' in status:
-                status['operational'] = status['available']
-                del status['available']
+            api_status = self._api.backend_status(base_status['backend_name'])
+            # FIXME: these corrections need to be resolved at the API level
+            # - eventually it will.
+            api_status.pop('busy', None)
+            if 'available' in api_status:
+                api_status['operational'] = api_status.pop('available')
+            if 'backend' in api_status:
+                api_status['backend_name'] = api_status.pop('backend')
+            if 'pending_jobs' in api_status:
+                if api_status['pending_jobs'] < 0:
+                    api_status['pending_jobs'] = 0
         except Exception as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-        return AvailableToOperationalDict(status)
+        return {**base_status, **api_status}
 
     def jobs(self, limit=50, skip=0, status=None, db_filter=None):
         """Attempt to get the jobs submitted to the backend.
@@ -314,3 +310,27 @@ def _job_class_from_job_response(job_response):
 def _job_class_from_backend_support(backend):
     support_qobj = backend.configuration().get('allow_q_object')
     return IBMQJob if support_qobj else IBMQJobPreQobj
+
+
+def _dict_merge(dct, merge_dct):
+    """
+    TEMPORARY method for merging backend.calibration & backend.parameters
+    into backend.properties.
+
+    Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
+    updating only top-level keys, dict_merge recurses down into dicts nested
+    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
+    ``dct``.
+
+    Args:
+        dct (dict): the dictionary to merge into
+        merge_dct (dict): the dictionary to merge
+    """
+    for k, _ in merge_dct.items():
+        if k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], dict):
+            _dict_merge(dct[k], merge_dct[k])
+        elif k in dct and isinstance(dct[k], list) and isinstance(merge_dct[k], list):
+            for i in range(len(dct[k])):
+                _dict_merge(dct[k][i], merge_dct[k][i])
+        else:
+            dct[k] = merge_dct[k]

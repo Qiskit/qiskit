@@ -5,7 +5,7 @@
 [![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
 
 The Quantum Information Science Kit (**Qiskit** for short) is a software development kit (SDK) for
-developing quantum computing applications and working with NISQ (Noisy-Intermidate Scale Quantum) computers such as
+developing quantum computing applications and working with NISQ (Noisy-Intermediate Scale Quantum) computers such as
 [IBM Q](https://quantumexperience.ng.bluemix.net/).
 
 **Qiskit** is made up elements that each work together to enable quantum computing. This element is **Terra** 

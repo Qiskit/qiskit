@@ -21,7 +21,7 @@ from qiskit.qasm import pi
 from ..common import require_multiple_credentials, JobTestCase, slow_test
 
 # Timeout duration
-TIMEOUT = os.getenv("IBMQ_TIMEOUT", 10)
+TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
 
 
 
@@ -42,6 +42,8 @@ def once_per_qobj_backend(test):
                 with self.subTest(backend=backend):
                     backend_test = test if config['simulator'] else slow_test(test)
                     backend_test(self, backend, *args, **kwargs)
+        for qe_token, _ in credentials:
+            IBMQ.disable_accounts(token=qe_token)
     return _wrapper
 
 
@@ -212,7 +214,7 @@ class TestBackendQobj(JobTestCase):
         """Test conditional operation.
         """
         config = remote_backend.configuration()
-        if config.get('conditional', False):
+        if not config.get('conditional', False):
             self.skipTest('Backend does not support conditional tests')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
@@ -229,8 +231,8 @@ class TestBackendQobj(JobTestCase):
 
 
     @once_per_qobj_backend
-    def test_atlantic_circuit(self, remote_backend):
-        """Test Atlantis deterministic ry operation."""
+    def test_ry_circuit(self, remote_backend):
+        """Test Atlantis staging device deterministic ry operation."""
         config = remote_backend.configuration()
         n_qubits = config['n_qubits']
         if n_qubits < 3 or config.get('n_registers', n_qubits) < 3:

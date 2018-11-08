@@ -7,6 +7,8 @@
 
 # pylint: disable=missing-docstring,broad-except
 
+# pylint: disable=redefined-builtin
+
 """IBMQJob Test."""
 
 import time
@@ -17,8 +19,8 @@ import numpy
 from scipy.stats import chi2_contingency
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import transpiler
 from qiskit import IBMQ
+from qiskit import compile
 from qiskit.backends import JobStatus, JobError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
@@ -46,7 +48,7 @@ class TestIBMQJob(JobTestCase):
         qc = QuantumCircuit(qr, cr, name='hadamard')
         qc.h(qr)
         qc.measure(qr, cr)
-        qobj = transpiler.compile([self._qc, qc], backend)
+        qobj = compile([self._qc, qc], backend)
         shots = qobj.config.shots
         job = backend.run(qobj)
         result = job.result()
@@ -82,7 +84,7 @@ class TestIBMQJob(JobTestCase):
         self.log.info('devices: %s', [b.name() for b in backends])
         backend = least_busy(backends)
         self.log.info('using backend: %s', backend.name())
-        qobj = transpiler.compile(self._qc, backend)
+        qobj = compile(self._qc, backend)
         shots = qobj.config.shots
         job = backend.run(qobj)
         while not job.status() is JobStatus.DONE:
@@ -118,7 +120,7 @@ class TestIBMQJob(JobTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = transpiler.compile([qc]*10, backend)
+        qobj = compile([qc]*10, backend)
         num_jobs = 5
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         found_async_jobs = False
@@ -168,7 +170,7 @@ class TestIBMQJob(JobTestCase):
         for i in range(num_qubits-1):
             qc.cx(qr[i], qr[i+1])
         qc.measure(qr, cr)
-        qobj = transpiler.compile(qc, backend)
+        qobj = compile(qc, backend)
         num_jobs = 3
         job_array = [backend.run(qobj) for _ in range(num_jobs)]
         time.sleep(3)  # give time for jobs to start (better way?)
@@ -209,7 +211,7 @@ class TestIBMQJob(JobTestCase):
                         if self.using_ibmq_credentials else 'ibmqx4')
         backend = IBMQ.get_backend(backend_name)
 
-        qobj = transpiler.compile(self._qc, backend)
+        qobj = compile(self._qc, backend)
         job = backend.run(qobj)
         self.wait_for_initialization(job, timeout=5)
         can_cancel = job.cancel()
@@ -221,7 +223,7 @@ class TestIBMQJob(JobTestCase):
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
-        qobj = transpiler.compile(self._qc, backend)
+        qobj = compile(self._qc, backend)
         job = backend.run(qobj)
         self.log.info('job_id: %s', job.job_id())
         self.assertTrue(job.job_id() is not None)
@@ -231,7 +233,7 @@ class TestIBMQJob(JobTestCase):
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
-        qobj = transpiler.compile(self._qc, backend)
+        qobj = compile(self._qc, backend)
         job = backend.run(qobj)
         self.assertTrue(job.backend().name() == backend.name())
 
@@ -254,7 +256,7 @@ class TestIBMQJob(JobTestCase):
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
-        qobj = transpiler.compile(self._qc, backend)
+        qobj = compile(self._qc, backend)
         job = backend.run(qobj)
         rjob = backend.retrieve_job(job.job_id())
         self.assertTrue(job.job_id() == rjob.job_id())
@@ -323,11 +325,45 @@ class TestIBMQJob(JobTestCase):
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
-        qobj = transpiler.compile(self._qc, backend)
+        qobj = compile(self._qc, backend)
         # backend.run() will automatically call job.submit()
         job = backend.run(qobj)
         with self.assertRaises(JobError):
             job.submit()
+
+
+@unittest.skip('Temporarily disabled, see #1162')
+class TestQObjectBasedIBMQJob(JobTestCase):
+    """Test jobs supporting QObject."""
+
+    def setUp(self):
+        super().setUp()
+        self._testing_device = os.getenv('IBMQ_QOBJ_DEVICE', None)
+        self._qe_token = os.getenv('IBMQ_TOKEN', None)
+        self._qe_url = os.getenv('IBMQ_QOBJ_URL')
+        if not self._testing_device or not self._qe_token or not self._qe_url:
+            self.skipTest('No credentials or testing device available for '
+                          'testing Qobj capabilities.')
+
+        IBMQ.enable_account(self._qe_token, self._qe_url)
+        self._backend = IBMQ.get_backend(self._testing_device)
+
+        self._qc = _bell_circuit()
+
+    def test_qobject_enabled_job(self):
+        """Job should be an instance of IBMQJob."""
+        qobj = compile(self._qc, self._backend)
+        job = self._backend.run(qobj)
+        self.assertIsInstance(job, IBMQJob)
+
+    def test_qobject_result(self):
+        """Jobs can be retrieved."""
+        qobj = compile(self._qc, self._backend)
+        job = self._backend.run(qobj)
+        try:
+            job.result()
+        except JobError as err:
+            self.fail(err)
 
 
 def _bell_circuit():

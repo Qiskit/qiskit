@@ -48,7 +48,7 @@ class Quaternion:
 
     def normalize(self, inplace=False):
         """Normalizes a Quaternion to unit length
-        so that it represents a valid roation.
+        so that it represents a valid rotation.
 
         Args:
             inplace (bool): Do an inplace normalization.
@@ -150,7 +150,7 @@ def _rotm(angle, axis):
     """Generates a rotation matrix for a given angle and axis.
 
     Args:
-        angle (float): Roation angle in radians.
+        angle (float): Rotation angle in radians.
         axis (str): Axis for rotation: 'x', 'y', 'z'
 
     Returns:

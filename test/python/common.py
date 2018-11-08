@@ -15,7 +15,7 @@ import os
 import time
 import unittest
 from unittest.util import safe_repr
-import regex as re
+import re
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
 from qiskit.backends.aer import QasmSimulator

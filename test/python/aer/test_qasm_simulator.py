@@ -20,7 +20,7 @@ from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 from ..common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -47,11 +47,11 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         # create qobj
         compiled_circuit1 = QobjExperiment.from_dict(
-            transpile(DAGCircuit.fromQuantumCircuit(self.qc), format='json'))
+            transpile_dag(DAGCircuit.fromQuantumCircuit(self.qc), format='json'))
 
         compiled_circuit2 = QobjExperiment.from_dict(
-            transpile(DAGCircuit.fromQuantumCircuit(self.qasm_circ),
-                      format='json'))
+            transpile_dag(DAGCircuit.fromQuantumCircuit(self.qasm_circ),
+                          format='json'))
 
         self.qobj = Qobj(
             qobj_id='test_qobj',
@@ -221,7 +221,7 @@ class TestAerQasmSimulator(QiskitTestCase):
                              msg=name + ' snapshot keys')
             # Check number of snapshots
             # there should be 1 for measurement sampling optimization
-            # and there should be >1 for each shot beign simulated.
+            # and there should be >1 for each shot being simulated.
             num_snapshots = len(snapshots['0'].get('statevector', []))
             if sampled_measurements[name] is True:
                 self.assertEqual(num_snapshots, 1,
