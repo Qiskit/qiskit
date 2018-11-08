@@ -8,7 +8,6 @@
 """
 Toffoli gate. Controlled-Controlled-X.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -23,25 +22,13 @@ class ToffoliGate(Gate):
         """Create new Toffoli gate."""
         super().__init__("ccx", [], [ctl1, ctl2, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl1 = self.arg[0]
-        ctl2 = self.arg[1]
-        tgt = self.arg[2]
-        return self._qasmif("ccx %s[%d],%s[%d],%s[%d];" % (ctl1[0].name,
-                                                           ctl1[1],
-                                                           ctl2[0].name,
-                                                           ctl2[1],
-                                                           tgt[0].name,
-                                                           tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ccx(self.arg[0], self.arg[1], self.arg[2]))
+        self._modifiers(circ.ccx(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
 def ccx(self, ctl1, ctl2, tgt):
@@ -63,4 +50,3 @@ def ccx(self, ctl1, ctl2, tgt):
 
 
 QuantumCircuit.ccx = ccx
-CompositeGate.ccx = ccx

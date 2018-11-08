@@ -8,7 +8,6 @@
 """
 two-qubit ZZ-rotation gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -23,15 +22,6 @@ class RZZGate(Gate):
         """Create new rzz gate."""
         super().__init__("rzz", [theta], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        theta = self.param[0]
-        return self._qasmif("rzz(%s) %s[%d],%s[%d];" % (theta,
-                                                        ctl[0].name, ctl[1],
-                                                        tgt[0].name, tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
@@ -39,7 +29,7 @@ class RZZGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rzz(self.param[0], self.arg[0], self.arg[1]))
+        self._modifiers(circ.rzz(self.param[0], self.qargs[0], self.qargs[1]))
 
 
 def rzz(self, theta, ctl, tgt):
@@ -57,6 +47,5 @@ def rzz(self, theta, ctl, tgt):
     return self._attach(RZZGate(theta, ctl, tgt, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.rzz = rzz
-CompositeGate.rzz = rzz

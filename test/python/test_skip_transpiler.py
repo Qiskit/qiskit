@@ -10,11 +10,12 @@
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
+from qiskit import Aer
 from .common import QiskitTestCase
 
 
 class CompileSkipTranslationTest(QiskitTestCase):
-    """Test compilaton with skip translation."""
+    """Test compilation with skip translation."""
 
     def test_simple_compile(self):
         """Test compile with and without skip_transpiler."""
@@ -24,7 +25,7 @@ class CompileSkipTranslationTest(QiskitTestCase):
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
-        backend = 'qasm_simulator'
+        backend = Aer.get_backend('qasm_simulator')
         rtrue = compile(qc, backend, skip_transpiler=True)
         rfalse = compile(qc, backend, skip_transpiler=False)
         self.assertEqual(rtrue.config, rfalse.config)
@@ -38,7 +39,7 @@ class CompileSkipTranslationTest(QiskitTestCase):
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
         qc.measure(qr, cr)
-        backend = 'qasm_simulator'
+        backend = Aer.get_backend('qasm_simulator')
         rtrue = execute(qc, backend, seed=42, skip_transpiler=True).result()
         rfalse = execute(qc, backend, seed=42, skip_transpiler=False).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())

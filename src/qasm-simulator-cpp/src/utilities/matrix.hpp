@@ -13,14 +13,14 @@
 
 /*
 Dependences: BLAS
-Brief Discription: This is my Matrix class. It works only with real/complex
+Brief Description: This is my Matrix class. It works only with real/complex
 matrices and stores the entries in  column-major-order. In column-major storage
 the columns are stored one after the other. The linear offset p from the
 beginning of the array to any given element A(i,j) can then be computed as:
    p = j*Nrows+i
 where Nrows is the number of rows in the matrix. Hence, one scrolls down
 rows and moves to a new column once the last row is reached. More precisely, if
-i wanted to know the i and j associtated with a given p then i would use
+I wanted to know the i and j associated with a given p then I would use
   i=p %Nrows
   j= floor(p/Nrows)
 
@@ -75,46 +75,46 @@ extern "C" {
 // Prototypes for level 3 BLAS
 //===========================================================================
 
-// Single-Precison Real Matrix-Vector Multiplcation
+// Single-Precision Real Matrix-Vector Multiplication
 void sgemv_(const char *TransA, const size_t *M, const size_t *N,
             const float *alpha, const float *A, const size_t *lda,
             const float *x, const size_t *incx, const float *beta, float *y,
             const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
+// Double-Precision Real Matrix-Vector Multiplication
 void dgemv_(const char *TransA, const size_t *M, const size_t *N,
             const double *alpha, const double *A, const size_t *lda,
             const double *x, const size_t *incx, const double *beta, double *y,
             const size_t *lincy);
-// Single-Precison Complex Matrix-Vector Multiplcation
+// Single-Precision Complex Matrix-Vector Multiplication
 void cgemv_(const char *TransA, const size_t *M, const size_t *N,
             const std::complex<float> *alpha, const std::complex<float> *A,
             const size_t *lda, const std::complex<float> *x, const size_t *incx,
             const std::complex<float> *beta, std::complex<float> *y,
             const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
+// Double-Precision Real Matrix-Vector Multiplication
 void zgemv_(const char *TransA, const size_t *M, const size_t *N,
             const std::complex<double> *alpha, const std::complex<double> *A,
             const size_t *lda, const std::complex<double> *x,
             const size_t *incx, const std::complex<double> *beta,
             std::complex<double> *y, const size_t *lincy);
-// Single-Precison Real Matrix-Matrix Multiplcation
+// Single-Precision Real Matrix-Matrix Multiplication
 void sgemm_(const char *TransA, const char *TransB, const size_t *M,
             const size_t *N, const size_t *K, const float *alpha,
             const float *A, const size_t *lda, const float *B,
             const size_t *lba, const float *beta, float *C, size_t *ldc);
-// Double-Precison Real Matrix-Matrix Multiplcation
+// Double-Precision Real Matrix-Matrix Multiplication
 void dgemm_(const char *TransA, const char *TransB, const size_t *M,
             const size_t *N, const size_t *K, const double *alpha,
             const double *A, const size_t *lda, const double *B,
             const size_t *lba, const double *beta, double *C, size_t *ldc);
-// Single-Precison Complex Matrix-Matrix Multiplcation
+// Single-Precision Complex Matrix-Matrix Multiplication
 void cgemm_(const char *TransA, const char *TransB, const size_t *M,
             const size_t *N, const size_t *K, const std::complex<float> *alpha,
             const std::complex<float> *A, const size_t *lda,
             const std::complex<float> *B, const size_t *ldb,
             const std::complex<float> *beta, std::complex<float> *C,
             size_t *ldc);
-// Double-Precison Complex Matrix-Matrix Multiplcation
+// Double-Precision Complex Matrix-Matrix Multiplication
 void zgemm_(const char *TransA, const char *TransB, const size_t *M,
             const size_t *N, const size_t *K, const std::complex<double> *alpha,
             const std::complex<double> *A, const size_t *lda,
@@ -135,7 +135,7 @@ enum OutputStyle { Column, List, Matrix };
 
 template <class T> // define a class template
 class matrix {
-  // friend functions get to use the private varibles of the class as well as
+  // friend functions get to use the private variables of the class as well as
   // have different classes as inputs
   template <class S>
   friend std::ostream &
@@ -156,20 +156,20 @@ class matrix {
   friend matrix<S1>
   operator*(const matrix<S1> &A,
             const S2 &beta); // multiplication by a scalar A*beta
-  // Single-Precison Matrix Multiplication
+  // Single-Precision Matrix Multiplication
   friend matrix<float>
   operator*(const matrix<float> &A,
             const matrix<float> &B); // real matrix multiplication A*B
   friend matrix<std::complex<float>> operator*(
       const matrix<std::complex<float>> &A,
-      const matrix<std::complex<float>> &B); // complex matrix multplication A*B
+      const matrix<std::complex<float>> &B); // complex matrix multiplication A*B
   friend matrix<std::complex<float>>
   operator*(const matrix<float> &A,
             const matrix<std::complex<float>>
-                &B); // real-complex matrix multplication A*B
+                &B); // real-complex matrix multiplication A*B
   friend matrix<std::complex<float>>
   operator*(const matrix<std::complex<float>> &A,
-            const matrix<float> &B); // real-complex matrix multplication A*B
+            const matrix<float> &B); // real-complex matrix multiplication A*B
   // Double-Precision Matrix Multiplication
   friend matrix<double>
   operator*(const matrix<double> &A,
@@ -177,14 +177,14 @@ class matrix {
   friend matrix<std::complex<double>>
   operator*(const matrix<std::complex<double>> &A,
             const matrix<std::complex<double>>
-                &B); // complex matrix multplication A*B
+                &B); // complex matrix multiplication A*B
   friend matrix<std::complex<double>>
   operator*(const matrix<double> &A,
             const matrix<std::complex<double>>
-                &B); // real-complex matrix multplication A*B
+                &B); // real-complex matrix multiplication A*B
   friend matrix<std::complex<double>>
   operator*(const matrix<std::complex<double>> &A,
-            const matrix<double> &B); // real-complex matrix multplication A*B
+            const matrix<double> &B); // real-complex matrix multiplication A*B
   // Single-Precision Matrix-Vector Multiplication
   friend std::vector<float> operator*(const matrix<float> &A,
                                       const std::vector<float> &v);
@@ -219,7 +219,7 @@ public:
   matrix<T> &operator=(const matrix<T> &m);
   template <class S>
   matrix<T> &operator=(const matrix<S> &m); // Still would like to have real
-                                            // assigend by complex -- take real
+                                            // assigned by complex -- take real
                                             // part
 
   // Addressing elements by vector representation
@@ -251,8 +251,8 @@ public:
 protected:
   size_t rows_, cols_, size_, LD_;
   // rows_ and cols_ are the rows and columns of the matrix
-  // size_ = rows*colums dimensions of the vector representation
-  // LD is the leading dimeonsion and for Column major order is in general eqaul
+  // size_ = rows*columns dimensions of the vector representation
+  // LD is the leading dimension and for Column major order is in general equal
   // to rows
   enum OutputStyle outputstyle_;
   // outputstyle_ is the output style used by <<
@@ -268,7 +268,7 @@ protected:
 
 namespace MOs {
 
-// Common Matricies
+// Common Matrices
 template <class T> void Null(matrix<T> &A);
 template <class T> void Identity(matrix<T> &I);
 void Pauli(matrix<std::complex<double>> &sx, matrix<std::complex<double>> &sy,
@@ -276,7 +276,7 @@ void Pauli(matrix<std::complex<double>> &sx, matrix<std::complex<double>> &sy,
 void Pauli(matrix<std::complex<float>> &sx, matrix<std::complex<float>> &sy,
            matrix<std::complex<float>> &sz);
 
-// operations on Matrics
+// operations on Matrices
 template <class T> matrix<T> Transpose(const matrix<T> &A);
 template <class T>
 matrix<std::complex<T>> Dagger(const matrix<std::complex<T>> &A);
@@ -298,7 +298,7 @@ template <class T> inline void MOs::Null(matrix<T> &A) {
 }
 
 template <class T> inline void MOs::Identity(matrix<T> &I) {
-  // The Idenity operator
+  // The Identity operator
   size_t dim = I.GetRows();
   if (dim != I.GetColumns())
     std::cerr << "error: Routine MOs::Identity: Matrix is not square"
@@ -472,7 +472,7 @@ inline matrix<T> MOs::TraceOutB(const matrix<T> &rho, size_t dimB) {
 
 template <class T>
 inline matrix<T> MOs::TensorProduct(const matrix<T> &A, const matrix<T> &B) {
-  // Works out the TensorProduct of two matricies A tensor B
+  // Works out the TensorProduct of two matrices A tensor B
   // Note that if A is i x j and B is p x q then A \otimes B is an ip x jq
   // rmatrix
   size_t rows1 = A.GetRows(), rows2 = B.GetRows(), cols1 = A.GetColumns(),
@@ -522,8 +522,8 @@ inline matrix<T>::matrix(size_t dim2)
   else if (size_ == 1)
     rows_ = size_;
   else if (size_ == 2) {
-    std::cerr << "Error: matrix constructor matrix(dim): the number you enterd "
-                 "does not have a interger sqrt."
+    std::cerr << "Error: matrix constructor matrix(dim): the number you entered "
+                 "does not have an integer sqrt."
               << std::endl;
     exit(1);
   } else
@@ -532,7 +532,7 @@ inline matrix<T>::matrix(size_t dim2)
         break;
       if (rows_ * rows_ > size_) {
         std::cerr << "Error: matrix constructor matrix(dim): the number you "
-                     "enterd does not have a interger sqrt"
+                     "entered does not have a interger sqrt"
                   << std::endl;
         exit(1);
       }
@@ -582,7 +582,7 @@ template <class T> inline void matrix<T>::initialize(size_t rows, size_t cols) {
     size_ = rows_ * cols_;
     LD_ = rows;
     mat_ = new T[size_];
-    // std::cout << "Assignement (reassigment), size " << size_ << " rows_ " <<
+    // std::cout << "Assignment (reassignment), size " << size_ << " rows_ " <<
     // rows_ << " cols " << cols_ << " LD "<< LD_ <<  std::endl;
   }
 }
@@ -618,7 +618,7 @@ template <class T> inline matrix<T>::~matrix() {
 }
 template <class T>
 inline matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
-  // overloading the assignement operator
+  // overloading the assignment operator
   // postcondition: normal assignment via copying has been performed;
   //    if matrix and rhs were different sizes, matrix
   //    has been resized to match the size of rhs
@@ -644,7 +644,7 @@ inline matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
 template <class T>
 template <class S>
 inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
-  // overloading the assignement operator
+  // overloading the assignment operator
   // postcondition: normal assignment via copying has been performed;
   //    if matrix and rhs were different sizes, matrix
   //    has been resized to match the size of rhs
@@ -722,7 +722,7 @@ template <class T> inline size_t matrix<T>::GetRows() const {
   return rows_;
 }
 template <class T> inline size_t matrix<T>::GetColumns() const {
-  // returns the colums of the matrix
+  // returns the columns of the matrix
   return cols_;
 }
 template <class T> inline size_t matrix<T>::GetLD() const {
@@ -759,7 +759,7 @@ template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {
   return temp;
 }
 template <class T> inline matrix<T> matrix<T>::operator-(const matrix<T> &A) {
-// overloads the - for matrix substraction, can this be more efficient
+// overloads the - for matrix subtraction, can this be more efficient
 #ifdef DEBUG
   if (rows_ != A.rows_ || cols_ != A.cols_) {
     std::cerr
@@ -794,7 +794,7 @@ inline matrix<T> matrix<T>::operator+(const matrix<T> &A) const {
 }
 template <class T>
 inline matrix<T> matrix<T>::operator-(const matrix<T> &A) const {
-// overloads the - for matrix substraction, can this be more efficient
+// overloads the - for matrix subtraction, can this be more efficient
 #ifdef DEBUG
   if (rows_ != A.rows_ || cols_ != A.cols_) {
     std::cerr << "Error: matrix class operator - const: Matrices are not the "
@@ -826,7 +826,7 @@ template <class T> inline matrix<T> &matrix<T>::operator+=(const matrix<T> &A) {
   return *this;
 }
 template <class T> inline matrix<T> &matrix<T>::operator-=(const matrix<T> &A) {
-// overloads the -= for matrix subtraction and assignement, can this be more
+// overloads the -= for matrix subtraction and assignment, can this be more
 // efficient
 #ifdef DEBUG
   if (rows_ != A.rows_ || cols_ != A.cols_) {
@@ -917,7 +917,7 @@ matrix<S1> operator*(const S2 &beta, const matrix<S1> &A) {
 // Operator overloading with BLAS functions
 inline matrix<double> operator*(const matrix<double> &A,
                                 const matrix<double> &B) {
-  // overloads A*B for real matricies and uses the blas dgemm routine
+  // overloads A*B for real matrices and uses the blas dgemm routine
   // cblas_dgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<double> C(A.rows_, B.cols_);
@@ -929,7 +929,7 @@ inline matrix<double> operator*(const matrix<double> &A,
   return C;
 }
 inline matrix<float> operator*(const matrix<float> &A, const matrix<float> &B) {
-  // overloads A*B for real matricies and uses the blas sgemm routine
+  // overloads A*B for real matrices and uses the blas sgemm routine
   // cblas_sgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<float> C(A.rows_, B.cols_);
@@ -943,7 +943,7 @@ inline matrix<float> operator*(const matrix<float> &A, const matrix<float> &B) {
 inline matrix<std::complex<float>>
 operator*(const matrix<std::complex<float>> &A,
           const matrix<std::complex<float>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
+  // overloads A*B for complex matrices and uses the blas zgemm routine
   // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<float>> C(A.rows_, B.cols_);
@@ -957,7 +957,7 @@ operator*(const matrix<std::complex<float>> &A,
 inline matrix<std::complex<double>>
 operator*(const matrix<std::complex<double>> &A,
           const matrix<std::complex<double>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
+  // overloads A*B for complex matrices and uses the blas zgemm routine
   // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<double>> C(A.rows_, B.cols_);
@@ -970,7 +970,7 @@ operator*(const matrix<std::complex<double>> &A,
 }
 inline matrix<std::complex<float>>
 operator*(const matrix<float> &A, const matrix<std::complex<float>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
+  // overloads A*B for complex matrices and uses the blas zgemm routine
   // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<float>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
@@ -984,7 +984,7 @@ operator*(const matrix<float> &A, const matrix<std::complex<float>> &B) {
 }
 inline matrix<std::complex<double>>
 operator*(const matrix<double> &A, const matrix<std::complex<double>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
+  // overloads A*B for complex matrices and uses the blas zgemm routine
   // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<double>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
@@ -998,7 +998,7 @@ operator*(const matrix<double> &A, const matrix<std::complex<double>> &B) {
 }
 inline matrix<std::complex<float>>
 operator*(const matrix<std::complex<float>> &A, const matrix<float> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
+  // overloads A*B for complex matrices and uses the blas zgemm routine
   // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<float>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
@@ -1012,7 +1012,7 @@ operator*(const matrix<std::complex<float>> &A, const matrix<float> &B) {
 }
 inline matrix<std::complex<double>>
 operator*(const matrix<std::complex<double>> &A, const matrix<double> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
+  // overloads A*B for complex matrices and uses the blas zgemm routine
   // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<double>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
@@ -1028,7 +1028,7 @@ operator*(const matrix<std::complex<double>> &A, const matrix<double> &B) {
 // Single-Precision Real
 inline std::vector<float> operator*(const matrix<float> &A,
                                     const std::vector<float> &x) {
-  // overload A*v for complex matrixies and will used a blas function
+  // overload A*v for complex matrices and will used a blas function
   std::vector<float> y(A.rows_);
   float alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
@@ -1039,7 +1039,7 @@ inline std::vector<float> operator*(const matrix<float> &A,
 // Double-Precision Real
 inline std::vector<double> operator*(const matrix<double> &A,
                                      const std::vector<double> &x) {
-  // overload A*v for complex matrixies and will used a blas function
+  // overload A*v for complex matrices and will used a blas function
   std::vector<double> y(A.rows_);
   double alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
@@ -1051,7 +1051,7 @@ inline std::vector<double> operator*(const matrix<double> &A,
 inline std::vector<std::complex<float>>
 operator*(const matrix<std::complex<float>> &A,
           const std::vector<std::complex<float>> &x) {
-  // overload A*v for complex matrixies and will used a blas function
+  // overload A*v for complex matrices and will used a blas function
   std::vector<std::complex<float>> y(A.rows_);
   std::complex<float> alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
@@ -1063,7 +1063,7 @@ operator*(const matrix<std::complex<float>> &A,
 inline std::vector<std::complex<double>>
 operator*(const matrix<std::complex<double>> &A,
           const std::vector<std::complex<double>> &x) {
-  // overload A*v for complex matrixies and will used a blas function
+  // overload A*v for complex matrices and will used a blas function
   std::vector<std::complex<double>> y(A.rows_);
   std::complex<double> alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;

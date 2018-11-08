@@ -25,11 +25,10 @@ from qiskit import compile, IBMQ, Aer
 from qiskit.backends.ibmq import least_busy
 
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 try:
@@ -75,7 +74,7 @@ try:
     # Compiling the job for the experimental backend 
     qobj = compile([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
 
-    # Runing the job
+    # Running the job
     sim_job = my_backend.run(qobj)
 
     # Getting the result
@@ -89,7 +88,7 @@ try:
     # Compile and run the Quantum Program on a real device backend
     # See a list of available remote backends
     try:
-        # Runing the job.
+        # Running the job.
         exp_job = least_busy_device.run(qobj)
 
         lapse = 0

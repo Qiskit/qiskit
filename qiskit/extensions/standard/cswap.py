@@ -8,7 +8,6 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -23,25 +22,13 @@ class FredkinGate(Gate):
         """Create new Fredkin gate."""
         super().__init__("cswap", [], [ctl, tgt1, tgt2], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt1 = self.arg[1]
-        tgt2 = self.arg[2]
-        return self._qasmif("cswap %s[%d],%s[%d],%s[%d];" % (ctl[0].name,
-                                                             ctl[1],
-                                                             tgt1[0].name,
-                                                             tgt1[1],
-                                                             tgt2[0].name,
-                                                             tgt2[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cswap(self.arg[0], self.arg[1], self.arg[2]))
+        self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
 def cswap(self, ctl, tgt1, tgt2):
@@ -63,4 +50,3 @@ def cswap(self, ctl, tgt1, tgt2):
 
 
 QuantumCircuit.cswap = cswap
-CompositeGate.cswap = cswap

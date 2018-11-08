@@ -10,7 +10,6 @@
 """
 Rotation around the x-axis.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -25,13 +24,6 @@ class RXGate(Gate):
         """Create new rx single qubit gate."""
         super().__init__("rx", [theta], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        return self._qasmif("rx(%s) %s[%d];" % (theta, qubit[0].name,
-                                                qubit[1]))
-
     def inverse(self):
         """Invert this gate.
 
@@ -42,7 +34,7 @@ class RXGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rx(self.param[0], self.arg[0]))
+        self._modifiers(circ.rx(self.param[0], self.qargs[0]))
 
 
 def rx(self, theta, q):
@@ -58,4 +50,3 @@ def rx(self, theta, q):
 
 
 QuantumCircuit.rx = rx
-CompositeGate.rx = rx

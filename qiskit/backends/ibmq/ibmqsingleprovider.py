@@ -9,12 +9,13 @@
 
 from collections import OrderedDict
 
-from IBMQuantumExperience import IBMQuantumExperience
 
 from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseProvider
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.backends.providerutils import filter_backends
+
+from .api import IBMQConnector
+from .ibmqbackend import IBMQBackend
 
 
 class IBMQSingleProvider(BaseProvider):
@@ -31,7 +32,7 @@ class IBMQSingleProvider(BaseProvider):
         """
         super().__init__()
 
-        # Get a connection to IBMQuantumExperience.
+        # Get a connection to IBMQ.
         self.credentials = credentials
         self._api = self._authenticate(self.credentials)
         self._ibm_provider = ibmq_provider
@@ -50,14 +51,13 @@ class IBMQSingleProvider(BaseProvider):
 
     @classmethod
     def _authenticate(cls, credentials):
-        """Authenticate against the IBMQuantumExperience API.
+        """Authenticate against the IBMQ API.
 
         Args:
             credentials (Credentials): Quantum Experience or IBMQ credentials.
 
         Returns:
-            IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience:
-                instance of the IBMQuantumExperience API.
+            IBMQConnector: instance of the IBMQConnector.
         Raises:
             ConnectionError: if the authentication resulted in error.
         """
@@ -67,24 +67,23 @@ class IBMQSingleProvider(BaseProvider):
             }
             if credentials.proxies:
                 config_dict['proxies'] = credentials.proxies
-            return IBMQuantumExperience(credentials.token, config_dict,
-                                        credentials.verify)
+            return IBMQConnector(credentials.token, config_dict,
+                                 credentials.verify)
         except Exception as ex:
             root_exception = ex
             if 'License required' in str(ex):
                 # For the 401 License required exception from the API, be
                 # less verbose with the exceptions.
                 root_exception = None
-            raise ConnectionError("Couldn't connect to IBMQuantumExperience server: {0}"
+            raise ConnectionError("Couldn't connect to IBMQ server: {0}"
                                   .format(ex)) from root_exception
 
     @classmethod
     def _parse_backend_configuration(cls, config):
-        """Parse a backend configuration returned by IBMQuantumConfiguration.
+        """Parse a backend configuration returned by IBMQ.
 
         Args:
-            config (dict): raw configuration as returned by
-                IBMQuantumExperience.
+            config (dict): raw configuration as returned by IBMQ.
 
         Returns:
             dict: parsed configuration.
