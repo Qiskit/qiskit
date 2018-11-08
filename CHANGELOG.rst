@@ -91,6 +91,7 @@ Added
   a list of QuantumCircuit objects (#877)
 - Allow selective loading of accounts from disk via hub/group/project
   filters to `IBMQ.load_accounts()`.
+- Add new `job_monitor` function to automaically check the status of a job (#975).
 
 Changed
 -------

@@ -267,7 +267,6 @@ class IBMQJob(BaseJob):
             JobError: if there was an exception in the future being executed
                           or the server sent an unknown answer.
         """
-
         # Implies self._job_id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
