@@ -10,10 +10,10 @@
 from marshmallow.fields import String, Boolean, Integer
 from marshmallow.validate import Range, Regexp
 
-from .base import BaseModel, BaseSchema
+from .base import ModelSchema, bind_schema, BaseModel
 
 
-class BackendStatusSchema(BaseSchema):
+class BackendStatusSchema(ModelSchema):
     """Schema for BackendStatus."""
 
     # Required fields.
@@ -26,6 +26,7 @@ class BackendStatusSchema(BaseSchema):
     status_msg = String(required=True)
 
 
+@bind_schema(BackendStatusSchema)
 class BackendStatus(BaseModel):
     """Backend Status."""
 
