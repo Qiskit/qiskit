@@ -13,6 +13,7 @@
 
 import time
 import unittest
+import os
 from concurrent import futures
 
 import numpy

@@ -24,7 +24,6 @@ from ..common import require_multiple_credentials, JobTestCase, slow_test
 TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
 
 
-
 def once_per_qobj_backend(test):
     """
     Test Qobj support on all backends claiming to support Qobj.
@@ -88,7 +87,6 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-
     @once_per_qobj_backend
     def test_simple_circuit(self, remote_backend):
         """Test one circuit, one register, in-order readout."""
@@ -136,7 +134,6 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-
     @once_per_qobj_backend
     def test_multi_register(self, remote_backend):
         """Test one circuit, two registers, out-of-order readout."""
@@ -166,7 +163,6 @@ class TestBackendQobj(JobTestCase):
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
-
 
     @once_per_qobj_backend
     def test_multi_circuit(self, remote_backend):
@@ -228,7 +224,6 @@ class TestBackendQobj(JobTestCase):
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
-
 
     @once_per_qobj_backend
     def test_ry_circuit(self, remote_backend):
