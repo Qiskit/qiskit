@@ -67,6 +67,8 @@ Removed
 -------
 - Remove register, available_backends (#1131).
 - Remove tools/apps (#1184).
+- Removed the dependency on `IBMQuantumExperience`, as it is now included
+  in `qiskit.backends.IBMQ` (#1198).
 
 `0.6.0`_ - 2018-10-04
 =====================

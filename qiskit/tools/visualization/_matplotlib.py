@@ -15,12 +15,8 @@ import itertools
 import json
 import logging
 import math
-import os
-import tempfile
 
 import numpy as np
-import PIL
-from matplotlib import get_backend as get_matplotlib_backend
 from matplotlib import patches
 from matplotlib import pyplot as plt
 
@@ -28,7 +24,6 @@ from qiskit import dagcircuit
 from qiskit import transpiler
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
-from qiskit.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +89,8 @@ class MatplotlibDrawer:
     def __init__(self,
                  basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
                        'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                 scale=1.0, style=None):
+                 scale=1.0, style=None, plot_barriers=True,
+                 reverse_bits=False):
 
         self._ast = None
         self._basis = basis
@@ -111,6 +107,8 @@ class MatplotlibDrawer:
         }
 
         self._style = _qcstyle.QCStyle()
+        self.plot_barriers = plot_barriers
+        self.reverse_bits = reverse_bits
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -359,29 +357,10 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
-
-        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
-            # returns None when matplotlib is inline mode to prevent Jupyter
-            # with matplotlib inlining enabled to draw the diagram twice.
-            im = None
-        else:
-            # when matplotlib is not inline mode,
-            # self.figure.savefig is called twice because...
-            # ... this is needed to get the in-memory representation
-            with tempfile.TemporaryDirectory() as tmpdir:
-                tmpfile = os.path.join(tmpdir, 'circuit.png')
-                self.figure.savefig(tmpfile, dpi=self._style.dpi,
-                                    bbox_inches='tight')
-                im = PIL.Image.open(tmpfile)
-                _utils._trim(im)
-                os.remove(tmpfile)
-
-        # ... and this is needed to delegate in matplotlib the generation of
-        # the proper format.
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        return im
+        return self.figure
 
     def _draw_regs(self):
         # quantum register
@@ -428,7 +407,7 @@ class MatplotlibDrawer:
                 self._cond['n_lines'] += 1
                 idx += 1
         # reverse bit order
-        if self._style.reverse:
+        if self.reverse_bits:
             self._reverse_bits(self._qreg_dict)
             self._reverse_bits(self._creg_dict)
 
@@ -556,7 +535,7 @@ class MatplotlibDrawer:
                         this_anc, gw) for jj in q_list]
                     if all(locs):
                         for ii in q_list:
-                            if op['name'] == 'barrier' and not self._style.barrier:
+                            if op['name'] == 'barrier' and not self.plot_barriers:
                                 q_anchors[ii].set_index(this_anc - 1, gw)
                             else:
                                 q_anchors[ii].set_index(this_anc, gw)
@@ -621,7 +600,7 @@ class MatplotlibDrawer:
                 if op_next and op_next['name'] == 'barrier':
                     continue
                 else:
-                    if self._style.barrier:
+                    if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
                     _barriers['group'].clear()
                     _barriers['coord'].clear()

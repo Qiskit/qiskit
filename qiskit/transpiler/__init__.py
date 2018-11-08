@@ -14,7 +14,6 @@ from ._fencedobjs import FencedDAGCircuit, FencedPropertySet
 from ._basepasses import AnalysisPass, TransformationPass
 from ._transpiler import transpile, transpile_dag
 from ._parallel import parallel_map
-from ._progressbar import TextProgressBar
 
 # Set parallel environmental variable
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
