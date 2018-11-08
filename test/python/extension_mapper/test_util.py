@@ -9,10 +9,10 @@ from qiskit.transpiler.passes.extension_mapper.src import util
 
 class TestUtil(TestCase):
     """The test cases."""
-    def setUp(self) -> None:
+    def setUp(self):
         self.circuit = TestUtil.basic_dag()
 
-    def test_empty_circuit_simple(self) -> None:
+    def test_simple_empty_circuit(self):
         """Test whether empty circuit does produce an empty circuit from a simple DAG."""
         self.circuit.add_creg(ClassicalRegister(2, name="c"))
         self.circuit.add_qreg(QuantumRegister(2, name="q"))
@@ -28,7 +28,7 @@ class TestUtil(TestCase):
             filter(lambda n: n[1]["type"] == "op", emptied_circuit.multi_graph.nodes(data=True)))
         self.assertEqual(0, len(op_nodes))
 
-    def test_empty_circuit_qregs(self) -> None:
+    def test_empty_circuit_qregs(self):
         """Test whether empty circuit preserves provided qregs."""
         self.circuit.add_creg(ClassicalRegister(2, name="c"))
         self.circuit.add_qreg(QuantumRegister(2, name="q"))

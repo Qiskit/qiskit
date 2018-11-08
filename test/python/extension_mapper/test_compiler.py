@@ -1,6 +1,5 @@
 """Test functionality for the compiler package."""
 import random
-from typing import Mapping, Tuple, TypeVar
 from unittest import TestCase, mock
 
 import networkx as nx
@@ -16,14 +15,7 @@ from qiskit.transpiler.passes.extension_mapper.src.permutation.general \
 from .test_util import TestUtil  # pylint: disable=wrong-import-order
 
 
-ArchNode = TypeVar('ArchNode')
-_V = TypeVar('_V')
-Reg = Tuple[_V, int]
-ArchReg = Reg[str]
-
-
-def _trivial_mapper(dag: DAGCircuit, current_mapping: Mapping) -> \
-        Tuple[Mapping, PermutationCircuit]:
+def _trivial_mapper(dag, current_mapping):
     """Always returns the trivial (empty) list of swaps."""
     # pylint: disable=unused-argument
     pcircuit = PermutationCircuit(DAGCircuit(), {})
@@ -33,12 +25,12 @@ def _trivial_mapper(dag: DAGCircuit, current_mapping: Mapping) -> \
 class TestCompiler(TestCase):
     """The test cases."""
 
-    def setUp(self) -> None:
+    def setUp(self):
         random.seed(0)
-        self.circuit: DAGCircuit = TestUtil.basic_dag()
+        self.circuit = TestUtil.basic_dag()
         self.arch_graph = nx.Graph()
 
-    def test_compile_simple(self) -> None:
+    def test_compile_simple(self):
         """Test if a single CNOT can be compiled on to the architecture 1, 2<->3"""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
@@ -55,7 +47,7 @@ class TestCompiler(TestCase):
         op_node = op_nodes[0]
         self.assertEqual({2, 3}, {mapping[qarg] for qarg in op_node[1]["qargs"]})
 
-    def test_compile_simple_2(self) -> None:
+    def test_compile_simple_2(self):
         """Test whether a Hadamard and CNOT can be compiled to the architecture 1, 2<->3"""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
@@ -74,7 +66,7 @@ class TestCompiler(TestCase):
 
         self.assertCountEqual([{2, 3}, {1}], arch_nodes)
 
-    def test_compile_simple_3(self) -> None:
+    def test_compile_simple_3(self):
         """Test whether a sequence of Hadamard and CNOT can be compiled to 0<->1, 2
 
             A circuit to prepare a Bell state 1/sqrt(2)(|00> + |11>)
@@ -105,7 +97,7 @@ class TestCompiler(TestCase):
         self.assertEqual({0, 1}, {mapping[qarg] for qarg in binop_node[1]["qargs"]})
         self.assertEqual(0, mapping[unop_node[1]["qargs"][0]])
 
-    def test_compile_too_many_nodes(self) -> None:
+    def test_compile_too_many_nodes(self):
         """Test whether the compiler can handle an architecture with too many qubits."""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
 
@@ -118,7 +110,7 @@ class TestCompiler(TestCase):
         self.assertEqual(4, len(compiled_circuit.input_map))
         self.assertEqual(4, len(compiled_circuit.output_map))
 
-    def test_compile_cregs(self) -> None:
+    def test_compile_cregs(self):
         """Test the compiler for a circuit with classical registers."""
         self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.add_creg(ClassicalRegister(2, name="c"))
@@ -161,7 +153,7 @@ class TestCompiler(TestCase):
         self.assertEqual([("c", 0)], op2["cargs"])
         self.assertEqual([("c", 1)], op3["cargs"])
 
-    def test_compile_swap_needed(self) -> None:
+    def test_compile_swap_needed(self):
         """Test whether the compiler can perform a circuit that requires a SWAP in the mapping."""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.add_creg(ClassicalRegister(3, name="c"))
@@ -186,8 +178,7 @@ class TestCompiler(TestCase):
         calls = 0
         swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected())
 
-        def arch_mapper(dag: DAGCircuit, current_mapping: Mapping[Reg[str], int]) \
-                -> Tuple[Mapping[Reg[str], int], PermutationCircuit]:
+        def arch_mapper(dag, current_mapping):
             """The mapper function for a mapping to mapped_to."""
             # pylint: disable=unused-argument
             nonlocal calls

@@ -6,51 +6,42 @@ so gates can be performed where we try to minimize the total number of gates.
 import copy
 import itertools
 import logging
-import typing
-from typing import Dict, Set, Callable, Iterable, Mapping, TypeVar, List, Generic, Tuple, \
-    Iterator, Optional
 
 import networkx as nx
 import numpy as np
-from qiskit.dagcircuit import DAGCircuit
 
 from .. import permutation as pm
 from .. import scoring
 from ..mapping import util
 from ..mapping.placement import Placement
-from ..permutation import Swap
 from ..util import first_layer
-
-Reg = TypeVar('Reg')
-ArchNode = TypeVar('ArchNode')
 
 logger = logging.getLogger(__name__)
 
 
-class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-object
+class SizeMapper():
     """A container for various mapping functions that optimize for size.
 
     Internally caches outcomes of placement_cost for Placements in placement_costs."""
 
-    def __init__(self, arch_graph: nx.DiGraph,
-                 arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
-                                         Iterable[Swap[ArchNode]]],
-                 allow_swaps: bool = True) -> None:
+    def __init__(self, arch_graph, arch_permuter, allow_swaps=True):
         """Construct a SizeMapper object for mapping circuits to architectures, respecting size.
 
         :param arch_graph: The directed architecture graph.
         :param arch_permuter: The permuter on the architecture graph.
         :param allow_swaps: Whether to allow swaps or not. To increase performance it is recommended
-            to set this to True and, if necessary, decompose SWAPs into CNOTs later."""
+            to set this to True and, if necessary, decompose SWAPs into CNOTs later.
+        :type arch_graph: nx.DiGraph
+        :type arch_permuter: Callable[[Mapping[ArchNode, ArchNode]], Iterable[Swap[ArchNode]]]
+        :type allow_swaps: bool
+        """
         self.arch_graph = arch_graph
         self.arch_permuter = arch_permuter
         self.allow_swaps = allow_swaps
-        self.placement_costs: Dict[Placement[Reg, ArchNode], int] = {}
-        self.graph_distance: Dict[ArchNode, Dict[ArchNode, int]] = None
+        self.placement_costs = {}
+        self.graph_distance = None
 
-    def simple(self,
-               circuit: DAGCircuit,
-               current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
+    def simple(self, circuit, current_mapping):
         """Perform a simple greedy mapping of the cheapest gate to the architecture."""
         # Peel off the first layer of operations for the circuit
         # so that we can assign operations to the architecture.
@@ -64,9 +55,9 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             return {}
 
         # Reshape the nodes to their qargs.
-        binops_qargs: Set[Tuple[Reg, Reg]] = {
+        binops_qargs = {
             # only keep qargs field as an immutable tuple.
-            typing.cast(Tuple[Reg, Reg], tuple(n["qargs"]))
+            tuple(n["qargs"])
             for n in node_data
             # Filter out op nodes that are not barriers and are 2-qubit operations
             if n["type"] == "op" and n["name"] != "barrier" and len(n["qargs"]) == 2}
@@ -75,7 +66,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         if not binops_qargs:
             return {}
 
-        def simple_saved_gates(place: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]) -> int:
+        def simple_saved_gates(place):
             """We have to repackage the second argument of place into an iterable."""
             return self.saved_gates((place[0], [place[1]]))
 
@@ -83,12 +74,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
                                   simple_saved_gates)[0].mapped_to
 
     @staticmethod
-    def _inner_simple(binops_qargs: Set[Tuple[Reg, Reg]],
-                      current_mapping: Mapping[Reg, ArchNode],
-                      remaining_arch: nx.DiGraph,
-                      place_score: Callable[[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]],
-                                            int]) \
-            -> Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]:
+    def _inner_simple(binops_qargs, current_mapping, remaining_arch, place_score):
         """Internal function for computing a simple mapping of a set of gates.
 
         Does not modify arguments.
@@ -98,8 +84,14 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         :param current_mapping: The current mapping of quantum registers to architecture nodes.
         :param remaining_arch: Sub-graph of architecture containing edges not yet used in placement.
         :param place_score: A function that gives a score to a placement.
-        :returns: A Placement of a gate together with the qargs of that gate."""
-        max_max_placement: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]] = None
+        :type binops_qargs: Set[Tuple[Reg, Reg]]
+        :type current_mapping: Mapping[Reg, ArchNode]
+        :type remaining_arch: nx.DiGraph
+        :type place_score: Callable[[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]], int])
+        :returns: A Placement of a gate together with the qargs of that gate.
+        :rtype: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]
+        """
+        max_max_placement = None
         # Find the cheapest binop to perform and minimize its cost.
         for binop_qargs in binops_qargs:
             binop_map = {
@@ -107,11 +99,10 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
                 for qarg in binop_qargs
                 }
             # Try all edges and find the minimum cost placement.
-            placements: Iterable[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]] = \
-                ((Placement(binop_map, dict(zip(binop_qargs, edge))), binop_qargs)
-                 for edge_ab in remaining_arch.edges()
-                 # Also check the reversed ordering.
-                 for edge in [edge_ab, tuple(reversed(edge_ab))])
+            placements = ((Placement(binop_map, dict(zip(binop_qargs, edge))), binop_qargs)
+                          for edge_ab in remaining_arch.edges()
+                          # Also check the reversed ordering.
+                          for edge in [edge_ab, tuple(reversed(edge_ab))])
             max_placement = max(placements, key=place_score)
 
             # Maximize over all maximum scoring placements.
@@ -121,10 +112,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
                 max_max_placement = max_placement
         return max_max_placement
 
-    def greedy(self,
-               circuit: DAGCircuit,
-               current_mapping: Mapping[Reg, ArchNode],
-               max_first: bool = True) -> Mapping[Reg, ArchNode]:
+    def greedy(self, circuit, current_mapping, max_first=True):
         """
         Provides a mapping that maps possibly multiple gates of the circuit to the architecture.
 
@@ -134,7 +122,11 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         :param circuit: A circuit to execute
         :param current_mapping:
         :param max_first: Place the most expensive binop first.
+        :type circuit: DAGCircuit
+        :type current_mapping: Mapping[Reg, ArchNode]
+        :type max_first: bool
         :return: A partial mapping
+        :rtype: Mapping[Reg, ArchNode]
         """
         # Peel off the first layer of operations for the circuit
         # so that we can assign operations to the architecture.
@@ -145,9 +137,9 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         node_data = map(lambda n: n[1], layer.multi_graph.nodes(data=True))
 
         # Reshape the nodes to their qargs.
-        binops_qargs: Set[Tuple[Reg, Reg]] = {
+        binops_qargs = {
             # only keep qargs field as an immutable tuple.
-            typing.cast(Tuple[Reg, Reg], tuple(n["qargs"]))
+            tuple(n["qargs"])
             for n in node_data
             # Filter out op nodes that are not barriers and are 2-qubit operations
             if n["type"] == "op" and n["name"] != "barrier" and len(n["qargs"]) == 2}
@@ -165,12 +157,13 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         # The maximum matching gives us the maximum number of edges
         # for use in two-qubit ("binary") operations.
         # Note: maximum matching assumes undirected graph.
-        matching: Dict[ArchNode, ArchNode] = nx.max_weight_matching(
+        matching = nx.max_weight_matching(
             self.arch_graph.to_undirected(as_view=True), maxcardinality=True)
         remaining_arch = self.arch_graph.copy()
-        current_placement: Placement[Reg, ArchNode] = Placement({}, {})
+        current_placement = Placement({}, {})
 
         def current_placement_cost(place):
+            """Cost of placing place on current_placement."""
             return self.placement_cost(current_placement + place[0])
 
         # We wish to minimize the size of the circuit.
@@ -179,14 +172,14 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         while binops_qargs and matching:
             # Find the most expensive or cheapest binop to perform (depending on max_first)
             # and minimize its cost.
-            extremal_min_placement: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]] = None
+            extremal_min_placement = None
             for binop_qargs in binops_qargs:
                 binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop_qargs
                     }
                 # Try all matchings and find the minimum cost placement.
-                placements: Iterable[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]] = [
+                placements = [
                     (Placement(binop_map, dict(zip(binop_qargs, matching_nodes))), binop_qargs)
                     for matching_nodes in matching
                     ]
@@ -220,10 +213,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
 
         return current_placement.mapped_to
 
-    def simple_extend(self,
-                      circuit: DAGCircuit,
-                      current_mapping: Mapping[Reg, ArchNode],
-                      lookahead: bool = False) -> Mapping[Reg, ArchNode]:
+    def simple_extend(self, circuit, current_mapping, lookahead=False):
         """Place the cheapest gate and try to extend the placement with further good placements.
 
         :param circuit: The DAGCircuit to place the first layer of.
@@ -231,8 +221,12 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             graph.
         :param lookahead: Enables lookahead in the extension mapper.
             Warning: Very slow!
+        :type circuit: DAGCircuit
+        :type current_mapping: Mapping[Reg, ArchNode]
+        :type lookahead: bool
         :return: A (partial) mapping that places at least one gate in this layer
             on the architecture.
+        :rtype: Mapping[Reg, ArchNode]
         """
         # Peel off the first layer of operations for the circuit
         # so that we can assign operations to the architecture.
@@ -246,9 +240,9 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             return {}
 
         # Reshape the nodes to their qargs.
-        binops_qargs: Set[Tuple[Reg, Reg]] = {
+        binops_qargs = {
             # only keep qargs field as an immutable tuple.
-            typing.cast(Tuple[Reg, Reg], tuple(n["qargs"]))
+            tuple(n["qargs"])
             for n in node_data
             # Filter out op nodes that are not barriers and are 2-qubit operations
             if n["type"] == "op" and n["name"] != "barrier" and len(n["qargs"]) == 2}
@@ -264,9 +258,9 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             return {}
 
         remaining_arch = self.arch_graph.copy()
-        current_placement: Placement = None
+        current_placement = None
 
-        def placement_score(place: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]) -> int:
+        def placement_score(place):
             """Returns a score for this placement, the higher the better."""
             placement, binop_qargs = place
             saved_now = self.saved_gates((placement, [binop_qargs]),
@@ -283,7 +277,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
                 remaining_arch.subgraph(node for node in remaining_arch.nodes()
                                         if node not in placement.mapped_to.values())
             if remaining_binops and new_remaining_arch.edges():
-                cur_place: Placement[Reg, ArchNode]
+                cur_place = None
                 if current_placement is None:
                     cur_place = Placement({}, {})
                 else:
@@ -293,7 +287,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
                 place_cost_diff = self.placement_cost(placement + cur_place) \
                     - self.placement_cost(cur_place)
 
-                def placement_diff(place: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]) -> int:
+                def placement_diff(place):
                     """Approximates saved_gates but it easier to compute.
 
                     It computes the cost of placing a given gate plus (separately) the 'placement'
@@ -317,12 +311,9 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         placed_gates = 0
         total_gates = len(binops_qargs)
         while binops_qargs and remaining_arch.edges():
-            max_max_placement: Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]] = None
+            max_max_placement = None
             for binop_qargs in binops_qargs:
-                binop_map: Mapping[Reg, ArchNode] = {
-                    qarg: current_mapping[qarg]
-                    for qarg in binop_qargs
-                    }
+                binop_map = {qarg: current_mapping[qarg] for qarg in binop_qargs}
 
                 # Try all edges and find the minimum cost placement.
                 placements = ((Placement(binop_map, dict(zip(binop_qargs, edge))), binop_qargs)
@@ -360,12 +351,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         logger.debug("Number of gates placed: %s/%s", placed_gates, total_gates)
         return current_placement.mapped_to
 
-    def qiskit_mapper(self,
-                      circuit: DAGCircuit,
-                      current_mapping: Mapping[Reg, ArchNode],
-                      trials: int = 40,
-                      seed: int = None,
-                      lookahead: bool = False) -> Mapping[Reg, ArchNode]:
+    def qiskit_mapper(self, circuit, current_mapping, trials=40, seed=None, lookahead=False):
         # pylint: disable=too-many-return-statements
         """This mapper tries to minimize the size of the mapping circuit by an objective function.
 
@@ -382,8 +368,14 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         :param seed: The random seed for the trials.
         :param lookahead: Enables lookahead in the extension mapper.
             Warning: Very slow!
+        :type circuit: DAGCircuit
+        :type current_mapping: Mapping[Reg, ArchNode]
+        :type trials: int
+        :type seed: int
+        :type lookahead: bool
         :return: A (partial) mapping that places at least one gate in this layer on the
             architecture.
+        :rtype: Mapping[Reg, ArchNode]
         """
         if seed is not None:
             np.random.seed(seed)
@@ -398,9 +390,9 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             return {}
 
         # Reshape the nodes to their qargs.
-        binops_qargs: Set[Tuple[Reg, Reg]] = {
+        binops_qargs = {
             # only keep qargs field as an immutable tuple.
-            typing.cast(Tuple[Reg, Reg], tuple(n["qargs"]))
+            tuple(n["qargs"])
             for n in node_data
             # Filter out op nodes that are not barriers and are 2-qubit operations
             if n["type"] == "op" and n["name"] != "barrier" and len(n["qargs"]) == 2}
@@ -457,10 +449,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             # Otherwise just map a single gate.
             return self.simple(circuit, current_mapping)
 
-    def _qiskit_trial(self,
-                      binops_qargs: Set[Tuple[Reg, Reg]],
-                      trial_layout: Mapping[Reg, ArchNode]) \
-            -> Optional[Tuple[int, Mapping[Reg, ArchNode]]]:
+    def _qiskit_trial(self, binops_qargs, trial_layout):
         """One trial in computing a mapping according to a cost function.
 
         The cost function is the same as used by qiskit's swap_mapper algorithm. Tries to swap edges
@@ -470,14 +459,17 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
         :param binops_qargs: A set containing the quantum registers of 2-qubit operations involved
             in this layer of the DAG circuit.
         :param trial_layout: The starting mapping of registers to architecture nodes for this trial.
+        :type binops_qargs: Set[Tuple[Reg, Reg]]
+        :type trial_layout: Mapping[Reg, ArchNode])
         :returns: Either the number of swaps with a mapping, or None.
+        :rtype: Optional[Tuple[int, Mapping[Reg, ArchNode]]]
         """
-        inv_trial_layout: Mapping[ArchNode, Reg] = {v: k for k, v in trial_layout.items()}
+        inv_trial_layout = {v: k for k, v in trial_layout.items()}
 
         # Compute Sergey's randomized distance.
         nr_nodes = len(self.arch_graph.nodes)
         # IDEA: Rewrite to numpy matrix
-        xi: Dict[ArchNode, Dict[ArchNode, float]] = {}  # pylint: disable=invalid-name
+        xi = {}  # pylint: disable=invalid-name
         for i in self.arch_graph.nodes:
             xi[i] = {}
         for i in self.arch_graph.nodes:
@@ -486,12 +478,11 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
                 xi[i][j] = scale * self.graph_distance[i][j] ** 2
                 xi[j][i] = xi[i][j]
 
-        def cost(layout: Mapping[Reg, ArchNode]) -> float:
+        def cost(layout):
             """Compute the objective cost function."""
             return sum([xi[layout[qarg0]][layout[qarg1]] for qarg0, qarg1 in binops_qargs])
 
-        def swap(node0: ArchNode, node1: ArchNode) \
-                -> Tuple[Mapping[Reg, ArchNode], Mapping[ArchNode, Reg]]:
+        def swap(node0, node1):
             """Swap qarg0 and qarg1 based on trial layout and inv_trial layout.
 
             Supports partial mappings."""
@@ -530,29 +521,34 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             return size, trial_layout
         return None
 
-    def correction_cost(self,
-                        placement: Placement[Reg, ArchNode],
-                        qargs: Iterable[Tuple[Reg, Reg]]) -> int:
+    def correction_cost(self, placement, qargs):
         """Compute the correction cost of this CNOT gate.
 
         :param placement: Asserts that mapped_to of this placement is of size 2.
         :param qargs: The registers of this CNOT.
-        :return: Correction cost."""
+        :type placement: Placement[Reg, ArchNode]
+        :type qargs: Iterable[Tuple[Reg, Reg]]
+        :return: Correction cost.
+        :rtype: int
+        """
         # Hadamards to correct the CNOT
         return sum(4 for qarg0, qarg1 in qargs
                    if
                    self.arch_graph.has_edge(placement.mapped_to[qarg0], placement.mapped_to[qarg1]))
 
-    def saved_gates(self, place: Tuple[Placement[Reg, ArchNode], Iterable[Tuple[Reg, Reg]]],
-                    current_placement: Placement[Reg, ArchNode] = None,
-                    current_mapping: Mapping[Reg, ArchNode] = None) -> int:
+    def saved_gates(self, place, current_placement=None, current_mapping=None):
         """Compute how many SWAP gates are saved by the placement.
 
         :param place: The placement to calculate the saved gates for.
         :param current_placement: The currently planned placement.
             Optional, but if used must also supply current_mapping.
         :param current_mapping: The current mapping of qubits to nodes.
-        :return: The cost of gates saved. (>0 is good)"""
+        :type place: Tuple[Placement[Reg, ArchNode], Iterable[Tuple[Reg, Reg]]]
+        :type current_placement: Placement[Reg, ArchNode]
+        :type current_mapping: Mapping[Reg, ArchNode]
+        :return: The cost of gates saved. (>0 is good)
+        :rtype: int
+        """
         placement, binops_qargs = place
         if current_placement is None or current_mapping is None:
             return -self.placement_cost(placement) - self.correction_cost(placement, binops_qargs)
@@ -581,7 +577,7 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
             - self.placement_cost(current_placement + placement) \
             - self.correction_cost(placement, binops_qargs)
 
-    def placement_cost(self, placement: Placement) -> int:
+    def placement_cost(self, placement):
         """Find the cost of performing the placement in size.
 
         Will cache results for given small placements to speed up future computations."""
@@ -602,18 +598,14 @@ class SizeMapper(Generic[Reg, ArchNode]):  # pylint: disable=unsubscriptable-obj
 SWAP_COST = scoring.default_gate_costs()['swap']
 
 
-def _placement_cost(placement: Placement[Reg, ArchNode],
-                    arch_graph: nx.DiGraph,
-                    arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
-                                            Iterable[Swap[ArchNode]]],
-                    allow_swaps: bool = True) -> int:
+def _placement_cost(placement, arch_graph, arch_permuter, allow_swaps=True):
     """Compute the cost of performing the placement in size."""
     # Swaps are symmetric so it is easy to compute the cost.
     if allow_swaps:
         swaps = list(arch_permuter(placement.arch_mapping))
         return SWAP_COST * len(swaps)
 
-    def par_permuter(mapping: Mapping[ArchNode, ArchNode]) -> Iterable[List[Swap[ArchNode]]]:
+    def par_permuter(mapping):
         """Reshape the sequential permuter to a parallel permuter."""
         return map(lambda el: [el], arch_permuter(mapping))
 
@@ -627,18 +619,17 @@ def _placement_cost(placement: Placement[Reg, ArchNode],
                                    arch_graph)
 
 
-def matching_sets(edges: Iterable[Tuple[ArchNode, ArchNode]], size: int) \
-        -> Iterator[List[Tuple[ArchNode, ArchNode]]]:
+def matching_sets(edges, size):
     """Compute all sets of edges that are a matching of the given size."""
 
-    def is_matching(edges: Iterable[Tuple]) -> bool:
+    def is_matching(edges):
         """Checks if the nodes of the matching are unique"""
         nodes = [node for edge in edges for node in edge]
         return len(set(nodes)) == len(nodes)
 
-    matchings_edges: Iterator[Tuple[Tuple[ArchNode, ArchNode], ...]] = \
-        (permutation_edges for permutation_edges in itertools.permutations(edges, size)
-         if is_matching(permutation_edges))
+    matchings_edges = (permutation_edges
+                       for permutation_edges in itertools.permutations(edges, size)
+                       if is_matching(permutation_edges))
     # Now also generate all possible subsets with edges reversed.
     for matching_edges in matchings_edges:
         # Pick edges to reverse
@@ -647,6 +638,6 @@ def matching_sets(edges: Iterable[Tuple[ArchNode, ArchNode]], size: int) \
                                  for index in
                                  itertools.combinations(range(len(matching_edges)), i))
         for index in reversed_edge_indices:
-            yield [typing.cast(Tuple[ArchNode, ArchNode], tuple(reversed(edge)))
+            yield [tuple(reversed(edge))
                    if i in index else edge
                    for i, edge in enumerate(matching_edges)]

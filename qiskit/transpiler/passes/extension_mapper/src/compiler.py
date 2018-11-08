@@ -4,29 +4,17 @@ The compiler takes in a given circuit and architecture graph to produce a circui
 run on that architecture."""
 import copy
 import logging
-from typing import Callable, Tuple, Any, TypeVar, Mapping, Union
 
 import networkx as nx
-from qiskit.dagcircuit import DAGCircuit
 from qiskit import QuantumRegister
 
 from . import mapping as mp, util
 from .mapping.placement import Placement
-from .permutation.util import PermutationCircuit
-
-ArchNode = TypeVar('ArchNode')
-_V = TypeVar('_V')
-Reg = Tuple[_V, int]
-ArchReg = Reg[str]
 
 logger = logging.getLogger(__name__)
 
 
-def compile_to_arch(circuit: DAGCircuit,
-                    arch_graph: Union[nx.Graph, nx.DiGraph],
-                    arch_mapper: Callable[[DAGCircuit, Mapping[Reg[_V], ArchNode]],
-                                          Tuple[Mapping[Reg[_V], ArchNode], PermutationCircuit]])\
-        -> Tuple[DAGCircuit, Mapping[ArchReg, ArchNode]]:
+def compile_to_arch(circuit, arch_graph, arch_mapper):
     """
     Takes a circuit and compiles it to a circuit that can be run on the architecture.
 
@@ -36,19 +24,24 @@ def compile_to_arch(circuit: DAGCircuit,
     :param arch_graph: A graph that models the quantum architecture structure.
     :param arch_mapper: A function that given a (simple) circuit outputs a mapping
         and a PermutationCircuit for that mapping.
+    :type circuit: DAGCircuit
+    :type arch_graph: Union[nx.Graph, nx.DiGraph]
+    :type arch_mapper: Callable[[DAGCircuit, Mapping[Reg[_V], ArchNode]],
+                                Tuple[Mapping[Reg[_V], ArchNode], PermutationCircuit]]
     :return: The compiled circuit and a mapping of its registers to architecture graph qubits.
+    :rtype: Tuple[DAGCircuit, Mapping[ArchReg, ArchNode]]
     """
 
     assert len(circuit.qregs) <= len(arch_graph.nodes), \
-        f"There must be more qubits in the architecture ({len(arch_graph.nodes)}) " \
-        f"than circuit ({len(circuit.qregs)})."
+        "There must be more qubits in the architecture (%s) " \
+        "than circuit (%s)." % (len(arch_graph.nodes), len(circuit.qregs))
 
     todo_circuit = copy.deepcopy(circuit)
     arch_qreg = QuantumRegister(len(arch_graph.nodes))
     arch_circuit = util.empty_circuit(circuit, qregs={arch_qreg.name: arch_qreg})
     # A fixed mapping from the graph nodes to the circuit registers.
     # FIXME: sorting is not necessary in general! But IBM expects this kind of mapping.
-    arch_mapping: Mapping[ArchNode, ArchReg] = dict(zip(
+    arch_mapping = dict(zip(
         sorted(arch_graph.nodes),
         ((qreg.name, i) for qname, qreg in arch_circuit.qregs.items() for i in range(qreg.size))
         ))
@@ -67,7 +60,7 @@ def compile_to_arch(circuit: DAGCircuit,
     # Find a good mapping and ignore the circuit, since it is free anyway.
     # Assign arbitrarily to have a valid initial state,
     # the mapper will find a good initial mapping.
-    current_mapping: Mapping[Reg[_V], ArchNode] = dict(zip(
+    current_mapping = dict(zip(
         [(qname, i) for qname, qreg in circuit.qregs.items() for i in range(qreg.size)],
         arch_graph.nodes()))
     logger.debug("Initial current mapping: %s", current_mapping)
@@ -82,8 +75,7 @@ def compile_to_arch(circuit: DAGCircuit,
             cnot_circuit.apply_operation_back("cx", cnot_node["qargs"])
 
     # Permutations are free.
-    size_mapper: mp.size.SizeMapper[Reg[_V], ArchNode] = \
-        mp.size.SizeMapper(arch_graph, lambda p: [])
+    size_mapper = mp.size.SizeMapper(arch_graph, lambda p: [])
     partial_mapping = size_mapper.greedy(cnot_circuit, current_mapping)
     logger.debug("Initial placement partial mapping: %s", partial_mapping)
     # Find the complete mapping after applying the partial mapping
@@ -98,7 +90,6 @@ def compile_to_arch(circuit: DAGCircuit,
         logger.debug("Iteration %s", counter)
         counter += 1
 
-        mapping: Mapping[Reg[_V], ArchNode]
         mapping, mapping_circuit = arch_mapper(todo_circuit, current_mapping)
 
         # Always perform whatever the mapper tells the compiler is a good mapping,
@@ -130,7 +121,7 @@ def compile_to_arch(circuit: DAGCircuit,
     return arch_circuit, {v: k for k, v in arch_mapping.items()}
 
 
-def _remove_successor(node: Reg[_V], todo_circuit: DAGCircuit) -> None:
+def _remove_successor(node, todo_circuit):
     """Remove the successor node in the todo_circuit of a register."""
     input_node = todo_circuit.input_map[node]
     # There should be exactly one edge
@@ -142,14 +133,13 @@ def _remove_successor(node: Reg[_V], todo_circuit: DAGCircuit) -> None:
     todo_circuit._remove_op_node(successor_node)  # pylint: disable=protected-access
 
 
-def _apply_operation(operation: Mapping[str, Any],
-                     current_mapping: Mapping[Reg[_V], ArchNode],
-                     arch_graph: nx.Graph,
-                     arch_circuit: DAGCircuit,
-                     arch_mapping: Mapping[ArchNode, ArchReg]) -> bool:
+def _apply_operation(operation, current_mapping, arch_graph, arch_circuit, arch_mapping):
     """Apply the given operation to the architecture circuit.
 
-    :return: A boolean indicating if the operation was applied or not."""
+    :return: A boolean indicating if the operation was applied or not.
+    :rtype: bool
+    """
+
     # Find the architecture nodes associated with the operation, given the current mapping.
     arch_nodes = [current_mapping[n] for n in operation["qargs"]]
     # Check connectivity for 2-qubit operations

@@ -1,24 +1,18 @@
 """Permutation algorithms for general graphs."""
 import logging
 import random
-from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableSet, List, Iterable
 
 import networkx as nx
-
-from ..permutation import Swap
-
-_V = TypeVar('_V')
-_T = TypeVar('_T')
 
 logger = logging.getLogger(__name__)
 
 
-class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-object
+class ApproximateTokenSwapper():
     """A class for computing approximate solutions to the Token Swapping problem.
 
     Internally caches the graph and associated datastructures for re-use."""
 
-    def __init__(self, graph: nx.Graph) -> None:
+    def __init__(self, graph):
         """Construct an ApproximateTokenSwapping object."""
         self.graph = graph
         # We need to fix the mapping from nodes in graph to nodes in shortest_paths.
@@ -27,12 +21,11 @@ class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-o
         self.node_map = {node: i for i, node in enumerate(nodelist)}
         self.shortest_paths = nx.floyd_warshall_numpy(graph, nodelist=nodelist)
 
-    def distance(self, node0: _V, node1: _V) -> int:
+    def distance(self, node0, node1):
         """Compute the distance between two nodes in `graph`."""
         return self.shortest_paths[self.node_map[node0], self.node_map[node1]]
 
-    def map(self, mapping: Mapping[_V, _V],
-            trials: int = 4) -> List[Swap[_V]]:
+    def map(self, mapping, trials=4):
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
@@ -43,7 +36,10 @@ class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-o
 
         :param mapping: The partial mapping to implement in swaps.
         :param trials: The number of trials to try to perform the mapping. Minimize over the trials.
+        :type mapping: Mapping[_V, _V]
+        :type trials: int
         :return: Best found list of edges which implement mapping.
+        :rtype: List[Swap[_V]]
         """
         tokens = dict(mapping)
         digraph = nx.DiGraph()
@@ -59,7 +55,7 @@ class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-o
                          for _ in range(trials))
 
         # Once we find a zero solution we stop.
-        def take_until_zero(results: Iterable[List[_T]]) -> Iterator[List[_T]]:
+        def take_until_zero(results):
             """Take results until one is emitted of length zero (and also emit that)."""
             for result in results:
                 if result:  # Not empty
@@ -71,14 +67,10 @@ class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-o
         trial_results = take_until_zero(trial_results)
         return min(trial_results, key=len)
 
-    def _trial_map(self,
-                   digraph: nx.DiGraph,
-                   sub_digraph: nx.DiGraph,
-                   todo_nodes: MutableSet[_V],
-                   tokens: MutableMapping[_V, _V]) -> Iterator[Swap[_V]]:
+    def _trial_map(self, digraph, sub_digraph, todo_nodes, tokens):
         """Try to map the tokens to their destinations and minimize the number of swaps."""
 
-        def swap(node0: _V, node1: _V) -> None:
+        def swap(node0, node1):
             """Swap two nodes, maintaining datastructures."""
             self._swap(node0, node1, tokens, digraph, sub_digraph, todo_nodes)
 
@@ -125,11 +117,7 @@ class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-o
         if todo_nodes:
             raise RuntimeError("Too many iterations while approximating the Token Swaps.")
 
-    def _add_token_edges(self,
-                         node: _V,
-                         tokens: Mapping[_V, _V],
-                         digraph: nx.DiGraph,
-                         sub_digraph: nx.DiGraph) -> None:
+    def _add_token_edges(self, node, tokens, digraph, sub_digraph):
         """Add diedges to the graph wherever a token can be moved closer to its destination."""
         if node not in tokens:
             return
@@ -143,11 +131,7 @@ class ApproximateTokenSwapper(Generic[_V]):  # pylint: disable=unsubscriptable-o
                 digraph.add_edge(node, neighbor)
                 sub_digraph.add_edge(node, neighbor)
 
-    def _swap(self, node1: _V, node2: _V,
-              tokens: MutableMapping[_V, _V],
-              digraph: nx.DiGraph,
-              sub_digraph: nx.DiGraph,
-              todo_nodes: MutableSet[_V]) -> None:
+    def _swap(self, node1, node2, tokens, digraph, sub_digraph, todo_nodes):
         """Swap two nodes, maintaining the datastructures"""
         assert self.graph.has_edge(node1,
                                    node2), "The swap is being performed on a non-existent edge."

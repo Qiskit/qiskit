@@ -67,9 +67,6 @@ import re
 import copy
 import pprint
 import logging
-from typing import Mapping, Tuple, TypeVar, Any
-
-import networkx as nx
 
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
@@ -81,7 +78,6 @@ from .src import permutation
 from .src.mapping import size
 from .src.compiler import compile_to_arch
 from .src.mapping.util import direction_mapper
-from .src.permutation.util import PermutationCircuit
 from .src.mapping.placement import Placement
 from .src.permutation.general import ApproximateTokenSwapper
 
@@ -90,17 +86,18 @@ logger = logging.getLogger(__name__)
 
 class ExtensionMapper(TransformationPass):
     """Extension mapper implemented as a transpiler pass."""
-    def __init__(self, coupling_map, desired_layout=None):
+
+    def __init__(self, coupling_map):
+        """Creates an extension mapper pass instance.
+
+        Args:
+           coupling_map (Coupling): Directed graph represented a coupling map.
+        """
         self._coupling_map = coupling_map
-        self._desired_layout = desired_layout
 
         super().__init__()
 
     def run(self, dag):
-        _V = TypeVar('_V')
-        Reg = Tuple[_V, int]
-        ArchNode = TypeVar('ArchNode')
-
         circuit = copy.deepcopy(dag)
         circuit.add_basis_element("swap", 2)
         coupling_graph = self._coupling_map.G
@@ -110,8 +107,7 @@ class ExtensionMapper(TransformationPass):
                                       lambda mapping: swapper.map(mapping, trials=4),
                                       allow_swaps=True)
 
-        def arch_mapper(dag: DAGCircuit, current_mapping: Mapping[Reg[_V], ArchNode]) \
-                -> Tuple[Mapping[Reg[_V], ArchNode], PermutationCircuit]:
+        def arch_mapper(dag, current_mapping):
             """Uses the mapper to find a mapping of the given dag onto the architecture."""
             partial_mapping = size_mapper.qiskit_mapper(dag, current_mapping)
             logger.debug("Found partial mapping: %s", partial_mapping)
@@ -136,9 +132,7 @@ class ExtensionMapper(TransformationPass):
         # Given the DAG that is mapped to the architecture, we now simplify it as much as possible.
         ###
         # Replace swaps by cnots in the right direction
-        def remove_swaps(dagcircuit: DAGCircuit,
-                         mapping: Mapping[Reg[str], ArchNode],
-                         coupling_graph: nx.DiGraph) -> int:
+        def remove_swaps(dagcircuit, mapping, coupling_graph):
             """Remove SWAP gates in dagcircuit by replacing with 3 CNOTs.
 
             The CNOTs are placed such that the number of eventual Hadamard gates is minimised."""
@@ -151,7 +145,7 @@ class ExtensionMapper(TransformationPass):
             swap_circuit.apply_operation_back("cx", [("q", 1), ("q", 0)])
             swap_circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
 
-            def right_direction(node: Any) -> bool:
+            def right_direction(node):
                 """Compute if the given two-qubit node has the right orientation"""
                 swap_edge = tuple(mapping[qarg] for qarg in node["qargs"])
                 if swap_edge in coupling_graph.edges:

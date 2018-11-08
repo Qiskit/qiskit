@@ -10,7 +10,7 @@ from qiskit.transpiler.passes.extension_mapper.src import scoring
 
 class TestScoring(TestCase):
     """The test cases."""
-    def setUp(self) -> None:
+    def setUp(self):
         self.circuit = DAGCircuit()
         self.circuit.add_basis_element('cx', 2)
         self.circuit.add_basis_element('u2', 1, number_parameters=2)
@@ -22,7 +22,7 @@ class TestScoring(TestCase):
 
         self.arch_graph = nx.Graph()
 
-    def test_cost_small(self) -> None:
+    def test_cost_small(self):
         """Test computing the score for a small circuit.
 
             Circuit consists of only a CNOT on an architecture with a single weighted(=2) edge
@@ -40,7 +40,7 @@ class TestScoring(TestCase):
             cumulative_cost=20
             ), out)
 
-    def test_cost_small_2(self) -> None:
+    def test_cost_small_2(self):
         """Test computing the score on a small circuit of a CNOT and Hadamard in parallel."""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
@@ -56,7 +56,7 @@ class TestScoring(TestCase):
             cumulative_cost=21
             ), out)
 
-    def test_async_cost_small(self) -> None:
+    def test_async_cost_small(self):
         """Test the asynchronous cost versus synchronous cost of a circuit."""
         self.circuit.add_qreg(QuantumRegister(4, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])
@@ -74,7 +74,7 @@ class TestScoring(TestCase):
             cumulative_cost=21
             ), out)
 
-    def test_cost_noedge(self) -> None:
+    def test_cost_noedge(self):
         """Test the case where an edge is used that does not exist in the architecture graph."""
         self.circuit.add_qreg(QuantumRegister(2, name="q"))
         self.circuit.apply_operation_back('cx', [('q', 0), ('q', 1)])

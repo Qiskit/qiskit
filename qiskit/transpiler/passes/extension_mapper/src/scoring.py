@@ -2,31 +2,21 @@
 
 For a mapping we can calculate the cost to permute to that mapping.
 """
-from typing import Dict, NamedTuple, Any, TypeVar, Mapping, Union
+from collections import namedtuple
 
 import networkx as nx
-from qiskit.dagcircuit import DAGCircuit
 from . import util
 
-Reg = TypeVar('Reg')
-ArchNode = TypeVar('ArchNode')
+# A cost object that wraps the outputs of this package descriptively.
+
+# depth: The number of timesteps in the circuit.
+# synchronous_cost - The total cost when performing gates in lock-step.
+# asynchronous_cost - The total cost when performing gates as soon as possible.
+# cumulative_cost - The weighted total circuit size.
+Cost = namedtuple('Cost', ['depth', 'synchronous_cost', 'asynchronous_cost', 'cumulative_cost'])
 
 
-class Cost(NamedTuple):
-    """A cost object that wraps the outputs of this package descriptively.
-
-    depth: The number of timesteps in the circuit.
-    synchronous_cost - The total cost when performing gates in lock-step.
-    asynchronous_cost - The total cost when performing gates as soon as possible.
-    cumulative_cost - The weighted total circuit size.
-    """
-    depth: int
-    synchronous_cost: int
-    asynchronous_cost: int
-    cumulative_cost: int
-
-
-def default_gate_costs() -> Mapping[str, int]:
+def default_gate_costs():
     """The default costs of gates as proscribed by IBM.
 
     TODO: modify per cost function, since SWAP costs differ per cost function."""
@@ -38,25 +28,27 @@ def default_gate_costs() -> Mapping[str, int]:
         }
 
 
-def cost(circuit: DAGCircuit,
-         current_mapping: Mapping[Reg, ArchNode],
-         arch_graph: Union[nx.Graph, nx.DiGraph],
-         gate_costs: Dict[str, int] = None,
-         allow_missing_edge: bool = False) -> Cost:
+def cost(circuit, current_mapping, arch_graph, gate_costs=None, allow_missing_edge=False):
     """Calculates all costs for the given circuit and mapping on the architecture graph.
 
     This will compute all cost fields for a Cost object:
     The circuit depth, the synchronous cost and the asynchronous cost.
 
-    :raises: KeyError when a 2-qubit operation is between nodes
-        that does not exist in the arch_graph (by the permutation).
     :param circuit: The circuit to perform on the hardware.
     :param current_mapping: A mapping from circuit nodes to arch_graph nodes.
     :param arch_graph: The architecture graph representing the underlying hardware.
         Optionally weighted.
     :param gate_costs: A mapping from basis operation name to cost.
     :param allow_missing_edge: Will ignore the existence of edges, and fix edge weight to 1.
-    :return:
+    :type circuit: DAGCircuit
+    :type current_mapping: Mapping[Reg, ArchNode]
+    :type arch_graph: Union[nx.Graph, nx.DiGraph]
+    :type gate_costs: Dict[str, int]
+    :type allow_missing_edge: bool
+    :returns: Cost for given circuit.
+    :rtype: Cost
+    :raises: KeyError when a 2-qubit operation is between nodes
+        that does not exist in the arch_graph (by the permutation).
     """
 
     sync_cost = synchronous_cost(circuit, current_mapping, arch_graph, gate_costs,
@@ -74,11 +66,8 @@ def cost(circuit: DAGCircuit,
         )
 
 
-def synchronous_cost(circuit: DAGCircuit,
-                     current_mapping: Mapping[Reg, ArchNode],
-                     arch_graph: Union[nx.Graph, nx.DiGraph],
-                     gate_costs: Dict[str, int] = None,
-                     allow_missing_edge: bool = False) -> Cost:
+def synchronous_cost(circuit, current_mapping, arch_graph,
+                     gate_costs=None, allow_missing_edge=False):
     """Compute the cost of executing the circuit on the architecture graph in 'lock-step'.
 
     'lock-step' means that at every time step one gate can be performed per qubit (single-qubit)
@@ -92,7 +81,13 @@ def synchronous_cost(circuit: DAGCircuit,
         Optionally weighted.
     :param gate_costs: A mapping from basis operation name to cost.
     :param allow_missing_edge: Will ignore the existence of edges, and fix edge weight to 1.
+    :type circuit: DAGCircuit
+    :type current_mapping: Mapping[Reg, ArchNode]
+    :type arch_graph: Union[nx.Graph, nx.DiGraph]
+    :type gate_costs: Dict[str, int]
+    :type allow_missing_edge: bool
     :return: Cost object with synchronous cost and depth fields filled.
+    :rtype: Cost
     """
     sync_cost = 0
     depth = 0
@@ -113,11 +108,8 @@ def synchronous_cost(circuit: DAGCircuit,
     return Cost(depth=depth, synchronous_cost=sync_cost, asynchronous_cost=-1, cumulative_cost=-1)
 
 
-def asynchronous_cost(circuit: DAGCircuit,
-                      current_mapping: Mapping[Reg, ArchNode],
-                      arch_graph: Union[nx.Graph, nx.DiGraph],
-                      gate_costs: Dict[str, int] = None,
-                      allow_missing_edge: bool = False) -> int:
+def asynchronous_cost(circuit, current_mapping, arch_graph,
+                      gate_costs=None, allow_missing_edge=False):
     """Compute the cost of executing the gates on the architecture graph as soon as possible.
 
         Asynchronous here means that once the predecessors in the DAG are both done processing,
@@ -131,13 +123,19 @@ def asynchronous_cost(circuit: DAGCircuit,
         Optionally weighted.
     :param gate_costs: A mapping from basis operation name to cost.
     :param allow_missing_edge: Will ignore the existence of edges, and fix edge weight to 1.
+    :type circuit: DAGCircuit
+    :type current_mapping: Mapping[Reg, ArchNode]
+    :type arch_graph: Union[nx.Graph, nx.DiGraph]
+    :type gate_costs: Dict[str, int]
+    :type allow_missing_edge: bool
     :return: The asynchronous cost.
+    :rtype: Cost
     """
-    distance: Dict[Any, int] = {}  # stores {v : length}
-    graph: nx.DiGraph = circuit.multi_graph
+    distance = {}  # stores {v : length}
+    graph = circuit.multi_graph
     for node in nx.topological_sort(graph):
         v_data = graph.nodes[node]
-        node_cost: int
+        node_cost = None
         if v_data["type"] == "op":
             node_cost = op_cost(v_data, current_mapping, arch_graph, gate_costs,
                                 allow_missing_edge=allow_missing_edge)
@@ -149,22 +147,16 @@ def asynchronous_cost(circuit: DAGCircuit,
     return max(distance.values())
 
 
-def cumulative_cost(circuit: DAGCircuit,
-                    current_mapping: Mapping[Reg, ArchNode],
-                    arch_graph: Union[nx.Graph, nx.DiGraph],
-                    gate_costs: Dict[str, int] = None,
-                    allow_missing_edge: bool = False) -> int:
+def cumulative_cost(circuit, current_mapping, arch_graph,
+                    gate_costs=None, allow_missing_edge=False):
     """Calculate the sum of all gate costs"""
     op_nodes = (node[1] for node in circuit.multi_graph.nodes(data=True) if node[1]["type"] == "op")
     return sum(op_cost(op_node, current_mapping, arch_graph, gate_costs,
                        allow_missing_edge=allow_missing_edge) for op_node in op_nodes)
 
 
-def op_cost(op_node: Any,
-            current_mapping: Mapping[Reg, ArchNode],
-            arch_graph: Union[nx.Graph, nx.DiGraph],
-            gate_costs: Dict[str, int] = None,
-            allow_missing_edge: bool = False) -> int:
+def op_cost(op_node, current_mapping, arch_graph,
+            gate_costs=None, allow_missing_edge=False):
     """Calculate the cost of performing the operation in the architecture.
 
     :raises KeyError: when a 2-qubit operation is between nodes
@@ -175,7 +167,13 @@ def op_cost(op_node: Any,
         Optionally weighted.
     :param gate_costs: A mapping from basis operation name to cost.
     :param allow_missing_edge: Will ignore the existence of edges, and fix edge weight to 1.
+    :type op_node: Any
+    :type current_mapping: Mapping[Reg, ArchNode]
+    :type arch_graph: Union[nx.Graph, nx.DiGraph]
+    :type gate_costs: Dict[str, int]
+    :type allow_missing_edge: bool
     :return: The asynchronous cost.
+    :rtype: Cost
     """
     if gate_costs is None:
         gcosts = default_gate_costs()
@@ -186,12 +184,12 @@ def op_cost(op_node: Any,
     if len(op_node['qargs']) == 2 and op_node['name'] != "barrier":
         qarg0, qarg1 = op_node['qargs']
         place0, place1 = current_mapping[qarg0], current_mapping[qarg1]
-        weight: int
+        weight = None
         if allow_missing_edge:
             # Set all weights to a constant 1.
             weight = 1
         else:
-            edge: Dict
+            edge = None
             try:
                 # Assert the edge exists.
                 edge = arch_graph.edges[place0, place1]

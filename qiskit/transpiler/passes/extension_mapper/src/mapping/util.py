@@ -1,21 +1,14 @@
 """Utility functions related to the mapping of circuits to architectures."""
 import pprint
-from typing import Mapping, TypeVar
 
-import networkx as nx
 import sympy
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import QuantumRegister
 
 from .. import util
-from ..permutation import Permutation
-
-Reg = TypeVar('Reg')
-ArchNode = TypeVar('ArchNode')
 
 
-def new_mapping(current_mapping: Mapping[Reg, ArchNode],
-                permutation: Permutation[ArchNode]) -> Mapping[Reg, ArchNode]:
+def new_mapping(current_mapping, permutation):
     """Construct a new mapping from the current mapping and a permutation that is applied to it."""
     return {
         qubit: permutation[mapped_to]
@@ -36,9 +29,7 @@ _CNOT_CIRCUIT.apply_operation_back("u2", [(_CNOT_QREG.name, 0)], params=[sympy.N
 _CNOT_CIRCUIT.apply_operation_back("u2", [(_CNOT_QREG.name, 1)], params=[sympy.N(0), sympy.pi])
 
 
-def direction_mapper(dagcircuit: DAGCircuit,
-                     mapping: Mapping[Reg, ArchNode],
-                     coupling_graph: nx.DiGraph) -> int:
+def direction_mapper(dagcircuit, mapping, coupling_graph):
     """Replaces CNOTs in the wrong direction by corrected CNOTs.
 
     Very similar to qiskit.mapper.direction_mapper but does not assume node names in graph

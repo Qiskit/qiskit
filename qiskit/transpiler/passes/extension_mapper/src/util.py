@@ -1,19 +1,21 @@
 """Util provides methods that are used throughout the source code without internal dependencies."""
 import copy
-from typing import List, Tuple, Iterator, Optional, Any, Dict
 
 import networkx as nx
 from qiskit.dagcircuit import DAGCircuit
 
 
-def empty_circuit(circuit: DAGCircuit, qregs: List[Tuple[str, int]] = None) -> DAGCircuit:
+def empty_circuit(circuit, qregs=None):
     """
     Copy the parameters of the given circuit, but exclude its contents such as operations.
 
     The basis, gates and wires are all copied.
     :param circuit:
     :param qregs: The quantum registers that the empty circuit should have.
+    :type circuit: DAGCircuit
+    :type qregs: List[Tuple[str, int]] = None)
     :return:
+    :rtype: DAGCircuit
     """
     qregs = qregs or circuit.qregs
     copied_circuit = DAGCircuit()
@@ -29,7 +31,7 @@ def empty_circuit(circuit: DAGCircuit, qregs: List[Tuple[str, int]] = None) -> D
     return copied_circuit
 
 
-def first_layer(circuit: DAGCircuit) -> Optional[DAGCircuit]:
+def first_layer(circuit):
     """Take the first layer of the DAGCircuit and return it."""
     try:
         return next(dagcircuit_layers(circuit))["graph"]
@@ -37,7 +39,7 @@ def first_layer(circuit: DAGCircuit) -> Optional[DAGCircuit]:
         return None
 
 
-def dagcircuit_layers(circuit: DAGCircuit) -> Iterator:
+def dagcircuit_layers(circuit):
     """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
     A layer is a circuit whose gates act on disjoint qubits, i.e.
@@ -58,7 +60,7 @@ def dagcircuit_layers(circuit: DAGCircuit) -> Iterator:
     except StopIteration:
         return
 
-    def nodes_data(nodes: List[int]) -> Iterator[Any]:
+    def nodes_data(nodes):
         """Construct full nodes from just node ids."""
         return (
             (node_id, circuit.multi_graph.nodes[node_id]) for node_id in nodes
@@ -104,9 +106,9 @@ def dagcircuit_layers(circuit: DAGCircuit) -> Iterator:
         yield {"graph": new_layer, "partition": support_list}
 
 
-def dagcircuit_multigraph_layers(circuit: DAGCircuit) -> Iterator:
+def dagcircuit_multigraph_layers(circuit):
     """Yield layers of a DAGCircuit multigraph."""
-    predecessor_count: Dict[Any, int] = dict()
+    predecessor_count = dict()
     cur_layer = [node for node in circuit.input_map.values()]
     yield cur_layer
     next_layer = []
@@ -130,7 +132,7 @@ def dagcircuit_multigraph_layers(circuit: DAGCircuit) -> Iterator:
         next_layer = []
 
 
-def dagcircuit_get_named_nodes(circuit: DAGCircuit, name: str) -> Iterator[int]:
+def dagcircuit_get_named_nodes(circuit, name):
     """Return an iterator over "op" nodes with the given name."""
     for node in circuit.multi_graph.nodes:
         node_data = circuit.multi_graph.node[node]

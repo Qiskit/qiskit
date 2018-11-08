@@ -1,21 +1,16 @@
 """Test cases for the permutation.util package"""
-from typing import List, TypeVar
 from unittest import TestCase
 
-import networkx as nx
 from numpy import random
 
-from qiskit.transpiler.passes.extension_mapper.src.permutation import Swap
 from qiskit.transpiler.passes.extension_mapper.src.permutation.util \
     import cycles, flatten_swaps, circuit
-
-_V = TypeVar('_V')
 
 
 class TestUtil(TestCase):
     """The test cases"""
 
-    def test_cycles_simple(self) -> None:
+    def test_cycles_simple(self):
         """A simple test of cycles for a fixed permutation."""
         permutation = {0: 0, 1: 3, 2: 1, 3: 2}
 
@@ -23,14 +18,14 @@ class TestUtil(TestCase):
 
         self.assertCountEqual([{0: 0}, {1: 3, 3: 2, 2: 1}], out)
 
-    def test_cycles_simple2(self) -> None:
+    def test_cycles_simple2(self):
         """A simple test of cycles for a fixed permutation."""
         permutation = {0: 2, 1: 3, 2: 4, 3: 1, 4: 0}
         out = cycles(permutation)
 
         self.assertCountEqual([{0: 2, 2: 4, 4: 0}, {1: 3, 3: 1}], out)
 
-    def test_cycles_big(self) -> None:
+    def test_cycles_big(self):
         """A randomised test of large size to see if a permutation is decomposed correctly."""
         size = 10 ** 5
         rand_permutation = random.permutation(range(size))
@@ -49,7 +44,7 @@ class TestUtil(TestCase):
 
             self.assertEqual(first, mapped_to)
 
-    def test_flatten_swaps(self) -> None:
+    def test_flatten_swaps(self):
         """Check if swaps in the same timestep are flattened correctly."""
         swaps = [
             [[(0, 1)], [(1, 2)]],
@@ -60,7 +55,7 @@ class TestUtil(TestCase):
         self.assertListEqual([[(0, 1), (5, 6)], [(1, 2)]], flattened)
 
     @staticmethod
-    def valid_parallel_swaps(tester: TestCase, swaps: List[List[Swap[_V]]]) -> None:
+    def valid_parallel_swaps(tester, swaps):
         """
         Tests if the given sequence of swaps does not perform multiple swaps
         on the same node at the same time.
@@ -69,7 +64,7 @@ class TestUtil(TestCase):
             used = {sw1 for sw1, _ in step} | {sw2 for _, sw2 in step}
             tester.assertEqual(len(used), 2*len(step))
 
-    def test_circuit_simple(self) -> None:
+    def test_circuit_simple(self):
         """Check the circuit function for a simple circuit."""
         swaps = [[(0, 2), (4, 5)], [(1, 2)]]
         dag, inputmap = circuit(swaps, allow_swaps=True)
@@ -85,8 +80,7 @@ class TestUtil(TestCase):
             ], qargs)
 
     @staticmethod
-    def valid_edge_swaps(tester: TestCase, swaps: List[List[Swap[_V]]],
-                         valid_graph: nx.Graph) -> None:
+    def valid_edge_swaps(tester, swaps, valid_graph):
         """Check if the swap is in the edge list."""
 
         for i in swaps:
