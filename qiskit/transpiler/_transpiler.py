@@ -21,7 +21,9 @@ from qiskit.unrollers import _jsonbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
+from qiskit._pubsub import Publisher, Subscriber
 from ._parallel import parallel_map
+
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +125,33 @@ def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     Raises:
         TranspilerError: if the format is not valid.
+
+    Events:
+        terra.transpiler.transpile_dag.start: When the transpilation of the dags is about to start
+        terra.transpiler.transpile_dag.done: When one of the dags has finished it's transpilation
+        terra.transpiler.transpile_dag.finish: When all the dags have finished transpiling
     """
+
+    def _emmit_start(num_dags):
+        """ Emmit a dag transpilation start event
+        Arg:
+            num_dags: Number of dags to be transpiled"""
+        Publisher().publish("terra.transpiler.transpile_dag.start", num_dags)
+    Subscriber().subscribe("terra.transpiler.parallel.start", _emmit_start)
+
+    def _emmit_done(progress):
+        """ Emmit a dag transpilation done event
+        Arg:
+            progress: The dag number that just has finshed transpile"""
+        Publisher().publish("terra.transpiler.transpile_dag.done", progress)
+    Subscriber().subscribe("terra.transpiler.parallel.done", _emmit_done)
+
+    def _emmit_finish():
+        """ Emmit a dag transpilation finish event
+        Arg:
+            progress: The dag number that just has finshed transpile"""
+        Publisher().publish("terra.transpiler.transpile_dag.finish")
+    Subscriber().subscribe("terra.transpiler.parallel.finish", _emmit_finish)
 
     dags_layouts = list(zip(dags, initial_layouts))
     final_dags = parallel_map(_transpile_dags_parallel, dags_layouts,
