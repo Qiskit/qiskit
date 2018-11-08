@@ -2,6 +2,9 @@ body{
     height: 100%;
     overflow: hidden;
 }
+pre{
+   font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
+}
 .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
     font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
 
@@ -361,6 +364,9 @@ cursor: pointer;
 }
 .sublist .toctree-l2.link-wrapper .title {
     margin: 0 16px;
+}
+li.toctree-l2 .item.title .link-wrapper {
+    padding-left: 16px;
 }
 .sublist .toctree-l3 .title {
     padding-left: 8px;
