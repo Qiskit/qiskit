@@ -27,7 +27,8 @@ JUPYTER_KERNEL = 'python3'
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):
-        self.filename = self._get_resource_path('notebooks/test_jupyter.ipynb')
+        self.filename = self._get_resource_path(
+            'notebooks/test_pbar_status.ipynb')
         self.execution_path = os.path.join(Path.SDK.value, '..')
 
     def _execute_notebook(self, filename):
