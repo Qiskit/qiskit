@@ -25,7 +25,7 @@ th.field-name{
     padding: 16px;
 
 }
-div#improvements .simple li dl dt, div#id71 .simple li dl dt{
+div .simple li dl dt{
   font-weight: normal !important;
 }
 .second a:not(.external){
