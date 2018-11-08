@@ -10,7 +10,6 @@
 """
 Single qubit gate cycle idle.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -24,21 +23,13 @@ class U0Gate(Gate):
         """Create new u0 gate."""
         super().__init__("u0", [m], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        m = self.param[0]
-        return self._qasmif("u0(%f) %s[%d];" % (m,
-                                                qubit[0].name,
-                                                qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u0(self.param[0], self.arg[0]))
+        self._modifiers(circ.u0(self.param[0], self.qargs[0]))
 
 
 def u0(self, m, q):
@@ -54,4 +45,3 @@ def u0(self, m, q):
 
 
 QuantumCircuit.u0 = u0
-CompositeGate.u0 = u0

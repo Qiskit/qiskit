@@ -8,7 +8,6 @@
 """
 controlled-u1 gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -23,14 +22,6 @@ class Cu1Gate(Gate):
         """Create new cu1 gate."""
         super().__init__("cu1", [theta], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        theta = self.param[0]
-        return self._qasmif("cu1(%s) %s[%d],%s[%d];" % (theta, ctl[0].name, ctl[1],
-                                                        tgt[0].name, tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
@@ -38,7 +29,7 @@ class Cu1Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu1(self.param[0], self.arg[0], self.arg[1]))
+        self._modifiers(circ.cu1(self.param[0], self.qargs[0], self.qargs[1]))
 
 
 def cu1(self, theta, ctl, tgt):
@@ -69,4 +60,3 @@ def cu1(self, theta, ctl, tgt):
 
 
 QuantumCircuit.cu1 = cu1
-CompositeGate.cu1 = cu1

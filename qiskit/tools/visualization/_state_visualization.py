@@ -12,12 +12,14 @@ Visualization functions for quantum states.
 """
 
 from functools import reduce
-from scipy import linalg
-import matplotlib.pyplot as plt
+
+import numpy as np
 from matplotlib import cm
+from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
-import numpy as np
+from scipy import linalg
+
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
@@ -61,7 +63,7 @@ def plot_bloch_vector(bloch, title="", filename=None):
 def plot_state_city(rho, title="", filename=None):
     """Plot the cityscape of quantum state.
 
-    Plot two 3d bargraphs (two dimenstional) of the mixed state rho
+    Plot two 3d bargraphs (two dimensional) of the mixed state rho
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -130,7 +132,7 @@ def plot_state_city(rho, title="", filename=None):
 def plot_state_paulivec(rho, title="", filename=None):
     """Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matricies
+    Plot a bargraph of the mixed state rho over the pauli matrices
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -193,8 +195,11 @@ def lex_index(n, k, lst):
     Returns:
         int: returns int index for lex order
 
+    Raises:
+        VisualizationError: if length of list is not equal to k
     """
-    assert len(lst) == k, "list should have length k"
+    if len(lst) != k:
+        raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
     dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
     return int(dualm)
@@ -204,7 +209,8 @@ def bit_string_index(s):
     """Return the index of a string of 0s and 1s."""
     n = len(s)
     k = s.count("1")
-    assert s.count("0") == n - k, "s must be a string of 0 and 1"
+    if s.count("0") != n - k:
+        raise VisualizationError("s must be a string of 0 and 1")
     ones = [pos for pos, char in enumerate(s) if char == "1"]
     return lex_index(n, k, ones)
 
@@ -237,7 +243,7 @@ def phase_to_color_wheel(complex_number):
 def plot_state_qsphere(rho, filename=None):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
-    # get the eigenvectors and egivenvalues
+    # get the eigenvectors and eigenvalues
     we, stateall = linalg.eigh(rho)
     for k in range(2**num):
         # start with the max
@@ -541,7 +547,7 @@ def plot_wigner_curve(wigner_data, xaxis=None, filename=None):
 
 def plot_wigner_plaquette(wigner_data, max_wigner='local', filename=None):
     """Plots plaquette of wigner function data, the plaquette will
-    consist of cicles each colored to match the value of the Wigner
+    consist of circles each colored to match the value of the Wigner
     function at the given point in phase space.
 
     Args:

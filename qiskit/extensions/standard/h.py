@@ -10,7 +10,6 @@
 """
 Hadamard gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -25,18 +24,13 @@ class HGate(Gate):
         """Create new Hadamard gate."""
         super().__init__("h", [], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("h %s[%d];" % (qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.h(self.arg[0]))
+        self._modifiers(circ.h(self.qargs[0]))
 
 
 def h(self, q):
@@ -58,4 +52,3 @@ def h(self, q):
 
 
 QuantumCircuit.h = h
-CompositeGate.h = h

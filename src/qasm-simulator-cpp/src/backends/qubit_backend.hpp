@@ -591,7 +591,7 @@ void QubitBackend::qc_relax(const uint_t qubit, const double time) {
 
 void QubitBackend::qc_matrix1_noise(const uint_t qubit, const cmatrix_t &U,
                                     const GateError &err) {
-// applyes unitary matrix with T1 relaxation error
+// applies unitary matrix with T1 relaxation error
 #ifdef DEBUG
   std::stringstream ss;
   ss << "DEBUG: qc_matrix1_noise(" << qubit << ", err = " << err.label << ")";

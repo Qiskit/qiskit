@@ -38,7 +38,7 @@ namespace QISKIT {
  *
  * Subclasses of the BaseEngine should make sure that overloads of the the `add`
  * `compute_results`, `to_json` and `from_json` functions call the BaseEngine
- * verions of those functions as well.
+ * versions of those functions as well.
  ******************************************************************************/
 
 template <typename StateType = QubitVector> class BaseEngine {
@@ -50,7 +50,7 @@ public:
 
   // Counts formatting
   bool counts_show = true;     // Dislay the map of final creg bitstrings
-  bool counts_sort = true;     // Sort the map of bitstrings by occurence
+  bool counts_sort = true;     // Sort the map of bitstrings by occurrence
   bool counts_space = true;    // Insert a space between named QISKIT cregs
   bool counts_bits_h2l = true; // Display bitstring with least sig to right
 
@@ -196,7 +196,7 @@ void BaseEngine<StateType>::compute_counts(const reglist clbit_labels,
         shotstr += " "; // opt whitespace between named cregs
     }
     if (shotstr.empty() == false && counts_space)
-      shotstr.pop_back(); // remove last whitspace char
+      shotstr.pop_back(); // remove last whitespace char
 
     // reverse shot string to least significant bit to the right
     if (counts_bits_h2l == true)

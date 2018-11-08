@@ -31,7 +31,7 @@ class TestQuaternions(QiskitTestCase):
 
     def test_orthogonality(self):
         """Quaternion rotation matrix orthogonality"""
-        # Check orthogonality of generated roation matrix
+        # Check orthogonality of generated rotation matrix
         axes = {0: 'x', 1: 'y', 2: 'z'}
         for _ in range(1000):
             rnd = 4*np.pi*(np.random.random(3)-0.5)

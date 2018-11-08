@@ -457,7 +457,7 @@ void to_json(json_t &js, const PauliOperator &p) {
 }
 
 void from_json(const json_t &js, PauliOperator &p) {
-  if (JSON::check_keys({"pahse", "X", "Z"}, js)) {
+  if (JSON::check_keys({"phase", "X", "Z"}, js)) {
     PauliOperator tmp;
     std::vector<uint_t> x = js["X"], z = js["Z"];
     tmp.phase = js["phase"];
@@ -473,7 +473,7 @@ void from_json(const json_t &js, PauliOperator &p) {
 // Clifford
 void to_json(json_t &js, const Clifford &clif) {
   // first n rows are destabilizers; last n rows are stabilizers
-  // we don't print the auxillary row
+  // we don't print the auxiliary row
   const auto table = clif.get_table();
   uint_t n = (table.size() - 1) / 2;
   assert(2 * n + 1 == table.size());
