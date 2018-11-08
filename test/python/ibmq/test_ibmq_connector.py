@@ -32,82 +32,12 @@ class TestIBMQConnector(QiskitTestCase):
         credential = api.check_credentials()
         self.assertTrue(credential)
 
-    @requires_qe_access
-    def test_api_get_my_credits(self, qe_token, qe_url):
-        """
-        Check the credits of the user
-        """
-        api = self._get_api(qe_token, qe_url)
-        my_credits = api.get_my_credits()
-        check_credits = None
-        if 'remaining' in my_credits:
-            check_credits = my_credits['remaining']
-        self.assertIsNotNone(check_credits)
-
     def test_api_auth_token_fail(self):
         """
         Authentication with Quantum Experience Platform
         """
         self.assertRaises(ApiError,
                           IBMQConnector, 'fail')
-
-    @requires_qe_access
-    def test_api_last_codes(self, qe_token, qe_url):
-        """
-        Check last code by user authenticated
-        """
-        api = self._get_api(qe_token, qe_url)
-        self.assertIsNotNone(api.get_last_codes())
-
-    @requires_qe_access
-    @unittest.skip('run_experiment is not used by terra')
-    def test_api_run_experiment(self, qe_token, qe_url):
-        """
-        Check run an experiment by user authenticated
-        """
-        # TODO: the api.run_experiments tests are disabled because they are not
-        # used by terra directly, and incur in extra time and printing to
-        # stdout.
-        api = self._get_api(qe_token, qe_url)
-        backend = 'ibmq_qasm_simulator'
-        shots = 1
-        experiment = api.run_experiment(self.qasm, backend, shots)
-        check_status = None
-        if 'status' in experiment:
-            check_status = experiment['status']
-        self.assertIsNotNone(check_status)
-
-    @requires_qe_access
-    @unittest.skip('run_experiment is not used by terra')
-    def test_api_run_experiment_with_seed(self, qe_token, qe_url):
-        """
-        Check run an experiment with seed by user authenticated
-        """
-        api = self._get_api(qe_token, qe_url)
-        backend = 'ibmq_qasm_simulator'
-        shots = 1
-        seed = 815
-        experiment = api.run_experiment(self.qasm, backend, shots,
-                                        seed=seed)
-        check_seed = -1
-        if ('result' in experiment) and \
-           ('extraInfo' in experiment['result']) and \
-           ('seed' in experiment['result']['extraInfo']):
-            check_seed = int(experiment['result']['extraInfo']['seed'])
-        self.assertEqual(check_seed, seed)
-
-    @requires_qe_access
-    @unittest.skip('run_experiment is not used by terra')
-    def test_api_run_experiment_fail_backend(self, qe_token, qe_url):
-        """
-        Check run an experiment by user authenticated is not run because the
-        backend does not exist
-        """
-        api = self._get_api(qe_token, qe_url)
-        backend = 'INVALID_BACKEND'
-        shots = 1
-        self.assertRaises(BadBackendError,
-                          api.run_experiment, self.qasm, backend, shots)
 
     @requires_qe_access
     def test_api_run_job(self, qe_token, qe_url):
@@ -196,19 +126,6 @@ class TestIBMQConnector(QiskitTestCase):
         self.assertGreaterEqual(len(backends), 1)
 
     @requires_qe_access
-    @unittest.skip('available_backend_simulators is not used by terra')
-    def test_api_backend_simulators_available(self, qe_token, qe_url):
-        """
-        Check the backend simulators available
-        """
-        # TODO: available_backend_simulators is not used by terra, and seems
-        # that is not ready for accepting premium parameters (see signature).
-        # Candidate for being removed.
-        api = self._get_api(qe_token, qe_url)
-        backends = api.available_backend_simulators()
-        self.assertGreaterEqual(len(backends), 1)
-
-    @requires_qe_access
     def test_register_size_limit_exception(self, qe_token, qe_url):
         """
         Check that exceeding register size limit generates exception
@@ -245,7 +162,7 @@ class TestAuthentication(QiskitTestCase):
     @requires_qe_access
     def test_url_404(self, qe_token, qe_url):
         """Test accessing a 404 URL"""
-        url_404 = re.sub(r'\/api.*$', '/api/TEST_404', qe_url)
+        url_404 = re.sub(r'/api.*$', '/api/TEST_404', qe_url)
         with self.assertRaises(ApiError):
             _ = IBMQConnector(qe_token,
                               config={'url': url_404})
