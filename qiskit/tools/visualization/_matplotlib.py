@@ -18,24 +18,13 @@ import math
 
 import numpy as np
 from matplotlib import patches
+from matplotlib import pyplot as plt
 
 from qiskit import dagcircuit
 from qiskit import transpiler
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 
-if sys.platform == "darwin":
-    try:
-        from matplotlib import pyplot as plt
-    except ImportError:
-        # NOTE(mtreinish): On OSX if python not installed as a framework the
-        # default OSX interactive framework will not work. In that case use
-        # a different backend.
-        import matplotlib
-        matplotlib.use('PS')
-        from matplotlib import pyplot as plt
-else:
-    from matplotlib import pyplot as plt
 
 logger = logging.getLogger(__name__)
 

@@ -12,10 +12,10 @@ Visualization functions for quantum states.
 """
 
 from functools import reduce
-import sys
 
 import numpy as np
 from matplotlib import cm
+from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from scipy import linalg
@@ -23,19 +23,6 @@ from scipy import linalg
 from qiskit.tools.qi.pauli import pauli_group, pauli_singles
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
-
-if sys.platform == "darwin":
-    try:
-        from matplotlib import pyplot as plt
-    except ImportError:
-        # NOTE(mtreinish): On OSX if python not installed as a framework the
-        # default OSX interactive framework will not work. In that case use
-        # a different backend.
-        import matplotlib
-        matplotlib.use('PS')
-        from matplotlib import pyplot as plt
-else:
-    from matplotlib import pyplot as plt
 
 
 class Arrow3D(FancyArrowPatch):

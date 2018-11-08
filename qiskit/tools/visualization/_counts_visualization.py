@@ -13,24 +13,12 @@ Visualization functions for measurement counts.
 
 from collections import Counter
 import functools
-import sys
 import warnings
 
 import numpy as np
-from ._error import VisualizationError
+import matplotlib.pyplot as plt
 
-if sys.platform == "darwin":
-    try:
-        from matplotlib import pyplot as plt
-    except ImportError:
-        # NOTE(mtreinish): On OSX if python not installed as a framework the
-        # default OSX interactive framework will not work. In that case use
-        # a different backend.
-        import matplotlib
-        matplotlib.use('PS')
-        from matplotlib import pyplot as plt
-else:
-    from matplotlib import pyplot as plt
+from ._error import VisualizationError
 
 
 def plot_histogram(data, number_to_keep=None, legend=None, options=None):
