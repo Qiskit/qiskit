@@ -26,12 +26,10 @@ sudo: false
 stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
-    - pip install -U -r requirements.txt
-    - pip install -U -r requirements-dev.txt
-    - pip install qiskit-aer
+    - pip install -U tox
   script:
     # Compile the executables and run the tests.
-    - make && ARGS="-V" make test
+    - tox -- --concurrency 2
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -45,7 +43,7 @@ stage_osx: &stage_osx
   os: osx
   osx_image: xcode9.2
   language: generic
-  env: MPLBACKEND=ps
+  env: MPLBACKEND=ps TOXENV=py36
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
@@ -59,6 +57,7 @@ stage_osx: &stage_osx
 
 stage_osx_python3_7: &stage_osx_python3_7
   <<: *stage_osx
+  env: MPLBACKEND=ps TOXENV=py37
   before_install:
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
@@ -113,7 +112,7 @@ jobs:
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux
-      script: make style VERBOSE="" && make lint VERBOSE=""
+      script: tox -elint
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
@@ -126,6 +125,7 @@ jobs:
     - stage: test
       <<: *stage_linux
       python: 3.6
+      env: TOXENV=py36
 
     # GNU/Linux, Python 3.7
     - stage: test
@@ -137,6 +137,7 @@ jobs:
       dist: xenial
       python: 3.7
       sudo: true
+      env: TOXENV=py37
 
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
@@ -153,7 +154,7 @@ jobs:
       <<: *stage_linux
       if: branch = master and repo = Qiskit/qiskit-terra and type = push
       python: 3.6
-      env: USE_ALTERNATE_ENV_CREDENTIALS=True
+      env: USE_ALTERNATE_ENV_CREDENTIALS=True TOXENV=py36
 
     # "deploy" stage.
     ###########################################################################

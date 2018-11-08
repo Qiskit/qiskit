@@ -8,8 +8,11 @@ version: 1.0.{build}
 environment:
     matrix:
         - PYTHON: C:\Python35
+          TOX_ENV: "py35"
         - PYTHON: C:\Python36
+          TOX_ENV: "py36"
         - PYTHON: C:\Python37
+          TOX_ENV: "py37"
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
     TRAVIS_REPO_SLUG: invalid-but-different
@@ -30,18 +33,14 @@ install:
             throw "There are newer queued builds for this pull request, failing early." }
     - "%PYTHON%\\python.exe -m venv venv"
     - venv\Scripts\activate.bat
-    - pip.exe install -r requirements.txt
-    - pip.exe install vcrpy
-    - pip.exe install jupyter
-    - pip.exe install ipywidgets
-    - pip.exe install stestr
-    - pip.exe install qiskit-aer
+    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+    - "pip.exe install tox"
 # TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
 
 # Use py.test for output of xunit test results.
 test_script:
-    - stestr run
+    - "tox -e%TOX_ENV%"
     - stestr last --subunit > test_results.subunit
 # TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
 #    - subunit2junitxml test_results.subunit > test_results.xml
