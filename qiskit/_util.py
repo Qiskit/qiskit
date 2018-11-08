@@ -4,7 +4,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=too-many-ancestors
+# pylint: disable=too-many-ancestors,broad-except
 
 """Common utilities for QISKit."""
 
@@ -91,6 +91,9 @@ def _has_connection(hostname, port):
     """Checks to see if internet connection exists to host
     via specified port
 
+    If any exception is raised while trying to open a socket this will return
+    false.
+
     Args:
         hostname (str): Hostname to connect to.
         port (int): Port to connect to
@@ -98,13 +101,10 @@ def _has_connection(hostname, port):
     Returns:
         bool: Has connection or not
 
-    Raises:
-        gaierror: No connection established.
     """
     try:
         host = socket.gethostbyname(hostname)
         socket.create_connection((host, port), 2)
         return True
-    except socket.gaierror:
-        pass
-    return False
+    except Exception:
+        return False
