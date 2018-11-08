@@ -274,8 +274,15 @@ def optimize_gate_groups(grouped_gates, coupling_map, empty_dag, gate_costs):
         if len(group["qubits"]) == 2:
             cost_before = cost_of_group(group["gates"], gate_costs)
             q = [group["qubits"][0], group["qubits"][1]]
-            if (("q", q[1]), ("q", q[0])) in coupling_map:
-                q = [group["qubits"][1], group["qubits"][0]]
+            if (("q", q[0]), ("q", q[1])) in coupling_map:
+                print("Right order IS present ... leaving: ", q)
+                q = [group["qubits"][0], group["qubits"][1]]
+                print("Right order IS present ... leaving: ", q)
+            else:
+                if (("q", q[1]), ("q", q[0])) in coupling_map:
+                   print("Right order NOT present ... swapping: ", q)
+                   q = [group["qubits"][1], group["qubits"][0]]
+                   print("Right order NOT present ... swapping: ", q)
 
             # estimate whether KAK decomposition (which is time intensive) will improve the result
             if count_cx_gates(group["gates"]) <= 3:
