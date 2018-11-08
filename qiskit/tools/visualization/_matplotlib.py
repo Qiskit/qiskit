@@ -15,12 +15,8 @@ import itertools
 import json
 import logging
 import math
-import os
-import tempfile
 
 import numpy as np
-import PIL
-from matplotlib import get_backend as get_matplotlib_backend
 from matplotlib import patches
 from matplotlib import pyplot as plt
 
@@ -28,7 +24,6 @@ from qiskit import dagcircuit
 from qiskit import transpiler
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
-from qiskit.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)
@@ -362,29 +357,10 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
-
-        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
-            # returns None when matplotlib is inline mode to prevent Jupyter
-            # with matplotlib inlining enabled to draw the diagram twice.
-            im = None
-        else:
-            # when matplotlib is not inline mode,
-            # self.figure.savefig is called twice because...
-            # ... this is needed to get the in-memory representation
-            with tempfile.TemporaryDirectory() as tmpdir:
-                tmpfile = os.path.join(tmpdir, 'circuit.png')
-                self.figure.savefig(tmpfile, dpi=self._style.dpi,
-                                    bbox_inches='tight')
-                im = PIL.Image.open(tmpfile)
-                _utils._trim(im)
-                os.remove(tmpfile)
-
-        # ... and this is needed to delegate in matplotlib the generation of
-        # the proper format.
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        return im
+        return self.figure
 
     def _draw_regs(self):
         # quantum register
