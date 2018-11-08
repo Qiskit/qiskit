@@ -44,7 +44,6 @@ def _html_checker(job_var, interval, status, header):
             status.value = header % (job_status_msg)
 
     status.value = header % (job_status_msg)
-from .progressbar import TextProgressBar, HTMLProgressBar
 
 
 @magics_class
