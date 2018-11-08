@@ -5,6 +5,7 @@ body{
 pre{
    font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
 }
+
 .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
     font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
 
@@ -23,6 +24,9 @@ th.field-name{
     border-bottom: 1px solid;
     padding: 16px;
 
+}
+div#improvements .simple li dl dt, div#id71 .simple li dl dt{
+  font-weight: normal !important;
 }
 .second a:not(.external){
     color: #d4d4d4;
