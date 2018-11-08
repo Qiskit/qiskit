@@ -6,5 +6,5 @@ if (NOT PYTHON)
 endif()
 
 add_test(NAME qiskit_python
-    COMMAND stestr run
+    COMMAND stestr run --concurrency 2
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
