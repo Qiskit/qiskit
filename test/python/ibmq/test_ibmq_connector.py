@@ -7,6 +7,7 @@
 
 """Test IBMQConnector."""
 
+import re
 import unittest
 
 from qiskit.backends.ibmq.api import (ApiError, BadBackendError,
@@ -157,8 +158,10 @@ class TestIBMQConnector(QiskitTestCase):
         """
         Check the status of a real chip
         """
+        backend_name = ('ibmq_20_tokyo'
+                        if self.using_ibmq_credentials else 'ibmqx4')
         api = self._get_api(qe_token, qe_url)
-        is_available = api.backend_status()
+        is_available = api.backend_status(backend_name)
         self.assertIsNotNone(is_available['available'])
 
     @requires_qe_access
@@ -166,8 +169,10 @@ class TestIBMQConnector(QiskitTestCase):
         """
         Check the calibration of a real chip
         """
+        backend_name = ('ibmq_20_tokyo'
+                        if self.using_ibmq_credentials else 'ibmqx4')
         api = self._get_api(qe_token, qe_url)
-        calibration = api.backend_calibration()
+        calibration = api.backend_calibration(backend_name)
         self.assertIsNotNone(calibration)
 
     @requires_qe_access
@@ -175,8 +180,10 @@ class TestIBMQConnector(QiskitTestCase):
         """
         Check the parameters of calibration of a real chip
         """
+        backend_name = ('ibmq_20_tokyo'
+                        if self.using_ibmq_credentials else 'ibmqx4')
         api = self._get_api(qe_token, qe_url)
-        parameters = api.backend_parameters()
+        parameters = api.backend_parameters(backend_name)
         self.assertIsNotNone(parameters)
 
     @requires_qe_access
@@ -189,10 +196,14 @@ class TestIBMQConnector(QiskitTestCase):
         self.assertGreaterEqual(len(backends), 1)
 
     @requires_qe_access
+    @unittest.skip('available_backend_simulators is not used by terra')
     def test_api_backend_simulators_available(self, qe_token, qe_url):
         """
         Check the backend simulators available
         """
+        # TODO: available_backend_simulators is not used by terra, and seems
+        # that is not ready for accepting premium parameters (see signature).
+        # Candidate for being removed.
         api = self._get_api(qe_token, qe_url)
         backends = api.available_backend_simulators()
         self.assertGreaterEqual(len(backends), 1)
@@ -234,7 +245,7 @@ class TestAuthentication(QiskitTestCase):
     @requires_qe_access
     def test_url_404(self, qe_token, qe_url):
         """Test accessing a 404 URL"""
-        url_404 = '{}/API_TEST'.format(qe_url)
+        url_404 = re.sub(r'\/api.*$', '/api/TEST_404', qe_url)
         with self.assertRaises(ApiError):
             _ = IBMQConnector(qe_token,
                               config={'url': url_404})
