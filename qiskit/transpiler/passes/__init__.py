@@ -9,3 +9,4 @@
 
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
+from .swap_mapper import SwapMapper
