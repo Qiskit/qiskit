@@ -85,10 +85,7 @@ class AStarCX(TransformationPass):
 
         # prepare empty circuit for the result
         empty_dag = DAGCircuit()
-        print(self.coupling_map)
         coupling = Coupling(coupling_list2dict(self.coupling_map))
-        print(coupling)
-        print(coupling_list2dict(self.coupling_map))
         # Note: Works with a single register named 'q' (not with 'q0' for example)
         empty_dag.add_qreg("q", coupling.size())
         for k, v in sorted(compiled_dag.cregs.items()):
@@ -142,7 +139,6 @@ class AStarCX(TransformationPass):
 
         # post-mapping optimization: build 4x4 matrix for gate groups and decompose them
         # using KAK decomposition.  Moreover, subsequent single qubit gates are optimized.
-        print("Calling post mapping optimization at end")
         compiled_dag = post_mapping_optimization.optimize_gate_groups(
             grouped_gates_compiled,
             coupling.get_edges(),
