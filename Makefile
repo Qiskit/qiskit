@@ -27,20 +27,20 @@ style:
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	stestr run --concurrency 2
+	stestr run
 
 test_mock:
-	env QISKIT_TESTS=mock_online stestr run --concurrency 2
+	env QISKIT_TESTS=mock_online stestr run
 
 test_recording:
 	-rm test/cassettes/*
-	env QISKIT_TESTS=rec stestr run --concurrency 2
+	env QISKIT_TESTS=rec stestr run
 
 profile:
-	stestr run "profile*" --concurrency 2
+	stestr run "profile*"
 
 coverage:
-	PYTHON="coverage3 run --source qiskit --parallel-mode" stestr run --concurrency 2
+	PYTHON="coverage3 run --source qiskit --parallel-mode" stestr run
 	coverage3 combine
 	coverage3 report
 
