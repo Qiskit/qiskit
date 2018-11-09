@@ -41,7 +41,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_bloch_vector(bloch, title="", filename=None):
+def plot_bloch_vector(bloch, title="", filename=None, ax=None, show=False):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -52,15 +52,17 @@ def plot_bloch_vector(bloch, title="", filename=None):
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
     """
-    B = Bloch()
+    B = Bloch(axes=ax)
     B.add_vectors(bloch)
+    B.render()
     if filename:
         B.save(filename)
-    else:
+    elif show:
         B.show(title=title)
+    return B.fig
 
 
-def plot_state_city(rho, title="", filename=None):
+def plot_state_city(rho, title="", filename=None, show=False):
     """Plot the cityscape of quantum state.
 
     Plot two 3d bargraphs (two dimensional) of the mixed state rho
@@ -125,11 +127,12 @@ def plot_state_city(rho, title="", filename=None):
     plt.title(title)
     if filename:
         plt.savefig(filename)
-    else:
+    elif show:
         plt.show()
+    return plt.gcf()
 
 
-def plot_state_paulivec(rho, title="", filename=None):
+def plot_state_paulivec(rho, title="", filename=None, show=False):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -163,8 +166,9 @@ def plot_state_paulivec(rho, title="", filename=None):
     plt.title(title)
     if filename:
         plt.savefig(filename)
-    else:
+    elif show:
         plt.show()
+    return plt.gcf()
 
 
 def n_choose_k(n, k):
@@ -240,7 +244,7 @@ def phase_to_color_wheel(complex_number):
     return color_map[angle_round]
 
 
-def plot_state_qsphere(rho, filename=None):
+def plot_state_qsphere(rho, filename=None, show=False):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
     # get the eigenvectors and eigenvalues
@@ -341,14 +345,15 @@ def plot_state_qsphere(rho, filename=None):
                     alpha=1)
             if filename:
                 plt.savefig(filename)
-            else:
+            elif show:
                 plt.show()
             we[prob_location] = 0
         else:
             break
+    return plt.gcf()
 
 
-def plot_state(quantum_state, method='city', filename=None):
+def plot_state(quantum_state, method='city', filename=None, show=False):
     """Plot the quantum state.
 
     Args:
@@ -359,7 +364,10 @@ def plot_state(quantum_state, method='city', filename=None):
             will save and exit and not open up the plot in a new window. If
             `bloch` method is used a `-n` will be added to the filename before
             the extension for each qubit.
-
+        show (bool): If set to true the rendered image will open in a new
+            window (mpl only)
+    Returns
+        matplotlib.Figure:
     Raises:
         VisualizationError: if the input is not a statevector or density
         matrix, or if the state is not an multi-qubit quantum state.
@@ -377,34 +385,35 @@ def plot_state(quantum_state, method='city', filename=None):
     num = int(np.log2(len(rho)))
     if 2 ** num != len(rho):
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-
+    fig = None
     if method == 'city':
-        plot_state_city(rho, filename=filename)
+        fig = plot_state_city(rho, filename=filename, show=show)
     elif method == "paulivec":
-        plot_state_paulivec(rho, filename=filename)
+        fig = plot_state_paulivec(rho, filename=filename, show=show)
     elif method == "qsphere":
-        plot_state_qsphere(rho, filename=filename)
+        fig = plot_state_qsphere(rho, filename=filename, show=show)
     elif method == "bloch":
         orig_filename = filename
+        fig, ax = plt.subplots(int(np.sqrt(num)), int(np.sqrt(num)))
         for i in range(num):
-            if orig_filename:
-                filename_parts = orig_filename.split('.')
-                filename_parts[-2] += '-%d' % i
-                filename = '.'.join(filename_parts)
-                print(filename)
             bloch_state = list(
                 map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                     pauli_singles(i, num)))
-            plot_bloch_vector(bloch_state, "qubit " + str(i), filename=filename)
+            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax[i])
+        if filename:
+            plt.savefig(filename)
+        elif show:
+            plt.show()
     elif method == "wigner":
-        plot_wigner_function(rho, filename=filename)
+        fig = plot_wigner_function(rho, filename=filename, show=show)
+    return fig
 
 
 ###############################################################
 # Plotting Wigner functions
 ###############################################################
 
-def plot_wigner_function(state, res=100, filename=None):
+def plot_wigner_function(state, res=100, filename=None, show=False):
     """Plot the equal angle slice spin Wigner function of an arbitrary
     quantum state.
 
@@ -416,6 +425,8 @@ def plot_wigner_function(state, res=100, filename=None):
             on sphere (creates a res x res grid of points)
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+        show (bool): If set to true the rendered image will open in a new
+            window (mpl only)
 
     References:
         [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
@@ -522,8 +533,9 @@ def plot_wigner_function(state, res=100, filename=None):
     plt.colorbar(m, shrink=0.5, aspect=10)
     if filename:
         plt.savefig(filename)
-    else:
+    elif show:
         plt.show()
+    return fig
 
 
 def plot_wigner_curve(wigner_data, xaxis=None, filename=None):

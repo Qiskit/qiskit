@@ -21,7 +21,8 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         INTERACTIVE = True
 
 
-def plot_state(rho, method='city', filename=None, options=None, mode=None):
+def plot_state(rho, method='city', filename=None, options=None, mode=None,
+               show=False):
     """Plot a quantum state.
 
     This function provides several methods to plot a quantum state. There are
@@ -53,35 +54,41 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None):
                 width to have an effect
             - slider (bool): activate slider (only used for the `paulivec`
                 method)
-
         mode (str): The visualization mode to use, either `mpl` or
             `interactive`. Interactive requires running in jupyter and external
             network connectivity to work. By default this will use `mpl` unless
             you are running in jupyter and you have external connectivity.
+        show (bool): If set to true the rendered image will open in a new
+            window (mpl only)
+    Returns:
+        None: If used in interactive mode there is no return
+        matplotlib.Figure: If used in mpl mode the matplotlib.Figure of the
+            histogram will be returned.
     Raises:
         VisualizationError: If invalid mode is specified
     """
+    fig = None
     if not mode:
         if INTERACTIVE:
             from .interactive._iplot_state import iplot_state
             iplot_state(rho, method=method, options=options)
         else:
             from ._state_visualization import plot_state as plot
-            plot(rho, method=method, filename=filename)
+            plot(rho, method=method, filename=filename, show=show)
     else:
         if mode == 'interactive':
             from .interactive._iplot_state import iplot_state
             iplot_state(rho, method=method, options=options)
         elif mode == 'mpl':
             from ._state_visualization import plot_state as plot
-            plot(rho, method=method, filename=filename)
+            plot(rho, method=method, filename=filename, show=show)
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
 
 
 def plot_histogram(data, number_to_keep=None, legend=None, options=None,
-                   filename=None, mode=None):
+                   filename=None, mode=None, show=False):
     """Plot a histogram of the measurement counts
 
     There are two rendering backends either done in python using matplotlib or
@@ -110,15 +117,20 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
             - show_legend (bool): show legend of graph content
             - sort (string): Could be 'asc' or 'desc'
             - slider (bool): activate slider (`interactive` mode only)
-
         mode (str): The visualization mode to use, either `mpl` or
             `interactive`. Interactive requires running in jupyter and external
             network connectivity to work. By default this will use `mpl` unless
             you are running in jupyter and you have external connectivity.
+        show (bool): If set to true the rendered image will open in a new
+            window (mpl only)
+    Returns:
+        None: If used in interactive mode there is no return
+        matplotlib.Figure: If used in mpl mode the matplotlib.Figure of the
+            histogram will be returned.
     Raises:
         VisualizationError: If invalid mode is specified
     """
-
+    fig = None
     if not mode:
         if INTERACTIVE:
             from .interactive._iplot_histogram import iplot_histogram
@@ -127,7 +139,7 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
         else:
             from ._counts_visualization import plot_histogram as plot
             plot(data, number_to_keep=number_to_keep, legend=legend,
-                 options=options)
+                 options=options, show=show)
     else:
         if mode == 'interactive':
             from .interactive._iplot_histogram import iplot_histogram
@@ -136,7 +148,7 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
         elif mode == 'mpl':
             from ._counts_visualization import plot_histogram as plot
             plot(data, number_to_keep=number_to_keep, legend=legend,
-                 options=options, filename=filename)
+                 options=options, filename=filename, show=show)
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
