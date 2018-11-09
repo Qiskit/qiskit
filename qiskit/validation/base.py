@@ -16,7 +16,7 @@ Implementors are recommended to subclass the two classes, and "binding" them
 together by using ``bind_schema``::
 
     class PersonSchema(BaseSchema):
-        name = StringType(required=True)
+        name = String(required=True)
 
     @bind_schema(PersonSchema)
     class Person(BaseModel):
