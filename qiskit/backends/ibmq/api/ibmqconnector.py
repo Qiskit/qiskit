@@ -11,7 +11,6 @@ import json
 import logging
 import re
 import time
-from datetime import datetime
 
 import requests
 from requests_ntlm import HttpNtlmAuth
@@ -510,171 +509,6 @@ class IBMQConnector(object):
         """
         return bool(self.req.credential.get_token())
 
-    def get_execution(self, id_execution, access_token=None, user_id=None):
-        """
-        Get a execution, by its id
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        execution = self.req.get('/Executions/' + id_execution)
-        if "codeId" in execution:
-            execution['code'] = self.get_code(execution["codeId"])
-        return execution
-
-    def get_result_from_execution(self, id_execution, access_token=None, user_id=None):
-        """
-        Get the result of a execution, by the execution id
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        execution = self.req.get('/Executions/' + id_execution)
-        result = {}
-        if "result" in execution and "data" in execution["result"]:
-            if execution["result"]["data"].get('p', None):
-                result["measure"] = execution["result"]["data"]["p"]
-            if execution["result"]["data"].get('valsxyz', None):
-                result["bloch"] = execution["result"]["data"]["valsxyz"]
-            if "additionalData" in execution["result"]["data"]:
-                ad_aux = execution["result"]["data"]["additionalData"]
-                result["extraInfo"] = ad_aux
-            if "calibration" in execution:
-                result["calibration"] = execution["calibration"]
-            if execution["result"]["data"].get('cregLabels', None):
-                result["creg_labels"] = execution["result"]["data"]["cregLabels"]
-            if execution["result"]["data"].get('time', None):
-                result["time_taken"] = execution["result"]["data"]["time"]
-
-        return result
-
-    def get_code(self, id_code, access_token=None, user_id=None):
-        """
-        Get a code, by its id
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        code = self.req.get('/Codes/' + id_code)
-        executions = self.req.get('/Codes/' + id_code + '/executions',
-                                  '&filter={"limit":3}')
-        if isinstance(executions, list):
-            code["executions"] = executions
-        return code
-
-    def get_image_code(self, id_code, access_token=None, user_id=None):
-        """
-        Get the image of a code, by its id
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        return self.req.get('/Codes/' + id_code + '/export/png/url')
-
-    def get_last_codes(self, access_token=None, user_id=None):
-        """
-        Get the last codes of the user
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        last = '/users/' + self.req.credential.get_user_id() + '/codes/lastest'
-        return self.req.get(last, '&includeExecutions=true')['codes']
-
-    def run_experiment(self, qasm, backend='simulator', shots=1, name=None,
-                       seed=None, timeout=60, access_token=None, user_id=None):
-        """
-        Execute an experiment
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-
-        backend_type = self._check_backend(backend, 'experiment')
-        if not backend_type:
-            raise BadBackendError(backend)
-
-        if backend not in self.__names_backend_simulator and seed:
-            raise ApiError('seed not allowed for'
-                           ' non-simulator backend "{}"'.format(backend))
-
-        name = name or 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.now())
-        qasm = qasm.replace('IBMQASM 2.0;', '').replace('OPENQASM 2.0;', '')
-        data = json.dumps({'qasm': qasm, 'codeType': 'QASM2', 'name': name})
-
-        if seed and len(str(seed)) < 11 and str(seed).isdigit():
-            params = '&shots={}&seed={}&deviceRunType={}'.format(shots, seed,
-                                                                 backend_type)
-            execution = self.req.post('/codes/execute', params, data)
-        elif seed:
-            raise ApiError('invalid seed ({}), seeds can have'
-                           ' a maximum length of 10 digits'.format(seed))
-        else:
-            params = '&shots={}&deviceRunType={}'.format(shots, backend_type)
-            execution = self.req.post('/codes/execute', params, data)
-        respond = {}
-        try:
-            status = execution["status"]["id"]
-            id_execution = execution["id"]
-            result = {}
-            respond["status"] = status
-            respond["idExecution"] = id_execution
-            respond["idCode"] = execution["codeId"]
-
-            if 'infoQueue' in execution:
-                respond['infoQueue'] = execution['infoQueue']
-
-            if status == "DONE":
-                if "result" in execution and "data" in execution["result"]:
-                    if "additionalData" in execution["result"]["data"]:
-                        ad_aux = execution["result"]["data"]["additionalData"]
-                        result["extraInfo"] = ad_aux
-                    if execution["result"]["data"].get('p', None):
-                        result["measure"] = execution["result"]["data"]["p"]
-                    if execution["result"]["data"].get('valsxyz', None):
-                        valsxyz = execution["result"]["data"]["valsxyz"]
-                        result["bloch"] = valsxyz
-                    respond["result"] = result
-                    respond.pop('infoQueue', None)
-            elif status == "ERROR":
-                respond.pop('infoQueue', None)
-            else:
-                if timeout:
-                    for _ in range(1, timeout):
-                        print("Waiting for results...")
-                        result = self.get_result_from_execution(id_execution)
-                        if result:
-                            respond["status"] = 'DONE'
-                            respond["result"] = result
-                            respond["calibration"] = result["calibration"]
-                            del result["calibration"]
-                            respond.pop('infoQueue', None)
-                            return respond
-                        else:
-                            time.sleep(2)
-        except Exception:  # pylint: disable=broad-except
-            respond["error"] = execution
-
-        return respond
-
     def run_job(self, job, backend='simulator', shots=1,
                 max_credits=None, seed=None, hub=None, group=None,
                 project=None, hpc=None, access_token=None, user_id=None):
@@ -1001,45 +835,6 @@ class IBMQConnector(object):
             return [backend for backend in ret
                     if backend.get('status') == 'on']
 
-    def available_backend_simulators(self, access_token=None, user_id=None):
-        """
-        Get the backend simulators available to use in the QX Platform
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        else:
-            ret = self.req.get('/Backends')
-            if (ret is not None) and (isinstance(ret, dict)):
-                return []
-            return [backend for backend in ret
-                    if backend.get('status') == 'on' and
-                    backend.get('simulator') is True]
-
-    def get_my_credits(self, access_token=None, user_id=None):
-        """
-        Get the credits by user to use in the QX Platform
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-        else:
-            user_data_url = '/users/' + self.req.credential.get_user_id()
-            user_data = self.req.get(user_data_url)
-            if "credit" in user_data:
-                if "promotionalCodesUsed" in user_data["credit"]:
-                    del user_data["credit"]["promotionalCodesUsed"]
-                if "lastRefill" in user_data["credit"]:
-                    del user_data["credit"]["lastRefill"]
-                return user_data["credit"]
-            return {}
-
     def api_version(self):
         """
         Get the API Version of the QX Platform
@@ -1075,10 +870,8 @@ class BadBackendError(ApiError):
     """
     def __init__(self, backend):
         """
-        Parameters
-        ----------
-        backend : str
-           Name of backend.
+        Args:
+            backend (str): name of backend.
         """
         usr_msg = ('Could not find backend "{0}" available.').format(backend)
         dev_msg = ('Backend "{0}" does not exist. Please use '

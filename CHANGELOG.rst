@@ -62,6 +62,7 @@ Fixed
   circuit plots (#1051)
 - Use case insensitive matching when comparing premium account URLs. (#1102)
 - Fixed AerJob status when the submitted Job is in a PENDING state. (#1215)
+- Add fallback for when CPU count can't be determined (#1214)
 
 Removed
 -------
