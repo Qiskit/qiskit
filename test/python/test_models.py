@@ -10,16 +10,16 @@
 
 from marshmallow import fields, ValidationError
 
-from qiskit.models.base import BaseModel, ModelSchema, bind_schema
+from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from .common import QiskitTestCase
 
 
-class PersonSchema(ModelSchema):
+class PersonSchema(BaseSchema):
     """Example Person schema."""
     name = fields.String(required=True)
 
 
-class BookSchema(ModelSchema):
+class BookSchema(BaseSchema):
     """Example Book schema."""
     title = fields.String(required=True)
     date = fields.Date()
@@ -45,6 +45,39 @@ class ModelsTest(QiskitTestCase):
         """Test model instantiation."""
         person = Person(name='Foo')
         self.assertEqual(person.name, 'Foo')
+
+    def test_double_binding(self):
+        """Trying to bind a schema twice must raise."""
+        class _DummySchema(BaseSchema):
+            pass
+
+        @bind_schema(_DummySchema)
+        class _DummyModel(BaseModel):
+            pass
+
+        with self.assertRaises(ValueError):
+            @bind_schema(_DummySchema)
+            class _AnotherModel(BaseModel):
+                pass
+
+    def test_schema_reusing(self):
+        """Reusing a schema is possible if subclassing."""
+        class _DummySchema(BaseSchema):
+            pass
+
+        class _SchemaCopy(_DummySchema):
+            pass
+
+        @bind_schema(_DummySchema)
+        class _DummyModel(BaseModel):
+            pass
+
+        try:
+            @bind_schema(_SchemaCopy)
+            class _AnotherModel(BaseModel):
+                pass
+        except ValueError:
+            self.fail('`bind_schema` raised while binding.')
 
     def test_instantiate_required(self):
         """Test model instantiation without required fields."""

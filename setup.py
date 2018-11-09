@@ -18,6 +18,7 @@ from setuptools.dist import Distribution
 requirements = [
     "jsonschema>=2.6,<2.7",
     "marshmallow>=2.16.3,<3",
+    "marshmallow_polyfield>=3.2,<4",
     "matplotlib>=2.1",
     "networkx>=2.0",
     "numpy>=1.13",

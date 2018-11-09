@@ -13,8 +13,12 @@ Doing so requires that the required backend interface is implemented.
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit._qiskiterror import QISKitError
+from marshmallow.fields import String, Boolean, Integer
+from marshmallow.validate import Range, Regexp
+
 import qiskit
+from qiskit._qiskiterror import QISKitError
+from qiskit.validation import BaseModel, BaseSchema, bind_schema
 
 
 class BaseBackend(ABC):
@@ -95,3 +99,35 @@ class BaseBackend(ABC):
         return "<{}('{}') from {}()>".format(self.__class__.__name__,
                                              self.name(),
                                              self.provider)
+
+
+class BackendStatusSchema(BaseSchema):
+    """Schema for BackendStatus."""
+
+    # Required fields.
+    backend_name = String(required=True)
+    backend_version = String(required=True,
+                             validate=Regexp('[0-9]+.[0-9]+.[0-9]+$'))
+    operational = Boolean(required=True)
+    pending_jobs = Integer(required=True,
+                           validate=Range(min=0))
+    status_msg = String(required=True)
+
+
+@bind_schema(BackendStatusSchema)
+class BackendStatus(BaseModel):
+    """Backend Status."""
+
+    schema_cls = BackendStatusSchema
+
+    def __init__(self, backend_name, backend_version, operational,
+                 pending_jobs, status_msg,
+                 **kwargs):
+        self.backend_name = backend_name
+        self.backend_version = backend_version
+        self.operational = operational
+        self.pending_jobs = pending_jobs
+        self.status_msg = status_msg
+
+        kwargs.update(self.__dict__)
+        super().__init__(**kwargs)
