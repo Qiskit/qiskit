@@ -26,11 +26,17 @@ class DagUnroller(object):
             raise UnrollerError('Invalid dag circuit!!')
 
         self.dag_circuit = dag_circuit
-        self.backend = backend
+        self.set_backend(backend)
 
     def set_backend(self, backend):
-        """Set the backend object."""
+        """Set the backend object.
+        
+        Give the same gate definitions to the backend circuit as
+        the input circuit.
+        """
         self.backend = backend
+        for name, data in self.dag_circuit.gates.items():
+            self.backend.define_gate(name, data)        
 
     def execute(self):
         """Interpret OPENQASM and make appropriate backend calls.
@@ -51,17 +57,17 @@ class DagUnroller(object):
         """Expand all gate nodes to the given basis.
 
         If basis is empty, each custom gate node is replaced by its
-        implementation over U and CX. If basis contains names, then
-        those custom gates are not expanded. For example, if "u3"
+        implementation over U and CX. If basis contains some custom gates,
+        then those custom gates are not expanded. For example, if "u3"
         is in basis, then the gate "u3" will not be expanded wherever
         it occurs.
 
-        This member function replicates the behavior of the unroller
+        This method replicates the behavior of the unroller
         module without using the OpenQASM parser.
         """
 
         if basis is None:
-            basis = self.backend.basis
+            basis = self.backend.circuit.basis
 
         if not isinstance(self.backend, DAGBackend):
             raise UnrollerError("expand_gates only accepts a DAGBackend!!")
@@ -81,6 +87,7 @@ class DagUnroller(object):
             )))
             children.append(gate["body"])
             gatedefs.append(Gate(children))
+        
         # Walk through the DAG and examine each node
         builtins = ["U", "CX", "measure", "reset", "barrier"]
         simulator_builtins = ['snapshot', 'save', 'load', 'noise']
@@ -160,62 +167,35 @@ class DagUnroller(object):
 
     def _process(self):
         """Process dag nodes, assuming that expand_gates has already been called."""
-        print(self.dag_circuit.qregs)
-        print(self.dag_circuit.cregs)
         for qreg in self.dag_circuit.qregs.values():
             self.backend.new_qreg(qreg)
         for creg in self.dag_circuit.cregs.values():
             self.backend.new_creg(creg)
-        for name, data in self.dag_circuit.gates.items():
-            self.backend.define_gate(name, data)
         for n in nx.topological_sort(self.dag_circuit.multi_graph):
             current_node = self.dag_circuit.multi_graph.node[n]
             if current_node["type"] == "op":
-                params = map(Real, current_node["op"].param)
-                params = list(params)
-                print("name: ", current_node["name"])
-                print("params: ", params)
                 if current_node["condition"] is not None:
                     self.backend.set_condition(current_node["condition"][0],
                                                current_node["condition"][1])
-                if not current_node["op"].cargs:
-                    if current_node["op"].name == "U":
-                        print("U params: ", params)
-                        print("U qargs: ", current_node["op"].qargs[0])
-                        self.backend.u(params, current_node["op"].qargs[0])
-                    elif current_node["op"].name == "CX":
-                        self.backend.cx(current_node["op"].qargs[0], current_node["op"].qargs[1])
-                    elif current_node["op"].name == "barrier":
-                        self.backend.barrier([current_node["op"].qargs])
-                    elif current_node["op"].name == "reset":
-                        self.backend.reset(current_node["op"].qargs[0])
 
-                    # TODO: The schema of the snapshot gate is radically
-                    # different to other QASM instructions. The current model
-                    # of extensions does not support generating custom Qobj
-                    # instructions (only custom QASM strings) and the default
-                    # instruction generator is not enough to produce a valid
-                    # snapshot instruction for the new Qobj format.
-                    #
-                    # This is a hack since there would be mechanisms for the
-                    # extensions to provide their own Qobj instructions.
-                    # Extensions should not be hardcoded in the DAGUnroller.
-                    elif current_node["op"].name == "snapshot":
-                        self.backend.start_gate(current_node["op"],
-                            extra_fields={'type': 'MISSING', 'label': 'MISSING', 'texparams': []})
-                        self.backend.end_gate(current_node["op"])
-                    else:
-                        self.backend.start_gate(current_node["op"])
-                        self.backend.end_gate(current_node["op"])
-                else:
-                    if current_node["op"].name == "measure":
-                        if len(current_node["op"].cargs) != 1 or len(current_node["op"].qargs) != 1 \
-                           or current_node["op"].param:
-                            raise UnrollerError("Bad node data!!")
+                # TODO: The schema of the snapshot gate is radically
+                # different to other QASM instructions. The current model
+                # of extensions does not support generating custom Qobj
+                # instructions (only custom QASM strings) and the default
+                # instruction generator is not enough to produce a valid
+                # snapshot instruction for the new Qobj format.
+                #
+                # This is a hack since there would be mechanisms for the
+                # extensions to provide their own Qobj instructions.
+                # Extensions should not be hardcoded in the DAGUnroller.
+                extra_fields = None
+                if current_node["op"].name == "snapshot":
+                    extra_fields = {'type': 'MISSING', 'label': 'MISSING',
+                                    'texparams': []}
 
-                        self.backend.measure(current_node["op"].qargs[0], current_node["op"].cargs[0])
-                    else:
-                        raise UnrollerError("Bad node data!")
+                self.backend.start_gate(current_node["op"], extra_fields=extra_fields)
+                self.backend.end_gate(current_node["op"])
 
                 self.backend.drop_condition()
+
         return self.backend.get_output()
