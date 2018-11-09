@@ -16,8 +16,8 @@ from marshmallow_polyfield import PolyField
 class BasePolyField(PolyField):
     """Base class for polymorphic fields.
 
-    Defines a Field where its data can be of multiple types, that can be
-    picked based on the ``to_dict_selector()`` and ``from_dict_selector()``
+    Defines a Field that can contain data of different types. Deciding the
+    type is performed by the ``to_dict_selector()`` and ``from_dict_selector()``
     functions, that act on ``choices``. Subclasses are recommended to:
 
     * define the type of the ``choices`` attribute. It should contain a

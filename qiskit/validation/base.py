@@ -7,7 +7,22 @@
 
 """Building blocks for Qiskit validated classes.
 
-The module contains bases and utilities for validation."""
+This module provides the ``BaseSchema`` and ``BaseModel`` classes as the main
+building blocks for defining objects (Models) that conform to a specification
+(Schema) and are validated at instantiation, along with providing facilities
+for being serialized and deserialized.
+
+Implementors are recommended to subclass the two classes, and "binding" them
+together by using ``bind_schema``::
+
+    class PersonSchema(BaseSchema):
+        name = StringType(required=True)
+
+    @bind_schema(PersonSchema)
+    class Person(BaseModel):
+        pass
+"""
+
 from functools import wraps
 from types import SimpleNamespace
 
@@ -16,10 +31,12 @@ from marshmallow import Schema, post_dump, post_load
 
 
 class BaseSchema(Schema):
-    """Provide deserialization into class instances instead of dicts.
+    """Base class for Schemas for validated Qiskit classes.
 
-    Conveniently for the Qiskit common case, this class also loads and dumps
-    unknown attributes not defined in the schema.
+    Provides convenience functionality for the Qiskit common use case:
+
+    * deserialization into class instances instead of dicts.
+    * handling of unknown attributes not defined in the schema.
 
     Attributes:
          model_cls (type): class used to instantiate the instance. The
@@ -62,7 +79,7 @@ class BaseSchema(Schema):
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
 
-        From https://github.com/marshmallow-code/marshmallow/pull/595.
+        Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
 
         additional_keys = set(original_data) - set(valid_data)
@@ -77,9 +94,8 @@ class BaseSchema(Schema):
         return self.model_cls(**data)
 
 
-class _BindSchema:
-    """Aux class to implement the parametrized decorator ``bind_schema``.
-    """
+class _SchemaBinder:
+    """Helper class for the parametrized decorator ``bind_schema``."""
 
     def __init__(self, schema_cls):
         """Get the schema for the decorated model."""
@@ -141,13 +157,8 @@ class _BindSchema:
         return _decorated
 
 
-class BaseModel(SimpleNamespace):
-    """Root class for validated Qiskit classes."""
-    pass
-
-
 def bind_schema(schema):
-    """By decorating a class, it adds schema validation to its instances.
+    """Class decorator for adding schema validation to its instances.
 
     Instances of the decorated class are automatically validated after
     instantiation and they are augmented to allow further validations with the
@@ -184,4 +195,9 @@ def bind_schema(schema):
     Return:
         type: the same class with validation capabilities.
     """
-    return _BindSchema(schema)
+    return _SchemaBinder(schema)
+
+
+class BaseModel(SimpleNamespace):
+    """Base class for Models for validated Qiskit classes."""
+    pass
