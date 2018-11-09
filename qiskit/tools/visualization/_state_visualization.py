@@ -41,6 +41,40 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
+def plot_hinton(rho, title='', filename=None):
+    """Plot a hinton diagram for the quanum state.
+
+    Args:
+        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
+                                   numbers
+        title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
+    """
+    fig = plt.figure()
+    ax = fig.gca()
+    max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
+    ax.patch.set_facecolor('gray')
+    ax.set_aspect('equal', 'box')
+    ax.xaxis.set_major_locator(plt.NullLocator())
+    ax.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(rho):
+        color = 'white' if w > 0 else 'black'
+        size = np.sqrt(np.abs(w) / max_weight)
+        rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                             facecolor=color, edgecolor=color)
+        ax.add_patch(rect)
+
+    ax.autoscale_view()
+    ax.invert_yaxis()
+    plt.title(title)
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
+
+
 def plot_bloch_vector(bloch, title="", filename=None):
     """Plot the Bloch sphere.
 
@@ -398,6 +432,8 @@ def plot_state(quantum_state, method='city', filename=None):
             plot_bloch_vector(bloch_state, "qubit " + str(i), filename=filename)
     elif method == "wigner":
         plot_wigner_function(rho, filename=filename)
+    elif method == "hinton":
+        plot_hinton(rho, filename=filename)
 
 
 ###############################################################
