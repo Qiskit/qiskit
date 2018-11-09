@@ -7,7 +7,7 @@
 
 """Pass for grouping runs of two qubit gates and returning another graph with larger nodes.
 """
-from collections import defaultdict
+# from collections import defaultdict
 from qiskit.transpiler import AnalysisPass
 
 # This will be turned into an analysis pass.  At present this class is only used by a_star_cx.py
@@ -28,9 +28,11 @@ class GroupGates(AnalysisPass):
             dag: directed acyclic graph (Note: DiGraph instead of MultiDiGraph)
         """
 
-    # group all gate that are applied to two certain qubits (if possible) in a greedy fashion
-    # return a graph holding the grouped gates
     def group_gates(compiled_dag):
+        """
+        Group all gate that are applied to two certain qubits (if possible) in a greedy fashion
+        return a graph holding the grouped gates.
+        """
 
         import networkx as nx
 
@@ -45,65 +47,63 @@ class GroupGates(AnalysisPass):
         qubit_names = sorted(compiled_dag.get_qubits())
         counter = 0
         for i in gates:
-            nd = compiled_dag.multi_graph.node[i]
-            if nd["type"] != "op":
+            node_i = compiled_dag.multi_graph.node[i]
+            if node_i["type"] != "op":
                 continue
-            if nd["name"] == "u3" or nd["name"] == "u2" or nd["name"] == "u1":
-                qubit = qubit_names.index(nd["qargs"][0])
+            if node_i["name"] == "u3" or node_i["name"] == "u2" or node_i["name"] == "u1":
+                qubit = qubit_names.index(node_i["qargs"][0])
                 if last_index[qubit] == -1:
-                    single_qubit_gates[qubit] += [nd]
+                    single_qubit_gates[qubit] += [node_i]
                 else:
-                    graph.node[last_index[qubit]]["gates"] += [nd]
-            elif nd["name"] == "cx":
-                q1 = qubit_names.index(nd["qargs"][0])
-                q2 = qubit_names.index(nd["qargs"][1])
-                if last_index[q1] == -1 and last_index[q2] == -1:
+                    graph.node[last_index[qubit]]["gates"] += [node_i]
+            elif node_i["name"] == "cx":
+                q_1 = qubit_names.index(node_i["qargs"][0])
+                q_2 = qubit_names.index(node_i["qargs"][1])
+                if last_index[q_1] == -1 and last_index[q_2] == -1:
                     graph.add_node(
                         nnodes,
-                        gates=single_qubit_gates[q1] + single_qubit_gates[q2] + [nd],
-                        qubits=(q1, q2),
+                        gates=single_qubit_gates[q_1] + single_qubit_gates[q_2] + [node_i],
+                        qubits=(q_1, q_2),
                     )
                     counter += 1
-                    single_qubit_gates[q1] = []
-                    single_qubit_gates[q2] = []
-                    last_index[q1] = nnodes
-                    last_index[q2] = nnodes
+                    single_qubit_gates[q_1] = []
+                    single_qubit_gates[q_2] = []
+                    last_index[q_1] = nnodes
+                    last_index[q_2] = nnodes
                     nnodes += 1
-                elif last_index[q1] == -1:
+                elif last_index[q_1] == -1:
                     graph.add_node(
-                        nnodes, gates=single_qubit_gates[q1] + [nd], qubits=(q1, q2)
+                        nnodes, gates=single_qubit_gates[q_1] + [node_i], qubits=(q_1, q_2)
                     )
                     counter += 1
-                    graph.add_edge(last_index[q2], nnodes)
-                    single_qubit_gates[q1] = []
-                    last_index[q1] = nnodes
-                    last_index[q2] = nnodes
+                    graph.add_edge(last_index[q_2], nnodes)
+                    single_qubit_gates[q_1] = []
+                    last_index[q_1] = nnodes
+                    last_index[q_2] = nnodes
                     nnodes += 1
-                elif last_index[q2] == -1:
+                elif last_index[q_2] == -1:
                     graph.add_node(
-                        nnodes, gates=single_qubit_gates[q2] + [nd], qubits=(q1, q2)
+                        nnodes, gates=single_qubit_gates[q_2] + [node_i], qubits=(q_1, q_2)
                     )
                     counter += 1
-                    graph.add_edge(last_index[q1], nnodes)
-                    single_qubit_gates[q2] = []
-                    last_index[q1] = nnodes
-                    last_index[q2] = nnodes
+                    graph.add_edge(last_index[q_1], nnodes)
+                    single_qubit_gates[q_2] = []
+                    last_index[q_1] = nnodes
+                    last_index[q_2] = nnodes
                     nnodes += 1
                 else:
-                    if (
-                        last_index[q2] == last_index[q1]
-                        and len(graph.node[last_index[q2]]["qubits"]) != nqubits
-                    ):
-                        graph.node[last_index[q1]]["gates"] += [nd]
+                    if (last_index[q_2] == last_index[q_1]
+                            and len(graph.node[last_index[q_2]]["qubits"]) != nqubits):
+                        graph.node[last_index[q_1]]["gates"] += [node_i]
                     else:
-                        graph.add_node(nnodes, gates=[nd], qubits=(q1, q2))
+                        graph.add_node(nnodes, gates=[node_i], qubits=(q_1, q_2))
                         counter += 1
-                        graph.add_edge(last_index[q1], nnodes)
-                        graph.add_edge(last_index[q2], nnodes)
-                        last_index[q1] = nnodes
-                        last_index[q2] = nnodes
+                        graph.add_edge(last_index[q_1], nnodes)
+                        graph.add_edge(last_index[q_2], nnodes)
+                        last_index[q_1] = nnodes
+                        last_index[q_2] = nnodes
                         nnodes += 1
-            elif nd["name"] == "barrier":
+            elif node_i["name"] == "barrier":
                 for i in range(len(single_qubit_gates)):
                     if single_qubit_gates[i] != []:
                         graph.add_node(
@@ -113,14 +113,14 @@ class GroupGates(AnalysisPass):
                         last_index[i] = nnodes
                         single_qubit_gates[i] = []
                         nnodes += 1
-                graph.add_node(nnodes, gates=[nd], qubits=tuple(range(0, nqubits)))
+                graph.add_node(nnodes, gates=[node_i], qubits=tuple(range(0, nqubits)))
                 counter += 1
                 for i in range(nqubits):
                     graph.add_edge(last_index[i], nnodes)
                     last_index[i] = nnodes
                 nnodes += 1
-            elif nd["name"] == "measure":
-                qubit = qubit_names.index(nd["qargs"][0])
+            elif node_i["name"] == "measure":
+                qubit = qubit_names.index(node_i["qargs"][0])
                 if single_qubit_gates[qubit] != []:
                     graph.add_node(
                         nnodes, gates=single_qubit_gates[qubit], qubits=tuple([qubit])
@@ -129,7 +129,7 @@ class GroupGates(AnalysisPass):
                     last_index[qubit] = nnodes
                     single_qubit_gates[qubit] = []
                     nnodes += 1
-                graph.add_node(nnodes, gates=[nd], qubits=tuple([qubit]))
+                graph.add_node(nnodes, gates=[node_i], qubits=tuple([qubit]))
                 counter += 1
                 if last_index[qubit] != -1:
                     graph.add_edge(last_index[qubit], nnodes)

@@ -39,7 +39,7 @@ class AStarCX(TransformationPass):
         """
         from qiskit.transpiler.passes.group_gates import GroupGates
         from qiskit.transpiler.passes.a_star_mapper import a_star_mapper
-        from qiskit.transpiler.passes import post_mapping_optimization
+        from qiskit.transpiler.passes.post_mapping_optimization import optimize_gate_groups
         from qiskit.dagcircuit import DAGCircuit
 
         # import time
@@ -139,7 +139,7 @@ class AStarCX(TransformationPass):
 
         # post-mapping optimization: build 4x4 matrix for gate groups and decompose them
         # using KAK decomposition.  Moreover, subsequent single qubit gates are optimized.
-        compiled_dag = post_mapping_optimization.optimize_gate_groups(
+        compiled_dag = optimize_gate_groups(
             grouped_gates_compiled,
             coupling.get_edges(),
             copy.deepcopy(empty_dag),
