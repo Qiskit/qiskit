@@ -14,4 +14,8 @@ class SwapMapper(TransformationPass):
         self.coupling_map = coupling_map
 
     def run(self, dag):
+        for layer in dag.layers():
+            subdag = layer['graph']
+            if not ('cx' in subdag.count_ops() or 'CX' in subdag.count_ops()):
+                continue
         return dag

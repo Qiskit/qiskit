@@ -30,7 +30,7 @@ class TestSwapMapper(QiskitTestCase):
         dag.apply_operation_back('CX', [('q', 0), ('q', 1)])
         dag.apply_operation_back('U', [('q', 0)])
         dag.apply_operation_back('CX', [('q', 0), ('q', 2)])
-        dag.apply_operation_back('U', [('q', 2)])
+        dag.apply_operation_back('U', [('q', 0)])
         before = dag.qasm()
         after_dag = pass_.run(dag)
         self.assertEqual(before, after_dag.qasm())
