@@ -8,57 +8,11 @@
 """Building blocks for Qiskit validated classes.
 
 The module contains bases and utilities for validation."""
-from abc import ABC
-from functools import wraps, partial
+from functools import wraps
 from types import SimpleNamespace
 
 from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load
-from marshmallow_polyfield import PolyField
-
-
-class BasePolyField(ABC, PolyField):
-
-    def __init__(self, choices, many=False, **metadata):
-        to_dict_selector = partial(self.to_dict_selector, choices)
-        from_dict_selector = partial(self.from_dict_selector, choices)
-        PolyField.__init__(
-            self, to_dict_selector, from_dict_selector, many, metadata)
-
-    def to_dict_selector(self, choices, *args, **kwargs):
-        raise NotImplemented()
-
-    def from_dict_selector(self, choices, *args, **kwargs):
-        raise NotImplemented()
-
-
-class TryFrom(BasePolyField):
-
-    def to_dict_selector(self, choices, data):
-        for schema_cls in choices:
-            try:
-                schema = schema_cls(strict=True)
-                data, errors = schema.dump(data).data
-                if not errors:
-                    schema.load(data)
-                    return schema_cls
-            except Exception:
-                pass
-
-        raise ValueError(
-            'Cannot find a schema for {} among {}.'.format(data, self._choices))
-
-    def from_dict_selector(self, choices, data):
-        for schema_cls in choices:
-            try:
-                schema = schema_cls(strict=True)
-                schema.load(data)
-                return schema_cls
-            except Exception:
-                pass
-
-        raise ValueError(
-            'Cannot find a schema for {} among {}.'.format(data, self._choices))
 
 
 class BaseSchema(Schema):
