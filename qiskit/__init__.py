@@ -29,6 +29,7 @@ from ._measure import Measure
 from ._schema_validation import (validate_json_against_schema,
                                  SchemaValidationError)
 from .result import Result
+from ._pubsub import Publisher, Subscriber
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.

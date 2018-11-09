@@ -14,6 +14,7 @@ from .progressbar import HTMLProgressBar
 from .backend_monitor import BackendMonitor
 
 _IP = get_ipython()
-_IP.register_magics(ProgressBarMagic)
-_IP.register_magics(StatusMagic)
-_IP.register_magics(BackendMonitor)
+if _IP is not None:
+    _IP.register_magics(ProgressBarMagic)
+    _IP.register_magics(StatusMagic)
+    _IP.register_magics(BackendMonitor)

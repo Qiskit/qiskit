@@ -43,17 +43,18 @@
 import time
 import datetime
 import sys
-from ._receiver import receiver as rec
+import ipywidgets as widgets                # pylint: disable=import-error
+from IPython.display import display         # pylint: disable=import-error
+from qiskit._pubsub import Subscriber
 
 
-class BaseProgressBar(object):
+class BaseProgressBar(Subscriber):
     """An abstract progress bar with some shared functionality.
     """
-
     def __init__(self):
+        super().__init__()
         self.type = 'progressbar'
         self.touched = False
-        self.channel_id = rec.add_channel(self)
         self.iter = None
         self.t_start = None
         self.t_done = None
@@ -104,13 +105,100 @@ class BaseProgressBar(object):
     def finished(self):
         """Run when progress bar has completed.
         """
-        rec.remove_channel(self.channel_id)
+        pass
+
+
+class HTMLProgressBar(BaseProgressBar):
+    """
+    A simple HTML progress bar for using in IPython notebooks.
+    """
+    def __init__(self):
+        super().__init__()
+        self.progress_bar = None
+        self.label = None
+        self.box = None
+        self._init_subscriber()
+
+    def _init_subscriber(self):
+        def _initialize_progress_bar(num_tasks):
+            """ When an event of compilation starts, this function will be called, and
+            will initialize the progress bar.
+
+            Args
+                num_tasks: Number of compilation tasks the progress bar will track
+            """
+            self.start(num_tasks)
+        self.subscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
+
+        def _update_progress_bar(progress):
+            """ When an event of compilation completes, this function will be called, and
+            will update the progress bar indication.
+
+            Args
+                progress: Number of tasks completed
+            """
+            self.update(progress)
+        self.subscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
+
+        def _finish_progress_bar():
+            """ When an event of compilation finishes (meaning that there's no more circuits to
+            compile), this function will be called, unsubscribing from all events and
+            finishing the progress bar."""
+            self.unsubscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
+            self.unsubscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
+            self.unsubscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+            self.finished()
+        self.subscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+
+    def start(self, iterations):
+        self.touched = True
+        self.iter = int(iterations)
+        self.t_start = time.time()
+        self.progress_bar = widgets.IntProgress(min=0, max=self.iter, value=0)
+        self.progress_bar.bar_style = 'info'
+        self.label = widgets.HTML()
+        self.box = widgets.VBox(children=[self.label, self.progress_bar])
+        display(self.box)
+
+    def update(self, n):
+        self.progress_bar.value += 1
+        lbl = "Completed %s/%s: Est. remaining time: %s."
+        self.label.value = lbl % (n, self.iter, self.time_remaining_est(n))
+
+    def finished(self):
+        self.t_done = time.time()
+        self.progress_bar.bar_style = 'success'
+        self.label.value = "Elapsed time: %s" % self.time_elapsed()
 
 
 class TextProgressBar(BaseProgressBar):
     """
     A simple text-based progress bar.
     """
+
+    def __init__(self):
+        super().__init__()
+        self._init_subscriber()
+
+    def _init_subscriber(self):
+        def _initialize_progress_bar(num_tasks):
+            """ """
+            self.start(num_tasks)
+        self.subscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
+
+        def _update_progress_bar(progress):
+            """ """
+            self.update(progress)
+        self.subscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
+
+        def _finish_progress_bar():
+            """ """
+            self.unsubscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
+            self.unsubscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
+            self.unsubscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+            self.finished()
+        self.subscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+
     def start(self, iterations):
         self.touched = True
         self.iter = int(iterations)

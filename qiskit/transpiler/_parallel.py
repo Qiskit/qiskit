@@ -48,8 +48,7 @@ import platform
 from multiprocessing import Pool
 from qiskit._qiskiterror import QISKitError
 from qiskit._util import local_hardware_info
-from ._receiver import receiver as rec
-from ._progressbar import BaseProgressBar
+from qiskit._pubsub import Publisher
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
@@ -81,29 +80,22 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
 
     Raises:
         QISKitError: If user interrupts via keyboard.
+
+    Events:
+        terra.transpiler.parallel.start: The collection of parallel tasks are about to start.
+        terra.transpiler.parallel.update: One of the parallel task has finished.
+        terra.transpiler.parallel.finish: All the parallel tasks have finished.
     """
-    # len(values) == 1
+    Publisher().publish("terra.transpiler.parallel.start", len(values))
     if len(values) == 1:
+        Publisher().publish("terra.transpiler.parallel.finish")
         return [task(values[0], *task_args, **task_kwargs)]
 
-    # Get last element of the receiver channels
-    if any(rec.channels):
-        progress_bar = None
-        for idx in rec.channels:
-            if rec.channels[idx].type == 'progressbar' and not rec.channels[idx].touched:
-                progress_bar = rec.channels[idx]
-                break
-        if progress_bar is None:
-            progress_bar = BaseProgressBar()
-    else:
-        progress_bar = BaseProgressBar()
-
-    progress_bar.start(len(values))
     nfinished = [0]
 
-    def _callback(x):  # pylint: disable=W0613
+    def _callback(_):
         nfinished[0] += 1
-        progress_bar.update(nfinished[0])
+        Publisher().publish("terra.transpiler.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
     if platform.system() != 'Windows' and num_processes > 1 \
@@ -125,10 +117,10 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         except KeyboardInterrupt:
             pool.terminate()
             pool.join()
-            progress_bar.finished()
+            Publisher().publish("terra.parallel.parallel.finish")
             raise QISKitError('Keyboard interrupt in parallel_map.')
 
-        progress_bar.finished()
+        Publisher().publish("terra.transpiler.parallel.finish")
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
         return [ar.get() for ar in async_res]
 
@@ -139,5 +131,5 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         result = task(value, *task_args, **task_kwargs)
         results.append(result)
         _callback(0)
-    progress_bar.finished()
+    Publisher().publish("terra.transpiler.parallel.finish")
     return results
