@@ -61,7 +61,7 @@ def plot_hinton(rho, title='', filename=None):
     lx = len(datareal[0])            # Work out matrix dimensions
     ly = len(datareal[:, 0])
     # Real
-    ax1 = fig.add_subplot(2, 1, 1)
+    ax1 = fig.add_subplot(1, 2, 1)
     ax1.patch.set_facecolor('gray')
     ax1.set_aspect('equal', 'box')
     ax1.xaxis.set_major_locator(plt.NullLocator())
@@ -82,7 +82,7 @@ def plot_hinton(rho, title='', filename=None):
     ax1.invert_yaxis()
     ax1.set_title('Real[rho]')
     # Imaginary
-    ax2 = fig.add_subplot(2, 1, 2)
+    ax2 = fig.add_subplot(1, 2, 2)
     ax2.patch.set_facecolor('gray')
     ax2.set_aspect('equal', 'box')
     ax2.xaxis.set_major_locator(plt.NullLocator())
