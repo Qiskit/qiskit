@@ -11,7 +11,7 @@
 from marshmallow import fields, ValidationError
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import TryFrom
+from qiskit.validation.fields import TryFrom, ByAttribute
 from .common import QiskitTestCase
 
 
@@ -148,8 +148,10 @@ class CatSchema(BaseSchema):
 
 
 class PetOwnerSchema(BaseSchema):
-    """Example PetOwner schema."""
+    """Example PetOwner schema, with different polymorphic fields."""
     auto_pets = TryFrom([CatSchema, DogSchema], many=True)
+    by_attribute_pets = ByAttribute({'fur_density': CatSchema,
+                                     'barking_power': DogSchema}, many=True)
 
 
 @bind_schema(DogSchema)
@@ -194,4 +196,41 @@ class TestFields(QiskitTestCase):
         with self.assertRaises(ValidationError) as context_manager:
             _ = PetOwner(auto_pets=[Cat(fur_density=1.5),
                                     Person(name='John Doe')])
-        self.assertIn('auto_pet', str(context_manager.exception))
+        self.assertIn('auto_pets', str(context_manager.exception))
+
+    def test_try_from_field_invalid_from_dict(self):
+        """Test the TryFrom field, instantiation from dict, with invalid."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner.from_dict({'auto_pets': [{'fur_density': 1.5},
+                                                  {'name': 'John Doe'}]})
+        self.assertIn('auto_pets', str(context_manager.exception))
+
+    def test_by_attribute_field_instantiate(self):
+        """Test the ByAttribute field, instantiation."""
+        pet_owner = PetOwner(by_attribute_pets=[Cat(fur_density=1.5),
+                                                Dog(barking_power=100)])
+        self.assertIsInstance(pet_owner.by_attribute_pets[0], Cat)
+        self.assertIsInstance(pet_owner.by_attribute_pets[1], Dog)
+        self.assertEqual(pet_owner.by_attribute_pets[0].fur_density, 1.5)
+
+    def test_by_attribute_field_instantiate_from_dict(self):
+        """Test the ByAttribute field, instantiation from dict."""
+        pet_owner = PetOwner.from_dict({'by_attribute_pets': [{'fur_density': 1.5},
+                                                              {'barking_power': 100}]})
+        self.assertIsInstance(pet_owner.by_attribute_pets[0], Cat)
+        self.assertIsInstance(pet_owner.by_attribute_pets[1], Dog)
+        self.assertEqual(pet_owner.by_attribute_pets[0].fur_density, 1.5)
+
+    def test_by_attribute_field_invalid(self):
+        """Test the ByAttribute field, with invalid kind of object."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner(by_attribute_pets=[Cat(fur_density=1.5),
+                                            Person(name='John Doe')])
+        self.assertIn('by_attribute_pets', str(context_manager.exception))
+
+    def test_by_attribute_field_invalid_from_dict(self):
+        """Test the ByAttribute field, instantiation from dict, with invalid."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner.from_dict({'by_attribute_pets': [{'fur_density': 1.5},
+                                                          {'name': 'John Doe'}]})
+        self.assertIn('by_attribute_pets', str(context_manager.exception))

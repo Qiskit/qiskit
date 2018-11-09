@@ -33,6 +33,7 @@ class BasePolyField(PolyField):
         many (bool): whether the field is a collection of objects.
         metadata (dict): the same keyword arguments that ``PolyField`` receives.
     """
+
     def __init__(self, choices, many=False, **metadata):
         to_dict_selector = partial(self.to_dict_selector, choices)
         from_dict_selector = partial(self.from_dict_selector, choices)
@@ -54,6 +55,15 @@ class BasePolyField(PolyField):
         except ValidationError as ex:
             if 'deserialization_schema_selector' in ex.messages[0]:
                 ex.messages[0] = 'Cannot find a valid schema among the choices'
+            raise
+
+    def _serialize(self, value, key, obj):
+        """Override _serialize for customizing the Exception raised."""
+        try:
+            return super()._serialize(value, key, obj)
+        except TypeError as ex:
+            if 'serialization_schema_selector' in str(ex):
+                raise ValidationError('Data from an invalid schema')
             raise
 
 
@@ -79,14 +89,10 @@ class TryFrom(BasePolyField):
 
     def to_dict_selector(self, choices, base_object, *_):
         # pylint: disable=arguments-differ
-        for schema_cls in choices:
-            try:
-                schema = schema_cls(strict=True)
-                _, errors = schema.dump(base_object)
-                if not errors:
-                    return schema_cls()
-            except ValidationError:
-                pass
+        if getattr(base_object, 'schema'):
+            if base_object.schema.__class__ in choices:
+                return base_object.schema
+
         return None
 
     def from_dict_selector(self, choices, base_dict, *_):
@@ -99,4 +105,40 @@ class TryFrom(BasePolyField):
                 return schema_cls()
             except ValidationError:
                 pass
+        return None
+
+
+class ByAttribute(BasePolyField):
+    """Polymorphic field that disambiguates based on an attribute's existence.
+
+    Polymorphic field that accepts a dictionary of (``'attribute': schema``)
+    entries, and checks for the existence of ``attribute`` in the data for
+    disambiguating.
+
+    Examples:
+        class PetOwnerSchema(BaseSchema):
+            pet = ByAttribute({'fur_density': CatSchema,
+                               'barking_power': DogSchema)}
+
+    Args:
+        choices (dict[string: class]): dictionary with attribute names as
+            keys, and BaseSchema classes as values.
+        many (bool): whether the field is a collection of objects.
+        metadata (dict): the same keyword arguments that ``PolyField`` receives.
+    """
+
+    def to_dict_selector(self, choices, base_object, *_):
+        # pylint: disable=arguments-differ
+        if getattr(base_object, 'schema'):
+            if base_object.schema.__class__ in choices.values():
+                return base_object.schema
+
+        return None
+
+    def from_dict_selector(self, choices, base_dict, *_):
+        # pylint: disable=arguments-differ
+        for attribute, schema_cls in choices.items():
+            if attribute in base_dict:
+                return schema_cls()
+
         return None
