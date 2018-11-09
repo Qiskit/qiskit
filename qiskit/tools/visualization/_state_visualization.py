@@ -52,23 +52,46 @@ def plot_hinton(rho, title='', filename=None):
             will save and exit and not open up the plot in a new window.
     """
     fig = plt.figure()
-    ax = fig.gca()
     max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
-    ax.patch.set_facecolor('gray')
-    ax.set_aspect('equal', 'box')
-    ax.xaxis.set_major_locator(plt.NullLocator())
-    ax.yaxis.set_major_locator(plt.NullLocator())
+    datareal = np.real(rho)
+    dataimag = np.imag(rho)
 
-    for (x, y), w in np.ndenumerate(rho):
+    # Real
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax1.patch.set_facecolor('gray')
+    ax1.set_aspect('equal', 'box')
+    ax1.xaxis.set_major_locator(plt.NullLocator())
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(datareal):
         color = 'white' if w > 0 else 'black'
         size = np.sqrt(np.abs(w) / max_weight)
         rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
                              facecolor=color, edgecolor=color)
-        ax.add_patch(rect)
+        ax1.add_patch(rect)
 
-    ax.autoscale_view()
-    ax.invert_yaxis()
-    plt.title(title)
+    ax1.autoscale_view()
+    ax1.invert_yaxis()
+    ax1.set_title('Real[rho]')
+    # Imaginary
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.patch.set_facecolor('gray')
+    ax2.set_aspect('equal', 'box')
+    ax2.xaxis.set_major_locator(plt.NullLocator())
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(dataimag):
+        color = 'white' if w > 0 else 'black'
+        size = np.sqrt(np.abs(w) / max_weight)
+        rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                             facecolor=color, edgecolor=color)
+        ax2.add_patch(rect)
+
+    ax2.autoscale_view()
+    ax2.invert_yaxis()
+    ax2.set_title('Imag[rho]')
+    if title:
+        plt.title(title)
     if filename:
         plt.savefig(filename)
     else:
