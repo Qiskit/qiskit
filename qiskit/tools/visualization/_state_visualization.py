@@ -51,11 +51,15 @@ def plot_hinton(rho, title='', filename=None):
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
     """
+    num = int(np.log2(len(rho)))
     fig = plt.figure()
     max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
     datareal = np.real(rho)
     dataimag = np.imag(rho)
-
+    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    lx = len(datareal[0])            # Work out matrix dimensions
+    ly = len(datareal[:, 0])
     # Real
     ax1 = fig.add_subplot(2, 1, 1)
     ax1.patch.set_facecolor('gray')
@@ -70,6 +74,10 @@ def plot_hinton(rho, title='', filename=None):
                              facecolor=color, edgecolor=color)
         ax1.add_patch(rect)
 
+    ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
+    ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax1.set_yticklabels(row_names, fontsize=12)
+    ax1.set_xticklabels(column_names, fontsize=12, rotation=-90)
     ax1.autoscale_view()
     ax1.invert_yaxis()
     ax1.set_title('Real[rho]')
@@ -87,11 +95,16 @@ def plot_hinton(rho, title='', filename=None):
                              facecolor=color, edgecolor=color)
         ax2.add_patch(rect)
 
+    ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
+    ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax2.set_yticklabels(row_names, fontsize=12)
+    ax2.set_xticklabels(column_names, fontsize=12, rotation=-90)
     ax2.autoscale_view()
     ax2.invert_yaxis()
     ax2.set_title('Imag[rho]')
     if title:
         plt.title(title)
+    plt.tight_layout()
     if filename:
         plt.savefig(filename)
     else:
