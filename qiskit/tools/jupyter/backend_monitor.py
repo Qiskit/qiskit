@@ -56,14 +56,15 @@ class BackendMonitor(Magics):
 
         labels_widget = widgets.VBox([qubit_label, pend_label, least_label,
                                       oper_label, t1_label, t2_label],
-                                     layout=widgets.Layout(margin='300px 0px 0px 0px'))
+                                     layout=widgets.Layout(margin='295px 0px 0px 0px',
+                                                           min_width='100px'))
 
-        backend_grid = GridBox_with_thread(children=[labels_widget] + oper_ord_backends,
+        backend_grid = GridBox_with_thread(children=oper_ord_backends,
                                            layout=widgets.Layout(
-                                               grid_template_columns='100px '+'250px ' * len(unique_hardware_backends),
+                                               grid_template_columns='250px ' * len(unique_hardware_backends),
                                                grid_template_rows='auto',
                                                grid_gap='0px 25px')
-                                          )
+                                         )
 
         backend_grid._backends = _backends
         backend_grid._update = types.MethodType(update_backend_info, backend_grid)
@@ -72,7 +73,9 @@ class BackendMonitor(Magics):
             target=backend_grid._update, args=())
         backend_grid._thread.start()
 
-        back_monitor = widgets.VBox([backend_title, backend_grid])
+        back_box = widgets.HBox([labels_widget, backend_grid])
+
+        back_monitor = widgets.VBox([backend_title, back_box])
         display(back_monitor)
 
 
@@ -181,21 +184,17 @@ def update_backend_info(self, interval=60):
 
             for kk in idx:
                 if kk == least_pending_idx:
-                    self.children[kk +
-                                  1].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
+                    self.children[kk].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
-                    self.children[kk +
-                                  1].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
+                    self.children[kk].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
 
-                self.children[kk+1].children[3].children[1].value = pending[kk]
-                self.children[kk+1].children[3].children[1].max = max(
-                    self.children[kk+1].children[3].children[1].max, pending[kk]+10)
+                self.children[kk].children[3].children[1].value = pending[kk]
+                self.children[kk].children[3].children[1].max = max(
+                    self.children[kk].children[3].children[1].max, pending[kk]+10)
                 if stati[kk]['operational']:
-                    self.children[kk +
-                                  1].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
+                    self.children[kk].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
-                    self.children[kk +
-                                  1].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
+                    self.children[kk].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
 
             started = True
             current_interval = 0
