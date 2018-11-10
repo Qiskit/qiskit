@@ -30,7 +30,9 @@ sequence H on qubit 0 and CX between qubit 0 and 1. This is simple to visualize 
     from qiskit.tools.visualization import circuit_drawer
     circuit_drawer(qc)
 
-.. code-block:: python
+.. image:: images/bell.png
+    :width: 300px
+    :align: center
 
 -------------------
 Qiskit Aer backends
