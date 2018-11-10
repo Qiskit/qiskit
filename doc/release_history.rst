@@ -28,15 +28,17 @@ release, are:
   a more flexible and modular architecture have been set, including
   paralellization of the circuit compilation and numerous optimizations.
 
+^^^^^^^^^^^^^^^^^^
 Upgrading to 0.6.0
-------------------
+^^^^^^^^^^^^^^^^^^
 
 Please note that some backwards-incompatible changes have been introduced
 during this release - the following notes contain information on how to adapt to
 the new changes.
 
+"""""""""""""""""""""""""""""
 Removal of ``QuantumProgram``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""
 
 As hinted during the 0.5 release, the deprecation of the  ``QuantumProgram``
 class has now been completed and is no longer available, in favor of working
@@ -69,8 +71,9 @@ for details about the transition ::
   print("simulation: ", sim_result)
   print(sim_result.get_counts(qc))
 
+"""""""""""""""""""""""""""""""""""""""
 IBM Q Authentication and ``Qconfig.py``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""
 
 The managing of credentials for authenticating when using the IBMQ backends has
 been expanded, and there are new options that can be used for convenience:
@@ -98,8 +101,9 @@ been expanded, and there are new options that can be used for convenience:
 Additionally, the previous method of having a ``Qconfig.py`` file in the program
 folder and passing the credentials explicitly is still supported.
 
+"""""""""""""""""""""
 Working with backends
-^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""
 
 A new mechanism has been introduced in Terra 0.6 as the recommended way for obtaining
 a backend, allowing for more powerful and unified filtering and integrated with
@@ -137,9 +141,9 @@ Qiskit Terra 0.5               Qiskit Terra 0.6
 'local_unitary_simulator_py'   'unitary_simulator'
 =============================  ========================
 
-
+"""""""""""""""""""""""""""
 Backend and Job API changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""
 
 * Jobs submitted to IBM Q backends have improved capabilities. It is possible to
   cancel them and replenish credits (``job.cancel()``), and to retrieve previous jobs
@@ -181,8 +185,10 @@ job.queued
 job.done
 =====================  ========================
 
+""""""""""""""""""""
 Better Jupyter tools
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
+
 The new release contains improvements to the user experience while using Jupyter notebooks.
 
 First, new interactive visualizations of counts histograms and quantum states are provided:
@@ -212,8 +218,9 @@ detailed description of the changes - the highlights are:
   convenience of the users (such as allowing anonymous registers) and for
   enhanced functionality (such as improved plotting of circuits).
 
+^^^^^^^^^^^^^^^^^^
 Upgrading to 0.5.0
-------------------
+^^^^^^^^^^^^^^^^^^
 
 Please note that several backwards-incompatible changes have been introduced
 during this release as a result of the ongoing development. While some of these
@@ -223,8 +230,9 @@ for the new versions and take advantage of the new functionality.
 
 .. _quantum-program-0-5:
 
+""""""""""""""""""""""""""
 ``QuantumProgram`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""
 
 Several methods of the :class:`~qiskit.QuantumProgram` class are on their way
 to being deprecated:
@@ -281,8 +289,9 @@ update example in the Quickstart section, or the
 ``using_qiskit_core_level_0.py`` and ``using_qiskit_core_level_1.py``
 examples on the main repository.
 
+""""""""""""""""""""
 Backend name changes
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 In order to provide a more extensible framework for backends, there have been
 some design changes accordingly:
@@ -321,8 +330,9 @@ some design changes accordingly:
   the backend will be the C++ statevector simulator if available, falling back to
   the Python statevector simulator if not present.
 
+""""""""""""""""""""""""""""""""""
 More flexible names and parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""
 
 Several functions of the SDK have been made more flexible and user-friendly:
 

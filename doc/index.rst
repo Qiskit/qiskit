@@ -7,9 +7,9 @@
 Qiskit Terra Documentation
 ##########################
 
-=================
+*****************
 Table of Contents
-=================
+*****************
 
 .. toctree::
    :maxdepth: 2
@@ -21,13 +21,13 @@ Table of Contents
    Release history <release_history>
    Terra SDK Reference <_autodoc/qiskit>
 
-==============
+**************
 Python Modules
-==============
+**************
 
-------------
+============
 Main Modules
-------------
+============
 
 .. autosummary::
    :nosignatures:
@@ -36,9 +36,9 @@ Main Modules
 
 :ref:`modindex`
 
-
+*******
 Authors 
-=======
+*******
 
 Qiskit Terra would not be possible without the `many contributors <https://github.com/Qiskit/qiskit-terra/graphs/contributors>`_ 
 from our community.
