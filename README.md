@@ -160,12 +160,6 @@ and the token will only be active for the session. For examples using Terra with
 devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in 
 the levels.
 
-For more details on alternative methods for passing
-the IBM Q credentials, such as using environment variables, sending them
-explicitly and support for the `Qconfig.py` method available in previous
-versions, please check
-[Qconfig setup](doc/Qconfig.rst).
-
 ### Next Steps
 
 Now you're set up and ready to check out some of the other examples from our

@@ -1,5 +1,6 @@
-Getting Started
-===============
+========================
+Running Quantum Circuits
+========================
 
 The starting point for writing code is the :class:`~qiskit.QuantumCircuit`.
 A circuit are
@@ -9,6 +10,10 @@ collections of :class:`~qiskit.ClassicalRegister` objects,
 :ref:`top-level functions <qiskit_top_level_functions>`, the circuits can be
 sent to remote quantum devices or local simulator backends and collect the
 results for further analysis.
+
+-------------------
+Qiskit Aer backends
+-------------------
 
 To compose and run a circuit on a simulator one can do,
 
@@ -49,8 +54,9 @@ The :func:`~qiskit.Result.get_counts` method outputs a dictionary of
 
     {'00': 531, '11': 493}
 
-Using the IBMQ cloud quantum chips
-----------------------------------
+-------------------------
+IBM Q cloud real backends
+-------------------------
 
 You can execute your circuits on a real chip by using the IBM Q cloud platform. For chip details, and 
 realtime information `visit IBMQ devices page <https://www.research.ibm.com/ibm-q/technology/devices/>`_.
@@ -93,9 +99,9 @@ Quantum device:
     print("real execution results: ", result_ibmq)
     print(result_ibmq.get_counts(qc))
 
-
-Using the IBMQ cloud hpc simulator
-----------------------------------
+-----------------------
+IBM Q cloud HPC backend
+-----------------------
 
 The ``ibmq_qasm_simulator`` online backend capable of simulating up to32 qubits. It can be used the 
 same way as the real chips. 
