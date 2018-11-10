@@ -2,57 +2,107 @@
 Running Quantum Circuits
 ========================
 
-The starting point for writing code is the :class:`~qiskit.QuantumCircuit`.
-A circuit are
-collections of :class:`~qiskit.ClassicalRegister` objects,
-:class:`~qiskit.QuantumRegister` objects and
-:mod:`gates <qiskit.extensions.standard>`. Through the
-:ref:`top-level functions <qiskit_top_level_functions>`, the circuits can be
-sent to remote quantum devices or local simulator backends and collect the
-results for further analysis.
-
--------------------
-Qiskit Aer backends
--------------------
-
-To compose and run a circuit on a simulator one can do,
+Qiskit Terra makes it simple to run quantum circuits on local or remote backends. As a simple example 
+we consider a quantum circuit that make a Bell state, :math:`(|00>+|11>)/\sqrt(2)`. 
 
 .. code-block:: python
 
-    # Import the Qiskit SDK
+    # Import Qiskit Terra
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-    from qiskit import execute, Aer
+    from qiskit import execute
 
     # Create a Quantum Register with 2 qubits.
     q = QuantumRegister(2)
-    # Create a Classical Register with 2 bits.
-    c = ClassicalRegister(2)
     # Create a Quantum Circuit
-    qc = QuantumCircuit(q, c)
+    qc = QuantumCircuit(q)
 
     # Add a H gate on qubit 0, putting this qubit in superposition.
     qc.h(q[0])
     # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
     # the qubits in a Bell state.
     qc.cx(q[0], q[1])
-    # Add a Measure gate to see the state.
-    qc.measure(q, c)
 
-    # Compile and run the Quantum circuit on a simulator backend
-    backend_sim = Aer.get_backend('qasm_simulator')
+This circuit consist of a quantum register of two qubits and a gate 
+sequence H on qubit 0 and CX between qubit 0 and 1. This is simple to visualize using the `circuit_drawer`
+
+.. code-block:: python
+
+    from qiskit.tools.visualization import circuit_drawer
+    circuit_drawer(qc)
+
+.. code-block:: python
+
+-------------------
+Qiskit Aer backends
+-------------------
+
+To run this circuit on the Qiskit Aer we can use the `statevecoter_simulator` using
+
+.. code-block:: python
+
+    # Import Aer
+    from qiskit import Aer
+    import numpy as np
+
+    # Run the quantum circuit on a statevector simulator backend
+    backend_sim = Aer.get_backend('statevector_simulator')
     job_sim = execute(qc, backend_sim)
     result_sim = job_sim.result()
 
     # Show the results
     print("simulation: ", result_sim )
-    print(result_sim.get_counts(qc))
+    print(np.around(result_sim.get_statevector(qc),4))
+
+which returns the statevector 
+
+.. code-block:: python
+    
+    [0.7071+0.j 0.+0.j 0.+0.j 0.7071+0.j]
+
+Qiskit Aer also includes a `unitary_simulator` 
+
+.. code-block:: python
+
+    # Import Aer
+    from qiskit import Aer
+    import numpy as np
+
+    # Run the quantum circuit on a unitary simulator backend
+    backend_sim = Aer.get_backend('unitary_simulator')
+    job_sim = execute(qc, backend_sim)
+    result_sim = job_sim.result()
+
+    # Show the results
+    print("simulation: ", result_sim )
+    print(np.around(result_sim.get_unitary(qc), 4))
+
+which returns the unitary 
+
+.. code-block:: python
+
+    [[ 0.7071+0.j  0.7071-0.j  0.+0.j  0.+0.j]
+    [ 0.+0.j  0.+0.j  0.7071+0.j -0.7071+0.j]
+    [ 0.+0.j  0.+0.j  0.7071+0.j  0.7071-0.j]
+    [ 0.7071+0.j -0.7071+0.j  0.+0.j  0.+0.j]]
+
+.. note::
+    The tensor order used in qiskit goes :math:`Q_n\otimes \cdots  \otimes  Q_1\otimes Q_0` which is not standard 
+    and results in the CX where
+
+
+https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorial/blob/master/qiskit/terra/using_different_gates.ipynb
+
+followed by a measurement which maps 
+the qubit outcomes to the classical register consisting of two bits
 
 The :func:`~qiskit.Result.get_counts` method outputs a dictionary of
-``state:counts`` pairs;
+``bits:counts`` pairs;
 
 .. code-block:: python
 
     {'00': 531, '11': 493}
+
+Aer also offers a `statevector simulator` that allo
 
 -------------------------
 IBM Q cloud real backends
