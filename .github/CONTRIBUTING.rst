@@ -1,13 +1,16 @@
+============
 Contributing
 ============
 
 **We appreciate all kinds of help, so thank you!**
 
+---------------------------
 Contributing to the project
 ---------------------------
 
 You can contribute in many ways to this project.
 
+~~~~~~~~~~~~~~~
 Issue reporting
 ~~~~~~~~~~~~~~~
 
@@ -15,6 +18,7 @@ This is a good point to start, when you find a problem please add
 it to the `issue tracker <https://github.com/Qiskit/qiskit-terra/issues>`_.
 The ideal report should include the steps to reproduce it.
 
+~~~~~~~~~~~~~~
 Doubts solving
 ~~~~~~~~~~~~~~
 
@@ -22,6 +26,7 @@ To help less advanced users is another wonderful way to start. You can
 help us close some opened issues. This kind of tickets should be
 labeled as ``question``.
 
+~~~~~~~~~~~~~~~~~~~~
 Improvement proposal
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -29,6 +34,7 @@ If you have an idea for a new feature please open a ticket labeled as
 ``enhancement``. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Contributor License Agreement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -46,7 +52,7 @@ NOTE: If you work for a company that wants to allow you to contribute your work,
 then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
 and email it to us at qiskit@us.ibm.com.
 
-
+~~~~~~~~~~~~~~~~~~~~~~~~
 Good first contributions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -54,12 +60,14 @@ You are welcome to contribute wherever in the code you want to, of course, but
 we recommend taking a look at the "Good first contribution" label into the
 issues and pick one. We would love to mentor you!
 
+~~~
 Doc
 ~~~
 
 Review the parts of the documentation regarding the new changes and update it
 if it's needed.
 
+~~~~~~~~~~~~~
 Pull requests
 ~~~~~~~~~~~~~
 
@@ -86,6 +94,7 @@ you are ready to start coding (yay!). We have two options here:
    will remove the **[WIP]** prefix from the description once the PR is ready
    to merge.
 
+""""""""""""""""""""""
 Pull request checklist
 """"""""""""""""""""""
 
@@ -104,6 +113,7 @@ double check that:
   section, with the title of your pull request and its identifier (for example,
   "``Replace OldComponent with FluxCapacitor (#123)``".
 
+"""""""""""""""
 Commit messages
 """""""""""""""
 
@@ -125,12 +135,13 @@ A good example:
     * One of the important changes
     * Another important change
 
-
+----
 Code
 ----
 
 This section include some tips that will help you to push source code.
 
+~~~~~~~~~~~~
 Dependencies
 ~~~~~~~~~~~~
 
@@ -150,6 +161,7 @@ For the python code, we need some libraries that can be installed in this way:
     pip install -U -r requirements.txt
     pip install -U -r requirements-dev.txt
 
+~~~~~~~~
 Building
 ~~~~~~~~
 
@@ -180,6 +192,7 @@ more info about where to find libphreads.a for later building. Furthermore,
 we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
 
+~~~~~~~~~~~~~~~~~~
 Useful CMake flags
 ~~~~~~~~~~~~~~~~~~
 
@@ -238,7 +251,7 @@ WHEEL_TAG
     Default: No value.
     Example: ``cmake -DWHEEL_TAG="-pmanylinux1_x86_64" ..``
 
-
+~~~~
 Test
 ~~~~
 
@@ -289,7 +302,7 @@ Note many of the test will not pass unless you have setup an account with the IB
 this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account. 
 We are working on making this simpler and making the test for Qiskit Terra not needing an account. 
 
-
+~~~~~~~~~~~
 Style guide
 ~~~~~~~~~~~
 
@@ -307,7 +320,7 @@ All platforms:
     out$> make lint
     out$> make style
 
-
+-----------------
 Development cycle
 -----------------
 
@@ -320,6 +333,7 @@ announce it and detail what has changed since the latest version.
 The channels we'll use to announce new releases are still being discussed, but
 for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
 
+~~~~~~~~~~~~
 Branch model
 ~~~~~~~~~~~~
 
@@ -350,6 +364,7 @@ There are two main branches in the repository:
     stable software ready for production environments.
   - All the tags from the release versions are created from this branch.
 
+~~~~~~~~~~~~~
 Release cycle
 ~~~~~~~~~~~~~
 
@@ -368,6 +383,7 @@ The ``stable`` branch should only receive changes in the form of bug fixes, so t
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 What version should I use: development or stable?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -398,7 +414,7 @@ and then you can run them with
 
     $ python examples/python/using_qiskit_core_level_0.py
 
-
+-------------
 Documentation
 -------------
 
