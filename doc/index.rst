@@ -18,7 +18,7 @@ Table of Contents
    Installation and Setup <install>
    Running Quantum Circuits <running_quantum_circuits>
    Contributing to Terra <dev_introduction>
-   Release history <releases>
+   Release history <release_history>
    Terra SDK Reference <_autodoc/qiskit>
 
 ==============

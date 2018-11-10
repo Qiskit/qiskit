@@ -1,18 +1,21 @@
+===============
 Release history
-###############
+===============
 
+-------------
 Release notes
-*************
+-------------
 
+^^^^^^^^^^^^^^^^^^
 Qiskit Terra 0.6.0
-==================
+^^^^^^^^^^^^^^^^^^
 
 This release includes a redesign of internal components centered around a new,
-formal communication format (``Qobj``), along with long awaited features to
+formal communication format (`qobj`), along with long awaited features to
 improve the user experience as a whole. The highlights, compared to the 0.5
 release, are:
 
-* Improvements for inter-operability (based on the ``Qobj`` specification) and
+* Improvements for inter-operability (based on the `qobj` specification) and
   extensibility (facilities for extending Qiskit with new backends in a seamless
   way).
 * New options for handling credentials and authentication for the IBM Q
@@ -43,8 +46,8 @@ with the individual components (:class:`~qiskit.backends.basejob.BaseJob`,
 :class:`~qiskit._quantumregister.QuantumRegister`,
 :mod:`~qiskit`) directly.
 
-Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
-:doc:`quickstart` examples for details about the transition ::
+Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the examples 
+for details about the transition ::
 
 
   from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
@@ -69,7 +72,7 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 IBM Q Authentication and ``Qconfig.py``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The managing of credentials for authenticating when using the QX backends has
+The managing of credentials for authenticating when using the IBMQ backends has
 been expanded, and there are new options that can be used for convenience:
 
 1. save your credentials in disk once, and automatically load them in future
@@ -93,9 +96,7 @@ been expanded, and there are new options that can be used for convenience:
    them.
 
 Additionally, the previous method of having a ``Qconfig.py`` file in the program
-folder and passing the credentials explicitly is still supported. Please check
-the :ref:`qconfig-setup` section for more details about combining and using
-the different authentication options.
+folder and passing the credentials explicitly is still supported.
 
 Working with backends
 ^^^^^^^^^^^^^^^^^^^^^
@@ -193,9 +194,9 @@ Secondly, the new release provides Jupyter cell magics for keeping track of the 
 Use ``%%qiskit_job_status`` to keep track of the status of submitted jobs to IBMQ backends.
 Use ``%%qiskit_progress_bar`` to keep track of the progress of compilation/execution.
 
-
+^^^^^^^^^^^^^^^^^^
 Qiskit Terra 0.5.0
-==================
+^^^^^^^^^^^^^^^^^^
 
 This release brings a number of improvements to Qiskit, both for the user
 experience and under the hood. Please refer to the full changelog for a
@@ -207,7 +208,7 @@ detailed description of the changes - the highlights are:
   on extensibility and flexibility (using aliases and backend providers).
 * reorganization of the asynchronous features, providing a friendlier interface
   for running jobs asynchronously via :class:`Job` instances.
-* numerous improvements and fixes throughout the SDK as a whole, both for
+* numerous improvements and fixes throughout the Terra as a whole, both for
   convenience of the users (such as allowing anonymous registers) and for
   enhanced functionality (such as improved plotting of circuits).
 
