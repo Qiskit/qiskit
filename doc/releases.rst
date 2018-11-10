@@ -48,7 +48,7 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
 
 
   from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-  from qiskit import available_backends, execute
+  from qiskit import Aer, execute
 
   q = QuantumRegister(2)
   c = ClassicalRegister(2)
@@ -58,9 +58,9 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
   qc.cx(q[0], q[1])
   qc.measure(q, c)
 
-  print("Local backends: ", available_backends({'local': True}))
+  backend = get_backend('qasm_simulator')
 
-  job_sim = execute(qc, "local_qasm_simulator")
+  job_sim = execute(qc, backend)
   sim_result = job_sim.result()
 
   print("simulation: ", sim_result)
@@ -354,8 +354,5 @@ Several functions of the SDK have been made more flexible and user-friendly:
     data = result.get_data(qc)
     data = result.get_data()
 
-
-Changelog
-*********
 
 .. include:: CHANGELOG.rst
