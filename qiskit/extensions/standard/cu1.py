@@ -13,6 +13,8 @@ from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class Cu1Gate(Gate):
@@ -21,7 +23,28 @@ class Cu1Gate(Gate):
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new cu1 gate."""
         super().__init__("cu1", [theta], [ctl, tgt], circ)
+        self._define_decompositions(params)
 
+    def _define_decompositions(self, params):
+        """
+        gate cu1(lambda) a,b
+        { u1(lambda/2) a; cx a,b;
+          u1(-lambda/2) b; cx a,b;
+          u1(lambda/2) b;
+        }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        decomposition.add_basis_element("cx", 2, 0, 0)
+        decomposition.apply_operation_back(U1Gate(params[0]/2, q[0]))
+        decomposition.apply_operation_back(CnotGate(q[0], q[1]))        
+        decomposition.apply_operation_back(U1Gate(-params[0]/2, q[1]))
+        decomposition.apply_operation_back(CnotGate(q[0], q[1])) 
+        decomposition.apply_operation_back(U1Gate(params[0]/2, q[1]))
+        self.instructions.append(decomposition)
+        
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]

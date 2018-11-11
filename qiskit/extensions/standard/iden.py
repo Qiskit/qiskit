@@ -15,6 +15,7 @@ from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.ubase import UBase
 
 
 class IdGate(Gate):
@@ -23,6 +24,15 @@ class IdGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Identity gate."""
         super().__init__("id", [], [qubit], circ)
+        self._define_decompositions()
+
+    def _define_decompositions(self):
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("U", 1, 0, 3)
+        decomposition.apply_operation_back(UBase(0, 0, 0, q[0]))
+        self.instructions.append(decomposition)
 
     def inverse(self):
         """Invert this gate."""

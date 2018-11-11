@@ -23,6 +23,8 @@ Instructions are identified by the following fields, and are serialized as such 
     qargs: List of qubits (QuantumRegister, index) that the instruction acts on.
 
     cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
+
+    instructions: List of other instructions comprising this instruction.
 """
 import sympy
 
@@ -62,6 +64,7 @@ class Instruction(object):
                 self.param.append(single_param)
         self.qargs = qargs
         self.cargs = cargs
+        self.instructions = []
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 

@@ -28,12 +28,6 @@ logger = logging.getLogger(__name__)
 
 class DAGBackend(UnrollerBackend):
     """Backend for the unroller that creates a DAGCircuit object.
-
-    Example::
-
-        qasm = Qasm(filename = "teleport.qasm").parse()
-        dagcircuit = Unroller(qasm, DAGBackend()).execute()
-        print(dagcircuit.qasm())
     """
 
     def __init__(self, basis=None):
@@ -51,7 +45,7 @@ class DAGBackend(UnrollerBackend):
 
     def set_basis(self, basis):
         """Declare the set of basis gates to emit."""
-        
+
         # minimal basis
         self.circuit.add_basis_element(name="U", number_qubits=1,
                                        number_classical=0, number_parameters=3)
@@ -60,7 +54,7 @@ class DAGBackend(UnrollerBackend):
         self.circuit.add_basis_element("reset", 1, 0, 0)
         self.circuit.add_basis_element("barrier", -1)
 
-        # extra user defined basis        
+        # extra user defined basis
         circuit = QuantumCircuit() # TODO: make nicer when definitions not attached to circuit
         for b in basis:
             if b not in self.circuit.basis:

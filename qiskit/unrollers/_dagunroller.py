@@ -11,10 +11,8 @@ DAG Unroller
 
 import networkx as nx
 
-from qiskit.unrollers._unroller import Unroller
-from qiskit.qasm._node import Real, Id, IdList, ExpressionList, Gate, \
-                              PrimaryList, Int, IndexedId, Qreg, If, Creg, \
-                              Program, CustomUnitary
+from qiskit._quantumregister import QuantumRegister
+from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
 from ._dagbackend import DAGBackend
 
@@ -30,17 +28,17 @@ class DagUnroller(object):
 
     def set_backend(self, backend):
         """Set the backend object.
-        
+
         Give the same gate definitions to the backend circuit as
         the input circuit.
         """
         self.backend = backend
         for name, data in self.dag_circuit.gates.items():
-            self.backend.define_gate(name, data)        
+            self.backend.define_gate(name, data)
 
     def execute(self):
         """Interpret OPENQASM and make appropriate backend calls.
-        
+
         This does not expand gates. So self.expand_gates() must have
         been previously called. Otherwise non-basis gates will be ignored
         by this method.
@@ -63,107 +61,66 @@ class DagUnroller(object):
         it occurs.
 
         This method replicates the behavior of the unroller
-        module without using the OpenQASM parser.
+        module without using the OpenQASM parser or the ast.
         """
-
+        print("EXPAND GATES")
         if basis is None:
             basis = self.backend.circuit.basis
 
         if not isinstance(self.backend, DAGBackend):
             raise UnrollerError("expand_gates only accepts a DAGBackend!!")
 
-        # Build the Gate AST nodes for user-defined gates
-        gatedefs = []
-        for name, gate in self.dag_circuit.gates.items():
-            children = [Id(name, 0, "")]
-            if gate["n_args"] > 0:
-                children.append(ExpressionList(list(
-                    map(lambda x: Id(x, 0, ""),
-                        gate["args"])
-                )))
-            children.append(IdList(list(
-                map(lambda x: Id(x, 0, ""),
-                    gate["bits"])
-            )))
-            children.append(gate["body"])
-            gatedefs.append(Gate(children))
-        
-        # Walk through the DAG and examine each node
-        builtins = ["U", "CX", "measure", "reset", "barrier"]
+        # Walk through the DAG and expand each non-basis node
         simulator_builtins = ['snapshot', 'save', 'load', 'noise']
         topological_sorted_list = list(nx.topological_sort(self.dag_circuit.multi_graph))
         for node in topological_sorted_list:
             current_node = self.dag_circuit.multi_graph.node[node]
             if current_node["type"] == "op" and \
-               current_node["op"].name not in builtins + basis + simulator_builtins and \
+               current_node["op"].name not in basis and \
+               current_node["op"].name not in simulator_builtins and \
                not self.dag_circuit.gates[current_node["op"].name]["opaque"]:
-                subcircuit, wires = self._build_subcircuit(gatedefs,
-                                                           basis,
-                                                           current_node["op"],
-                                                           current_node["condition"])
-                self.dag_circuit.substitute_circuit_one(node, subcircuit, wires)
+                   print("DECOMPOSING: ", current_node["op"].name)
+                   decomposition_rules = current_node["op"].instructions
+                   if not len(decomposition_rules) > 0:
+                       raise UnrollerError("no decomposition rules defined for ",
+                                           current_node["op"].name)
+                   # TODO: allow choosing other possible decompositions
+                   decomposition_dag = decomposition_rules[0]
+                   condition = current_node["condition"]
+                   # the decomposition rule must be amended if used in a
+                   # conditional context. delete the op nodes and replay
+                   # them with the condition.
+                   if condition:
+                       decomposition_dag.add_creg(condition[0])
+                       to_replay = []
+                       for nd in nx.topological_sort(decomposition_dag.multi_graph):
+                           n = decomposition_dag.multi_graph.nodes[nd]
+                           if n["type"] == "op":
+                               to_replay.append(n)
+                       for n in decomposition_dag.get_op_nodes():
+                           decomposition_dag._remove_op_node(n)
+                       for n in to_replay:
+                           decomposition_dag.apply_operation_back(n["op"], condition)
+
+                   # the wires for substitute_circuit_one are expected as qargs first,
+                   # then cargs, then conditions
+                   qwires = [w for w in decomposition_dag.wires
+                             if isinstance(w[0], QuantumRegister)]
+                   cwires = [w for w in decomposition_dag.wires
+                             if isinstance(w[0], ClassicalRegister)]
+
+                   print(qwires + cwires)
+                   self.dag_circuit.substitute_circuit_one(node,
+                                                           decomposition_dag,
+                                                           qwires + cwires)
+
+        # if still not unrolled down to basis, recurse
+        gate_set = set([self.dag_circuit.multi_graph.nodes[n]["op"].name
+                        for n in self.dag_circuit.get_op_nodes()])
+        if not gate_set.issubset(basis):
+            self.expand_gates(basis)
+
         return self.dag_circuit
-
-    def _build_subcircuit(self, gatedefs, basis, gate, gate_condition):
-        """Build DAGCircuit for a given user-defined gate node.
-
-        gatedefs = dictionary of Gate AST nodes for user-defined gates
-        basis = basis gates used by unroller
-        gate = the gate to be expanded/unrolled
-        gate_condition = None or tuple (string, int)
-
-        Returns (subcircuit, wires) where subcircuit is the DAGCircuit
-        corresponding to the user-defined gate node expanded to target_basis
-        and wires is the list of input wires to the subcircuit in order
-        corresponding to the gate's arguments.
-        """
-
-        children = [Id(gate.name, 0, "")]
-        if gate.param:
-            children.append(
-                ExpressionList(list(map(Real, gate.param)))
-            )
-        new_wires = [("q", j) for j in range(len(gate.qargs))]
-        children.append(
-            PrimaryList(
-                list(map(lambda x: IndexedId(
-                    [Id(x[0], 0, ""), Int(x[1])]
-                ), new_wires))
-            )
-        )
-        gate_node = CustomUnitary(children)
-        id_int = [Id("q", 0, ""), Int(len(gate.qargs))]
-        # Make a list of register declaration nodes
-        reg_nodes = [
-            Qreg(
-                [
-                    IndexedId(id_int)
-                ]
-            )
-        ]
-        # Add an If node when there is a condition present
-        if gate_condition:
-            gate_node = If([
-                Id(gate_condition[0], 0, ""),
-                Int(gate_condition[1]),
-                gate_node
-            ])
-            new_wires += [(gate_condition[0], j)
-                          for j in range(self.dag_circuit.cregs[gate_condition[0]].size)]
-            reg_nodes.append(
-                Creg([
-                    IndexedId([
-                        Id(gate_condition[0], 0, ""),
-                        Int(self.dag_circuit.cregs[gate_condition[0]].size)
-                    ])
-                ])
-            )
-
-        # Build the whole program's AST
-        sub_ast = Program(gatedefs + reg_nodes + [gate_node])
-        # Interpret the AST to give a new DAGCircuit over backend basis
-        sub_circuit = Unroller(sub_ast, DAGBackend(basis)).execute()
-        return sub_circuit, new_wires
 
     def _process(self):
         """Process dag nodes, assuming that expand_gates has already been called."""

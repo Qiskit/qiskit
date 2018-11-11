@@ -128,25 +128,11 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
 
     def test_get_named_nodes(self):
-<<<<<<< HEAD
-        """ The get_named_nodes() method """
-        qreg = QuantumRegister(3, 'q')
-        dag = DAGCircuit()
-        dag.add_basis_element('h', 1, 0, 0)
-        dag.add_basis_element('cx', 2, 0, 0)
-        dag.add_qreg(qreg)
-        dag.apply_operation_back(CnotGate(qreg[0], qreg[1]))
-        dag.apply_operation_back(HGate(qreg[0]))
-        dag.apply_operation_back(CnotGate(qreg[2], qreg[1]))
-        dag.apply_operation_back(CnotGate(qreg[0], qreg[2]))
-        dag.apply_operation_back(HGate(qreg[2]))
-=======
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit2, self.qubit1))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit2))
         self.dag.apply_operation_back(HGate(self.qubit2))
->>>>>>> factor out tests into setUp
 
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
@@ -308,6 +294,7 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
+<<<<<<< HEAD
     def test_dag_neq_same_topology(self):
         """ DAG equivalence check: False. Same topology."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
@@ -322,6 +309,50 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
+=======
+
+class TestDagSubstitute(QiskitTestCase):
+    """Test substitutuing a dag node with a sub-dag"""
+    def setUp(self):
+        self.dag = DAGCircuit()        
+        qreg = QuantumRegister(3, 'qr')
+        creg = ClassicalRegister(2, 'cr')
+        self.dag.add_qreg(qreg)
+        self.dag.add_creg(creg)
+        self.dag.add_basis_element(name='h', number_qubits=1,
+                                   number_classical=0, number_parameters=0)
+        self.dag.add_basis_element('cx', 2, 0, 0)
+        self.dag.add_basis_element('x', 1, 0, 0)
+        self.dag.add_basis_element('measure', 1, 1, 0)
+        self.dag.add_basis_element('reset', 1, 0, 0)
+
+        self.qubit0 = qreg[0]
+        self.qubit1 = qreg[1]
+        self.qubit2 = qreg[2]
+        self.clbit0 = creg[0]
+        self.clbit1 = creg[1]
+        self.condition = (creg, 3)
+
+        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(XGate(self.qubit1))
+
+
+    def test_substitute_circuit_one_back(self):
+        x_node = self.dag.get_op_nodes(op=XGate(self.qubit1)).pop()
+        self.dag.substitute_circuit_one(x_node, DAGCircuit())
+
+    def test_substitute_circuit_one_middle(self):
+        pass
+
+    def test_substitute_circuit_one_front(self):
+        pass
+
+    def test_substitute_circuit_all(self):
+        pass
+
+>>>>>>> decomposition rules in gate definitions as list of DAGs
+>>>>>>> decomposition rules in gate definitions as list of DAGs
 
 if __name__ == '__main__':
     unittest.main()

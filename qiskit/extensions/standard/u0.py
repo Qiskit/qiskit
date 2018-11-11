@@ -14,6 +14,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.extensions.standard.ubase import UBase
 
 
 class U0Gate(Gate):
@@ -22,6 +23,15 @@ class U0Gate(Gate):
     def __init__(self, m, qubit, circ=None):
         """Create new u0 gate."""
         super().__init__("u0", [m], [qubit], circ)
+        self._define_decompositions(params=[theta])
+
+    def _define_decompositions(self):
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("U", 1, 0, 3)
+        decomposition.apply_operation_back(UBase(0, 0, 0, q[0]))
+        self.instructions.append(decomposition)
 
     def inverse(self):
         """Invert this gate."""

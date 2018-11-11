@@ -250,24 +250,34 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits, nested_scope=None, extra_fields=None):
-        if self.listen and name not in self.basis \
-                and self.gates[name]["opaque"]:
-            raise BackendError("opaque gate %s not in basis" % name)
-        if self.listen and name in self.basis:
-            self.in_gate = name
+    def start_gate(self, op, nested_scope=None, extra_fields=None):
+        """
+        Begin a custom gate.
+
+        Args:
+            op (Instruction): operation to apply to the dag.
+            nested_scope (list[dict]): list of dictionaries mapping expression variables
+                to Node expression objects in order of increasing nesting depth.
+            extra_fields: extra_fields used by non-standard instructions for now
+                (e.g. snapshot)
+        """
+        if self.listen and op.name not in self.basis \
+                and self.gates[op.name]["opaque"]:
+            raise BackendError("opaque gate %s not in basis" % op.name)
+        if self.listen and op.name in self.basis:
+            self.in_gate = op.name
             self.listen = False
-            qubit_indices = [self._qubit_order_internal.get(qubit)
-                             for qubit in qubits]
+            qubit_indices = [self._qubit_order_internal.get((qubit[0].name, qubit[1]))
+                             for qubit in op.qargs]
             gate_instruction = {
-                'name': name,
+                'name': op.name,
                 # TODO: keep these real for now, until a later time
                 'params': list(map(lambda x: float(x.real(nested_scope)),
-                                   args)),
+                                   op.param)),
                 'texparams': list(map(lambda x:
                                       x.latex(prec=8,
                                               nested_scope=nested_scope),
-                                      args)),
+                                      op.param)),
                 'qubits': qubit_indices,
             }
             if extra_fields is not None:
@@ -275,27 +285,25 @@ class JsonBackend(UnrollerBackend):
             self.circuit['instructions'].append(gate_instruction)
             self._add_condition()
 
-    def end_gate(self, name, args, qubits, nested_scope=None):
+    def end_gate(self, op):
         """End a custom gate.
 
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
+        Args:
+            op (Instruction): operation to apply to the dag.
         """
-        if name == self.in_gate:
-            self.in_gate = ""
+        if op == self.in_gate:
+            self.in_gate = None
             self.listen = True
 
     def get_output(self):
         """Returns the generated circuit."""
         if not self._is_circuit_valid():
             raise BackendError("Invalid circuit! Please check the syntax of your circuit."
-                               "Has the Qasm parsing been called?. e.g: unroller.execute().")
+                               "Has Qasm parsing been called?. e.g: unroller.execute().")
+        print(self.circuit)
         return self.circuit
 
     def _is_circuit_valid(self):
         """Checks whether the circuit object is a valid one or not."""
         return (len(self.circuit['header']) > 0 and
-                len(self.circuit['instructions']) > 0)
+                len(self.circuit['instructions']) >= 0)

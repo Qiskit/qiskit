@@ -15,7 +15,8 @@ from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
-
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CnotGate
 
 class CzGate(Gate):
     """controlled-Z gate."""
@@ -23,6 +24,21 @@ class CzGate(Gate):
     def __init__(self, ctl, tgt, circ=None):
         """Create new CZ gate."""
         super().__init__("cz", [], [ctl, tgt], circ)
+        self._define_decompositions()
+
+    def _define_decompositions(self):
+        """
+        gate cz a,b { h b; cx a,b; h b; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("h", 1, 0, 0)
+        decomposition.add_basis_element("cx", 2, 0, 0)
+        decomposition.apply_operation_back(HGate(q[1]))
+        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
+        decomposition.apply_operation_back(HGate(q[1]))
+        self.instructions.append(decomposition)
 
     def inverse(self):
         """Invert this gate."""

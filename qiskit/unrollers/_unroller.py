@@ -57,7 +57,7 @@ class Unroller(object):
         else:
             raise UnrollerError("expected qreg or creg name:",
                                 "line=%s" % node.line,
-                                "file=%s" % node.file) 
+                                "file=%s" % node.file)
 
         if node.type == "indexed_id":
             # An indexed bit or qubit
