@@ -73,9 +73,6 @@ jobs for retrieving results from a backend when the job is completed.
 They find out the execution’s state at a given point in time (for example, 
 if the job is queued, running, or has failed) and also allow control over the job.
 
-A summary of using the IBMQ provider is given in this `tutorial 
-<https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorial/blob/master/qiskit/basics/the_ibmq_provider.ipynb>`_.
-
 Once the job has finished the Terra allows the results to be obtained  from the remote backends 
 using `result = job.result()`.  This results object holds the quantum data and the most 
 common way of interacting with it is by using `result.get_counts(circuit)`. This method allows 
@@ -102,8 +99,6 @@ Once the circuit has run it is important to be able to view the output. There is
 There is also a function `plot_state` and ` plot_bloch_vector` that allow the plotting of a 
 quantum state. These functions are usually only used when using the `statevector_simulator` 
 backend but can also be used on real data after running state tomography experiments (ignis). 
-To see examples of these see the tutorial `qiskit_visualizations 
-<https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorial/blob/master/qiskit/basics/qiskit_visualizations.ipynb>`_.
 
 -------
 License
