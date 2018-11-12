@@ -20,7 +20,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from scipy import linalg
 
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit.tools.qi.pauli import pauli_group, Pauli
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
 
@@ -392,9 +392,10 @@ def plot_state(quantum_state, method='city', filename=None):
                 filename_parts[-2] += '-%d' % i
                 filename = '.'.join(filename_parts)
                 print(filename)
+            pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
+                             Pauli.pauli_single(num, i, 'Z')]
             bloch_state = list(
-                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                    pauli_singles(i, num)))
+                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))), pauli_singles))
             plot_bloch_vector(bloch_state, "qubit " + str(i), filename=filename)
     elif method == "wigner":
         plot_wigner_function(rho, filename=filename)
