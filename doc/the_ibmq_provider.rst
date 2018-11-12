@@ -49,6 +49,15 @@ never saved.
     
     IBMQ.backends()
 
+
+
+
+.. parsed-literal::
+
+    []
+
+
+
 Here we see that there are no backends. This is because no accounts have
 been loaded.
 
@@ -64,6 +73,15 @@ verify that there are no accounts stored now
 .. code:: ipython3
 
     IBMQ.stored_accounts()
+
+
+
+
+.. parsed-literal::
+
+    []
+
+
 
 To demonstrate that we can load multiple accounts using the IBMQ
 provider, here we use two files ``Qconfig_IBMQ_experience.py`` and
@@ -416,7 +434,7 @@ object
 
 .. parsed-literal::
 
-    <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x10a708cc0>
+    <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x10e62cfd0>
 
 
 
@@ -608,11 +626,11 @@ that backend
 
 .. parsed-literal::
 
+    5be8f39c54dacb0059c2b0db JobStatus.DONE
+    5be8f394afd471005540d4d7 JobStatus.CANCELLED
     5be8ae5e17436b0052751909 JobStatus.DONE
     5be748a7e00f60005ad7f23d JobStatus.DONE
     5be746e3d4d36f0054595d60 JobStatus.DONE
-    5bc3e88d404ceb006174af14 JobStatus.DONE
-    5bc3e84b21da3300548def31 JobStatus.DONE
 
 
 Then the job can be retreived using ``retrieve_job(job_id())`` method
@@ -684,7 +702,7 @@ To get the job_id use the ``job_id()`` method
 
 .. parsed-literal::
 
-    '5bc3e84b21da3300548def31'
+    '5be746e3d4d36f0054595d60'
 
 
 
@@ -699,7 +717,7 @@ To get the result from the job use the ``result()`` method
 
 .. parsed-literal::
 
-    {'00': 468, '01': 54, '10': 81, '11': 421}
+    {'000': 387, '001': 23, '010': 39, '011': 22, '100': 30, '101': 59, '110': 62, '111': 402}
 
 
 If you want to check the creation date use ``creation_date()``
@@ -713,7 +731,7 @@ If you want to check the creation date use ``creation_date()``
 
 .. parsed-literal::
 
-    '2018-10-15T01:07:23.691Z'
+    '2018-11-10T21:00:19.795Z'
 
 
 
@@ -740,7 +758,7 @@ Let’s make an active example
 
 .. parsed-literal::
 
-    <qiskit._instructionset.InstructionSet at 0x113f3c278>
+    <qiskit._instructionset.InstructionSet at 0x10ffb5240>
 
 
 
@@ -839,5 +857,5 @@ position you can use the ``queue_position()`` method.
 
 .. parsed-literal::
 
-    {'000': 41, '001': 166, '010': 27, '011': 60, '100': 82, '101': 590, '110': 21, '111': 37}
+    {'000': 37, '001': 155, '010': 55, '011': 50, '100': 86, '101': 582, '110': 20, '111': 39}
 
