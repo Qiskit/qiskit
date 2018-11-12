@@ -63,6 +63,7 @@ Fixed
 - Use case insensitive matching when comparing premium account URLs. (#1102)
 - Fixed AerJob status when the submitted Job is in a PENDING state. (#1215)
 - Add fallback for when CPU count can't be determined (#1214)
+- Fix random_state from returning nan (#1258)
 
 Removed
 -------
