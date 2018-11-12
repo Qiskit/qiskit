@@ -12,6 +12,7 @@ import threading
 import types
 from IPython.display import display                              # pylint: disable=import-error
 from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disable=import-error
+from IPython.core import magic_arguments                         # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -23,9 +24,20 @@ class BackendMonitor(Magics):
     """A class of status magic functions.
     """
     @line_magic
+    @magic_arguments.magic_arguments()
+    @magic_arguments.argument(
+        '-i',
+        '--interval',
+        type=float,
+        default=60,
+        help='Interval for status check.'
+    )
     def qiskit_backend_monitor(self, line='', cell=None):
         """A Jupyter magic function to monitor backends.
         """
+        args = magic_arguments.parse_argstring(
+            self.qiskit_backend_monitor, line)
+        
         unique_hardware_backends = get_unique_backends()
         backend_title = widgets.HTML(value="<h2 style='color: #ffffff; background-color:#000000;padding-top: 1%; padding-bottom: 1%;padding-left: 1%; margin-top: 0px'>Backend Monitor</h2>",
                                      layout=widgets.Layout(margin='0px 0px 0px 0px'))
@@ -70,7 +82,7 @@ class BackendMonitor(Magics):
         backend_grid._update = types.MethodType(update_backend_info, backend_grid)
 
         backend_grid._thread = threading.Thread(
-            target=backend_grid._update, args=())
+            target=backend_grid._update, args=(args.interval,))
         backend_grid._thread.start()
 
         back_box = widgets.HBox([labels_widget, backend_grid])
@@ -85,8 +97,11 @@ class GridBox_with_thread(widgets.GridBox):
     def __del__(self):
         """Object disposal"""
         if hasattr(self, '_thread'):
-            self._thread.do_run = False
-            self._thread.join()
+            try:
+                self._thread.do_run = False
+                self._thread.join()
+            except Exception:
+                pass
         self.close()
 
 
@@ -173,14 +188,36 @@ def update_backend_info(self, interval=60):
     my_thread = threading.currentThread()
     current_interval = 0
     started = False
-    while getattr(my_thread, "do_run", True):
+    all_dead = False
+    stati = [None]*len(self._backends)
+    while getattr(my_thread, "do_run", True) and not all_dead:
         if current_interval == interval or started is False:
-            stati = [b.status() for b in self._backends]
+            for ind, b in enumerate(self._backends):
+                _value = self.children[ind].children[2].value
+                _head = _value.split('<b>')[0]
+                try:
+                    _status = b.status()
+                    stati[ind] = _status
+                except Exception:
+                    self.children[ind].children[2].value = _value.replace(
+                        _head, "<h5 style='color:#ff5c49'>")
+                    self.children[ind]._is_alive = False
+                else:
+                    self.children[ind]._is_alive = True
+                    self.children[ind].children[2].value = _value.replace(
+                        _head, "<h5>")
+            
             idx = list(range(len(self._backends)))
             pending = [s['pending_jobs'] for s in stati]
 
-            least_pending_idx = [list(x) for x in zip(
-                *sorted(zip(pending, idx), key=lambda pair: pair[0]))][1][0]
+            least_pending = [list(x) for x in zip(
+                *sorted(zip(pending, idx), key=lambda pair: pair[0]))]
+
+            # Make sure least pending is operational
+            for lst_pend in least_pending:
+                if stati[lst_pend[1]]['operational']:
+                    least_pending_idx = lst_pend[1]
+                    break
 
             for kk in idx:
                 if kk == least_pending_idx:
@@ -199,6 +236,7 @@ def update_backend_info(self, interval=60):
             started = True
             current_interval = 0
         time.sleep(1)
+        all_dead = not any([wid._is_alive for wid in self.children])
         current_interval += 1
 
 def generate_jobs_pending_widget():
