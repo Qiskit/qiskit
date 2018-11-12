@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
 
 """
 Two quantum circuit drawers based on:
@@ -14,6 +13,7 @@ Two quantum circuit drawers based on:
     2. Matplotlib
 """
 
+import errno
 import logging
 import os
 import subprocess
@@ -44,9 +44,9 @@ def plot_circuit(circuit,
     warnings.warn('The plot_circuit() function is deprecated and will be '
                   'removed in the future. Instead use circuit_drawer() with '
                   'the `interactive` flag set true', DeprecationWarning)
-    im = circuit_drawer(circuit, basis=basis, scale=scale, style=style)
-    if im:
-        im.show()
+    image = circuit_drawer(circuit, basis=basis, scale=scale, style=style)
+    if image:
+        image.show()
 
 
 def circuit_drawer(circuit,
@@ -196,7 +196,7 @@ def circuit_drawer(circuit,
                       'function will not be able to adjust basis gates itself '
                       'in a future release', DeprecationWarning)
 
-    im = None
+    image = None
     if style:
         if 'reversebits' in style:
             warnings.warn('The reversebits key in style is deprecated and will'
@@ -215,10 +215,10 @@ def circuit_drawer(circuit,
                       'falling back to mpl on failure it will just use '
                       '"text" by default', DeprecationWarning)
         try:
-            im = _latex_circuit_drawer(circuit, basis, scale, filename, style)
+            image = _latex_circuit_drawer(circuit, basis, scale, filename, style)
         except (OSError, subprocess.CalledProcessError, FileNotFoundError):
-            im = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
-                                            style)
+            image = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
+                                               style)
     else:
         if output == 'text':
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
@@ -226,10 +226,10 @@ def circuit_drawer(circuit,
                                         reversebits=reverse_bits,
                                         plotbarriers=plot_barriers)
         elif output == 'latex':
-            im = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
-                                       filename=filename, style=style,
-                                       plot_barriers=plot_barriers,
-                                       reverse_bits=reverse_bits)
+            image = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
+                                          filename=filename, style=style,
+                                          plot_barriers=plot_barriers,
+                                          reverse_bits=reverse_bits)
         elif output == 'latex_source':
             return _generate_latex_source(circuit, basis=basis,
                                           filename=filename, scale=scale,
@@ -237,23 +237,24 @@ def circuit_drawer(circuit,
                                           plot_barriers=plot_barriers,
                                           reverse_bits=reverse_bits)
         elif output == 'mpl':
-            im = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
-                                            filename=filename, style=style,
-                                            plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits)
+            image = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
+                                               filename=filename, style=style,
+                                               plot_barriers=plot_barriers,
+                                               reverse_bits=reverse_bits)
         else:
             raise _error.VisualizationError(
                 'Invalid output type %s selected. The only valid choices '
                 'are latex, latex_source, text, and mpl' % output)
-    if im and interactive:
-        im.show()
-    return im
+    if image and interactive:
+        image.show()
+    return image
 
 
 # -----------------------------------------------------------------------------
 # Plot style sheet option
 # -----------------------------------------------------------------------------
 def qx_color_scheme():
+    """Return default style for matplotlib_circuit_drawer (IBM QX style)."""
     return {
         "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
         "textcolor": "#000000",
@@ -432,7 +433,7 @@ def _latex_circuit_drawer(circuit,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits)
-        im = None
+        image = None
         try:
 
             subprocess.run(["pdflatex", "-halt-on-error",
@@ -440,15 +441,15 @@ def _latex_circuit_drawer(circuit,
                             "{}".format(tmpfilename + '.tex')],
                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                            check=True)
-        except OSError as e:
-            if e.errno == os.errno.ENOENT:
+        except OSError as ex:
+            if ex.errno == errno.ENOENT:
                 logger.warning('WARNING: Unable to compile latex. '
                                'Is `pdflatex` installed? '
                                'Skipping latex circuit drawing...')
             raise
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError as ex:
             with open('latex_error.log', 'wb') as error_file:
-                error_file.write(e.stdout)
+                error_file.write(ex.stdout)
             logger.warning('WARNING Unable to compile latex. '
                            'The output from the pdflatex command can '
                            'be found in latex_error.log')
@@ -458,18 +459,18 @@ def _latex_circuit_drawer(circuit,
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 base + '.pdf', base])
-                im = Image.open(base + '.png')
-                im = _utils._trim(im)
+                image = Image.open(base + '.png')
+                image = _utils._trim(image)
                 os.remove(base + '.png')
                 if filename:
-                    im.save(filename, 'PNG')
-            except OSError as e:
-                if e.errno == os.errno.ENOENT:
+                    image.save(filename, 'PNG')
+            except OSError as ex:
+                if ex.errno == errno.ENOENT:
                     logger.warning('WARNING: Unable to convert pdf to image. '
                                    'Is `poppler` installed? '
                                    'Skipping circuit drawing...')
                 raise
-        return im
+        return image
 
 
 def generate_latex_source(circuit, filename=None,
