@@ -54,12 +54,7 @@ def plot_bloch_vector(bloch, title="", filename=None, ax=None, show=False):
     """
     B = Bloch(axes=ax)
     B.add_vectors(bloch)
-    B.render()
-    if filename:
-        B.save(filename)
-    elif show:
-        B.show(title=title)
-    return B.fig
+    B.render(title=title)
 
 
 def plot_state_city(rho, title="", filename=None, show=False):
@@ -394,14 +389,19 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
         fig = plot_state_qsphere(rho, filename=filename, show=show)
     elif method == "bloch":
         orig_filename = filename
-        fig, ax = plt.subplots(int(np.sqrt(num)), int(np.sqrt(num)))
+        aspect = float(1 / num)
+        fig = plt.figure(figsize=plt.figaspect(aspect))
         for i in range(num):
+            ax = fig.add_subplot(1, num, i + 1, projection='3d')
+            pauli_singles = [
+                Pauli.pauli_single(num, i, 'X'),
+                Pauli.pauli_single(num, i, 'Y'),
+                Pauli.pauli_single(num, i, 'Z')
+            ]
             bloch_state = list(
-            pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
-                             Pauli.pauli_single(num, i, 'Z')]
-            bloch_state = list(
-                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))), pauli_singles))
-            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax[i])
+                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
+                    pauli_singles))
+            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax)
         if filename:
             plt.savefig(filename)
         elif show:
