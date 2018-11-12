@@ -1,8 +1,8 @@
 
 
 
-The IBMQ provider
-=================
+The IBM Q provider
+==================
 
 In Qiskit we have an interface for backends and jobs that will be useful
 for running circuits and extending to third-party backends. In this
@@ -49,15 +49,6 @@ never saved.
     
     IBMQ.backends()
 
-
-
-
-.. parsed-literal::
-
-    []
-
-
-
 Here we see that there are no backends. This is because no accounts have
 been loaded.
 
@@ -73,15 +64,6 @@ verify that there are no accounts stored now
 .. code:: ipython3
 
     IBMQ.stored_accounts()
-
-
-
-
-.. parsed-literal::
-
-    []
-
-
 
 To demonstrate that we can load multiple accounts using the IBMQ
 provider, here we use two files ``Qconfig_IBMQ_experience.py`` and
@@ -330,7 +312,7 @@ are operational
 
 .. code:: ipython3
 
-    IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] > 10 and 
+    IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] <= 5 and 
                   not x.configuration()['simulator'] and x.status()['operational']==True)
 
 
@@ -338,7 +320,7 @@ are operational
 
 .. parsed-literal::
 
-    [<IBMQBackend('ibmq_16_melbourne') from IBMQ()>]
+    [<IBMQBackend('ibmqx4') from IBMQ()>]
 
 
 
@@ -348,14 +330,17 @@ queue)
 .. code:: ipython3
 
     from qiskit.backends.ibmq import least_busy
-    least_busy(IBMQ.backends(simulator=False))
+    
+    small_devices = IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] <= 5 and
+                                                           not x.configuration()['simulator'])
+    least_busy(small_devices)
 
 
 
 
 .. parsed-literal::
 
-    <IBMQBackend('ibmq_16_melbourne') from IBMQ()>
+    <IBMQBackend('ibmqx4') from IBMQ()>
 
 
 
@@ -417,7 +402,7 @@ There are some IBMQ only functions
 
 .. code:: ipython3
 
-    backend = least_busy(IBMQ.backends(simulator=False))
+    backend = least_busy(small_devices)
 
 Let’s start with the ``backend.provider``, which returns a provider
 object
@@ -431,7 +416,7 @@ object
 
 .. parsed-literal::
 
-    <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x118cfbfd0>
+    <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x10a708cc0>
 
 
 
@@ -446,7 +431,7 @@ Next is the ``name()``, which returns the name of the backend
 
 .. parsed-literal::
 
-    'ibmq_16_melbourne'
+    'ibmqx4'
 
 
 
@@ -466,7 +451,7 @@ Next let’s look at the ``status()``:
 
 .. parsed-literal::
 
-    {'pending_jobs': 0, 'name': 'ibmq_16_melbourne', 'operational': True}
+    {'pending_jobs': 6, 'name': 'ibmqx4', 'operational': True}
 
 
 
@@ -482,36 +467,20 @@ The next is ``configuration()``
 .. parsed-literal::
 
     {'local': False,
-     'name': 'ibmq_16_melbourne',
-     'version': '1.0.0',
-     'description': '16 transmon 2x8 ladder',
+     'name': 'ibmqx4',
+     'version': '1.2.0',
+     'description': '5 qubit transmon bowtie chip 3',
+     'gate_set': 'SU2+CNOT',
      'basis_gates': 'u1,u2,u3,cx,id',
-     'online_date': '2018-09-07T00:00:00.000Z',
-     'chip_name': 'Albatross',
+     'online_date': '2017-09-18T00:00:00.000Z',
+     'chip_name': 'Raven',
      'deleted': False,
-     'url': 'https://ibm.biz/qiskit-ibmq_16_melbourne',
-     'internal_id': '5ba502d0986f16003ea56c87',
+     'url': 'https://ibm.biz/qiskit-ibmqx4',
+     'internal_id': '5ae875670f020500393162b3',
      'simulator': False,
      'allow_q_object': False,
-     'n_qubits': 14,
-     'coupling_map': [[1, 0],
-      [1, 2],
-      [2, 3],
-      [4, 3],
-      [4, 10],
-      [5, 4],
-      [5, 6],
-      [5, 9],
-      [6, 8],
-      [7, 8],
-      [9, 8],
-      [9, 10],
-      [11, 3],
-      [11, 10],
-      [11, 12],
-      [12, 2],
-      [13, 1],
-      [13, 12]]}
+     'n_qubits': 5,
+     'coupling_map': [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}
 
 
 
@@ -526,254 +495,90 @@ The next is ``properties()`` method
 
 .. parsed-literal::
 
-    {'last_update_date': '2018-11-10T07:43:39.000Z',
-     'qubits': [{'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0021111108471550954},
+    {'last_update_date': '2018-11-12T02:56:39.000Z',
+     'qubits': [{'gateError': {'date': '2018-11-12T02:56:39Z',
+        'value': 0.0011160854878761173},
        'name': 'Q0',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.03469999999999995},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 15.7, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 59.1, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 5.1000637}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.006152100589040643},
+       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.073},
+       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
+       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
+       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 32.8, 'unit': 'µs'},
+       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 44.6, 'unit': 'µs'},
+       'frequency': {'date': '2018-11-12T02:56:39Z',
+        'value': 5.24987,
+        'unit': 'GHz'}},
+      {'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.00128782749692391},
        'name': 'Q1',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.03699999999999992},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 65.7, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 53.2, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 5.2383452}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.003740272134946432},
+       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.073},
+       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
+       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
+       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 20.1, 'unit': 'µs'},
+       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 34.2, 'unit': 'µs'},
+       'frequency': {'date': '2018-11-12T02:56:39Z',
+        'value': 5.29577,
+        'unit': 'GHz'}},
+      {'gateError': {'date': '2018-11-12T02:56:39Z',
+        'value': 0.001631340796924452},
        'name': 'Q2',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.03469999999999995},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 102.6, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 65.7, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 5.0328719}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0028833222344865628},
+       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.033},
+       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
+       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
+       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 27.4, 'unit': 'µs'},
+       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 38, 'unit': 'µs'},
+       'frequency': {'date': '2018-11-12T02:56:39Z',
+        'value': 5.35326,
+        'unit': 'GHz'}},
+      {'gateError': {'date': '2018-11-12T02:56:39Z',
+        'value': 0.002232583111384412},
        'name': 'Q3',
-       'readoutError': {'date': '2018-11-10T07:41:33Z', 'value': 0.1572},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 70, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 56.5, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.8961435}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0019122042304199338},
+       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.026},
+       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
+       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
+       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 12.4, 'unit': 'µs'},
+       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 41.2, 'unit': 'µs'},
+       'frequency': {'date': '2018-11-12T02:56:39Z',
+        'value': 5.43497,
+        'unit': 'GHz'}},
+      {'gateError': {'date': '2018-11-12T02:56:39Z',
+        'value': 0.0013737021608475342},
        'name': 'Q4',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.052100000000000035},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 31.5, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 62.1, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 5.0261587}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0025980597194751875},
-       'name': 'Q5',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.04180000000000006},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 26.2, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 23.4, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 5.0670346}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.016121168647298623},
-       'name': 'Q6',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.43810000000000004},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 0.2, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 47.9, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.9237102}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0021072160137580176},
-       'name': 'Q7',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.35119999999999996},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 50.4, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 44.8, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.9744298}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.002027642041947275},
-       'name': 'Q8',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.032399999999999984},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 84.3, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 51.3, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.7381231}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0027701731296251864},
-       'name': 'Q9',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.027800000000000047},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 74.7, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 43, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.9633109}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0017276307654423562},
-       'name': 'Q10',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.05289999999999995},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 72, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 53.3, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.9449706}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.0019387530324384006},
-       'name': 'Q11',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.12830000000000008},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 121.4, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 69.7, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 5.0046508}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z',
-        'value': 0.005277351743300962},
-       'name': 'Q12',
-       'readoutError': {'date': '2018-11-10T07:41:33Z',
-        'value': 0.03770000000000007},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 107.9, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 73.4, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.7598326}},
-      {'gateError': {'date': '2018-11-10T07:47:53Z', 'value': 0.00706203056750071},
-       'name': 'Q13',
-       'readoutError': {'date': '2018-11-10T07:41:33Z', 'value': 0.0655},
-       'buffer': {'date': '2018-11-10T07:06:52Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-10T07:06:52Z', 'value': 100, 'unit': 'ns'},
-       'T2': {'date': '2018-11-10T07:43:39Z', 'value': 44.1, 'unit': 'µs'},
-       'T1': {'date': '2018-11-10T07:41:57Z', 'value': 29.2, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-10T07:06:52Z',
-        'units': 'GHz',
-        'value': 4.9685372}}],
+       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.056},
+       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
+       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
+       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 12, 'unit': 'µs'},
+       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 50.3, 'unit': 'µs'},
+       'frequency': {'date': '2018-11-12T02:56:39Z',
+        'value': 5.17582,
+        'unit': 'GHz'}}],
      'multi_qubit_gates': [{'qubits': [1, 0],
        'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z',
-        'value': 0.044115602886946104},
+       'gateError': {'date': '2018-11-12T02:56:39Z',
+        'value': 0.039730922592824625},
        'name': 'CX1_0'},
-      {'qubits': [1, 2],
+      {'qubits': [2, 0],
        'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.03071226450213524},
-       'name': 'CX1_2'},
-      {'qubits': [2, 3],
+       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.0370616990430509},
+       'name': 'CX2_0'},
+      {'qubits': [2, 1],
        'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z',
-        'value': 0.052883399201068326},
-       'name': 'CX2_3'},
-      {'qubits': [4, 3],
+       'gateError': {'date': '2018-11-12T02:56:39Z',
+        'value': 0.039182981129817634},
+       'name': 'CX2_1'},
+      {'qubits': [3, 2],
        'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.04293561904788096},
-       'name': 'CX4_3'},
-      {'qubits': [4, 10],
+       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.06468197586341454},
+       'name': 'CX3_2'},
+      {'qubits': [3, 4],
        'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.02567800627055783},
-       'name': 'CX4_10'},
-      {'qubits': [5, 4],
+       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.0472178292725369},
+       'name': 'CX3_4'},
+      {'qubits': [4, 2],
        'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.04281117233906834},
-       'name': 'CX5_4'},
-      {'qubits': [5, 6],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.04663507508485301},
-       'name': 'CX5_6'},
-      {'qubits': [5, 9],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.3278229946644999},
-       'name': 'CX5_9'},
-      {'qubits': [6, 8],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.3229883820118977},
-       'name': 'CX6_8'},
-      {'qubits': [7, 8],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.33186235776903733},
-       'name': 'CX7_8'},
-      {'qubits': [9, 8],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.06028246259895123},
-       'name': 'CX9_8'},
-      {'qubits': [9, 10],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z',
-        'value': 0.038502082712080055},
-       'name': 'CX9_10'},
-      {'qubits': [11, 10],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.03441489364222472},
-       'name': 'CX11_10'},
-      {'qubits': [11, 12],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z',
-        'value': 0.039247903146692104},
-       'name': 'CX11_12'},
-      {'qubits': [11, 3],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.0380042285580387},
-       'name': 'CX11_3'},
-      {'qubits': [12, 2],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.08178999129883763},
-       'name': 'CX12_2'},
-      {'qubits': [13, 1],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z', 'value': 0.12708741818285327},
-       'name': 'CX13_1'},
-      {'qubits': [13, 12],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-10T09:06:09Z',
-        'value': 0.029824807923597013},
-       'name': 'CX13_12'}],
-     'backend': 'ibmq_16_melbourne',
-     'fridge_parameters': {'cooldownDate': '2018-07-10',
-      'Temperature': {'date': '2018-11-10T10:18:50Z',
-       'value': 0.0280663,
-       'unit': 'K'}}}
+       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.06971263047107376},
+       'name': 'CX4_2'}],
+     'backend': 'ibmqx4',
+     'fridge_parameters': {'cooldownDate': '2017-09-07',
+      'Temperature': {'date': '-', 'value': [], 'unit': '-'}}}
 
 
 
@@ -803,11 +608,11 @@ that backend
 
 .. parsed-literal::
 
-    5be8bc0c9a9893006ff69161 JobStatus.CANCELLED
-    5be8bbfca9ff0f0053fa28bd JobStatus.DONE
-    5be8bbdbb6f6790062d1a7bc JobStatus.DONE
-    5be8bb0c6cd471005f3decf2 JobStatus.DONE
-    5be8baff9a9893006ff6915f JobStatus.DONE
+    5be8ae5e17436b0052751909 JobStatus.DONE
+    5be748a7e00f60005ad7f23d JobStatus.DONE
+    5be746e3d4d36f0054595d60 JobStatus.DONE
+    5bc3e88d404ceb006174af14 JobStatus.DONE
+    5bc3e84b21da3300548def31 JobStatus.DONE
 
 
 Then the job can be retreived using ``retrieve_job(job_id())`` method
@@ -864,7 +669,7 @@ To get a backend object from the job use the ``backend()`` method
 
 .. parsed-literal::
 
-    <IBMQBackend('ibmq_16_melbourne') from IBMQ()>
+    <IBMQBackend('ibmqx4') from IBMQ()>
 
 
 
@@ -879,7 +684,7 @@ To get the job_id use the ``job_id()`` method
 
 .. parsed-literal::
 
-    '5be8baff9a9893006ff6915f'
+    '5bc3e84b21da3300548def31'
 
 
 
@@ -894,7 +699,7 @@ To get the result from the job use the ``result()`` method
 
 .. parsed-literal::
 
-    {'000': 88, '010': 128, '001': 139, '011': 100, '100': 91, '110': 50, '101': 321, '111': 107}
+    {'00': 468, '01': 54, '10': 81, '11': 421}
 
 
 If you want to check the creation date use ``creation_date()``
@@ -908,7 +713,7 @@ If you want to check the creation date use ``creation_date()``
 
 .. parsed-literal::
 
-    '2018-11-11T23:27:59.081Z'
+    '2018-10-15T01:07:23.691Z'
 
 
 
@@ -935,7 +740,7 @@ Let’s make an active example
 
 .. parsed-literal::
 
-    <qiskit._instructionset.InstructionSet at 0x11a6a0320>
+    <qiskit._instructionset.InstructionSet at 0x113f3c278>
 
 
 
@@ -959,7 +764,7 @@ The status of this job can be checked with the ``status()`` method
 
 .. parsed-literal::
 
-    <JobStatus.INITIALIZING: 'job is being initialized'>
+    <JobStatus.QUEUED: 'job is queued'>
 
 
 
@@ -1034,5 +839,5 @@ position you can use the ``queue_position()`` method.
 
 .. parsed-literal::
 
-    {'000': 88, '010': 114, '001': 155, '011': 90, '100': 130, '110': 40, '101': 347, '111': 60}
+    {'000': 41, '001': 166, '010': 27, '011': 60, '100': 82, '101': 590, '110': 21, '111': 37}
 
