@@ -79,8 +79,7 @@ class BackendMonitor(Magics):
                                                grid_template_columns='250px ' *
                                                len(unique_hardware_backends),
                                                grid_template_rows='auto',
-                                               grid_gap='0px 25px')
-                                          )
+                                               grid_gap='0px 25px'))
 
         backend_grid._backends = _backends        # pylint: disable=W0201
         backend_grid._update = types.MethodType(  # pylint: disable=W0201
@@ -152,9 +151,10 @@ def backend_widget(backend):
         _cmap_fig = plot_coupling_map(backend,
                                       figsize=_fig_size,
                                       plot_directed=False,
-                                      label_qubits=False,
-                                     )
+                                      label_qubits=False)
         display(_cmap_fig)
+
+    # Prevents plot from showing up twice.
     plt.close(_cmap_fig)
 
     pending = generate_jobs_pending_widget()
@@ -345,8 +345,7 @@ def plot_coupling_map(backend, figsize=(5, 5),
     mpl_data['ibmq_16_rueschlikon'] = [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1],
                                        [4, 1], [5, 1], [6, 1], [
                                            7, 1], [7, 0], [6, 0],
-                                       [5, 0], [4, 0], [3, 0], [2, 0], [1, 0],
-                                      ]
+                                       [5, 0], [4, 0], [3, 0], [2, 0], [1, 0]]
 
     mpl_data['ibmq_5_tenerife'] = [[0, 0], [0, 2], [1, 1], [2, 2], [2, 0]]
 
