@@ -41,7 +41,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_bloch_vector(bloch, title="", filename=None, ax=None, show=False):
+def plot_bloch_vector(bloch, title="", ax=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -49,8 +49,7 @@ def plot_bloch_vector(bloch, title="", filename=None, ax=None, show=False):
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window.
+        ax (matplotlib.Axes): An Axes to use for rendering the bloch sphere
     """
     B = Bloch(axes=ax)
     B.add_vectors(bloch)
@@ -68,6 +67,10 @@ def plot_state_city(rho, title="", filename=None, show=False):
         title (str): a string that represents the plot title
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+        show (bool):  If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
     """
     num = int(np.log2(len(rho)))
 
@@ -138,7 +141,10 @@ def plot_state_paulivec(rho, title="", filename=None, show=False):
         title (str): a string that represents the plot title
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
-
+        show (bool):  If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
     """
     num = int(np.log2(len(rho)))
     labels = list(map(lambda x: x.to_label(), pauli_group(num)))
@@ -360,9 +366,9 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
             `bloch` method is used a `-n` will be added to the filename before
             the extension for each qubit.
         show (bool): If set to true the rendered image will open in a new
-            window (mpl only)
-    Returns
-        matplotlib.Figure:
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
     Raises:
         VisualizationError: if the input is not a statevector or density
         matrix, or if the state is not an multi-qubit quantum state.
@@ -388,7 +394,6 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
     elif method == "qsphere":
         fig = plot_state_qsphere(rho, filename=filename, show=show)
     elif method == "bloch":
-        orig_filename = filename
         aspect = float(1 / num)
         fig = plt.figure(figsize=plt.figaspect(aspect))
         for i in range(num):
@@ -428,7 +433,9 @@ def plot_wigner_function(state, res=100, filename=None, show=False):
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
         show (bool): If set to true the rendered image will open in a new
-            window (mpl only)
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
 
     References:
         [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
