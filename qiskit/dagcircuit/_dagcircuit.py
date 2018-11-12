@@ -20,6 +20,7 @@ directly from the graph.
 from collections import OrderedDict
 import copy
 import itertools
+from contextlib import suppress
 
 import networkx as nx
 import sympy
@@ -1100,6 +1101,16 @@ class DAGCircuit:
         return {node_id for node_id, data in self.multi_graph.nodes(data=True)
                 if data["type"] == "op" and data["name"] == name}
 
+    def get_cnot_nodes(self):
+        """Get the set of Cnot."""
+        cx_names = ['cx', 'CX']
+        cxs_nodes = []
+        for cx_name in cx_names:
+            if cx_name in self.basis:
+                for cx_id in self.get_named_nodes(cx_name):
+                    cxs_nodes.append(self.multi_graph.node[cx_id])
+        return cxs_nodes
+
     def _remove_op_node(self, n):
         """Remove an operation node n.
 
@@ -1332,6 +1343,19 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+
+    def add_dag_at_the_end(self, dag):
+        layout = {}
+        for qreg in dag.qregs.values():
+            with suppress(DAGCircuitError):
+                self.add_qreg(QuantumRegister(qreg.size, qreg.name))
+                layout[(qreg.name, qreg.size)] = (qreg.name, qreg.size)
+        for creg in dag.cregs.values():
+            with suppress(DAGCircuitError):
+                self.add_creg(ClassicalRegister(creg.size, creg.name))
+                layout[(creg.name, creg.size)] = (creg.name, creg.size)
+        self.compose_back(dag,
+        {('q', 0): ('q', 0), ('q', 1): ('q', 1), ('q', 2): ('q', 2)})
 
     @staticmethod
     def fromQuantumCircuit(circuit, expand_gates=True):
