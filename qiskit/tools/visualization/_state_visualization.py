@@ -392,7 +392,6 @@ def plot_state(quantum_state, method='city', filename=None):
                 filename_parts[-2] += '-%d' % i
                 filename = '.'.join(filename_parts)
                 print(filename)
-            
             pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
                              Pauli.pauli_single(num, i, 'Z')]
             bloch_state = list(

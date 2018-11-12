@@ -84,7 +84,7 @@ def iplot_blochsphere(rho, options=None):
     for i in range(num):
         pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
                          Pauli.pauli_single(num, i, 'Z')]
-        bloch_state = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))), 
+        bloch_state = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                                pauli_singles))
         bloch_data.append(bloch_state)
 
