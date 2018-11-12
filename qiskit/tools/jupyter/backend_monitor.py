@@ -39,7 +39,7 @@ class BackendMonitor(Magics):
             self.qiskit_backend_monitor, line)
 
         unique_hardware_backends = get_unique_backends()
-        _value = "<h2 style ='color:  # ffffff; background-color:#000000;"
+        _value = "<h2 style ='color:#ffffff; background-color:#000000;"
         _value += "padding-top: 1%; padding-bottom: 1%;padding-left: 1%;"
         _value += "margin-top: 0px'>Backend Monitor</h2>"
         backend_title = widgets.HTML(value=_value,
