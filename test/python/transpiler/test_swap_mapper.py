@@ -15,25 +15,58 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit import QuantumRegister
 from ..common import QiskitTestCase
 
+
+def _create_dag(instructions):
+    dag = DAGCircuit()
+    qregs = {}
+    basic_elements = {}
+
+    for instruction in instructions:
+        basic_elements[instruction[0]] = len(instruction[1])
+
+    for arg in instruction[1]:
+        if qregs.get(arg[0]) is None:
+            qregs[arg[0]] = []
+        qregs[arg[0]].append(arg[1])
+
+    # dag.add_qreg
+    for name, regs in qregs.items():
+        dag.add_qreg(QuantumRegister(max(regs) + 1, name))
+
+    # dag.add_basis_element
+    for name, amount in basic_elements.items():
+        dag.add_basis_element(name, amount)
+
+    # apply_operation_back
+    for instruction, args in instructions:
+        dag.apply_operation_back(instruction, args)
+
+    return dag
+
+
 class TestSwapMapper(QiskitTestCase):
-    def setUp(self):
-        coupling_dict = {0: [1, 2]}
-        self.coupling = Coupling(coupling_dict)
 
     def test_trivial_case(self):
-        pass_ = SwapMapper(self.coupling)
-        qreg = QuantumRegister(3, 'q')
-        dag = DAGCircuit()
-        dag.add_basis_element('U', 1, number_classical=0, number_parameters=0)
-        dag.add_basis_element('CX', 2)
-        dag.add_qreg(qreg)
-        dag.apply_operation_back('CX', [('q', 0), ('q', 1)])
-        dag.apply_operation_back('U', [('q', 0)])
-        dag.apply_operation_back('CX', [('q', 0), ('q', 2)])
-        dag.apply_operation_back('U', [('q', 0)])
+        # No need to have any swap, the CX are distance 1 to each other
+        # q0:--(+)-[U]-(+)-
+        #       |       |
+        # q1:---.-------|--
+        #               |
+        # q2:-----------.--
+        #
+        # Coupling map: [1]--[0]--[2]
+
+        coupling = Coupling({0: [1, 2]})
+        dag = _create_dag([('CX', [('q', 0), ('q', 1)]),
+                           ('U', [('q', 0)]),
+                           ('CX', [('q', 0), ('q', 2)])])
+
         before = dag.qasm()
+        pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
+
         self.assertEqual(before, after_dag.qasm())
+
 
 if __name__ == '__main__':
     unittest.main()
