@@ -14,7 +14,8 @@ from IPython.core import magic_arguments                         # pylint: disab
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import qiskit
-from .progressbar import HTMLProgressBar, TextProgressBar
+from qiskit.transpiler.progressbar import TextProgressBar
+from .progressbar import HTMLProgressBar
 
 
 def _html_checker(job_var, interval, status, header):
