@@ -169,7 +169,7 @@ $(function() {
               <rect x="26" y="24" width="2" height="2"/>
               <rect class="cls-1" width="32" height="32"/>
           </svg>`));
-          $('.mdl-layout-title .title').append($('<h3 class="title-header">Qiskit</h3>'))
+          $('.mdl-layout-title .title').append($('<h3 class="title-header">Terra</h3>'))
 
     }
       function replaceLinksComposer() {

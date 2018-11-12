@@ -9,6 +9,19 @@ pre{
 .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
     font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
 
+.mdl-layout-title{
+    display: flex !important;
+    padding-right: 20px !important;
+}
+a.title{
+    display: flex !important;
+    align-items: center !important;
+}
+ .mdl-layout__drawer>.mdl-layout-title .title>img.logo{
+    width: 50px !important;
+    padding-left: 32px !important;
+    padding-right: 16px !important;
+}
 p,h1,h2,h3,h4,h5,div,section,li{
   -moz-osx-font-smoothing: grayscale;
   font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif !important;
@@ -131,9 +144,6 @@ h5.mdl-color-text--primary{
 }
 .current{
     font-weight: normal !important;
-}
-.title-header {
-    display: none;
 }
 .link-wrapper{
     word-break: break-word
