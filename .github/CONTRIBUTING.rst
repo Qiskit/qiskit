@@ -298,10 +298,38 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_circuit.py
 
-Note many of the test will not pass unless you have setup an account with the IBMQ. To set this up please go to
-this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account. 
-We are working on making this simpler and making the test for Qiskit Terra not needing an account. 
+Note many of the tests will not be executed unless you have setup an IBMQ
+account. To set this up please go to this
+`page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and
+register an account.
 
+By default, and if there is no user credentials available, the tests that
+require online access are run with recorded (mocked) information. This is, the
+remote requests are replayed from a ``test/cassettes`` and not real HTTP
+requests is generated. If user credentials are found, in that cases it use them
+to make the network requests.
+
+How and which tests are executed is controlled by a environment variable
+``QISKIT_TESTS``. The options are (where ``uc_available = True`` if the user
+credentials are available, and ``False`` otherwise):
+
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+|  Option           | Description                                                                                                        | Default               |  If ``True``, forces                             |
++===================+====================================================================================================================+=======================+==================================================+
+| ``skip_online``   | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | ``False``             | ``rec = False``                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``mock_online``   | It runs the online tests using mocked information. Does not require user credentials.                              | ``not uc_available``  | ``skip_online = False``                          |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``run_slow``      | It runs tests tagged as *slow*.                                                                                    | ``False``             |                                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``rec``           | It records the remote requests. It requires user credentials.                                                      | ``False``             | ``skip_online = False``                          |
+|                   |                                                                                                                    |                       | ``run_slow = False``                             |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+
+It is possible to provide more than one option separated with commas.
+The order of precedence in the options is right to left. For example,
+``QISKIT_TESTS=skip_online,rec`` will set the options as
+``skip_online == False`` and ``rec == True``.
 
 Style guide
 ~~~~~~~~~~~
