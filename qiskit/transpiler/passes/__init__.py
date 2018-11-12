@@ -9,3 +9,5 @@
 
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
+from .commutation_transformation import CommutationTransformation
+from .commutation_analysis import CommutationAnalysis
