@@ -99,10 +99,10 @@ $(function() {
         });
     }
     function styleMdlCodeBlock() {
-        $('pre').hover(function() {
+        $('div.code div.highlight pre').hover(function() {
             $(this).attr('click-to-copy', 'click to copy...');
         });
-        $('pre').click(function(){
+        $('div.code div.highlight pre').click(function(){
             var result = copyClipboard(this);
             if (result) {
                 $(this).attr('click-to-copy', 'copied!');

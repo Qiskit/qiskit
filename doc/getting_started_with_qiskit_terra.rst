@@ -157,7 +157,7 @@ the quantum circuit.
     print(np.around(outputstate,3))
 
 
-.. parsed-literal::
+.. code-block:: text
 
     simulation:  COMPLETED
     [0.707+0.j 0.   +0.j 0.   +0.j 0.   +0.j 0.   +0.j 0.   +0.j 0.   +0.j
@@ -197,7 +197,7 @@ the quantum circuit.
     print(np.around(result.get_unitary(circ), 3))
 
 
-.. parsed-literal::
+.. code-block:: text
 
     simulation:  COMPLETED
     [[ 0.707+0.j  0.707-0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j
@@ -288,7 +288,7 @@ circuit you have run.
     print(counts)
 
 
-.. parsed-literal::
+.. code-block:: text
 
     {'111': 524, '000': 500}
 
@@ -350,14 +350,9 @@ Now view the list of backends available to you.
     IBMQ.backends()
 
 
-.. parsed-literal::
+.. code-block:: text
 
     Available backends:
-
-
-
-
-.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmqx5') from IBMQ()>,
@@ -374,13 +369,14 @@ program (has at least 3 qubits).
 
     from qiskit.backends.ibmq import least_busy
     
-    large_enough_devices = IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] > 3 and
-                                                           not x.configuration()['simulator'])
+    large_enough_devices = IBMQ.backends(
+        filters=lambda x: x.configuration()['n_qubits'] > 3 and
+            not x.configuration()['simulator'])
     backend = least_busy(large_enough_devices)
     print("The best backend is " + backend.name())
 
 
-.. parsed-literal::
+.. code-block:: text
 
     The best backend is ibmqx4
 
@@ -457,7 +453,7 @@ ID:
     print('JOB ID: {}'.format(jobID))        
 
 
-.. parsed-literal::
+.. code-block:: text
 
     JOB ID: 5be8ae5e17436b0052751909
 
@@ -476,9 +472,7 @@ and then the results can be obtained from the new job object.
     job_get.result().get_counts(qc)
 
 
-
-
-.. parsed-literal::
+.. code-block:: text
 
     {'00000': 367,
      '00001': 10,
@@ -488,5 +482,3 @@ and then the results can be obtained from the new job object.
      '00101': 83,
      '00110': 50,
      '00111': 435}
-
-

@@ -129,7 +129,7 @@ Please follow the next rules for the commit messages:
 
 A good example:
 
-.. code::
+.. code-block:: text
 
     Issue #190: Short summary of the issue
     * One of the important changes

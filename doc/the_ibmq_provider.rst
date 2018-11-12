@@ -52,7 +52,7 @@ never saved.
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     []
 
@@ -77,7 +77,7 @@ verify that there are no accounts stored now
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     []
 
@@ -126,7 +126,7 @@ and backends which are available
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmqx5') from IBMQ()>,
@@ -151,7 +151,7 @@ Now no backends are available
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     []
 
@@ -181,7 +181,7 @@ but no account active in current session yet
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     []
 
@@ -196,7 +196,7 @@ so IBMQ can’t see any backends yet
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     []
 
@@ -217,7 +217,7 @@ backends from two different accounts available for use
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmqx5') from IBMQ()>,
@@ -239,7 +239,7 @@ via account filtering
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, qiskit, qiskit-terra)>,
      <IBMQBackend('ibmq_qasm_simulator') from IBMQ(ibm-q-internal, qiskit, qiskit-terra)>]
@@ -268,7 +268,7 @@ and only that account’s backends are available
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmqx5') from IBMQ()>,
@@ -290,7 +290,7 @@ interested in
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmqx5') from IBMQ()>,
@@ -318,7 +318,7 @@ As a first example: only return currently operational devices
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>]
@@ -336,7 +336,7 @@ are operational
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     [<IBMQBackend('ibmqx4') from IBMQ()>]
 
@@ -356,7 +356,7 @@ queue)
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <IBMQBackend('ibmqx4') from IBMQ()>
 
@@ -374,7 +374,7 @@ the ``get_backend()`` method.
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <IBMQBackend('ibmq_16_melbourne') from IBMQ()>
 
@@ -432,7 +432,7 @@ object
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x10e62cfd0>
 
@@ -447,7 +447,7 @@ Next is the ``name()``, which returns the name of the backend
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     'ibmqx4'
 
@@ -467,7 +467,7 @@ Next let’s look at the ``status()``:
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     {'pending_jobs': 6, 'name': 'ibmqx4', 'operational': True}
 
@@ -482,7 +482,7 @@ The next is ``configuration()``
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     {'local': False,
      'name': 'ibmqx4',
@@ -511,7 +511,7 @@ The next is ``properties()`` method
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     {'last_update_date': '2018-11-12T02:56:39.000Z',
      'qubits': [{'gateError': {'date': '2018-11-12T02:56:39Z',
@@ -624,7 +624,7 @@ that backend
         print(str(ran_job.job_id()) + " " + str(ran_job.status()))
 
 
-.. parsed-literal::
+.. code-block:: text
 
     5be8f39c54dacb0059c2b0db JobStatus.DONE
     5be8f394afd471005540d4d7 JobStatus.CANCELLED
@@ -669,7 +669,7 @@ message
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <JobStatus.DONE: 'job has successfully run'>
 
@@ -685,7 +685,7 @@ To get a backend object from the job use the ``backend()`` method
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <IBMQBackend('ibmqx4') from IBMQ()>
 
@@ -700,7 +700,7 @@ To get the job_id use the ``job_id()`` method
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     '5be746e3d4d36f0054595d60'
 
@@ -715,7 +715,7 @@ To get the result from the job use the ``result()`` method
     print(counts)
 
 
-.. parsed-literal::
+.. code-block:: text
 
     {'000': 387, '001': 23, '010': 39, '011': 22, '100': 30, '101': 59, '110': 62, '111': 402}
 
@@ -729,7 +729,7 @@ If you want to check the creation date use ``creation_date()``
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     '2018-11-10T21:00:19.795Z'
 
@@ -756,7 +756,7 @@ Let’s make an active example
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <qiskit._instructionset.InstructionSet at 0x10ffb5240>
 
@@ -780,7 +780,7 @@ The status of this job can be checked with the ``status()`` method
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <JobStatus.QUEUED: 'job is queued'>
 
@@ -799,7 +799,7 @@ method.
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     True
 
@@ -814,7 +814,7 @@ The ``status()`` will show that the job cancelled.
 
 
 
-.. parsed-literal::
+.. code-block:: text
 
     <JobStatus.CANCELLED: 'job has been cancelled'>
 
@@ -841,7 +841,7 @@ position you can use the ``queue_position()`` method.
     result = job.result()
 
 
-.. parsed-literal::
+.. code-block:: text
 
     Status @ 0 seconds
     JobStatus.INITIALIZING
@@ -855,7 +855,7 @@ position you can use the ``queue_position()`` method.
     print(counts)
 
 
-.. parsed-literal::
+.. code-block:: text
 
     {'000': 37, '001': 155, '010': 55, '011': 50, '100': 86, '101': 582, '110': 20, '111': 39}
 
