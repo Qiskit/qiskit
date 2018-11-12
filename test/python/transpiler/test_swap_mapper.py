@@ -24,10 +24,10 @@ def _create_dag(instructions):
     for instruction in instructions:
         basic_elements[instruction[0]] = len(instruction[1])
 
-    for arg in instruction[1]:
-        if qregs.get(arg[0]) is None:
-            qregs[arg[0]] = []
-        qregs[arg[0]].append(arg[1])
+        for arg in instruction[1]:
+            if qregs.get(arg[0]) is None:
+                qregs[arg[0]] = []
+            qregs[arg[0]].append(arg[1])
 
     # dag.add_qreg
     for name, regs in qregs.items():
@@ -67,6 +67,27 @@ class TestSwapMapper(QiskitTestCase):
 
         self.assertEqual(before, after_dag.qasm())
 
+    def test_trivial_in_same_layer(self):
+        # No need to have any swap, two CXs distance 1 to each other, in the same layer
+        # q0:--(+)--
+        #       |
+        # q1:---.---
+        #
+        # q2:--(+)--
+        #       |
+        # q3:---.---
+        #
+        # Coupling map: [0]--[1]--[2]--[3]
+
+        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        dag = _create_dag([('CX', [('q', 2), ('q', 3)]),
+                           ('CX', [('q', 0), ('q', 1)])])
+
+        before = dag.qasm()
+        pass_ = SwapMapper(coupling)
+        after_dag = pass_.run(dag)
+
+        self.assertEqual(before, after_dag.qasm())
 
 if __name__ == '__main__':
     unittest.main()

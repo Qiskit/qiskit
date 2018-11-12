@@ -1345,17 +1345,24 @@ class DAGCircuit:
         return summary
 
     def add_dag_at_the_end(self, dag):
-        layout = {}
         for qreg in dag.qregs.values():
             with suppress(DAGCircuitError):
                 self.add_qreg(QuantumRegister(qreg.size, qreg.name))
-                layout[(qreg.name, qreg.size)] = (qreg.name, qreg.size)
+
         for creg in dag.cregs.values():
             with suppress(DAGCircuitError):
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
-                layout[(creg.name, creg.size)] = (creg.name, creg.size)
-        self.compose_back(dag,
-        {('q', 0): ('q', 0), ('q', 1): ('q', 1), ('q', 2): ('q', 2)})
+
+        # create a one-to-one layout
+        layout = {}
+        for qreg in dag.qregs.values():
+            for index in range(qreg.size):
+                layout[(qreg.name, index)] = (qreg.name, index)
+        for creg in dag.cregs.values():
+            for index in range(creg.size):
+                layout[(creg.name, index)] = (creg.name, index)
+
+        self.compose_back(dag, layout)
 
     @staticmethod
     def fromQuantumCircuit(circuit, expand_gates=True):
