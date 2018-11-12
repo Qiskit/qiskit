@@ -28,7 +28,8 @@ class GroupGates(AnalysisPass):
             dag: directed acyclic graph (Note: DiGraph instead of MultiDiGraph)
         """
 
-    def group_gates(compiled_dag):
+    #JAGdef group_gates(compiled_dag):
+    def group_gates(self, compiled_dag):
         """
         Group all gate that are applied to two certain qubits (if possible) in a greedy fashion
         return a graph holding the grouped gates.
@@ -104,20 +105,20 @@ class GroupGates(AnalysisPass):
                         last_index[q_2] = nnodes
                         nnodes += 1
             elif node_i["name"] == "barrier":
-                for i in range(len(single_qubit_gates)):
-                    if single_qubit_gates[i] != []:
+                for i_inner in range(len(single_qubit_gates)):
+                    if single_qubit_gates[i_inner] != []:
                         graph.add_node(
-                            nnodes, gates=single_qubit_gates[i], qubits=tuple([i])
+                            nnodes, gates=single_qubit_gates[i_inner], qubits=tuple([i_inner])
                         )
                         counter += 1
-                        last_index[i] = nnodes
-                        single_qubit_gates[i] = []
+                        last_index[i_inner] = nnodes
+                        single_qubit_gates[i_inner] = []
                         nnodes += 1
                 graph.add_node(nnodes, gates=[node_i], qubits=tuple(range(0, nqubits)))
                 counter += 1
-                for i in range(nqubits):
-                    graph.add_edge(last_index[i], nnodes)
-                    last_index[i] = nnodes
+                for i_inner in range(nqubits):
+                    graph.add_edge(last_index[i_inner], nnodes)
+                    last_index[i_inner] = nnodes
                 nnodes += 1
             elif node_i["name"] == "measure":
                 qubit = qubit_names.index(node_i["qargs"][0])
