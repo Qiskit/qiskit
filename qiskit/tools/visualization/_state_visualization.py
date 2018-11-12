@@ -20,7 +20,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from scipy import linalg
 
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit.tools.qi.pauli import pauli_group, Pauli
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
 
@@ -397,8 +397,10 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
         fig, ax = plt.subplots(int(np.sqrt(num)), int(np.sqrt(num)))
         for i in range(num):
             bloch_state = list(
-                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                    pauli_singles(i, num)))
+            pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
+                             Pauli.pauli_single(num, i, 'Z')]
+            bloch_state = list(
+                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))), pauli_singles))
             plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax[i])
         if filename:
             plt.savefig(filename)
