@@ -3,11 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-##########################
 Qiskit Terra Documentation
 ##########################
 
-*****************
+
 Table of Contents
 *****************
 
@@ -16,16 +15,18 @@ Table of Contents
 
    Overview <overview>
    Installation and Setup <install>
-   Running Quantum Circuits <running_quantum_circuits>
-   Contributing to Terra <dev_introduction>
+   Getting Started with Qiskit Terra <getting_started_with_qiskit_terra>
+   The IBM Q Provider <the_ibmq_provider>
+   Summary of Quantum Operations <summary_of_quantum_operations>
+   Contributing to Terra <CONTRIBUTING>
    Release history <release_history>
    Terra SDK Reference <_autodoc/qiskit>
 
-**************
+
 Python Modules
 **************
 
-============
+
 Main Modules
 ============
 
@@ -36,7 +37,7 @@ Main Modules
 
 :ref:`modindex`
 
-*******
+
 Authors 
 *******
 

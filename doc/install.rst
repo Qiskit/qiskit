@@ -1,8 +1,8 @@
-============================
+
 Terra Installation and setup
 ============================
 
-------------
+
 Dependencies
 ------------
 
@@ -15,7 +15,7 @@ is also recommended for interacting with
 For this reason we recommend installing `Anaconda 3 <https://www.anaconda.com/download/>`__
 python distribution, which already comes with all these dependencies pre-installed.
 
--------------
+
 Installation
 -------------
 
@@ -33,7 +33,7 @@ This will install the latest stable release, along with all the dependencies.
     We recommend using `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`__
     to cleanly separate Qiskit from other applications and improve your experience.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Setup with an environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -51,7 +51,7 @@ and install Qiskit Terra using
     pip install qiskit
 
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Setup a standalone version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -73,7 +73,7 @@ To install the required dependencies for the development tools add the line
 
     pip install -r requirements-dev.txt
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Building the C++ libraries  
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -100,7 +100,7 @@ Windows:
 
 This will generate all needed binaries for your specific platform.
 
----------------------------------------------
+
 Configure your API token and IBMQ credentials
 ---------------------------------------------
 
@@ -109,7 +109,7 @@ Configure your API token and IBMQ credentials
 -  Get an API token from the IBM Q website under “My
    Account” > “Advanced”
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Automatically loading credentials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -129,7 +129,7 @@ credentials from several sources (if needed), and authenticates against IBM Q,
 making the online devices available to your program. Please use one of the following
 methods for storing the credentials before calling the automatic registration:
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Store API credentials locally
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -160,7 +160,7 @@ along with any other additional information required (e.g. proxy information):
     IBMQ.save_account('MY_API_TOKEN', url='https://...')
 
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Manually loading credentials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -192,7 +192,7 @@ Manually loading from a ``Qconfig.py`` file can also be done:
 Please refer to the ``qiskit.IBMQ`` documentation for more information about
 using multiple credentials.
 
----------------
+
 Troubleshooting
 ---------------
 

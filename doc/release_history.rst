@@ -1,12 +1,12 @@
-===============
+
 Release history
 ===============
 
--------------
+
 Release notes
 -------------
 
-^^^^^^^^^^^^^^^^^^
+
 Qiskit Terra 0.6.0
 ^^^^^^^^^^^^^^^^^^
 
@@ -28,7 +28,7 @@ release, are:
   a more flexible and modular architecture have been set, including
   paralellization of the circuit compilation and numerous optimizations.
 
-^^^^^^^^^^^^^^^^^^
+
 Upgrading to 0.6.0
 ^^^^^^^^^^^^^^^^^^
 
@@ -71,7 +71,7 @@ for details about the transition ::
   print("simulation: ", sim_result)
   print(sim_result.get_counts(qc))
 
-"""""""""""""""""""""""""""""""""""""""
+
 IBM Q Authentication and ``Qconfig.py``
 """""""""""""""""""""""""""""""""""""""
 
@@ -101,7 +101,7 @@ been expanded, and there are new options that can be used for convenience:
 Additionally, the previous method of having a ``Qconfig.py`` file in the program
 folder and passing the credentials explicitly is still supported.
 
-"""""""""""""""""""""
+
 Working with backends
 """""""""""""""""""""
 
@@ -141,7 +141,7 @@ Qiskit Terra 0.5               Qiskit Terra 0.6
 'local_unitary_simulator_py'   'unitary_simulator'
 =============================  ========================
 
-"""""""""""""""""""""""""""
+
 Backend and Job API changes
 """""""""""""""""""""""""""
 
@@ -185,7 +185,7 @@ job.queued
 job.done
 =====================  ========================
 
-""""""""""""""""""""
+
 Better Jupyter tools
 """"""""""""""""""""
 
@@ -200,7 +200,7 @@ Secondly, the new release provides Jupyter cell magics for keeping track of the 
 Use ``%%qiskit_job_status`` to keep track of the status of submitted jobs to IBMQ backends.
 Use ``%%qiskit_progress_bar`` to keep track of the progress of compilation/execution.
 
-^^^^^^^^^^^^^^^^^^
+
 Qiskit Terra 0.5.0
 ^^^^^^^^^^^^^^^^^^
 
@@ -218,7 +218,7 @@ detailed description of the changes - the highlights are:
   convenience of the users (such as allowing anonymous registers) and for
   enhanced functionality (such as improved plotting of circuits).
 
-^^^^^^^^^^^^^^^^^^
+
 Upgrading to 0.5.0
 ^^^^^^^^^^^^^^^^^^
 
@@ -230,7 +230,7 @@ for the new versions and take advantage of the new functionality.
 
 .. _quantum-program-0-5:
 
-""""""""""""""""""""""""""
+
 ``QuantumProgram`` changes
 """"""""""""""""""""""""""
 
@@ -289,7 +289,7 @@ update example in the Quickstart section, or the
 ``using_qiskit_core_level_0.py`` and ``using_qiskit_core_level_1.py``
 examples on the main repository.
 
-""""""""""""""""""""
+
 Backend name changes
 """"""""""""""""""""
 
@@ -330,7 +330,7 @@ some design changes accordingly:
   the backend will be the C++ statevector simulator if available, falling back to
   the Python statevector simulator if not present.
 
-""""""""""""""""""""""""""""""""""
+
 More flexible names and parameters
 """"""""""""""""""""""""""""""""""
 

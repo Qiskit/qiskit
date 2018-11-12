@@ -1,4 +1,4 @@
-========
+
 Overview
 ========
 
@@ -9,14 +9,14 @@ of batches of experiments on remote-access devices. Terra defines the interfaces
 for a desirable end-user experience, as well as the efficient handling of layers 
 of optimization, pulse scheduling and backend communication.
 
-------------------
+
 Terra Organization
 ------------------
 
 Python example programs can be found in the *examples* directory, and test scripts are
 located in *test*. The *qiskit* directory is the main module of Terra. This moudule has six main parts
 
-^^^^^^^^^^^^^^^^
+
 Quantum Circuits
 ^^^^^^^^^^^^^^^^
 
@@ -28,7 +28,7 @@ To extract information on the state a quantum circuit must have a measurement wh
 (possible random due to the fundamental nature of quantum systems) to classical registers which 
 can be efficiently represented.
 
-^^^^^^^^^^
+
 Transpiler
 ^^^^^^^^^^
 
@@ -40,7 +40,7 @@ The transpiler introduces the concept of a pass manager to allow the users to ex
 optimization and find better quantum crcuits for their given algorithm. We call it a 
 transpiler as at the end the circuit has not changed. 
 
-^^^^^
+
 Tools
 ^^^^^
 
@@ -51,7 +51,7 @@ to a `qobj` (quantum object) which can then be run on a backend. The `qobj` is a
 representation (currently JSON) of the data that can be easily sent to the remote backends. 
 It also has functions for monitoring jobs, backends, and transpile passes. 
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Backends and Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -80,7 +80,7 @@ the user to get the raw counts from the quantum circuit and use them for more an
 quantum inofrmation tools provided by Terra.
 
 
-^^^^^^^^^^^^^^^^^^^
+
 Quantum Information
 ^^^^^^^^^^^^^^^^^^^
 
@@ -88,7 +88,7 @@ To perform more advance algorithms and analyzation of the circuits run on the qu
 important to have tools to perform simple quantum information tasks. These include methods to estimate
 metrics on and generate quantum states, operations, and channels. 
 
-^^^^^^^^^^^^^^^^^^^
+
 Visualization Tools
 ^^^^^^^^^^^^^^^^^^^
 
@@ -100,7 +100,7 @@ There is also a function `plot_state` and ` plot_bloch_vector` that allow the pl
 quantum state. These functions are usually only used when using the `statevector_simulator` 
 backend but can also be used on real data after running state tomography experiments (ignis). 
 
--------
+
 License
 -------
 
