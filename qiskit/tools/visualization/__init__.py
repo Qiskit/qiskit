@@ -8,6 +8,9 @@
 """Main Qiskit visualization methods."""
 
 import sys
+
+from matplotlib import pyplot as plt
+
 from qiskit._util import _has_connection
 from ._circuit_visualization import circuit_drawer, plot_circuit, generate_latex_source,\
     latex_circuit_drawer, matplotlib_circuit_drawer, _text_circuit_drawer, qx_color_scheme
@@ -85,6 +88,8 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None,
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
+    if fig:
+        plt.close(fig)
     return fig
 
 
@@ -153,4 +158,6 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
+    if fig:
+        plt.close(fig)
     return fig
