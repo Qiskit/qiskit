@@ -74,17 +74,18 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None,
             iplot_state(rho, method=method, options=options)
         else:
             from ._state_visualization import plot_state as plot
-            plot(rho, method=method, filename=filename, show=show)
+            fig = plot(rho, method=method, filename=filename, show=show)
     else:
         if mode == 'interactive':
             from .interactive._iplot_state import iplot_state
             iplot_state(rho, method=method, options=options)
         elif mode == 'mpl':
             from ._state_visualization import plot_state as plot
-            plot(rho, method=method, filename=filename, show=show)
+            fig = plot(rho, method=method, filename=filename, show=show)
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
+    return fig
 
 
 def plot_histogram(data, number_to_keep=None, legend=None, options=None,
@@ -138,8 +139,8 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
                             options=options)
         else:
             from ._counts_visualization import plot_histogram as plot
-            plot(data, number_to_keep=number_to_keep, legend=legend,
-                 options=options, show=show)
+            fig = plot(data, number_to_keep=number_to_keep, legend=legend,
+                       options=options, show=show)
     else:
         if mode == 'interactive':
             from .interactive._iplot_histogram import iplot_histogram
@@ -147,8 +148,9 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
                             options=options)
         elif mode == 'mpl':
             from ._counts_visualization import plot_histogram as plot
-            plot(data, number_to_keep=number_to_keep, legend=legend,
-                 options=options, filename=filename, show=show)
+            fig = plot(data, number_to_keep=number_to_keep, legend=legend,
+                       options=options, filename=filename, show=show)
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
+    return fig
