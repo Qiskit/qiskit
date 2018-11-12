@@ -80,7 +80,7 @@ class BackendMonitor(Magics):
                                                len(unique_hardware_backends),
                                                grid_template_rows='auto',
                                                grid_gap='0px 25px')
-                                           )
+                                          )
 
         backend_grid._backends = _backends        # pylint: disable=W0201
         backend_grid._update = types.MethodType(  # pylint: disable=W0201
@@ -153,7 +153,7 @@ def backend_widget(backend):
                                       figsize=_fig_size,
                                       plot_directed=False,
                                       label_qubits=False,
-                                      )
+                                     )
         display(_cmap_fig)
     plt.close(_cmap_fig)
 
@@ -346,7 +346,7 @@ def plot_coupling_map(backend, figsize=(5, 5),
                                        [4, 1], [5, 1], [6, 1], [
                                            7, 1], [7, 0], [6, 0],
                                        [5, 0], [4, 0], [3, 0], [2, 0], [1, 0],
-                                       ]
+                                      ]
 
     mpl_data['ibmq_5_tenerife'] = [[0, 0], [0, 2], [1, 1], [2, 2], [2, 0]]
 
