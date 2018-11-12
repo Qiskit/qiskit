@@ -32,14 +32,17 @@ class BackendMonitor(Magics):
         default=60,
         help='Interval for status check.'
     )
-    def qiskit_backend_monitor(self, line='', cell=None):
+    def qiskit_backend_monitor(self, line='', cell=None):  # pylint: disable=W0613
         """A Jupyter magic function to monitor backends.
         """
         args = magic_arguments.parse_argstring(
             self.qiskit_backend_monitor, line)
-        
+
         unique_hardware_backends = get_unique_backends()
-        backend_title = widgets.HTML(value="<h2 style='color: #ffffff; background-color:#000000;padding-top: 1%; padding-bottom: 1%;padding-left: 1%; margin-top: 0px'>Backend Monitor</h2>",
+        _value = "<h2 style ='color:  # ffffff; background-color:#000000;"
+        _value += "padding-top: 1%; padding-bottom: 1%;padding-left: 1%;"
+        _value += "margin-top: 0px'>Backend Monitor</h2>"
+        backend_title = widgets.HTML(value=_value,
                                      layout=widgets.Layout(margin='0px 0px 0px 0px'))
 
         build_back_widgets = [backend_widget(b)
@@ -73,15 +76,17 @@ class BackendMonitor(Magics):
 
         backend_grid = GridBox_with_thread(children=oper_ord_backends,
                                            layout=widgets.Layout(
-                                               grid_template_columns='250px ' * len(unique_hardware_backends),
+                                               grid_template_columns='250px ' *
+                                               len(unique_hardware_backends),
                                                grid_template_rows='auto',
                                                grid_gap='0px 25px')
-                                         )
+                                           )
 
-        backend_grid._backends = _backends
-        backend_grid._update = types.MethodType(update_backend_info, backend_grid)
+        backend_grid._backends = _backends        # pylint: disable=W0201
+        backend_grid._update = types.MethodType(  # pylint: disable=W0201
+            update_backend_info, backend_grid)
 
-        backend_grid._thread = threading.Thread(
+        backend_grid._thread = threading.Thread(  # pylint: disable=W0201
             target=backend_grid._update, args=(args.interval,))
         backend_grid._thread.start()
 
@@ -91,7 +96,7 @@ class BackendMonitor(Magics):
         display(back_monitor)
 
 
-class GridBox_with_thread(widgets.GridBox):
+class GridBox_with_thread(widgets.GridBox):  # pylint: disable=invalid-name
     """A GridBox that will close an attached thread
     """
     def __del__(self):
@@ -100,7 +105,7 @@ class GridBox_with_thread(widgets.GridBox):
             try:
                 self._thread.do_run = False
                 self._thread.join()
-            except Exception:
+            except Exception:  # pylint: disable=W0703
                 pass
         self.close()
 
@@ -172,7 +177,8 @@ def backend_widget(backend):
     t2_widget = widgets.HTML(value="<h5>{t2} {units}</h5>".format(t2=avg_t2, units=t2_units),
                              layout=widgets.Layout())
 
-    out = widgets.VBox([name, cmap, qubit_count, pending, least_busy, is_oper, t1_widget, t2_widget],
+    out = widgets.VBox([name, cmap, qubit_count, pending,
+                        least_busy, is_oper, t1_widget, t2_widget],
                        layout=widgets.Layout(display='inline-flex',
                                              flex_flow='column',
                                              align_items='center'))
@@ -192,13 +198,13 @@ def update_backend_info(self, interval=60):
     stati = [None]*len(self._backends)
     while getattr(my_thread, "do_run", True) and not all_dead:
         if current_interval == interval or started is False:
-            for ind, b in enumerate(self._backends):
+            for ind, back in enumerate(self._backends):
                 _value = self.children[ind].children[2].value
                 _head = _value.split('<b>')[0]
                 try:
-                    _status = b.status()
+                    _status = back.status()
                     stati[ind] = _status
-                except Exception:
+                except Exception:  # pylint: disable=W0703
                     self.children[ind].children[2].value = _value.replace(
                         _head, "<h5 style='color:#ff5c49'>")
                     self.children[ind]._is_alive = False
@@ -206,7 +212,7 @@ def update_backend_info(self, interval=60):
                     self.children[ind]._is_alive = True
                     self.children[ind].children[2].value = _value.replace(
                         _head, "<h5>")
-            
+
             idx = list(range(len(self._backends)))
             pending = [s['pending_jobs'] for s in stati]
 
@@ -219,25 +225,26 @@ def update_backend_info(self, interval=60):
                     least_pending_idx = lst_pend[1]
                     break
 
-            for kk in idx:
-                if kk == least_pending_idx:
-                    self.children[kk].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
+            for var in idx:
+                if var == least_pending_idx:
+                    self.children[var].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
-                    self.children[kk].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
+                    self.children[var].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
 
-                self.children[kk].children[3].children[1].value = pending[kk]
-                self.children[kk].children[3].children[1].max = max(
-                    self.children[kk].children[3].children[1].max, pending[kk]+10)
-                if stati[kk]['operational']:
-                    self.children[kk].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
+                self.children[var].children[3].children[1].value = pending[var]
+                self.children[var].children[3].children[1].max = max(
+                    self.children[var].children[3].children[1].max, pending[var]+10)
+                if stati[var]['operational']:
+                    self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
-                    self.children[kk].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
+                    self.children[var].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
 
             started = True
             current_interval = 0
         time.sleep(1)
         all_dead = not any([wid._is_alive for wid in self.children])
         current_interval += 1
+
 
 def generate_jobs_pending_widget():
     """Generates a jobs_pending progress bar widget.
@@ -272,38 +279,57 @@ def generate_jobs_pending_widget():
     return jobs_widget
 
 
-class GraphDist():
+class _GraphDist():
     """Transform the circles properly for non-square axes.
     """
     def __init__(self, size, ax, x=True):
         self.size = size
-        self.ax = ax
+        self.ax = ax  # pylint: disable=invalid-name
         self.x = x
 
     @property
     def dist_real(self):
-        x0, y0 = self.ax.transAxes.transform((0, 0))  # lower left in pixels
-        x1, y1 = self.ax.transAxes.transform((1, 1))  # upper right in pixes
+        """Compute distance.
+        """
+        x0, y0 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
+            (0, 0))
+        x1, y1 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
+            (1, 1))
         value = x1 - x0 if self.x else y1 - y0
         return value
 
     @property
     def dist_abs(self):
+        """Distance abs
+        """
         bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
         return bounds[0] - bounds[1]
 
     @property
     def value(self):
+        """Return value.
+        """
         return (self.size / self.dist_real) * self.dist_abs
 
     def __mul__(self, obj):
         return self.value * obj
+
 
 def plot_coupling_map(backend, figsize=(5, 5),
                       plot_directed=True,
                       label_qubits=True,
                       font_size=None):
     """Plots the coupling map of a device.
+
+    Args:
+        backend (BaseBackend): A backend instance,
+        figsize (tuple): Output figure size (wxh) in inches.
+        plot_directed (bool): Plot directed coupling map.
+        label_qubits (bool): Label the qubits.
+        font_size (int): Font size of qubit labels.
+
+    Returns:
+        Figure: A Matplotlib figure instance.
     """
     mpl_data = {}
 
@@ -337,7 +363,7 @@ def plot_coupling_map(backend, figsize=(5, 5),
     if name in dep_names.keys():
         name = dep_names[name]
 
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)  # pylint: disable=invalid-name
     ax.axis('off')
     fig.tight_layout()
 
@@ -365,8 +391,8 @@ def plot_coupling_map(backend, figsize=(5, 5),
                                  color='#648fff', linewidth=3,
                                  zorder=0))
         if is_directed and plot_directed:
-            dx = x_end-x_start
-            dy = y_end-y_start
+            dx = x_end-x_start  # pylint: disable=invalid-name
+            dy = y_end-y_start  # pylint: disable=invalid-name
             ax.add_patch(mpatches.FancyArrow(x_start+dx*0.5,
                                              y_start+dy*0.5,
                                              dx*0.2,
@@ -382,12 +408,12 @@ def plot_coupling_map(backend, figsize=(5, 5),
         font_size = 2*max_dim
 
     # Add circles for qubits
-    for kk, idx in enumerate(mpl_data):
-        width = GraphDist(12, ax, True)
-        height = GraphDist(12, ax, False)
+    for var, idx in enumerate(mpl_data):
+        width = _GraphDist(12, ax, True)
+        height = _GraphDist(12, ax, False)
         ax.add_artist(mpatches.Ellipse(idx, width, height, color='#648fff', zorder=1))
         if label_qubits:
-            ax.text(*idx, s=str(kk),
+            ax.text(*idx, s=str(var),
                     horizontalalignment='center',
                     verticalalignment='center',
                     color='#ffffff', size=font_size, weight='bold')
