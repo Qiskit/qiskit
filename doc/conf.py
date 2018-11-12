@@ -178,7 +178,7 @@ html_static_path = ['./theme/static/']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'theme/static/qiskit-logo-white-no-margin.png'
+html_logo = 'theme/static/qiskit-terra-logo.png'
 
 html_favicon = 'theme/static/favicon.ico'
 
