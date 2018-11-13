@@ -43,7 +43,7 @@ def apply_gates(compiled_dag, gates, qubit0, qubit1, coupling_map):
     for gate in gates:
         if len(gate["qargs"]) == 2:
             if (gate["qargs"][0][1], gate["qargs"][1][1]) == (qubit1, qubit0) and (
-                ("q", qubit1), ("q", qubit0)) not in coupling_map:
+            ("q", qubit1), ("q", qubit0)) not in coupling_map:
                 # swap the direction of the CNOT gate to satisfy constraints
                 # given by the coupling map
                 gates_fixed += [

@@ -114,9 +114,9 @@ class AStarCX(TransformationPass):
         min_cost = 0
         for operator, count in compiled_dag.count_ops().items():
             min_cost += count * self.gate_costs[operator]
-        #Allow 30 seconds for this optimization or 1000 iterations (max)/9 more min.
-        #The optimization is probabilistic, so a little more time can yield a better
-        #solution, a shorter run-time, and a higher-fidelity result on real HW.
+        # Allow 30 seconds for this optimization or 1000 iterations (max)/9 more min.
+        # The optimization is probabilistic, so a little more time can yield a better
+        # solution, a shorter run-time, and a higher-fidelity result on real HW.
         stop = timer()
         elapsed = stop - start
         reps = int(30/elapsed)
