@@ -11,7 +11,7 @@ developing quantum computing applications and working with NISQ (Noisy-Intermedi
 and is the foundation on which the rest of **Qiskit** is built (see this [post](https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492) for an overview).
 
 **We use GitHub issues for tracking requests and bugs. Please use our**
-[slack](https://qiskit.slack.com) **for questions and discussion.**
+[slack](https://qiskit.slack.com) **for questions and discussion.** To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk).
 
 **If you'd like to contribute to Qiskit, please take a look at our**
 [contribution guidelines](.github/CONTRIBUTING.rst).
