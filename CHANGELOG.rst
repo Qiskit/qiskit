@@ -41,6 +41,8 @@ Changed
   `qiskit.tools.visualizations`. (#1105, #1111)
 - DAG nodes contain pointers to Register and Instruction objects, rather
   than their string names (#1189).
+- We have upgraded some of out external dependencies to:
+   -  networkx>=2.2
 
 Deprecated
 ----------
