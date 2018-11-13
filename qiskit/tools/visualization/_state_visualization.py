@@ -52,6 +52,9 @@ def plot_hinton(rho, title='', filename=None, show=False):
             will save and exit and not open up the plot in a new window.
         show (bool):  If set to true the rendered image will open in a new
             window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
+
     """
     num = int(np.log2(len(rho)))
     fig = plt.figure()
