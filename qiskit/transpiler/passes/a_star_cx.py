@@ -37,6 +37,7 @@ class AStarCX(TransformationPass):
             that satisfies an input coupling_map and has as low a gate_cost
             as possible.
         """
+        from timeit import default_timer as timer
         from qiskit.transpiler.passes.group_gates import group_gates
         from qiskit.transpiler.passes.a_star_mapper import a_star_mapper
         from qiskit.transpiler.passes.post_mapping_optimization import optimize_gate_groups
@@ -93,7 +94,7 @@ class AStarCX(TransformationPass):
         empty_dag.add_qreg(QuantumRegister(coupling.size(), "q"))
         for k, v in sorted(compiled_dag.cregs.items()):
             empty_dag.add_creg(ClassicalRegister(v, k))
-
+        start = timer()
         empty_dag.basis = compiled_dag._make_union_basis(tmp_circuit)
         empty_dag.gates = compiled_dag._make_union_gates(tmp_circuit)
         grouped_gates = group_gates(compiled_dag)
@@ -113,6 +114,16 @@ class AStarCX(TransformationPass):
         min_cost = 0
         for operator, count in compiled_dag.count_ops().items():
             min_cost += count * self.gate_costs[operator]
+        #Allow 30 seconds for this optimization or 1000 iterations (max)/9 more min.
+        #The optimization is probabilistic, so a little more time can yield a better
+        #solution, a shorter run-time, and a higher-fidelity result on real HW.
+        stop = timer()
+        elapsed = stop - start
+        reps = int(30/elapsed)
+        if(reps < 9):
+            reps = 9
+        if(reps > 1000):
+            reps = 1000
         # Repeat the mapping procedure 9 times and take the result with minimum groups/cost.
         # Each call may yield a different result, since the mapper is implemented with a certain
         # non-determinism. In fact, in the priority queue used for implementing the A* algorithm,
@@ -120,7 +131,7 @@ class AStarCX(TransformationPass):
         # infomation (as second criterion). Thus, it is uncertain which node is expanded first
         # if two nodes have the same priority (it depends on the value of the pointer). However,
         # this non-determinism allows to find different solution by repeatedly calling the mapper.
-        for _ in range(9):
+        for _ in range(reps):
             result = a_star_mapper.a_star_mapper(
                 copy.deepcopy(grouped_gates),
                 coupling_list2dict(self.coupling_map),

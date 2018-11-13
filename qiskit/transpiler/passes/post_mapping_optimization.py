@@ -15,6 +15,7 @@ from qiskit.backends.aer._simulatortools import single_gate_matrix
 from qiskit.mapper._compiling import euler_angles_1q, simplify_U, two_qubit_kak
 from qiskit.mapper._mapping import MapperError
 
+
 def cost_of_group(gates, gate_costs):
     """determine the cost of all gates in the group"""
     cost = 0
@@ -32,7 +33,7 @@ def count_cx_gates(gates):
     return count
 
 
-def apply_gates(compiled_dag, gates, qubit0, qubit1):
+def apply_gates(compiled_dag, gates, qubit0, qubit1, coupling_map):
     """optimize gates and add them to the compiled circuit"""
 
     from sympy import sympify
@@ -41,7 +42,8 @@ def apply_gates(compiled_dag, gates, qubit0, qubit1):
     gates_fixed = []
     for gate in gates:
         if len(gate["qargs"]) == 2:
-            if (gate["qargs"][0][1], gate["qargs"][1][1]) == (qubit1, qubit0):
+            if (gate["qargs"][0][1], gate["qargs"][1][1]) == (qubit1, qubit0) and (
+                ("q", qubit1), ("q", qubit0)) not in coupling_map:
                 # swap the direction of the CNOT gate to satisfy constraints
                 # given by the coupling map
                 gates_fixed += [
@@ -303,7 +305,7 @@ def optimize_gate_groups(grouped_gates, coupling_map, empty_dag, gate_costs):
             # estimate whether KAK decomposition (which is time intensive) will improve the result
             if count_cx_gates(group["gates"]) <= 3:
                 compiled_dag = apply_gates(
-                    compiled_dag, group["gates"], qubits[0], qubits[1]
+                    compiled_dag, group["gates"], qubits[0], qubits[1], coupling_map
                 )
                 continue
 
@@ -402,12 +404,12 @@ def optimize_gate_groups(grouped_gates, coupling_map, empty_dag, gate_costs):
             if cost_after < cost_before:
                 # add gates in the decomposition
                 compiled_dag = apply_gates(
-                    compiled_dag, new_gates, qubits[0], qubits[1]
+                    compiled_dag, new_gates, qubits[0], qubits[1], coupling_map
                 )
             else:
                 # add original gates
                 compiled_dag = apply_gates(
-                    compiled_dag, group["gates"], qubits[0], qubits[1]
+                    compiled_dag, group["gates"], qubits[0], qubits[1], coupling_map
                 )
         else:
             # apply measurement gates and barrier gates without optimization

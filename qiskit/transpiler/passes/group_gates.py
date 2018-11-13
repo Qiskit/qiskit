@@ -17,33 +17,8 @@
 def group_gates(compiled_dag):
     """Group consecutive runs of gates on a qubit pair."""
 
-#    def __init__(self):
-#        pass
-
-    #def __init__(self, coupling_map=None, gate_costs=None):
-    #    self.coupling_map = coupling_map
-    #    self.gate_costs = gate_costs
-
-#def run(self, dag):
-#    """
-#    sweep dag in a greedy fashion and gather gates operating on the same pair,
-#    and terminate when a branch out of that pair is encountered.
-
-#    Args:
-#        dag (DAGCircuit): DAGCircuit object to be compiled (Note: was DiGraph - not MultiDiGraph)
-#    """
-
-#JAGdef group_gates(compiled_dag):
-#def group_gates(self, compiled_dag):
-#def group_gates(compiled_dag):
-#    """
-#    Group all gate that are applied to two certain qubits (if possible) in a greedy fashion
-#    return a graph holding the grouped gates.
-#    """
-
     import networkx as nx
 
-    #compiled_dag = dag
     gates = nx.topological_sort(compiled_dag.multi_graph)
     nqubits = compiled_dag.width()
 
