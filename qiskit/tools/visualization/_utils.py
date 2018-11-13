@@ -42,15 +42,13 @@ def _get_instructions(dag, reversebits=False):
             ops.append(node)
 
     for qreg in dag.qregs.values():
-        labels = [(qreg.name, bitno) for bitno in range(qreg.size)]
-        if reversebits:
-            labels.reverse()
-        qregs += labels
+        qregs += [(qreg.name, bitno) for bitno in range(qreg.size)]
 
     for creg in dag.cregs.values():
-        labels = [(creg.name, bitno) for bitno in range(creg.size)]
-        if reversebits:
-            labels.reverse()
-        cregs += labels
+        cregs += [(creg.name, bitno) for bitno in range(creg.size)]
+
+    if not reversebits:
+        qregs.reverse()
+        cregs.reverse()
 
     return qregs, cregs, ops
