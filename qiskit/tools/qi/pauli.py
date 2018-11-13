@@ -363,7 +363,6 @@ class Pauli:
             if not isinstance(indices, list) and not isinstance(indices, np.ndarray):
                 indices = [indices]
             for p, idx in enumerate(indices):
-                print(p, idx)
                 self._x[idx] = x[p]
 
         return self
