@@ -1344,7 +1344,7 @@ class DAGCircuit:
                    "operations": self.count_ops()}
         return summary
 
-    def add_dag_at_the_end(self, dag):
+    def add_dag_at_the_end(self, dag, layout=None):
         for qreg in dag.qregs.values():
             with suppress(DAGCircuitError):
                 self.add_qreg(QuantumRegister(qreg.size, qreg.name))
@@ -1353,14 +1353,15 @@ class DAGCircuit:
             with suppress(DAGCircuitError):
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
 
-        # create a one-to-one layout
-        layout = {}
-        for qreg in dag.qregs.values():
-            for index in range(qreg.size):
-                layout[(qreg.name, index)] = (qreg.name, index)
-        for creg in dag.cregs.values():
-            for index in range(creg.size):
-                layout[(creg.name, index)] = (creg.name, index)
+        if layout is None:
+            # create a one-to-one layout
+            layout = {}
+            for qreg in dag.qregs.values():
+                for index in range(qreg.size):
+                    layout[(qreg.name, index)] = (qreg.name, index)
+            for creg in dag.cregs.values():
+                for index in range(creg.size):
+                    layout[(creg.name, index)] = (creg.name, index)
 
         self.compose_back(dag, layout)
 

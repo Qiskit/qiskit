@@ -128,7 +128,7 @@ class TestSwapMapper(QiskitTestCase):
                               "opaque swap a,b;",
                               "CX q[0],q[1];",
                               "swap q[0],q[2];",
-                              "CX q[1],q[2];"])+'\n'
+                              "CX q[1],q[0];"])+'\n'
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 

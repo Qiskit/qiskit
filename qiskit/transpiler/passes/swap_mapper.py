@@ -13,6 +13,7 @@ class SwapMapper(TransformationPass):
 
     def __init__(self, coupling_map, swap_basis_element='swap', swap_data=None):
         super().__init__()
+        self.layout = None
         self.coupling_map = coupling_map
         self.swap_basis_element = swap_basis_element
         self.swap_data = swap_data if swap_data is not None else {"opaque": True,
@@ -23,12 +24,23 @@ class SwapMapper(TransformationPass):
 
     def run(self, dag):
         new_dag = DAGCircuit()
+
+        if self.layout is None:
+            # create a one-to-one layout
+            self.layout = {}
+            for qreg in dag.qregs.values():
+                for index in range(qreg.size):
+                    self.layout[(qreg.name, index)] = (qreg.name, index)
+            for creg in dag.cregs.values():
+                for index in range(creg.size):
+                    self.layout[(creg.name, index)] = (creg.name, index)
+
         for layer in dag.serial_layers():
             subdag = layer['graph']
             cxs = subdag.get_cnot_nodes()
             if not cxs:
                 # Trivial layer, there is no entanglement in this layer, just leave it like this.
-                new_dag.add_dag_at_the_end(subdag)
+                new_dag.add_dag_at_the_end(subdag, self.layout)
                 continue
             for cx in subdag.get_cnot_nodes():
                 qubit0 = cx['qargs'][0]
@@ -38,9 +50,11 @@ class SwapMapper(TransformationPass):
                     path = self.coupling_map.shortest_path(qubit0, qubit1)
                     new_dag.add_basis_element(self.swap_basis_element, 2)
                     closest_qubit = path[1]['name']
-                    farest_qubit = path[-1]['name']
+                    farthest_qubit = path[-1]['name']
                     new_dag.apply_operation_back(self.swap_basis_element,
-                                                 [closest_qubit, farest_qubit])
+                                                 [closest_qubit, farthest_qubit])
                     new_dag.add_gate_data(self.swap_basis_element, self.swap_data)
-                new_dag.add_dag_at_the_end(subdag)
+                    self.layout[farthest_qubit] = closest_qubit
+                    self.layout[closest_qubit] = farthest_qubit
+                new_dag.add_dag_at_the_end(subdag, self.layout)
         return new_dag
