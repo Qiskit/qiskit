@@ -37,10 +37,12 @@ class AStarCX(TransformationPass):
             that satisfies an input coupling_map and has as low a gate_cost
             as possible.
         """
-        from qiskit.transpiler.passes.group_gates import GroupGates
+        from qiskit.transpiler.passes.group_gates import group_gates
         from qiskit.transpiler.passes.a_star_mapper import a_star_mapper
         from qiskit.transpiler.passes.post_mapping_optimization import optimize_gate_groups
         from qiskit.dagcircuit import DAGCircuit
+        from qiskit._quantumregister import QuantumRegister
+        from qiskit._classicalregister import ClassicalRegister
 
         # import time
 
@@ -62,6 +64,7 @@ class AStarCX(TransformationPass):
                 "cx": 10,
                 "CX": 10,
             }
+        compiled_dag = DAGCircuit()
         compiled_dag = copy.deepcopy(dag)
 
         # temporary circuit to add all used gates to the available gate set
@@ -87,13 +90,13 @@ class AStarCX(TransformationPass):
         empty_dag = DAGCircuit()
         coupling = Coupling(coupling_list2dict(self.coupling_map))
         # Note: Works with a single register named 'q' (not with 'q0' for example)
-        empty_dag.add_qreg("q", coupling.size())
+        empty_dag.add_qreg(QuantumRegister(coupling.size(), "q"))
         for k, v in sorted(compiled_dag.cregs.items()):
-            empty_dag.add_creg(k, v)
+            empty_dag.add_creg(ClassicalRegister(v, k))
 
         empty_dag.basis = compiled_dag._make_union_basis(tmp_circuit)
         empty_dag.gates = compiled_dag._make_union_gates(tmp_circuit)
-        grouped_gates = GroupGates.group_gates(compiled_dag)
+        grouped_gates = group_gates(compiled_dag)
         # call mapper (based on an A* search) to satisfy the constraints for CNOTs
         # given by the coupling_map
         compiled_dag = a_star_mapper.a_star_mapper(
@@ -102,7 +105,7 @@ class AStarCX(TransformationPass):
             coupling.size(),
             copy.deepcopy(empty_dag),
         )
-        grouped_gates_compiled = GroupGates.group_gates(compiled_dag)
+        grouped_gates_compiled = group_gates(compiled_dag)
 
         # estimate the cost of the mapped circuit:
         # the number of groups as well as the cost regarding to gate_costs
@@ -124,7 +127,7 @@ class AStarCX(TransformationPass):
                 coupling.size(),
                 copy.deepcopy(empty_dag),
             )
-            grouped_gates_result = GroupGates.group_gates(result)
+            grouped_gates_result = group_gates(result)
 
             groups = grouped_gates_result.order()
             cost = 0

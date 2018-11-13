@@ -9,5 +9,5 @@
 
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
-from .group_gates import GroupGates
+from .group_gates import group_gates
 from .a_star_cx import AStarCX
