@@ -397,7 +397,7 @@ def optimize_gate_groups(grouped_gates, coupling_map, empty_dag, gate_costs):
 
                 # determine cost
                 cost_after = cost_of_group(new_gates, gate_costs)
-            except Exception as _:
+            except (MapperError, ValueError) as _:
                 cost_after = cost_before + 1
             if cost_after < cost_before:
                 # add gates in the decomposition

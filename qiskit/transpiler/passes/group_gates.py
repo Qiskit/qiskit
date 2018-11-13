@@ -30,7 +30,7 @@ def group_gates(compiled_dag):
 #    and terminate when a branch out of that pair is encountered.
 
 #    Args:
-#        dag (DAGCircuit): DAGCircuit object to be compiled (Note: was DiGraph instead of MultiDiGraph)
+#        dag (DAGCircuit): DAGCircuit object to be compiled (Note: was DiGraph - not MultiDiGraph)
 #    """
 
 #JAGdef group_gates(compiled_dag):
