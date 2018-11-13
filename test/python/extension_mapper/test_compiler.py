@@ -12,7 +12,6 @@ from qiskit.transpiler.passes.extension_mapper.src.mapping.placement import Plac
 from qiskit.transpiler.passes.extension_mapper.src.permutation.util import PermutationCircuit
 from qiskit.transpiler.passes.extension_mapper.src.permutation.general \
     import ApproximateTokenSwapper
-from .test_util import TestUtil  # pylint: disable=wrong-import-order
 
 
 def _trivial_mapper(dag, current_mapping):
@@ -27,7 +26,7 @@ class TestCompiler(TestCase):
 
     def setUp(self):
         random.seed(0)
-        self.circuit = TestUtil.basic_dag()
+        self.circuit = TestCompiler.basic_dag()
         self.arch_graph = nx.Graph()
 
     def test_compile_simple(self):
@@ -221,3 +220,13 @@ class TestCompiler(TestCase):
             else:
                 corrected_qargs = tuple(measure_nodes[qarg][1] for qarg in arch_node["qargs"])
                 self.assertEqual(corrected_qargs, next(expected_cnots))
+
+    @staticmethod
+    def basic_dag():
+        """Create a DAGCircuit that supports cx, u2 and measure operations."""
+        circuit = DAGCircuit()
+        circuit.add_basis_element('cx', 2)
+        circuit.add_basis_element('u2', 1, number_parameters=2)
+        circuit.add_basis_element('measure', 1, number_classical=1)
+        circuit.add_basis_element('barrier', -1)  # nr of qargs is ignored for "barrier"
+        return circuit

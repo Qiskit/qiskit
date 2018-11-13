@@ -42,7 +42,7 @@ class TestUtil(TestCase):
         self.assertEqual({(name, qreg) for name, qreg in qregs_in.items()}, qregs_out)
 
     @staticmethod
-    def basic_dag() -> DAGCircuit:
+    def basic_dag():
         """Create a DAGCircuit that supports cx, u2 and measure operations."""
         circuit = DAGCircuit()
         circuit.add_basis_element('cx', 2)
