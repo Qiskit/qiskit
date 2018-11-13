@@ -228,13 +228,13 @@ class QChannel:
         return QChannel(operations.compose(self.channel, b))
 
     def kron(self, b):
-        """Return the composite channel A \otimes B
+        """Return the composite channel kron(A, B)
 
         Args:
             b (QChannel or QChannelRep): channel B
 
         Returns:
-            The composite channel A \otimes B
+            The composite channel kron(A, B)
 
         Raises:
             TypeError: if channel is not a QChannel or QChannelRep

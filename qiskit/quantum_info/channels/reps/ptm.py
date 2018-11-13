@@ -54,13 +54,13 @@ class PauliTM(QChannelRep):
         return PauliTM(np.dot(self.data, b.data), nput_dim=b.input_dim, output_dim=self.output_dim)
 
     def kron(self, b):
-        """Return PauliTM for channel A \otimes B
+        """Return PauliTM for channel kron(A, B)
 
         Args:
             b (PauliTM): channel B
 
         Returns:
-            PauliTM: for the composite channel A \otimes B
+            PauliTM: for the composite channel kron(A, B)
 
         Raises:
             TypeError: if b is not a PauliTM object

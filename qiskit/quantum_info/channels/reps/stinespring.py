@@ -36,10 +36,14 @@ class Stinespring(QChannelRep):
             raise ValueError("Invalid output dimension.")
         if stine[1] is None or (stine[1] == stine[0]).all():
             # Standard Stinespring map
-            super().__init__('Stinespring', (stine[0], None), input_dim=input_dim, output_dim=output_dim)
+            super().__init__('Stinespring', (stine[0], None),
+                             input_dim=input_dim,
+                             output_dim=output_dim)
         else:
             # General (non-CPTP) Stinespring map
-            super().__init__('Stinespring', stine, input_dim=input_dim, output_dim=output_dim)
+            super().__init__('Stinespring', stine,
+                             input_dim=input_dim,
+                             output_dim=output_dim)
 
     @property
     def data(self):
@@ -50,13 +54,13 @@ class Stinespring(QChannelRep):
             return self._data
 
     def kron(self, b):
-        """Return Stinespring for the channel A \otimes B
+        """Return Stinespring for the channel kron(A, B)
 
         Args:
             b (Stinespring): channel B
 
         Returns:
-            Stinespring: for the composite channel A \otimes B
+            Stinespring: for the composite channel kron(A, B)
 
         Raises:
             TypeError: if b is not a Stinespring object

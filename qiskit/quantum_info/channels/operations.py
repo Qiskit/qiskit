@@ -134,14 +134,14 @@ def compose(a, b):
 
 
 def kron(a, b):
-    """Return the composite channel A \otimes B
+    """Return the composite channel kron(A, B)
 
     Args:
         a (QChannel or QChannelRep): channel A
         b (QChannel or QChannelRep): channel B
 
     Returns:
-        QChannel: The composite channel A \otimes B
+        QChannel: The composite channel kron(A, B)
 
     Raises:
         TypeError: if channel is not a QChannel or QChannelRep

@@ -70,18 +70,20 @@ def col_to_basis_matrix(basis, repeats=1):
     full_basis = basis
     for _ in repeat(None, repeats - 1):
         full_basis = [np.kron(a, b) for a in basis for b in full_basis]
-    l = len(full_basis)
-    dl, dr = full_basis[0].shape
-    return np.array(full_basis).conj().reshape(l, dl * dr, order='F')
+    basis_length = len(full_basis)
+    left_dim, right_dim = full_basis[0].shape
+    return np.array(full_basis).conj().reshape(basis_length,
+                                               left_dim * right_dim, order='F')
 
 
 def pauli_basis(num_qubits=1, normalized=False):
     # TODO: replace pauli basis with Pauli class objects when they are stable
-    I = np.eye(2, dtype=complex)
-    X = np.array([[0, 1], [1, 0]], dtype=complex)
-    Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
-    Z = np.array([[1, 0], [0, -1]], dtype=complex)
-    single_basis = [I, X, Y, Z]
+    single_basis = [
+        np.eye(2, dtype=complex),
+        np.array([[0, 1], [1, 0]], dtype=complex),
+        np.array([[0, -1j], [1j, 0]], dtype=complex),
+        np.array([[1, 0], [0, -1]], dtype=complex)
+    ]
     if normalized is True:
         single_basis = [p / np.sqrt(2) for p in single_basis]
     if num_qubits == 1:

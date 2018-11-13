@@ -54,13 +54,13 @@ class Choi(QChannelRep):
         return self.conjugate_channel().transpose_channel()
 
     def kron(self, b):
-        """Return Choi matrix for channel A \otimes B
+        """Return Choi matrix for channel kron(A, B)
 
         Args:
             b (Choi): Choi for channel B
 
         Returns:
-            Choi: for composite channel A \otimes B
+            Choi: for composite channel kron(A, B)
 
         Raises:
             TypeError: if b is not a Choi objects

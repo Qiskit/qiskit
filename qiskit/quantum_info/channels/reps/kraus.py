@@ -103,13 +103,13 @@ class Kraus(QChannelRep):
         return self.conjugate_channel().transpose_channel()
 
     def kron(self, b):
-        """Return Kraus for the channel A \otimes B
+        """Return Kraus for the channel kron(A, B)
 
         Args:
             b (Kraus): channel B
 
         Returns:
-            Kraus: for the composite channel A \otimes B
+            Kraus: for the composite channel kron(A, B)
 
         Raises:
             TypeError: if b is not a Kraus object

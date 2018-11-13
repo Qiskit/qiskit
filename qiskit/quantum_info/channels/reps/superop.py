@@ -66,13 +66,13 @@ class SuperOp(QChannelRep):
                        output_dim=self.output_dim)
 
     def kron(self, b):
-        """Return SuperOp for the channel A \otimes B
+        """Return SuperOp for the channel kron(A, B)
 
         Args:
             b (SuperOp): channel B
 
         Returns:
-            SuperOp: for the composite channel A \otimes B
+            SuperOp: for the composite channel kron(A, B)
 
         Raises:
             TypeError: if b is not a SuperOp object

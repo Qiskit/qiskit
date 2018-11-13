@@ -39,13 +39,13 @@ class Chi(QChannelRep):
         super().__init__('Chi', chi_mat, input_dim, output_dim)
 
     def kron(self, b):
-        """Return Chi matrix for channel A \otimes B
+        """Return Chi matrix for channel kron(A, B)
 
         Args:
             b (Chi): Chi for channel B
 
         Returns:
-            Choi: for composite channel A \otimes B
+            Choi: for composite channel kron(A, B)
 
         Raises:
             TypeError: if b is not a Chi objects
