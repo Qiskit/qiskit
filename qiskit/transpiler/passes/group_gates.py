@@ -7,13 +7,10 @@
 
 """Pass for grouping runs of two qubit gates and returning another graph with larger nodes.
 """
-# from collections import defaultdict
-#from qiskit.transpiler import AnalysisPass
 
 # This will be turned into an analysis pass.  At present this class is only used by a_star_cx.py
 
 
-#class GroupGates(AnalysisPass):
 def group_gates(compiled_dag):
     """Group consecutive runs of gates on a qubit pair."""
 

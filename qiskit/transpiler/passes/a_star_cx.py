@@ -8,6 +8,7 @@
 """Pass for minimizing the number of CX gates.
 """
 
+# Competition winning entry
 from qiskit.transpiler._basepasses import TransformationPass
 
 
@@ -120,9 +121,9 @@ class AStarCX(TransformationPass):
         stop = timer()
         elapsed = stop - start
         reps = int(30/elapsed)
-        if(reps < 9):
+        if reps < 9:
             reps = 9
-        if(reps > 1000):
+        if reps > 1000:
             reps = 1000
         # Repeat the mapping procedure 9 times and take the result with minimum groups/cost.
         # Each call may yield a different result, since the mapper is implemented with a certain
