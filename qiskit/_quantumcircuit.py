@@ -341,5 +341,4 @@ class QuantumCircuit(object):
                                             line_length=line_length)
 
     def __str__(self):
-        width, _ = shutil.get_terminal_size()
-        return self.draw(output='text', line_length=width)
+        return str(self.draw(output='text'))
