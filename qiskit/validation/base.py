@@ -23,11 +23,14 @@ together by using ``bind_schema``::
         pass
 """
 
-from functools import wraps
+from functools import partial, wraps
 from types import SimpleNamespace
 
 from marshmallow import ValidationError
-from marshmallow import Schema, post_dump, post_load
+from marshmallow import Schema, post_dump, post_load, fields
+from marshmallow.utils import is_collection
+
+from .fields import BasePolyField
 
 
 class BaseSchema(Schema):
@@ -81,7 +84,6 @@ class BaseSchema(Schema):
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-
         additional_keys = set(original_data) - set(valid_data)
         for key in additional_keys:
             valid_data[key] = original_data[key]
@@ -89,8 +91,7 @@ class BaseSchema(Schema):
 
     @post_load
     def make_model(self, data):
-        """Make ``load`` to return an instance of ``model_cls`` instead of a dict.
-        """
+        """Make ``load`` return a ``model_cls`` instance instead of a dict."""
         return self.model_cls(**data)
 
 
@@ -106,19 +107,102 @@ class _SchemaBinder:
 
         See the docs for ``bind_schema`` for further information.
         """
+        # Check for double binding of schemas.
         if self._schema_cls.__dict__.get('model_cls', None) is not None:
             raise ValueError(
                 'The schema {} can not be bound twice. It is already bound to '
                 '{}. If you want to reuse the schema, use '
                 'subclassing'.format(self._schema_cls, self._schema_cls.model_cls))
 
+        # Set a reference to the Model in the Schema, and viceversa.
         self._schema_cls.model_cls = model_cls
         model_cls.schema = self._schema_cls()
-        model_cls._validate = self._validate
+
+        # Append the methods to the Model class.
         model_cls.to_dict = self._to_dict
         model_cls.from_dict = classmethod(self._from_dict)
+        model_cls._validate = self._validate
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
+
+        # Add a Schema that performs minimal validation to the Model.
+        model_cls.shallow_schema = self._create_shallow_schema(self._schema_cls)
+
         return model_cls
+
+    def _create_shallow_schema(self, schema_cls):
+        """Create a Schema with minimal validation for compound types.
+
+
+        This is a helper for performing the initial validation when
+        instantiating the Model via **kwargs. It works on the assumption that
+        **kwargs will contain:
+        * for compound types (`Nested`, `BasePolyField`), it will already
+          contain `BaseModels`, which should have been validated earlier
+          (during _their_ instantiation), and only type checking is performed.
+        * for `Number` and `String` types, both serialized and deserialized
+          are equivalent, and the shallow_schema will try to serialize in
+          order to perform stronger validation.
+        * for the rest of fields (the ones where the serialized and deserialized
+          data is different), it will contain _deserialized_ types that are
+          passed through.
+
+        The underlying idea is to be able to perform validation (in the schema)
+        at only the first level of the object, and at the same time take
+        advantage of validation during **kwargs instantiation as much as
+        possible (mimicking `.from_dict()` in that respect).
+
+        Returns:
+            BaseSchema: a copy of the original Schema, overriding the
+                ``_deserialize()`` call of its fields.
+        """
+        shallow_schema = schema_cls()
+        for _, field in shallow_schema.fields.items():
+            if isinstance(field, fields.Nested):
+                field._deserialize = partial(self._overridden_nested_deserialize, field)
+            elif isinstance(field, BasePolyField):
+                field._deserialize = partial(self._overridden_basepolyfield_deserialize, field)
+            elif not isinstance(field, (fields.Number, fields.String)):
+                field._deserialize = partial(self._overridden_field_deserialize, field)
+        return shallow_schema
+
+    @staticmethod
+    def _overridden_nested_deserialize(field, value, _, data):
+        """Helper for minimal validation of fields.Nested."""
+        if field.many and not is_collection(value):
+            field.fail('type', input=value, type=value.__class__.__name__)
+
+        if not field.many:
+            value = [value]
+
+        for v in value:
+            if not isinstance(v, field.schema.model_cls):
+                raise ValidationError(
+                    'Not a valid type for {}.'.format(field.__class__.__name__),
+                    data=data)
+        return data
+
+    @staticmethod
+    def _overridden_basepolyfield_deserialize(field, value, _, data):
+        """Helper for minimal validation of fields.BasePolyField."""
+        if not field.many:
+            value = [value]
+
+        for v in value:
+            schema = field.serialization_schema_selector(v, data)
+            if not schema:
+                raise ValidationError(
+                    'Not a valid type for {}.'.format(field.__class__.__name__),
+                    data=data)
+        return data
+
+    @staticmethod
+    def _overridden_field_deserialize(field, value, attr, data):
+        """Helper for validation of generic Field."""
+        # Attempt to serialize, in order to catch validation errors.
+        field._serialize(value, attr, data)
+
+        # Propagate the original value upwards.
+        return value
 
     @staticmethod
     def _to_dict(instance):
@@ -136,9 +220,9 @@ class _SchemaBinder:
             raise ValidationError(errors)
 
     @staticmethod
-    def _from_dict(decorated_cls, dct):
+    def _from_dict(decorated_cls, dict_):
         """Deserialize a dict of simple types into an instance of this class."""
-        data, errors = decorated_cls.schema.load(dct)
+        data, errors = decorated_cls.schema.load(dict_)
         if errors:
             raise ValidationError(errors)
         return data
@@ -148,11 +232,12 @@ class _SchemaBinder:
         """Add validation after instantiation."""
 
         @wraps(init_method)
-        def _decorated(self, *args, **kwargs):
-            init_method(self, *args, **kwargs)
-            self._validate()
+        def _decorated(self, **kwargs):
+            errors = self.shallow_schema.validate(kwargs)
+            if errors:
+                raise ValidationError(errors)
 
-        _decorated._validating = False
+            init_method(self, **kwargs)
 
         return _decorated
 
@@ -165,7 +250,8 @@ def bind_schema(schema):
     private method ``_validate()``.
 
     The decorator also adds the class attribute ``schema`` with the schema used
-    for validation.
+    for validation, along with a class attribute ``shallow_schema`` used for
+    validation during instantiation.
 
     To ease serialization/deserialization to/from simple Python objects,
     classes are provided with ``to_dict`` and ``from_dict`` instance and class

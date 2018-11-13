@@ -8,6 +8,8 @@
 
 """Models tests."""
 
+from datetime import datetime
+
 from marshmallow import fields, ValidationError
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
@@ -20,6 +22,8 @@ from .common import QiskitTestCase
 class PersonSchema(BaseSchema):
     """Example Person schema."""
     name = fields.String(required=True)
+    birth_date = fields.Date()
+    email = fields.Email()
 
 
 class BookSchema(BaseSchema):
@@ -49,21 +53,60 @@ class TestModels(QiskitTestCase):
         person = Person(name='Foo')
         self.assertEqual(person.name, 'Foo')
 
+        # From dict.
+        person_dict = Person.from_dict({'name': 'Foo'})
+        self.assertEqual(person_dict.name, 'Foo')
+
+        self.assertEqual(person, person_dict)
+
     def test_instantiate_required(self):
         """Test model instantiation without required fields."""
         with self.assertRaises(ValidationError):
             _ = Person()
 
+        # From dict.
+        with self.assertRaises(ValidationError):
+            _ = Person.from_dict({})
+
+    def test_instantiate_wrong_type(self):
+        """Test model instantiation with fields of the wrong type."""
+        with self.assertRaises(ValidationError):
+            _ = Person(name=1)
+
+        # From dict.
+        with self.assertRaises(ValidationError):
+            _ = Person.from_dict({'name': 1})
+
+    def test_instantiate_deserialized_types(self):
+        """Test model instantiation with fields of deserialized type."""
+        birth_date = datetime(2000, 1, 1).date()
+
+        person = Person(name='Foo', birth_date=birth_date)
+        self.assertEqual(person.birth_date, birth_date)
+        with self.assertRaises(ValidationError):
+            _ = Person(name='Foo', birth_date=birth_date.isoformat())
+
+        # From dict.
+        person_dict = Person.from_dict({'name': 'Foo',
+                                        'birth_date': birth_date.isoformat()})
+        self.assertEqual(person_dict.birth_date, birth_date)
+        with self.assertRaises(ValidationError):
+            _ = Person.from_dict({'name': 'Foo', 'birth_date': birth_date})
+
+        self.assertEqual(person, person_dict)
+
     def test_instantiate_additional(self):
         """Test model instantiation with additional fields."""
         person = Person(name='Foo', other='bar')
-        self.assertEqual(person.other, 'bar')
-
-    def test_instantiate_from_dict(self):
-        """Test model instantiation from dictionary, with additional fields."""
-        person = Person.from_dict({'name': 'Foo', 'other': 'bar'})
         self.assertEqual(person.name, 'Foo')
         self.assertEqual(person.other, 'bar')
+
+        # From dict.
+        person_dict = Person.from_dict({'name': 'Foo', 'other': 'bar'})
+        self.assertEqual(person_dict.name, 'Foo')
+        self.assertEqual(person_dict.other, 'bar')
+
+        self.assertEqual(person, person_dict)
 
     def test_instantiate_nested(self):
         """Test model instantiation with nested fields."""
@@ -74,15 +117,26 @@ class TestModels(QiskitTestCase):
         with self.assertRaises(AttributeError):
             _ = book.date
 
-    def test_instantiate_nested_from_dict(self):
-        """Test model instantiation from dictionary, with nested fields."""
-        book = Book.from_dict({'title': 'A Book',
-                               'author': {'name': 'Foo', 'other': 'bar'}})
-        self.assertEqual(book.title, 'A Book')
-        self.assertEqual(book.author.name, 'Foo')
-        self.assertEqual(book.author.other, 'bar')
+        # From dict.
+        book_dict = Book.from_dict({'title': 'A Book',
+                                    'author': {'name': 'Foo', 'other': 'bar'}})
+        self.assertEqual(book_dict.title, 'A Book')
+        self.assertEqual(book_dict.author.name, 'Foo')
+        self.assertEqual(book_dict.author.other, 'bar')
         with self.assertRaises(AttributeError):
-            _ = book.date
+            _ = book_dict.date
+
+        self.assertEqual(book, book_dict)
+
+    def test_instantiate_nested_wrong_type(self):
+        """Test model instantiation with nested fields of the wrong type."""
+        with self.assertRaises(ValidationError):
+            _ = Book(title='A Book', author=Cat(fur_density=1.2))
+
+        # From dict.
+        with self.assertRaises(ValidationError):
+            _ = Book.from_dict({'title': 'A Book',
+                                'author': {'fur_density': '1.2'}})
 
     def test_serialize(self):
         """Test model serialization to dict."""
