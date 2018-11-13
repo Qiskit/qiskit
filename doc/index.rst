@@ -12,12 +12,13 @@ Table of Contents
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
    Overview <overview>
    Installation and Setup <install>
-   Getting Started with Qiskit Terra <getting_started_with_qiskit_terra>
    The IBM Q Provider <the_ibmq_provider>
-   Summary of Quantum Operations <summary_of_quantum_operations>
+   qiskit-tutorials/qiskit/basics/*
+   qiskit-tutorials/qiskit/terra/*
    Contributing to Terra <CONTRIBUTING>
    Release history <release_history>
    Terra SDK Reference <_autodoc/qiskit>
