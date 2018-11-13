@@ -360,6 +360,7 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
+        plt.close(self.figure)
         return self.figure
 
     def _draw_regs(self):
