@@ -9,30 +9,25 @@
 Unitary gate.
 """
 from ._instruction import Instruction
-from ._quantumregister import QuantumRegister
 from ._qiskiterror import QISKitError
 
 
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, param, arg, circuit=None):
+    def __init__(self, name, param, qargs, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string
         param = list of real parameters (will be converted to symbolic)
-        arg = list of pairs (Register, index)
+        qargs = list of pairs (QuantumRegister, index)
         circuit = QuantumCircuit containing this gate
         """
         self._is_multi_qubit = False
-        self._qubit_coupling = [argument[1] for argument in arg]
-        self._is_multi_qubit = (len(arg) > 1)
-        for argument in arg:
-            if not isinstance(argument[0], QuantumRegister):
-                raise QISKitError("argument not (QuantumRegister, int) "
-                                  + "tuple")
+        self._qubit_coupling = [qarg[1] for qarg in qargs]
+        self._is_multi_qubit = (len(qargs) > 1)
 
-        super().__init__(name, param, arg, circuit)
+        super().__init__(name, param, qargs, [], circuit)
 
     def inverse(self):
         """Invert this gate."""

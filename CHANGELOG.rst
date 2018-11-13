@@ -61,11 +61,16 @@ Fixed
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
   circuit plots (#1051)
 - Use case insensitive matching when comparing premium account URLs. (#1102)
+- Fixed AerJob status when the submitted Job is in a PENDING state. (#1215)
+- Add fallback for when CPU count can't be determined (#1214)
+- Fix random_state from returning nan (#1258)
 
 Removed
 -------
 - Remove register, available_backends (#1131).
 - Remove tools/apps (#1184).
+- Removed the dependency on `IBMQuantumExperience`, as it is now included
+  in `qiskit.backends.IBMQ` (#1198).
 
 `0.6.0`_ - 2018-10-04
 =====================
@@ -88,6 +93,7 @@ Added
   a list of QuantumCircuit objects (#877)
 - Allow selective loading of accounts from disk via hub/group/project
   filters to `IBMQ.load_accounts()`.
+- Add new `job_monitor` function to automaically check the status of a job (#975).
 
 Changed
 -------
