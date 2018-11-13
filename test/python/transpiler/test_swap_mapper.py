@@ -125,8 +125,10 @@ class TestSwapMapper(QiskitTestCase):
                            ('CX', [('q', 1), ('q', 2)])])
         expected = '\n'.join(["OPENQASM 2.0;",
                               "qreg q[3];",
-                              "CX q[0],q[1];"])
-        expected = '\n'.join([])
+                              "opaque swap a,b;",
+                              "CX q[0],q[1];",
+                              "swap q[0],q[2];",
+                              "CX q[1],q[2];"])+'\n'
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 

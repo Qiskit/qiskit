@@ -182,10 +182,10 @@ class Coupling:
         return self.dist[q1][q2]
 
     def shortest_path(self, node1, node2):
-        path = nx.algorithms.shortest_paths.generic.shortest_path(self.G.to_undirected()
-                                                           , self.qubits[node1],
-                                                           self.qubits[node2])
-        return [ self.G.node[node] for node in path]
+        path = nx.algorithms.shortest_paths.generic.shortest_path(self.G.to_undirected(),
+                                                                  self.qubits[node1],
+                                                                  self.qubits[node2])
+        return [self.G.node[node] for node in path]
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
