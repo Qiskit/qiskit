@@ -62,7 +62,7 @@ def compile_to_arch(circuit, arch_graph, arch_mapper):
     # the mapper will find a good initial mapping.
     current_mapping = dict(zip(
         [(qname, i) for qname, qreg in circuit.qregs.items() for i in range(qreg.size)],
-        arch_graph.nodes()))
+        sorted(arch_graph.nodes())))
     logger.debug("Initial current mapping: %s", current_mapping)
     # IDEA: Allow the initial mapper to be configurable
     # Only consider CNOTs for the intial placement.

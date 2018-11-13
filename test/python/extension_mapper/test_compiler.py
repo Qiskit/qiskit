@@ -31,13 +31,13 @@ class TestCompiler(TestCase):
         self.arch_graph = nx.Graph()
 
     def test_compile_simple(self):
-        """Test if a single CNOT can be compiled on to the architecture 1, 2<->3"""
+        """Test if a single CNOT can be compiled on to the architecture 1<->2, 3"""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
 
         # Only one place to perform the cx
-        self.arch_graph.add_edge(2, 3)
-        self.arch_graph.add_node(1)
+        self.arch_graph.add_edge(1, 2)
+        self.arch_graph.add_node(3)
 
         compiled_circuit, mapping = compiler.compile_to_arch(self.circuit, self.arch_graph,
                                                              _trivial_mapper)
@@ -45,17 +45,17 @@ class TestCompiler(TestCase):
             filter(lambda n: n[1]["type"] == "op", compiled_circuit.multi_graph.nodes(data=True)))
         self.assertEqual(1, len(op_nodes))
         op_node = op_nodes[0]
-        self.assertEqual({2, 3}, {mapping[qarg] for qarg in op_node[1]["qargs"]})
+        self.assertEqual({1, 2}, {mapping[qarg] for qarg in op_node[1]["qargs"]})
 
     def test_compile_simple_2(self):
-        """Test whether a Hadamard and CNOT can be compiled to the architecture 1, 2<->3"""
+        """Test whether a Hadamard and CNOT can be compiled to the architecture 1<->2, 3"""
         self.circuit.add_qreg(QuantumRegister(3, name="q"))
         self.circuit.apply_operation_back("cx", [("q", 0), ("q", 1)])
         self.circuit.apply_operation_back('u2', [('q', 2)], params=['0', 'pi'])  # Hadamard on q[2]
 
         # Only one place to perform the cx
-        self.arch_graph.add_edge(2, 3)
-        self.arch_graph.add_node(1)
+        self.arch_graph.add_edge(1, 2)
+        self.arch_graph.add_node(3)
 
         compiled_circuit, mapping = compiler.compile_to_arch(self.circuit, self.arch_graph,
                                                              _trivial_mapper)
@@ -64,7 +64,7 @@ class TestCompiler(TestCase):
         self.assertEqual(2, len(op_nodes))
         arch_nodes = [{mapping[qarg] for qarg in n["qargs"]} for n in op_nodes]
 
-        self.assertCountEqual([{2, 3}, {1}], arch_nodes)
+        self.assertCountEqual([{1, 2}, {3}], arch_nodes)
 
     def test_compile_simple_3(self):
         """Test whether a sequence of Hadamard and CNOT can be compiled to 0<->1, 2
