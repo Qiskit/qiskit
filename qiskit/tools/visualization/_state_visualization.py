@@ -487,7 +487,7 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
     elif method == "wigner":
         fig = plot_wigner_function(rho, filename=filename, show=show)
     elif method == "hinton":
-        plot_hinton(rho, filename=filename, show=show)
+        fig = plot_hinton(rho, filename=filename, show=show)
     return fig
 
 
