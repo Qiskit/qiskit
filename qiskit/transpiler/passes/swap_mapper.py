@@ -5,17 +5,18 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+from qiskit import QuantumRegister
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 class SwapMapper(TransformationPass):
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, swap_basis_element='swap'):
         super().__init__()
         self.coupling_map = coupling_map
+        self.swap_basis_element = swap_basis_element
 
     def run(self, dag):
-        # new_dag = DAGCircuit.copy_without_gates(dag)
         new_dag = DAGCircuit()
         for layer in dag.serial_layers():
             subdag = layer['graph']
@@ -25,14 +26,17 @@ class SwapMapper(TransformationPass):
                 new_dag.add_dag_at_the_end(subdag)
                 continue
             for cx in subdag.get_cnot_nodes():
-                dist = self._distance_between_qargs(cx['qargs'])
-                if dist == 1:
+                qubit0 = cx['qargs'][0]
+                qubit1 = cx['qargs'][1]
+                if self.coupling_map.distance(qubit0,qubit1) == 1:
                     # The CXs are already together, no need to change anything.
                     new_dag.add_dag_at_the_end(subdag)
                     continue
                 else:
-                    pass #TODO
-        return new_dag
+                    path = self.coupling_map.shortest_path(qubit0,qubit1)
+                    new_dag.add_basis_element(self.swap_basis_element, 2)
+                    closest_qubit = path[1]['name']
+                    farest_qubit = path[-1]['name']
+                    dag.apply_operation_back(self.swap_basis_element, [closest_qubit, farest_qubit)
 
-    def _distance_between_qargs(self, qargs):
-        return self.coupling_map.dist[qargs[0]][qargs[1]]
+        return new_dag
