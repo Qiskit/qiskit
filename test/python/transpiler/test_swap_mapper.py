@@ -89,27 +89,6 @@ class TestSwapMapper(QiskitTestCase):
 
         self.assertEqual(before, after_dag.qasm())
 
-        def test_trivial_case(self):
-            # No need to have any swap, the CX are distance 1 to each other
-            # q0:--(+)-[U]-(+)-
-            #       |       |
-            # q1:---.-------|--
-            #               |
-            # q2:-----------.--
-            #
-            # Coupling map: [1]--[0]--[2]
-
-            coupling = Coupling({0: [1, 2]})
-            dag = _create_dag([('CX', [('q', 0), ('q', 1)]),
-                               ('U', [('q', 0)]),
-                               ('CX', [('q', 0), ('q', 2)])])
-
-            before = dag.qasm()
-            pass_ = SwapMapper(coupling)
-            after_dag = pass_.run(dag)
-
-            self.assertEqual(before, after_dag.qasm())
-
     def test_a_single_swap(self):
         # Adding a swap
         # q0:--(+)------
