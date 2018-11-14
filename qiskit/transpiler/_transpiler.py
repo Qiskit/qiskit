@@ -47,7 +47,8 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
-    if not isinstance(circuits, list):
+    from qiskit import _quantumcircuit 
+    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
         circuits = [circuits]
 
     # FIXME: THIS NEEDS TO BE CLEANED UP -- some things to decide for list of circuits:
