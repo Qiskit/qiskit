@@ -6,6 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """ Methods to assist with compiling tasks.
+    These functions are all used by a_star_mapper (Python, not Cython) in order to such things
+    as KAK refactoring, flip swaps to satisfy the coupling map, evaluate the cost of a circuit, etc.
 """
 
 # import math

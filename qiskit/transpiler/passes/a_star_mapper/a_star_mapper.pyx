@@ -476,7 +476,9 @@ def a_star_mapper(grouped_gates, coupling_map, int nqubits, empty_circuit):
         if len(applicable_gates) == 0:
             break
 
-        # determine which SWAPs can be applied for "free". A SWAP on qubits q0 and q1 does not cost anything if the group of gates between q0 and q1 have been directly applied before it. This assumption is justified by the post-processing we use and can be included in the heuristic of the search algorithm.
+        # determine which SWAPs can be applied for "free". A SWAP on qubits q0 and q1 does not cost anything if the group 
+        # of gates between q0 and q1 have been directly applied before it. This assumption is justified by the post-processing 
+        # we use and can be included in the heuristic of the search algorithm.
         used_qubits.clear()
         free_swaps.clear()
         for i in range(applied_gates.size()-1,-1,-1):

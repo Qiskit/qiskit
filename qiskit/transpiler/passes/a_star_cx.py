@@ -13,7 +13,18 @@ from qiskit.transpiler._basepasses import TransformationPass
 
 
 class AStarCX(TransformationPass):
-    """Find cheapest cost (local optimization with lookahead) for CX gates."""
+    """Find cheapest cost (local optimization with lookahead) for CX gates.
+       Uses an admissable A* search technique to reduce (not "minimize" as it is not guaranteed to
+       be optimal in all cases) the number of swaps (and, therefore, CX gates) to implement a given
+       circuit under the constraints of a supplied coupling map.
+       group_gates is used to "compress" (hide) single-qubit gates so that the algorithm can
+       deal with CX gates exclusively.  Then the A* mapper (.pyx) is used to, layer by layer,
+       select a good qubit mapping so as to reduce the number of FX gates used.  Finally, a
+       post_mapping_optimization (KAK refactoring, introducing gates to deal with unidirectional
+       connectivity in coupling map, etc.) are applied.  This is done for some number of iterations,
+       as the topological sort that primes the order in which gates are added varies (run to run).
+       Solutions are evaluated for cost and the best solution is retained and returned.
+    """
 
     def __init__(self, coupling_map=None, gate_costs=None):
         super().__init__()
@@ -125,7 +136,7 @@ class AStarCX(TransformationPass):
             reps = 9
         if reps > 1000:
             reps = 1000
-        # Repeat the mapping procedure 9 times and take the result with minimum groups/cost.
+        # Repeat the mapping procedure reps (>= 9) times, take the result with minimum cost.
         # Each call may yield a different result, since the mapper is implemented with a certain
         # non-determinism. In fact, in the priority queue used for implementing the A* algorithm,
         # the entries are a pair of the priority and a pointer to an object holding th mapping
