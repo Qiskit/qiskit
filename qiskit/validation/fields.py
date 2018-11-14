@@ -9,7 +9,7 @@
 
 from functools import partial
 
-from marshmallow import ValidationError
+from marshmallow import ValidationError, fields
 from marshmallow_polyfield import PolyField
 
 
@@ -142,3 +142,46 @@ class ByAttribute(BasePolyField):
                 return schema_cls()
 
         return None
+
+
+class ByType(fields.Field):
+    """Polymorphic field that disambiguates based on an attribute's type.
+
+    Polymorphic field that accepts a list of ``Fields``, and checks that the
+    data belongs to any of those types. Note this Field does not inherit from
+    ``BasePolyField``, as it operates directly on ``Fields`` instead of
+    operating in ``Schemas``.
+
+    Examples:
+        class PetOwnerSchema(BaseSchema):
+            contact_method = ByType([fields.Email(), fields.Url()])
+
+    Args:
+        choices (list[Field]): list of accepted `Fields` instances.
+    """
+
+    default_error_messages = {
+        'invalid': 'Not a valid type.'
+    }
+
+    def __init__(self, choices, *args, **kwargs):
+        self.choices = choices
+        super().__init__(*args, **kwargs)
+
+    def _serialize(self, value, attr, obj):
+        for field in self.choices:
+            try:
+                return field._serialize(value, attr, obj)
+            except ValidationError:
+                pass
+
+        self.fail('invalid')
+
+    def _deserialize(self, value, attr, data):
+        for field in self.choices:
+            try:
+                return field._deserialize(value, attr, data)
+            except ValidationError:
+                pass
+
+        self.fail('invalid')

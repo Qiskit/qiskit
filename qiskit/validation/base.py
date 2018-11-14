@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load, fields
 from marshmallow.utils import is_collection
 
-from .fields import BasePolyField
+from .fields import BasePolyField, ByType
 
 
 class BaseSchema(Schema):
@@ -161,7 +161,7 @@ class _SchemaBinder:
                 field._deserialize = partial(self._overridden_nested_deserialize, field)
             elif isinstance(field, BasePolyField):
                 field._deserialize = partial(self._overridden_basepolyfield_deserialize, field)
-            elif not isinstance(field, (fields.Number, fields.String)):
+            elif not isinstance(field, (fields.Number, fields.String, ByType)):
                 field._deserialize = partial(self._overridden_field_deserialize, field)
         return shallow_schema
 
