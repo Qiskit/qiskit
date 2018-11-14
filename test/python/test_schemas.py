@@ -13,6 +13,7 @@ import os
 from qiskit._schema_validation import (validate_json_against_schema,
                                        _get_validator)
 from qiskit import __path__ as qiskit_path
+from qiskit.validation.result import Result
 from .common import QiskitTestCase
 
 
@@ -66,6 +67,11 @@ class TestSchemaExamples(QiskitTestCase):
 
                             validate_json_against_schema(example,
                                                          schema_name, msg)
+                        # TODO: temporary quick check for validating examples
+                        # using the qiskit.validation-based Result.
+                        if schema_name == 'result':
+                            _ = Result.from_dict(example)
+
 
     def test_schemas_are_valid(self):
         """Validate that schemas are valid jsonschema"""
