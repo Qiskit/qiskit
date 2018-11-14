@@ -18,7 +18,7 @@ from setuptools.dist import Distribution
 requirements = [
     "jsonschema>=2.6,<2.7",
     "matplotlib>=2.1",
-    "networkx>=2.0",
+    "networkx>=2.2",
     "numpy>=1.13",
     "ply>=3.10",
     "requests>=2.19",
