@@ -76,7 +76,7 @@ author = 'IBM'
 
 # Add description
 html_context = {
-    'description': 'Quantum Information Science Kit'
+    'description': 'Qiskit Terra'
 }
 
 # The version info for the project you're documenting, acts as replacement for
@@ -178,7 +178,7 @@ html_static_path = ['./theme/static/']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'theme/static/qiskit-logo-white-no-margin.png'
+html_logo = 'theme/static/qiskit-terra-logo.png'
 
 html_favicon = 'theme/static/favicon.ico'
 
@@ -187,7 +187,7 @@ html_last_updated_fmt = '%Y/%m/%d'
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'QISKitdoc'
+htmlhelp_basename = 'Qiskitdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -214,9 +214,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'QISKit.tex', 'Qiskit Documentation',
-     '''Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez,
-     and John Smolin''', 'manual'),
+    (master_doc, 'Qiskit.tex', 'Qiskit Documentation',
+     '''Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta''', 'manual'),
 ]
 
 

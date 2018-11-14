@@ -1,18 +1,21 @@
+
 Release history
-###############
+===============
+
 
 Release notes
-*************
+-------------
+
 
 Qiskit Terra 0.6.0
-==================
+^^^^^^^^^^^^^^^^^^
 
 This release includes a redesign of internal components centered around a new,
-formal communication format (``Qobj``), along with long awaited features to
+formal communication format (`qobj`), along with long awaited features to
 improve the user experience as a whole. The highlights, compared to the 0.5
 release, are:
 
-* Improvements for inter-operability (based on the ``Qobj`` specification) and
+* Improvements for inter-operability (based on the `qobj` specification) and
   extensibility (facilities for extending Qiskit with new backends in a seamless
   way).
 * New options for handling credentials and authentication for the IBM Q
@@ -25,15 +28,17 @@ release, are:
   a more flexible and modular architecture have been set, including
   paralellization of the circuit compilation and numerous optimizations.
 
+
 Upgrading to 0.6.0
-------------------
+^^^^^^^^^^^^^^^^^^
 
 Please note that some backwards-incompatible changes have been introduced
 during this release - the following notes contain information on how to adapt to
 the new changes.
 
+"""""""""""""""""""""""""""""
 Removal of ``QuantumProgram``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""
 
 As hinted during the 0.5 release, the deprecation of the  ``QuantumProgram``
 class has now been completed and is no longer available, in favor of working
@@ -43,12 +48,12 @@ with the individual components (:class:`~qiskit.backends.basejob.BaseJob`,
 :class:`~qiskit._quantumregister.QuantumRegister`,
 :mod:`~qiskit`) directly.
 
-Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
-:doc:`quickstart` examples for details about the transition ::
+Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the examples 
+for details about the transition ::
 
 
   from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-  from qiskit import available_backends, execute
+  from qiskit import Aer, execute
 
   q = QuantumRegister(2)
   c = ClassicalRegister(2)
@@ -58,18 +63,19 @@ Please check the :ref:`0.5 release notes <quantum-program-0-5>` and the
   qc.cx(q[0], q[1])
   qc.measure(q, c)
 
-  print("Local backends: ", available_backends({'local': True}))
+  backend = get_backend('qasm_simulator')
 
-  job_sim = execute(qc, "local_qasm_simulator")
+  job_sim = execute(qc, backend)
   sim_result = job_sim.result()
 
   print("simulation: ", sim_result)
   print(sim_result.get_counts(qc))
 
-IBM Q Authentication and ``Qconfig.py``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The managing of credentials for authenticating when using the QX backends has
+IBM Q Authentication and ``Qconfig.py``
+"""""""""""""""""""""""""""""""""""""""
+
+The managing of credentials for authenticating when using the IBMQ backends has
 been expanded, and there are new options that can be used for convenience:
 
 1. save your credentials in disk once, and automatically load them in future
@@ -93,12 +99,11 @@ been expanded, and there are new options that can be used for convenience:
    them.
 
 Additionally, the previous method of having a ``Qconfig.py`` file in the program
-folder and passing the credentials explicitly is still supported. Please check
-the :ref:`qconfig-setup` section for more details about combining and using
-the different authentication options.
+folder and passing the credentials explicitly is still supported.
+
 
 Working with backends
-^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""
 
 A new mechanism has been introduced in Terra 0.6 as the recommended way for obtaining
 a backend, allowing for more powerful and unified filtering and integrated with
@@ -138,7 +143,7 @@ Qiskit Terra 0.5               Qiskit Terra 0.6
 
 
 Backend and Job API changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""
 
 * Jobs submitted to IBM Q backends have improved capabilities. It is possible to
   cancel them and replenish credits (``job.cancel()``), and to retrieve previous jobs
@@ -180,8 +185,10 @@ job.queued
 job.done
 =====================  ========================
 
+
 Better Jupyter tools
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
+
 The new release contains improvements to the user experience while using Jupyter notebooks.
 
 First, new interactive visualizations of counts histograms and quantum states are provided:
@@ -195,7 +202,7 @@ Use ``%%qiskit_progress_bar`` to keep track of the progress of compilation/execu
 
 
 Qiskit Terra 0.5.0
-==================
+^^^^^^^^^^^^^^^^^^
 
 This release brings a number of improvements to Qiskit, both for the user
 experience and under the hood. Please refer to the full changelog for a
@@ -207,12 +214,13 @@ detailed description of the changes - the highlights are:
   on extensibility and flexibility (using aliases and backend providers).
 * reorganization of the asynchronous features, providing a friendlier interface
   for running jobs asynchronously via :class:`Job` instances.
-* numerous improvements and fixes throughout the SDK as a whole, both for
+* numerous improvements and fixes throughout the Terra as a whole, both for
   convenience of the users (such as allowing anonymous registers) and for
   enhanced functionality (such as improved plotting of circuits).
 
+
 Upgrading to 0.5.0
-------------------
+^^^^^^^^^^^^^^^^^^
 
 Please note that several backwards-incompatible changes have been introduced
 during this release as a result of the ongoing development. While some of these
@@ -222,8 +230,9 @@ for the new versions and take advantage of the new functionality.
 
 .. _quantum-program-0-5:
 
+
 ``QuantumProgram`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""
 
 Several methods of the :class:`~qiskit.QuantumProgram` class are on their way
 to being deprecated:
@@ -280,8 +289,9 @@ update example in the Quickstart section, or the
 ``using_qiskit_core_level_0.py`` and ``using_qiskit_core_level_1.py``
 examples on the main repository.
 
+
 Backend name changes
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 In order to provide a more extensible framework for backends, there have been
 some design changes accordingly:
@@ -320,8 +330,9 @@ some design changes accordingly:
   the backend will be the C++ statevector simulator if available, falling back to
   the Python statevector simulator if not present.
 
+
 More flexible names and parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""
 
 Several functions of the SDK have been made more flexible and user-friendly:
 
@@ -354,8 +365,5 @@ Several functions of the SDK have been made more flexible and user-friendly:
     data = result.get_data(qc)
     data = result.get_data()
 
-
-Changelog
-*********
 
 .. include:: CHANGELOG.rst

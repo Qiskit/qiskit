@@ -3,7 +3,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-.PHONY: env env-dev lint test run doc test_record test_mock
+.PHONY: env lint test doc test_record test_mock
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -13,9 +13,6 @@ env:
 		conda create -y -n QISKitenv python=3; \
 		bash -c "source activate QISKitenv;pip install -r requirements.txt"; \
 	fi;
-
-run:
-	bash -c "source activate QISKitenv;cd examples; cd jupyter;jupyter notebook"
 
 # Ignoring generated ones with .py extension.
 lint:
