@@ -1345,6 +1345,9 @@ class DAGCircuit:
         return summary
 
     def add_dag_at_the_end(self, dag, layout=None):
+        """Add `dag` at the end of `self`, using layout for wireing.
+        If `layout` is not provided, creates a layout where wires are
+        connected one-to-one."""
         for qreg in dag.qregs.values():
             with suppress(DAGCircuitError):
                 self.add_qreg(QuantumRegister(qreg.size, qreg.name))

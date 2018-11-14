@@ -182,6 +182,7 @@ class Coupling:
         return self.dist[q1][q2]
 
     def shortest_path(self, node1, node2):
+        """ Return the shorter path between two nodes in an undirected coupling graph. """
         path = nx.algorithms.shortest_paths.generic.shortest_path(self.G.to_undirected(),
                                                                   self.qubits[node1],
                                                                   self.qubits[node2])

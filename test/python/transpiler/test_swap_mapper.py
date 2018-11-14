@@ -45,17 +45,18 @@ def _create_dag(instructions):
 
 
 class TestSwapMapper(QiskitTestCase):
+    """ Tests the SwapMapper pass."""
 
     def test_trivial_case(self):
-        # No need to have any swap, the CX are distance 1 to each other
-        # q0:--(+)-[U]-(+)-
-        #       |       |
-        # q1:---.-------|--
-        #               |
-        # q2:-----------.--
-        #
-        # Coupling map: [1]--[0]--[2]
+        """No need to have any swap, the CX are distance 1 to each other
+         q0:--(+)-[U]-(+)-
+               |       |
+         q1:---.-------|--
+                       |
+         q2:-----------.--
 
+         Coupling map: [1]--[0]--[2]
+        """
         coupling = Coupling({0: [1, 2]})
         dag = _create_dag([('CX', [('q', 0), ('q', 1)]),
                            ('U', [('q', 0)]),
@@ -68,17 +69,17 @@ class TestSwapMapper(QiskitTestCase):
         self.assertEqual(before, after_dag.qasm())
 
     def test_trivial_in_same_layer(self):
-        # No need to have any swap, two CXs distance 1 to each other, in the same layer
-        # q0:--(+)--
-        #       |
-        # q1:---.---
-        #
-        # q2:--(+)--
-        #       |
-        # q3:---.---
-        #
-        # Coupling map: [0]--[1]--[2]--[3]
+        """ No need to have any swap, two CXs distance 1 to each other, in the same layer
+         q0:--(+)--
+               |
+         q1:---.---
 
+         q2:--(+)--
+               |
+         q3:---.---
+
+         Coupling map: [0]--[1]--[2]--[3]
+        """
         coupling = Coupling({0: [1], 1: [2], 2: [3]})
         dag = _create_dag([('CX', [('q', 2), ('q', 3)]),
                            ('CX', [('q', 0), ('q', 1)])])
@@ -90,15 +91,15 @@ class TestSwapMapper(QiskitTestCase):
         self.assertEqual(before, after_dag.qasm())
 
     def test_a_single_swap(self):
-        # Adding a swap
-        # q0:--(+)------
-        #       |
-        # q1:---.--(+)--
-        #           |
-        # q2:-------.---
-        #
-        # Coupling map: [1]--[0]--[2]
+        """ Adding a swap
+         q0:--(+)------
+               |
+         q1:---.--(+)--
+                   |
+         q2:-------.---
 
+         Coupling map: [1]--[0]--[2]
+        """
         coupling = Coupling({0: [1, 2]})
         dag = _create_dag([('CX', [('q', 0), ('q', 1)]),
                            ('CX', [('q', 1), ('q', 2)])])
@@ -107,7 +108,7 @@ class TestSwapMapper(QiskitTestCase):
                               "opaque swap a,b;",
                               "CX q[0],q[1];",
                               "swap q[0],q[2];",
-                              "CX q[1],q[0];"])+'\n'
+                              "CX q[1],q[0];"]) + '\n'
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 
