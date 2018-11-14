@@ -593,7 +593,7 @@ class IBMQConnector(object):
         if 'qObjectResult' in job:
             # If the job is using Qobj, return the qObjectResult directly,
             # which should contain a valid Result.
-            return job['qObjectResult']
+            return job
         elif 'qasms' in job:
             # Fallback for pre-Qobj jobs.
             for qasm in job['qasms']:
