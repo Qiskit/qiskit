@@ -12,7 +12,6 @@ Quantum circuit object.
 """
 import itertools
 from collections import OrderedDict
-import shutil
 
 from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
