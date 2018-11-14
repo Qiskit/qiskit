@@ -10,6 +10,7 @@
 from functools import partial
 
 from marshmallow import ValidationError, fields
+from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
 
@@ -185,3 +186,36 @@ class ByType(fields.Field):
                 pass
 
         self.fail('invalid')
+
+
+class Complex(fields.Field):
+    """Field for complex numbers.
+
+    Field for parsing complex numbers:
+    * deserializes to Python's `complex`.
+    * serializes to a tuple of 2 decimals `(real, imaginary)`
+    """
+
+    default_error_messages = {
+        'invalid': 'Not a valid complex number.',
+        'format': '"{input}" cannot be formatted as complex number.',
+    }
+
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
+        if not isinstance(value, complex):
+            self.fail('format', input=value)
+        try:
+            return [value.real, value.imag]
+        except AttributeError:
+            self.fail('format', input=value)
+        return value
+
+    def _deserialize(self, value, attr, data):
+        if not is_collection(value) or len(value) != 2:
+            self.fail('invalid')
+        try:
+            return complex(*value)
+        except (ValueError, TypeError):
+            self.fail('invalid')
