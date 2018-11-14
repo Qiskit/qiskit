@@ -43,12 +43,6 @@ activate QISKitenv & pip install -r requirements.txt
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
-:run
-cd examples\jupyter
-jupyter notebook
-IF errorlevel 9009 GOTO :error
-GOTO :next
-
 :lint
 pylint qiskit test
 IF errorlevel 9009 GOTO :error
