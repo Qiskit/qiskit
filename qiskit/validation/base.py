@@ -172,28 +172,32 @@ class _SchemaBinder:
             field.fail('type', input=value, type=value.__class__.__name__)
 
         if not field.many:
-            value = [value]
+            values = [value]
+        else:
+            values = value
 
-        for v in value:
+        for v in values:
             if not isinstance(v, field.schema.model_cls):
                 raise ValidationError(
                     'Not a valid type for {}.'.format(field.__class__.__name__),
                     data=data)
-        return data
+        return value
 
     @staticmethod
     def _overridden_basepolyfield_deserialize(field, value, _, data):
         """Helper for minimal validation of fields.BasePolyField."""
         if not field.many:
-            value = [value]
+            values = [value]
+        else:
+            values = value
 
-        for v in value:
+        for v in values:
             schema = field.serialization_schema_selector(v, data)
             if not schema:
                 raise ValidationError(
                     'Not a valid type for {}.'.format(field.__class__.__name__),
                     data=data)
-        return data
+        return value
 
     @staticmethod
     def _overridden_field_deserialize(field, value, attr, data):
