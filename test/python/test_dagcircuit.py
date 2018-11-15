@@ -65,6 +65,20 @@ class TestDagCircuit(QiskitTestCase):
             (('q', 0), ('q', 2))}
         self.assertEqual(expected_gates, node_qargs)
 
+    def test_nodes_in_topological_order(self):
+        dag = DAGCircuit()
+        dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
+        dag.add_basis_element('cx', 2)
+        dag.add_qreg(QuantumRegister(3, "q"))
+        dag.apply_operation_back('cx', [('q', 0), ('q', 1)])
+        dag.apply_operation_back('h', [('q', 0)])
+        dag.apply_operation_back('cx', [('q', 2), ('q', 1)])
+        dag.apply_operation_back('cx', [('q', 0), ('q', 2)])
+        dag.apply_operation_back('h', [('q', 2)])
+
+        named_nodes = dag.node_nums_in_topological_order()
+        self.assertEqual([5, 3, 1, 7, 9, 4, 8, 10, 11, 6, 2], [i for i in named_nodes])
+
     def test_layers_basic(self):
         qreg = QuantumRegister(2, 'qr')
         creg = ClassicalRegister(2, 'cr')
