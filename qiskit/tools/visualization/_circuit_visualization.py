@@ -521,8 +521,9 @@ def _generate_latex_source(circuit, filename=None,
         str: Latex string appropriate for writing to file.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
-    qcimg = _latex.QCircuitImage(json_circuit, scale, style=style,
+    qregs, cregs, ops = _utils._get_instructions(dag_circuit,
+                                                 reversebits=reverse_bits)
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)
     latex = qcimg.latex()
