@@ -11,6 +11,33 @@ from marshmallow import ValidationError
 from marshmallow.validate import Validator
 
 
+class Or(Validator):
+    """Validate using a boolean "or" against a list of Validators.
+
+    This validator accepts a list of other ``Validators``, and returns True if
+    any of those validators pass.
+
+    Examples:
+        wheels = Integer(validate=Or(Equal(4), Equal(2)))
+    """
+
+    def __init__(self, validators):
+        """
+        Args:
+            validators (list[Validator]): list of Validators.
+        """
+        self.validators = validators
+
+    def __call__(self, value):
+        for validator in self.validators:
+            try:
+                return validator(value)
+            except ValidationError:
+                pass
+
+        raise ValidationError('nope')
+
+
 class PatternProperties(Validator):
     """Validate the keys and values of an object, disallowing additional ones.
 
@@ -26,6 +53,7 @@ class PatternProperties(Validator):
                 {Regexp('^0x([0-9A-Fa-f])+$'): Integer(),
                  Regexp('OTHER_THING'): String()})
     """
+
     def __init__(self, pattern_properties):
         """
         Args:
