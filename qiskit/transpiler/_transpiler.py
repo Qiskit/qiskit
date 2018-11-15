@@ -13,8 +13,8 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QISKitError
-from qiskit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
+from qiskit import _quantumcircuit
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.unrollers import _jsonbackend
@@ -48,7 +48,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
-    if isinstance(circuits, QuantumCircuit):
+    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
         circuits = [circuits]
 
     # FIXME: THIS NEEDS TO BE CLEANED UP -- some things to decide for list of circuits:
