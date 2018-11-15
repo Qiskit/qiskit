@@ -16,7 +16,6 @@ Table of Contents
 
    Overview <overview>
    Installation and Setup <install>
-   The IBM Q Provider <the_ibmq_provider>
    qiskit-tutorials/qiskit/basics/*
    qiskit-tutorials/qiskit/terra/*
    Contributing to Terra <CONTRIBUTING>
