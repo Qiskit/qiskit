@@ -295,9 +295,23 @@ def bind_schema(schema):
     return _SchemaBinder(schema)
 
 
+def _base_model_from_kwargs(cls, kwargs):
+    """Helper for BaseModel.__reduce__, expanding kwargs."""
+    return cls(**kwargs)
+
+
 class BaseModel(SimpleNamespace):
     """Base class for Models for validated Qiskit classes."""
-    pass
+    def __reduce__(self):
+        """Custom __reduce__ for allowing pickling and unpickling.
+
+        Customize the reduction in order to allow serialization, as the
+        BaseModels need to be pickled during the use of futures by the backends.
+        Instead of returning the class, a helper is used in order to pass the
+        arguments as **kwargs, as it is needed by SimpleNamespace and the
+        standard __reduce__ only allows passing args as a tuple.
+        """
+        return _base_model_from_kwargs, (self.__class__, self.__dict__)
 
 
 class ObjSchema(BaseSchema):
