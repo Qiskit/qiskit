@@ -107,6 +107,8 @@ def circuit_drawer(circuit,
     Raises:
         VisualizationError: when an invalid output method is selected
 
+    .. _style-dict-doc:
+
     The style dict kwarg contains numerous options that define the style of the
     output circuit visualization. While the style dict is used by the `mpl`,
     `latex`, and `latex_source` outputs some options in that are only used
