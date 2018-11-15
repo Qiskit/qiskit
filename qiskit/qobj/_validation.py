@@ -8,17 +8,19 @@
 """QObj validation module for validation against JSON schemas."""
 
 
-from qiskit import validate_json_against_schema, QISKitError
+from qiskit import _schema_validation
+from qiskit import _qiskiterror
 
 
-class QobjValidationError(QISKitError):
+class QobjValidationError(_qiskiterror.QISKitError):
     """Represents an error during Qobj validation."""
     pass
 
 
 def validate_qobj_against_schema(qobj):
     """Validates a QObj against a schema."""
-    validate_json_against_schema(qobj.as_dict(), 'qobj',
-                                 err_msg='Qobj failed validation. '
-                                         'Set Qiskit log level to DEBUG '
-                                         'for further information.')
+    _schema_validation.validate_json_against_schema(
+        qobj.as_dict(), 'qobj',
+        err_msg='Qobj failed validation. '
+                'Set Qiskit log level to DEBUG '
+                'for further information.')
