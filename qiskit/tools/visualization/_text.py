@@ -401,9 +401,12 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, instructions, reversebits=False, plotbarriers=True, line_length=None):
-        self.instructions = instructions
-        self.reversebits = reversebits
+    def __init__(self, get_instructions_output, plotbarriers=True, line_length=None):
+        # get_instructions_output = (qregs, cregs, instructions)
+        self.qregs = get_instructions_output[0]
+        self.cregs = get_instructions_output[1]
+        self.instructions = get_instructions_output[2]
+
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         self.qubitorder = self._get_qubitorder()

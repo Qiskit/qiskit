@@ -29,6 +29,7 @@ from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile_dag
+from qiskit.tools.visualization._utils import _get_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -350,8 +351,7 @@ def _text_circuit_drawer(circuit, filename=None,
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
-    text_drawing = _text.TextDrawing(json_circuit, reversebits=reversebits)
+    text_drawing = _text.TextDrawing(_get_instructions(dag_circuit, reversebits=reversebits))
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
