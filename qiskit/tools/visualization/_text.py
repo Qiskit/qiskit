@@ -409,8 +409,6 @@ class TextDrawing():
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
-        self.qubitorder = self._get_qubitorder()
-        self.clbitorder = self._get_clbitorder()
 
     def __str__(self):
         return self.single_string()
@@ -430,34 +428,6 @@ class TextDrawing():
             for clbit in range(creg[1]):
                 clbits.append("%s_%s" % (creg[0], clbit))
         return clbits
-
-    def _get_qubitorder(self):
-        header = self.instructions['header']
-
-        if not self.reversebits:
-            return [qub for qub in range(header['number_of_qubits'])]
-
-        qreg_dest_order = []
-        for _, qubits in groupby(header['qubit_labels'], lambda x: x[0]):
-            qubits = [qubit for qubit in qubits]
-            qubits.reverse()
-            for qubit in qubits:
-                qreg_dest_order.append("%s_%s" % (qubit[0], qubit[1]))
-        return [qreg_dest_order.index(ind) for ind in self._get_qubit_labels()]
-
-    def _get_clbitorder(self):
-        header = self.instructions['header']
-
-        if not self.reversebits:
-            return [clb for clb in range(header['number_of_clbits'])]
-
-        creg_dest_order = []
-        for creg in self.instructions['header']['clbit_labels']:
-            bit_nos = [bit for bit in range(creg[1])]
-            bit_nos.reverse()
-            for clbit in bit_nos:
-                creg_dest_order.append("%s_%s" % (creg[0], clbit))
-        return [creg_dest_order.index(ind) for ind in self._get_clbit_labels()]
 
     def single_string(self):
         """
