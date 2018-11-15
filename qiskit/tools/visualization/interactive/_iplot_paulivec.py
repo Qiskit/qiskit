@@ -13,7 +13,7 @@ import sys
 import time
 import re
 import numpy as np
-from qiskit.tools.qi.pauli import pauli_group
+from qiskit.quantum_info import pauli_group
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
