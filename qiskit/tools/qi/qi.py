@@ -23,8 +23,8 @@ from scipy.stats import unitary_group
 
 
 from qiskit import QISKitError
-from qiskit.tools.qi.pauli import pauli_group
-from qiskit.quantum_info.states import state_fidelity as new_state_fidelity
+from qiskit.quantum_info import pauli_group
+from qiskit.quantum_info import state_fidelity as new_state_fidelity
 
 
 ###############################################################
