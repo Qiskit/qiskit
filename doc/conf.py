@@ -56,6 +56,9 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
 
+# nbsphinx settings
+nbsphinx_prompt_width = 0
+
 autoclass_content = 'both'
 
 # Add any paths that contain templates here, relative to this directory.
