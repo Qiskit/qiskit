@@ -21,9 +21,9 @@ from matplotlib import patches
 from matplotlib import pyplot as plt
 
 from qiskit import dagcircuit
-from qiskit import transpiler
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
+from qiskit.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)
@@ -128,26 +128,20 @@ class MatplotlibDrawer:
     def parse_circuit(self, circuit):
         dag_circuit = dagcircuit.DAGCircuit.fromQuantumCircuit(
             circuit, expand_gates=False)
-        self._ast = transpiler.transpile_dag(dag_circuit,
-                                             basis_gates=self._basis,
-                                             format='json')
-        self._registers()
-        self._ops = self._ast['instructions']
 
-    def _registers(self):
+        qregs, cregs, ops = _utils._get_instructions(
+            dag_circuit, reversebits=self.reverse_bits)
+        self._registers(cregs, qregs)
+        self._ops = ops
+
+    def _registers(self, creg, qreg):
         # NOTE: formats of clbit and qubit are different!
-        header = self._ast['header']
         self._creg = []
-        for e in header['clbit_labels']:
-            for i in range(e[1]):
-                self._creg.append(Register(name=e[0], index=i))
-        if len(self._creg) != header['number_of_clbits']:
-            raise _error.VisualizationError('internal error')
+        for e in creg:
+            self._creg.append(Register(name=e[0], index=e[1]))
         self._qreg = []
-        for e in header['qubit_labels']:
+        for e in qreg:
             self._qreg.append(Register(name=e[0], index=e[1]))
-        if len(self._qreg) != header['number_of_qubits']:
-            raise _error.VisualizationError('internal error')
 
     @property
     def ast(self):
@@ -512,13 +506,25 @@ class MatplotlibDrawer:
                 _iswide = False
                 gw = 1
             # get qreg index
-            if 'qubits' in op.keys():
-                q_idxs = op['qubits']
+            if 'qargs' in op.keys():
+                q_idxs = []
+                for qarg in op['qargs']:
+                    for index, reg in self._qreg_dict.items():
+                        if (reg['group'] == qarg[0] and
+                                reg['index'] == qarg[1]):
+                            q_idxs.append(index)
+                            break
             else:
                 q_idxs = []
             # get creg index
-            if 'clbits' in op.keys():
-                c_idxs = op['clbits']
+            if 'cargs' in op.keys():
+                c_idxs = []
+                for carg in op['cargs']:
+                    for index, reg in self._creg_dict.items():
+                        if (reg['group'] == carg[0] and
+                                reg['index'] == carg[1]):
+                            c_idxs.append(index)
+                            break
             else:
                 c_idxs = []
             # find empty space to place gate
