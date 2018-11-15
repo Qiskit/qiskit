@@ -642,19 +642,6 @@ class TextDrawing():
                 ret += botc
         return ret
 
-    def clbit_index_from_mask(self, mask):
-        """
-        Given a mask, returns a list of classical indexes affected by that mask.
-        Args:
-            mask (int): The mask.
-
-        Returns:
-            list: A list of indexes affected by the mask.
-        """
-        clbit_len = self.instructions['header']['number_of_clbits']
-        bit_mask = [bool(mask & (1 << n)) for n in range(clbit_len)]
-        return [i for i, x in enumerate(bit_mask) if x]
-
     @staticmethod
     def normalize_width(layer):
         """
@@ -709,13 +696,12 @@ class TextDrawing():
             elif instruction['name'] == 'reset':
                 layer.set_qubit(instruction['qargs'][0], Reset())
 
-            elif 'conditional' in instruction:
+            elif instruction['condition'] is not None:
                 # conditional
-                clbits = self.clbit_index_from_mask(int(instruction['conditional']['mask'], 16))
                 cllabel = TextDrawing.label_for_conditional(instruction)
                 qulabel = TextDrawing.label_for_box(instruction)
 
-                layer.set_cl_multibox(clbits, cllabel, top_connect='┴')
+                layer.set_cl_multibox(instruction['condition'][0], instruction['condition'][1], top_connect='┴')
                 layer.set_qubit(instruction['qargs'][0], BoxOnQuWire(qulabel, bot_connect='┬'))
 
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
@@ -843,15 +829,15 @@ class Layer:
                 set_bit(bit, BoxOnWireMid(label, len(bits), order))
             set_bit(bits[-1], BoxOnWireBot(label, len(bits)))
 
-    def set_cl_multibox(self, bits, label, top_connect='┴'):
+    def set_cl_multibox(self, creg, label, top_connect='┴'):
         """
         Sets the multi clbit box.
         Args:
-            bits (list[int]): A list of affected bits.
+            creg (string): The affected classical register.
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        self._set_multibox("cl", bits, label, top_connect=top_connect)
+        self._set_multibox("cl", creg, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label):
         """
