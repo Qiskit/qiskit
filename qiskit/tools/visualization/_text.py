@@ -401,8 +401,8 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, json_circuit, reversebits=False, plotbarriers=True, line_length=None):
-        self.json_circuit = json_circuit
+    def __init__(self, instructions, reversebits=False, plotbarriers=True, line_length=None):
+        self.instructions = instructions
         self.reversebits = reversebits
         self.plotbarriers = plotbarriers
         self.line_length = line_length
@@ -417,19 +417,19 @@ class TextDrawing():
 
     def _get_qubit_labels(self):
         qubits = []
-        for qubit in self.json_circuit['header']['qubit_labels']:
+        for qubit in self.instructions['header']['qubit_labels']:
             qubits.append("%s_%s" % (qubit[0], qubit[1]))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
-        for creg in self.json_circuit['header']['clbit_labels']:
+        for creg in self.instructions['header']['clbit_labels']:
             for clbit in range(creg[1]):
                 clbits.append("%s_%s" % (creg[0], clbit))
         return clbits
 
     def _get_qubitorder(self):
-        header = self.json_circuit['header']
+        header = self.instructions['header']
 
         if not self.reversebits:
             return [qub for qub in range(header['number_of_qubits'])]
@@ -443,13 +443,13 @@ class TextDrawing():
         return [qreg_dest_order.index(ind) for ind in self._get_qubit_labels()]
 
     def _get_clbitorder(self):
-        header = self.json_circuit['header']
+        header = self.instructions['header']
 
         if not self.reversebits:
             return [clb for clb in range(header['number_of_clbits'])]
 
         creg_dest_order = []
-        for creg in self.json_circuit['header']['clbit_labels']:
+        for creg in self.instructions['header']['clbit_labels']:
             bit_nos = [bit for bit in range(creg[1])]
             bit_nos.reverse()
             for clbit in bit_nos:
@@ -492,7 +492,7 @@ class TextDrawing():
         if line_length is None:
             line_length, _ = get_terminal_size()
 
-        noqubits = self.json_circuit['header']['number_of_qubits']
+        noqubits = self.instructions['header']['number_of_qubits']
         layers = self.build_layers()
 
         # TODO compress layers
@@ -565,8 +565,8 @@ class TextDrawing():
             qubit_labels = ['%s: ' % qubit for qubit in qubit_labels]
             clbit_labels = ['%s: ' % clbit for clbit in clbit_labels]
 
-        qubit_wires = [None] * self.json_circuit['header']['number_of_qubits']
-        clbit_wires = [None] * self.json_circuit['header']['number_of_clbits']
+        qubit_wires = [None] * self.instructions['header']['number_of_qubits']
+        clbit_wires = [None] * self.instructions['header']['number_of_clbits']
 
         for order, label in enumerate(qubit_labels):
             qubit_wires[self.qubitorder[order]] = label
@@ -689,7 +689,7 @@ class TextDrawing():
         Returns:
             list: A list of indexes affected by the mask.
         """
-        clbit_len = self.json_circuit['header']['number_of_clbits']
+        clbit_len = self.instructions['header']['number_of_clbits']
         bit_mask = [bool(mask & (1 << n)) for n in range(clbit_len)]
         return [i for i, x in enumerate(bit_mask) if x]
 
@@ -717,7 +717,7 @@ class TextDrawing():
 
         layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
 
-        for instruction in self.json_circuit['instructions']:
+        for instruction in self.instructions['instructions']:
             layer = Layer(self.qubitorder, self.clbitorder)
             connector_label = None
 
