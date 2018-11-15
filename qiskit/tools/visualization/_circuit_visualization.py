@@ -351,7 +351,8 @@ def _text_circuit_drawer(circuit, filename=None,
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    text_drawing = _text.TextDrawing(_get_instructions(dag_circuit, reversebits=reversebits))
+    qregs, cregs, ops = _utils._get_instructions(dag_circuit, reversebits=reversebits)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
