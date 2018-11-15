@@ -159,6 +159,8 @@ class ByType(fields.Field):
 
     Args:
         choices (list[Field]): list of accepted `Fields` instances.
+        *args (tuple): args for Field.
+        **kwargs (dict): kwargs for Field.
     """
 
     default_error_messages = {

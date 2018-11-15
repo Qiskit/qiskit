@@ -55,9 +55,10 @@ class BaseSchema(Schema):
         Unknown fields are added with no processing at all.
 
         Args:
-            valid_data (dict): data collected and returned by ``dump()``.
-            original_data (object): object passed to ``dump()`` in the first
-            place.
+            valid_data (dict or list): data collected and returned by ``dump()``.
+            many (bool): if True, data and original_data are a list.
+            original_data (object or list): object passed to ``dump()`` in the
+                first place.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
@@ -83,8 +84,10 @@ class BaseSchema(Schema):
         Unknown fields are added with no processing at all.
 
         Args:
-            valid_data (dict): validated data returned by ``load()``.
-            original_data (dict): data passed to ``load()`` in the first place.
+            valid_data (dict or list): validated data returned by ``load()``.
+            many (bool): if True, data and original_data are a list.
+            original_data (dict or list): data passed to ``load()`` in the
+                first place.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.

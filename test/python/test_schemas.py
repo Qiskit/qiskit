@@ -13,6 +13,8 @@ import os
 from qiskit._schema_validation import (validate_json_against_schema,
                                        _get_validator)
 from qiskit import __path__ as qiskit_path
+from qiskit.backends.models import (BackendConfiguration, BackendProperties,
+                                    BackendStatus, JobStatus)
 from qiskit.validation.result import Result
 from .common import QiskitTestCase
 
@@ -69,9 +71,14 @@ class TestSchemaExamples(QiskitTestCase):
                                                          schema_name, msg)
                         # TODO: temporary quick check for validating examples
                         # using the qiskit.validation-based Result.
-                        if schema_name == 'result':
-                            _ = Result.from_dict(example)
-
+                        obj_map = {'result': Result,
+                                   'backend_configuration': BackendConfiguration,
+                                   'backend_properties': BackendProperties,
+                                   'backend_status': BackendStatus,
+                                   'job_status': JobStatus}
+                        cls = obj_map.get(schema_name, None)
+                        if cls and 'openpulse' not in example_schema:
+                            _ = cls.from_dict(example)
 
     def test_schemas_are_valid(self):
         """Validate that schemas are valid jsonschema"""
