@@ -48,8 +48,8 @@ class BaseSchema(Schema):
 
     model_cls = SimpleNamespace
 
-    @post_dump(pass_original=True)
-    def dump_additional_data(self, valid_data, original_data):
+    @post_dump(pass_original=True, pass_many=True)
+    def dump_additional_data(self, valid_data, many, original_data):
         """Include unknown fields after dumping.
 
         Unknown fields are added with no processing at all.
@@ -64,9 +64,16 @@ class BaseSchema(Schema):
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-        additional_keys = set(original_data.__dict__) - set(valid_data)
-        for key in additional_keys:
-            valid_data[key] = getattr(original_data, key)
+        if many:
+            for i, _ in enumerate(valid_data):
+                additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
+                for key in additional_keys:
+                    valid_data[i][key] = getattr(original_data[i], key)
+        else:
+            additional_keys = set(original_data.__dict__) - set(valid_data)
+            for key in additional_keys:
+                valid_data[key] = getattr(original_data, key)
+
         return valid_data
 
     @post_load(pass_original=True, pass_many=True)
