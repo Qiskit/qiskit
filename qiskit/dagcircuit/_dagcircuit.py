@@ -25,7 +25,8 @@ import networkx as nx
 import sympy
 
 from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import QISKitError, CompositeGate
+from qiskit import QISKitError
+from qiskit import _compositegate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -1383,7 +1384,8 @@ class DAGCircuit:
             # TODO: generate definitions and nodes for CompositeGates,
             # for now simply drop their instructions into the DAG
             instruction_list = []
-            is_composite = isinstance(main_instruction, CompositeGate)
+            is_composite = isinstance(main_instruction,
+                                      _compositegate.CompositeGate)
             if is_composite and expand_gates:
                 instruction_list = main_instruction.instruction_list()
             else:
