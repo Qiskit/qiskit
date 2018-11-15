@@ -99,10 +99,10 @@ $(function() {
         });
     }
     function styleMdlCodeBlock() {
-        $('pre').hover(function() {
+        $('div.code div.highlight pre').hover(function() {
             $(this).attr('click-to-copy', 'click to copy...');
         });
-        $('pre').click(function(){
+        $('div.code div.highlight pre').click(function(){
             var result = copyClipboard(this);
             if (result) {
                 $(this).attr('click-to-copy', 'copied!');
@@ -169,7 +169,7 @@ $(function() {
               <rect x="26" y="24" width="2" height="2"/>
               <rect class="cls-1" width="32" height="32"/>
           </svg>`));
-          $('.mdl-layout-title .title').append($('<h3 class="title-header">Qiskit</h3>'))
+          $('.mdl-layout-title .title').append($('<h3 class="title-header">Terra</h3>'))
 
     }
       function replaceLinksComposer() {
