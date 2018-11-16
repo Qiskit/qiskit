@@ -19,7 +19,8 @@ import math
 import numpy as np
 
 try:
-    import matplotlib
+    from matplotlib import patches
+    from matplotlib import pyplot as plt
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
