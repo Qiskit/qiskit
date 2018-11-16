@@ -128,7 +128,7 @@ class AerProvider(BaseProvider):
         for backend_cls in AER_STANDARD_BACKENDS:
             try:
                 backend_instance = self._get_backend_instance(backend_cls)
-                backend_name = backend_instance.configuration()['name']
+                backend_name = backend_instance.configuration()['backend_name']
                 ret[backend_name] = backend_instance
             except QISKitError as err:
                 # Ignore backends that could not be initialized.
@@ -157,7 +157,7 @@ class AerProvider(BaseProvider):
 
         # Verify that the instance has a minimal valid configuration.
         try:
-            _ = backend_instance.configuration()['name']
+            _ = backend_instance.configuration()['backend_name']
         except (LookupError, TypeError):
             raise QISKitError('Backend %s has an invalid configuration')
 
