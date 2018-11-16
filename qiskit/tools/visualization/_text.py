@@ -579,7 +579,7 @@ class TextDrawing():
     @staticmethod
     def label_for_conditional(instruction):
         """ Creates the label for a conditional instruction."""
-        return "%s %s" % ('=', instruction['conditional']['val'])
+        return "%s %s" % ('=', instruction['condition'][1])
 
     @staticmethod
     def params_for_label(instruction):
