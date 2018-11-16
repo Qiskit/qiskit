@@ -36,7 +36,8 @@ class BaseBackend(ABC):
             FileNotFoundError if backend executable is not available.
             QISKitError: if there is no name in the configuration
         """
-        if 'name' not in configuration:
+        # TODO: remove the second condition after all backends report "backend_name"
+        if 'backend_name' not in configuration and 'name' not in configuration:
             raise QISKitError('backend does not have a name.')
         self._configuration = configuration
         self.provider = provider
@@ -78,7 +79,8 @@ class BaseBackend(ABC):
 
     def name(self):
         """Return backend name"""
-        return self._configuration['name']
+        # TODO: just get 'backend_name' after all backend configurations report 'backend_name'
+        return self._configuration.get('name') or self._configuration.get('backend_name')
 
     def __str__(self):
         return self.name()

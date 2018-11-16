@@ -249,8 +249,7 @@ class IBMQBackend(BaseBackend):
         job_list = []
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
-            is_device = not bool(self._configuration.get('simulator'))
-            job = job_class(self, job_info.get('id'), self._api, is_device,
+            job = job_class(self, job_info.get('id'), self._api,
                             creation_date=job_info.get('creationDate'),
                             api_status=job_info.get('status'))
             job_list.append(job)
@@ -277,8 +276,7 @@ class IBMQBackend(BaseBackend):
             raise IBMQBackendError('Failed to get job "{}":{}'
                                    .format(job_id, str(ex)))
         job_class = _job_class_from_job_response(job_info)
-        is_device = not bool(self._configuration.get('simulator'))
-        job = job_class(self, job_info.get('id'), self._api, is_device,
+        job = job_class(self, job_info.get('id'), self._api,
                         creation_date=job_info.get('creationDate'),
                         api_status=job_info.get('status'))
         return job
