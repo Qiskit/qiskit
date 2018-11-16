@@ -12,7 +12,7 @@
 import unittest
 import qiskit
 import qiskit.extensions.simulator
-from qiskit.quantum_info.states import state_fidelity
+from qiskit.quantum_info import state_fidelity
 from qiskit import execute
 from qiskit import Aer, IBMQ
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
