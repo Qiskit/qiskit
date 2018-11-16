@@ -3,27 +3,27 @@
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
 
-**Qiskit**은 [OpenQASM](https://github.com/Qiskit/qiskit-openqasm)과 [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/)에서 사용할 수 있는 SDK(software development kit)입니다.
+양자정보과학 키트(The Quantum Information Science Kit), 줄여서 **Qiskit**(키스킷)은 양자정보용 응용 프로그램을 개발하기 위해 만들어진 소프트웨어 개발용 키트 (SDK)입니다. **Qiskit**은 노이즈가 많은 중간 크기의 양자컴퓨터(NISQ -- Noisy-Intermediate Scale Quantum --computers)와 같이 쓰일 수 있습니다.
 
-양자컴퓨팅 프로그램을 만들고, 컴파일하고, 실행하기 위해 **Qiskit**을 사용하세요. 실행에 있어 Qiskit은 온라인상 접근 가능한 실제 양자 프로세서, 온라인 시뮬레이터, 로컬 시뮬레이터의 백엔드 환경을 지원합니다. 온라인 백엔드 환경에서, Qiskit은 IBM Q experience와 연결하기 위해 [python API client](https://github.com/Qiskit/qiskit-api-py)를 사용합니다.
+Qiskit은 양자컴퓨터를 구동하게 하는 여러가지의 요소로 이루어져 있습니다. 이 폴더는 Terra(땅) - Qiskit이 세워질 수 있게 하는 기반을 제공하는 요소입니다.
 
-우리는 **GitHub issue**를 요청과 버그 추적에 사용합니다. 질문과 토론을 위해[IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)를 살펴보세요.  만일 여러분이 Qiskit개발에 기여하기 원한다면 우리의 **[contribution guidelines](.github/CONTRIBUTING.rst)** 을 살펴보세요.
+버그와 그 밖에 요청사항이 있으시면 GitHub issue코너를 이용하세요. 질문과 토론은 Qiskit [slack](https://qiskit.slack.com)채널을 이용하시면 됩니다. Qiskit Slack채널에 가입하시려면 [링크](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk)를 클릭하세요.
 
-목차 링크:
+바로가기: 
 
-* [설치](#installation)
+* [Qiskit의 설치방법](#installation)
 * [첫 번째 양자컴퓨팅 프로그램 만들기](#creating-your-first-quantum-program)
 * [더 많은 정보](#more-information)
 * [저자들](#authors-alphabetical)
 * [라이센스](#license)
 
-## Installation
+## Qiskit의 설치방법
 
-### Dependencies
+### Qiskit 설치와 사용을 위해 필요하거나 도음이 되는 프로그램들
 
-적어도 [파이썬 Python 3.5 혹은 그 이상의 버전이](https://www.python.org/downloads/) Qiskit을 사용하기 위해 필요합니다. 그리고, [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html)을 튜토리얼의 실행을 위해 권장하는 바입니다. 이러한 연유로 우리는 [Anaconda 3](https://www.continuum.io/downloads)를 사용하는 걸 권장합니다. 아나콘다에는 대부분의 필요한 툴이 미리 설치되어 있습니다. 또한, 양자 정보에 대한 일반적인 이해는 Qiskit과 상호작용하는 데에 매우 도움이 됩니다. 만일 여러분이 양자컴퓨팅 분야에 새롭게 배운다면 다음의 [사용자 가이드](https://github.com/Qiskit/ibmqx-user-guides)를 살펴보세요.
+적어도 [파이썬 Python 3.5 이상의 버전이](https://www.python.org/downloads/) 필요합니다. 그리고, 튜토리얼의 실행을 위해 [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html)의 사용을 추천합니다. 이러한 연유로 Qiskit을 쓰실 때는 [Anaconda 3](https://www.continuum.io/downloads)의 사용을 권장합니다. 아나콘다에는 대부분의 필요한 툴이 미리 설치되어 있습니다. 또한, 양자 정보에 대한 일반적인 이해는 Qiskit과 상호작용하는 데에 매우 도움이 됩니다. 만일 여러분이 양자컴퓨팅 분야에 새롭게 배운다면 다음의 [사용자 가이드](https://github.com/Qiskit/ibmqx-user-guides)를 살펴보세요.
 
-### PIP Installation
+### PIP 설치
 
 파이썬이 더 익숙한 사람들에게, Qiskit을 설치하는 가장 빠른 방법은 PIP 툴(파이썬 패키지 매니저)을 이용하는 방식입니다.
 
@@ -31,73 +31,109 @@
     pip install qiskit
 ```
 
-### Source Installation
+PIP으로 Qiskit을 설치하시면 모든 필수 프로그램들이 같이 자동으로 설치가 되기 때문에, 항상 검증된 최신 버전의 Qiskit을 쓰게 되실 수 있습니다. 
 
-Qiskit SDK 레파지토리를 여러분의 로컬 머신에 Clone하는 다른 방법으로는 클론한 디렉토리를 바꾸는 방법이 있습니다.
+PIP 패키지는 아래의 플랫폼들을 위해 미리 만들어진 바이너리를 포함하고 있습니다.   
 
-#### Manual download
+    Linux x86_64
+    Darwin
+    Win64
 
-수동 다운로드 방법으로 이 웹페이지의 상단의 "Clone or download" 버튼을 누르세요 (혹은 git clone 커맨드 상에 보이는 URL을 통해), 만일 필요하다면 압축을 풀고 폴더 이름을 터미널 상에서 다음과 같이 바꾸세요. **qiskit-terra folder**
+위 목록에 포함되지 않은 플랫폼을 사용하고 있으시다면, PIP은 설치시에 소스코드로 부터 바이너리를 생성하려고 할 것입니다. 바이너리의 생성에는 CMake 버전 3.5 이상의 버전과, CMake가 지원하는 최소한 하나의 바이너리 [빌드 환경](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html)이 필요합니다.  
 
-#### Git download
+### 상급자용 설치 방법과 환경 설정 
 
-혹은, 만일 여러분이 이미 Git을 설치했다면, 다음의 커맨드를 실행하세요:
-```
-    git clone https://github.com/Qiskit/qiskit-terra
-    cd qiskit-terra
-```
+더 편리한 사용을 위해서 파이썬의 가상환경의 사용을 권장합니다. 자세한 내용은 [설치방법](doc/install.rst)을 참고하세요.
 
-#### Setup your environment
+## 첫번째 양자 프로그램 만들기
 
-우리는 여러분의 사용자 경험을 향상시키기 위해 파이썬의 가상 환경을 사용하는 걸 추천합니다. 우리의 [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) 을 더 많은 정보를 얻기위해 참조하세요.
+Qiskit의 설치가 끝났습니다. 이제 Terra를 써볼 차례입니다. We are ready to try out a quantum circuit example, which is simulated locally using the Qiskt Aer element.
 
-## Creating your first Quantum Program
+This is a simple example that makes an entangled state. 우리는 Qiskit Aer(에어)에서 시뮬레이션 한 이미 양자회로 예제를 실행할 준비가 되었습니다.   마쳤습니다. 다음은 양자얽힘 상태를 만드는 간단한 예제입니다.  
 
-SDK 설치가 끝났습니다. 이제 Qiskit으로 작업을 해볼 차례입니다. 우리는 이미 QASM예제를 로컬 시뮬레이터 상에서 실행할 준비를 마쳤습니다. 이것은 간단한 중첩 예제 입니다.
 
 ```python
 # Import the Qiskit SDK
-import qiskit
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit import execute, Aer
 
-# Create a Quantum Register called "qr" with 2 qubits
-qr = qiskit.QuantumRegister("qr", 2)
-# Create a Classical Register called "cr" with 2 bits
-cr = qiskit.ClassicalRegister("cr", 2)
-# Create a Quantum Circuit called involving "qr" and "cr"
-qc = qiskit.QuantumCircuit(qr, cr)
+# Create a Quantum Register with 2 qubits.
+q = QuantumRegister(2)
+# Create a Classical Register with 2 bits.
+c = ClassicalRegister(2)
+# Create a Quantum Circuit
+qc = QuantumCircuit(q, c)
 
-# Add a H gate on the 0th qubit in "qr", putting this qubit in superposition.
-qc.h(qr[0])
+# Add a H gate on qubit 0, putting this qubit in superposition.
+qc.h(q[0])
 # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
 # the qubits in a Bell state.
-qc.cx(qr[0], qr[1])
+qc.cx(q[0], q[1])
 # Add a Measure gate to see the state.
-# (Omitting the index applies an operation on all qubits of the register(s))
-qc.measure(qr, cr)
-
-# Create a Quantum Program for execution
-qp = qiskit.QuantumProgram()
-# Add the circuit you created to it, and call it the "bell" circuit.
-# (You can add multiple circuits to the same program, for batch execution)
-qp.add_circuit("bell", qc)
+qc.measure(q, c)
 
 # See a list of available local simulators
-print("Local backends: ", qiskit.backends.discover_local_backends())
+print("Aer backends: ", Aer.backends())
 
-# Compile and run the Quantum Program on a simulator backend
-sim_result = qp.execute("bell", backend='local_qasm_simulator', shots=1024, seed=1)
+# Compile and run the Quantum circuit on a simulator backend
+backend_sim = Aer.get_backend('qasm_simulator')
+job_sim = execute(qc, backend_sim)
+result_sim = job_sim.result()
 
 # Show the results
-print("simulation: ", sim_result)
-print(sim_result.get_counts("bell"))
+print("simulation: ", result_sim )
+print(result_sim.get_counts(qc))
 ```
 
-이 경우에 결과물은 다음과 같을 것입니다(불규칙 변동으로 인해):
+이 경우에 결과물은 다음과 같을 것입니다:
 
-```
+```python
 COMPLETED
-{'00': 509, '11': 515}
+{'counts': {'00': 512, '11': 512}}
 ```
+이 예제는 [이곳](examples/python/hello_quantum.py)에서 예제 프로그램을 실제 IBMQ 양자컴퓨터에서 실행하는 방법과 함께 찾아보실 수 있습니다.,
+
+
+#### IBMQ 계정과 보안증명
+
+1. 먼저 _[IBM Q](https://quantumexperience.ng.bluemix.net) > 계정_ 을 만듭니다.  
+
+2. IBM Q 홈페이지에 로그 인 하신 후에 API 토큰을 받습니다. 토큰은 _My Account > Advanced > API Token_ 애서 찾아보실 수 있습니다. 이 API token은 IBM Q 의 양자컴퓨터들을 사용하실 때 필요합니다. 
+
+3. Qiskit 프로그램을 IBM Q 백엔드에서 실행하실 때, 보안 증명을 위해 2번 단계에서 생성된 토큰을 `IBMQ.save_account()` 함수에 넘깁니다. 예를들어, 토큰을 `MY_API_TOKEN`이라는 변수에 저장했다면:
+
+   ```python
+   from qiskit import IBMQ
+
+   IBMQ.save_account('MY_API_TOKEN')
+    ``` your credentials will be stored on disk.
+    
+Once they are stored, at any point in the future you can load and use them
+in your program simply via:
+
+```python
+from qiskit import IBMQ
+
+IBMQ.load_accounts()
+```
+
+For those who do not want to save there credentials to disk please use
+
+```python
+from qiskit import IBMQ
+
+IBMQ.enable_account('MY_API_TOKEN')
+``` 
+
+and the token will only be active for the session. For examples using Terra with real 
+devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in 
+the levels.
+### Executing your code on a real quantum chip
+
+You can also use Qiskit to execute your code on a
+**real quantum chip**.
+In order to do so, you need to configure Qiskit for using the credentials in
+your IBM Q account:
 여러분은 또한 Qiskit을 사용하여 여러분의 코드를 [real Quantum Chip](https://github.com/Qiskit/ibmqx-backend-information)에서 실행시킬 수 있습니다.
 
  먼저, API 토큰을 얻으세요:
