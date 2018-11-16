@@ -13,8 +13,8 @@ import unittest
 from copy import deepcopy
 import numpy as np
 
-from qiskit.tools.qi.pauli import Pauli, pauli_group
-from .common import QiskitTestCase
+from qiskit.quantum_info import Pauli, pauli_group
+from ..common import QiskitTestCase
 
 
 class TestPauli(QiskitTestCase):
