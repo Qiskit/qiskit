@@ -220,7 +220,7 @@ def circuit_drawer(circuit,
         try:
             image = _latex_circuit_drawer(circuit, basis, scale, filename, style)
         except (OSError, subprocess.CalledProcessError, FileNotFoundError):
-            if HAS_MATPLOTLIB:
+            if _matplotlib.HAS_MATPLOTLIB:
                 image = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
                                                    style)
             else:

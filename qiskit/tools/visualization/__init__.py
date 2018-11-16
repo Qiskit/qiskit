@@ -33,19 +33,16 @@ if HAS_MATPLOTLIB:
 
 else:
 
-    MSG = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
-
+    _MSG = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
 
     def plot_bloch_vector(*_, **__):
         """ Dummy plot_bloch_vector."""
-        raise ImportError(MSG % "plot_bloch_vector")
-
+        raise ImportError(_MSG % "plot_bloch_vector")
 
     def plot_state(*_, **__):
         """ Dummy plot_state."""
-        raise ImportError(MSG % "plot_state")
-
+        raise ImportError(_MSG % "plot_state")
 
     def plot_histogram(*_, **__):
         """ Dummy plot_histogram."""
-        raise ImportError(MSG % "plot_histogram")
+        raise ImportError(_MSG % "plot_histogram")

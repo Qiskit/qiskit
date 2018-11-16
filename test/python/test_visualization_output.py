@@ -27,6 +27,7 @@ def _path_to_diagram_reference(filename):
 def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
+
 class TestVisualizationImplementation(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
