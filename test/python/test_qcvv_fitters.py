@@ -7,12 +7,10 @@
 
 """Test qiskit.tools.qcvv.fitters."""
 
-import unittest
-
 import numpy as np
 
-from .common import QiskitTestCase
 from qiskit.tools.qcvv import fitters
+from .common import QiskitTestCase
 
 
 class TestQCVVFitters(QiskitTestCase):

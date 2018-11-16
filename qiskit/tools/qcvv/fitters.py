@@ -52,6 +52,8 @@ def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
         xunit
         exp_str
         qubit_label
+    Raises:
+        ImportError: If matplotlib is not installed.
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('The function plot_coherence needs matplotlib. '
@@ -132,6 +134,9 @@ def plot_rb_data(xdata, ydatas, yavg, yerr, fit, survival_prob, ax=None,
         survival_prob (callable): function that computes survival probability
         ax (Axes or None): plot axis (if passed in)
         show_plt (bool): display the plot.
+
+    Raises:
+        ImportError: If matplotlib is not installed.
     """
     # pylint: disable=invalid-name
 

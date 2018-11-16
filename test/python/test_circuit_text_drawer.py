@@ -13,10 +13,9 @@ import unittest
 from math import pi
 from codecs import encode
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from .common import QiskitTestCase
-
 from qiskit.tools.visualization import _text as elements
 from qiskit.tools.visualization import _text_circuit_drawer
+from .common import QiskitTestCase
 
 
 class TestTextDrawerElement(QiskitTestCase):

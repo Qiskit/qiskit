@@ -14,8 +14,8 @@ import random
 from inspect import signature
 import unittest
 import qiskit
-from .common import QiskitTestCase
 from qiskit.tools.visualization import _utils, generate_latex_source
+from .common import QiskitTestCase
 
 
 class TestLatexSourceGenerator(QiskitTestCase):
