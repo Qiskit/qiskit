@@ -29,12 +29,12 @@ from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile_dag
 
-
 try:
-  from qiskit.tools.visualization import _matplotlib # pylint: disable=g-import-not-at-top
-  HAS_MATPLOTLIB = True
+    from qiskit.tools.visualization import _matplotlib
+
+    HAS_MATPLOTLIB = True
 except ImportError:
-  HAS_MATPLOTLIB = False
+    HAS_MATPLOTLIB = False
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +112,7 @@ def circuit_drawer(circuit,
         TextDrawing: (output `text`). A drawing that can be printed as ascii art
     Raises:
         VisualizationError: when an invalid output method is selected
+        ImportError: when the output methods requieres non-installed libraries.
 
     .. _style-dict-doc:
 
@@ -227,7 +228,7 @@ def circuit_drawer(circuit,
         except (OSError, subprocess.CalledProcessError, FileNotFoundError):
             if HAS_MATPLOTLIB:
                 image = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
-                                               style)
+                                                   style)
             else:
                 raise ImportError('The default output needs matplotlib. '
                                   'Run "pip install matplotlib" before.')

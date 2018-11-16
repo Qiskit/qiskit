@@ -33,19 +33,22 @@ try:
 
 except ImportError:
 
-    message = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
+    MSG = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
 
 
     def plot_bloch_vector(*_, **__):
-        raise ImportError(message % "plot_bloch_vector")
+        """ Dummy plot_bloch_vector."""
+        raise ImportError(MSG % "plot_bloch_vector")
 
 
     def plot_state(*_, **__):
-        raise ImportError(message % "plot_state")
+        """ Dummy plot_state."""
+        raise ImportError(MSG % "plot_state")
 
 
     def plot_histogram(*_, **__):
-        raise ImportError(message % "plot_histogram")
+        """ Dummy plot_histogram."""
+        raise ImportError(MSG % "plot_histogram")
 
 
     HAS_MATPLOTLIB = False
