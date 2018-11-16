@@ -6,79 +6,14 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Contains a Python simulator that returns the unitary of the circuit.
-
 It simulates a unitary of a quantum circuit that has been compiled to run on
 the simulator. It is exponential in the number of qubits.
-
-The input is the circuit object and the output is the same circuit object with
-a result field added results['data']['unitary'] where the unitary is
-a 2**n x 2**n complex numpy array representing the unitary matrix.
-
-
-The input is
-
-    compiled_circuit object
-
-and the output is the results object
-
-The simulator is run using
-
-    UnitarySimulator(compiled_circuit).run().
-
-In the qasm, key operations with type 'measure' and 'reset' are dropped.
-
-Internal circuit_object::
-
-    compiled_circuit =
-    {
-     "header": {
-     "number_of_qubits": 2, // int
-     "number_of_clbits": 2, // int
-     "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
-     "clbit_labels": [["c", 2]], // list[list[string, int]]
-     }
-     "operations": // list[map]
-        [
-            {
-                "name": , // required -- string
-                "params": , // optional -- list[double]
-                "qubits": , // required -- list[int]
-                "clbits": , //optional -- list[int]
-                "conditional":  // optional -- map
-                    {
-                        "type": , // string
-                        "mask": , // hex string
-                        "val":  , // bhex string
-                    }
-            },
-        ]
-    }
-
-returned results object::
-
-    result =
-            {
-            'data':
-                {
-                'unitary': np.array([[ 0.70710678 +0.00000000e+00j
-                                     0.70710678 -8.65956056e-17j
-                                     0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j]
-                                   [ 0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j
-                                     0.70710678 +0.00000000e+00j
-                                     -0.70710678 +8.65956056e-17j]
-                                   [ 0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j
-                                     0.70710678 +0.00000000e+00j
-                                     0.70710678 -8.65956056e-17j]
-                                   [ 0.70710678 +0.00000000e+00j
-                                    -0.70710678 +8.65956056e-17j
-                                     0.00000000 +0.00000000e+00j
-                                     0.00000000 +0.00000000e+00j]
-                }
-            'state': 'DONE'
-            }
+.. code-block:: python
+    UnitarySimulator().run(qobj)
+Where the input is a Qobj object and the output is a AerJob object, which can
+later be queried for the Result object. The result will contain a 'unitary'
+data field, which is a 2**n x 2**n complex numpy array representing the
+circuit's unitary matrix.
 """
 import logging
 import uuid
@@ -86,14 +21,16 @@ import time
 
 import numpy as np
 
-from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
+from qiskit.qobj import Result as QobjResult
+from qiskit.qobj import ExperimentResult as QobjExperimentResult
+from qiskit.result import Result
+from qiskit.result._utils import copy_qasm_from_qobj_into_result
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
-from qiskit import QISKitError
+from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix, einsum_matmul_index
 
 logger = logging.getLogger(__name__)
-
 
 # TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
@@ -103,11 +40,14 @@ class UnitarySimulator(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'unitary_simulator',
+        'backend_name': 'unitary_simulator',
+        'backend_version': 1.0,
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
-        'description': 'A python simulator for unitary matrix',
+        'conditional': False,
+        'description': 'A python simulator for unitary matrix corresponding to a circuit',
         'coupling_map': 'all-to-all',
         'basis_gates': 'u1,u2,u3,cx,id'
     }
@@ -176,7 +116,7 @@ class UnitarySimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
-        """Run qobj. This is a blocking call.
+         """Run experiments in qobj.
 
         Args:
             job_id (str): unique id for the job.
@@ -184,43 +124,65 @@ class UnitarySimulator(BaseBackend):
         Returns:
             Result: Result object
         """
+        self._validate(qobj)
         result_list = []
         start = time.time()
-        for circuit in qobj.experiments:
-            result_list.append(self.run_circuit(circuit))
+
+        for experiment in qobj.experiments:
+            experiment_result = self.run_experiment(experiment)
+            experiment_result['header'] = experiment.header.as_dict()
+            result_list.append(QobjExperimentResult(**experiment_result))
+
         end = time.time()
-        result = {'backend': self._configuration['name'],
-                  'id': qobj.qobj_id,
+
+        result = {'backend_name': self._configuration['backend_name'],
+                  'backend_version': self._configuration['backend_version'],
+                  'qobj_id': qobj.qobj_id,
                   'job_id': job_id,
-                  'result': result_list,
+                  'results': result_list,
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start)}
         copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        experiment_names = [experiment.header.name for experiment in qobj.experiments]
+        return Result(QobjResult(**result), experiment_names)
 
-    def run_circuit(self, circuit):
-        """Apply the single-qubit gate.
+    def run_experiment(self, experiment):
+        """Run an experiment (circuit) and return a single experiment result.
 
         Args:
-            circuit (QobjExperiment): experiment from qobj experiments list
+             experiment (QobjExperiment): experiment from qobj experiments list.
 
         Returns:
-            dict: A dictionary of results.
+            dict: A result dictionary which looks something like::
+                {
+                "name": name of this experiment (obtained from qobj.experiment header)
+                "seed": random seed used for simulation
+                "shots": number of shots used in the simulation
+                "data":
+                    {
+                    "unitary": [[0.2, 0.6, j+0.1, 0.2j],
+                                [0, 0.9+j, 0.5, 0.7],
+                                [-j, -0.1, -3.14, 0],
+                                [0, 0, 0.5j, j-0.5]]
+                    },
+                "status": status string for the simulation
+                "success": boolean
+                "time taken": simulation time of this single experiment
+                }
 
         Raises:
-            QISKitError: if the number of qubits in the circuit is greater than 24.
+             SimulatorError: if the number of qubits in the circuit is greater than 24.
             Note that the practical qubit limit is much lower than 24.
         """
-        self._number_of_qubits = circuit.header.number_of_qubits
+        self._number_of_qubits = experiment.header.n_qubits
         if self._number_of_qubits > 24:
-            raise QISKitError("np.einsum implementation limits unitary_simulator" +
-                              " to 24 qubit circuits.")
+            raise SimulatorError("np.einsum implementation limits unitary_simulator" +
+                                 " to 24 qubit circuits.")
         result = {
             'data': {},
-            'name': circuit.header.name
+            'name': experiment.header.name
         }
 
         # Initialize unitary as rank 2*N tensor
@@ -228,7 +190,7 @@ class UnitarySimulator(BaseBackend):
                                                 dtype=complex),
                                          self._number_of_qubits * [2, 2])
 
-        for operation in circuit.instructions:
+        for operation in experiment.instructions:
             if operation.name in ('U', 'u1', 'u2', 'u3'):
                 params = getattr(operation, 'params', None)
                 qubit = operation.qubits[0]
@@ -242,12 +204,6 @@ class UnitarySimulator(BaseBackend):
                 gate = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
                                  [0, 1, 0, 0]])
                 self._add_unitary_two(gate, qubit0, qubit1)
-            elif operation.name == 'measure':
-                logger.info('Warning have dropped measure from unitary '
-                            'simulator')
-            elif operation.name == 'reset':
-                logger.info('Warning have dropped reset from unitary '
-                            'simulator')
             elif operation.name == 'barrier':
                 pass
             else:
@@ -260,3 +216,25 @@ class UnitarySimulator(BaseBackend):
         result['success'] = True
         result['shots'] = 1
         return result
+
+    def _validate(self, qobj):
+        """Semantic validations of the qobj which cannot be done via schemas.
+        Some of these may later move to backend schemas.
+
+        1. No shots
+        2. No measurements in the middle
+        """
+        if qobj.config.shots != 1:
+            logger.info("unitary simulator only supports 1 shot. "
+                        "Setting shots=1.")
+            qobj.config.shots = 1
+        for experiment in qobj.experiments:
+            if getattr(experiment.config, 'shots', 1) != 1:
+                logger.info("unitary simulator only supports 1 shot. "
+                            "Setting shots=1 for circuit %s.", experiment.name)
+                experiment.config.shots = 1
+            for op in experiment.instructions:
+                if op.name in ['measure', 'reset']:
+                    raise SimulatorError(
+                        "In circuit {}: unitary simulator does not support "
+                        "measure or reset.".format(experiment.header.name))
