@@ -354,13 +354,6 @@ def _text_circuit_drawer(circuit, filename=None,
     dag = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
 
     # Deprecate the following lines     -------------------------------------------------|
-    if basis is None:                                                                  # |
-        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"                        # |
-                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")                             # |
-    else:                                                                              # |
-        warnings.warn('The basis kwarg is deprecated and the circuit drawer '          # |
-                      'function will not be able to adjust basis gates itself '        # |
-                      'in a future release', DeprecationWarning)                       # |
     basis = basis.split(',') if basis else []                                          # |
     dag = _dagunroller.DagUnroller(dag, _dagbackend.DAGBackend(basis)).expand_gates()  # |
     #     -------------------------------------------------------------------------------|
