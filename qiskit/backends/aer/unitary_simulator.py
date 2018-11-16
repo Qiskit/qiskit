@@ -116,7 +116,7 @@ class UnitarySimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
-         """Run experiments in qobj.
+        """Run experiments in qobj.
 
         Args:
             job_id (str): unique id for the job.

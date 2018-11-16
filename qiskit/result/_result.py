@@ -142,7 +142,8 @@ class Result(object):
         return str(bin(int(hexstring, 16)))[2:]
 
     def _pad_zeros(self, bitstring, memory_slots):
-        """If the bitstring is truncated, pad extra zeros to make its length equal to memory_slots"""
+        """If the bitstring is truncated, pad extra zeros to make its
+        length equal to memory_slots"""
         return format(int(bitstring, 2), '0{}b'.format(memory_slots))
 
     def _histogram(self, outcomes):
@@ -158,7 +159,7 @@ class Result(object):
         # backend already reports the full memory as little_endian.
         # reverse the original bitstring to get bitstring[i] to correspond to clbit_label[i]
         bitstring = bitstring[::-1]
-        
+
         # registers appearing first in the QuantumCircuit declaration are more significant
         register_significance = lambda r: [i for i, reg in enumerate(creg_sizes) if reg[0] == r][0]
 
@@ -168,7 +169,7 @@ class Result(object):
         # order: more significant register first, more significant bit first
         key = lambda position: (register_significance(clbit_labels[position][0]),
                                 index_significance(clbit_labels[position][1]))
-        
+
         return ''.join([bitstring[i] for i in sorted(range(len(bitstring)), key=key)])
 
     def _separate_bitstring(self, bitstring, creg_sizes):
@@ -176,7 +177,7 @@ class Result(object):
         substrings = []
         running_index = 0
         for reg, size in creg_sizes:
-            substrings.append(bitstring[running_index : running_index + size])
+            substrings.append(bitstring[running_index: running_index + size])
             running_index += size
         return ' '.join(substrings)
 
@@ -196,7 +197,7 @@ class Result(object):
             resultstring = self._little_endian(resultstring, clbit_labels, creg_sizes)
         if creg_sizes:
             resultstring = self._separate_bitstring(resultstring, creg_sizes)
-        
+
         return resultstring
 
     def _format_exp_result(self, exp_result):
@@ -211,7 +212,7 @@ class Result(object):
         Args:
             exp_result (ExperimentResult): result of a single experiment
         """
-        if 'memory' in exp_result.data and not 'counts' in exp_result.data:
+        if 'memory' in exp_result.data and 'counts' not in exp_result.data:
             exp_result.data['counts'] = self._histogram(exp_result.data['memory'])
 
         memory_list = []

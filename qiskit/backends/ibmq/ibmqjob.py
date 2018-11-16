@@ -508,7 +508,7 @@ class IBMQJobPreQobj(IBMQJob):
         return submit_info
 
     def _result_from_job_response(self, job_response):
-        if not self.backend().configuration()['simulator']:         
+        if not self.backend().configuration()['simulator']:
             _reorder_bits(job_response)
 
         experiment_results = []
@@ -534,7 +534,7 @@ class IBMQJobPreQobj(IBMQJob):
 
 
 def _reorder_bits(job_data):
-     """Temporary fix for ibmq backends (those that don't yet run qobj).
+    """Temporary fix for ibmq backends (those that don't yet run qobj).
 
     For every ran circuit, get reordering information from qobj
     and apply reordering on result.

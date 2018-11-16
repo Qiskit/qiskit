@@ -11,10 +11,12 @@ The input is a AST and a basis set and returns a json memory object::
 
     {
      "header": {
-     "number_of_qubits": 2, // int
-     "number_of_clbits": 2, // int
-     "qubit_labels": [["q", 0], ["v", 0]], // list[list[string, int]]
-     "clbit_labels": [["c", 2]], // list[list[string, int]]
+        "n_qubits": 2, // int
+        "memory_slots": 2, // int
+        "qubit_labels": [["q", 0], ["q", 1], null], // list[list[string, int] or null]
+        "clbit_labels": [["c", 0], ["c", 1]], // list[list[string, int]]
+        "qreg_sizes": [["q", 1], ["v", 1]], // list[list[string, int]]
+        "creg_sizes": [["c", 2]]  // list[list[string, int]]
      }
      "instructions": // list[map]
         [
@@ -51,13 +53,18 @@ class JsonBackend(UnrollerBackend):
         self.circuit = {}
         self.circuit['instructions'] = []
         self.circuit['header'] = {
-            'number_of_qubits': 0,
-            'number_of_clbits': 0,
+            'n_qubits': 0,
+            'memory_slots': 0,
             'qubit_labels': [],
-            'clbit_labels': []
+            'clbit_labels': [],
+            'qreg_sizes': [],
+            'creg_sizes': []
         }
         self._number_of_qubits = 0
         self._number_of_cbits = 0
+        self._number_of_clbits = 0
+        self._qreg_sizes = []
+        self._creg_sizes = []
         self._qubit_order = []
         self._cbit_order = []
         self._qubit_order_internal = {}
@@ -97,7 +104,9 @@ class JsonBackend(UnrollerBackend):
             self._qubit_order.append([qreg.name, j])
             self._qubit_order_internal[(qreg.name, j)] = self._number_of_qubits + j
         self._number_of_qubits += qreg.size
-        self.circuit['header']['number_of_qubits'] = self._number_of_qubits
+        # TODO: avoid rewriting the same data over and over
+        self.circuit['header']['n_qubits'] = self._number_of_qubits
+        self.circuit['header']['qreg_sizes'] = self._qreg_sizes
         self.circuit['header']['qubit_labels'] = self._qubit_order
 
     def new_creg(self, creg):
@@ -105,12 +114,16 @@ class JsonBackend(UnrollerBackend):
 
         creg = ClassicalRegister object
         """
-        self._cbit_order.append([creg.name, creg.size])
+        self._creg_sizes.append([creg.name, creg.size])
+
+        # order clbits from lower to higher index. backends will do little endian.
         for j in range(creg.size):
-            self._cbit_order_internal[(creg.name, j)] = self._number_of_cbits + j
-        self._number_of_cbits += creg.size
-        self.circuit['header']['number_of_clbits'] = self._number_of_cbits
-        self.circuit['header']['clbit_labels'] = self._cbit_order
+            self._cbit_order.append([creg.name, j])
+            self._cbit_order_internal[(creg.name, j)] = self._number_of_clbits + j
+        self._number_of_clbits += creg.size
+        # TODO: avoid rewriting the same data over and over
+        self.circuit['header']['memory_slots'] = self._number_of_clbits
+        self.circuit['header']['creg_sizes'] = self._creg_sizes
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -196,8 +209,8 @@ class JsonBackend(UnrollerBackend):
         self.circuit['instructions'].append({
             'name': 'measure',
             'qubits': qubit_indices,
-            'clbits': clbit_indices,
-            'memory': clbit_indices.copy()
+            'memory': clbit_indices,
+            # TODO: insert fast 'register' when transpiler supports
         })
         self._add_condition()
 
