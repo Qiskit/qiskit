@@ -701,7 +701,7 @@ class TextDrawing():
                 cllabel = TextDrawing.label_for_conditional(instruction)
                 qulabel = TextDrawing.label_for_box(instruction)
 
-                layer.set_cl_multibox(instruction['condition'][0], instruction['condition'][1], top_connect='┴')
+                layer.set_cl_multibox(instruction['condition'][0], cllabel, top_connect='┴')
                 layer.set_qubit(instruction['qargs'][0], BoxOnQuWire(qulabel, bot_connect='┬'))
 
             elif instruction['name'] in ['cx', 'CX', 'ccx']:
@@ -786,7 +786,7 @@ class Layer:
         """
         Sets the qubit to the element
         Args:
-            qubit (int): Qubit index.
+            qubit (qbit): Element of self.qregs.
             element (DrawElement): Element to set in the qubit
         """
         self.qubit_layer[self.qregs.index(qubit)] = element
@@ -795,39 +795,44 @@ class Layer:
         """
         Sets the clbit to the element
         Args:
-            clbit (int): Clbit index.
+            clbit (cbit): Element of self.cregs.
             element (DrawElement): Element to set in the clbit
         """
         self.clbit_layer[self.cregs.index(clbit)] = element
 
     def _set_multibox(self, wire_type, bits, label, top_connect=None):
         # pylint: disable=invalid-name
-        bits = sorted(bits)
         if wire_type == "cl":
+            bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
+            bits.sort(key=lambda x: self.cregs.index(x))
             set_bit = self.set_clbit
             BoxOnWire = BoxOnClWire
             BoxOnWireTop = BoxOnClWireTop
             BoxOnWireMid = BoxOnClWireMid
             BoxOnWireBot = BoxOnClWireBot
         elif wire_type == "qu":
+            bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
+            bits.sort(key=lambda x: self.qregs.index(x))
             set_bit = self.set_qubit
             BoxOnWire = BoxOnQuWire
             BoxOnWireTop = BoxOnQuWireTop
             BoxOnWireMid = BoxOnQuWireMid
             BoxOnWireBot = BoxOnQuWireBot
+        else:
+            raise VisualizationError("_set_multibox only supports 'cl' and 'qu' as wire types.")
 
-        # Checks if qubits are consecutive
-        if bits != [i for i in range(bits[0], bits[-1] + 1)]:
+        # Checks if bits are consecutive
+        if bit_index != [i for i in range(bit_index[0], bit_index[-1] + 1)]:
             raise VisualizationError("Text visualizaer does know how to build a gate with multiple"
                                      "bits when they are not adjacent to each other")
 
-        if len(bits) == 1:
+        if len(bit_index) == 1:
             set_bit(bits[0], BoxOnWire(label, top_connect=top_connect))
         else:
             set_bit(bits[0], BoxOnWireTop(label, top_connect=top_connect))
             for order, bit in enumerate(bits[1:-1], 1):
-                set_bit(bit, BoxOnWireMid(label, len(bits), order))
-            set_bit(bits[-1], BoxOnWireBot(label, len(bits)))
+                set_bit(bit, BoxOnWireMid(label, len(bit_index), order))
+            set_bit(bits[-1], BoxOnWireBot(label, len(bit_index)))
 
     def set_cl_multibox(self, creg, label, top_connect='┴'):
         """
@@ -837,7 +842,8 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        self._set_multibox("cl", creg, label, top_connect=top_connect)
+        clbit = [bit for bit in self.cregs if bit[0] == creg]
+        self._set_multibox("cl", clbit, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label):
         """
