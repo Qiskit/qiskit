@@ -41,5 +41,4 @@ class JobStatus(BaseModel):
         self.status = status
         self.status_msg = status_msg
 
-        kwargs.update(self.__dict__)
         super().__init__(**kwargs)

@@ -49,5 +49,4 @@ class BackendStatus(BaseModel):
         self.pending_jobs = pending_jobs
         self.status_msg = status_msg
 
-        kwargs.update(self.__dict__)
         super().__init__(**kwargs)

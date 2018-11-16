@@ -67,7 +67,6 @@ class Nduv(BaseModel):
         self.unit = unit
         self.value = value
 
-        kwargs.update(self.__dict__)
         super().__init__(**kwargs)
 
 
@@ -89,7 +88,6 @@ class Gate(BaseModel):
         self.gate = gate
         self.parameters = parameters
 
-        kwargs.update(self.__dict__)
         super().__init__(**kwargs)
 
 
@@ -117,5 +115,5 @@ class BackendProperties(BaseModel):
         self.qubits = qubits
         self.gates = gates
         self.general = general
-        kwargs.update(self.__dict__)
+
         super().__init__(**kwargs)

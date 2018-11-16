@@ -164,7 +164,7 @@ class ByType(fields.Field):
     """
 
     default_error_messages = {
-        'invalid': 'Not a valid type.'
+        'invalid': 'Value {value} does not fit any of the types {types}.'
     }
 
     def __init__(self, choices, *args, **kwargs):
@@ -178,7 +178,7 @@ class ByType(fields.Field):
             except ValidationError:
                 pass
 
-        self.fail('invalid')
+        self.fail('invalid', value=value, types=self.choices)
 
     def _deserialize(self, value, attr, data):
         for field in self.choices:
@@ -187,7 +187,7 @@ class ByType(fields.Field):
             except ValidationError:
                 pass
 
-        self.fail('invalid')
+        self.fail('invalid', value=value, types=self.choices)
 
 
 class Complex(fields.Field):
@@ -195,11 +195,11 @@ class Complex(fields.Field):
 
     Field for parsing complex numbers:
     * deserializes to Python's `complex`.
-    * serializes to a tuple of 2 decimals `(real, imaginary)`
+    * serializes to a tuple of 2 decimals `(float, imaginary)`
     """
 
     default_error_messages = {
-        'invalid': 'Not a valid complex number.',
+        'invalid': '{input} cannot be parsed as a complex number.',
         'format': '"{input}" cannot be formatted as complex number.',
     }
 
@@ -216,8 +216,8 @@ class Complex(fields.Field):
 
     def _deserialize(self, value, attr, data):
         if not is_collection(value) or len(value) != 2:
-            self.fail('invalid')
+            self.fail('invalid', input=value)
         try:
             return complex(*value)
         except (ValueError, TypeError):
-            self.fail('invalid')
+            self.fail('invalid', input=value)

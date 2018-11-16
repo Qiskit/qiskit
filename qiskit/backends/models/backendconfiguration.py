@@ -86,7 +86,6 @@ class GateConfig(BaseModel):
         self.parameters = parameters
         self.qasm_def = qasm_def
 
-        kwargs.update(self.__dict__)
         super().__init__(**kwargs)
 
 
@@ -120,5 +119,4 @@ class BackendConfiguration(BaseModel):
         self.conditional = conditional
         self.open_pulse = open_pulse
 
-        kwargs.update(self.__dict__)
         super().__init__(**kwargs)

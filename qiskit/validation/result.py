@@ -99,7 +99,7 @@ class ExperimentResult(BaseModel):
         self.shots = shots
         self.success = success
         self.data = data
-        kwargs.update(self.__dict__)
+
         super().__init__(**kwargs)
 
 
@@ -129,5 +129,5 @@ class Result(BaseModel):
         self.job_id = job_id
         self.success = success
         self.results = results
-        kwargs.update(self.__dict__)
+
         super().__init__(**kwargs)
