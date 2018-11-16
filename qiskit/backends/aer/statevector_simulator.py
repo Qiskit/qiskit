@@ -26,11 +26,14 @@ class StatevectorSimulator(QasmSimulator):
     """C++ statevector simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'statevector_simulator',
+        'backend_name': 'statevector_simulator',
+        'backend_version': '1.0',
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
-        'description': 'A C++ statevector simulator for qobj files',
+        'conditional': False,
+        'description': 'A single-shot C++ statevector simulator for the |0> state evolution',
         'coupling_map': 'all-to-all',
         'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,load,save,snapshot'
     }

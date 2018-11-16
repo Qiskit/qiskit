@@ -33,10 +33,13 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'statevector_simulator_py',
+        'backend_name': 'statevector_simulator_py',
+        'backend_version': 1.0,
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
+        'conditional': False,
         'description': 'A Python statevector simulator for qobj files',
         'coupling_map': 'all-to-all',
         'basis_gates': 'u1,u2,u3,cx,id,snapshot'
