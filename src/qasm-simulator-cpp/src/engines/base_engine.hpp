@@ -247,7 +247,7 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
     js["counts"] = engine.counts;
 
   if (engine.show_final_creg && engine.output_creg.empty() == false)
-    js["classical_state"] = engine.output_creg;
+    js["memory"] = engine.output_creg;
 
   if (engine.show_snapshots && engine.snapshots.empty() == false) {
 
@@ -280,7 +280,7 @@ inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
         engine.counts_sort = false;
       else if (o == "reverse")
         engine.counts_bits_h2l = false;
-      else if (o == "classicalstate" || o == "classicalstates")
+      else if (o == "classicalstate" || o == "classicalstates" || o == "pershotmeasure")
         engine.show_final_creg = true;
       else if (o == "hidesnapshots" || o == "hidesnapshots")
         engine.show_snapshots = false;

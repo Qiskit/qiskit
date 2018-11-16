@@ -124,7 +124,7 @@ json_t Simulator::execute_json(){
 
       // Check results
       qobj_success &= circ_res["success"].get<bool>();
-      ret["result"].push_back(circ_res);
+      ret["results"].push_back(circ_res);
     }
     ret["time_taken"] =
         std::chrono::duration<double>(myclock_t::now() - start).count();

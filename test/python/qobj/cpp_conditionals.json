@@ -5,6 +5,7 @@
     "config": {
         "shots": 1,
         "memory_slots": 1,
+        "n_qubits": 2,
         "seed": 1
     },
     "header": {
@@ -15,8 +16,8 @@
             "header": {
                 "name": "single creg (c0=0)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 2,
+                "memory_slots": 1,
+                "n_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "instructions": [
@@ -51,8 +52,8 @@
             "header": {
                 "name": "single creg (c0=1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 2,
+                "memory_slots": 1,
+                "n_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "instructions": [
@@ -87,8 +88,8 @@
             "header": {
                 "name": "two creg (c1=0)",
                 "clbit_labels": [["c0", 1], ["c1", 1]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
+                "memory_slots": 2,
+                "n_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "instructions": [
@@ -123,8 +124,8 @@
             "header": {
                 "name": "two creg (c1=1)",
                 "clbit_labels": [["c0", 1], ["c1", 1]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
+                "memory_slots": 2,
+                "n_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "instructions": [
