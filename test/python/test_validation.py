@@ -13,7 +13,7 @@ from datetime import datetime
 from marshmallow import fields, ValidationError
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import TryFrom, ByAttribute
+from qiskit.validation.fields import TryFrom, ByAttribute, ByType
 from .common import QiskitTestCase
 
 
@@ -206,6 +206,7 @@ class PetOwnerSchema(BaseSchema):
     auto_pets = TryFrom([CatSchema, DogSchema], many=True)
     by_attribute_pets = ByAttribute({'fur_density': CatSchema,
                                      'barking_power': DogSchema}, many=True)
+    by_type_contact = ByType([fields.Email(), fields.Url()])
 
 
 @bind_schema(DogSchema)
@@ -288,3 +289,25 @@ class TestFields(QiskitTestCase):
             _ = PetOwner.from_dict({'by_attribute_pets': [{'fur_density': 1.5},
                                                           {'name': 'John Doe'}]})
         self.assertIn('by_attribute_pets', str(context_manager.exception))
+
+    def test_by_type_field_instantiate(self):
+        """Test the ByType field, instantiation."""
+        pet_owner = PetOwner(by_type_contact='foo@bar.com')
+        self.assertEqual(pet_owner.by_type_contact, 'foo@bar.com')
+
+    def test_by_type_field_instantiate_from_dict(self):
+        """Test the ByType field, instantiation from dict."""
+        pet_owner = PetOwner.from_dict({'by_type_contact': 'foo@bar.com'})
+        self.assertEqual(pet_owner.by_type_contact, 'foo@bar.com')
+
+    def test_by_type_field_invalid(self):
+        """Test the ByType field, with invalid kind of object."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner(by_type_contact=123)
+        self.assertIn('by_type_contact', str(context_manager.exception))
+
+    def test_by_type_field_invalid_from_dict(self):
+        """Test the ByType field, instantiation from dict, with invalid."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner.from_dict({'by_type_contact': 123})
+        self.assertIn('by_type_contact', str(context_manager.exception))

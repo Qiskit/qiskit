@@ -9,7 +9,8 @@
 
 from functools import partial
 
-from marshmallow import ValidationError
+from marshmallow import ValidationError, fields
+from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
 
@@ -142,3 +143,81 @@ class ByAttribute(BasePolyField):
                 return schema_cls()
 
         return None
+
+
+class ByType(fields.Field):
+    """Polymorphic field that disambiguates based on an attribute's type.
+
+    Polymorphic field that accepts a list of ``Fields``, and checks that the
+    data belongs to any of those types. Note this Field does not inherit from
+    ``BasePolyField``, as it operates directly on ``Fields`` instead of
+    operating in ``Schemas``.
+
+    Examples:
+        class PetOwnerSchema(BaseSchema):
+            contact_method = ByType([fields.Email(), fields.Url()])
+
+    Args:
+        choices (list[Field]): list of accepted `Fields` instances.
+        *args (tuple): args for Field.
+        **kwargs (dict): kwargs for Field.
+    """
+
+    default_error_messages = {
+        'invalid': 'Value {value} does not fit any of the types {types}.'
+    }
+
+    def __init__(self, choices, *args, **kwargs):
+        self.choices = choices
+        super().__init__(*args, **kwargs)
+
+    def _serialize(self, value, attr, obj):
+        for field in self.choices:
+            try:
+                return field._serialize(value, attr, obj)
+            except ValidationError:
+                pass
+
+        self.fail('invalid', value=value, types=self.choices)
+
+    def _deserialize(self, value, attr, data):
+        for field in self.choices:
+            try:
+                return field._deserialize(value, attr, data)
+            except ValidationError:
+                pass
+
+        self.fail('invalid', value=value, types=self.choices)
+
+
+class Complex(fields.Field):
+    """Field for complex numbers.
+
+    Field for parsing complex numbers:
+    * deserializes to Python's `complex`.
+    * serializes to a tuple of 2 decimals `(float, imaginary)`
+    """
+
+    default_error_messages = {
+        'invalid': '{input} cannot be parsed as a complex number.',
+        'format': '"{input}" cannot be formatted as complex number.',
+    }
+
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
+        if not isinstance(value, complex):
+            self.fail('format', input=value)
+        try:
+            return [value.real, value.imag]
+        except AttributeError:
+            self.fail('format', input=value)
+        return value
+
+    def _deserialize(self, value, attr, data):
+        if not is_collection(value) or len(value) != 2:
+            self.fail('invalid', input=value)
+        try:
+            return complex(*value)
+        except (ValueError, TypeError):
+            self.fail('invalid', input=value)
