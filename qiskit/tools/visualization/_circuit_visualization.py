@@ -28,13 +28,7 @@ from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile_dag
-
-try:
-    from qiskit.tools.visualization import _matplotlib
-
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
+from qiskit.tools.visualization import _matplotlib
 
 logger = logging.getLogger(__name__)
 

@@ -15,20 +15,10 @@ from codecs import encode
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from .common import QiskitTestCase
 
-try:
-    from qiskit.tools.visualization import _text as elements
-    from qiskit.tools.visualization import _text_circuit_drawer
-
-    VALID_MATPLOTLIB = True
-except (RuntimeError, ImportError):
-    # Under some combinations (travis osx vms, or headless configurations)
-    # matplotlib might not be fully, raising:
-    # RuntimeError: Python is not installed as a framework.
-    # when importing. If that is the case, the full test is skipped.
-    VALID_MATPLOTLIB = False
+from qiskit.tools.visualization import _text as elements
+from qiskit.tools.visualization import _text_circuit_drawer
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerElement(QiskitTestCase):
     """ Draw each element"""
 
@@ -110,7 +100,6 @@ class TestTextDrawerElement(QiskitTestCase):
         self.assertEqual(amount_of_lines, 2)
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """ Gate by gate checks in different settings."""
 
