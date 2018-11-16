@@ -14,6 +14,76 @@ from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
 
+class TypedDict(fields.Dict):
+    """Like ``marshmallow.fields.Dict`` but with explicit types for keys and values.
+
+    For instance, you can constraint a dict to be of the form::
+
+        counts = TypedDict(
+            key_type=String(validate=Regexp('^0x([0-9A-Fa-f])+$')),
+            value_type=Integer()
+        )
+    """
+
+    def __init__(self, key_type=None, value_type=None, **kwargs):
+        self._key_type = key_type
+        self._value_type = value_type
+        super().__init__(**kwargs)
+
+    def _serialize(self, value, attr, obj):
+        mapping = value
+
+        result = {}
+        errors = {}
+        # ``serialize`` acts on attributes, so we need to wrap the values.
+        wrapper = {}
+        for key in mapping:
+            wrapper['key'] = key
+            wrapper['value'] = mapping[key]
+            try:
+                if self._key_type is not None:
+                    key = self._key_type.serialize('key', wrapper)
+
+                if self._value_type is not None:
+                    value = self._value_type.serialize('value', wrapper)
+
+                result[key] = value
+
+            except ValidationError as error:
+                errors[key] = error.messages
+
+        if errors:
+            raise ValidationError(errors, data=result)
+
+        return super()._serialize(result, attr, obj)
+
+    def _deserialize(self, value, attr, data):
+        mapping = super()._deserialize(value, attr, data)
+        if self._key_type is None and self._value_type is None:
+            return mapping
+
+        result = {}
+        errors = {}
+        for key in mapping:
+            value = mapping[key]
+            try:
+                if self._key_type is not None:
+                    key = self._key_type.deserialize(key)
+
+                if self._value_type is not None:
+                    value = self._value_type.deserialize(value)
+
+                result[key] = value
+
+            except ValidationError as error:
+                errors[key] = error.messages
+
+        if errors:
+            raise ValidationError(errors, data=result)
+
+        return result
+
+
 class BasePolyField(PolyField):
     """Base class for polymorphic fields.
 

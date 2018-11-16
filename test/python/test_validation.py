@@ -11,9 +11,10 @@
 from datetime import datetime
 
 from marshmallow import fields, ValidationError
+from marshmallow.validate import Range, Regexp
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import TryFrom, ByAttribute, ByType
+from qiskit.validation.fields import TryFrom, ByAttribute, ByType, TypedDict
 from .common import QiskitTestCase
 
 
@@ -227,6 +228,21 @@ class PetOwner(BaseModel):
     pass
 
 
+class HistogramSchema(BaseSchema):
+    """Example HistogramSchema schema with strict dict structure validation."""
+    counts = TypedDict(
+        key_type=fields.String(validate=Regexp('^0x([0-9A-Fa-f])+$')),
+        value_type=fields.Integer(validate=Range(min=0)),
+        required=True
+    )
+
+
+@bind_schema(HistogramSchema)
+class Histogram(BaseModel):
+    """Example Histogram model."""
+    pass
+
+
 class TestFields(QiskitTestCase):
     """Tests for Fields."""
 
@@ -311,3 +327,40 @@ class TestFields(QiskitTestCase):
         with self.assertRaises(ValidationError) as context_manager:
             _ = PetOwner.from_dict({'by_type_contact': 123})
         self.assertIn('by_type_contact', str(context_manager.exception))
+
+    def test_typed_dict_valid(self):
+        """Test the TypedDict field allowing fine control on keys and values."""
+        valid_data = {'counts': {'0x00': 60, '0x01': 30, '0x10': 10}}
+        histogram = Histogram(**valid_data)
+        self.assertEqual(histogram.counts, valid_data['counts'])
+
+        # From dict
+        histogram = Histogram.from_dict(valid_data)
+        self.assertEqual(histogram.counts, valid_data['counts'])
+
+    def test_typed_dict_invalid_key(self):
+        """Test the TypedDict field fails when invalid key"""
+        invalid_key_data = {'counts': {'00': 60, '0x01': 30, '0x10': 10}}
+        with self.assertRaises(ValidationError):
+            _ = Histogram(**invalid_key_data)
+
+        # From dict
+        with self.assertRaises(ValidationError):
+            _ = Histogram.from_dict(invalid_key_data)
+
+    def test_typed_dict_invalid_value(self):
+        """Test the TypedDict field fails when invalid value"""
+        invalid_value_data = {'counts': {'0x00': 'so many', '0x01': 30, '0x10': 10}}
+        with self.assertRaises(ValidationError):
+            _ = Histogram(**invalid_value_data)
+
+        # From dict
+        with self.assertRaises(ValidationError):
+            _ = Histogram.from_dict(invalid_value_data)
+
+    def test_typed_dict_to_dict(self):
+        """Test the TypedDict field produces a correct value"""
+        counts = {'0x00': 50, '0x11': 50}
+        histogram = Histogram(counts=counts)
+        histogram_dict = histogram.to_dict()
+        self.assertEqual(histogram_dict, {'counts': counts})
