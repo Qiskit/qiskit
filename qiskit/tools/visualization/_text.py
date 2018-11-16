@@ -9,7 +9,6 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
-from itertools import groupby
 from shutil import get_terminal_size
 
 from ._error import VisualizationError
@@ -744,12 +743,12 @@ class TextDrawing():
                 layer.set_qubit(instruction['qargs'][0], Bullet())
                 layer.set_qubit(instruction['qargs'][1], BoxOnQuWire(label))
 
-            elif len(instruction['qargs']) == 1 and len(instruction['cargs']) == 0:
+            elif len(instruction['qargs']) == 1 and not instruction['cargs']:
                 # unitary gate
                 layer.set_qubit(instruction['qargs'][0],
                                 BoxOnQuWire(TextDrawing.label_for_box(instruction)))
 
-            elif len(instruction['qubits']) >= 2 and len(instruction['cargs']) == 0:
+            elif len(instruction['qubits']) >= 2 and not instruction['cargs']:
                 # multiple qubit gate
                 layer.set_qu_multibox(instruction['qubits'], TextDrawing.label_for_box(instruction))
 
@@ -804,7 +803,7 @@ class Layer:
         # pylint: disable=invalid-name
         if wire_type == "cl":
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
-            bits.sort(key=lambda x: self.cregs.index(x))
+            bits.sort(key=self.cregs.index)
             set_bit = self.set_clbit
             BoxOnWire = BoxOnClWire
             BoxOnWireTop = BoxOnClWireTop
@@ -812,7 +811,7 @@ class Layer:
             BoxOnWireBot = BoxOnClWireBot
         elif wire_type == "qu":
             bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
-            bits.sort(key=lambda x: self.qregs.index(x))
+            bits.sort(key=self.qregs.index)
             set_bit = self.set_qubit
             BoxOnWire = BoxOnQuWire
             BoxOnWireTop = BoxOnQuWireTop

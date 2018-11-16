@@ -29,7 +29,8 @@ from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile_dag
-from qiskit.tools.visualization._utils import _get_instructions
+from qiskit.unrollers import _dagunroller
+from qiskit.unrollers import _dagbackend
 
 logger = logging.getLogger(__name__)
 
@@ -350,8 +351,21 @@ def _text_circuit_drawer(circuit, filename=None,
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    qregs, cregs, ops = _utils._get_instructions(dag_circuit, reversebits=reversebits)
+    dag = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+
+    # Deprecate the following lines     -------------------------------------------------|
+    if basis is None:                                                                  # |
+        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"                        # |
+                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")                             # |
+    else:                                                                              # |
+        warnings.warn('The basis kwarg is deprecated and the circuit drawer '          # |
+                      'function will not be able to adjust basis gates itself '        # |
+                      'in a future release', DeprecationWarning)                       # |
+    basis = basis.split(',') if basis else []                                          # |
+    dag = _dagunroller.DagUnroller(dag, _dagbackend.DAGBackend(basis)).expand_gates()  # |
+    #     -------------------------------------------------------------------------------|
+
+    qregs, cregs, ops = _utils._get_instructions(dag, reversebits=reversebits)
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
