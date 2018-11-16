@@ -69,12 +69,12 @@ def copy_qasm_from_qobj_into_result(qobj_, result):
         qasm = getattr(experiment.header, 'compiled_circuit_qasm', None)
         experiment_result = _find_experiment_result(result, name)
         if qasm and experiment_result:
-            experiment_result['compiled_circuit_qasm'] = qasm
+            experiment_result.compiled_circuit_qasm = qasm
 
 
 def _find_experiment_result(result, name):
-    for experiment_result in result['result']:
-        if experiment_result['name'] == name:
+    for experiment_result in result['results']:
+        if experiment_result.header['name'] == name:
             return experiment_result
 
     logger.warning('No result found for experiment %s', name)

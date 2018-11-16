@@ -7,6 +7,8 @@
 
 """Qobj utilities and enums."""
 
+import operator
+from itertools import groupby
 from enum import Enum
 
 
