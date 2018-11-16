@@ -15,21 +15,9 @@ from inspect import signature
 import unittest
 import qiskit
 from .common import QiskitTestCase
-
-try:
-    from qiskit.tools.visualization import generate_latex_source
-    from qiskit.tools.visualization import _utils
-
-    VALID_MATPLOTLIB = True
-except (RuntimeError, ImportError):
-    # Under some combinations (travis osx vms, or headless configurations)
-    # matplotlib might not be fully, raising:
-    # RuntimeError: Python is not installed as a framework.
-    # when importing. If that is the case, the full test is skipped.
-    VALID_MATPLOTLIB = False
+from qiskit.tools.visualization import _utils, generate_latex_source
 
 
-@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestLatexSourceGenerator(QiskitTestCase):
     """QISKit latex source generator tests."""
 
@@ -164,7 +152,6 @@ class TestLatexSourceGenerator(QiskitTestCase):
                 os.remove(filename)
 
 
-@unittest.skipIf(not VALID_MATPLOTLIB, 'osx matplotlib backend not available')
 class TestVisualizationUtils(QiskitTestCase):
     """ Tests for visualizer utilities.
     Since the utilities in qiskit/tools/visualization/_utils.py are used by several visualizers
