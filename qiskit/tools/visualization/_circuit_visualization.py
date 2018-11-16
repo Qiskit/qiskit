@@ -25,10 +25,16 @@ from PIL import Image
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _latex
-from qiskit.tools.visualization import _matplotlib
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
 from qiskit.transpiler import transpile_dag
+
+
+try:
+  from qiskit.tools.visualization import _matplotlib # pylint: disable=g-import-not-at-top
+  HAS_MATPLOTLIB = True
+except ImportError:
+  HAS_MATPLOTLIB = False
 
 logger = logging.getLogger(__name__)
 
@@ -219,8 +225,12 @@ def circuit_drawer(circuit,
         try:
             image = _latex_circuit_drawer(circuit, basis, scale, filename, style)
         except (OSError, subprocess.CalledProcessError, FileNotFoundError):
-            image = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
+            if HAS_MATPLOTLIB:
+                image = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
                                                style)
+            else:
+                raise ImportError('The default output needs matplotlib. '
+                                  'Run "pip install matplotlib" before.')
     else:
         if output == 'text':
             return _text_circuit_drawer(circuit, filename=filename, basis=basis,
