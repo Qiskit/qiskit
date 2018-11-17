@@ -3,11 +3,28 @@ body{
     overflow: hidden;
 }
 pre{
-   font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
+   font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;
 }
 
 .page-content .code, .page-content .highlight pre, .page-content code:not(.download){
     font-family: "IBM Plex Mono", "Menlo", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Courier, monospace !important;}
+
+.mdl-layout-title{
+    display: flex !important;
+    padding-right: 20px !important;
+}
+a.title{
+    display: flex !important;
+    align-items: center !important;
+}
+ .mdl-layout__drawer>.mdl-layout-title .title>img.logo{
+    width: 50px !important;
+    padding-left: 32px !important;
+    padding-right: 16px !important;
+}
+div.highlight-text div.highlight, div.highlight-text div.highlight pre {
+    background-color: white !important;
+}
 
 p,h1,h2,h3,h4,h5,div,section,li{
   -moz-osx-font-smoothing: grayscale;
@@ -131,9 +148,6 @@ h5.mdl-color-text--primary{
 }
 .current{
     font-weight: normal !important;
-}
-.title-header {
-    display: none;
 }
 .link-wrapper{
     word-break: break-word
@@ -389,7 +403,7 @@ li.toctree-l2 .item.title .link-wrapper {
     margin-left: 26rem !important;
  }
  .item{
-     padding: 0px important!;
+     padding: 0px !important;
  }
 }
 @media(min-width: 1056px) {
