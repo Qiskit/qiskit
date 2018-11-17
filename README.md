@@ -115,13 +115,10 @@ If you'd like to contribute to Qiskit, please take a look at our
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. 
 Please use our [slack](https://qiskit.slack.com) for discussion. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). To ask questions to [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
 
-
-
 ### Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
 [Qiskit Tutorial](https://github.com/Qiskit/qiskit-tutorial) repository.
-
 
 ## Authors
 
