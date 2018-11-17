@@ -23,6 +23,7 @@ from qiskit._qiskiterror import QISKitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from qiskit.tools import visualization
+from qiskit.dagcircuit import DAGCircuit
 
 
 def _circuit_from_qasm(qasm, basis=None):
@@ -373,6 +374,22 @@ class QuantumCircuit(object):
                                             line_length=line_length,
                                             plot_barriers=plot_barriers,
                                             reverse_bits=reverse_bits)
+
+    def properties(self):
+        """Return common circuit properties (summary of circuit resource use)
+        
+        Returns:
+            dict: {
+                'size': total number of operations
+                'depth': depth of operations
+                'width': number of quantum bits
+                'bits': number of classical bits                   
+                'factors': how many non-entangled subcircuits can it be factored to
+                'operations': a breakdown of how many operations of each kind
+            }
+        """
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.properties()
 
     def __str__(self):
         return str(self.draw(output='text'))

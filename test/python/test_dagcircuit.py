@@ -14,6 +14,7 @@ import unittest
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
+from qiskit._quantumcircuit import QuantumCircuit
 from .common import QiskitTestCase
 
 
@@ -116,6 +117,47 @@ class TestDagCircuit(QiskitTestCase):
             ['x'],
             ['measure', 'measure']
             ], name_layers)
+
+
+class TestCircuitProperties(QiskitTestCase):
+    """DAGCircuit properties test."""
+
+    def test_basic_circuit_properties(self):
+        """Test basic resource count.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        circ = QuantumCircuit(qr, cr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.measure(qr, cr)
+
+        dag = DAGCircuit.fromQuantumCircuit(circ)
+
+        resources = {'bits': 2,
+                     'depth': 3,
+                     'factors': 1,
+                     'operations': {'cx': 1, 'h': 1, 'measure': 2},
+                     'size': 4,
+                     'width': 2}
+
+        self.assertDictEqual(dag.properties(), resources)
+
+    def test_num_circuit_factors(self):
+        """Test number of separable factors in circuit.
+        """
+        qr = QuantumRegister(4)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[3])
+        circ.h(qr[2])
+        circ.t(qr[2])
+        circ.ch(qr[2], qr[1])
+        circ.u2(0.1, 0.2, qr[3])
+
+        dag = DAGCircuit.fromQuantumCircuit(circ)
+
+        self.assertEqual(dag.properties()['factors'], 2)
 
 
 if __name__ == '__main__':
