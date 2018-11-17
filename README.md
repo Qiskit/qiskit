@@ -22,15 +22,6 @@ pip install qiskit
 
 PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
-PIP package comes with prebuilt binaries for these platforms:
-
-* Linux x86_64
-* Darwin
-* Win64
-
-If your platform is not in the list, PIP will try to build from the sources at installation time. It will require to have CMake 3.5 or higher pre-installed and at least one of the [build environments supported by CMake](https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html).
-
-
 At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using Qiskit. In
 addition, [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) is recommended
 for interacting with the tutorials.
