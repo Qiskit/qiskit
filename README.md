@@ -76,11 +76,9 @@ your IBM Q account:
 
 1. Create an _[IBM Q](https://quantumexperience.ng.bluemix.net) > Account_ if you haven't already done so.
 
-2. Get an API token from the IBM Q website under _My Account > Advanced > API Token_. This API token allows you to execute your programs with the IBM Q backends.
+2. Get an API token from the IBM Q website under _My Account > Advanced > API Token_. 
 
-3. We are now going to add the necessary credentials to Qiskit. Take your token
-   from step 2, here called `MY_API_TOKEN`, and pass it to the
-   `IBMQ.save_account()` function:
+3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
 
    ```python
    >>> from qiskit import IBMQ
@@ -112,11 +110,11 @@ the levels.
 
 ## Contribution guidelines
 
-**If you'd like to contribute to Qiskit, please take a look at our
-[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expect to uphold to this code.**
+If you'd like to contribute to Qiskit, please take a look at our
+[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expect to uphold to this code.
 
-**We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. 
-Please use our [slack](https://qiskit.slack.com) for discussion. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). To ask questions to [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).**
+We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. 
+Please use our [slack](https://qiskit.slack.com) for discussion. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). To ask questions to [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
 
 
 
@@ -125,10 +123,6 @@ Please use our [slack](https://qiskit.slack.com) for discussion. To join our Sla
 Now you're set up and ready to check out some of the other examples from our
 [Qiskit Tutorial](https://github.com/Qiskit/qiskit-tutorial) repository.
 
-## Multilanguage guide
-
-* **[Korean Translation](doc/ko/README.md)** - basic guide line written in Korean.
-* **[Chinese Translation](doc/zh/README.md)** - basic guide line written in Chinese.
 
 ## Authors
 
