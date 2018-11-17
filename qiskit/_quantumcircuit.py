@@ -229,8 +229,8 @@ class QuantumCircuit(object):
         """Add registers."""
 
         warnings.warn('The add() function is deprecated and will be '
-                  'removed in a future release. Instead use '
-                  'QuantumCircuit.add_register().', DeprecationWarning)
+                      'removed in a future release. Instead use '
+                      'QuantumCircuit.add_register().', DeprecationWarning)
         self.add_register(*regs)
 
     def _check_qreg(self, register):

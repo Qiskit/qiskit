@@ -12,8 +12,6 @@
 import unittest
 import numpy as np
 from scipy.linalg import expm
-from qiskit import execute, QuantumRegister, QuantumCircuit, Aer
-
 from qiskit.quantum_info import process_fidelity, Pauli
 
 from ..common import QiskitTestCase
@@ -26,13 +24,13 @@ class TestOperators(QiskitTestCase):
 
         Unitary1 = Pauli(label='XI').to_matrix()
         Unitary2 = np.kron(np.array([[0, 1], [1, 0]]), np.eye(2))
-        process_fidelity(Unitary1, Unitary2 )
-        self.assertAlmostEqual(process_fidelity(Unitary1, Unitary2 ), 1.0, places=7)
+        process_fidelity(Unitary1, Unitary2)
+        self.assertAlmostEqual(process_fidelity(Unitary1, Unitary2), 1.0, places=7)
         theta = 0.2
         Unitary1 = expm(-1j*theta*Pauli(label='X').to_matrix()/2)
         Unitary2 = np.array([[np.cos(theta/2), -1j*np.sin(theta/2)], [-1j*np.sin(theta/2), np.cos(theta/2)]])
-        self.assertAlmostEqual(process_fidelity(Unitary1, Unitary2 ), 1.0, places=7)
-        
+        self.assertAlmostEqual(process_fidelity(Unitary1, Unitary2), 1.0, places=7)
+
 
 if __name__ == '__main__':
     unittest.main()
