@@ -15,7 +15,7 @@ import unittest
 
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
+from qiskit import compile, execute
 from qiskit import QISKitError
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
 from ..common import QiskitTestCase
@@ -40,26 +40,32 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qubit1, cbit1)
 
         qc = circ + meas
-        backend_sim = Aer.get_backend('qasm_simulator')
-        result = execute(qc, backend_sim).result()
-        counts = result.get_counts(qc)
 
         backend_sim = Aer.get_backend('qasm_simulator_py')
-        result = execute(qc, backend_sim).result()
+        qobj_qc = compile(qc, backend_sim)
+        qobj_circ = compile(circ, backend_sim)
+        print(qobj_qc.experiments[0].instructions)
+        
+        result = backend_sim.run(qobj_qc).result()
+        counts = result.get_counts(qc)
+
+        backend_sim = Aer.get_backend('qasm_simulator')
+        result = backend_sim.run(qobj_qc).result()
         counts_py = result.get_counts(qc)
+        
 
         target = {'01 10': 1024}
 
         backend_sim = Aer.get_backend('statevector_simulator')
-        result = execute(circ, backend_sim).result()
+        result = backend_sim.run(qobj_circ).result()
         state = result.get_statevector(circ)
 
         backend_sim = Aer.get_backend('statevector_simulator_py')
-        result = execute(circ, backend_sim).result()
+        result = backend_sim.run(qobj_circ).result()
         state_py = result.get_statevector(circ)
 
         backend_sim = Aer.get_backend('unitary_simulator')
-        result = execute(circ, backend_sim).result()
+        result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
         self.assertEqual(counts, target)
