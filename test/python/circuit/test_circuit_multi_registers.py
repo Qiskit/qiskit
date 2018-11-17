@@ -27,17 +27,17 @@ class TestCircuitMultiRegs(QiskitTestCase):
     def test_circuit_multi(self):
         """Test circuit multi regs declared at start.
         """
-        q0 = QuantumRegister(2, 'q0')
-        c0 = ClassicalRegister(2, 'c0')
-        q1 = QuantumRegister(2, 'q1')
-        c1 = ClassicalRegister(2, 'c1')
-        circ = QuantumCircuit(q0, q1)
-        circ.x(q0[1])
-        circ.x(q1[0])
+        qubit0 = QuantumRegister(2, 'q0')
+        cbit0 = ClassicalRegister(2, 'c0')
+        qubit1 = QuantumRegister(2, 'q1')
+        cbit1 = ClassicalRegister(2, 'c1')
+        circ = QuantumCircuit(qubit0, qubit1)
+        circ.x(qubit0[1])
+        circ.x(qubit1[0])
 
-        meas = QuantumCircuit(q0, q1, c0, c1)
-        meas.measure(q0, c0)
-        meas.measure(q1, c1)
+        meas = QuantumCircuit(qubit0, qubit1, cbit0, cbit1)
+        meas.measure(qubit0, cbit0)
+        meas.measure(qubit1, cbit1)
 
         qc = circ + meas
         backend_sim = Aer.get_backend('qasm_simulator')
@@ -52,15 +52,15 @@ class TestCircuitMultiRegs(QiskitTestCase):
         backend_sim = Aer.get_backend('unitary_simulator')
         result = execute(circ, backend_sim).result()
         unitary = result.get_unitary(circ)
-        testdraw = """
-q1_1: |0>──────────
-         ┌───┐
-q1_0: |0>┤ X ├─────
-         └───┘┌───┐
-q0_1: |0>─────┤ X ├
-              └───┘
-q0_0: |0>──────────
-"""
+        #testdraw = """
+#q1_1: |0>──────────
+#         ┌───┐
+#q1_0: |0>┤ X ├─────
+#         └───┘┌───┐
+#q0_1: |0>─────┤ X ├
+#              └───┘
+#q0_0: |0>──────────
+#"""
         self.assertEqual(counts, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
@@ -69,23 +69,23 @@ q0_0: |0>──────────
     def test_circuit_multi_case2(self):
         """Test circuit multi regs declared at start.
         """
-        q0 = QuantumRegister(2, 'q0')
-        c0 = ClassicalRegister(2, 'c0')
-        q1 = QuantumRegister(2, 'q1')
-        c1 = ClassicalRegister(2, 'c1')
+        qubit0 = QuantumRegister(2, 'q0')
+        cbit0 = ClassicalRegister(2, 'c0')
+        qubit1 = QuantumRegister(2, 'q1')
+        cbit1 = ClassicalRegister(2, 'c1')
         circ2 = QuantumCircuit()
-        circ2.add_register(q0)
-        circ2.add_register(q1)
-        circ2.x(q0[1])
-        circ2.x(q1[0])
+        circ2.add_register(qubit0)
+        circ2.add_register(qubit1)
+        circ2.x(qubit0[1])
+        circ2.x(qubit1[0])
 
         meas2 = QuantumCircuit()
-        meas2.add_register(q0)
-        meas2.add_register(q1)
-        meas2.add_register(c0)
-        meas2.add_register(c1)
-        meas2.measure(q0, c0)
-        meas2.measure(q1, c1)
+        meas2.add_register(qubit0)
+        meas2.add_register(qubit1)
+        meas2.add_register(cbit0)
+        meas2.add_register(cbit1)
+        meas2.measure(qubit0, cbit0)
+        meas2.measure(qubit1, cbit1)
 
         qc2 = circ2 + meas2
 
@@ -102,15 +102,15 @@ q0_0: |0>──────────
         unitary = result.get_unitary(circ2)
 
         target = {'01 10': 1024}
-        testdraw = """
-q1_1: |0>──────────
-         ┌───┐
-q1_0: |0>┤ X ├─────
-         └───┘┌───┐
-q0_1: |0>─────┤ X ├
-              └───┘
-q0_0: |0>──────────
-"""
+        #testdraw = """
+#q1_1: |0>──────────
+#         ┌───┐
+#q1_0: |0>┤ X ├─────
+#         └───┘┌───┐
+#q0_1: |0>─────┤ X ├
+#              └───┘
+#q0_0: |0>──────────
+#"""
 
         #self.assertEqual(testdraw, circ2.draw())
         self.assertEqual(counts, target)

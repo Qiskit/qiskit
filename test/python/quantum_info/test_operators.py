@@ -28,8 +28,8 @@ class TestOperators(QiskitTestCase):
         self.assertAlmostEqual(process_fidelity(Unitary1, Unitary2), 1.0, places=7)
         theta = 0.2
         Unitary1 = expm(-1j*theta*Pauli(label='X').to_matrix()/2)
-        Unitary2 = np.array([[np.cos(theta/2), -1j*np.sin(theta/2)], 
-                            [-1j*np.sin(theta/2), np.cos(theta/2)]])
+        Unitary2 = np.array([[np.cos(theta/2), -1j*np.sin(theta/2)],
+                             [-1j*np.sin(theta/2), np.cos(theta/2)]])
         self.assertAlmostEqual(process_fidelity(Unitary1, Unitary2), 1.0, places=7)
 
 
