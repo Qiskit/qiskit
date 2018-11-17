@@ -45,14 +45,13 @@ class TestCircuitMultiRegs(QiskitTestCase):
         qobj_qc = compile(qc, backend_sim)
         qobj_circ = compile(circ, backend_sim)
         print(qobj_qc.experiments[0].instructions)
-        
+
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
 
         backend_sim = Aer.get_backend('qasm_simulator')
         result = backend_sim.run(qobj_qc).result()
         counts_py = result.get_counts(qc)
-        
 
         target = {'01 10': 1024}
 
