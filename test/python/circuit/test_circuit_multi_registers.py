@@ -5,6 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=unused-import
 # pylint: disable=redefined-builtin
 
 """Test Qiskit's QuantumCircuit class for multiple registers."""
@@ -43,17 +44,10 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = Aer.get_backend('qasm_simulator_py')
         qobj_qc = compile(qc, backend_sim)
-        qobj_exp = qobj_qc.experiments[0]
         qobj_circ = compile(circ, backend_sim)
-        print('\n')
-        print(qobj_exp.header.qubit_labels)
-        print(qobj_exp.header.compiled_circuit_qasm)
-        for gate in qobj_exp.instructions:
-                print(gate)
 
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
-        print(counts)
 
         backend_sim = Aer.get_backend('qasm_simulator')
         result = backend_sim.run(qobj_qc).result()
@@ -72,11 +66,6 @@ class TestCircuitMultiRegs(QiskitTestCase):
         backend_sim = Aer.get_backend('unitary_simulator')
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
-        counts = target
-        counts_py = target
-        state = basis_state('0110', 4)
-        state_py = basis_state('0110', 4)
-        unitary = Pauli(label='IXXI').to_matrix()
 
         self.assertEqual(counts, target)
         self.assertEqual(counts_py, target)
