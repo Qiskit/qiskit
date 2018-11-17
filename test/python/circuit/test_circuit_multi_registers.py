@@ -46,7 +46,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         qobj_qc = compile(qc, backend_sim, seed_mapper=88) #34342
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
-        qobj_exp = qobj.experiments[0]
+        qobj_exp = qobj_qc.experiments[0]
         print(qobj_exp.header.qubit_labels)
         print(qobj_exp.header.compiled_circuit_qasm)
         print(qobj_exp.header.clbit_labels)

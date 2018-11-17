@@ -75,15 +75,15 @@ print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
 qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024,initial_layout=initial_layout)
-job = backend.run(qobj)
 qobj_exp = qobj.experiments[0]
-result = job.result()
 print(qobj_exp.header.qubit_labels)
+qobj_exp.header.compiled_circuit_qasm = ""
 print(qobj_exp.header.compiled_circuit_qasm)
 print(qobj_exp.header.clbit_labels)
 for i in qobj_exp.instructions:
             print(i)
-
+job = backend.run(qobj)
+result = job.result()
 print(result)
 print(result.get_counts(qc))
 
