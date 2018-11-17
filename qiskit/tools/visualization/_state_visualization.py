@@ -20,7 +20,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from scipy import linalg
 
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from qiskit.quantum_info import pauli_group, Pauli
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
 
@@ -39,6 +39,76 @@ class Arrow3D(FancyArrowPatch):
         xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         FancyArrowPatch.draw(self, renderer)
+
+
+def plot_hinton(rho, title='', filename=None):
+    """Plot a hinton diagram for the quanum state.
+
+    Args:
+        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
+                                   numbers
+        title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
+    """
+    num = int(np.log2(len(rho)))
+    fig = plt.figure()
+    max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
+    datareal = np.real(rho)
+    dataimag = np.imag(rho)
+    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    lx = len(datareal[0])            # Work out matrix dimensions
+    ly = len(datareal[:, 0])
+    # Real
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax1.patch.set_facecolor('gray')
+    ax1.set_aspect('equal', 'box')
+    ax1.xaxis.set_major_locator(plt.NullLocator())
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(datareal):
+        color = 'white' if w > 0 else 'black'
+        size = np.sqrt(np.abs(w) / max_weight)
+        rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                             facecolor=color, edgecolor=color)
+        ax1.add_patch(rect)
+
+    ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
+    ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax1.set_yticklabels(row_names, fontsize=12)
+    ax1.set_xticklabels(column_names, fontsize=12, rotation=-90)
+    ax1.autoscale_view()
+    ax1.invert_yaxis()
+    ax1.set_title('Real[rho]')
+    # Imaginary
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.patch.set_facecolor('gray')
+    ax2.set_aspect('equal', 'box')
+    ax2.xaxis.set_major_locator(plt.NullLocator())
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(dataimag):
+        color = 'white' if w > 0 else 'black'
+        size = np.sqrt(np.abs(w) / max_weight)
+        rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                             facecolor=color, edgecolor=color)
+        ax2.add_patch(rect)
+
+    ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
+    ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax2.set_yticklabels(row_names, fontsize=12)
+    ax2.set_xticklabels(column_names, fontsize=12, rotation=-90)
+    ax2.autoscale_view()
+    ax2.invert_yaxis()
+    ax2.set_title('Imag[rho]')
+    if title:
+        plt.title(title)
+    plt.tight_layout()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 
 def plot_bloch_vector(bloch, title="", filename=None):
@@ -392,12 +462,15 @@ def plot_state(quantum_state, method='city', filename=None):
                 filename_parts[-2] += '-%d' % i
                 filename = '.'.join(filename_parts)
                 print(filename)
+            pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
+                             Pauli.pauli_single(num, i, 'Z')]
             bloch_state = list(
-                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                    pauli_singles(i, num)))
+                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))), pauli_singles))
             plot_bloch_vector(bloch_state, "qubit " + str(i), filename=filename)
     elif method == "wigner":
         plot_wigner_function(rho, filename=filename)
+    elif method == "hinton":
+        plot_hinton(rho, filename=filename)
 
 
 ###############################################################

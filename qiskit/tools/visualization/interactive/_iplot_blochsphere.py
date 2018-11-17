@@ -13,7 +13,7 @@ import sys
 import time
 import re
 import numpy as np
-from qiskit.tools.qi.pauli import pauli_singles
+from qiskit.quantum_info import Pauli
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -82,8 +82,10 @@ def iplot_blochsphere(rho, options=None):
 
     bloch_data = []
     for i in range(num):
+        pauli_singles = [Pauli.pauli_single(num, i, 'X'), Pauli.pauli_single(num, i, 'Y'),
+                         Pauli.pauli_single(num, i, 'Z')]
         bloch_state = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                               pauli_singles(i, num)))
+                               pauli_singles))
         bloch_data.append(bloch_state)
 
     div_number = str(time.time())

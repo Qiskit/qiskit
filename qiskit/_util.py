@@ -75,7 +75,7 @@ def local_hardware_info():
     """Basic hardware information about the local machine.
 
     Gives actual number of CPU's in the machine, even when hyperthreading is
-    turned on.
+    turned on. CPU count defaults to 1 when true count can't be determined.
 
     Returns:
         dict: The hardware information.
@@ -83,7 +83,7 @@ def local_hardware_info():
     """
     results = {'os': platform.system()}
     results['memory'] = psutil.virtual_memory().total / (1024**3)
-    results['cpus'] = psutil.cpu_count(logical=False)
+    results['cpus'] = psutil.cpu_count(logical=False) or 1
     return results
 
 
