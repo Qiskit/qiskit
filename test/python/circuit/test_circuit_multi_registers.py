@@ -43,17 +43,29 @@ class TestCircuitMultiRegs(QiskitTestCase):
         backend_sim = Aer.get_backend('qasm_simulator')
         result = execute(qc, backend_sim).result()
         counts = result.get_counts(qc)
+
+        backend_sim = Aer.get_backend('qasm_simulator_py')
+        result = execute(qc, backend_sim).result()
+        counts_py = result.get_counts(qc)
+
         target = {'01 10': 1024}
 
         backend_sim = Aer.get_backend('statevector_simulator')
         result = execute(circ, backend_sim).result()
         state = result.get_statevector(circ)
 
+        backend_sim = Aer.get_backend('statevector_simulator_py')
+        result = execute(circ, backend_sim).result()
+        state_py = result.get_statevector(circ)
+
         backend_sim = Aer.get_backend('unitary_simulator')
         result = execute(circ, backend_sim).result()
         unitary = result.get_unitary(circ)
+
         self.assertEqual(counts, target)
+        self.assertEqual(counts_py, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
+        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state_py), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
                                1.0, places=7)
 
