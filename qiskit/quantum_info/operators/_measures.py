@@ -10,7 +10,6 @@
 """
 A collection of useful quantum information functions for operators.
 
-
 """
 
 import numpy as np
