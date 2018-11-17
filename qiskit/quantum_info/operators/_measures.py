@@ -36,7 +36,7 @@ def process_fidelity(channel1, channel2):
     s2 = np.array(channel2)
 
     # fidelity of two unitary vectors
-    overlap = np.trace(np.dot(channel1.conj().transpose(),channel1 ) )
+    overlap = np.trace(np.dot(channel1.conj().transpose(), channel2 ) )
     f_p  = abs(overlap)**2 / (len(channel1)**2)
     return f_p
 
