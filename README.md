@@ -43,8 +43,7 @@ $ python
 ```
 
 ```python
->>> from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
->>> from qiskit import execute, Aer
+>>> from qiskit import *
 >>> q = QuantumRegister(2)
 >>> c = ClassicalRegister(2)
 >>> qc = QuantumCircuit(q, c)
@@ -59,7 +58,7 @@ $ python
 In this case, the output will be:
 
 ```python
-{'counts': {'00': 512, '11': 512}}
+{'counts': {'00': 513, '11': 511}}
 ```
 
 A script is available [here](examples/python/hello_quantum.py), where we also show how to
