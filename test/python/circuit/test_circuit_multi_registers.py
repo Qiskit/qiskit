@@ -46,6 +46,13 @@ class TestCircuitMultiRegs(QiskitTestCase):
         qobj_qc = compile(qc, backend_sim, seed_mapper=88) #34342
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
+        qobj_exp = qobj.experiments[0]
+        print(qobj_exp.header.qubit_labels)
+        print(qobj_exp.header.compiled_circuit_qasm)
+        print(qobj_exp.header.clbit_labels)
+        for i in qobj_exp.instructions:
+            print(i)
+
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
 
@@ -67,8 +74,8 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
-        self.assertEqual(counts, target)
-        self.assertEqual(counts_py, target)
+        self.assertEqual(counts, counts_py)
+        self.assertEqual(target, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state_py), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),

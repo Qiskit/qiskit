@@ -69,8 +69,6 @@ print(qobj_exp.header.clbit_labels)
 for i in qobj_exp.instructions:
             print(i)
 
-#for i in qobj_exp.instructions:
-#    print(i)
 result = job.result()
 print(result)
 print(result.get_counts(qc))
