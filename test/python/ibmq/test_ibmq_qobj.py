@@ -22,21 +22,22 @@ from ..common import require_multiple_credentials, JobTestCase, slow_test
 
 # Timeout duration
 TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
-BLACKLIST = [bl.strip() for bl in
-             os.getenv("IBMQ_QOBJ_TESTS_BLACKLIST",
-                       "ibmq_4_atlantis").split(',')]
+BLACKLIST = ('ibmq_4_atlantis',)
 ALWAYS_BLACKLISTED = ('ibmqx_hpc_qasm_simulator',)
 
 
-def once_per_non_blacklisted_qobj_backend(*blacklist):
+def per_non_blacklisted_backend(*blacklist):
     """ Test Qobj support on all non-blacklisted backends claiming to support Qobj.
 
     Args:
         blacklist (list): List of backend string names to skip.
+
+    Returns:
+        func: Decorator.
     """
     blacklist = blacklist+ALWAYS_BLACKLISTED
 
-    def once_per_qobj_backend(test):
+    def per_qobj_backend_decorator(test):
         @require_multiple_credentials
         @functools.wraps(test)
         def _wrapper(self, *args, credentials=[], **kwargs):
@@ -51,12 +52,13 @@ def once_per_non_blacklisted_qobj_backend(*blacklist):
             for qe_token, _ in credentials:
                 IBMQ.disable_accounts(token=qe_token)
         return _wrapper
-    return once_per_qobj_backend
+    return per_qobj_backend_decorator
 
 
 # no blacklist decorator.
-once_per_qobj_backend = once_per_non_blacklisted_qobj_backend()
-once_per_qobj_backend_blacklisted = once_per_non_blacklisted_qobj_backend(*BLACKLIST)
+PER_BACKEND = per_non_blacklisted_backend()
+PER_BACKEND_BLACKLISTED = per_non_blacklisted_backend(*BLACKLIST)
+
 
 class TestBackendQobj(JobTestCase):
 
@@ -65,12 +67,12 @@ class TestBackendQobj(JobTestCase):
         super().setUp()
         self._local_backend = Aer.get_backend('qasm_simulator_py')
 
-    @once_per_qobj_backend
+    @PER_BACKEND
     def test_operational(self, remote_backend):
         """Test if backend is operational."""
         self.assertTrue(remote_backend.status()['operational'])
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_one_qubit_no_operation(self, remote_backend):
         """Test one circuit, one register, in-order readout."""
         qr = QuantumRegister(1)
@@ -84,7 +86,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_one_qubit_operation(self, remote_backend):
         """Test one circuit, one register, in-order readout."""
         qr = QuantumRegister(1)
@@ -99,7 +101,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_simple_circuit(self, remote_backend):
         """Test one circuit, one register, in-order readout."""
         config = remote_backend.configuration()
@@ -122,7 +124,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_readout_order(self, remote_backend):
         """Test one circuit, one register, out-of-order readout."""
         config = remote_backend.configuration()
@@ -146,7 +148,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_multi_register(self, remote_backend):
         """Test one circuit, two registers, out-of-order readout."""
         config = remote_backend.configuration()
@@ -176,7 +178,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_multi_circuit(self, remote_backend):
         """Test two circuits, two registers, out-of-order readout."""
         config = remote_backend.configuration()
@@ -217,7 +219,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ2),
                                    result_local.get_counts(circ2), delta=100)
 
-    @once_per_qobj_backend_blacklisted
+    @PER_BACKEND_BLACKLISTED
     def test_conditional_operation(self, remote_backend):
         """Test conditional operation.
         """
@@ -237,7 +239,7 @@ class TestBackendQobj(JobTestCase):
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=100)
 
-    @once_per_qobj_backend
+    @PER_BACKEND
     def test_ry_circuit(self, remote_backend):
         """Test Atlantis staging device deterministic ry operation."""
         config = remote_backend.configuration()
