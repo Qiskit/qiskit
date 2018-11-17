@@ -22,7 +22,7 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
-
+from collections import Mapping
 from functools import partial, wraps
 from types import SimpleNamespace
 
@@ -324,12 +324,23 @@ class BaseModel(SimpleNamespace):
         return _base_model_from_kwargs, (self.__class__, self.__dict__)
 
 
-class ObjSchema(BaseSchema):
+class MapSchema(BaseSchema):
     """Generic object schema."""
     pass
 
 
-@bind_schema(ObjSchema)
-class Obj(BaseModel):
-    """Generic object in a Model."""
-    pass
+@bind_schema(MapSchema)
+class Map(BaseModel, Mapping):
+    """Generic model for maps.
+
+    A ``Map`` instance behaves like a dict.
+    """
+
+    def __getitem__(self, key):
+        return self.__dict__.__getitem__(key)
+
+    def __iter__(self):
+        return self.__dict__.__iter__()
+
+    def __len__(self):
+        return self.__dict__.__len__()
