@@ -10,7 +10,6 @@
 """Test IBMQ online qasm simulator.
 TODO: Must expand tests. Re-evaluate after Aer."""
 
-from unittest import skip
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin
 from qiskit import compile
