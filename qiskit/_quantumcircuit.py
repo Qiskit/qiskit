@@ -11,6 +11,7 @@
 Quantum circuit object.
 """
 import itertools
+import warnings
 from collections import OrderedDict
 
 from qiskit.qasm import _qasm
@@ -109,7 +110,7 @@ class QuantumCircuit(object):
         # This is a map of registers bound to this circuit, by name.
         self.qregs = OrderedDict()
         self.cregs = OrderedDict()
-        self.add(*regs)
+        self.add_register(*regs)
 
     @classmethod
     def _increment_instances(cls):
@@ -211,7 +212,7 @@ class QuantumCircuit(object):
         self.data.append(instruction)
         return instruction
 
-    def add(self, *regs):
+    def add_register(self, *regs):
         """Add registers."""
         for register in regs:
             if register.name in self.qregs or register.name in self.cregs:
@@ -223,6 +224,14 @@ class QuantumCircuit(object):
                 self.cregs[register.name] = register
             else:
                 raise QISKitError("expected a register")
+
+    def add(self, *regs):
+        """Add registers."""
+
+        warnings.warn('The add() function is deprecated and will be '
+                  'removed in a future release. Instead use '
+                  'QuantumCircuit.add_register().', DeprecationWarning)
+        self.add_register(*regs)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
