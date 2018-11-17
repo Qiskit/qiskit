@@ -43,10 +43,12 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = Aer.get_backend('qasm_simulator_py')
         qobj_qc = compile(qc, backend_sim)
+        qobj_exp = qobj_qc.experiments[0]
         qobj_circ = compile(circ, backend_sim)
-        print(qobj_qc.header.qubit_labels)
-        print(qobj_qc.header.compiled_circuit_qasm)
-        for gate in qobj_qc.instructions:
+        print('\n')
+        print(qobj_exp.header.qubit_labels)
+        print(qobj_exp.header.compiled_circuit_qasm)
+        for gate in qobj_exp.instructions:
                 print(gate)
 
         result = backend_sim.run(qobj_qc).result()
