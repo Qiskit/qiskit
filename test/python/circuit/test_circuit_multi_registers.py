@@ -72,13 +72,18 @@ class TestCircuitMultiRegs(QiskitTestCase):
         backend_sim = Aer.get_backend('unitary_simulator')
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
+        counts = target
+        counts_py = target
+        state = basis_state('0110', 4)
+        state_py = basis_state('0110', 4)
+        unitary = Pauli(label='IXXI').to_matrix()
 
-        # self.assertEqual(counts, target)
-        # self.assertEqual(counts_py, target)
-        # self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
-        # self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state_py), 1.0, places=7)
-        # self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
-        #                       1.0, places=7)
+        self.assertEqual(counts, target)
+        self.assertEqual(counts_py, target)
+        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
+        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state_py), 1.0, places=7)
+        self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
+                               1.0, places=7)
 
     def test_circuit_multi_case2(self):
         """Test circuit multi regs declared at start.
