@@ -52,15 +52,6 @@ class TestCircuitMultiRegs(QiskitTestCase):
         backend_sim = Aer.get_backend('unitary_simulator')
         result = execute(circ, backend_sim).result()
         unitary = result.get_unitary(circ)
-        #testdraw = """
-#q1_1: |0>──────────
-#         ┌───┐
-#q1_0: |0>┤ X ├─────
-#         └───┘┌───┐
-#q0_1: |0>─────┤ X ├
-#              └───┘
-#q0_0: |0>──────────
-#"""
         self.assertEqual(counts, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
@@ -102,17 +93,6 @@ class TestCircuitMultiRegs(QiskitTestCase):
         unitary = result.get_unitary(circ2)
 
         target = {'01 10': 1024}
-        #testdraw = """
-#q1_1: |0>──────────
-#         ┌───┐
-#q1_0: |0>┤ X ├─────
-#         └───┘┌───┐
-#q0_1: |0>─────┤ X ├
-#              └───┘
-#q0_0: |0>──────────
-#"""
-
-        #self.assertEqual(testdraw, circ2.draw())
         self.assertEqual(counts, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
