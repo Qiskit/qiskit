@@ -11,10 +11,12 @@
 from IPython import get_ipython          # pylint: disable=import-error
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
+from .backend_overview import BackendOverview
 from .backend_monitor import BackendMonitor
 
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     _IP.register_magics(StatusMagic)
+    _IP.register_magics(BackendOverview)
     _IP.register_magics(BackendMonitor)

@@ -7,16 +7,19 @@
 
 """A module for monitoring backends."""
 
-import time
-import threading
-import types
-from IPython.display import display                              # pylint: disable=import-error
-from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disable=import-error
-from IPython.core import magic_arguments                         # pylint: disable=import-error
-import ipywidgets as widgets                                     # pylint: disable=import-error
+import math
+import datetime
+from IPython.display import display                     # pylint: disable=import-error
+from IPython.core.magic import (line_magic,             # pylint: disable=import-error
+                                Magics, magics_class)
+import ipywidgets as widgets                            # pylint: disable=import-error
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import matplotlib.colors
+import matplotlib as mpl
+from matplotlib import cm
+from matplotlib.patches import Circle
 from qiskit import IBMQ
+from qiskit.tools.jupyter.backend_overview import plot_coupling_map
 
 
 @magics_class
@@ -24,401 +27,516 @@ class BackendMonitor(Magics):
     """A class of status magic functions.
     """
     @line_magic
-    @magic_arguments.magic_arguments()
-    @magic_arguments.argument(
-        '-i',
-        '--interval',
-        type=float,
-        default=60,
-        help='Interval for status check.'
-    )
     def qiskit_backend_monitor(self, line='', cell=None):  # pylint: disable=W0613
         """A Jupyter magic function to monitor backends.
         """
-        args = magic_arguments.parse_argstring(
-            self.qiskit_backend_monitor, line)
+        backend = self.shell.user_ns[line]
+        title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
+        title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
+        title_html = "<h1 {style}>{name}</h1>".format(
+            style=title_style, name=backend.configuration()['name'])
 
-        unique_hardware_backends = get_unique_backends()
-        _value = "<h2 style ='color:#ffffff; background-color:#000000;"
-        _value += "padding-top: 1%; padding-bottom: 1%;padding-left: 1%;"
-        _value += "margin-top: 0px'>Backend Monitor</h2>"
-        backend_title = widgets.HTML(value=_value,
-                                     layout=widgets.Layout(margin='0px 0px 0px 0px'))
+        details = [config_tab(backend)]
 
-        build_back_widgets = [backend_widget(b)
-                              for b in unique_hardware_backends]
+        tab_contents = ['Configuration']
 
-        _backends = []
-        # Sort backends by operational or not
-        oper_ord_backends = []
-        for n, back in enumerate(unique_hardware_backends):
-            if back.status()['operational']:
-                oper_ord_backends = [build_back_widgets[n]] + oper_ord_backends
-                _backends = [back] + _backends
-            else:
-                oper_ord_backends = oper_ord_backends + [build_back_widgets[n]]
-                _backends = _backends + [back]
+        if not backend.configuration()['simulator']:
+            tab_contents.extend(['Qubit Properties', 'Gates',
+                                 'Noise Map', 'Job History'])
+            details.extend([qubits_tab(backend), gates_tab(backend),
+                            detailed_map(backend), job_history(backend)])
 
-        qubit_label = widgets.Label(value='Num. Qubits')
-        pend_label = widgets.Label(value='Pending Jobs')
-        least_label = widgets.Label(value='Least Busy')
-        oper_label = widgets.Label(
-            value='Operational', layout=widgets.Layout(margin='5px 0px 0px 0px'))
-        t1_label = widgets.Label(
-            value='Avg. T1', layout=widgets.Layout(margin='10px 0px 0px 0px'))
-        t2_label = widgets.Label(
-            value='Avg. T2', layout=widgets.Layout(margin='10px 0px 0px 0px'))
+        tabs = widgets.Tab()
+        tabs.children = details
+        for i in range(len(details)):
+            tabs.set_title(i, tab_contents[i])
 
-        labels_widget = widgets.VBox([qubit_label, pend_label, least_label,
-                                      oper_label, t1_label, t2_label],
-                                     layout=widgets.Layout(margin='295px 0px 0px 0px',
-                                                           min_width='100px'))
+        title_widget = widgets.HTML(value=title_html,
+                                    layout=widgets.Layout(margin='0px 0px 0px 0px'))
 
-        backend_grid = GridBox_with_thread(children=oper_ord_backends,
-                                           layout=widgets.Layout(
-                                               grid_template_columns='250px ' *
-                                               len(unique_hardware_backends),
-                                               grid_template_rows='auto',
-                                               grid_gap='0px 25px'))
+        backend_monitor = widgets.VBox([title_widget, tabs],
+                                       layout=widgets.Layout(border='4px solid #000000'))
 
-        backend_grid._backends = _backends        # pylint: disable=W0201
-        backend_grid._update = types.MethodType(  # pylint: disable=W0201
-            update_backend_info, backend_grid)
-
-        backend_grid._thread = threading.Thread(  # pylint: disable=W0201
-            target=backend_grid._update, args=(args.interval,))
-        backend_grid._thread.start()
-
-        back_box = widgets.HBox([labels_widget, backend_grid])
-
-        back_monitor = widgets.VBox([backend_title, back_box])
-        display(back_monitor)
+        display(backend_monitor)
 
 
-class GridBox_with_thread(widgets.GridBox):  # pylint: disable=invalid-name
-    """A GridBox that will close an attached thread
+def config_tab(backend):
+    """The backend configuration widget.
+
+    Args:
+        backend (IBMQbackend): The backend.
+
+    Returns:
+        grid: A GridBox widget.
     """
-    def __del__(self):
-        """Object disposal"""
-        if hasattr(self, '_thread'):
-            try:
-                self._thread.do_run = False
-                self._thread.join()
-            except Exception:  # pylint: disable=W0703
-                pass
-        self.close()
-
-
-def get_unique_backends():
-    """Gets the unique backends that are loaded
-    """
-    backends = IBMQ.backends()
-    unique_hardware_backends = []
-    unique_names = []
-    for back in backends:
-        if back.name() not in unique_names and not back.configuration()['simulator']:
-            unique_hardware_backends.append(back)
-            unique_names.append(back.name())
-    return unique_hardware_backends
-
-
-def backend_widget(backend):
-    """Creates a backend widget.
-    """
+    status = backend.status()
     config = backend.configuration()
+
+    config_dict = {**status, **config}
+
+    upper_list = ['n_qubits', 'operational',
+                  'pending_jobs', 'basis_gates', 'local', 'simulator']
+
+    lower_list = list(set(config_dict.keys()).difference(upper_list))
+
+    upper_str = "<table>"
+    upper_str += """<style>
+table {
+    border-collapse: collapse;
+    width: auto;
+}
+
+th, td {
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {background-color: #f6f6f6;}
+</style>"""
+
+    footer = "</table>"
+
+    # Upper HBox widget data
+
+    upper_str += "<tr><th>Property</th><th>Value</th></tr>"
+    for key in upper_list:
+        upper_str += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td></tr>" % (
+            key, config_dict[key])
+    upper_str += footer
+
+    upper_table = widgets.HTML(
+        value=upper_str, layout=widgets.Layout(width='100%', grid_area='left'))
+
+    image_widget = widgets.Output(
+        layout=widgets.Layout(display='flex-inline', grid_area='right',
+                              padding='10px 10px 10px 10px',
+                              width='auto', max_height='300px',
+                              align_items='center'))
+    with image_widget:
+        gate_map = plot_coupling_map(backend)
+        display(gate_map)
+    plt.close(gate_map)
+
+    lower_str = "<table>"
+    lower_str += """<style>
+table {
+    border-collapse: collapse;
+    width: auto;
+}
+
+th, td {
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {background-color: #f6f6f6;}
+</style>"""
+    lower_str += "<tr><th></th><th></th></tr>"
+    for key in lower_list:
+        if key != 'name':
+            lower_str += "<tr><td>%s</td><td>%s</td></tr>" % (
+                key, config_dict[key])
+    lower_str += footer
+
+    lower_table = widgets.HTML(value=lower_str,
+                               layout=widgets.Layout(
+                                   width='auto',
+                                   grid_area='bottom',
+                                   max_height='280px'))
+
+    grid = widgets.GridBox(children=[upper_table, image_widget, lower_table],
+                           layout=widgets.Layout(
+                               grid_template_rows='auto auto',
+                               grid_template_columns='20% 25% 25% 25%',
+                               grid_template_areas='''
+                               "left right right right"
+                               "bottom bottom bottom bottom"
+                               ''',
+                               grid_gap='0px 0px'))
+
+    return grid
+
+
+def qubits_tab(backend):
+    """The qubits properties widget
+
+    Args:
+        backend (IBMQbackend): The backend.
+
+    Returns:
+        VBox: A VBox widget.
+    """
     props = backend.properties()
 
-    name = widgets.HTML(value="<h4>{name}</h4>".format(name=backend.name()),
-                        layout=widgets.Layout())
+    header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
+    header_html = header_html.format(key='last_update_date',
+                                     value=props['last_update_date'])
+    update_date_widget = widgets.HTML(value=header_html)
 
-    n_qubits = config['n_qubits']
+    qubit_html = "<table>"
+    qubit_html += """<style>
+table {
+    border-collapse: collapse;
+    width: auto;
+}
 
-    qubit_count = widgets.HTML(value="<h5><b>{qubits}</b></h5>".format(qubits=n_qubits),
-                               layout=widgets.Layout(justify_content='center'))
+th, td {
+    text-align: left;
+    padding: 8px;
+}
 
-    cmap = widgets.Output(layout=widgets.Layout(min_width='250px', max_width='250px',
-                                                max_height='250px',
-                                                min_height='250px',
-                                                justify_content='center',
-                                                align_items='center',
-                                                margin='0px 0px 0px 0px'))
+tr:nth-child(even) {background-color: #f6f6f6;}
+</style>"""
 
-    with cmap:
-        if n_qubits == 20 or n_qubits == 5:
-            _fig_size = (3.5, 3.5)
+    qubit_html += "<tr><th></th><th>Frequency</th><th>T1</th><th>T2</th>"
+    qubit_html += "<th>Gate time</th><th>Gate error</th><th>Readout error</th><th>Buffer</th></tr>"
+    qubit_footer = "</table>"
+
+    for qub in range(len(props['qubits'])):
+        qubit = props['qubits'][qub]
+        name = qubit['name']
+
+        qubit_freq = qubit['frequency']['unit'] if 'unit' in qubit['frequency'].keys(
+        ) else qubit['frequency']['units']
+        freq = str(round(qubit['frequency']['value'], 5))+' '+qubit_freq
+        T1 = str(round(qubit['T1']['value'], 5))+' ' + qubit['T1']['unit']  # pylint: disable=invalid-name
+        T2 = str(round(qubit['T2']['value'], 5))+' ' + qubit['T2']['unit']  # pylint: disable=invalid-name
+
+        if 'gateTime' in qubit.keys():
+            gate_time = str(
+                round(qubit['gateTime']['value'], 5))+' '+qubit['gateTime']['unit']
         else:
-            _fig_size = (3.5, 1.65)
-        _cmap_fig = plot_coupling_map(backend,
-                                      figsize=_fig_size,
-                                      plot_directed=False,
-                                      label_qubits=False)
-        display(_cmap_fig)
+            gate_time = ''
+        gate_error = round(qubit['gateError']['value'], 5)
+        readout_error = round(qubit['readoutError']['value'], 5)
+        if 'buffer' in qubit.keys():
+            buffer = str(
+                round(qubit['buffer']['value'], 5))+' '+qubit['buffer']['unit']
+        else:
+            _buffer = ''
+        qubit_html += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td>"
+        qubit_html += "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
+        qubit_html = qubit_html % (name, freq, T1, T2, gate_time,
+                                   gate_error, readout_error, buffer)
+    qubit_html += qubit_footer
 
-    # Prevents plot from showing up twice.
-    plt.close(_cmap_fig)
+    qubit_widget = widgets.HTML(value=qubit_html)
 
-    pending = generate_jobs_pending_widget()
+    out = widgets.VBox([update_date_widget,
+                        qubit_widget], layout=widgets.Layout(max_height='600px'))
 
-    is_oper = widgets.HTML(value="<h5></h5>",
-                           layout=widgets.Layout(justify_content='center'))
-
-    least_busy = widgets.HTML(value="<h5></h5>",
-                              layout=widgets.Layout(justify_content='center'))
-
-    t1_units = props['qubits'][0]['T1']['unit']
-    avg_t1 = round(sum([q['T1']['value']
-                        for q in props['qubits']])/n_qubits, 1)
-    t1_widget = widgets.HTML(value="<h5>{t1} {units}</h5>".format(t1=avg_t1, units=t1_units),
-                             layout=widgets.Layout())
-
-    t2_units = props['qubits'][0]['T2']['unit']
-    avg_t2 = round(sum([q['T2']['value']
-                        for q in props['qubits']])/n_qubits, 1)
-    t2_widget = widgets.HTML(value="<h5>{t2} {units}</h5>".format(t2=avg_t2, units=t2_units),
-                             layout=widgets.Layout())
-
-    out = widgets.VBox([name, cmap, qubit_count, pending,
-                        least_busy, is_oper, t1_widget, t2_widget],
-                       layout=widgets.Layout(display='inline-flex',
-                                             flex_flow='column',
-                                             align_items='center'))
-
-    out._is_alive = True
     return out
 
 
-def update_backend_info(self, interval=60):
-    """Updates the monitor info
-    Called from another thread.
-    """
-    my_thread = threading.currentThread()
-    current_interval = 0
-    started = False
-    all_dead = False
-    stati = [None]*len(self._backends)
-    while getattr(my_thread, "do_run", True) and not all_dead:
-        if current_interval == interval or started is False:
-            for ind, back in enumerate(self._backends):
-                _value = self.children[ind].children[2].value
-                _head = _value.split('<b>')[0]
-                try:
-                    _status = back.status()
-                    stati[ind] = _status
-                except Exception:  # pylint: disable=W0703
-                    self.children[ind].children[2].value = _value.replace(
-                        _head, "<h5 style='color:#ff5c49'>")
-                    self.children[ind]._is_alive = False
-                else:
-                    self.children[ind]._is_alive = True
-                    self.children[ind].children[2].value = _value.replace(
-                        _head, "<h5>")
-
-            idx = list(range(len(self._backends)))
-            pending = [s['pending_jobs'] for s in stati]
-
-            least_pending = [list(x) for x in zip(
-                *sorted(zip(pending, idx), key=lambda pair: pair[0]))]
-
-            # Make sure least pending is operational
-            for lst_pend in least_pending:
-                if stati[lst_pend[1]]['operational']:
-                    least_pending_idx = lst_pend[1]
-                    break
-
-            for var in idx:
-                if var == least_pending_idx:
-                    self.children[var].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
-                else:
-                    self.children[var].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
-
-                self.children[var].children[3].children[1].value = pending[var]
-                self.children[var].children[3].children[1].max = max(
-                    self.children[var].children[3].children[1].max, pending[var]+10)
-                if stati[var]['operational']:
-                    self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
-                else:
-                    self.children[var].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
-
-            started = True
-            current_interval = 0
-        time.sleep(1)
-        all_dead = not any([wid._is_alive for wid in self.children])
-        current_interval += 1
-
-
-def generate_jobs_pending_widget():
-    """Generates a jobs_pending progress bar widget.
-    """
-    pbar = widgets.IntProgress(
-        value=0,
-        min=0,
-        max=50,
-        description='',
-        orientation='horizontal', layout=widgets.Layout(max_width='180px'))
-    pbar.style.bar_color = '#71cddd'
-
-    pbar_current = widgets.Label(
-        value=str(pbar.value), layout=widgets.Layout(min_width='auto'))
-    pbar_max = widgets.Label(
-        value=str(pbar.max), layout=widgets.Layout(min_width='auto'))
-
-    def _on_max_change(change):
-        pbar_max.value = str(change['new'])
-
-    def _on_val_change(change):
-        pbar_current.value = str(change['new'])
-
-    pbar.observe(_on_max_change, names='max')
-    pbar.observe(_on_val_change, names='value')
-
-    jobs_widget = widgets.HBox([pbar_current, pbar, pbar_max],
-                               layout=widgets.Layout(max_width='250px',
-                                                     min_width='250px',
-                                                     justify_content='center'))
-
-    return jobs_widget
-
-
-class _GraphDist():
-    """Transform the circles properly for non-square axes.
-    """
-    def __init__(self, size, ax, x=True):
-        self.size = size
-        self.ax = ax  # pylint: disable=invalid-name
-        self.x = x
-
-    @property
-    def dist_real(self):
-        """Compute distance.
-        """
-        x0, y0 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
-            (0, 0))
-        x1, y1 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
-            (1, 1))
-        value = x1 - x0 if self.x else y1 - y0
-        return value
-
-    @property
-    def dist_abs(self):
-        """Distance abs
-        """
-        bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
-        return bounds[0] - bounds[1]
-
-    @property
-    def value(self):
-        """Return value.
-        """
-        return (self.size / self.dist_real) * self.dist_abs
-
-    def __mul__(self, obj):
-        return self.value * obj
-
-
-def plot_coupling_map(backend, figsize=(5, 5),
-                      plot_directed=True,
-                      label_qubits=True,
-                      font_size=None):
-    """Plots the coupling map of a device.
+def gates_tab(backend):
+    """The multiple qubit gate error widget.
 
     Args:
-        backend (BaseBackend): A backend instance,
-        figsize (tuple): Output figure size (wxh) in inches.
-        plot_directed (bool): Plot directed coupling map.
-        label_qubits (bool): Label the qubits.
-        font_size (int): Font size of qubit labels.
+        backend (IBMQbackend): The backend.
 
     Returns:
-        Figure: A Matplotlib figure instance.
+        VBox: A VBox widget.
     """
-    mpl_data = {}
+    props = backend.properties()
 
-    mpl_data['ibmq_20_tokyo'] = [[0, 3], [1, 3], [2, 3], [3, 3], [4, 3],
-                                 [0, 2], [1, 2], [2, 2], [3, 2], [4, 2],
-                                 [0, 1], [1, 1], [2, 1], [3, 1], [4, 1],
-                                 [0, 0], [1, 0], [2, 0], [3, 0], [4, 0]]
+    header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
+    header_html = header_html.format(key='last_update_date',
+                                     value=props['last_update_date'])
 
-    mpl_data['ibmq_16_melbourne'] = [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1],
-                                     [5, 1], [6, 1], [7, 0], [6, 0], [5, 0],
-                                     [4, 0], [3, 0], [2, 0], [1, 0]]
+    update_date_widget = widgets.HTML(value=header_html,
+                                      layout=widgets.Layout(grid_area='top'))
 
-    mpl_data['ibmq_16_rueschlikon'] = [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1],
-                                       [4, 1], [5, 1], [6, 1], [
-                                           7, 1], [7, 0], [6, 0],
-                                       [5, 0], [4, 0], [3, 0], [2, 0], [1, 0]]
+    gate_html = "<table>"
+    gate_html += """<style>
+table {
+    border-collapse: collapse;
+    width: auto;
+}
 
-    mpl_data['ibmq_5_tenerife'] = [[0, 0], [0, 2], [1, 1], [2, 2], [2, 0]]
+th, td {
+    text-align: left;
+    padding: 8px;
+}
 
-    mpl_data['ibmq_5_yorktown'] = mpl_data['ibmq_5_tenerife']
+tr:nth-child(even) {background-color: #f6f6f6;};
+</style>"""
 
-    config = backend.configuration()
-    name = config['name']
-    cmap = config['coupling_map']
+    gate_html += "<tr><th></th><th>Type</th><th>Gate error</th></tr>"
+    gate_footer = "</table>"
 
-    dep_names = {'ibmqx5': 'ibmq_16_rueschlikon',
-                 'ibmqx4': 'ibmq_5_tenerife',
-                 'ibmqx2': 'ibmq_5_yorktown'}
+    # Split gates into two columns
+    left_num = math.ceil(len(props['multi_qubit_gates'])/3)
+    mid_num = math.ceil((len(props['multi_qubit_gates'])-left_num)/2)
 
-    if name in dep_names.keys():
-        name = dep_names[name]
+    left_table = gate_html
 
-    fig, ax = plt.subplots(figsize=figsize)  # pylint: disable=invalid-name
-    ax.axis('off')
-    fig.tight_layout()
+    for qub in range(left_num):
+        gate = props['multi_qubit_gates'][qub]
+        name = gate['name']
+        ttype = gate['type']
+        error = round(gate['gateError']['value'], 5)
 
-    if name in mpl_data.keys():
-        mpl_data = mpl_data[name]
+        left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
+        left_table += "</td><td>%s</td><td>%s</td></tr>"
+        left_table = left_table % (name, ttype, error)
+    left_table += gate_footer
+
+    middle_table = gate_html
+
+    for qub in range(left_num, left_num+mid_num):
+        gate = props['multi_qubit_gates'][qub]
+        name = gate['name']
+        ttype = gate['type']
+        error = round(gate['gateError']['value'], 5)
+
+        middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
+        middle_table += "</td><td>%s</td><td>%s</td></tr>"
+        middle_table = middle_table % (name, ttype, error)
+    middle_table += gate_footer
+
+    right_table = gate_html
+
+    for qub in range(left_num+mid_num, len(props['multi_qubit_gates'])):
+        gate = props['multi_qubit_gates'][qub]
+        name = gate['name']
+        ttype = gate['type']
+        error = round(gate['gateError']['value'], 5)
+
+        right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
+        right_table += "</td><td>%s</td><td>%s</td></tr>"
+        right_table = right_table % (name, ttype, error)
+    right_table += gate_footer
+
+    left_table_widget = widgets.HTML(value=left_table,
+                                     layout=widgets.Layout(grid_area='left',
+                                                           max_height='600px'))
+    middle_table_widget = widgets.HTML(value=middle_table,
+                                       layout=widgets.Layout(grid_area='middle',
+                                                             max_height='600px'))
+    right_table_widget = widgets.HTML(value=right_table,
+                                      layout=widgets.Layout(grid_area='right',
+                                                            max_height='600px'))
+
+    grid = widgets.GridBox(children=[update_date_widget,
+                                     left_table_widget,
+                                     middle_table_widget,
+                                     right_table_widget],
+                           layout=widgets.Layout(
+                               grid_template_rows='auto auto',
+                               grid_template_columns='33% 33% 33%',
+                               grid_template_areas='''
+                                                   "top top top"
+                                                   "left middle right"
+                                                   ''',
+                               grid_gap='0px 0px'))
+
+    return grid
+
+
+def detailed_map(backend):
+    """Widget for displaying detailed noise map.
+
+    Args:
+        backend (IBMQbackend): The backend.
+
+    Returns:
+        GridBox: Widget holding noise map images.
+    """
+    props = backend.properties()
+    single_gate_errors = [q['gateError']['value'] for q in props['qubits']]
+    single_norm = matplotlib.colors.Normalize(
+        vmin=min(single_gate_errors), vmax=max(single_gate_errors))
+    q_colors = [cm.viridis(single_norm(err)) for err in single_gate_errors]
+
+    cmap = backend.configuration()['coupling_map']
+
+    cx_errors = []
+    for line in cmap:
+        for item in props['multi_qubit_gates']:
+            if item['qubits'] == line:
+                cx_errors.append(item['gateError']['value'])
+                break
+        else:
+            continue
+
+    cx_norm = matplotlib.colors.Normalize(
+        vmin=min(cx_errors), vmax=max(cx_errors))
+    line_colors = [cm.viridis(cx_norm(err)) for err in cx_errors]
+
+    single_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='left',
+                                                         align_items='center'))
+
+    cmap_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='top',
+                                                       padding='10px 10px 10px 10px',
+                                                       width='auto', height='auto',
+                                                       align_items='center'))
+
+    cx_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='right',
+                                                     align_items='center'))
+
+    with cmap_widget:
+        noise_map = plot_coupling_map(backend, qubit_color=q_colors,
+                                      line_color=line_colors,
+                                      figsize=(8, 8),
+                                      qubit_size=32)
+        display(noise_map)
+        plt.close(noise_map)
+
+    with single_widget:
+        cbl_fig = plt.figure(figsize=(3, 1))
+        ax1 = cbl_fig.add_axes([0.05, 0.80, 0.9, 0.15])
+        mpl.colorbar.ColorbarBase(ax1, cmap=cm.viridis,
+                                  norm=single_norm,
+                                  orientation='horizontal')
+        ax1.set_title('Single-qubit error rate')
+        display(cbl_fig)
+        plt.close(cbl_fig)
+
+    with cx_widget:
+        cx_fig = plt.figure(figsize=(3, 1))
+        ax2 = cx_fig.add_axes([0.05, 0.80, 0.9, 0.15])
+        mpl.colorbar.ColorbarBase(ax2, cmap=cm.viridis,
+                                  norm=cx_norm,
+                                  orientation='horizontal')
+        ax2.set_title('CNOT error rate')
+        display(cx_fig)
+        plt.close(cx_fig)
+
+    out_box = widgets.GridBox([single_widget, cmap_widget, cx_widget],
+                              layout=widgets.Layout(
+                                  grid_template_rows='auto auto',
+                                  grid_template_columns='33% 33% 33%',
+                                  grid_template_areas='''
+                                                "top top top"
+                                                "left . right"
+                                                ''',
+                                  grid_gap='0px 0px'))
+    return out_box
+
+
+def job_history(backend):
+    """Widget for displaying job history
+
+    Args:
+     backend (IBMQbackend): The backend.
+
+    Returns:
+        Tab: A tab widget for history images.
+    """
+    year = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                align_items='center',
+                                                min_height='400px'))
+
+    month = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                 align_items='center',
+                                                 min_height='400px'))
+
+    week = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                align_items='center',
+                                                min_height='400px'))
+
+    tabs = widgets.Tab()
+    tabs.children = [year, month, week]
+    tabs.set_title(0, 'Year')
+    tabs.set_title(1, 'Month')
+    tabs.set_title(2, 'Week')
+    tabs.selected_index = 1
+
+    _build_job_history(tabs, backend)
+    return tabs
+
+
+def _build_job_history(tabs, backend):
+
+    backends = IBMQ.backends(backend.name())
+    past_year_date = datetime.datetime.now() - datetime.timedelta(days=365)
+    date_filter = {'creationDate': {'gt': past_year_date.isoformat()}}
+    jobs = []
+    for back in backends:
+        jobs.extend(back.jobs(limit=None, db_filter=date_filter))
+
+    with tabs.children[1]:
+        month_plot = plot_job_history(jobs, interval='month')
+        display(month_plot)
+        plt.close(month_plot)
+
+    with tabs.children[0]:
+        year_plot = plot_job_history(jobs, interval='year')
+        display(year_plot)
+        plt.close(year_plot)
+
+    with tabs.children[2]:
+        week_plot = plot_job_history(jobs, interval='week')
+        display(week_plot)
+        plt.close(week_plot)
+
+
+def plot_job_history(jobs, interval='year'):
+    """Plots the job history of the user from the given list of jobs.
+
+    Args:
+        jobs (list): A list of jobs with type IBMQjob.
+        interval (str): Interval over which to examine.
+
+    Returns:
+        fig: A Matplotlib figure instance.
+    """
+    def get_date(j):
+        return datetime.datetime.strptime(j.creation_date(),
+                                          '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    current_time = datetime.datetime.now()
+
+    if interval == 'year':
+        bins = [(current_time - datetime.timedelta(days=k*365/12))
+                for k in range(12)]
+    elif interval == 'month':
+        bins = [(current_time - datetime.timedelta(days=k)) for k in range(30)]
+    elif interval == 'week':
+        bins = [(current_time - datetime.timedelta(days=k)) for k in range(7)]
+
+    binned_jobs = [0]*len(bins)
+
+    if interval == 'year':
+        for job in jobs:
+            for ind, dat in enumerate(bins):
+                date = get_date(job)
+                if date.month == dat.month:
+                    binned_jobs[ind] += 1
+                    break
+            else:
+                continue
     else:
-        return fig
+        for job in jobs:
+            for ind, dat in enumerate(bins):
+                date = get_date(job)
+                if date.day == dat.day and date.month == dat.month:
+                    binned_jobs[ind] += 1
+                    break
+            else:
+                continue
 
-    x_max = max([d[0] for d in mpl_data])
-    y_max = max([d[1] for d in mpl_data])
+    nz_bins = []
+    nz_idx = []
+    for ind, val in enumerate(binned_jobs):
+        if val != 0:
+            nz_idx.append(ind)
+            nz_bins.append(val)
 
-    max_dim = max(figsize)
+    total_jobs = sum(binned_jobs)
 
-    # Add lines for couplings
+    colors = ['#5392ff', '#ffb000', '#34bc6e', '#ff509e', '#95d13c', '#9b82f3',
+              '#71cddd', '#fe8500']
 
-    for edge in cmap:
-        is_directed = False
-        if not edge[::-1] in cmap:
-            is_directed = True
-        x_start = mpl_data[edge[0]][0]
-        y_start = mpl_data[edge[0]][1]
-        x_end = mpl_data[edge[1]][0]
-        y_end = mpl_data[edge[1]][1]
-        ax.add_artist(plt.Line2D([x_start, x_end], [y_start, y_end],
-                                 color='#648fff', linewidth=3,
-                                 zorder=0))
-        if is_directed and plot_directed:
-            dx = x_end-x_start  # pylint: disable=invalid-name
-            dy = y_end-y_start  # pylint: disable=invalid-name
-            ax.add_patch(mpatches.FancyArrow(x_start+dx*0.5,
-                                             y_start+dy*0.5,
-                                             dx*0.2,
-                                             dy*0.2,
-                                             head_width=0.2,
-                                             length_includes_head=True,
-                                             edgecolor=None,
-                                             linewidth=0,
-                                             facecolor='#648fff',
-                                             zorder=1))
+    if interval == 'year':
+        labels = ['{}-{}'.format(bins[b].year, bins[b].month) for b in nz_idx]
+    else:
+        labels = ['{}-{}'.format(bins[b].month, bins[b].day) for b in nz_idx]
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))  # pylint: disable=invalid-name
+    ax.pie(nz_bins[::-1], labels=labels, colors=colors, textprops={'fontsize': 14},
+           rotatelabels=True, counterclock=False)
+    ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))
+    ax.text(0, 0, total_jobs, horizontalalignment='center',
+            verticalalignment='center', fontsize=26)
 
-    if font_size is None:
-        font_size = 2*max_dim
-
-    # Add circles for qubits
-    for var, idx in enumerate(mpl_data):
-        width = _GraphDist(12, ax, True)
-        height = _GraphDist(12, ax, False)
-        ax.add_artist(mpatches.Ellipse(idx, width, height, color='#648fff', zorder=1))
-        if label_qubits:
-            ax.text(*idx, s=str(var),
-                    horizontalalignment='center',
-                    verticalalignment='center',
-                    color='#ffffff', size=font_size, weight='bold')
-
-    ax.set_xlim([-1, x_max+1])
-    ax.set_ylim([-1, y_max+1])
-    ax.axis('off')
-    fig.tight_layout()
     return fig
