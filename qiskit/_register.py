@@ -84,3 +84,24 @@ class Register(object):
                 form `tuple (Register, int)`.
         """
         return zip([self]*self.size, range(self.size))
+
+    def __eq__(self, other):
+        """Two Registers are the same if they are of the same type
+        (i.e. quantum/classical), and have the same name and size.
+
+        Args:
+            other (Register): other Register
+
+        Returns:
+            bool: are self and other equal.
+        """
+        res = False
+        if type(self) is type(other) and \
+                self.name == other.name and \
+                self.size == other.size:
+            res = True
+        return res
+
+    def __hash__(self):
+        """Make object hashable, based on the name and size to hash."""
+        return hash(str(type(self)) + self.name + str(self.size))

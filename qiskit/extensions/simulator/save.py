@@ -47,7 +47,7 @@ def save(self, slot):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.qregs.values():
+        for register in self.qregs:
             tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for save")
