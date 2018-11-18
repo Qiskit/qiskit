@@ -25,7 +25,7 @@ Added
 
 - Added DAG visualizer which requires `Graphivz <https://www.graphviz.org/>`_
   (#1059)
-- Added a ASCII art circuit visualizer (#909)
+- Added an ASCII art circuit visualizer (#909)
 - Added a new kwarg `filename` to
   `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
   rendered bloch sphere to a file instead of displaying it (#1096)
@@ -103,8 +103,8 @@ Fixed
 - Use case insensitive matching when comparing premium account URLs. (#1102)
 - Fixed AerJob status when the submitted Job is in a PENDING state. (#1215)
 - Add fallback for when CPU count can't be determined (#1214)
-- Fix random_state from returning nan (#1258)
-- The Clifford simulator run() method now works correctly with the updated
+- Fix `random_state` from returning nan (#1258)
+- The Clifford simulator `run()` method now works correctly with the updated
   AerJob usage (#1125)
 - Fixed an edge case when connection checks would raise an unhandled exception
   (#1226)
