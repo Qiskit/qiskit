@@ -375,21 +375,34 @@ class QuantumCircuit(object):
                                             plot_barriers=plot_barriers,
                                             reverse_bits=reverse_bits)
 
-    def properties(self):
-        """Return common circuit properties (summary of circuit resource use)
+    def size(self):
+        """Return total number of operations in circuit."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.size()
+
+    def depth(self):
+        """Return circuit depth (i.e. length of critical path)."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.depth()
+
+    def width(self):
+        """Return number of qubits in circuit."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.width()
+
+    def count_ops(self):
+        """Count each operation kind in the circuit.
         
         Returns:
-            dict: {
-                'size': total number of operations
-                'depth': depth of operations
-                'width': number of quantum bits
-                'bits': number of classical bits                   
-                'factors': how many non-entangled subcircuits can it be factored to
-                'operations': a breakdown of how many operations of each kind
-            }
+            dict: a breakdown of how many operations of each kind.
         """
         dag = DAGCircuit.fromQuantumCircuit(self)
-        return dag.properties()
+        return dag.count_ops()
+
+    def num_tensor_factors(self):
+        """How many non-entangled subcircuits can the circuit be factored to."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.num_tensor_factors()
 
     def __str__(self):
         return str(self.draw(output='text'))
