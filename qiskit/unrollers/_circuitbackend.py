@@ -77,7 +77,7 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
     def _map_qubit(self, qubit):
         """Map qubit tuple (regname, index) to (QuantumRegister, index)."""
-        
+
         qregs = self.circuit.qregs
         regname = qubit[0]
         qregs_names = [element.name for element in qregs]
