@@ -19,6 +19,8 @@ import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.patches import Circle
 from qiskit import IBMQ
+from qiskit._qiskiterror import QISKitError
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.jupyter.backend_overview import plot_coupling_map
 
 
@@ -31,6 +33,8 @@ class BackendMonitor(Magics):
         """A Jupyter magic function to monitor backends.
         """
         backend = self.shell.user_ns[line]
+        if not isinstance(backend, IBMQBackend):
+            raise QISKitError('Input variable is not of type IBMQBackend.')
         title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
         title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
         title_html = "<h1 {style}>{name}</h1>".format(
