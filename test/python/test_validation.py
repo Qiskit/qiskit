@@ -13,7 +13,7 @@ from datetime import datetime
 from marshmallow import fields, ValidationError
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import TryFrom, ByAttribute, ByType
+from qiskit.validation.fields import TryFrom, ByAttribute, ByType, StrictString
 from .common import QiskitTestCase
 
 
@@ -21,14 +21,14 @@ from .common import QiskitTestCase
 
 class PersonSchema(BaseSchema):
     """Example Person schema."""
-    name = fields.String(required=True)
+    name = StrictString(required=True)
     birth_date = fields.Date()
     email = fields.Email()
 
 
 class BookSchema(BaseSchema):
     """Example Book schema."""
-    title = fields.String(required=True)
+    title = StrictString(required=True)
     date = fields.Date()
     author = fields.Nested(PersonSchema, required=True)
 

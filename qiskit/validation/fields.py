@@ -13,6 +13,18 @@ from marshmallow import ValidationError, fields
 from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
+from qiskit.validation.utils import VALID_MODEL
+
+
+class StrictString(fields.String):
+    """Like String but serializing is only possible if the value is also a str.
+    """
+
+    def _serialize(self, value, attr, obj):
+        if not isinstance(value, str):
+            self.fail('invalid')
+        return super()._serialize(value, attr, obj)
+
 
 class BasePolyField(PolyField):
     """Base class for polymorphic fields.
@@ -52,6 +64,12 @@ class BasePolyField(PolyField):
     def _deserialize(self, value, attr, data):
         """Override _deserialize for customizing the Exception raised."""
         try:
+            if value is VALID_MODEL:
+                return value
+
+            if is_collection(value):
+                value = filter(lambda v: v is not VALID_MODEL, value)
+
             return super()._deserialize(value, attr, data)
         except ValidationError as ex:
             if 'deserialization_schema_selector' in ex.messages[0]:

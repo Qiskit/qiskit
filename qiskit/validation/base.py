@@ -22,15 +22,13 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
-
-from functools import partial, wraps
+from functools import wraps
 from types import SimpleNamespace
 
-from marshmallow import ValidationError
-from marshmallow import Schema, post_dump, post_load, fields
-from marshmallow.utils import is_collection
+from marshmallow import ValidationError, MarshalResult
+from marshmallow import Schema, post_dump, post_load
 
-from .fields import BasePolyField, ByType
+from qiskit.validation.utils import is_validating, VALID_MODEL
 
 
 class BaseSchema(Schema):
@@ -47,6 +45,55 @@ class BaseSchema(Schema):
     """
 
     model_cls = SimpleNamespace
+
+    black_list = ['__is_valid__']
+
+    def dump(self, obj, many=None, update_fields=True, **kwargs):
+        if is_validating():
+            if isinstance(obj, self.model_cls):
+                if self.is_valid_instance(obj):
+                    return MarshalResult(VALID_MODEL, [])
+
+            else:
+                error = ValidationError(
+                    'Not an instance of {}'.format(self.model_cls), data=obj)
+                return MarshalResult(obj, [error])
+
+        return super().dump(obj, many=many, update_fields=update_fields, **kwargs)
+
+    def load(self, data, many=None, partial=None):
+        if data is VALID_MODEL:
+            return MarshalResult(data, [])
+
+        return super().load(data, many=many, partial=partial)
+
+    @staticmethod
+    def validate_model(instance):
+        """Marks the model as valid.
+
+        This method is used by the model's validation machinery to prevent
+        validating the same model twice.
+        """
+        instance.__is_valid__ = True
+
+    @staticmethod
+    def invalidate_instance(instance):
+        """Marks the model as potentially invalid.
+
+        This method is used by the model's validation machinery to allow
+        mutation and re-validation although the developer is responsible of
+        manually calling model's methods ``_invalidate()`` and ``_validate()``
+        to ensure the integrity of the model.
+        """
+        instance.__is_valid__ = False
+
+    @staticmethod
+    def is_valid_instance(instance):
+        """Checks validity of a model.
+
+        Return True is the model was marked as valid or False otherwise.
+        """
+        return getattr(instance, '__is_valid__', False)
 
     @post_dump(pass_original=True, pass_many=True)
     def dump_additional_data(self, valid_data, many, original_data):
@@ -67,11 +114,12 @@ class BaseSchema(Schema):
         """
         if many:
             for i, _ in enumerate(valid_data):
-                additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
+                additional_keys = set(original_data[i].__dict__) -\
+                                  set(valid_data[i]) - set(self.black_list)
                 for key in additional_keys:
                     valid_data[i][key] = getattr(original_data[i], key)
         else:
-            additional_keys = set(original_data.__dict__) - set(valid_data)
+            additional_keys = set(original_data.__dict__) - set(valid_data) - set(self.black_list)
             for key in additional_keys:
                 valid_data[key] = getattr(original_data, key)
 
@@ -107,9 +155,8 @@ class BaseSchema(Schema):
         return valid_data
 
     @post_load
-    def make_model(self, data):
-        """Make ``load`` return a ``model_cls`` instance instead of a dict."""
-        return self.model_cls(**data)
+    def _make_model(self, data):
+        return self.model_cls(**data, __validity_warranty__=True)
 
 
 class _SchemaBinder:
@@ -139,91 +186,10 @@ class _SchemaBinder:
         model_cls.to_dict = self._to_dict
         model_cls.from_dict = classmethod(self._from_dict)
         model_cls._validate = self._validate
+        model_cls._invalidate = self._invalidate
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
 
-        # Add a Schema that performs minimal validation to the Model.
-        model_cls.shallow_schema = self._create_shallow_schema(self._schema_cls)
-
         return model_cls
-
-    def _create_shallow_schema(self, schema_cls):
-        """Create a Schema with minimal validation for compound types.
-
-
-        This is a helper for performing the initial validation when
-        instantiating the Model via **kwargs. It works on the assumption that
-        **kwargs will contain:
-        * for compound types (`Nested`, `BasePolyField`), it will already
-          contain `BaseModels`, which should have been validated earlier
-          (during _their_ instantiation), and only type checking is performed.
-        * for `Number` and `String` types, both serialized and deserialized
-          are equivalent, and the shallow_schema will try to serialize in
-          order to perform stronger validation.
-        * for the rest of fields (the ones where the serialized and deserialized
-          data is different), it will contain _deserialized_ types that are
-          passed through.
-
-        The underlying idea is to be able to perform validation (in the schema)
-        at only the first level of the object, and at the same time take
-        advantage of validation during **kwargs instantiation as much as
-        possible (mimicking `.from_dict()` in that respect).
-
-        Returns:
-            BaseSchema: a copy of the original Schema, overriding the
-                ``_deserialize()`` call of its fields.
-        """
-        shallow_schema = schema_cls()
-        for _, field in shallow_schema.fields.items():
-            if isinstance(field, fields.Nested):
-                field._deserialize = partial(self._overridden_nested_deserialize, field)
-            elif isinstance(field, BasePolyField):
-                field._deserialize = partial(self._overridden_basepolyfield_deserialize, field)
-            elif not isinstance(field, (fields.Number, fields.String, ByType)):
-                field._deserialize = partial(self._overridden_field_deserialize, field)
-        return shallow_schema
-
-    @staticmethod
-    def _overridden_nested_deserialize(field, value, _, data):
-        """Helper for minimal validation of fields.Nested."""
-        if field.many and not is_collection(value):
-            field.fail('type', input=value, type=value.__class__.__name__)
-
-        if not field.many:
-            values = [value]
-        else:
-            values = value
-
-        for v in values:
-            if not isinstance(v, field.schema.model_cls):
-                raise ValidationError(
-                    'Not a valid type for {}.'.format(field.__class__.__name__),
-                    data=data)
-        return value
-
-    @staticmethod
-    def _overridden_basepolyfield_deserialize(field, value, _, data):
-        """Helper for minimal validation of fields.BasePolyField."""
-        if not field.many:
-            values = [value]
-        else:
-            values = value
-
-        for v in values:
-            schema = field.serialization_schema_selector(v, data)
-            if not schema:
-                raise ValidationError(
-                    'Not a valid type for {}.'.format(field.__class__.__name__),
-                    data=data)
-        return value
-
-    @staticmethod
-    def _overridden_field_deserialize(field, value, attr, data):
-        """Helper for validation of generic Field."""
-        # Attempt to serialize, in order to catch validation errors.
-        field._serialize(value, attr, data)
-
-        # Propagate the original value upwards.
-        return value
 
     @staticmethod
     def _to_dict(instance):
@@ -236,9 +202,21 @@ class _SchemaBinder:
     @staticmethod
     def _validate(instance):
         """Validate the internal representation of the instance."""
-        errors = instance.schema.validate(instance.to_dict())
-        if errors:
-            raise ValidationError(errors)
+        schema = instance.schema
+        if not schema.is_valid_instance(instance):
+            # pylint: disable=unused-variable
+            __is_validating__ = True
+            errors = instance.schema.validate(instance.to_dict())
+            __is_validating__ = False
+            if errors:
+                raise ValidationError(errors)
+
+            instance.schema.validate_model(instance)
+
+    @staticmethod
+    def _invalidate(instance):
+        """Invalidates the instance making ``_validate`` to rerun all checks."""
+        instance.schema.invalidate_instance(instance)
 
     @staticmethod
     def _from_dict(decorated_cls, dict_):
@@ -254,11 +232,13 @@ class _SchemaBinder:
 
         @wraps(init_method)
         def _decorated(self, **kwargs):
-            errors = self.shallow_schema.validate(kwargs)
-            if errors:
-                raise ValidationError(errors)
-
+            has_validity_warranty = kwargs.pop('__validity_warranty__', False)
             init_method(self, **kwargs)
+
+            if has_validity_warranty:
+                self.schema.validate_model(self)
+            else:
+                self._validate()
 
         return _decorated
 
@@ -270,9 +250,15 @@ def bind_schema(schema):
     instantiation and they are augmented to allow further validations with the
     private method ``_validate()``.
 
+    Since validation can be an expensive operation, once validated, an instance
+    is considered valid forever or until calling ``_invalidate()``.
+
+    If an instance is modified in such a way it can be invalidated, the
+    instance can call ``_invalidate()`` to force the following call to
+    ``_validate()`` to rerun all the checks.
+
     The decorator also adds the class attribute ``schema`` with the schema used
-    for validation, along with a class attribute ``shallow_schema`` used for
-    validation during instantiation.
+    for validation.
 
     To ease serialization/deserialization to/from simple Python objects,
     classes are provided with ``to_dict`` and ``from_dict`` instance and class
