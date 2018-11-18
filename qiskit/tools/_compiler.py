@@ -57,7 +57,7 @@ def compile(circuits, backend,
     dags = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                 seed_mapper, hpc, pass_manager)
 
-    # print(dags[0].cregs.values())
+    print(dags[0].cregs.values())
 
     # step 3: Making a qobj
     qobj_standard = dags_2_qobj(dags, backend_name=backend.name(),
