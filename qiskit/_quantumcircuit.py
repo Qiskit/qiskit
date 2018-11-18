@@ -214,6 +214,7 @@ class QuantumCircuit(object):
 
     def add_register(self, *regs):
         """Add registers."""
+        print(regs)
         for register in regs:
             if register.name in self.qregs or register.name in self.cregs:
                 raise QISKitError("register name \"%s\" already exists"

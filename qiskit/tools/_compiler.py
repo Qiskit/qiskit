@@ -55,9 +55,6 @@ def compile(circuits, backend,
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
-    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
-        circuits = [circuits]
-    print(circuits[0].cregs)
     dags = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                 seed_mapper, hpc, pass_manager)
 
