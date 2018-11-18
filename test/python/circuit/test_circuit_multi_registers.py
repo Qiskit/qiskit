@@ -28,23 +28,22 @@ class TestCircuitMultiRegs(QiskitTestCase):
     def test_circuit_multi(self):
         """Test circuit multi regs declared at start.
         """
-        qubit0 = QuantumRegister(2, 'q0')
-        cbit0 = ClassicalRegister(2, 'c0')
-        qubit1 = QuantumRegister(2, 'q1')
-        cbit1 = ClassicalRegister(2, 'c1')
-        circ = QuantumCircuit(qubit0, qubit1)
-        circ.x(qubit0[1])
-        circ.x(qubit1[0])
+        qreg0 = QuantumRegister(2, 'q0')
+        creg0 = ClassicalRegister(2, 'c0')
+        qreg1 = QuantumRegister(2, 'q1')
+        creg1 = ClassicalRegister(2, 'c1')
+        circ = QuantumCircuit(qreg0, qreg1)
+        circ.x(qreg0[1])
+        circ.x(qreg1[0])
 
-        meas = QuantumCircuit(qubit0, qubit1, cbit0, cbit1)
-        meas.measure(qubit0, cbit0)
-        meas.measure(qubit1, cbit1)
+        meas = QuantumCircuit(qreg0, qreg1, creg0, creg1)
+        meas.measure(qreg0, creg0)
+        meas.measure(qreg1, creg1)
 
         qc = circ + meas
 
         backend_sim = Aer.get_backend('qasm_simulator_py')
         qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
-        print('\n')
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
         result = backend_sim.run(qobj_qc).result()
@@ -78,23 +77,23 @@ class TestCircuitMultiRegs(QiskitTestCase):
     def test_circuit_multi_case2(self):
         """Test circuit multi regs declared at start.
         """
-        qubit0 = QuantumRegister(2, 'q0')
-        cbit0 = ClassicalRegister(2, 'c0')
-        qubit1 = QuantumRegister(2, 'q1')
-        cbit1 = ClassicalRegister(2, 'c1')
+        qreg0 = QuantumRegister(2, 'q0')
+        creg0 = ClassicalRegister(2, 'c0')
+        qreg1 = QuantumRegister(2, 'q1')
+        creg1 = ClassicalRegister(2, 'c1')
         circ2 = QuantumCircuit()
-        circ2.add_register(qubit0)
-        circ2.add_register(qubit1)
-        circ2.x(qubit0[1])
-        circ2.x(qubit1[0])
+        circ2.add_register(qreg0)
+        circ2.add_register(qreg1)
+        circ2.x(qreg0[1])
+        circ2.x(qreg1[0])
 
         meas2 = QuantumCircuit()
-        meas2.add_register(qubit0)
-        meas2.add_register(qubit1)
-        meas2.add_register(cbit0)
-        meas2.add_register(cbit1)
-        meas2.measure(qubit0, cbit0)
-        meas2.measure(qubit1, cbit1)
+        meas2.add_register(qreg0)
+        meas2.add_register(qreg1)
+        meas2.add_register(creg0)
+        meas2.add_register(creg1)
+        meas2.measure(qreg0, creg0)
+        meas2.measure(qreg1, creg1)
 
         qc2 = circ2 + meas2
 
