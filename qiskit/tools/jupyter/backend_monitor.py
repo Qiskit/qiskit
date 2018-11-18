@@ -377,8 +377,11 @@ def detailed_map(backend):
     with cmap_widget:
         noise_map = plot_coupling_map(backend, qubit_color=q_colors,
                                       line_color=line_colors,
-                                      figsize=(8, 8),
                                       qubit_size=32)
+        width, height = noise_map.get_size_inches()
+
+        noise_map.set_size_inches(1.25*width, 1.25*height)
+
         display(noise_map)
         plt.close(noise_map)
 
