@@ -11,7 +11,7 @@ OPENQASM interpreter.
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
-
+from collections import OrderedDict
 
 class Unroller(object):
     """OPENQASM interpreter object expands subroutines and unrolls loops."""
@@ -32,11 +32,11 @@ class Unroller(object):
         # OPENQASM version number
         self.version = 0.0
         # Dict of qreg names and sizes
-        self.qregs = {}
+        self.qregs = OrderedDict()
         # Dict of creg names and sizes
-        self.cregs = {}
+        self.cregs = OrderedDict()
         # Dict of gates names and properties
-        self.gates = {}
+        self.gates = OrderedDict()
         # List of dictionaries mapping local parameter ids to expression Nodes
         self.arg_stack = [{}]
         # List of dictionaries mapping local bit ids to global ids (name, idx)
