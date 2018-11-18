@@ -74,7 +74,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         print(qobj_exp.header.clbit_labels)
         for i in qobj_exp.instructions:
             print(i)
-
+        print(count)
         self.assertEqual(counts, counts_py)
         self.assertEqual(target, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
