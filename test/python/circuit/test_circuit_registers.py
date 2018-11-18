@@ -31,7 +31,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qr1 = QuantumRegister(10, "q")
         self.assertEqual(qr1.name, "q")
         self.assertEqual(qr1.size, 10)
-        self.assertEqual(qr1.type, "qreg")
+        self.assertEqual(type(qr1), QuantumRegister)
 
     def test_cregs(self):
         """Test getting quantum registers from circuit.
@@ -39,7 +39,7 @@ class TestCircuitRegisters(QiskitTestCase):
         cr1 = ClassicalRegister(10, "c")
         self.assertEqual(cr1.name, "c")
         self.assertEqual(cr1.size, 10)
-        self.assertEqual(cr1.type, "creg")
+        self.assertEqual(type(cr1), ClassicalRegister)
 
     def test_reg_equal(self):
         """Test getting quantum registers from circuit.
