@@ -20,7 +20,7 @@ def process_fidelity(channel1, channel2):
 
     Currently the input must be a unitary (until we decide on the channel)
     For a unitary channels the process fidelity is given by
-        F_p(U, U) = abs(Tr[ U^dagger U ])/d^2
+        F_p(U, U) = abs(Tr[ U^dagger U ])^2/d^2
 
     Args:
         channel1 (array_like): a quantum unitary operator.
