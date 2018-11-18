@@ -59,6 +59,7 @@ Changed
 - The `qiskit.tools.visualization.circuit_drawer()` method now returns
   a matplotlib.Figure object when the `mpl` output is used and a
   `TextDrawer` object when `text` output is used. (#1224, #1181)
+- Speed up the Pauli class and extended its operators (#1271 #1166).
 
 Deprecated
 """"""""""
