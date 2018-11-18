@@ -43,7 +43,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         qc = circ + meas
 
         backend_sim = Aer.get_backend('qasm_simulator_py')
-        qobj_qc = compile(qc, backend_sim, seed_mapper=88) #34342
+        qobj_qc = compile(qc, backend_sim, seed_mapper=88)  # 34342
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
         qobj_exp = qobj_qc.experiments[0]
@@ -55,6 +55,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
+        print(counts)
 
         backend_sim = Aer.get_backend('qasm_simulator')
         result = backend_sim.run(qobj_qc).result()
