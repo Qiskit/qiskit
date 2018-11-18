@@ -50,13 +50,13 @@ class DAGCircuit:
 
         # Map from a wire's name (reg,idx) to a Bool that is True if the
         # wire is a classical bit and False if the wire is a qubit.
-        self.wire_type = {}
+        self.wire_type = OrderedDict()
 
         # Map from wire names (reg,idx) to input nodes of the graph
-        self.input_map = {}
+        self.input_map = OrderedDict()
 
         # Map from wire names (reg,idx) to output nodes of the graph
-        self.output_map = {}
+        self.output_map = OrderedDict()
 
         # Running count of the total number of nodes
         self.node_counter = 0
@@ -83,7 +83,7 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # Map of user defined gates to ast nodes defining them
-        self.gates = {}
+        self.gates = OrderedDict()
 
         # Output precision for printing floats
         self.prec = 10
