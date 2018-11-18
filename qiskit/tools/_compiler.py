@@ -57,6 +57,8 @@ def compile(circuits, backend,
     dags = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                 seed_mapper, hpc, pass_manager)
 
+    print(dags[0].cregs.values())
+
     # step 3: Making a qobj
     qobj_standard = dags_2_qobj(dags, backend_name=backend.name(),
                                 config=config, shots=shots, max_credits=max_credits,
@@ -139,7 +141,6 @@ def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None)
         Qobj: Qobj to be run on the backends
     """
     json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-    print(json_circuit)
     # Step 3a: create the Experiment based on json_circuit
     experiment = QobjExperiment.from_dict(json_circuit)
     # Step 3b: populate the Experiment configuration and header
