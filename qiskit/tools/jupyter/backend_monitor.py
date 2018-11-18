@@ -217,7 +217,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
             buffer = str(
                 round(qubit['buffer']['value'], 5))+' '+qubit['buffer']['unit']
         else:
-            _buffer = ''
+            buffer = ''
         qubit_html += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td>"
         qubit_html += "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
         qubit_html = qubit_html % (name, freq, T1, T2, gate_time,
