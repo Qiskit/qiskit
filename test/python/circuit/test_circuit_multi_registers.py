@@ -68,16 +68,16 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
-        qobj_exp = qobj_qc.experiments[0]
-        print(qobj_exp.header.qubit_labels)
-        qobj_exp.header.compiled_circuit_qasm = ""
-        print(qobj_exp.header.compiled_circuit_qasm)
-        print(qobj_exp.header.clbit_labels)
-        for i in qobj_exp.instructions:
-            print(i)
-        print(counts)
-        self.assertEqual(counts, counts_py)
-        self.assertEqual(target, target)
+        # qobj_exp = qobj_qc.experiments[0]
+        # print(qobj_exp.header.qubit_labels)
+        # qobj_exp.header.compiled_circuit_qasm = ""
+        # print(qobj_exp.header.compiled_circuit_qasm)
+        # print(qobj_exp.header.clbit_labels)
+        # for i in qobj_exp.instructions:
+        #    print(i)
+        # print(counts)
+        self.assertEqual(counts, target)
+        self.assertEqual(counts_py, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state_py), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
@@ -119,8 +119,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         unitary = result.get_unitary(circ2)
 
         target = {'01 10': 1024}
-        self.assertEqual(target, target)
-        self.assertEqual(counts, counts)
+        self.assertEqual(target, counts)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
                                1.0, places=7)
