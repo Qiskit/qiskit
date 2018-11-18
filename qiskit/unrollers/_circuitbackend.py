@@ -100,7 +100,6 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
     def _map_creg(self, creg):
         """Map creg name to ClassicalRegister."""
-        # HOW IS THIS FUNCTION USED
         cregs = self.circuit.cregs
         cregs_names = [element.name for element in cregs]
         if creg not in cregs_names:
