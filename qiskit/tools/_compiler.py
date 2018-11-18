@@ -12,6 +12,7 @@ import logging
 
 
 from qiskit import transpiler
+from qiskit import _quantumcircuit
 from qiskit.transpiler._passmanager import PassManager
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
 from qiskit.unroll import DagUnroller, JsonBackend
@@ -54,7 +55,9 @@ def compile(circuits, backend,
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
-    print(circuits.cregs)
+    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
+        circuits = [circuits]
+    print(circuits[0].cregs)
     dags = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                 seed_mapper, hpc, pass_manager)
 
