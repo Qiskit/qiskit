@@ -8,10 +8,11 @@
 """
 OPENQASM interpreter.
 """
+from collections import OrderedDict
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
-from collections import OrderedDict
+
 
 class Unroller(object):
     """OPENQASM interpreter object expands subroutines and unrolls loops."""
