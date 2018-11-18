@@ -46,8 +46,6 @@ class TestCircuitMultiRegs(QiskitTestCase):
         qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
-        qobj_exp = qobj_qc.experiments[0]
-
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
 
