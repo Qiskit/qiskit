@@ -33,8 +33,8 @@ class TestCircuitRegisters(QiskitTestCase):
         qc = QuantumCircuit(qr1, qr2)
         q_regs = qc.qregs
         self.assertEqual(len(q_regs), 2)
-        self.assertEqual(q_regs[qr1.name], qr1)
-        self.assertEqual(q_regs[qr2.name], qr2)
+        self.assertEqual(q_regs[0], qr1)
+        self.assertEqual(q_regs[1], qr2)
 
     def test_cregs(self):
         """Test getting classical registers from circuit.
@@ -45,5 +45,5 @@ class TestCircuitRegisters(QiskitTestCase):
         qc = QuantumCircuit(cr1, cr2, cr3)
         c_regs = qc.cregs
         self.assertEqual(len(c_regs), 3)
-        self.assertEqual(c_regs[cr1.name], cr1)
-        self.assertEqual(c_regs[cr2.name], cr2)
+        self.assertEqual(c_regs[0], cr1)
+        self.assertEqual(c_regs[1], cr2)

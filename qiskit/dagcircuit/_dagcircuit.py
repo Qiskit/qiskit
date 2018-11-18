@@ -1356,9 +1356,9 @@ class DAGCircuit:
         """
         dagcircuit = DAGCircuit()
         dagcircuit.name = circuit.name
-        for register in circuit.qregs.values():
+        for register in circuit.qregs:
             dagcircuit.add_qreg(register)
-        for register in circuit.cregs.values():
+        for register in circuit.cregs:
             dagcircuit.add_creg(register)
         # Add user gate definitions
         for name, data in circuit.definitions.items():
