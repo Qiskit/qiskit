@@ -150,14 +150,14 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_operations(self):
         """Test circuit operations breakdown by kind of op."""
         operations = {
-                'h': 2,
-                't': 1,
-                'u2': 1,
-                'cx': 1,
-                'ch': 1,
-                'ccx': 1
+            'h': 2,
+            't': 1,
+            'u2': 1,
+            'cx': 1,
+            'ch': 1,
+            'ccx': 1
         }
-                    
+
         self.assertDictEqual(self.dag.count_ops(), operations)
 
     def test_circuit_factors(self):

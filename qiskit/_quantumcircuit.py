@@ -392,7 +392,7 @@ class QuantumCircuit(object):
 
     def count_ops(self):
         """Count each operation kind in the circuit.
-        
+
         Returns:
             dict: a breakdown of how many operations of each kind.
         """
