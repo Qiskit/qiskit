@@ -26,5 +26,5 @@ def build_bell_circuit():
 # Create the circuit
 bell_circuit = build_bell_circuit()
 
-# Use the return value with show() to display the diagram
-print(bell_circuit.draw())
+# Use the internal .draw() to print the circuit
+print(bell_circuit)
