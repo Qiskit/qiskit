@@ -66,6 +66,7 @@ Changed
 - Backend and Provider methods defined in the specification use model objects
   rather than dicts, along with validation against schemas (#1249, #1277).
 - ``backend.provider()`` is now a method instead of a property (#1312).
+- Remove local backend (Aer) fallback (#1303)
 
 Deprecated
 """"""""""
