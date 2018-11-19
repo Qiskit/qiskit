@@ -167,26 +167,7 @@ class IBMQBackend(BaseBackend):
             LookupError: If status for the backend can't be found.
             IBMQBackendError: If the status can't be formatted properly.
         """
-        base_status = super().status()
         api_status = self._api.backend_status(self.name())
-
-        # FIXME: these corrections need to be resolved at the API level
-        # - eventually it will.
-
-        # 'operational' needs to be present, not 'available'
-        if 'available' in api_status:
-            api_status['operational'] = api_status.pop('available')
-        # 'backend_name' addressed as 'backend'.
-        if 'backend' in api_status:
-            api_status['backend_name'] = api_status.pop('backend')
-        # 'pending_jobs' should be >= 0.
-        api_status['pending_jobs'] = max(api_status.get('pending_jobs', 0), 0)
-        # 'backend_version' needs to be present, and in the form X.Y.Z.
-        if 'backend_version' not in api_status:
-            api_status['backend_version'] = base_status.backend_version
-        # 'status_msg' needs to be present.
-        if 'status_msg' not in api_status:
-            api_status['status_msg'] = base_status.status_msg
 
         try:
             return BackendStatus.from_dict(api_status)

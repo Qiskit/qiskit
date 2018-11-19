@@ -54,7 +54,7 @@ def filter_backends(backends, filters=None, **kwargs):
     # each backend).
     if status_filters:
         backends = [b for b in backends if
-                    _match_all(b.status(), status_filters)]
+                    _match_all(b.status().to_dict(), status_filters)]
 
     # 3. Apply acceptor filter.
     backends = list(filter(filters, backends))
