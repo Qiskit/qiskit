@@ -99,6 +99,13 @@ class TestSwapMapper(QiskitTestCase):
          q2:-------.---
 
          Coupling map: [1]--[0]--[2]
+
+         q0:--(+)--X--.---
+               |   |  |
+         q1:---.---|-(+)--
+                   |
+         q2:-------X------
+
         """
         coupling = Coupling({0: [1, 2]})
         dag = TestSwapMapper.create_dag([('CX', [('q', 0), ('q', 1)]),
