@@ -41,9 +41,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
-              'sphinx.ext.githubpages',
-              'sphinxcontrib.fulltoc']
-
+              'sphinx.ext.githubpages']
 # Napoleon settings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
@@ -78,7 +76,7 @@ author = 'IBM'
 
 # Add description
 html_context = {
-    'description': 'Quantum Information Science Kit'
+    'description': 'Qiskit Terra'
 }
 
 # The version info for the project you're documenting, acts as replacement for
@@ -119,7 +117,7 @@ todo_include_todos = False
 # html_theme = 'bizstyle'
 # html_theme = agogo
 
-html_theme = 'theme'  # use the theme in subdir 'theme'
+html_theme = 'sphinx_materialdesign_theme' # use the theme in subdir 'theme'
 html_theme_path = ['./']  # make sphinx search for themes in current dir
 
 
@@ -127,16 +125,60 @@ html_theme_path = ['./']  # make sphinx search for themes in current dir
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {}
+html_theme_options = {
+    # Specify a list of menu in Header.
+    # Tuples forms:
+    #  ('Name', 'external url or path of pages in the document', boolean, 'icon name')
+    #
+    # Third argument:
+    # True indicates an external link.
+    # False indicates path of pages in the document.
+    #
+    # Fourth argument:
+    # Specify the icon name.
+    # For details see link.
+    # https://material.io/icons/
+    'header_links' : [
+        ('Home', 'index', False, 'home'),
+        ("ExternalLink", "http://example.com", True, 'launch'),
+        ("NoIconLink", "http://example.com", True, ''),
+        ("GitHub", "https://github.com/myyasuda/sphinx_materialdesign_theme", True, 'link')
+    ],
 
+    # Customize css colors.
+    # For details see link.
+    # https://getmdl.io/customize/index.html
+    #
+    # Values: amber, blue, brown, cyan deep_orange, deep_purple, green, grey, indigo, light_blue,
+    #         light_green, lime, orange, pink, purple, red, teal, yellow(Default: indigo)
+    'primary_color': 'blue',
+    # Values: Same as primary_color. (Default: pink)
+    'accent_color': 'indigo',
+
+    # Customize layout.
+    # For details see link.
+    # https://getmdl.io/components/index.html#layout-section
+    'fixed_drawer': True,
+    'fixed_header': False,
+    'header_waterfall': True,
+    'header_scroll': False,
+
+    # Render title in header.
+    # Values: True, False (Default: False)
+    'show_header_title': False,
+    # Render title in drawer.
+    # Values: True, False (Default: True)
+    'show_drawer_title': True,
+    # Render footer.
+}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['./theme/static/']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'theme/static/qiskit-logo-white-no-margin.gif'
+html_logo = 'theme/static/qiskit-terra-logo.png'
 
 html_favicon = 'theme/static/favicon.ico'
 
@@ -145,7 +187,7 @@ html_last_updated_fmt = '%Y/%m/%d'
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'QISKitdoc'
+htmlhelp_basename = 'Qiskitdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -172,9 +214,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'QISKit.tex', 'Qiskit Documentation',
-     '''Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Jesus Perez,
-     and John Smolin''', 'manual'),
+    (master_doc, 'Qiskit.tex', 'Qiskit Documentation',
+     '''Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta''', 'manual'),
 ]
 
 

@@ -8,6 +8,7 @@
 """
 OPENQASM interpreter.
 """
+from collections import OrderedDict
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
@@ -32,11 +33,11 @@ class Unroller(object):
         # OPENQASM version number
         self.version = 0.0
         # Dict of qreg names and sizes
-        self.qregs = {}
+        self.qregs = OrderedDict()
         # Dict of creg names and sizes
-        self.cregs = {}
+        self.cregs = OrderedDict()
         # Dict of gates names and properties
-        self.gates = {}
+        self.gates = OrderedDict()
         # List of dictionaries mapping local parameter ids to expression Nodes
         self.arg_stack = [{}]
         # List of dictionaries mapping local bit ids to global ids (name, idx)

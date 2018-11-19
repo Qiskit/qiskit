@@ -34,6 +34,8 @@ The input is a AST and a basis set and returns a json memory object::
         ]
     }
 """
+from collections import OrderedDict
+
 from qiskit.unrollers._backenderror import BackendError
 from qiskit.unrollers._unrollerbackend import UnrollerBackend
 
@@ -60,8 +62,8 @@ class JsonBackend(UnrollerBackend):
         self._number_of_cbits = 0
         self._qubit_order = []
         self._cbit_order = []
-        self._qubit_order_internal = {}
-        self._cbit_order_internal = {}
+        self._qubit_order_internal = OrderedDict()
+        self._cbit_order_internal = OrderedDict()
 
         self.creg = None
         self.cval = None

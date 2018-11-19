@@ -17,8 +17,13 @@ import logging
 import math
 
 import numpy as np
-from matplotlib import patches
-from matplotlib import pyplot as plt
+
+try:
+    from matplotlib import patches
+    from matplotlib import pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 from qiskit import dagcircuit
 from qiskit import transpiler
@@ -91,6 +96,10 @@ class MatplotlibDrawer:
                        'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
                  scale=1.0, style=None, plot_barriers=True,
                  reverse_bits=False):
+
+        if not HAS_MATPLOTLIB:
+            raise ImportError('The class MatplotlibDrawer needs matplotlib. '
+                              'Run "pip install matplotlib" before.')
 
         self._ast = None
         self._basis = basis
@@ -360,6 +369,7 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
+        plt.close(self.figure)
         return self.figure
 
     def _draw_regs(self):

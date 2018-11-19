@@ -48,7 +48,9 @@ def random_state(num):
     Returns:
         ndarray:  state(2**num) a random quantum state.
     """
-    x = np.random.random(1 << num)+0.00000001
+    # Random array over interval (0, 1]
+    x = np.random.random(1 << num)
+    x += x == 0
     x = -np.log(x)
     sumx = sum(x)
     phases = np.random.random(1 << num)*2.0*np.pi
