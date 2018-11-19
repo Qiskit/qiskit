@@ -6,8 +6,7 @@ from qiskit import QuantumCircuit
 from qiskit import QISKitError, execute, Aer
 
 try:
-    circ = QuantumCircuit()
-    circ.from_qasm_file("examples/qasm/entangled_registers.qasm")
+    circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
     print(circ.draw())
 
     # See the backend
