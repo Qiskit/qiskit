@@ -9,6 +9,7 @@
 Utilities for reading and writing credentials from and to configuration files.
 """
 
+import warnings
 import os
 from ast import literal_eval
 from collections import OrderedDict
@@ -116,15 +117,17 @@ def store_credentials(credentials, overwrite=False, filename=None):
             location is used (`HOME/.qiskit/qiskitrc`).
 
     Raises:
-        QISKitError: If credentials already exists and overwrite=False; or if
-            the account_name could not be assigned.
+        QISKitError: if the account_name could not be assigned.
     """
     # Read the current providers stored in the configuration file.
     filename = filename or DEFAULT_QISKITRC_FILE
     stored_credentials = read_credentials_from_qiskitrc(filename)
 
+    # Check if duplicated credentials are already stored. By convention,
+    # we assume (hub, group, project) is always unique.
     if credentials.unique_id() in stored_credentials and not overwrite:
-        raise QISKitError('Credentials already present and overwrite=False')
+        warnings.warn('Credentials already present. Set overwrite=True to overwrite.')
+        return
 
     # Append and write the credentials to file.
     stored_credentials[credentials.unique_id()] = credentials
