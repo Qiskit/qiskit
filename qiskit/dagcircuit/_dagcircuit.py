@@ -1351,10 +1351,8 @@ class DAGCircuit:
                    "operations": self.count_ops()}
         return summary
 
-    def add_dag_at_the_end(self, dag, layout=None):
-        """Add `dag` at the end of `self`, using layout for wireing.
-        If `layout` is not provided, creates a layout where wires are
-        connected one-to-one."""
+    def add_dag_at_the_end(self, dag, layout):
+        """Add `dag` at the end of `self`, using `layout` for wireing."""
         for qreg in dag.qregs.values():
             if qreg.name not in self.qregs:
                 self.add_qreg(QuantumRegister(qreg.size, qreg.name))
@@ -1362,16 +1360,6 @@ class DAGCircuit:
         for creg in dag.cregs.values():
             if creg.name not in self.cregs:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
-
-        if layout is None:
-            # create a one-to-one layout
-            layout = {}
-            for qreg in dag.qregs.values():
-                for index in range(qreg.size):
-                    layout[(qreg.name, index)] = (qreg.name, index)
-            for creg in dag.cregs.values():
-                for index in range(creg.size):
-                    layout[(creg.name, index)] = (creg.name, index)
 
         self.compose_back(dag, layout)
 
