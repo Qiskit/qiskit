@@ -20,7 +20,6 @@ directly from the graph.
 from collections import OrderedDict
 import copy
 import itertools
-from contextlib import suppress
 
 import networkx as nx
 import sympy
@@ -1357,11 +1356,11 @@ class DAGCircuit:
         If `layout` is not provided, creates a layout where wires are
         connected one-to-one."""
         for qreg in dag.qregs.values():
-            with suppress(DAGCircuitError):
+            if qreg.name not in self.qregs:
                 self.add_qreg(QuantumRegister(qreg.size, qreg.name))
 
         for creg in dag.cregs.values():
-            with suppress(DAGCircuitError):
+            if creg.name not in self.cregs:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
 
         if layout is None:
