@@ -182,9 +182,35 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
             plt.close(fig)
     return fig
 
-if not HAS_MATPLOTLIB:
-    def plot_bloch_vector(*_, **__):
-        """ Dummy plot_bloch_vector."""
+
+def plot_bloch_vector(bloch, title="", filename=None, show=False):
+    """Plot the Bloch sphere.
+
+    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+
+    Args:
+        bloch (list[double]): array of three elements where [<x>, <y>,<z>]
+        title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
+        show (bool): If set to true the rendered image will open in a new
+            window
+    Returns:
+        matplotlib.Figure: The figure of the rendered bloch sphere
+    Raises:
+        ImportError: If matplotlib is not installed or configured
+    """
+    if not HAS_MATPLOTLIB:
         raise ImportError(_MSG % "plot_bloch_vector")
-else:
-    from ._state_visualization import plot_bloch_vector
+    else:
+        from ._bloch import Bloch
+        B = Bloch()
+        B.add_vectors(bloch)
+        B.render(title=title)
+        fig = B.fig
+        if filename:
+            plt.savefig(filename)
+        elif show:
+            plt.show()
+        plt.close(fig)
+        return fig
