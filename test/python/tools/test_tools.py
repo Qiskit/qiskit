@@ -10,11 +10,10 @@
 """Tests for the wrapper functionality."""
 
 import unittest
-
-import qiskit.tools
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import Aer
 from qiskit import execute
+from qiskit.tools.monitor import job_monitor
 from ..common import QiskitTestCase
 
 
@@ -30,7 +29,7 @@ class TestTools(QiskitTestCase):
         qc.measure(qreg, creg)
         backend = Aer.get_backend('qasm_simulator')
         job_sim = execute([qc]*10, backend)
-        qiskit.tools.monitor.job_monitor(job_sim)
+        job_monitor(job_sim)
         self.assertEqual(job_sim.status().name, 'DONE')
 
 
