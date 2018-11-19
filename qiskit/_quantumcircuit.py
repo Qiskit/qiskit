@@ -23,6 +23,7 @@ from qiskit._qiskiterror import QISKitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from qiskit.tools import visualization
+from qiskit.dagcircuit import DAGCircuit
 
 
 def _circuit_from_qasm(qasm, basis=None):
@@ -373,6 +374,35 @@ class QuantumCircuit(object):
                                             line_length=line_length,
                                             plot_barriers=plot_barriers,
                                             reverse_bits=reverse_bits)
+
+    def size(self):
+        """Return total number of operations in circuit."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.size()
+
+    def depth(self):
+        """Return circuit depth (i.e. length of critical path)."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.depth()
+
+    def width(self):
+        """Return number of qubits in circuit."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.width()
+
+    def count_ops(self):
+        """Count each operation kind in the circuit.
+
+        Returns:
+            dict: a breakdown of how many operations of each kind.
+        """
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.count_ops()
+
+    def num_tensor_factors(self):
+        """How many non-entangled subcircuits can the circuit be factored to."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.num_tensor_factors()
 
     def __str__(self):
         return str(self.draw(output='text'))
