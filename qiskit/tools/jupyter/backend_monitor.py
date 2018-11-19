@@ -491,8 +491,16 @@ def plot_job_history(jobs, interval='year'):
     Returns:
         fig: A Matplotlib figure instance.
     """
-    def get_date(j):
-        return datetime.datetime.strptime(j.creation_date(),
+    def get_date(job):
+        """Returns a datetime object from a IBMQJob instance.
+
+        Args:
+            job (IBMQJob): A job.
+        
+        Returns:
+            dt: A datetime object.
+        """
+        return datetime.datetime.strptime(job.creation_date(),
                                           '%Y-%m-%dT%H:%M:%S.%fZ')
 
     current_time = datetime.datetime.now()
