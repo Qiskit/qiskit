@@ -18,7 +18,11 @@ class SwapMapper(TransformationPass):
     Maps a DAGCircuit onto a `coupling_map` using swap gates.
     """
 
-    def __init__(self, coupling_map, swap_basis_element='swap', swap_data=None):
+    def __init__(self,
+                 coupling_map,
+                 swap_basis_element='swap',
+                 swap_data=None,
+                 initial_layout=None):
         """
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
         Args:
@@ -28,7 +32,7 @@ class SwapMapper(TransformationPass):
             swap_data (dict): The swap "gate data". Default: the swap gate is opaque.
         """
         super().__init__()
-        self.layout = None
+        self.layout = initial_layout
         self.coupling_map = coupling_map
         self.swap_basis_element = swap_basis_element
         self.swap_data = swap_data if swap_data is not None else {"opaque": True,
@@ -51,12 +55,11 @@ class SwapMapper(TransformationPass):
         if self.layout is None:
             # create a one-to-one layout
             self.layout = {}
+            wire_no = 0
             for qreg in dag.qregs.values():
                 for index in range(qreg.size):
-                    self.layout[(qreg.name, index)] = (qreg.name, index)
-            for creg in dag.cregs.values():
-                for index in range(creg.size):
-                    self.layout[(creg.name, index)] = (creg.name, index)
+                    self.layout[(qreg.name, index)] = ('q', wire_no)
+                    wire_no += 1
 
         for layer in dag.serial_layers():
             subdag = layer['graph']

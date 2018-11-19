@@ -67,6 +67,9 @@ class TestSwapMapper(QiskitTestCase):
         after_dag = pass_.run(dag)
 
         self.assertEqual(before, after_dag.qasm())
+        self.assertDictEqual(pass_.layout, {('q', 0): ('q', 0),
+                                            ('q', 1): ('q', 1),
+                                            ('q', 2): ('q', 2)})
 
     def test_trivial_in_same_layer(self):
         """ No need to have any swap, two CXs distance 1 to each other, in the same layer
@@ -89,6 +92,10 @@ class TestSwapMapper(QiskitTestCase):
         after_dag = pass_.run(dag)
 
         self.assertEqual(before, after_dag.qasm())
+        self.assertDictEqual(pass_.layout, {('q', 0): ('q', 0),
+                                            ('q', 1): ('q', 1),
+                                            ('q', 2): ('q', 2),
+                                            ('q', 3): ('q', 3)})
 
     def test_a_single_swap(self):
         """ Adding a swap
@@ -120,33 +127,10 @@ class TestSwapMapper(QiskitTestCase):
         after_dag = pass_.run(dag)
 
         self.assertEqual(expected, after_dag.qasm())
+        self.assertDictEqual(pass_.layout, {('q', 0): ('q', 2),
+                                            ('q', 1): ('q', 1),
+                                            ('q', 2): ('q', 0)})
 
-    def test_far_swap(self):
-        """ A far swap that affects coming CXs.
-         qr0:--(+)---.--
-                |    |
-         qr1:---|----|--
-                |    |
-         qr2:---|----|--
-                |    |
-         qr3:---.---(+)-
-
-         Coupling map: [0]--[1]--[2]--[3]
-        """
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
-        dag = TestSwapMapper.create_dag([('CX', [('qr', 0), ('qr', 3)]),
-                                         ('CX', [('qr', 3), ('qr', 0)])])
-        expected = '\n'.join(["OPENQASM 2.0;",
-                              "qreg q[3];",
-                              "opaque swap a,b;",
-                              "CX q[0],q[1];",
-                              "swap q[0],q[2];",
-                              "CX q[1],q[0];"]) + '\n'
-        expected = '\n'.join([])
-        pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
-
-        self.assertEqual(expected, after_dag.qasm())
 
 
 if __name__ == '__main__':
