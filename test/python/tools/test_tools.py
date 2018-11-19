@@ -30,7 +30,7 @@ class TestTools(QiskitTestCase):
         qc.measure(qreg, creg)
         backend = Aer.get_backend('qasm_simulator')
         job_sim = execute([qc]*10, backend)
-        qiskit.tools.job_monitor(job_sim)
+        qiskit.tools.monitor.job_monitor(job_sim)
         self.assertEqual(job_sim.status().name, 'DONE')
 
 
