@@ -96,43 +96,14 @@ IBMQ.enable_account('MY_API_TOKEN')
 
 ## Qiskit에 기여하기 위한 가이드라인
 
-If you'd like to contribute to Qiskit, please take a look at our
-[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expect to uphold to this code.
+Qiskit에 기여하고 싶으시다면 [contribution guidelines](.github/CONTRIBUTING.rst)을 보시기 바랍니다. 이 프로젝트는 Qiskit's [행동 강령 (code of conduct)](.github/CODE_OF_CONDUCT.rst)를 준수합니다. 프로젝트의 참여는 곧 모든 유저들이 행동강령을 준수한다는 것을 의미합니다. 
 
-We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. 
-Please use our [slack](https://qiskit.slack.com) for discussion. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). To ask questions to [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
-
+버그와 그 밖에 요청사항이 있으시면 [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues)를 이용하세요. 토론은 Qiskit [slack](https://qiskit.slack.com)채널을 이용하시면 됩니다. Qiskit Slack채널에 가입하시려면 [링크](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk)를 클릭하세요.질문은 [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit)에서 하시면 됩니다. 
 
 ### Next Steps
 
-이제 여러분은 다른 [Qiskit 튜토리얼](https://github.com/Qiskit/qiskit-tutorial)들까지도 실행할 수 있는 준비와 환경 구성을 마쳤습니다. 
+이제 여러분은 [Qiskit 튜토리얼](https://github.com/Qiskit/qiskit-tutorial)에 있는 다른 예제들까지도 실행할 수 있는 준비와 환경 구성을 마쳤습니다. 
 
-## More Information
+## Authors
 
-다음은 Qiskit을 어떻게 써야하는지에 대한 더많은 정보와 튜토리얼 예제, 그리고 몇몇의 도움이 될만한 링크들 입니다. 한 번 살펴보세요.
-
-* **[Qiskit Aqua](https://github.com/Qiskit/aqua)**,
-  는 양자컴퓨터의 알고리듬을 만드는 Qiskit구성 요소 입니다. 
-* **[Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorial)**,
-   예를 들어 Jupyter 노트북의 경우 [index](https://github.com/Qiskit/qiskit-tutorial/blob/master/index.ipynb)를 참고하세요. 
-* **[OpenQASM](https://github.com/Qiskit/openqasm)**,
-  OpenQASM에 대한 추가적인 정보와 예제.
-* **[IBM Q Experience](https://quantumexperience.ng.bluemix.net)**,
-  실제 양자컴퓨터 및 시뮬레이션된 양자컴퓨터를 사용하기 위한 GUI 인터페이스를 찾으실 수 있습니다. 
-  
-Qiskit은 본래 [IBM Research](http://www.research.ibm.com/)연구팀과 [IBM-Q](http://www.research.ibm.com/ibm-q/)개발팀에 의해 양자컴퓨터에 대한 고수준(high level) 개발킷을 제공할 목적으로 개발되었습니다.
-질의응답과 토론 그리고 양자컴퓨팅에 대해 더 넓게 살펴보기 위해 [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community)를 방문하세요. 만일 여러분이 Qiskit에 기여하길 원한다면 다음의 가이드라인을 살펴보세요. [contribution guidelines](.github/CONTRIBUTING.rst).
-
-## Multilanguage guide
-
-* **[English](doc/README.md)** 영문 가이드 (원문)
-* **[Korean Translation](doc/ko/README.md)** - 한국어 기본 가이드.
-* **[Chinese Translation](doc/zh/README.md)** - 중국어 기본 가이드.
-
-## Authors (alphabetical)
-
-Qiskit의 원 저자들은 다음과 같습니다.  
-Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez,
-Ali Javadi-Abhari, Paco Martin, Diego Moreda, Jesus Perez, Erick Winston and Chris Wood.
-
-그리고 [많은 사람들](https://github.com/Qiskit/qiskit-terra/graphs/contributors) 의 노력과 기여로 계속 발전해 나가고 있습니다. 
+Qiskit Terra는 [많은 사람들](https://github.com/Qiskit/qiskit-terra/graphs/contributors)의 노력과 기여로 계속 발전해 나가고 있습니다. 
