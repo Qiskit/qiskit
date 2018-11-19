@@ -4,12 +4,11 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+# pylint: disable=invalid-name
 
 """Main Qiskit visualization methods."""
 
 import sys
-
-from matplotlib import pyplot as plt
 
 from qiskit._util import _has_connection
 from ._circuit_visualization import circuit_drawer, plot_circuit, generate_latex_source, \
@@ -17,6 +16,11 @@ from ._circuit_visualization import circuit_drawer, plot_circuit, generate_latex
 from ._error import VisualizationError
 from ._matplotlib import HAS_MATPLOTLIB
 from ._dag_visualization import dag_drawer
+
+if HAS_MATPLOTLIB:
+    from matplotlib import pyplot as plt
+else:
+    plt = None
 
 _MSG = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
 
@@ -71,6 +75,7 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None,
             histogram will be returned.
     Raises:
         VisualizationError: If invalid mode is specified
+        ImportError: If matplotlib is used but it's not installed or configured
     """
     fig = None
     if not mode:
@@ -81,7 +86,7 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None,
             from ._state_visualization import plot_state as plot
             fig = plot(rho, method=method, filename=filename, show=show)
         else:
-            raise ImportError(_MSG % "plot_state")  
+            raise ImportError(_MSG % "plot_state")
     else:
         if mode == 'interactive':
             from .interactive._iplot_state import iplot_state
@@ -91,12 +96,13 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None,
                 from ._state_visualization import plot_state as plot
                 fig = plot(rho, method=method, filename=filename, show=show)
             else:
-                raise ImportError(_MSG % "plot_state") 
+                raise ImportError(_MSG % "plot_state")
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
-    if fig:
-        plt.close(fig)
+    if HAS_MATPLOTLIB:
+        if fig:
+            plt.close(fig)
     return fig
 
 
@@ -142,6 +148,7 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
             histogram will be returned.
     Raises:
         VisualizationError: If invalid mode is specified
+        ImportError: If matplotlib is used but it's not installed or configured
     """
     fig = None
     if not mode:
@@ -170,8 +177,9 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
-    if fig:
-        plt.close(fig)
+    if HAS_MATPLOTLIB:
+        if fig:
+            plt.close(fig)
     return fig
 
 if not HAS_MATPLOTLIB:
