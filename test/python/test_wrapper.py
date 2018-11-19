@@ -51,6 +51,12 @@ class TestWrapper(QiskitTestCase):
         qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True, seed_mapper=343)
         qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
         print(qasm_list[1])
+        qobj_exp = qobj.experiments[1]
+        print(qobj_exp.header.qubit_labels)
+        print(qobj_exp.header.compiled_circuit_qasm)
+        print(qobj_exp.header.clbit_labels)
+        for i in qobj_exp.instructions:
+            print(i)
         print(circuit_b.qasm())
         self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
 
