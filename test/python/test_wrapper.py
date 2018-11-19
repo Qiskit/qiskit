@@ -48,17 +48,18 @@ class TestWrapper(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True, seed_mapper=34354)
-        qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
-        print(qasm_list[1])
-        qobj_exp = qobj.experiments[1]
-        print(qobj_exp.header.qubit_labels)
-        print(qobj_exp.header.compiled_circuit_qasm)
-        print(qobj_exp.header.clbit_labels)
-        for i in qobj_exp.instructions:
-            print(i)
-        print(circuit_b.qasm())
-        self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
+        for seed in range(100):
+            qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True, seed_mapper=seed)
+            qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
+            print(qasm_list[1])
+            qobj_exp = qobj.experiments[1]
+            print(qobj_exp.header.qubit_labels)
+            print(qobj_exp.header.compiled_circuit_qasm)
+            print(qobj_exp.header.clbit_labels)
+            for i in qobj_exp.instructions:
+                print(i)
+            print(circuit_b.qasm())
+            self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
 
     def test_qobj_to_circuits_with_qobj_no_qasm(self):
         """Verify that qobj_to_circuits returns None without QASM."""
