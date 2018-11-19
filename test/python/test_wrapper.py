@@ -48,8 +48,10 @@ class TestWrapper(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True)
+        qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True, seed_mapper=343)
         qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
+        print(qasm_list[1])
+        print(circuit_b.qasm())
         self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
 
     def test_qobj_to_circuits_with_qobj_no_qasm(self):
