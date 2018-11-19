@@ -547,7 +547,7 @@ def plot_job_history(jobs, interval='year'):
               '#7a5195', '#ef5675', '#bc5090']
 
     if interval == 'year':
-        labels = ['{}-{}'.format(bins[b].year, bins[b].month) for b in nz_idx]
+        labels = ['{}-{}'.format(str(bins[b].year)[2:], bins[b].month) for b in nz_idx]
     else:
         labels = ['{}-{}'.format(bins[b].month, bins[b].day) for b in nz_idx]
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))  # pylint: disable=invalid-name

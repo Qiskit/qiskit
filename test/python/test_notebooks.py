@@ -14,7 +14,7 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-
+from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .common import QiskitTestCase, Path
 
 
@@ -27,8 +27,6 @@ JUPYTER_KERNEL = 'python3'
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):
-        self.filename = self._get_resource_path(
-            'notebooks/test_pbar_status.ipynb')
         self.execution_path = os.path.join(Path.SDK.value, '..')
 
     def _execute_notebook(self, filename):
@@ -44,9 +42,16 @@ class TestJupyter(QiskitTestCase):
         execute_preprocessor.preprocess(
             notebook, {'metadata': {'path': self.execution_path}})
 
-    def test_jupyter(self):
-        "Test Jupyter functionality"
-        self._execute_notebook(self.filename)
+    def test_jupyter_jobs_pbars(self):
+        "Test Jupyter progress bars and job status functionality"
+        self._execute_notebook(self._get_resource_path(
+            'notebooks/test_pbar_status.ipynb'))
+
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    def test_backend_tools(self):
+        "Test Jupyter backend tools."
+        self._execute_notebook(self._get_resource_path(
+            'notebooks/test_backend_tools.ipynb'))
 
 
 if __name__ == '__main__':
