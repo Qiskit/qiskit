@@ -11,7 +11,7 @@ aliases."""
 
 from qiskit import IBMQ, Aer
 from qiskit.backends.aer import QasmSimulator
-from qiskit.backends.qiskitbackendnotfounderror import QiskitBackendNotFoundError
+from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,
                      requires_cpp_simulator,

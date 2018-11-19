@@ -12,7 +12,7 @@
 from abc import ABC, abstractmethod
 import logging
 
-from .qiskitbackendnotfounderror import QiskitBackendNotFoundError
+from .exceptions import QiskitBackendNotFoundError
 
 
 logger = logging.getLogger(__name__)

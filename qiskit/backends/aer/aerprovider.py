@@ -13,8 +13,8 @@ import logging
 
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends import BaseProvider
+from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
-from qiskit.backends.qiskitbackendnotfounderror import QiskitBackendNotFoundError
 
 from .qasm_simulator import CliffordSimulator, QasmSimulator
 from .qasm_simulator_py import QasmSimulatorPy
