@@ -311,7 +311,7 @@ class _GraphDist():
 
 
 def plot_coupling_map(backend, figsize=None,
-                      plot_directed=True,
+                      plot_directed=False,
                       label_qubits=True,
                       qubit_size=24,
                       line_width=4,
@@ -393,24 +393,47 @@ def plot_coupling_map(backend, figsize=None,
 
     # Add lines for couplings
     for ind, edge in enumerate(cmap):
-        is_directed = False
-        if not edge[::-1] in cmap:
-            is_directed = True
+        is_symmetric = False
+        if edge[::-1] in cmap:
+            is_symmetric = True
         y_start = grid_data[edge[0]][0]
         x_start = grid_data[edge[0]][1]
         y_end = grid_data[edge[1]][0]
         x_end = grid_data[edge[1]][1]
+
+        if is_symmetric:
+            if y_start == y_end:
+                x_end = (x_end - x_start)/2+x_start
+
+            elif x_start == x_end:
+                y_end = (y_end - y_start)/2+y_start
+
+            else:
+                x_end = (x_end - x_start)/2+x_start
+                y_end = (y_end - y_start)/2+y_start
         ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
                                  color=line_color[ind], linewidth=line_width,
                                  zorder=0))
-        if is_directed and plot_directed:
+        if plot_directed:
             dx = x_end-x_start  # pylint: disable=invalid-name
             dy = y_end-y_start  # pylint: disable=invalid-name
-            ax.add_patch(mpatches.FancyArrow(x_start+dx*0.5,
-                                             -y_start-dy*0.5,
-                                             dx*0.2,
-                                             -dy*0.2,
-                                             head_width=0.2,
+            if is_symmetric:
+                x_arrow = x_start+dx*0.95
+                y_arrow = -y_start-dy*0.95
+                dx_arrow = dx*0.01
+                dy_arrow = -dy*0.01
+                head_width = 0.15
+            else:
+                x_arrow = x_start+dx*0.5
+                y_arrow = -y_start-dy*0.5
+                dx_arrow = dx*0.2
+                dy_arrow = -dy*0.2
+                head_width = 0.2
+            ax.add_patch(mpatches.FancyArrow(x_arrow,
+                                             y_arrow,
+                                             dx_arrow,
+                                             dy_arrow,
+                                             head_width=head_width,
                                              length_includes_head=True,
                                              edgecolor=None,
                                              linewidth=0,

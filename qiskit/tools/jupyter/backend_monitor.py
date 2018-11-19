@@ -381,10 +381,11 @@ def detailed_map(backend):
     with cmap_widget:
         noise_map = plot_coupling_map(backend, qubit_color=q_colors,
                                       line_color=line_colors,
-                                      qubit_size=32)
+                                      qubit_size=32,
+                                      plot_directed=True)
         width, height = noise_map.get_size_inches()
 
-        noise_map.set_size_inches(1.25*width, 1.25*height)
+        noise_map.set_size_inches(1.5*width, 1.5*height)
 
         display(noise_map)
         plt.close(noise_map)
@@ -532,8 +533,8 @@ def plot_job_history(jobs, interval='year'):
 
     total_jobs = sum(binned_jobs)
 
-    colors = ['#5392ff', '#ffb000', '#34bc6e', '#ff509e', '#95d13c', '#9b82f3',
-              '#71cddd', '#fe8500']
+    colors = ['#003f5c', '#ffa600', '#374c80', '#ff764a',
+              '#7a5195', '#ef5675', '#bc5090']
 
     if interval == 'year':
         labels = ['{}-{}'.format(bins[b].year, bins[b].month) for b in nz_idx]
