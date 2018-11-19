@@ -63,9 +63,9 @@ qft5.barrier()
 for j in range(5):
     qft5.measure(q[j], c[j])
 
-print(qft3.draw())
-print(qft4.draw())
-print(qft5.draw())
+print(qft3)
+print(qft4)
+print(qft5)
 
 ###############################################################
 # Set up the API and execute the program.
