@@ -496,7 +496,7 @@ def plot_job_history(jobs, interval='year'):
 
         Args:
             job (IBMQJob): A job.
-        
+
         Returns:
             dt: A datetime object.
         """
