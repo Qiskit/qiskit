@@ -15,20 +15,9 @@ import unittest
 from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.tools.visualization import HAS_MATPLOTLIB, latex_circuit_drawer, \
+    matplotlib_circuit_drawer, circuit_drawer
 from .common import QiskitTestCase
-
-try:
-    from qiskit.tools.visualization import (latex_circuit_drawer,
-                                            matplotlib_circuit_drawer,
-                                            circuit_drawer)
-
-    VALID_MATPLOTLIB = True
-except (RuntimeError, ImportError):
-    # Under some combinations (travis osx vms, or headless configurations)
-    # matplotlib might not be fully, raising:
-    # RuntimeError: Python is not installed as a framework.
-    # when importing. If that is the case, the full test is skipped.
-    VALID_MATPLOTLIB = False
 
 
 def _path_to_diagram_reference(filename):
@@ -39,7 +28,6 @@ def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-@unittest.skipIf(not VALID_MATPLOTLIB, 'matplotlib not available.')
 class TestVisualizationImplementation(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
@@ -100,6 +88,7 @@ class TestVisualizationImplementation(QiskitTestCase):
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_matplotlib_drawer(self):
         filename = self._get_resource_path('current_matplot.png')
@@ -123,7 +112,7 @@ class TestVisualizationImplementation(QiskitTestCase):
         """Checks if both file are the same."""
         self.assertTrue(os.path.exists(current))
         self.assertTrue(os.path.exists(expected))
-        with open(current, "r", encoding='cp437') as cur,\
+        with open(current, "r", encoding='cp437') as cur, \
                 open(expected, "r", encoding='cp437') as exp:
             self.assertEqual(cur.read(), exp.read())
 

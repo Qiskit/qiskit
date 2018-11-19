@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-"""Quick program to test the qi states tools modules."""
+"""Quick program to test the quantum information states modules."""
 
 import unittest
 import numpy as np

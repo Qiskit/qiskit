@@ -515,7 +515,7 @@ def pauli_group(number_of_qubits, case='weight'):
 
     The phases have been removed.
     case 'weight' is ordered by Pauli weights and
-    case 'tensor' is ordered by I,X,Y,Z counting last qubit fastest.
+    case 'tensor' is ordered by I,X,Y,Z counting lowest qubit fastest.
 
     Args:
         number_of_qubits (int): number of qubits
