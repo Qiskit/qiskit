@@ -48,7 +48,8 @@ class TestJupyter(QiskitTestCase):
             'notebooks/test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    def test_backend_tools(self):
+    @unittest.skipIf(os.getenv('CI', False), 'Cannot test backend monitors in CI env.')
+    def test_backend_tools(self, qe_token, qe_url):
         "Test Jupyter backend tools."
         self._execute_notebook(self._get_resource_path(
             'notebooks/test_backend_tools.ipynb'))
