@@ -22,7 +22,6 @@ from qiskit.unrollers import _circuitbackend
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
-from qiskit.tools import visualization
 from qiskit.dagcircuit import DAGCircuit
 
 
@@ -367,6 +366,7 @@ class QuantumCircuit(object):
             VisualizationError: when an invalid output method is selected
 
         """
+        from qiskit.tools import visualization
         return visualization.circuit_drawer(self, scale=scale,
                                             filename=filename, style=style,
                                             output=output,
