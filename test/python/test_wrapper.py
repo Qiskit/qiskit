@@ -49,7 +49,8 @@ class TestWrapper(QiskitTestCase):
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
         for seed in range(100):
-            qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True, seed_mapper=seed)
+            qobj = compile([self.circuit, circuit_b], backend,
+                           skip_transpiler=True, seed_mapper=seed)
             qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
             print(qasm_list[1])
             qobj_exp = qobj.experiments[1]
