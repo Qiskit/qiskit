@@ -63,9 +63,9 @@ qft5.barrier()
 for j in range(5):
     qft5.measure(q[j], c[j])
 
-print(qft3.qasm())
-print(qft4.qasm())
-print(qft5.qasm())
+print(qft3)
+print(qft4)
+print(qft5)
 
 ###############################################################
 # Set up the API and execute the program.
