@@ -17,6 +17,7 @@ from ._dag_visualization import dag_drawer
 
 if HAS_MATPLOTLIB:
     from ._state_visualization import plot_bloch_vector
+    from ._coupling_map import plot_coupling_map
 
     if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         if _has_connection('https://qvisualization.mybluemix.net/', 443):

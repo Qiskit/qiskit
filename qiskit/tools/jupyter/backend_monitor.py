@@ -21,7 +21,7 @@ from matplotlib.patches import Circle
 from qiskit.backends.ibmq import IBMQ
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-from qiskit.tools.jupyter.backend_overview import plot_coupling_map
+from qiskit.tools.visualization._coupling_map import plot_coupling_map
 
 
 @magics_class
