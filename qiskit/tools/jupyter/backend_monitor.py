@@ -18,7 +18,7 @@ import matplotlib.colors
 import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.patches import Circle
-from qiskit import IBMQ
+from qiskit.backends.ibmq import IBMQ
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.jupyter.backend_overview import plot_coupling_map
@@ -203,8 +203,10 @@ tr:nth-child(even) {background-color: #f6f6f6;}
         qubit_freq = qubit['frequency']['unit'] if 'unit' in qubit['frequency'].keys(
         ) else qubit['frequency']['units']
         freq = str(round(qubit['frequency']['value'], 5))+' '+qubit_freq
-        T1 = str(round(qubit['T1']['value'], 5))+' ' + qubit['T1']['unit']  # pylint: disable=invalid-name
-        T2 = str(round(qubit['T2']['value'], 5))+' ' + qubit['T2']['unit']  # pylint: disable=invalid-name
+        T1 = str(round(qubit['T1']['value'],  # pylint: disable=invalid-name
+                       5))+' ' + qubit['T1']['unit']
+        T2 = str(round(qubit['T2']['value'],  # pylint: disable=invalid-name
+                       5))+' ' + qubit['T2']['unit']
 
         if 'gateTime' in qubit.keys():
             gate_time = str(

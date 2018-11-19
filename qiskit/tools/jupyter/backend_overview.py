@@ -16,7 +16,7 @@ from IPython.core import magic_arguments                         # pylint: disab
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from qiskit import IBMQ
+from qiskit.backends.ibmq import IBMQ
 
 
 @magics_class
