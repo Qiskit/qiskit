@@ -14,6 +14,7 @@ import unittest
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
+from qiskit._quantumcircuit import QuantumCircuit
 from .common import QiskitTestCase
 
 
@@ -116,6 +117,52 @@ class TestDagCircuit(QiskitTestCase):
             ['x'],
             ['measure', 'measure']
             ], name_layers)
+
+
+class TestCircuitProperties(QiskitTestCase):
+    """DAGCircuit properties test."""
+    def setUp(self):
+        qr1 = QuantumRegister(4)
+        qr2 = QuantumRegister(2)
+        circ = QuantumCircuit(qr1, qr2)
+        circ.h(qr1[0])
+        circ.cx(qr1[2], qr1[3])
+        circ.h(qr1[2])
+        circ.t(qr1[2])
+        circ.ch(qr1[2], qr1[1])
+        circ.u2(0.1, 0.2, qr1[3])
+        circ.ccx(qr2[0], qr2[1], qr1[0])
+
+        self.dag = DAGCircuit.fromQuantumCircuit(circ)
+
+    def test_circuit_size(self):
+        """Test total number of operations in circuit."""
+        self.assertEqual(self.dag.size(), 7)
+
+    def test_circuit_depth(self):
+        """Test circuit depth."""
+        self.assertEqual(self.dag.depth(), 4)
+
+    def test_circuit_width(self):
+        """Test number of qubits in circuit."""
+        self.assertEqual(self.dag.width(), 6)
+
+    def test_circuit_operations(self):
+        """Test circuit operations breakdown by kind of op."""
+        operations = {
+            'h': 2,
+            't': 1,
+            'u2': 1,
+            'cx': 1,
+            'ch': 1,
+            'ccx': 1
+        }
+
+        self.assertDictEqual(self.dag.count_ops(), operations)
+
+    def test_circuit_factors(self):
+        """Test number of separable factors in circuit."""
+        self.assertEqual(self.dag.num_tensor_factors(), 2)
 
 
 if __name__ == '__main__':

@@ -41,7 +41,8 @@ Added
 - Two new constructor methods, `from_qasm_str()` and `from_qasm_file()`, to
   create a QuantumCircuit object from OpenQASM were added to the
   QuantumCircuit class. (#1172)
-
+- New methods in QuantumCircuit for common circuit metrics:
+  `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
 
 Changed
 """""""
@@ -60,6 +61,8 @@ Changed
   a matplotlib.Figure object when the `mpl` output is used and a
   `TextDrawer` object when `text` output is used. (#1224, #1181)
 - Speed up the Pauli class and extended its operators (#1271 #1166).
+- `IBMQ.save_account()` now takes an `overwrite` option to replace an existing
+  account on disk. Default is False (#1295).
 
 Deprecated
 """"""""""
