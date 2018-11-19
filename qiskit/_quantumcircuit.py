@@ -11,14 +11,18 @@
 Quantum circuit object.
 """
 import itertools
+import warnings
 from collections import OrderedDict
+from copy import deepcopy
+
 
 from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
 from qiskit.unrollers import _circuitbackend
-from ._qiskiterror import QISKitError
-from ._quantumregister import QuantumRegister
-from ._classicalregister import ClassicalRegister
+from qiskit._qiskiterror import QISKitError
+from qiskit._quantumregister import QuantumRegister
+from qiskit._classicalregister import ClassicalRegister
+from qiskit.tools import visualization
 
 
 def _circuit_from_qasm(qasm, basis=None):
@@ -106,9 +110,9 @@ class QuantumCircuit(object):
         self.data = []
 
         # This is a map of registers bound to this circuit, by name.
-        self.qregs = OrderedDict()
-        self.cregs = OrderedDict()
-        self.add(*regs)
+        self.qregs = []
+        self.cregs = []
+        self.add_register(*regs)
 
     @classmethod
     def _increment_instances(cls):
@@ -137,10 +141,10 @@ class QuantumCircuit(object):
         """
         has_reg = False
         if (isinstance(register, QuantumRegister) and
-                register in self.qregs.values()):
+                register in self.qregs):
             has_reg = True
         elif (isinstance(register, ClassicalRegister) and
-              register in self.cregs.values()):
+              register in self.cregs):
             has_reg = True
         return has_reg
 
@@ -159,8 +163,15 @@ class QuantumCircuit(object):
         self._check_compatible_regs(rhs)
 
         # Make new circuit with combined registers
-        combined_qregs = {**self.qregs, **rhs.qregs}.values()
-        combined_cregs = {**self.cregs, **rhs.cregs}.values()
+        combined_qregs = deepcopy(self.qregs)
+        combined_cregs = deepcopy(self.cregs)
+
+        for element in rhs.qregs:
+            if element not in self.qregs:
+                combined_qregs.append(element)
+        for element in rhs.cregs:
+            if element not in self.cregs:
+                combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
@@ -181,8 +192,12 @@ class QuantumCircuit(object):
         self._check_compatible_regs(rhs)
 
         # Add new registers
-        self.qregs.update(rhs.qregs)
-        self.cregs.update(rhs.cregs)
+        for element in rhs.qregs:
+            if element not in self.qregs:
+                self.qregs.append(element)
+        for element in rhs.cregs:
+            if element not in self.cregs:
+                self.cregs.append(element)
 
         # Add new gates
         for gate in rhs.data:
@@ -210,18 +225,26 @@ class QuantumCircuit(object):
         self.data.append(instruction)
         return instruction
 
-    def add(self, *regs):
+    def add_register(self, *regs):
         """Add registers."""
         for register in regs:
-            if register.name in self.qregs or register.name in self.cregs:
+            if register in self.qregs or register in self.cregs:
                 raise QISKitError("register name \"%s\" already exists"
                                   % register.name)
             if isinstance(register, QuantumRegister):
-                self.qregs[register.name] = register
+                self.qregs.append(register)
             elif isinstance(register, ClassicalRegister):
-                self.cregs[register.name] = register
+                self.cregs.append(register)
             else:
                 raise QISKitError("expected a register")
+
+    def add(self, *regs):
+        """Add registers."""
+
+        warnings.warn('The add() function is deprecated and will be '
+                      'removed in a future release. Instead use '
+                      'QuantumCircuit.add_register().', DeprecationWarning)
+        self.add_register(*regs)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
@@ -262,12 +285,14 @@ class QuantumCircuit(object):
 
     def _check_compatible_regs(self, rhs):
         """Raise exception if the circuits are defined on incompatible registers"""
-        lhs_regs = {**self.qregs, **self.cregs}
-        rhs_regs = {**rhs.qregs, **rhs.cregs}
-        common_registers = lhs_regs.keys() & rhs_regs.keys()
-        for name in common_registers:
-            if lhs_regs[name] != rhs_regs[name]:
-                raise QISKitError("circuits are not compatible")
+
+        list1 = self.qregs + self.cregs
+        list2 = rhs.qregs + rhs.cregs
+        for element1 in list1:
+            for element2 in list2:
+                if element2.name == element1.name:
+                    if element1 != element2:
+                        raise QISKitError("circuits are not compatible")
 
     def _gate_string(self, name):
         """Return a QASM string for the named gate."""
@@ -291,10 +316,63 @@ class QuantumCircuit(object):
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
                 string_temp += self._gate_string(gate_name)
-        for register in self.qregs.values():
+        for register in self.qregs:
             string_temp += register.qasm() + "\n"
-        for register in self.cregs.values():
+        for register in self.cregs:
             string_temp += register.qasm() + "\n"
         for instruction in self.data:
             string_temp += instruction.qasm() + "\n"
         return string_temp
+
+    def draw(self, scale=0.7, filename=None, style=None, output='text',
+             interactive=False, line_length=None, plot_barriers=True,
+             reverse_bits=False):
+        """Draw the quantum circuit
+
+        Using the output parameter you can specify the format. The choices are:
+        0. text: ASCII art string
+        1. latex: high-quality images, but heavy external software dependencies
+        2. matplotlib: purely in Python with no external dependencies
+
+        Defaults to an overcomplete basis, in order to not alter gates.
+
+        Args:
+            scale (float): scale of image to draw (shrink if < 1)
+            filename (str): file path to save image to
+            style (dict or str): dictionary of style or file name of style
+                                 file. You can refer to the
+                                 :ref:`Style Dict Doc <style-dict-doc>` for
+                                 more information on the contents.
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are `text`, `latex`, `latex_source`,
+                `mpl`.
+            interactive (bool): when set true show the circuit in a new window
+                (cannot inline in Jupyter). Note when used with the
+                latex_source output type this has no effect
+            line_length (int): sets the length of the lines generated by `text`
+            reverse_bits (bool): When set to True reverse the bit order inside
+                registers for the output visualization.
+            plot_barriers (bool): Enable/disable drawing barriers in the output
+                circuit. Defaults to True.
+        Returns:
+            PIL.Image: (output `latex`) an in-memory representation of the
+                image of the circuit diagram.
+            matplotlib.figure: (output `mpl`) a matplotlib figure object for
+                the circuit diagram.
+            String: (output `latex_source`). The LaTeX source code.
+            TextDrawing: (output `text`). A drawing that can be printed as
+                ascii art
+        Raises:
+            VisualizationError: when an invalid output method is selected
+
+        """
+        return visualization.circuit_drawer(self, scale=scale,
+                                            filename=filename, style=style,
+                                            output=output,
+                                            interactive=interactive,
+                                            line_length=line_length,
+                                            plot_barriers=plot_barriers,
+                                            reverse_bits=reverse_bits)
+
+    def __str__(self):
+        return str(self.draw(output='text'))
