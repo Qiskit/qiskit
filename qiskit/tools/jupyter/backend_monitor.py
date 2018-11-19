@@ -145,8 +145,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     lower_table = widgets.HTML(value=lower_str,
                                layout=widgets.Layout(
                                    width='auto',
-                                   grid_area='bottom',
-                                   max_height='280px'))
+                                   grid_area='bottom'))
 
     grid = widgets.GridBox(children=[upper_table, image_widget, lower_table],
                            layout=widgets.Layout(
@@ -156,7 +155,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
                                "left right right right"
                                "bottom bottom bottom bottom"
                                ''',
-                               grid_gap='0px 0px'))
+                               grid_gap='0px 0px', max_height='625px'))
 
     return grid
 
@@ -229,7 +228,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     qubit_widget = widgets.HTML(value=qubit_html)
 
     out = widgets.VBox([update_date_widget,
-                        qubit_widget], layout=widgets.Layout(max_height='600px'))
+                        qubit_widget], layout=widgets.Layout(max_height='625px'))
 
     return out
 
@@ -334,7 +333,8 @@ tr:nth-child(even) {background-color: #f6f6f6;};
                                                    "top top top"
                                                    "left middle right"
                                                    ''',
-                               grid_gap='0px 0px'))
+                               grid_gap='0px 0px',
+                               max_height='625px'))
 
     return grid
 
@@ -373,7 +373,6 @@ def detailed_map(backend):
                                                          align_items='center'))
 
     cmap_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='top',
-                                                       padding='10px 10px 10px 10px',
                                                        width='auto', height='auto',
                                                        align_items='center'))
 
@@ -420,7 +419,8 @@ def detailed_map(backend):
                                                 "top top top"
                                                 "left . right"
                                                 ''',
-                                  grid_gap='0px 0px'))
+                                  grid_gap='0px 0px',
+                                  max_height='625px'))
     return out_box
 
 
@@ -445,7 +445,7 @@ def job_history(backend):
                                                 align_items='center',
                                                 min_height='400px'))
 
-    tabs = widgets.Tab()
+    tabs = widgets.Tab(layout=widgets.Layout(max_height='625px'))
     tabs.children = [year, month, week]
     tabs.set_title(0, 'Year')
     tabs.set_title(1, 'Month')
@@ -550,11 +550,11 @@ def plot_job_history(jobs, interval='year'):
         labels = ['{}-{}'.format(bins[b].year, bins[b].month) for b in nz_idx]
     else:
         labels = ['{}-{}'.format(bins[b].month, bins[b].day) for b in nz_idx]
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))  # pylint: disable=invalid-name
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))  # pylint: disable=invalid-name
     ax.pie(nz_bins[::-1], labels=labels, colors=colors, textprops={'fontsize': 14},
            rotatelabels=True, counterclock=False)
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))
     ax.text(0, 0, total_jobs, horizontalalignment='center',
             verticalalignment='center', fontsize=26)
-
+    fig.tight_layout()
     return fig
