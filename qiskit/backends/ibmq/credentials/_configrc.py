@@ -127,6 +127,7 @@ def store_credentials(credentials, overwrite=False, filename=None):
     # we assume (hub, group, project) is always unique.
     if credentials.unique_id() in stored_credentials and not overwrite:
         warnings.warn('Credentials already present. Set overwrite=True to overwrite.')
+        return
 
     # Append and write the credentials to file.
     stored_credentials[credentials.unique_id()] = credentials
