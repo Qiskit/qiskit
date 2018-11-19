@@ -20,7 +20,7 @@ from .qasm_simulator import CliffordSimulator, QasmSimulator
 from .qasm_simulator_py import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulator
 from .statevector_simulator_py import StatevectorSimulatorPy
-from .unitary_simulator import UnitarySimulator
+from .unitary_simulator_py import UnitarySimulatorPy
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ AER_STANDARD_BACKENDS = [
     QasmSimulatorPy,
     StatevectorSimulator,
     StatevectorSimulatorPy,
-    UnitarySimulator,
+    UnitarySimulatorPy,
     CliffordSimulator,
 ]
 
@@ -93,11 +93,12 @@ class AerProvider(BaseProvider):
             'local_qasm_simulator_py': 'qasm_simulator_py',
             'local_statevector_simulator_cpp': 'statevector_simulator',
             'local_statevector_simulator_py': 'statevector_simulator_py',
-            'local_unitary_simulator_py': 'unitary_simulator',
+            'local_unitary_simulator_py': 'unitary_simulator_py',
             'local_qiskit_simulator': 'qasm_simulator',
             'local_qasm_simulator': 'qasm_simulator',
             'local_statevector_simulator': 'statevector_simulator',
-            'local_unitary_simulator': 'unitary_simulator'
+            'local_unitary_simulator': 'unitary_simulator_py',
+            'unitary_simulator': 'unitary_simulator_py'
             }
 
     def _verify_aer_backends(self):
