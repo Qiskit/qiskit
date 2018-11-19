@@ -12,7 +12,7 @@ Qiskit은 양자전산을 가능하게 하는 여러가지 요소들로 이루�
 
 ## Qiskit의 설치방법
 
-Qiskit 설치에 PIP (파이썬 패키지 매니저)툴을 이용하실 것을 권장합니다 (a python package manager):
+Qiskit 설치에 PIP (파이썬 패키지 매니저)툴을 이용하실 것을 권장합니다:
 
 ```bash
 pip install qiskit
@@ -54,15 +54,11 @@ $ python
 
 ### 양자프로그램을 실제 양자컴퓨터에서 실행하기
 
-Qiskit을 이용해서 만드신 양자프로그램을 **실제의 양자컴퓨터 소자**에서 구동해 보실 수 있습니다.  그러기 위해서는 Qiskit을 
-
-In order to do so, you need to configure Qiskit for using the credentials in
-your IBM Q account:
-
+Qiskit을 이용해서 만드신 양자프로그램을 **실제의 양자컴퓨터 소자**에서 구동해 보실 수 있습니다.  그러기 위해서는 Qiskit에 IBM Q 계정을 설정해야 합니다.  
 
 #### IBMQ 계정과 보안증명
 
-1. 먼저 _[IBM Q](https://quantumexperience.ng.bluemix.net) > 계정_ 을 만듭니다.  
+1. 먼저 _[IBM Q](https://quantumexperience.ng.bluemix.net) >계정_ 을 만듭니다.  
 
 2. IBM Q 홈페이지에 로그 인 하신 후에 API 토큰을 받습니다. 토큰은 _My Account > Advanced > API Token_ 에서 찾아보실 수 있습니다. 이 API token은 IBM Q 의 양자컴퓨터들을 사용하실 때 필요합니다. 
 
