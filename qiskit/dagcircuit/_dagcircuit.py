@@ -1331,7 +1331,7 @@ class DAGCircuit:
                     op_dict[name] += 1
         return op_dict
 
-    def property_summary(self):
+    def properties(self):
         """Return a dictionary of circuit properties."""
         summary = {"size": self.size(),
                    "depth": self.depth(),
