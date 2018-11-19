@@ -147,27 +147,27 @@ COMPLETED
 
 3. Qiskit 프로그램을 IBM Q 백엔드에서 실행하실 때, 보안 증명을 위해 2번 단계에서 생성된 토큰을 `IBMQ.save_account()` 함수에 넘깁니다. 예를들어, 토큰을 `MY_API_TOKEN`이라는 변수에 저장했다면:
 
-   ```python
-   from qiskit import IBMQ
+```python
+from qiskit import IBMQ
 
-   IBMQ.save_account('MY_API_TOKEN')
-    ``` 
+IBMQ.save_account('MY_API_TOKEN')
+``` 
 
   이 명령어로 IBM Q 로긴과 토큰이 로컬 저장매체에 저장되며 다음의 간단한 명령어로 토큰을 불러와 쓰실 수 있습니다:
 
-    ```python
-    from qiskit import IBMQ
+```python
+from qiskit import IBMQ
 
-    IBMQ.load_accounts()
-    ```
+IBMQ.load_accounts()
+```
 
   토큰을 저장매체에 저장하고 싶으지 않으시다면 다음의 명령어를 사용하시면 됩니다.  
 
-    ```python
-    from qiskit import IBMQ
+```python
+from qiskit import IBMQ
 
-    IBMQ.enable_account('MY_API_TOKEN')
-    ``` 
+IBMQ.enable_account('MY_API_TOKEN')
+``` 
 
   이 명령어를 사용하시면 로긴정보는 IBM Q 디바이스를 쓰시는 동안만 활성화 됩니다. 
 
