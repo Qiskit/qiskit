@@ -153,23 +153,23 @@ COMPLETED
    IBMQ.save_account('MY_API_TOKEN')
     ``` 
 
-이 명령어로 IBM Q 로긴과 토큰이 로컬 저장매체에 저장되며 다음의 간단한 명령어로 토큰을 불러와 쓰실 수 있습니다:
+  이 명령어로 IBM Q 로긴과 토큰이 로컬 저장매체에 저장되며 다음의 간단한 명령어로 토큰을 불러와 쓰실 수 있습니다:
 
-```python
-from qiskit import IBMQ
+    ```python
+    from qiskit import IBMQ
 
-IBMQ.load_accounts()
-```
+    IBMQ.load_accounts()
+    ```
 
-토큰을 저장매체에 저장하고 싶으지 않으시다면 다음의 명령어를 사용하시면 됩니다.  
+  토큰을 저장매체에 저장하고 싶으지 않으시다면 다음의 명령어를 사용하시면 됩니다.  
 
-```python
-from qiskit import IBMQ
+    ```python
+    from qiskit import IBMQ
 
-IBMQ.enable_account('MY_API_TOKEN')
-``` 
+    IBMQ.enable_account('MY_API_TOKEN')
+    ``` 
 
-이 명령어를 사용하시면 로긴정보는 IBM Q 디바이스를 쓰시는 동안만 활성화 됩니다. 
+  이 명령어를 사용하시면 로긴정보는 IBM Q 디바이스를 쓰시는 동안만 활성화 됩니다. 
 
 Terra를 IBM Q 양자컴퓨터에 적용하는 예제들은 **examples/python** 에 나와 있습니다. [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py)부터 시작하셔서 단계적으로 올라가 보세요. 
 
