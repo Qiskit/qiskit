@@ -9,6 +9,7 @@
 """
 Test the registration and credentials features of the wrapper.
 """
+import warnings
 import os
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -179,10 +180,12 @@ class TestCredentials(QiskitTestCase):
 
         with custom_qiskitrc():
             store_credentials(credentials)
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
             # Attempt overwriting.
-            with self.assertRaises(QISKitError) as context_manager:
+            with warnings.catch_warnings(record=True) as w:
                 store_credentials(credentials)
-            self.assertIn('already present', str(context_manager.exception))
+                self.assertIn('already present', str(w[0]))
 
             with no_file('Qconfig.py'), no_envs(), mock_ibmq_provider():
                 # Attempt overwriting.
