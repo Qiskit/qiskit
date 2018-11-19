@@ -20,7 +20,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from scipy import linalg
 
-from qiskit.tools.qi.pauli import pauli_group, Pauli
+from qiskit.quantum_info import pauli_group, Pauli
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
 

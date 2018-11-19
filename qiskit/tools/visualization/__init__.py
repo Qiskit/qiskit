@@ -12,11 +12,13 @@ import sys
 from matplotlib import pyplot as plt
 
 from qiskit._util import _has_connection
-from ._circuit_visualization import circuit_drawer, plot_circuit, generate_latex_source,\
+from ._circuit_visualization import circuit_drawer, plot_circuit, generate_latex_source, \
     latex_circuit_drawer, matplotlib_circuit_drawer, _text_circuit_drawer, qx_color_scheme
 from ._error import VisualizationError
-from ._state_visualization import plot_bloch_vector
+from ._matplotlib import HAS_MATPLOTLIB
 from ._dag_visualization import dag_drawer
+
+_MSG = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
 
 INTERACTIVE = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
@@ -75,16 +77,21 @@ def plot_state(rho, method='city', filename=None, options=None, mode=None,
         if INTERACTIVE:
             from .interactive._iplot_state import iplot_state
             iplot_state(rho, method=method, options=options)
-        else:
+        elif HAS_MATPLOTLIB:
             from ._state_visualization import plot_state as plot
             fig = plot(rho, method=method, filename=filename, show=show)
+        else:
+            raise ImportError(_MSG % "plot_state")  
     else:
         if mode == 'interactive':
             from .interactive._iplot_state import iplot_state
             iplot_state(rho, method=method, options=options)
         elif mode == 'mpl':
-            from ._state_visualization import plot_state as plot
-            fig = plot(rho, method=method, filename=filename, show=show)
+            if HAS_MATPLOTLIB:
+                from ._state_visualization import plot_state as plot
+                fig = plot(rho, method=method, filename=filename, show=show)
+            else:
+                raise ImportError(_MSG % "plot_state") 
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
@@ -142,22 +149,34 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
             from .interactive._iplot_histogram import iplot_histogram
             iplot_histogram(data, number_to_keep=number_to_keep, legend=legend,
                             options=options)
-        else:
+        elif HAS_MATPLOTLIB:
             from ._counts_visualization import plot_histogram as plot
             fig = plot(data, number_to_keep=number_to_keep, legend=legend,
                        options=options, show=show)
+        else:
+            raise ImportError(_MSG % "plot_histogram")
     else:
         if mode == 'interactive':
             from .interactive._iplot_histogram import iplot_histogram
             iplot_histogram(data, number_to_keep=number_to_keep, legend=legend,
                             options=options)
         elif mode == 'mpl':
-            from ._counts_visualization import plot_histogram as plot
-            fig = plot(data, number_to_keep=number_to_keep, legend=legend,
-                       options=options, filename=filename, show=show)
+            if HAS_MATPLOTLIB:
+                from ._counts_visualization import plot_histogram as plot
+                fig = plot(data, number_to_keep=number_to_keep, legend=legend,
+                           options=options, filename=filename, show=show)
+            else:
+                raise ImportError(_MSG % "plot_histogram")
         else:
             raise VisualizationError(
                 "Invalid mode: %s, valid choices are 'interactive' or 'mpl'")
     if fig:
         plt.close(fig)
     return fig
+
+if not HAS_MATPLOTLIB:
+    def plot_bloch_vector(*_, **__):
+        """ Dummy plot_bloch_vector."""
+        raise ImportError(_MSG % "plot_bloch_vector")
+else:
+    from ._state_visualization import plot_bloch_vector

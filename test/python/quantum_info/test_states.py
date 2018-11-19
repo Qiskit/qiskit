@@ -7,15 +7,15 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-"""Quick program to test the qi states tools modules."""
+"""Quick program to test the quantum information states modules."""
 
 import unittest
 import numpy as np
 from qiskit import execute, QuantumRegister, QuantumCircuit, Aer
 
-from qiskit.quantum_info.states import basis_state, random_state
-from qiskit.quantum_info.states import state_fidelity
-from qiskit.quantum_info.states import projector
+from qiskit.quantum_info import basis_state, random_state
+from qiskit.quantum_info import state_fidelity
+from qiskit.quantum_info import projector
 
 from ..common import QiskitTestCase
 
