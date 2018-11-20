@@ -73,10 +73,6 @@ Deprecated
    should be used. (#1055)
 - The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed in the future. (#1055)
-- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
-  alternative list of basis gates is deprecated and will be removed in the
-  future. Instead users should adjust the basis gates prior to visualizing
-  the circuit. (#1151)
 - The `qiskit.wrapper.load_qasm_string()` and `qiskit.wrapper.load_qasm_file()`
   functions are deprecated and the `QuantumCircuit.from_qasm_str()` and
   `QuantumCircuit.from_qasm_file()` contstructor methods should be used instead
@@ -96,6 +92,9 @@ Removed
   `qiskit.tools.visualization.plot_histogram`, and
   `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
   you manually install and configure matplotlib independently.
+- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
+  alternative list of basis gates has been removed. Instead users should adjust
+  the basis gates prior to visualizing the circuit. (#1151)
 
 
 Fixed
