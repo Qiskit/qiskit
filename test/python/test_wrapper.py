@@ -24,6 +24,7 @@ from qiskit.qobj import Qobj
 
 LOG = logging.getLogger(__name__)
 
+
 class TestWrapper(testtools.TestCase):
     """Wrapper test case."""
     def setUp(self):

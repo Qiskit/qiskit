@@ -15,6 +15,9 @@ import os
 import time
 import unittest
 from unittest.util import safe_repr
+
+import testtools
+
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
 from qiskit.backends.aer import QasmSimulator
@@ -249,7 +252,7 @@ def slow_test(func):
     def _wrapper(*args, **kwargs):
         skip_slow = not TEST_OPTIONS['run_slow']
         if skip_slow:
-            raise unittest.SkipTest('Skipping slow tests')
+            raise testtools.TestCase.skipException('Skipping slow tests')
 
         return func(*args, **kwargs)
 
@@ -359,7 +362,7 @@ def requires_qe_access(func):
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
         if TEST_OPTIONS['skip_online']:
-            raise unittest.SkipTest('Skipping online tests')
+            raise testtools.TestCase.skipException('Skipping online tests')
 
         credentials = _get_credentials(self, TEST_OPTIONS)
         self.using_ibmq_credentials = credentials.is_ibmq()
