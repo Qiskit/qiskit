@@ -51,7 +51,7 @@ class Layout(dict):
     def __getitem__(self, item):
         if item is None:
             return None
-        if isinstance(item,int) and item < len(self) and item not in self:
+        if isinstance(item, int) and item < len(self) and item not in self:
             return None
         return dict.__getitem__(self, item)
 
@@ -71,11 +71,26 @@ class Layout(dict):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
     def add(self, logical, physical=None):
+        """
+        Adds a map element between `logical` and `physical`. If physical is not defined,
+        `logical will be mapped to a new wire (extending the length of the layout)
+        Args:
+            logical (tuple): A logical (qu)bit. For example, ('qr',2).
+            physical (int): A physical wire. For example, 3.
+        """
         if physical is None:
             physical = len(self)
         self[logical] = physical
 
     def length(self, amount_of_wires):
+        """
+        Extends the layout length to `amount_of_wires`.
+        Args:
+            amount_of_wires (int): The amount of wires to set in the layout.
+        Raises:
+            LayoutError: If amount_of_wires is used to reduced the length instead
+                of extending it.
+        """
         current_length = len(self)
         if amount_of_wires < current_length:
             raise LayoutError('Lenght setting cannot be smaller than the current amount of wires.')
@@ -83,25 +98,42 @@ class Layout(dict):
             self[new_wire] = None
 
     def idle_wires(self):
+        """
+        Returns the wires that are not mapped to a logical (qu)bit.
+        """
         idle_wire_list = []
-        for wire in range(len(self)):
+        for wire in range(self.__len__()):
             if self[wire] is None:
                 idle_wire_list.append(wire)
         return idle_wire_list
 
     def get_logical(self):
+        """
+        Returns the dictionary where the keys are logical (qu)bits and the
+        values are physical wires.
+        """
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
 
     def get_physical(self):
+        """
+        Returns the dictionary where the keys are physical wires and the
+        values are logical (qu)bits.
+        """
         return {key: value for key, value in self.items() if isinstance(key, int)}
 
     def swap(self, left, right):
+        """ Swaps the map between left and right.
+        Args:
+            left (tuple or int): Item to swap with right.
+            right (tuple or int): Item to swap with left.
+        """
         temp = self[left]
         self[left] = self[right]
         self[right] = temp
 
 
 class LayoutError(QISKitError):
+    """Errors raised by the layout object."""
     def __init__(self, *msg):
         """Set the error message."""
         super().__init__(*msg)
