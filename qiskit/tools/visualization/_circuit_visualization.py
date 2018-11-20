@@ -5,6 +5,9 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# TODO(mtreinish): Remove after 0.7 and the deprecated methods are removed
+# pylint: disable=unused-argument
+
 
 """
 Two quantum circuit drawers based on:
@@ -335,8 +338,10 @@ def _text_circuit_drawer(circuit, filename=None,
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
+    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, format='json')
+    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
     text_drawing = _text.TextDrawing(json_circuit, reversebits=reversebits)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
@@ -500,8 +505,10 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
+    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, format='json')
+    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
     qcimg = _latex.QCircuitImage(json_circuit, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)

@@ -134,7 +134,10 @@ class MatplotlibDrawer:
     def parse_circuit(self, circuit):
         dag_circuit = dagcircuit.DAGCircuit.fromQuantumCircuit(
             circuit, expand_gates=False)
+        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
         self._ast = transpiler.transpile_dag(dag_circuit,
+                                             basis_gates=basis,
                                              format='json')
         self._registers()
         self._ops = self._ast['instructions']
