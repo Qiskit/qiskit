@@ -75,11 +75,12 @@ class SwapMapper(TransformationPass):
                     # Insert the SWAP when the CXs are not already together.
                     path = self.coupling_map.shortest_path(physical_q0, physical_q1)
                     new_dag.add_basis_element(self.swap_basis_element, 2)
-                    closest_physical = self.layout[path[1]['name'][1]]
-                    farthest_physical = self.layout[path[-1]['name'][1]]
+                    closest_physical = path[1]['name'][1]
+                    farthest_physical = path[-1]['name'][1]
                     new_dag.apply_operation_back(self.swap_basis_element,
-                                                 [closest_physical, farthest_physical])
+                                                 [self.layout[closest_physical],
+                                                  self.layout[farthest_physical]])
                     new_dag.add_gate_data(self.swap_basis_element, self.swap_data)
-                    self.layout.swap(farthest_physical[1], closest_physical[1])
+                    self.layout.swap(farthest_physical, closest_physical)
                 new_dag.add_dag_at_the_end(subdag, self.layout)
         return new_dag
