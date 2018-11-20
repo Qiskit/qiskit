@@ -92,8 +92,6 @@ class Anchor:
 
 class MatplotlibDrawer:
     def __init__(self,
-                 basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
-                       'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
                  scale=1.0, style=None, plot_barriers=True,
                  reverse_bits=False):
 
@@ -102,7 +100,6 @@ class MatplotlibDrawer:
                               'Run "pip install matplotlib" before.')
 
         self._ast = None
-        self._basis = basis
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
@@ -137,8 +134,10 @@ class MatplotlibDrawer:
     def parse_circuit(self, circuit):
         dag_circuit = dagcircuit.DAGCircuit.fromQuantumCircuit(
             circuit, expand_gates=False)
+        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
         self._ast = transpiler.transpile_dag(dag_circuit,
-                                             basis_gates=self._basis,
+                                             basis_gates=basis,
                                              format='json')
         self._registers()
         self._ops = self._ast['instructions']
