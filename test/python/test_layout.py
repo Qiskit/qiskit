@@ -54,6 +54,10 @@ class LayoutTest(QiskitTestCase):
         layout = Layout(layout_dict)
         self.assertDictEqual(layout_dict, layout.get_logical())
 
+    def test_layout_get_physical(self):
+        layout = Layout({('qr', 0): 0, ('qr', 1): 1, ('qr', 2): 2})
+        self.assertDictEqual(layout.get_physical(), {0: ('qr', 0), 1: ('qr', 1), 2: ('qr', 2)})
+
     def test_layout_add_logical(self):
         layout = Layout()
         layout[('qr,0')] = 0

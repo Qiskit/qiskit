@@ -25,10 +25,24 @@ class Layout(dict):
             self.from_list(input_)
 
     def from_dict(self, input_dict):
+        """
+        Pullulates a Layout from a dictionary.
+
+        Args:
+            input_dict (dict): For example,
+            {('qr', 0): 0, ('qr', 1): 1, ('qr', 2): 2}
+        """
         for key, value in input_dict.items():
             self[key] = value
 
     def from_list(self, input_list):
+        """
+        Pullulates a Layout from a list.
+
+        Args:
+            input_list (list): For example,
+            [('qr', 0), None, ('qr', 2), ('qr', 3)]
+        """
         for key, value in enumerate(input_list):
             self[key] = value
 
@@ -59,6 +73,9 @@ class Layout(dict):
 
     def get_logical(self):
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
+
+    def get_physical(self):
+        return {key: value for key, value in self.items() if isinstance(key, int)}
 
     def swap(self, left, right):
         temp = self[left]
