@@ -13,7 +13,7 @@ from datetime import datetime
 from marshmallow import fields, ValidationError
 from marshmallow.validate import Regexp
 
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj, ObjSchema, Obj
+from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
 from qiskit.validation.fields import TryFrom, ByAttribute, ByType
 from qiskit.validation.validate import PatternProperties
 from .common import QiskitTestCase
