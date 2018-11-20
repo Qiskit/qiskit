@@ -43,9 +43,22 @@ class LayoutTest(QiskitTestCase):
     def test_layout_set(self):
         layout = Layout()
         layout[('qr', 0)] = 0
-
         self.assertEqual(layout[('qr', 0)], 0)
         self.assertEqual(layout[0], ('qr', 0))
+
+    def test_layout_len(self):
+        layout = Layout()
+        self.assertEqual(len(layout), 0)
+        layout.add(('qr', 0))
+        self.assertEqual(len(layout), 1)
+        layout.add(('qr', 1),3)
+        self.assertEqual(len(layout), 4)
+
+    def test_layout_set_len(self):
+        layout = Layout()
+        layout.add(('qr', 1), 3)
+        layout.length(4)
+        self.assertEqual(len(layout), 4)
 
     def test_layout_get_logical(self):
         layout_dict = {('qr', 0): 0,
@@ -61,15 +74,15 @@ class LayoutTest(QiskitTestCase):
     def test_layout_add_logical(self):
         layout = Layout()
         layout[('qr,0')] = 0
-        layout.add_logical(('qr', 1))
+        layout.add(('qr', 1))
 
         self.assertEqual(layout[('qr', 1)], 1)
         self.assertEqual(layout[1], ('qr', 1))
 
     def test_layout_swap(self):
         layout = Layout()
-        layout.add_logical(('qr', 0))
-        layout.add_logical(('qr', 1))
+        layout.add(('qr', 0))
+        layout.add(('qr', 1))
         layout.swap(0, 1)
         self.assertDictEqual(layout.get_logical(), {('qr', 0): 1, ('qr', 1): 0})
 

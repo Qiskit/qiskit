@@ -13,6 +13,8 @@ Logical (qu)bits are tuples (eg, `('qr',2)`.
 Physical (qu)bits are numbers.
 """
 
+from qiskit import QISKitError
+
 
 class Layout(dict):
     """ Two-ways dict to represent a Layout."""
@@ -64,12 +66,19 @@ class Layout(dict):
         dict.__delitem__(self, key)
 
     def __len__(self):
-        return dict.__len__(self) // 2
+        return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
-    def add_logical(self, logical, physical=None):
+    def add(self, logical, physical=None):
         if physical is None:
             physical = len(self)
         self[logical] = physical
+
+    def length(self, amount_of_wires):
+        current_length = len(self)
+        if amount_of_wires < current_length:
+            raise LayoutError('Lenght setting cannot be smaller than the current amount of wires.')
+        for new_wire in range(current_length, amount_of_wires):
+            self[new_wire] = None
 
     def get_logical(self):
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
@@ -81,3 +90,14 @@ class Layout(dict):
         temp = self[left]
         self[left] = self[right]
         self[right] = temp
+
+
+class LayoutError(QISKitError):
+    def __init__(self, *msg):
+        """Set the error message."""
+        super().__init__(*msg)
+        self.msg = ' '.join(msg)
+
+    def __str__(self):
+        """Return the message."""
+        return repr(self.msg)
