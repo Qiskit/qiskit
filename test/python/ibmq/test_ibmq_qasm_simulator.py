@@ -44,7 +44,6 @@ class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
         super(TestIbmqQasmSimulator, self).setUp()
         self.useFixture(fixtures.LoggerFixture())
 
-
     @requires_qe_access
     def test_execute_one_circuit_simulator_online(self, qe_token, qe_url):
         """Test execute_one_circuit_simulator_online.
