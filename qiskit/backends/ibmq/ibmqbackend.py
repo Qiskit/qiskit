@@ -9,7 +9,6 @@
 
 This module is used for connecting to the Quantum Experience.
 """
-import warnings
 import logging
 
 from qiskit import QISKitError
@@ -67,72 +66,6 @@ class IBMQBackend(BaseBackend):
         job = job_class(self, None, self._api, not self.configuration()['simulator'], qobj=qobj)
         job.submit()
         return job
-
-    def calibration(self):
-        """Return the online backend calibrations.
-
-        The return is via QX API call.
-
-        Returns:
-            dict: The calibration of the backend.
-
-        Raises:
-            LookupError: If a calibration for the backend can't be found.
-
-        :deprecated: will be removed after 0.7
-        """
-        warnings.warn("Backends will no longer return a calibration dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-
-        try:
-            backend_name = self.name()
-            calibrations = self._api.backend_calibration(backend_name)
-            # FIXME a hack to remove calibration data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
-                calibrations = {}
-        except Exception as ex:
-            raise LookupError(
-                "Couldn't get backend calibration: {0}".format(ex))
-
-        calibrations_edit = {}
-        for key, vals in calibrations.items():
-            new_key = _camel_case_to_snake_case(key)
-            calibrations_edit[new_key] = vals
-
-        return calibrations_edit
-
-    def parameters(self):
-        """Return the online backend parameters.
-
-        Returns:
-            dict: The parameters of the backend.
-
-        Raises:
-            LookupError: If parameters for the backend can't be found.
-
-        :deprecated: will be removed after 0.7
-        """
-        warnings.warn("Backends will no longer return a parameters dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-
-        try:
-            backend_name = self.name()
-            parameters = self._api.backend_parameters(backend_name)
-            # FIXME a hack to remove parameters data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
-                parameters = {}
-        except Exception as ex:
-            raise LookupError(
-                "Couldn't get backend parameters: {0}".format(ex))
-
-        parameters_edit = {}
-        for key, vals in parameters.items():
-            new_key = _camel_case_to_snake_case(key)
-            parameters_edit[new_key] = vals
-
-        return parameters_edit
 
     def properties(self):
         """Return the online backend properties.
