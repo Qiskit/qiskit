@@ -725,7 +725,8 @@ class TextDrawing():
                 layer.set_qubit(instruction['qubits'][0], MeasureFrom())
                 layer.set_clbit(instruction['clbits'][0], MeasureTo())
 
-            elif instruction['name'] == 'barrier':
+            elif instruction['name'] in ['barrier', 'snapshot', 'save', 'load',
+                                         'noise']:
                 # barrier
                 if not self.plotbarriers:
                     continue
