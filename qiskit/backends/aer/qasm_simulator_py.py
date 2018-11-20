@@ -82,7 +82,7 @@ from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_ol
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
 from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix
+from ._simulatortools import index2, single_gate_matrix
 logger = logging.getLogger(__name__)
 
 
@@ -114,46 +114,6 @@ class QasmSimulatorPy(BaseBackend):
         self._shots = 0
         self._qobj_config = None
 
-    @staticmethod
-    def _index1(b, i, k):
-        """Magic index1 function.
-
-        Takes a bitstring k and inserts bit b as the ith bit,
-        shifting bits >= i over to make room.
-        """
-        retval = k
-        lowbits = k & ((1 << i) - 1)  # get the low i bits
-
-        retval >>= i
-        retval <<= 1
-
-        retval |= b
-
-        retval <<= i
-        retval |= lowbits
-
-        return retval
-
-    @staticmethod
-    def _index2(b1, i1, b2, i2, k):
-        """Magic index1 function.
-
-        Takes a bitstring k and inserts bits b1 as the i1th bit
-        and b2 as the i2th bit
-        """
-        if i1 == i2:
-            raise SimulatorError("can't insert two bits to same place")
-
-        if i1 > i2:
-            # insert as (i1-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulatorPy._index1(b1, i1-1, k)
-            retval = QasmSimulatorPy._index1(b2, i2, retval)
-        else:  # i2>i1
-            # insert as (i2-1)th bit, will be shifted left 1 by next line
-            retval = QasmSimulatorPy._index1(b2, i2-1, k)
-            retval = QasmSimulatorPy._index1(b1, i1, retval)
-        return retval
-
     def _add_qasm_single(self, gate, qubit):
         """Apply an arbitrary 1-qubit operator to a qubit.
 
@@ -179,9 +139,9 @@ class QasmSimulatorPy(BaseBackend):
         psi = self._statevector
         for k in range(0, 1 << (self._number_of_qubits - 2)):
             # first bit is control, second is target
-            ind1 = self._index2(1, q0, 0, q1, k)
+            ind1 = index2(1, q0, 0, q1, k)
             # swap target if control is 1
-            ind3 = self._index2(1, q0, 1, q1, k)
+            ind3 = index2(1, q0, 1, q1, k)
             cache0 = psi[ind1]
             cache1 = psi[ind3]
             psi[ind3] = cache0

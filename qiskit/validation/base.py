@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load, fields
 from marshmallow.utils import is_collection
 
-from .fields import BasePolyField
+from .fields import BasePolyField, ByType
 
 
 class BaseSchema(Schema):
@@ -48,45 +48,62 @@ class BaseSchema(Schema):
 
     model_cls = SimpleNamespace
 
-    @post_dump(pass_original=True)
-    def dump_additional_data(self, valid_data, original_data):
+    @post_dump(pass_original=True, pass_many=True)
+    def dump_additional_data(self, valid_data, many, original_data):
         """Include unknown fields after dumping.
 
         Unknown fields are added with no processing at all.
 
         Args:
-            valid_data (dict): data collected and returned by ``dump()``.
-            original_data (object): object passed to ``dump()`` in the first
-            place.
+            valid_data (dict or list): data collected and returned by ``dump()``.
+            many (bool): if True, data and original_data are a list.
+            original_data (object or list): object passed to ``dump()`` in the
+                first place.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-        additional_keys = set(original_data.__dict__) - set(valid_data)
-        for key in additional_keys:
-            valid_data[key] = getattr(original_data, key)
+        if many:
+            for i, _ in enumerate(valid_data):
+                additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
+                for key in additional_keys:
+                    valid_data[i][key] = getattr(original_data[i], key)
+        else:
+            additional_keys = set(original_data.__dict__) - set(valid_data)
+            for key in additional_keys:
+                valid_data[key] = getattr(original_data, key)
+
         return valid_data
 
-    @post_load(pass_original=True)
-    def load_additional_data(self, valid_data, original_data):
+    @post_load(pass_original=True, pass_many=True)
+    def load_additional_data(self, valid_data, many, original_data):
         """Include unknown fields after load.
 
         Unknown fields are added with no processing at all.
 
         Args:
-            valid_data (dict): validated data returned by ``load()``.
-            original_data (dict): data passed to ``load()`` in the first place.
+            valid_data (dict or list): validated data returned by ``load()``.
+            many (bool): if True, data and original_data are a list.
+            original_data (dict or list): data passed to ``load()`` in the
+                first place.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-        additional_keys = set(original_data) - set(valid_data)
-        for key in additional_keys:
-            valid_data[key] = original_data[key]
+        if many:
+            for i, _ in enumerate(valid_data):
+                additional_keys = set(original_data[i]) - set(valid_data[i])
+                for key in additional_keys:
+                    valid_data[i][key] = original_data[i][key]
+        else:
+            additional_keys = set(original_data) - set(valid_data)
+            for key in additional_keys:
+                valid_data[key] = original_data[key]
+
         return valid_data
 
     @post_load
@@ -161,7 +178,7 @@ class _SchemaBinder:
                 field._deserialize = partial(self._overridden_nested_deserialize, field)
             elif isinstance(field, BasePolyField):
                 field._deserialize = partial(self._overridden_basepolyfield_deserialize, field)
-            elif not isinstance(field, (fields.Number, fields.String)):
+            elif not isinstance(field, (fields.Number, fields.String, ByType)):
                 field._deserialize = partial(self._overridden_field_deserialize, field)
         return shallow_schema
 
@@ -172,28 +189,32 @@ class _SchemaBinder:
             field.fail('type', input=value, type=value.__class__.__name__)
 
         if not field.many:
-            value = [value]
+            values = [value]
+        else:
+            values = value
 
-        for v in value:
+        for v in values:
             if not isinstance(v, field.schema.model_cls):
                 raise ValidationError(
                     'Not a valid type for {}.'.format(field.__class__.__name__),
                     data=data)
-        return data
+        return value
 
     @staticmethod
     def _overridden_basepolyfield_deserialize(field, value, _, data):
         """Helper for minimal validation of fields.BasePolyField."""
         if not field.many:
-            value = [value]
+            values = [value]
+        else:
+            values = value
 
-        for v in value:
+        for v in values:
             schema = field.serialization_schema_selector(v, data)
             if not schema:
                 raise ValidationError(
                     'Not a valid type for {}.'.format(field.__class__.__name__),
                     data=data)
-        return data
+        return value
 
     @staticmethod
     def _overridden_field_deserialize(field, value, attr, data):
@@ -284,6 +305,31 @@ def bind_schema(schema):
     return _SchemaBinder(schema)
 
 
+def _base_model_from_kwargs(cls, kwargs):
+    """Helper for BaseModel.__reduce__, expanding kwargs."""
+    return cls(**kwargs)
+
+
 class BaseModel(SimpleNamespace):
     """Base class for Models for validated Qiskit classes."""
+    def __reduce__(self):
+        """Custom __reduce__ for allowing pickling and unpickling.
+
+        Customize the reduction in order to allow serialization, as the
+        BaseModels need to be pickled during the use of futures by the backends.
+        Instead of returning the class, a helper is used in order to pass the
+        arguments as **kwargs, as it is needed by SimpleNamespace and the
+        standard __reduce__ only allows passing args as a tuple.
+        """
+        return _base_model_from_kwargs, (self.__class__, self.__dict__)
+
+
+class ObjSchema(BaseSchema):
+    """Generic object schema."""
+    pass
+
+
+@bind_schema(ObjSchema)
+class Obj(BaseModel):
+    """Generic object in a Model."""
     pass

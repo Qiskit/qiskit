@@ -11,9 +11,11 @@
 from datetime import datetime
 
 from marshmallow import fields, ValidationError
+from marshmallow.validate import Regexp
 
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import TryFrom, ByAttribute
+from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
+from qiskit.validation.fields import TryFrom, ByAttribute, ByType
+from qiskit.validation.validate import PatternProperties
 from .common import QiskitTestCase
 
 
@@ -206,6 +208,7 @@ class PetOwnerSchema(BaseSchema):
     auto_pets = TryFrom([CatSchema, DogSchema], many=True)
     by_attribute_pets = ByAttribute({'fur_density': CatSchema,
                                      'barking_power': DogSchema}, many=True)
+    by_type_contact = ByType([fields.Email(), fields.Url()])
 
 
 @bind_schema(DogSchema)
@@ -288,3 +291,81 @@ class TestFields(QiskitTestCase):
             _ = PetOwner.from_dict({'by_attribute_pets': [{'fur_density': 1.5},
                                                           {'name': 'John Doe'}]})
         self.assertIn('by_attribute_pets', str(context_manager.exception))
+
+    def test_by_type_field_instantiate(self):
+        """Test the ByType field, instantiation."""
+        pet_owner = PetOwner(by_type_contact='foo@bar.com')
+        self.assertEqual(pet_owner.by_type_contact, 'foo@bar.com')
+
+    def test_by_type_field_instantiate_from_dict(self):
+        """Test the ByType field, instantiation from dict."""
+        pet_owner = PetOwner.from_dict({'by_type_contact': 'foo@bar.com'})
+        self.assertEqual(pet_owner.by_type_contact, 'foo@bar.com')
+
+    def test_by_type_field_invalid(self):
+        """Test the ByType field, with invalid kind of object."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner(by_type_contact=123)
+        self.assertIn('by_type_contact', str(context_manager.exception))
+
+    def test_by_type_field_invalid_from_dict(self):
+        """Test the ByType field, instantiation from dict, with invalid."""
+        with self.assertRaises(ValidationError) as context_manager:
+            _ = PetOwner.from_dict({'by_type_contact': 123})
+        self.assertIn('by_type_contact', str(context_manager.exception))
+
+
+class HistogramSchema(BaseSchema):
+    """Example HistogramSchema schema with strict dict structure validation."""
+    counts = fields.Nested(ObjSchema, validate=PatternProperties({
+        Regexp('^0x([0-9A-Fa-f])+$'): fields.Integer()
+    }))
+
+
+@bind_schema(HistogramSchema)
+class Histogram(BaseModel):
+    """Example Histogram model."""
+    pass
+
+
+class TestValidators(QiskitTestCase):
+    """Test for validators."""
+
+    def test_patternproperties_valid(self):
+        """Test the PatternProperties validator allowing fine control on keys and values."""
+        counts_dict = {'0x00': 50, '0x11': 50}
+        counts = Obj(**counts_dict)
+        histogram = Histogram(counts=counts)
+        self.assertEqual(histogram.counts, counts)
+
+        # From dict
+        histogram = Histogram.from_dict({'counts': counts_dict})
+        self.assertEqual(histogram.counts, counts)
+
+    def test_patternproperties_invalid_key(self):
+        """Test the PatternProperties validator fails when invalid key"""
+        invalid_key_data = {'counts': {'00': 50, '0x11': 50}}
+        with self.assertRaises(ValidationError):
+            _ = Histogram(**invalid_key_data)
+
+        # From dict
+        with self.assertRaises(ValidationError):
+            _ = Histogram.from_dict(invalid_key_data)
+
+    def test_patternproperties_invalid_value(self):
+        """Test the PatternProperties validator fails when invalid value"""
+        invalid_value_data = {'counts': {'0x00': 'so many', '0x11': 50}}
+        with self.assertRaises(ValidationError):
+            _ = Histogram(**invalid_value_data)
+
+        # From dict
+        with self.assertRaises(ValidationError):
+            _ = Histogram.from_dict(invalid_value_data)
+
+    def test_patternproperties_to_dict(self):
+        """Test a field using the PatternProperties validator produces a correct value"""
+        counts_dict = {'0x00': 50, '0x11': 50}
+        counts = Obj(**counts_dict)
+        histogram = Histogram(counts=counts)
+        histogram_dict = histogram.to_dict()
+        self.assertEqual(histogram_dict, {'counts': counts_dict})
