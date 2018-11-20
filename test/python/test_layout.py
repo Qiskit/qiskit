@@ -30,6 +30,7 @@ class LayoutTest(QiskitTestCase):
 
         self.assertEqual(layout[('q0', 0)], 0)
         self.assertEqual(layout[('q1', 0)], 1)
+        self.assertEqual(layout[None], None)
         self.assertEqual(layout[('q1', 1)], 3)
         self.assertEqual(layout[('q0', 1)], 4)
 

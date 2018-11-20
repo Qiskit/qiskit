@@ -30,6 +30,11 @@ class Layout(dict):
         for key, value in enumerate(input_list):
             self[key] = value
 
+    def __getitem__(self, item):
+        if item is None:
+            return None
+        return dict.__getitem__(self, item)
+
     def __setitem__(self, key, value):
         if key in self:
             del self[key]
