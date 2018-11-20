@@ -51,6 +51,8 @@ class Layout(dict):
     def __getitem__(self, item):
         if item is None:
             return None
+        if isinstance(item,int) and item < len(self) and item not in self:
+            return None
         return dict.__getitem__(self, item)
 
     def __setitem__(self, key, value):
@@ -79,6 +81,13 @@ class Layout(dict):
             raise LayoutError('Lenght setting cannot be smaller than the current amount of wires.')
         for new_wire in range(current_length, amount_of_wires):
             self[new_wire] = None
+
+    def idle_wires(self):
+        idle_wire_list = []
+        for wire in range(len(self)):
+            if self[wire] is None:
+                idle_wire_list.append(wire)
+        return idle_wire_list
 
     def get_logical(self):
         return {key: value for key, value in self.items() if isinstance(key, tuple)}

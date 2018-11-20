@@ -60,6 +60,12 @@ class LayoutTest(QiskitTestCase):
         layout.length(4)
         self.assertEqual(len(layout), 4)
 
+    def test_layout_idle_wires(self):
+        layout = Layout()
+        layout.add(('qr', 1), 2)
+        layout.length(4)
+        self.assertEqual(layout.idle_wires(), [0, 1, 3])
+
     def test_layout_get_logical(self):
         layout_dict = {('qr', 0): 0,
                        ('qr', 1): 1,
