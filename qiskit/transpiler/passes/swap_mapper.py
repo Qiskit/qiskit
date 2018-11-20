@@ -77,10 +77,10 @@ class SwapMapper(TransformationPass):
                     new_dag.add_basis_element(self.swap_basis_element, 2)
                     closest_physical = path[1]['name'][1]
                     farthest_physical = path[-1]['name'][1]
+                    new_dag.add_gate_data(self.swap_basis_element, self.swap_data)
                     new_dag.apply_operation_back(self.swap_basis_element,
                                                  [self.layout[closest_physical],
                                                   self.layout[farthest_physical]])
-                    new_dag.add_gate_data(self.swap_basis_element, self.swap_data)
                     self.layout.swap(farthest_physical, closest_physical)
                 new_dag.add_dag_at_the_end(subdag, self.layout)
         return new_dag
