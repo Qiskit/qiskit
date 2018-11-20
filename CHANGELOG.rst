@@ -85,19 +85,6 @@ Deprecated
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
 
-
-Removed
-"""""""
-
-- ``matplotlib`` is no longer in the package requirements and is now an optional
-  dependency. In order to use any matplotlib based visualizations (which
-  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
-  `qiskit.tools.visualization.plot_state`,
-  `qiskit.tools.visualization.plot_histogram`, and
-  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
-  you manually install and configure matplotlib independently.
-
-
 Fixed
 """""
 
@@ -113,7 +100,6 @@ Fixed
 - Fixed an edge case when connection checks would raise an unhandled exception
   (#1226)
 
-
 Removed
 """""""
 
@@ -121,6 +107,13 @@ Removed
 - Remove tools/apps (#1184).
 - Removed the dependency on `IBMQuantumExperience`, as it is now included
   in `qiskit.backends.IBMQ` (#1198).
+- ``matplotlib`` is no longer in the package requirements and is now an optional
+  dependency. In order to use any matplotlib based visualizations (which
+  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
+  `qiskit.tools.visualization.plot_state`,
+  `qiskit.tools.visualization.plot_histogram`, and
+  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
+  you manually install and configure matplotlib independently.
 
 
 `0.6.0`_ - 2018-10-04
