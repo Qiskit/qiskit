@@ -228,7 +228,7 @@ def circuit_drawer(circuit,
                                   'Run "pip install matplotlib" before.')
     else:
         if output == 'text':
-            return _text_circuit_drawer(circuit, filename=filename, basis=basis,
+            return _text_circuit_drawer(circuit, filename=filename,
                                         line_length=line_length,
                                         reversebits=reverse_bits,
                                         plotbarriers=plot_barriers)
