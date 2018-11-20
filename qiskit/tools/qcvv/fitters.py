@@ -10,26 +10,32 @@ Basic plotting methods using matplotlib.
 
 These include methods to plot Bloch vectors, histograms, and quantum spheres.
 """
-import matplotlib.pyplot as plt
+
 import numpy as np
+
+try:
+    from matplotlib import pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 
 def exp_fit_fun(x, a, tau, c):
     """Function used to fit the exponential decay."""
     # pylint: disable=invalid-name
-    return a * np.exp(-x/tau) + c
+    return a * np.exp(-x / tau) + c
 
 
 def osc_fit_fun(x, a, tau, f, phi, c):
     """Function used to fit the decay cosine."""
     # pylint: disable=invalid-name
-    return a * np.exp(-x/tau)*np.cos(2*np.pi*f*x+phi) + c
+    return a * np.exp(-x / tau) * np.cos(2 * np.pi * f * x + phi) + c
 
 
 def rb_fit_fun(x, a, alpha, b):
     """Function used to fit rb."""
     # pylint: disable=invalid-name
-    return a * alpha**x + b
+    return a * alpha ** x + b
 
 
 # Functions used by randomized benchmarking.
@@ -46,7 +52,12 @@ def plot_coherence(xdata, ydata, std_error, fit, fit_function, xunit, exp_str,
         xunit
         exp_str
         qubit_label
+    Raises:
+        ImportError: If matplotlib is not installed.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('The function plot_coherence needs matplotlib. '
+                          'Run "pip install matplotlib" before.')
     plt.errorbar(xdata, ydata, std_error, marker='.',
                  markersize=9, c='b', linestyle='')
     plt.plot(xdata, fit_function(xdata, *fit), c='r', linestyle='--',
@@ -98,11 +109,11 @@ def rb_epc(fit, rb_pattern):
         for qubit in patterns:
             fitalpha = fit['q%d' % qubit]['fit'][1]
             fitalphaerr = fit['q%d' % qubit]['fiterr'][1]
-            nrb = 2**len(patterns)
+            nrb = 2 ** len(patterns)
 
             fit['q%d' % qubit]['fit_calcs'] = {}
-            fit['q%d' % qubit]['fit_calcs']['epc'] = [(nrb-1)/nrb*(1-fitalpha),
-                                                      fitalphaerr/fitalpha]
+            fit['q%d' % qubit]['fit_calcs']['epc'] = [(nrb - 1) / nrb * (1 - fitalpha),
+                                                      fitalphaerr / fitalpha]
             fit['q%d' % qubit]['fit_calcs']['epc'][1] *= fit['q%d' % qubit]['fit_calcs']['epc'][0]
 
     return fit
@@ -123,8 +134,15 @@ def plot_rb_data(xdata, ydatas, yavg, yerr, fit, survival_prob, ax=None,
         survival_prob (callable): function that computes survival probability
         ax (Axes or None): plot axis (if passed in)
         show_plt (bool): display the plot.
+
+    Raises:
+        ImportError: If matplotlib is not installed.
     """
     # pylint: disable=invalid-name
+
+    if not HAS_MATPLOTLIB:
+        raise ImportError('The function plot_rb_data needs matplotlib. '
+                          'Run "pip install matplotlib" before.')
     if ax is None:
         plt.figure()
         ax = plt.gca()
