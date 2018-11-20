@@ -14,7 +14,10 @@ from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
+from qiskit.qasm import pi
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class RXGate(Gate):
@@ -23,6 +26,18 @@ class RXGate(Gate):
     def __init__(self, theta, qubit, circ=None):
         """Create new rx single qubit gate."""
         super().__init__("rx", [theta], [qubit], circ)
+        self._define_decompositions([theta])
+
+    def _define_decompositions(self, params):
+        """
+        gate rx(theta) a {u3(theta, -pi/2, pi/2) a;}
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u3", 1, 0, 3)
+        decomposition.apply_operation_back(U3Gate(params[0], -pi/2, pi/2, q[0]))
+        self.instructions.append(decomposition)
 
     def inverse(self):
         """Invert this gate.

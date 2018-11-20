@@ -12,6 +12,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -24,7 +25,7 @@ class Cu3Gate(Gate):
     def __init__(self, theta, phi, lam, ctl, tgt, circ=None):
         """Create new cu3 gate."""
         super().__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
-        self._define_decompositions(params)
+        self._define_decompositions(params=[theta, phi, lam])
 
     def _define_decompositions(self, params):
         """

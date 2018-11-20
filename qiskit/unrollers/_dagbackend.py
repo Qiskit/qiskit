@@ -41,7 +41,7 @@ class DAGBackend(UnrollerBackend):
         self.circuit = DAGCircuit()
         self.listen = True
         self.in_gate = None
-        self.set_basis(basis)
+        self.set_basis(basis or [])
 
     def set_basis(self, basis):
         """Declare the set of basis gates to emit."""
