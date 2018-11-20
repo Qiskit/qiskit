@@ -103,6 +103,9 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         qcr2.measure(qr2[1], cr2[1])
         shots = 1024
         qobj = compile([qcr1, qcr2], backend, seed=8458, shots=shots, seed_mapper=88434)
+        qobj_exp = qobj.experiments[0]
+        qobj_exp1 = qobj.experiments[1]
+        qobj_exp1.header.compiled_circuit_qasm=qobj_exp.header.compiled_circuit_qasm
         job = backend.run(qobj)
         result = job.result()
         result1 = result.get_counts(qcr1)
