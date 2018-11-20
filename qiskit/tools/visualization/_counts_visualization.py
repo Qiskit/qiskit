@@ -21,7 +21,8 @@ import matplotlib.pyplot as plt
 from ._error import VisualizationError
 
 
-def plot_histogram(data, number_to_keep=None, legend=None, options=None):
+def plot_histogram(data, number_to_keep=None, legend=None, options=None,
+                   filename=None, show=False):
     """Plot a histogram of data.
 
     Args:
@@ -40,6 +41,12 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None):
             - number_to_keep (integer): groups max values
             - show_legend (bool): show legend of graph content
             - sort (string): Could be 'asc' or 'desc'
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
+        show (bool): If set to true the rendered image will open in a new
+             window
+    Returns:
+        matplotlib.Figure: A figure for the rendered histogram
     Raises:
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
@@ -114,5 +121,8 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None):
             raise VisualizationError("Value of sort option, %s, isn't a "
                                      "valid choice. Must be 'asc' or "
                                      "'desc'")
-
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    if show:
+        plt.show()
+    return plt.gcf()
