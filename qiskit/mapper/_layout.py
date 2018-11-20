@@ -46,3 +46,8 @@ class Layout(dict):
 
     def get_logical(self):
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
+
+    def swap(self,left, right):
+        temp = self[left]
+        self[left] = self[right]
+        self[right] = temp

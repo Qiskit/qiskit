@@ -47,6 +47,13 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[('qr', 1)], 1)
         self.assertEqual(layout[1], ('qr', 1))
 
+    def test_layout_swap(self):
+        layout = Layout()
+        layout.add_logical(('qr', 0))
+        layout.add_logical(('qr', 1))
+        layout.swap(0,1)
+        self.assertDictEqual(layout.get_logical(), {('qr', 0): 1, ('qr', 1): 0})
+
 
 if __name__ == '__main__':
     unittest.main()

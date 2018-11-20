@@ -1361,7 +1361,7 @@ class DAGCircuit:
             if creg.name not in self.cregs:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
 
-        self.compose_back(dag, layout)
+        self.compose_back(dag, { k:('q', v) for k, v in layout.get_logical().items()} )
 
     @staticmethod
     def fromQuantumCircuit(circuit, expand_gates=True):
