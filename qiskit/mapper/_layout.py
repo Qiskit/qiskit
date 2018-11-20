@@ -13,17 +13,19 @@ Logical (qu)bits are tuples (eg, `('qr',2)`.
 Physical (qu)bits are numbers.
 """
 
+
 class Layout(dict):
     """ Two-ways dict to represent a Layout."""
-    def __init__(self, input=None):
+
+    def __init__(self, input_=None):
         dict.__init__(self)
-        if isinstance(input, dict):
-            self.from_dict(input)
-        if isinstance(input, list):
-            self.from_list(input)
+        if isinstance(input_, dict):
+            self.from_dict(input_)
+        if isinstance(input_, list):
+            self.from_list(input_)
 
     def from_dict(self, input_dict):
-        for key,value in input_dict.items():
+        for key, value in input_dict.items():
             self[key] = value
 
     def from_list(self, input_list):
@@ -58,7 +60,7 @@ class Layout(dict):
     def get_logical(self):
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
 
-    def swap(self,left, right):
+    def swap(self, left, right):
         temp = self[left]
         self[left] = self[right]
         self[right] = temp

@@ -66,7 +66,7 @@ class LayoutTest(QiskitTestCase):
         layout = Layout()
         layout.add_logical(('qr', 0))
         layout.add_logical(('qr', 1))
-        layout.swap(0,1)
+        layout.swap(0, 1)
         self.assertDictEqual(layout.get_logical(), {('qr', 0): 1, ('qr', 1): 0})
 
 
