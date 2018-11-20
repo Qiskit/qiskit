@@ -96,6 +96,8 @@ Removed
   `qiskit.tools.visualization.plot_histogram`, and
   `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
   you manually install and configure matplotlib independently.
+- ``backend.parameters()`` and ``backend.calibration()`` have been fully
+  deprecated, in favour of ``backend.properties()`` (#1305).
 
 
 Fixed
