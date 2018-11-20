@@ -34,7 +34,7 @@ class TestFileIO(QiskitTestCase):
         circuits = [qc1, qc2]
 
         result1 = execute(circuits, backend=Aer.get_backend('unitary_simulator_py')).result()
-        result2 = execute(circuits, backend=Aer.get_backend('qasm_simulator')).result()
+        result2 = execute(circuits, backend=Aer.get_backend('qasm_simulator_py')).result()
 
         test_1_path = self._get_resource_path('test_save_load1.json')
         test_2_path = self._get_resource_path('test_save_load2.json')

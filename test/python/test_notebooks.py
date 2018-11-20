@@ -15,7 +15,7 @@ import unittest
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-from .common import QiskitTestCase, Path
+from .common import Path, QiskitTestCase, requires_cpp_simulator
 
 
 # Timeout (in seconds) for a single notebook.
@@ -44,6 +44,7 @@ class TestJupyter(QiskitTestCase):
         execute_preprocessor.preprocess(
             notebook, {'metadata': {'path': self.execution_path}})
 
+    @requires_cpp_simulator
     def test_jupyter(self):
         "Test Jupyter functionality"
         self._execute_notebook(self.filename)
