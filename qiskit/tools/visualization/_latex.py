@@ -581,7 +581,8 @@ class QCircuitImage(object):
                 pos_2 = self.img_regs[cl_reg]
                 if_value = format(int(op['conditional']['val'], 16),
                                   'b').zfill(self.cregs[if_reg])[::-1]
-            if op['name'] not in ['measure', 'barrier']:
+            if op['name'] not in ['measure', 'barrier', 'snapshot', 'load',
+                                  'save', 'noise']:
                 nm = op['name']
                 qarglist = [self.qubit_list[i] for i in op['qubits']]
                 if aliases is not None:
@@ -996,7 +997,8 @@ class QCircuitImage(object):
                 except Exception as e:
                     raise _error.VisualizationError(
                         'Error during Latex building: %s' % str(e))
-            elif op['name'] == "barrier":
+            elif op['name'] in ["barrier", 'snapshot', 'load', 'save',
+                                'noise']:
                 if self.plot_barriers:
                     qarglist = [self.qubit_list[i] for i in op['qubits']]
                     if self.reverse_bits:
