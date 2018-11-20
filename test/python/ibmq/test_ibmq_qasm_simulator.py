@@ -11,6 +11,7 @@
 TODO: Must expand tests. Re-evaluate after Aer."""
 
 import logging
+import unittest
 
 import fixtures
 import testtools
@@ -28,9 +29,21 @@ LOG = logging.getLogger(__name__)
 class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
     """Test IBM Q Qasm Simulator."""
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestIbmqQasmSimulator, cls).setUpClass()
+        cls.orig_method = unittest.SkipTest
+        unittest.SkipTest = testtools.TestCase.skipException
+
+    @classmethod
+    def tearDownClass(cls):
+        unittest.SkipTest = cls.orig_method
+        super(TestIbmqQasmSimulator, cls).tearDownClass()
+
     def setUp(self):
         super(TestIbmqQasmSimulator, self).setUp()
         self.useFixture(fixtures.LoggerFixture())
+
 
     @requires_qe_access
     def test_execute_one_circuit_simulator_online(self, qe_token, qe_url):
