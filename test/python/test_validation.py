@@ -13,7 +13,7 @@ from datetime import datetime
 from marshmallow import fields, ValidationError
 from marshmallow.validate import Regexp
 
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, MapSchema, Map
+from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj, ObjSchema, Obj
 from qiskit.validation.fields import TryFrom, ByAttribute, ByType
 from qiskit.validation.validate import PatternProperties
 from .common import QiskitTestCase
@@ -317,7 +317,7 @@ class TestFields(QiskitTestCase):
 
 class HistogramSchema(BaseSchema):
     """Example HistogramSchema schema with strict dict structure validation."""
-    counts = fields.Nested(MapSchema, validate=PatternProperties({
+    counts = fields.Nested(ObjSchema, validate=PatternProperties({
         Regexp('^0x([0-9A-Fa-f])+$'): fields.Integer()
     }))
 
@@ -333,14 +333,14 @@ class TestValidators(QiskitTestCase):
 
     def test_patternproperties_valid(self):
         """Test the PatternProperties validator allowing fine control on keys and values."""
-
-        valid_data = {'counts': Map(**{'0x00': 60, '0x11': 50})}
-        histogram = Histogram(**valid_data)
-        self.assertEqual(histogram.counts, valid_data['counts'])
+        counts_dict = {'0x00': 50, '0x11': 50}
+        counts = Obj(**counts_dict)
+        histogram = Histogram(counts=counts)
+        self.assertEqual(histogram.counts, counts)
 
         # From dict
-        histogram = Histogram.from_dict(valid_data)
-        self.assertEqual(histogram.counts, valid_data['counts'])
+        histogram = Histogram.from_dict({'counts': counts_dict})
+        self.assertEqual(histogram.counts, counts)
 
     def test_patternproperties_invalid_key(self):
         """Test the PatternProperties validator fails when invalid key"""
@@ -365,7 +365,7 @@ class TestValidators(QiskitTestCase):
     def test_patternproperties_to_dict(self):
         """Test a field using the PatternProperties validator produces a correct value"""
         counts_dict = {'0x00': 50, '0x11': 50}
-        counts = Map(**counts_dict)
+        counts = Obj(**counts_dict)
         histogram = Histogram(counts=counts)
         histogram_dict = histogram.to_dict()
         self.assertEqual(histogram_dict, {'counts': counts_dict})
