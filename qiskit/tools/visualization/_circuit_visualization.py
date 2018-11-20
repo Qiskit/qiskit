@@ -331,16 +331,13 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 
 
-def _text_circuit_drawer(circuit, filename=None,
-                         basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None,
-                         reversebits=False, plotbarriers=True):
+def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=False,
+                         plotbarriers=True):
     """
     Draws a circuit using ascii art.
     Args:
         circuit (QuantumCircuit): Input circuit
         filename (str): optional filename to write the result
-        basis (str): Optional. Comma-separated list of gate names
         line_length (int): Optional. Breaks the circuit drawing to this length. This
                    useful when the drawing does not fit in the console. If
                    None (default), it will try to guess the console width using
@@ -352,12 +349,6 @@ def _text_circuit_drawer(circuit, filename=None,
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     dag = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-
-    # Deprecate the following lines     -------------------------------------------------|
-    basis = basis.split(',') if basis else []                                          # |
-    dag = _dagunroller.DagUnroller(dag, _dagbackend.DAGBackend(basis)).expand_gates()  # |
-    #     -------------------------------------------------------------------------------|
-
     qregs, cregs, ops = _utils._get_instructions(dag, reversebits=reversebits)
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
