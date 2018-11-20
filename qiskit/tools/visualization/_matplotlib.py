@@ -406,22 +406,6 @@ class MatplotlibDrawer:
                     }
                 self._cond['n_lines'] += 1
                 idx += 1
-        # reverse bit order
-        if self.reverse_bits:
-            self._reverse_bits(self._qreg_dict)
-            self._reverse_bits(self._creg_dict)
-
-    def _reverse_bits(self, target_dict):
-        coord = {}
-        # grouping
-        for dict_ in target_dict.values():
-            if dict_['group'] not in coord:
-                coord[dict_['group']] = [dict_['y']]
-            else:
-                coord[dict_['group']].insert(0, dict_['y'])
-        # reverse bit order
-        for key in target_dict.keys():
-            target_dict[key]['y'] = coord[target_dict[key]['group']].pop(0)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
