@@ -545,7 +545,9 @@ class MatplotlibDrawer:
                         this_anc, gw) for jj in q_list]
                     if all(locs):
                         for ii in q_list:
-                            if op['name'] == 'barrier' and not self.plot_barriers:
+                            if op['name'] in [
+                                    'barrier', 'snapshot', 'load', 'save',
+                                    'noise'] and not self.plot_barriers:
                                 q_anchors[ii].set_index(this_anc - 1, gw)
                             else:
                                 q_anchors[ii].set_index(this_anc, gw)
@@ -602,7 +604,8 @@ class MatplotlibDrawer:
             if op['name'] == 'measure':
                 vv = self._creg_dict[c_idxs[0]]['index']
                 self._measure(q_xy[0], c_xy[0], vv)
-            elif op['name'] == 'barrier':
+            elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
+                                'noise']:
                 q_group = self._qreg_dict[q_idxs[0]]['group']
                 if q_group not in _barriers['group']:
                     _barriers['group'].append(q_group)
