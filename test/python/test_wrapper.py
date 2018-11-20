@@ -10,7 +10,6 @@
 """Tests for the wrapper functionality."""
 
 import logging
-import sys
 
 import fixtures
 import testtools
@@ -71,7 +70,3 @@ class TestWrapper(testtools.TestCase):
         """Verify that qobj_to_circuits returns None without QASM."""
         qobj = Qobj('abc123', {}, {}, {})
         self.assertIsNone(qiskit.wrapper.qobj_to_circuits(qobj))
-
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
