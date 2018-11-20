@@ -5,6 +5,9 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# TODO(mtreinish): Remove after 0.7 and the deprecated methods are removed
+# pylint: disable=unused-argument
+
 
 """
 Two quantum circuit drawers based on:
@@ -38,19 +41,16 @@ def plot_circuit(circuit,
                        "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                  scale=0.7,
                  style=None):
-    """Plot and show circuit (opens new window, cannot inline in Jupyter)
-    Defaults to an overcomplete basis, in order to not alter gates.
-    """
+    """Plot and show circuit (opens new window, cannot inline in Jupyter)"""
     warnings.warn('The plot_circuit() function is deprecated and will be '
                   'removed in the future. Instead use circuit_drawer() with '
                   'the `interactive` flag set true', DeprecationWarning)
-    image = circuit_drawer(circuit, basis=basis, scale=scale, style=style)
+    image = circuit_drawer(circuit, scale=scale, style=style)
     if image:
         image.show()
 
 
 def circuit_drawer(circuit,
-                   basis=None,
                    scale=0.7,
                    filename=None,
                    style=None,
@@ -64,14 +64,8 @@ def circuit_drawer(circuit,
     1. latex: high-quality images, but heavy external software dependencies
     2. matplotlib: purely in Python with no external dependencies
 
-    Defaults to an overcomplete basis, in order to not alter gates.
-
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        basis (str): the basis to unroll to prior to drawing. Defaults to
-            `"id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,cx,cy,cz,ch,crz,cu1,
-            cu3,swap,ccx,cswap"` This option is deprecated and will be removed
-            in the future.
         scale (float): scale of image to draw (shrink if < 1)
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file.
@@ -191,14 +185,6 @@ def circuit_drawer(circuit,
             `reverse_bits` kwarg instead.
 
     """
-    if basis is None:
-        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-    else:
-        warnings.warn('The basis kwarg is deprecated and the circuit drawer '
-                      'function will not be able to adjust basis gates itself '
-                      'in a future release', DeprecationWarning)
-
     image = None
     if style:
         if 'reversebits' in style:
@@ -218,33 +204,33 @@ def circuit_drawer(circuit,
                       'falling back to mpl on failure it will just use '
                       '"text" by default', DeprecationWarning)
         try:
-            image = _latex_circuit_drawer(circuit, basis, scale, filename, style)
+            image = _latex_circuit_drawer(circuit, scale, filename, style)
         except (OSError, subprocess.CalledProcessError, FileNotFoundError):
             if _matplotlib.HAS_MATPLOTLIB:
-                image = _matplotlib_circuit_drawer(circuit, basis, scale, filename,
+                image = _matplotlib_circuit_drawer(circuit, scale, filename,
                                                    style)
             else:
                 raise ImportError('The default output needs matplotlib. '
                                   'Run "pip install matplotlib" before.')
     else:
         if output == 'text':
-            return _text_circuit_drawer(circuit, filename=filename, basis=basis,
+            return _text_circuit_drawer(circuit, filename=filename,
                                         line_length=line_length,
                                         reversebits=reverse_bits,
                                         plotbarriers=plot_barriers)
         elif output == 'latex':
-            image = _latex_circuit_drawer(circuit, basis=basis, scale=scale,
+            image = _latex_circuit_drawer(circuit, scale=scale,
                                           filename=filename, style=style,
                                           plot_barriers=plot_barriers,
                                           reverse_bits=reverse_bits)
         elif output == 'latex_source':
-            return _generate_latex_source(circuit, basis=basis,
+            return _generate_latex_source(circuit,
                                           filename=filename, scale=scale,
                                           style=style,
                                           plot_barriers=plot_barriers,
                                           reverse_bits=reverse_bits)
         elif output == 'mpl':
-            image = _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
+            image = _matplotlib_circuit_drawer(circuit, scale=scale,
                                                filename=filename, style=style,
                                                plot_barriers=plot_barriers,
                                                reverse_bits=reverse_bits)
@@ -335,15 +321,13 @@ def qx_color_scheme():
 
 
 def _text_circuit_drawer(circuit, filename=None,
-                         basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                               "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap", line_length=None,
-                         reversebits=False, plotbarriers=True):
+                         line_length=None, reversebits=False,
+                         plotbarriers=True):
     """
     Draws a circuit using ascii art.
     Args:
         circuit (QuantumCircuit): Input circuit
         filename (str): optional filename to write the result
-        basis (str): Optional. Comma-separated list of gate names
         line_length (int): Optional. Breaks the circuit drawing to this length. This
                    useful when the drawing does not fit in the console. If
                    None (default), it will try to guess the console width using
@@ -354,6 +338,8 @@ def _text_circuit_drawer(circuit, filename=None,
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
+    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
     text_drawing = _text.TextDrawing(json_circuit, reversebits=reversebits)
@@ -398,13 +384,11 @@ def latex_circuit_drawer(circuit,
                   'be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
                   '`latex`.', DeprecationWarning)
-    return _latex_circuit_drawer(circuit, basis=basis, scale=scale,
+    return _latex_circuit_drawer(circuit, scale=scale,
                                  filename=filename, style=style)
 
 
 def _latex_circuit_drawer(circuit,
-                          basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                           scale=0.7,
                           filename=None,
                           style=None,
@@ -416,7 +400,6 @@ def _latex_circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): a quantum circuit
-        basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
@@ -436,7 +419,7 @@ def _latex_circuit_drawer(circuit,
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        _generate_latex_source(circuit, filename=tmppath, basis=basis,
+        _generate_latex_source(circuit, filename=tmppath,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits)
@@ -500,13 +483,11 @@ def generate_latex_source(circuit, filename=None,
                   ' be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
                   '`latex_source`.', DeprecationWarning)
-    return _generate_latex_source(circuit, filename=filename, basis=basis,
+    return _generate_latex_source(circuit, filename=filename,
                                   scale=scale, style=style)
 
 
 def _generate_latex_source(circuit, filename=None,
-                           basis="id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap",
                            scale=0.7, style=None, reverse_bits=False,
                            plot_barriers=True):
     """Convert QuantumCircuit to LaTeX string.
@@ -515,7 +496,6 @@ def _generate_latex_source(circuit, filename=None,
         circuit (QuantumCircuit): input circuit
         scale (float): image scaling
         filename (str): optional filename to write latex
-        basis (str): optional comma-separated list of gate names
         style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -525,6 +505,8 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
+    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
+             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
     dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
     json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
     qcimg = _latex.QCircuitImage(json_circuit, scale, style=style,
@@ -565,14 +547,11 @@ def matplotlib_circuit_drawer(circuit,
                   'will be removed in a future release. Instead use the '
                   'circuit_drawer() function with the `output` kwarg set to '
                   '`mpl`.', DeprecationWarning)
-    return _matplotlib_circuit_drawer(circuit, basis=basis, scale=scale,
+    return _matplotlib_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style)
 
 
 def _matplotlib_circuit_drawer(circuit,
-                               basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,'
-                                     'ry,rz,cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,'
-                                     'cswap',
                                scale=0.7,
                                filename=None,
                                style=None,
@@ -584,7 +563,6 @@ def _matplotlib_circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): a quantum circuit
-        basis (str): comma separated list of gates
         scale (float): scaling factor
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
@@ -597,10 +575,7 @@ def _matplotlib_circuit_drawer(circuit,
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
     """
-    if ',' not in basis:
-        logger.warning('Warning: basis is not comma separated: "%s". '
-                       'Perhaps you set `filename` to `basis`.', basis)
-    qcd = _matplotlib.MatplotlibDrawer(basis=basis, scale=scale, style=style,
+    qcd = _matplotlib.MatplotlibDrawer(scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)
     qcd.parse_circuit(circuit)
