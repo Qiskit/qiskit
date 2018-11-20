@@ -211,13 +211,12 @@ def update_backend_info(self, interval=60):
             idx = list(range(len(self._backends)))
             pending = [s['pending_jobs'] for s in stati]
 
-            least_pending = [list(x) for x in zip(
-                *sorted(zip(pending, idx), key=lambda pair: pair[0]))]
+            _, least_idx = zip(*sorted(zip(pending, idx)))
 
             # Make sure least pending is operational
-            for lst_pend in least_pending:
-                if stati[lst_pend[1]]['operational']:
-                    least_pending_idx = lst_pend[1]
+            for ind in least_idx:
+                if stati[ind]['operational']:
+                    least_pending_idx = ind
                     break
 
             for var in idx:
