@@ -15,7 +15,7 @@ import unittest
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from qiskit.tools.visualization import HAS_MATPLOTLIB
-from .common import QiskitTestCase, Path
+from .common import QiskitTestCase, Path, requires_qe_access
 
 
 # Timeout (in seconds) for a single notebook.
@@ -29,7 +29,7 @@ class TestJupyter(QiskitTestCase):
     def setUp(self):
         self.execution_path = os.path.join(Path.SDK.value, '..')
 
-    def _execute_notebook(self, filename):
+    def _execute_notebook(self, filename, qe_token=None, qe_url=None):
         # Create the preprocessor.
         execute_preprocessor = ExecutePreprocessor(timeout=TIMEOUT,
                                                    kernel_name=JUPYTER_KERNEL)
@@ -37,6 +37,17 @@ class TestJupyter(QiskitTestCase):
         # Read the notebook.
         with open(filename) as file_:
             notebook = nbformat.read(file_, as_version=4)
+
+        if qe_token and qe_url:
+            top_str = "from qiskit import IBMQ\n"
+            top_str += "IBMQ.enable_account('{token}', '{url}')".format(token=qe_token, 
+                                                                        url=qe_url)
+            top = nbformat.notebooknode.NotebookNode({'cell_type': 'code',
+                                                      'execution_count': 0,
+                                                      'metadata': {},
+                                                      'outputs': [],
+                                                      'source': top_str})
+            notebook.cells = [top] + notebook.cells
 
         # Run the notebook into the folder containing the `qiskit/` module.
         execute_preprocessor.preprocess(
@@ -48,11 +59,13 @@ class TestJupyter(QiskitTestCase):
             'notebooks/test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skipIf(os.getenv('CI', None), 'Cannot test backend monitors in CI env.')
-    def test_backend_tools(self):
+    @requires_qe_access
+    def test_backend_tools(self, qe_token, qe_url):
         "Test Jupyter backend tools."
         self._execute_notebook(self._get_resource_path(
-            'notebooks/test_backend_tools.ipynb'))
+            'notebooks/test_backend_tools.ipynb'),
+                               qe_token=qe_token,
+                               qe_url=qe_url)
 
 
 if __name__ == '__main__':
