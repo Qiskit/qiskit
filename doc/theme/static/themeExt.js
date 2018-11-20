@@ -22,10 +22,10 @@ $(function() {
             if(text.length > 2) {
                 $link[0].text = text[text.length - 1];
             }
-            const isCurrent = $li.hasClass('current') && !$link.hasClass('current');
+            const isCurrent = $li.hasClass('current');
             const isActive = $li.hasClass('current') && $link.hasClass('mdl-color-text--primary')
             const $ul = $li.children('ul');
-            if ($ul.hasClass('simple') || ($li.hasClass('toctree-l1') && $ul.length === 0)) {
+            if ($ul.hasClass('simple') || $ul.length === 0) {
                $linkWrapper.addClass('simple');
             }
             $li.append($div.append($linkWrapper.append($link)));
@@ -33,6 +33,7 @@ $(function() {
                 $div.addClass('active');
             }
              let $toggleWrapper;
+             console.log(isCurrent)
             if(!isCurrent){
                 $toggleWrapper = $('<span class="nav-toggle"></span>');
                 $ul.hide();
@@ -70,7 +71,7 @@ $(function() {
     }
 
     function collapse() {
-        $('.mdl-layout__drawer nav .item .title').click(function() {
+        $('.mdl-layout__drawer nav .item .link-wrapper').click(function() {
             const $toggle = $(this).children('span .nav-toggle').children('a');
             $(this).toggleClass('sectionActive');
             const id = $toggle.attr('data-toggle');
