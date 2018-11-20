@@ -52,7 +52,7 @@ class DAGCircuit:
         self.wires = set()
 
         # Map from wire (Register,idx) to input nodes of the graph
-        self.input_map = OrderedDict()
+        self.input_map = {}
 
         # Map from wire (Register,idx) to output nodes of the graph
         self.output_map = OrderedDict()
@@ -324,11 +324,13 @@ class DAGCircuit:
             all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
         return all_bits
 
-    def _add_op_node(self, op, condition):
+    def _add_op_node(self, op, qargs=None, cargs=None, condition=None):
         """Add a new operation node to the graph and assign properties.
 
         Args:
             op (Instruction): the operation associated with the DAG node
+            qargs (list): list of quantum wires to attach to.
+            cargs (list): list of classical wires to attach to.
             condition ((ClassicalRegister, int) or None): optional condition (creg, value)
         """
         # Add a new operation node to the graph
@@ -338,12 +340,13 @@ class DAGCircuit:
         self.multi_graph.node[self.node_counter]["type"] = "op"
         self.multi_graph.node[self.node_counter]["op"] = op
         self.multi_graph.node[self.node_counter]["name"] = op.name
-        self.multi_graph.node[self.node_counter]["qargs"] = op.qargs
-        self.multi_graph.node[self.node_counter]["cargs"] = op.cargs
+        self.multi_graph.node[self.node_counter]["qargs"] = qargs
+        self.multi_graph.node[self.node_counter]["cargs"] = cargs
         self.multi_graph.node[self.node_counter]["condition"] = condition
 
     def apply_operation_back(self, op, condition=None):
         """Apply an operation to the output of the circuit.
+        TODO: this should take `qargs` and `cargs` when those are dropped from op.
 
         Args:
             op (Instruction): the operation associated with the DAG node
@@ -357,7 +360,7 @@ class DAGCircuit:
         self._check_bits(op.qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        self._add_op_node(op, condition)
+        self._add_op_node(op, op.qargs, op.cargs, condition)
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
         # and adding new edges from the operation node to each output node
@@ -388,7 +391,7 @@ class DAGCircuit:
         self._check_bits(op.qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        self._add_op_node(op, condition)
+        self._add_op_node(op, op.qargs, op.cargs, condition)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
@@ -928,8 +931,9 @@ class DAGCircuit:
     def node_nums_in_topological_order(self):
         """
         Returns the nodes (their ids) in topological order.
+
         Returns:
-            List(int): The list of node numbers in topological order
+            list (int): The list of node numbers in topological order
         """
         return nx.topological_sort(self.multi_graph)
 
@@ -1099,7 +1103,7 @@ class DAGCircuit:
                                    md["qargs"]))
                 m_cargs = list(map(lambda x: wire_map.get(x, x),
                                    md["cargs"]))
-                self._add_op_node(md["op"], condition)
+                self._add_op_node(md["op"], m_qargs, m_cargs, condition)
                 # Add edges from predecessor nodes to new node
                 # and update predecessor nodes that change
                 all_cbits = self._bits_in_condition(condition)

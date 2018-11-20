@@ -147,18 +147,15 @@ class TestDagOperations(QiskitTestCase):
 
     def test_nodes_in_topological_order(self):
         """ The node_nums_in_topological_order() method"""
-        dag = DAGCircuit()
-        dag.add_basis_element('h', 1, number_classical=0, number_parameters=0)
-        dag.add_basis_element('cx', 2)
-        dag.add_qreg(QuantumRegister(3, "q"))
-        dag.apply_operation_back('cx', [('q', 0), ('q', 1)])
-        dag.apply_operation_back('h', [('q', 0)])
-        dag.apply_operation_back('cx', [('q', 2), ('q', 1)])
-        dag.apply_operation_back('cx', [('q', 0), ('q', 2)])
-        dag.apply_operation_back('h', [('q', 2)])
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit2, self.qubit1))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit2))
+        self.dag.apply_operation_back(HGate(self.qubit2))
 
-        named_nodes = dag.node_nums_in_topological_order()
-        self.assertEqual([5, 3, 1, 7, 9, 4, 8, 10, 11, 6, 2], [i for i in named_nodes])
+        named_nodes = self.dag.node_nums_in_topological_order()
+        self.assertEqual([9, 10, 7, 8, 5, 3, 1, 11, 13, 4, 12, 14, 15, 6, 2],
+                         [i for i in named_nodes])
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
@@ -337,10 +334,24 @@ class TestDagSubstitute(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(XGate(self.qubit1))
 
+    def test_substitute_circuit_one_middle(self):
+        cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop() # node to replace
 
-    def test_substitute_circuit_one_back(self):
-        x_node = self.dag.get_op_nodes(op=XGate(self.qubit1)).pop()
-        self.dag.substitute_circuit_one(x_node, DAGCircuit())
+        flipped_cx_circuit = DAGCircuit()
+        p = QuantumRegister(2, "p")
+        flipped_cx_circuit.add_qreg(p)
+        flipped_cx_circuit.add_basis_element("cx", 2)
+        flipped_cx_circuit.add_basis_element("h", 1)
+        flipped_cx_circuit.apply_operation_back(HGate(p[0]))
+        flipped_cx_circuit.apply_operation_back(HGate(p[1]))
+        flipped_cx_circuit.apply_operation_back(CnotGate(p[1], p[0]))
+        flipped_cx_circuit.apply_operation_back(HGate(p[0]))
+        flipped_cx_circuit.apply_operation_back(HGate(p[1]))
+
+        self.dag.substitute_circuit_one(cx_node, input_circuit=flipped_cx_circuit,
+                                        wires=[p[0], p[1]])
+
+        self.assertEqual(self.dag.count_ops()['h'], 5)
 
     def test_substitute_circuit_one_middle(self):
         pass

@@ -38,6 +38,7 @@ class DagUnroller(object):
 
     def execute(self):
         """Interpret OPENQASM and make appropriate backend calls.
+        TODO (ALI): can this be deleted?
 
         This does not expand gates. So self.expand_gates() must have
         been previously called. Otherwise non-basis gates will be ignored
@@ -63,7 +64,6 @@ class DagUnroller(object):
         This method replicates the behavior of the unroller
         module without using the OpenQASM parser or the ast.
         """
-        print("EXPAND GATES")
         if basis is None:
             basis = self.backend.circuit.basis
 
@@ -79,7 +79,6 @@ class DagUnroller(object):
                current_node["op"].name not in basis and \
                current_node["op"].name not in simulator_builtins and \
                not self.dag_circuit.gates[current_node["op"].name]["opaque"]:
-                   print("DECOMPOSING: ", current_node["op"].name)
                    decomposition_rules = current_node["op"].instructions
                    if not len(decomposition_rules) > 0:
                        raise UnrollerError("no decomposition rules defined for ",
@@ -109,7 +108,6 @@ class DagUnroller(object):
                    cwires = [w for w in decomposition_dag.wires
                              if isinstance(w[0], ClassicalRegister)]
 
-                   print(qwires + cwires)
                    self.dag_circuit.substitute_circuit_one(node,
                                                            decomposition_dag,
                                                            qwires + cwires)
@@ -123,7 +121,9 @@ class DagUnroller(object):
         return self.dag_circuit
 
     def _process(self):
-        """Process dag nodes, assuming that expand_gates has already been called."""
+        """Process dag nodes, assuming that expand_gates has already been called.
+        TODO (ALI): can this be deleted?
+        """
         for qreg in self.dag_circuit.qregs.values():
             self.backend.new_qreg(qreg)
         for creg in self.dag_circuit.cregs.values():
