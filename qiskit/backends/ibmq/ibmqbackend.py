@@ -145,15 +145,16 @@ class IBMQBackend(BaseBackend):
         Raises:
             LookupError: If properties for the backend can't be found.
         """
-        # FIXME: make this an actual call to _api.backend_properties
-        # for now this api endpoint does not exist.
-        warnings.simplefilter("ignore")
-        calibration = self.calibration()
-        parameters = self.parameters()
-        _dict_merge(calibration, parameters)
-        properties = calibration
-        warnings.simplefilter("default")
-        return properties
+        properties = self._api.backend_properties(self.name())
+
+        # Convert the properties to snake_case.
+        # TODO: ideally should be handled at the API level.
+        properties_edit = {}
+        for key, val in properties.items():
+            new_key = _camel_case_to_snake_case(key)
+            properties_edit[new_key] = val
+
+        return properties_edit
 
     def status(self):
         """Return the online backend status.

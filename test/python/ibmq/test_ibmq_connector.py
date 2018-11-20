@@ -117,6 +117,18 @@ class TestIBMQConnector(QiskitTestCase):
         self.assertIsNotNone(parameters)
 
     @requires_qe_access
+    def test_api_backend_properties(self, qe_token, qe_url):
+        """
+        Check the properties of calibration of a real chip
+        """
+        backend_name = ('ibmq_20_tokyo'
+                        if self.using_ibmq_credentials else 'ibmqx4')
+        api = self._get_api(qe_token, qe_url)
+
+        properties = api.backend_properties(backend_name)
+        self.assertIsNotNone(properties)
+
+    @requires_qe_access
     def test_api_backends_available(self, qe_token, qe_url):
         """
         Check the backends available

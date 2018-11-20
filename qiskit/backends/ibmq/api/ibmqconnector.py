@@ -44,6 +44,18 @@ def get_backend_stats_url(config, backend_type, hub=None):
     return '/Backends/{}'.format(backend_type)
 
 
+def get_backend_properties_url(config, backend_type, hub=None):
+    """
+    Util method to get backend properties url
+    """
+    hub = config.get('hub', hub)
+
+    base_url = get_backend_stats_url(config, backend_type, hub)
+    if hub:
+        return '{}/properties'.format(base_url)
+    return '{}/stats'.format(base_url)
+
+
 def get_backend_url(config, hub, group, project):
     """
     Util method to get backend url
@@ -790,8 +802,7 @@ class IBMQConnector(object):
             raise BadBackendError(backend)
 
         if backend_type in self.__names_backend_simulator:
-            ret = {}
-            return ret
+            return {}
 
         url = get_backend_stats_url(self.config, backend_type, hub)
 
@@ -800,6 +811,35 @@ class IBMQConnector(object):
             ret = {}
         else:
             ret["backend"] = backend_type
+        return ret
+
+    def backend_properties(self, backend='ibmqx4', hub=None,
+                           access_token=None, user_id=None):
+        """
+        Get the parameters of calibration of a real chip
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            raise CredentialsError('credentials invalid')
+
+        backend_type = self._check_backend(backend, 'calibration')
+
+        if not backend_type:
+            raise BadBackendError(backend)
+
+        if backend_type in self.__names_backend_simulator:
+            return {}
+
+        url = get_backend_properties_url(self.config, backend_type, hub)
+
+        ret = self.req.get(url)
+        if not bool(ret):
+            ret = {}
+        else:
+            ret["backend_name"] = backend_type
         return ret
 
     def available_backends(self, hub=None, group=None, project=None,
