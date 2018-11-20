@@ -10,6 +10,11 @@
 """Test IBMQ online qasm simulator.
 TODO: Must expand tests. Re-evaluate after Aer."""
 
+import logging
+
+import fixtures
+import testtools
+
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin
 from qiskit import compile
@@ -17,8 +22,15 @@ from qiskit import IBMQ
 from ..common import requires_qe_access, QiskitTestCase
 
 
-class TestIbmqQasmSimulator(QiskitTestCase):
+LOG = logging.getLogger(__name__)
+
+
+class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
     """Test IBM Q Qasm Simulator."""
+
+    def setUp(self):
+        super(TestIbmqQasmSimulator, self).setUp()
+        self.useFixture(fixtures.LoggerFixture())
 
     @requires_qe_access
     def test_execute_one_circuit_simulator_online(self, qe_token, qe_url):
@@ -104,11 +116,11 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         shots = 1024
         qobj = compile([qcr1, qcr2], backend, seed=8458, shots=shots, seed_mapper=88434)
         qobj_exp = qobj.experiments[0]
-        print(qobj_exp.header.qubit_labels)
-        print(qobj_exp.header.compiled_circuit_qasm)
-        print(qobj_exp.header.clbit_labels)
+        LOG.warning(qobj_exp.header.qubit_labels)
+        LOG.warning(qobj_exp.header.compiled_circuit_qasm)
+        LOG.warning(qobj_exp.header.clbit_labels)
         for i in qobj_exp.instructions:
-            print(i)
+            LOG.warning(i)
         job = backend.run(qobj)
         result = job.result()
         result1 = result.get_counts(qcr1)
