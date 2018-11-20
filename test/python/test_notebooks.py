@@ -40,7 +40,7 @@ class TestJupyter(QiskitTestCase):
 
         if qe_token and qe_url:
             top_str = "from qiskit import IBMQ\n"
-            top_str += "IBMQ.enable_account('{token}', '{url}')".format(token=qe_token, 
+            top_str += "IBMQ.enable_account('{token}', '{url}')".format(token=qe_token,
                                                                         url=qe_url)
             top = nbformat.notebooknode.NotebookNode({'cell_type': 'code',
                                                       'execution_count': 0,
