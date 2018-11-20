@@ -132,6 +132,7 @@ class Bloch():
         self.fig = fig
         self._ext_axes = False
         if axes is not None:
+            self._ext_fig = True
             self._ext_axes = True
         self.axes = axes
         # Background axes, default = False
