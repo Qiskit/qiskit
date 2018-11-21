@@ -12,6 +12,7 @@ Quantum circuit object.
 """
 import itertools
 import warnings
+import networkx as nx
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -24,18 +25,22 @@ from qiskit.dagcircuit import DAGCircuit
 
 
 def _circuit_from_qasm(qasm, basis=None):
-    from qiskit.unrollers import _unroller
-    from qiskit.unrollers import _circuitbackend
-    default_basis = ["id", "u0", "u1", "u2", "u3", "x", "y", "z", "h", "s",
-                     "sdg", "t", "tdg", "rx", "ry", "rz", "cx", "cy", "cz",
-                     "ch", "crz", "cu1", "cu3", "swap", "ccx", "cswap"]
-    if not basis:
-        basis = default_basis
-
+    from qiskit.unroll import Unroller
+    from qiskit.unroll import DAGBackend
     ast = qasm.parse()
-    unroll = _unroller.Unroller(
-        ast, _circuitbackend.CircuitBackend(basis))
-    circuit = unroll.execute()
+    dag = Unroller(ast, DAGBackend()).execute()    
+
+    circuit = QuantumCircuit()
+    for qreg in dag.qregs.values():
+        circuit.add_register(qreg)
+    for creg in dag.cregs.values():
+        circuit.add_register(creg)
+    G = dag.multi_graph
+    for node in nx.topological_sort(G):
+        n = G.nodes[node]
+        if n['type'] == 'op':
+            circuit._attach(n['op'])
+
     return circuit
 
 
