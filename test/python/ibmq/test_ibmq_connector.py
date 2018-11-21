@@ -92,7 +92,7 @@ class TestIBMQConnector(QiskitTestCase):
                         if self.using_ibmq_credentials else 'ibmqx4')
         api = self._get_api(qe_token, qe_url)
         is_available = api.backend_status(backend_name)
-        self.assertIsNotNone(is_available['available'])
+        self.assertIsNotNone(is_available['operational'])
 
     @requires_qe_access
     def test_api_backend_calibration(self, qe_token, qe_url):

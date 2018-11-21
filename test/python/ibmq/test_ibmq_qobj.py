@@ -48,7 +48,7 @@ class TestIBMQQobj(JobTestCase):
     def test_operational(self):
         """Test if backend is operational.
         """
-        self.assertTrue(self._remote_backend.status()['operational'])
+        self.assertTrue(self._remote_backend.status().operational)
 
     @slow_test
     @requires_qe_access

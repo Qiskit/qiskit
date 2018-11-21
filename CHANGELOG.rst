@@ -63,6 +63,9 @@ Changed
 - Speed up the Pauli class and extended its operators (#1271 #1166).
 - `IBMQ.save_account()` now takes an `overwrite` option to replace an existing
   account on disk. Default is False (#1295).
+- Backend and Provider methods defined in the specification use model objects
+  rather than dicts, along with validation against schemas (#1249, #1277).
+- ``backend.provider()`` is now a method instead of a property (#1312).
 
 Deprecated
 """"""""""
@@ -81,22 +84,6 @@ Deprecated
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
 
-
-Removed
-"""""""
-
-- ``matplotlib`` is no longer in the package requirements and is now an optional
-  dependency. In order to use any matplotlib based visualizations (which
-  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
-  `qiskit.tools.visualization.plot_state`,
-  `qiskit.tools.visualization.plot_histogram`, and
-  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
-  you manually install and configure matplotlib independently.
-- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
-  alternative list of basis gates has been removed. Instead users should adjust
-  the basis gates prior to visualizing the circuit. (#1151)
-
-
 Fixed
 """""
 
@@ -112,7 +99,6 @@ Fixed
 - Fixed an edge case when connection checks would raise an unhandled exception
   (#1226)
 
-
 Removed
 """""""
 
@@ -120,6 +106,16 @@ Removed
 - Remove tools/apps (#1184).
 - Removed the dependency on `IBMQuantumExperience`, as it is now included
   in `qiskit.backends.IBMQ` (#1198).
+- ``matplotlib`` is no longer in the package requirements and is now an optional
+  dependency. In order to use any matplotlib based visualizations (which
+  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
+  `qiskit.tools.visualization.plot_state`,
+  `qiskit.tools.visualization.plot_histogram`, and
+  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
+  you manually install and configure matplotlib independently.
+- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
+  alternative list of basis gates has been removed. Instead users should adjust
+  the basis gates prior to visualizing the circuit. (#1151)
 
 
 `0.6.0`_ - 2018-10-04
