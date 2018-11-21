@@ -34,6 +34,20 @@ This will install the latest stable release, along with all the dependencies.
     to cleanly separate Qiskit from other applications and improve your experience.
 
 
+Install with visualization dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are optional dependencies that are required to use all the visualization
+functions included in Qiskit Terra. You can install these at the same time by
+running:
+
+.. code:: sh
+
+   pip install qiskit[visualization]
+
+which will install qiskit and all the visualization dependencies.
+
+
 Setup with an environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -67,7 +67,7 @@ class JsonBackend(UnrollerBackend):
 
         self.creg = None
         self.cval = None
-        self.gates = {}
+        self.gates = OrderedDict()
         if basis:
             self.basis = basis.copy()
         else:
