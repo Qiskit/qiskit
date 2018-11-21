@@ -141,7 +141,6 @@ class JsonBackend(UnrollerBackend):
         qubit_indices = [self._qubit_order_internal.get(qubit)]
         self.circuit['instructions'].append({
             'name': "U",
-            # TODO: keep these real for now, until a later time
             'params': [float(arg[0].real(nested_scope)),
                        float(arg[1].real(nested_scope)),
                        float(arg[2].real(nested_scope))],
@@ -278,7 +277,6 @@ class JsonBackend(UnrollerBackend):
                              for qubit in op.qargs]
             gate_instruction = {
                 'name': op.name,
-                # TODO: keep these real for now, until a later time
                 'params': list(map(lambda x: float(x.real(nested_scope)),
                                    op.param)),
                 'texparams': list(map(lambda x:
@@ -307,7 +305,6 @@ class JsonBackend(UnrollerBackend):
         if not self._is_circuit_valid():
             raise BackendError("Invalid circuit! Please check the syntax of your circuit."
                                "Has Qasm parsing been called?. e.g: unroller.execute().")
-        print(self.circuit)
         return self.circuit
 
     def _is_circuit_valid(self):

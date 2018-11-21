@@ -150,8 +150,7 @@ class DAGBackend(UnrollerBackend):
             condition = (self.creg, self.cval)
         else:
             condition = None
-        params = map(lambda x: x.sym(nested_scope),arg)
-        self.circuit.apply_operation_back(UBase(*list(params), qubit), condition)
+        self.circuit.apply_operation_back(UBase(*arg, qubit), condition)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
@@ -195,15 +194,14 @@ class DAGBackend(UnrollerBackend):
                       nested_scope=None, extra_fields=None):
         """Create a DAG op node.
         """
-        params = [a.sym(nested_scope) for a in args]
         if name == "u0":
-            op = U0Gate(params[0], qubits[0])
+            op = U0Gate(args[0], qubits[0])
         elif name == "u1":
-            op = U1Gate(params[0], qubits[0])
+            op = U1Gate(args[0], qubits[0])
         elif name == "u2":
-            op = U2Gate(params[0], params[1], qubits[0])
+            op = U2Gate(args[0], args[1], qubits[0])
         elif name == "u3":
-            op = U3Gate(params[0], params[1], params[2], qubits[0])
+            op = U3Gate(args[0], args[1], args[2], qubits[0])
         elif name == "x":
             op = XGate(qubits[0])
         elif name == "y":
@@ -221,11 +219,11 @@ class DAGBackend(UnrollerBackend):
         elif name == "swap":
             op = SwapGate(qubits[0], qubits[1])
         elif name == "rx":
-            op = RXGate(params[0], qubits[0])
+            op = RXGate(args[0], qubits[0])
         elif name == "ry":
-            op = RYGate(params[0], qubits[0])
+            op = RYGate(args[0], qubits[0])
         elif name == "rz":
-            op = RZGate(params[0], qubits[0])
+            op = RZGate(args[0], qubits[0])
         elif name == "rzz":
             op = RZZGate(qubits[0], qubits[1])
         elif name == "id":
@@ -241,11 +239,11 @@ class DAGBackend(UnrollerBackend):
         elif name == "ch":
             op = CHGate(qubits[0], qubits[1])
         elif name == "crz":
-            op = CrzGate(params[0], qubits[0], qubits[1])
+            op = CrzGate(args[0], qubits[0], qubits[1])
         elif name == "cu1":
-            op = Cu1Gate(params[0], qubits[0], qubits[1])
+            op = Cu1Gate(args[0], qubits[0], qubits[1])
         elif name == "cu3":
-            op = Cu3Gate(params[0], params[1], params[2], qubits[0], qubits[1])
+            op = Cu3Gate(args[0], args[1], args[2], qubits[0], qubits[1])
         elif name == "ccx":
             op = ToffoliGate(qubits[0], qubits[1], qubits[2])
         elif name == "cswap":

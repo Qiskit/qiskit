@@ -41,7 +41,7 @@ class Instruction(object):
 
         Args:
             name (str): instruction name
-            param (list[sympy.Number or complex]): list of parameters
+            param (list[qasm.node.Real]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit(QuantumCircuit or Instruction): where the instruction is attached
@@ -56,12 +56,7 @@ class Instruction(object):
         self.name = name
         self.param = []
         for single_param in param:
-            if not isinstance(single_param, (sympy.Basic, complex)):
-                # If the item in param is not symbolic or complex (used
-                # by InitializeGate), make it symbolic.
-                self.param.append(sympy.Number(single_param))
-            else:
-                self.param.append(single_param)
+            self.param.append(single_param)
         self.qargs = qargs
         self.cargs = cargs
         self.instructions = []
@@ -118,12 +113,12 @@ class Instruction(object):
         """Return a default OpenQASM string for the instruction.
 
         Derived instructions may override this to print in a
-        different format (e.g. measure).
+        different format (e.g. measure q[0] -> c[0];).
         """
         name_param = self.name
         if self.param:
             name_param = "%s(%s)" % (name_param,
-                                     ",".join([str(i) for i in self.param]))
+                                     ",".join([str(i.sym()) for i in self.param]))
 
         name_param_arg = "%s %s;" % (name_param,
                                      ",".join(["%s[%d]" % (j[0].name, j[1])

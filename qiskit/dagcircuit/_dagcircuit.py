@@ -795,11 +795,11 @@ class DAGCircuit:
                                             qarglist))
                         if nd["op"].param:
                             if eval_symbols:
-                                param = ",".join(map(lambda x: str(sympy.N(x)),
+                                param = ",".join(map(lambda x: str((x.real())),
                                                      nd["op"].param))
                             else:
                                 param = ",".join(map(lambda x: x.replace("**", "^"),
-                                                     map(str, nd["op"].param)))
+                                        map(lambda x: str(x.sym()), nd["op"].param)))
                             out += "%s(%s) %s;\n" % (nm, param, qarg)
                         else:
                             out += "%s %s;\n" % (nm, qarg)
