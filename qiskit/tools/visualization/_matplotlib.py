@@ -132,10 +132,8 @@ class MatplotlibDrawer:
                             labelleft=False, labelright=False)
 
     def parse_circuit(self, circuit):
-        dag_circuit = dagcircuit.DAGCircuit.fromQuantumCircuit(
-            circuit, expand_gates=False)
         qregs, cregs, ops = _utils._get_instructions(
-            dag_circuit, reversebits=self.reverse_bits)
+            circuit, reversebits=self.reverse_bits)
         self._registers(cregs, qregs)
         self._ops = ops
 
