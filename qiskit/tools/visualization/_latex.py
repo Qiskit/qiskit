@@ -104,19 +104,10 @@ class QCircuitImage(object):
 
         #################################
         self.qregs = collections.OrderedDict(_get_register_specs(qregs))
-        self.qubit_list = []
-        for qr in self.qregs:
-            for i in range(self.qregs[qr]):
-                self.qubit_list.append((qr, i))
+        self.qubit_list = qregs
+        self.ordered_regs = qregs + cregs
         self.cregs = collections.OrderedDict(_get_register_specs(cregs))
-        self.clbit_list = []
-        self.ordered_regs = [(item[0], item[1]) for
-                             item in self.qubit_list]
-        for cr in self.cregs:
-            for i in range(self.cregs[cr]):
-                self.clbit_list.append((cr, i))
-        for item in self.clbit_list:
-            self.ordered_regs.append((item[0], item[1]))
+        self.clbit_list = cregs
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         self.img_width = len(self.img_regs)

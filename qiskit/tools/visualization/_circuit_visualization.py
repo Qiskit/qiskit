@@ -505,10 +505,7 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    qregs, cregs, ops = _utils._get_instructions(dag_circuit,
+    qregs, cregs, ops = _utils._get_instructions(circuit,
                                                  reversebits=reverse_bits)
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
