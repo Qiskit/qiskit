@@ -159,4 +159,4 @@ class TestBackends(QiskitTestCase):
                 self.assertTrue(all(key in properties for key in (
                     'last_update_date',
                     'qubits',
-                    'backend')))
+                    'backend_name')))

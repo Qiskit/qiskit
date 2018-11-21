@@ -19,44 +19,54 @@ logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
 
 
-def get_job_url(config, hub, group, project):
+def get_job_url(config, hub=None, group=None, project=None):
     """
     Util method to get job url
     """
-    if (config is not None) and ('hub' in config) and (hub is None):
-        hub = config["hub"]
-    if (config is not None) and ('group' in config) and (group is None):
-        group = config["group"]
-    if (config is not None) and ('project' in config) and (project is None):
-        project = config["project"]
-    if (hub is not None) and (group is not None) and (project is not None):
-        return '/Network/{}/Groups/{}/Projects/{}/jobs'.format(hub, group, project)
+    hub = config.get('hub', hub)
+    group = config.get('group', group)
+    project = config.get('project', project)
+
+    if hub and group and project:
+        return '/Network/{}/Groups/{}/Projects/{}/jobs'.format(hub, group,
+                                                               project)
     return '/Jobs'
 
 
-def get_backend_stats_url(config, hub, backend_type):
+def get_backend_stats_url(config, backend_type, hub=None):
     """
     Util method to get backend stats url
     """
-    if (config is not None) and ('hub' in config) and (hub is None):
-        hub = config["hub"]
-    if hub is not None:
+    hub = config.get('hub', hub)
+
+    if hub:
         return '/Network/{}/devices/{}'.format(hub, backend_type)
     return '/Backends/{}'.format(backend_type)
+
+
+def get_backend_properties_url(config, backend_type, hub=None):
+    """
+    Util method to get backend properties url
+    """
+    hub = config.get('hub', hub)
+
+    base_url = get_backend_stats_url(config, backend_type, hub)
+    if hub:
+        return '{}/properties'.format(base_url)
+    return '{}/stats'.format(base_url)
 
 
 def get_backend_url(config, hub, group, project):
     """
     Util method to get backend url
     """
-    if (config is not None) and ('hub' in config) and (hub is None):
-        hub = config["hub"]
-    if (config is not None) and ('group' in config) and (group is None):
-        group = config["group"]
-    if (config is not None) and ('project' in config) and (project is None):
-        project = config["project"]
-    if (hub is not None) and (group is not None) and (project is not None):
-        return '/Network/{}/Groups/{}/Projects/{}/devices'.format(hub, group, project)
+    hub = config.get('hub', hub)
+    group = config.get('group', group)
+    project = config.get('project', project)
+
+    if hub and group and project:
+        return '/Network/{}/Groups/{}/Projects/{}/devices'.format(hub, group,
+                                                                  project)
     return '/Backends'
 
 
@@ -264,11 +274,11 @@ class _Request(object):
             r".*registers exceed the number of qubits, "
             r"it can\'t be greater than (\d+).*")
 
-    def check_token(self, respond):
+    def check_token(self, response):
         """
         Check is the user's token is valid
         """
-        if respond.status_code == 401:
+        if response.status_code == 401:
             self.credential.obtain_token(config=self.config)
             return False
         return True
@@ -285,18 +295,18 @@ class _Request(object):
                   self.credential.get_token() + params)
         retries = self.retries
         while retries > 0:
-            respond = requests.post(url, data=data, headers=headers,
-                                    verify=self.verify, **self.extra_args)
-            if not self.check_token(respond):
-                respond = requests.post(url, data=data, headers=headers,
-                                        verify=self.verify,
-                                        **self.extra_args)
+            response = requests.post(url, data=data, headers=headers,
+                                     verify=self.verify, **self.extra_args)
+            if not self.check_token(response):
+                response = requests.post(url, data=data, headers=headers,
+                                         verify=self.verify,
+                                         **self.extra_args)
 
-            if self._response_good(respond):
+            if self._response_good(response):
                 if self.result:
                     return self.result
                 elif retries < 2:
-                    return respond.json()
+                    return response.json()
                 else:
                     retries -= 1
             else:
@@ -319,17 +329,17 @@ class _Request(object):
                   self.credential.get_token() + params)
         retries = self.retries
         while retries > 0:
-            respond = requests.put(url, data=data, headers=headers,
-                                   verify=self.verify, **self.extra_args)
-            if not self.check_token(respond):
-                respond = requests.put(url, data=data, headers=headers,
-                                       verify=self.verify,
-                                       **self.extra_args)
-            if self._response_good(respond):
+            response = requests.put(url, data=data, headers=headers,
+                                    verify=self.verify, **self.extra_args)
+            if not self.check_token(response):
+                response = requests.put(url, data=data, headers=headers,
+                                        verify=self.verify,
+                                        **self.extra_args)
+            if self._response_good(response):
                 if self.result:
                     return self.result
                 elif retries < 2:
-                    return respond.json()
+                    return response.json()
                 else:
                     retries -= 1
             else:
@@ -353,16 +363,16 @@ class _Request(object):
         retries = self.retries
         headers = {'x-qx-client-application': self.client_application}
         while retries > 0:  # Repeat until no error
-            respond = requests.get(url, verify=self.verify, headers=headers,
-                                   **self.extra_args)
-            if not self.check_token(respond):
-                respond = requests.get(url, verify=self.verify,
-                                       headers=headers, **self.extra_args)
-            if self._response_good(respond):
+            response = requests.get(url, verify=self.verify, headers=headers,
+                                    **self.extra_args)
+            if not self.check_token(response):
+                response = requests.get(url, verify=self.verify,
+                                        headers=headers, **self.extra_args)
+            if self._response_good(response):
                 if self.result:
                     return self.result
                 elif retries < 2:
-                    return respond.json()
+                    return response.json()
                 else:
                     retries -= 1
             else:
@@ -372,11 +382,11 @@ class _Request(object):
         raise ApiError(usr_msg='Failed to get proper ' +
                        'response from backend.')
 
-    def _response_good(self, respond):
+    def _response_good(self, response):
         """check response
 
         Args:
-            respond (requests.Response): HTTP response.
+            response (requests.Response): HTTP response.
 
         Returns:
             bool: True if the response is good, else False.
@@ -384,44 +394,44 @@ class _Request(object):
         Raises:
             ApiError: response isn't formatted properly.
         """
-        if respond.status_code != requests.codes.ok:
+        if response.status_code != requests.codes.ok:
             logger.warning('Got a %s code response to %s: %s',
-                           respond.status_code,
-                           respond.url,
-                           respond.text)
-            if respond.status_code in self.errors_not_retry:
+                           response.status_code,
+                           response.url,
+                           response.text)
+            if response.status_code in self.errors_not_retry:
                 raise ApiError(usr_msg='Got a {} code response to {}: {}'.format(
-                    respond.status_code,
-                    respond.url,
-                    respond.text))
+                    response.status_code,
+                    response.url,
+                    response.text))
             else:
-                return self._parse_response(respond)
+                return self._parse_response(response)
         try:
-            if str(respond.headers['content-type']).startswith("text/html;"):
-                self.result = respond.text
+            if str(response.headers['content-type']).startswith("text/html;"):
+                self.result = response.text
                 return True
             else:
-                self.result = respond.json()
+                self.result = response.json()
         except (json.JSONDecodeError, ValueError):
             usr_msg = 'device server returned unexpected http response'
-            dev_msg = usr_msg + ': ' + respond.text
+            dev_msg = usr_msg + ': ' + response.text
             raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
         if not isinstance(self.result, (list, dict)):
             msg = ('JSON not a list or dict: url: {0},'
                    'status: {1}, reason: {2}, text: {3}')
             raise ApiError(
-                usr_msg=msg.format(respond.url,
-                                   respond.status_code,
-                                   respond.reason, respond.text))
+                usr_msg=msg.format(response.url,
+                                   response.status_code,
+                                   response.reason, response.text))
         if ('error' not in self.result or
                 ('status' not in self.result['error'] or
                  self.result['error']['status'] != 400)):
             return True
 
-        logger.warning("Got a 400 code JSON response to %s", respond.url)
+        logger.warning("Got a 400 code JSON response to %s", response.url)
         return False
 
-    def _parse_response(self, respond):
+    def _parse_response(self, response):
         """parse text of response for HTTP errors
 
         This parses the text of the response to decide whether to
@@ -429,7 +439,7 @@ class _Request(object):
         detects an exception condition.
 
         Args:
-            respond (Response): requests.Response object
+            response (Response): requests.Response object
 
         Returns:
             bool: False if the request should be retried, True
@@ -439,7 +449,7 @@ class _Request(object):
             RegisterSizeError: if invalid device register size.
         """
         # convert error messages into exceptions
-        mobj = self._max_qubit_error_re.match(respond.text)
+        mobj = self._max_qubit_error_re.match(response.text)
         if mobj:
             raise RegisterSizeError(
                 'device register size must be <= {}'.format(mobj.group(1)))
@@ -574,15 +584,11 @@ class IBMQConnector(object):
         if user_id:
             self.req.credential.set_user_id(user_id)
         if not self.check_credentials():
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {'status': 'Error',
+                    'error': 'Not credentials valid'}
         if not id_job:
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Job ID not specified"
-            return respond
+            return {'status': 'Error',
+                    'error': 'Job ID not specified'}
 
         url = get_job_url(self.config, hub, group, project)
 
@@ -646,15 +652,11 @@ class IBMQConnector(object):
         if user_id:
             self.req.credential.set_user_id(user_id)
         if not self.check_credentials():
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {'status': 'Error',
+                    'error': 'Not credentials valid'}
         if not id_job:
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Job ID not specified"
-            return respond
+            return {'status': 'Error',
+                    'error': 'Job ID not specified'}
 
         url = get_job_url(self.config, hub, group, project)
 
@@ -711,15 +713,11 @@ class IBMQConnector(object):
         if user_id:
             self.req.credential.set_user_id(user_id)
         if not self.check_credentials():
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {'status': 'Error',
+                    'error': 'Not credentials valid'}
         if not id_job:
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Job ID not specified"
-            return respond
+            return {'status': 'Error',
+                    'error': 'Job ID not specified'}
 
         url = get_job_url(self.config, hub, group, project)
 
@@ -764,36 +762,8 @@ class IBMQConnector(object):
 
         return ret
 
-    def backend_calibration(self, backend='ibmqx4', hub=None, access_token=None, user_id=None):
-        """
-        Get the calibration of a real chip
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            raise CredentialsError('credentials invalid')
-
-        backend_type = self._check_backend(backend, 'calibration')
-
-        if not backend_type:
-            raise BadBackendError(backend)
-
-        if backend_type in self.__names_backend_simulator:
-            ret = {}
-            return ret
-
-        url = get_backend_stats_url(self.config, hub, backend_type)
-
-        ret = self.req.get(url + '/calibration')
-        if not bool(ret):
-            ret = {}
-        else:
-            ret["backend"] = backend_type
-        return ret
-
-    def backend_parameters(self, backend='ibmqx4', hub=None, access_token=None, user_id=None):
+    def backend_properties(self, backend='ibmqx4', hub=None,
+                           access_token=None, user_id=None):
         """
         Get the parameters of calibration of a real chip
         """
@@ -810,16 +780,15 @@ class IBMQConnector(object):
             raise BadBackendError(backend)
 
         if backend_type in self.__names_backend_simulator:
-            ret = {}
-            return ret
+            return {}
 
-        url = get_backend_stats_url(self.config, hub, backend_type)
+        url = get_backend_properties_url(self.config, backend_type, hub)
 
-        ret = self.req.get(url + '/parameters')
+        ret = self.req.get(url)
         if not bool(ret):
             ret = {}
         else:
-            ret["backend"] = backend_type
+            ret["backend_name"] = backend_type
         return ret
 
     def available_backends(self, hub=None, group=None, project=None,
@@ -881,7 +850,7 @@ class BadBackendError(ApiError):
         Args:
             backend (str): name of backend.
         """
-        usr_msg = ('Could not find backend "{0}" available.').format(backend)
+        usr_msg = 'Could not find backend "{0}" available.'.format(backend)
         dev_msg = ('Backend "{0}" does not exist. Please use '
                    'available_backends to see options').format(backend)
         ApiError.__init__(self, usr_msg=usr_msg,
