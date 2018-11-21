@@ -235,7 +235,7 @@ class QCircuitImage(object):
             # useful information for determining column widths and final image
             # scaling
             if op['name'] not in ['measure', 'reset', 'barrier']:
-                qarglist = [i for i in op['qargs']]
+                qarglist = op['qargs']
                 if aliases is not None:
                     qarglist = map(lambda x: aliases[x], qarglist)
                 if len(qarglist) == 1:
