@@ -39,7 +39,7 @@ class Layout(dict):
 
     def from_list(self, input_list):
         """
-        Pullulates a Layout from a list.
+        Populates a Layout from a list.
 
         Args:
             input_list (list): For example,
