@@ -38,7 +38,7 @@ class BaseBackend(ABC):
         if 'name' not in configuration:
             raise QISKitError('backend does not have a name.')
         self._configuration = configuration
-        self.provider = provider
+        self._provider = provider
 
     @abstractmethod
     def run(self, qobj):
@@ -52,6 +52,14 @@ class BaseBackend(ABC):
     def properties(self):
         """Return backend properties"""
         return {}
+
+    def provider(self):
+        """Return the backend Provider.
+
+        Returns:
+            BaseProvider: the Provider responsible for this backend.
+        """
+        return self._provider
 
     def status(self):
         """Return backend status"""
@@ -81,4 +89,4 @@ class BaseBackend(ABC):
         """
         return "<{}('{}') from {}()>".format(self.__class__.__name__,
                                              self.name(),
-                                             self.provider)
+                                             self._provider)

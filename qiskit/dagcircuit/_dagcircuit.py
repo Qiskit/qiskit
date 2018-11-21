@@ -738,7 +738,7 @@ class DAGCircuit:
         # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
         if aliases:
-            qregdata = {}
+            qregdata = OrderedDict()
             for q in aliases.values():
                 if q[0] not in qregdata:
                     qregdata[q[0]] = q[1] + 1
@@ -754,9 +754,9 @@ class DAGCircuit:
             out = "OPENQASM 2.0;\n"
             if qeflag:
                 out += "include \"qelib1.inc\";\n"
-            for k, v in sorted(qregdata.items()):
+            for k, v in qregdata.items():
                 out += "qreg %s[%d];\n" % (k, v.size)
-            for k, v in sorted(self.cregs.items()):
+            for k, v in self.cregs.items():
                 out += "creg %s[%d];\n" % (k, v.size)
             omit = ["U", "CX", "measure", "reset", "barrier"]
             # TODO: dagcircuit shouldn't know about extensions
