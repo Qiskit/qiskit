@@ -78,7 +78,7 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout.idle_wires(), [0, 1, 3])
 
     def test_layout_get_bits(self):
-        """Get the map from the logical (qu)bits view"""
+        """Get the map from the (qu)bits view"""
         layout_dict = {('qr', 0): 0,
                        ('qr', 1): 1,
                        ('qr', 2): 2}

@@ -8,8 +8,8 @@
 """
 A two-ways dict that represent a layout.
 
-Layout is the relation between logical (qu)bits and physical wires.
-Logical (qu)bits are tuples (eg, `('qr',2)`.
+Layout is the relation between (qu)bits and physical wires.
+(Qu)Bits are tuples (eg, `('qr',2)`.
 Physical wires are numbers.
 """
 
@@ -70,18 +70,18 @@ class Layout(dict):
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
-    def add(self, logical, physical=None):
+    def add(self, qubit, physical=None):
         """
-        Adds a map element between `logical` and `physical`. If `physical`
-        is not defined, `logical will be mapped to a new wire (extending
+        Adds a map element between `qubit` and `physical`. If `physical`
+        is not defined, `qubit` will be mapped to a new wire (extending
         the length of the layout by one.)
         Args:
-            logical (tuple): A logical (qu)bit. For example, ('qr',2).
+            qubit (tuple): A (qu)bit. For example, ('qr',2).
             physical (int): A physical wire. For example, 3.
         """
         if physical is None:
             physical = len(self)
-        self[logical] = physical
+        self[qubit] = physical
 
     def set_length(self, amount_of_wires):
         """
@@ -100,7 +100,7 @@ class Layout(dict):
 
     def idle_wires(self):
         """
-        Returns the wires that are not mapped to a logical (qu)bit.
+        Returns the wires that are not mapped to a (qu)bit.
         """
         idle_wire_list = []
         for wire in range(self.__len__()):
@@ -110,7 +110,7 @@ class Layout(dict):
 
     def get_bits(self):
         """
-        Returns the dictionary where the keys are logical (qu)bits and the
+        Returns the dictionary where the keys are (qu)bits and the
         values are physical wires.
         """
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
@@ -118,7 +118,7 @@ class Layout(dict):
     def get_wires(self):
         """
         Returns the dictionary where the keys are physical wires and the
-        values are logical (qu)bits.
+        values are (qu)bits.
         """
         return {key: value for key, value in self.items() if isinstance(key, int)}
 
