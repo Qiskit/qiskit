@@ -158,34 +158,24 @@ class TestVisualizationUtils(QiskitTestCase):
     the need to be check if the interface or their result changes."""
 
     def setUp(self):
-        qubit1_0 = ('qr1', 0)
-        qubit1_1 = ('qr1', 1)
-        clbit1_0 = ('cr1', 0)
-        clbit1_1 = ('cr1', 1)
-        qubit2_0 = ('qr2', 0)
-        qubit2_1 = ('qr2', 1)
-        clbit2_0 = ('cr2', 0)
-        clbit2_1 = ('cr2', 1)
+        qreg_a = qiskit.QuantumRegister(2, 'qr1')
+        qreg_b = qiskit.QuantumRegister(2, 'qr2')
+        creg_a = qiskit.ClassicalRegister(2, 'cr1')
+        creg_b = qiskit.ClassicalRegister(2, 'cr2')
 
-        self.dag = qiskit.dagcircuit.DAGCircuit()
-        self.dag.add_basis_element('cx', 2)
-        self.dag.add_basis_element('measure', 1, number_classical=1, number_parameters=0)
-        self.dag.add_qreg(qiskit.QuantumRegister(2, "qr1"))
-        self.dag.add_creg(qiskit.ClassicalRegister(2, "cr1"))
-        self.dag.add_qreg(qiskit.QuantumRegister(2, "qr2"))
-        self.dag.add_creg(qiskit.ClassicalRegister(2, "cr2"))
-        self.dag.apply_operation_back('cx', [qubit1_0, qubit1_1], [], [])
-        self.dag.apply_operation_back('measure', [qubit1_0], [clbit1_0], [])
-        self.dag.apply_operation_back('cx', [qubit1_1, qubit1_0], [], [])
-        self.dag.apply_operation_back('measure', [qubit1_1], [clbit1_1], [])
-        self.dag.apply_operation_back('cx', [qubit2_0, qubit2_1], [], [])
-        self.dag.apply_operation_back('measure', [qubit2_0], [clbit2_0], [])
-        self.dag.apply_operation_back('cx', [qubit2_1, qubit2_0], [], [])
-        self.dag.apply_operation_back('measure', [qubit2_1], [clbit2_1], [])
+        self.circuit = qiskit.QuantumCircuit(qreg_a, qreg_b, creg_a, creg_b)
+        self.circuit.cx(qreg_b[0], qreg_b[1])
+        self.circuit.measure(qreg_b[0], creg_b[0])
+        self.circuit.cx(qreg_b[1], qreg_b[0])
+        self.circuit.measure(qreg_b[1], creg_b[1])
+        self.circuit.cx(qreg_a[0], qreg_a[1])
+        self.circuit.measure(qreg_a[0], creg_a[0])
+        self.circuit.cx(qreg_a[1], qreg_a[0])
+        self.circuit.measure(qreg_a[1], creg_a[1])
 
     def test_get_instructions(self):
         """ _get_instructions without reversebits """
-        (qregs, cregs, ops) = _utils._get_instructions(self.dag)
+        (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
         self.assertEqual([('qr2', 1), ('qr2', 0), ('qr1', 1), ('qr1', 0)], qregs)
         self.assertEqual([('cr2', 1), ('cr2', 0), ('cr1', 1), ('cr1', 0)], cregs)
         self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
@@ -204,9 +194,22 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_instructions_reversebits(self):
         """ _get_instructions with reversebits=True """
-        (qregs, cregs, _) = _utils._get_instructions(self.dag, reversebits=True)
+        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reversebits=True)
         self.assertEqual([('qr1', 0), ('qr1', 1), ('qr2', 0), ('qr2', 1)], qregs)
         self.assertEqual([('cr1', 0), ('cr1', 1), ('cr2', 0), ('cr2', 1)], cregs)
+        self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
+                         [op['name'] for op in ops])
+        self.assertEqual([[('qr2', 0), ('qr2', 1)],
+                          [('qr2', 0)],
+                          [('qr2', 1), ('qr2', 0)],
+                          [('qr2', 1)],
+                          [('qr1', 0), ('qr1', 1)],
+                          [('qr1', 0)],
+                          [('qr1', 1), ('qr1', 0)],
+                          [('qr1', 1)]],
+                         [op['qargs'] for op in ops])
+        self.assertEqual([[], [('cr2', 0)], [], [('cr2', 1)], [], [('cr1', 0)], [], [('cr1', 1)]],
+                         [op['cargs'] for op in ops])
 
 
 if __name__ == '__main__':
