@@ -23,19 +23,6 @@ class BaseProvider(ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    def available_backends(self, *args, **kwargs):
-        """Return the list of available backends.
-
-        Returns:
-            list[BaseBackend]: a list of backend instances available
-            from this provider.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use `.backends()`
-            instead.
-        """
-        return self.backends(*args, **kwargs)
-
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
 

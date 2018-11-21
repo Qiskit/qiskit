@@ -44,16 +44,6 @@ class DummyProvider(BaseProvider):
 
         super().__init__()
 
-    def available_backends(self, filters=None):
-        # pylint: disable=arguments-differ
-        backends = {DummySimulator.name: self._backend}
-
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration().get(key) == value}
-        return list(backends.values())
-
 
 class DummySimulator(BaseBackend):
     """ This is Dummy backend simulator just for testing purposes """
