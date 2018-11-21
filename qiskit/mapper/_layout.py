@@ -49,8 +49,6 @@ class Layout(dict):
             self[key] = value
 
     def __getitem__(self, item):
-        if item is None:
-            return None
         if isinstance(item, int) and item < len(self) and item not in self:
             return None
         return dict.__getitem__(self, item)
@@ -60,8 +58,10 @@ class Layout(dict):
             del self[key]
         if value in self:
             del self[value]
-        dict.__setitem__(self, key, value)
-        dict.__setitem__(self, value, key)
+        if key is not None:
+            dict.__setitem__(self, key, value)
+        if value is not None:
+            dict.__setitem__(self, value, key)
 
     def __delitem__(self, key):
         dict.__delitem__(self, self[key])
