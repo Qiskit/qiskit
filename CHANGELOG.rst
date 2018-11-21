@@ -63,6 +63,7 @@ Changed
 - Speed up the Pauli class and extended its operators (#1271 #1166).
 - `IBMQ.save_account()` now takes an `overwrite` option to replace an existing
   account on disk. Default is False (#1295).
+- ``backend.provider()`` is now a method instead of a property (#1312).
 
 Deprecated
 """"""""""
