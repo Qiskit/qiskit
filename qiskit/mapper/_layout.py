@@ -83,7 +83,7 @@ class Layout(dict):
             physical = len(self)
         self[logical] = physical
 
-    def length(self, amount_of_wires):
+    def set_length(self, amount_of_wires):
         """
         Extends the layout length to `amount_of_wires`.
         Args:
