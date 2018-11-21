@@ -25,7 +25,6 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit import dagcircuit
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
