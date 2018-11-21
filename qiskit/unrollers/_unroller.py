@@ -12,6 +12,7 @@ from collections import OrderedDict
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
+from ._dagbackend import DAGBackend
 
 
 class Unroller(object):
@@ -23,6 +24,13 @@ class Unroller(object):
         self.ast = ast
         # Backend object
         self.backend = backend
+        if not isinstance(self.backend, DAGBackend):
+            raise UnrollerError("AST Unroller only supports DagBackend.")
+        default_basis = set(['U', 'CX', 'measure', 'reset', 'barrier'])
+        backend_basis = set(self.backend.circuit.basis.keys())
+        if backend_basis != default_basis:
+            raise UnrollerError("Cannot customize basis when converting from AST to DAG")
+
         # Input file name
         if filename:
             self.filename = filename

@@ -17,8 +17,6 @@ from copy import deepcopy
 
 
 from qiskit.qasm import _qasm
-from qiskit.unrollers import _unroller
-from qiskit.unrollers import _circuitbackend
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
@@ -26,6 +24,8 @@ from qiskit.dagcircuit import DAGCircuit
 
 
 def _circuit_from_qasm(qasm, basis=None):
+    from qiskit.unrollers import _unroller
+    from qiskit.unrollers import _circuitbackend
     default_basis = ["id", "u0", "u1", "u2", "u3", "x", "y", "z", "h", "s",
                      "sdg", "t", "tdg", "rx", "ry", "rz", "cx", "cy", "cz",
                      "ch", "crz", "cu1", "cu3", "swap", "ccx", "cswap"]

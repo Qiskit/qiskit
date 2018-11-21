@@ -38,7 +38,6 @@ class DagUnroller(object):
 
     def execute(self):
         """Interpret OPENQASM and make appropriate backend calls.
-        TODO (ALI): can this be deleted?
 
         This does not expand gates. So self.expand_gates() must have
         been previously called. Otherwise non-basis gates will be ignored
@@ -50,9 +49,7 @@ class DagUnroller(object):
         else:
             raise UnrollerError("backend not attached")
 
-    # TODO This method should merge with .execute(), so the output will depend
-    # on the backend associated with this DagUnroller instance
-    def expand_gates(self, basis=None):
+    def expand_gates(self, basis=[]):
         """Expand all gate nodes to the given basis.
 
         If basis is empty, each custom gate node is replaced by its
@@ -64,8 +61,7 @@ class DagUnroller(object):
         This method replicates the behavior of the unroller
         module without using the OpenQASM parser or the ast.
         """
-        if basis is None:
-            basis = self.backend.circuit.basis
+        basis = list(set(self.backend.circuit.basis).union(set(basis)))
 
         if not isinstance(self.backend, DAGBackend):
             raise UnrollerError("expand_gates only accepts a DAGBackend!!")
@@ -122,7 +118,6 @@ class DagUnroller(object):
 
     def _process(self):
         """Process dag nodes, assuming that expand_gates has already been called.
-        TODO (ALI): can this be deleted?
         """
         for qreg in self.dag_circuit.qregs.values():
             self.backend.new_qreg(qreg)

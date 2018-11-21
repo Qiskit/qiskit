@@ -791,7 +791,7 @@ class DAGCircuit:
                             qarglist = map(lambda x: aliases[x], nd["qargs"])
                         else:
                             qarglist = nd["qargs"]
-                        qarg = ",".join(map(lambda x: "%s[%d]" % (x[0], x[1]),
+                        qarg = ",".join(map(lambda x: "%s[%d]" % (x[0].name, x[1]),
                                             qarglist))
                         if nd["op"].param:
                             if eval_symbols:
@@ -809,7 +809,7 @@ class DAGCircuit:
                                or nd["op"].param:
                                 raise DAGCircuitError("bad node data")
 
-                            qname = nd["qargs"][0][0]
+                            qname = nd["qargs"][0][0].name
                             qindex = nd["qargs"][0][1]
                             if aliases:
                                 newq = aliases[(qname, qindex)]
@@ -818,7 +818,7 @@ class DAGCircuit:
                             out += "measure %s[%d] -> %s[%d];\n" \
                                    % (qname,
                                       qindex,
-                                      nd["cargs"][0][0],
+                                      nd["cargs"][0][0].name,
                                       nd["cargs"][0][1])
                         else:
                             raise DAGCircuitError("bad node data")
