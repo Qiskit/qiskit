@@ -17,6 +17,7 @@ from .common import QiskitTestCase
 
 class LayoutTest(QiskitTestCase):
     """Test the methods in the layout object."""
+
     def setUp(self):
         self.qr = QuantumRegister(3, 'qr')
 
@@ -28,7 +29,7 @@ class LayoutTest(QiskitTestCase):
 
         self.assertEqual(layout[(self.qr, 0)], 0)
         self.assertEqual(layout[(self.qr, 1)], 1)
-        self.assertEqual(layout[(  self.qr, 2)], 2)
+        self.assertEqual(layout[(self.qr, 2)], 2)
         self.assertEqual(layout[0], (self.qr, 0))
         self.assertEqual(layout[1], (self.qr, 1))
         self.assertEqual(layout[2], (self.qr, 2))
@@ -108,7 +109,6 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(self.qr, 1)], 1)
         self.assertEqual(layout[1], (self.qr, 1))
 
-
     def test_layout_add_register(self):
         """add_register() method"""
         layout = Layout()
@@ -134,6 +134,7 @@ class LayoutTest(QiskitTestCase):
         layout.add((self.qr, 1))
         with self.assertRaises(LayoutError):
             layout.swap(0, (self.qr, 0))
+
 
 if __name__ == '__main__':
     unittest.main()
