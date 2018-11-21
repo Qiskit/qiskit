@@ -10,6 +10,7 @@
 import unittest
 
 from qiskit.mapper import Layout
+from qiskit.mapper._layout import LayoutError
 from .common import QiskitTestCase
 
 
@@ -105,6 +106,13 @@ class LayoutTest(QiskitTestCase):
         layout.swap(0, 1)
         self.assertDictEqual(layout.get_logical(), {('qr', 0): 1, ('qr', 1): 0})
 
+    def test_layout_swap_error(self):
+        """swap() method"""
+        layout = Layout()
+        layout.add(('qr', 0))
+        layout.add(('qr', 1))
+        with self.assertRaises(LayoutError):
+            layout.swap(0, ('qr', 0))
 
 if __name__ == '__main__':
     unittest.main()

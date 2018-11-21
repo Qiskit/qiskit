@@ -127,7 +127,11 @@ class Layout(dict):
         Args:
             left (tuple or int): Item to swap with right.
             right (tuple or int): Item to swap with left.
+        Raises:
+            LayoutError: If left and right have not the same type.
         """
+        if type(left) is not type(right):
+            raise LayoutError('The method swap only works with elements of the same type.')
         temp = self[left]
         self[left] = self[right]
         self[right] = temp
