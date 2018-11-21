@@ -8,9 +8,9 @@
 """
 A two-ways dict that represent a layout.
 
-Layout is the relation between (qu)bits and physical wires.
+Layout is the relation between (qu)bits and wires.
 (Qu)Bits are tuples (eg, `('qr',2)`.
-Physical wires are numbers.
+Wires are numbers.
 """
 
 from qiskit import QISKitError
@@ -28,7 +28,7 @@ class Layout(dict):
 
     def from_dict(self, input_dict):
         """
-        Pullulates a Layout from a dictionary.
+        Populates a Layout from a dictionary.
 
         Args:
             input_dict (dict): For example,
@@ -70,18 +70,18 @@ class Layout(dict):
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
-    def add(self, qubit, physical=None):
+    def add(self, qubit, wire=None):
         """
-        Adds a map element between `qubit` and `physical`. If `physical`
+        Adds a map element between `qubit` and `wire`. If `wire`
         is not defined, `qubit` will be mapped to a new wire (extending
         the length of the layout by one.)
         Args:
             qubit (tuple): A (qu)bit. For example, ('qr',2).
-            physical (int): A physical wire. For example, 3.
+            wire (int): A wire. For example, 3.
         """
-        if physical is None:
-            physical = len(self)
-        self[qubit] = physical
+        if wire is None:
+            wire = len(self)
+        self[qubit] = wire
 
     def set_length(self, amount_of_wires):
         """
@@ -111,13 +111,13 @@ class Layout(dict):
     def get_bits(self):
         """
         Returns the dictionary where the keys are (qu)bits and the
-        values are physical wires.
+        values are wires.
         """
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
 
     def get_wires(self):
         """
-        Returns the dictionary where the keys are physical wires and the
+        Returns the dictionary where the keys are wires and the
         values are (qu)bits.
         """
         return {key: value for key, value in self.items() if isinstance(key, int)}

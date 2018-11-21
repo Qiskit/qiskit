@@ -86,7 +86,7 @@ class LayoutTest(QiskitTestCase):
         self.assertDictEqual(layout_dict, layout.get_bits())
 
     def test_layout_get_wires(self):
-        """Get the map from the physical wires view"""
+        """Get the map from the wires view"""
         layout = Layout({('qr', 0): 0, ('qr', 1): 1, ('qr', 2): 2})
         self.assertDictEqual(layout.get_wires(), {0: ('qr', 0), 1: ('qr', 1), 2: ('qr', 2)})
 
