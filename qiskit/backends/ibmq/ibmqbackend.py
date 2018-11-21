@@ -9,7 +9,6 @@
 
 This module is used for connecting to the Quantum Experience.
 """
-import warnings
 import logging
 
 from marshmallow import ValidationError
@@ -70,72 +69,6 @@ class IBMQBackend(BaseBackend):
         job.submit()
         return job
 
-    def calibration(self):
-        """Return the online backend calibrations.
-
-        The return is via QX API call.
-
-        Returns:
-            dict: The calibration of the backend.
-
-        Raises:
-            LookupError: If a calibration for the backend can't be found.
-
-        :deprecated: will be removed after 0.7
-        """
-        warnings.warn("Backends will no longer return a calibration dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-
-        try:
-            backend_name = self.name()
-            calibrations = self._api.backend_calibration(backend_name)
-            # FIXME a hack to remove calibration data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
-                calibrations = {}
-        except Exception as ex:
-            raise LookupError(
-                "Couldn't get backend calibration: {0}".format(ex))
-
-        calibrations_edit = {}
-        for key, vals in calibrations.items():
-            new_key = _camel_case_to_snake_case(key)
-            calibrations_edit[new_key] = vals
-
-        return calibrations_edit
-
-    def parameters(self):
-        """Return the online backend parameters.
-
-        Returns:
-            dict: The parameters of the backend.
-
-        Raises:
-            LookupError: If parameters for the backend can't be found.
-
-        :deprecated: will be removed after 0.7
-        """
-        warnings.warn("Backends will no longer return a parameters dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-
-        try:
-            backend_name = self.name()
-            parameters = self._api.backend_parameters(backend_name)
-            # FIXME a hack to remove parameters data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
-                parameters = {}
-        except Exception as ex:
-            raise LookupError(
-                "Couldn't get backend parameters: {0}".format(ex))
-
-        parameters_edit = {}
-        for key, vals in parameters.items():
-            new_key = _camel_case_to_snake_case(key)
-            parameters_edit[new_key] = vals
-
-        return parameters_edit
-
     def properties(self):
         """Return the online backend properties.
 
@@ -147,15 +80,16 @@ class IBMQBackend(BaseBackend):
         Raises:
             LookupError: If properties for the backend can't be found.
         """
-        # FIXME: make this an actual call to _api.backend_properties
-        # for now this api endpoint does not exist.
-        warnings.simplefilter("ignore")
-        calibration = self.calibration()
-        parameters = self.parameters()
-        _dict_merge(calibration, parameters)
-        properties = calibration
-        warnings.simplefilter("default")
-        return properties
+        properties = self._api.backend_properties(self.name())
+
+        # Convert the properties to snake_case.
+        # TODO: ideally should be handled at the API level.
+        properties_edit = {}
+        for key, val in properties.items():
+            new_key = _camel_case_to_snake_case(key)
+            properties_edit[new_key] = val
+
+        return properties_edit
 
     def status(self):
         """Return the online backend status.
@@ -302,27 +236,3 @@ def _job_class_from_job_response(job_response):
 def _job_class_from_backend_support(backend):
     support_qobj = backend.configuration().get('allow_q_object')
     return IBMQJob if support_qobj else IBMQJobPreQobj
-
-
-def _dict_merge(dct, merge_dct):
-    """
-    TEMPORARY method for merging backend.calibration & backend.parameters
-    into backend.properties.
-
-    Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
-    updating only top-level keys, dict_merge recurses down into dicts nested
-    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
-    ``dct``.
-
-    Args:
-        dct (dict): the dictionary to merge into
-        merge_dct (dict): the dictionary to merge
-    """
-    for k, _ in merge_dct.items():
-        if k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], dict):
-            _dict_merge(dct[k], merge_dct[k])
-        elif k in dct and isinstance(dct[k], list) and isinstance(merge_dct[k], list):
-            for i in range(len(dct[k])):
-                _dict_merge(dct[k][i], merge_dct[k][i])
-        else:
-            dct[k] = merge_dct[k]
