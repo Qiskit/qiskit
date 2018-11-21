@@ -743,16 +743,24 @@ class IBMQConnector(object):
 
         status = self.req.get('/Backends/' + backend_type + '/queue/status',
                               with_token=False)
-
         ret = {}
-        if 'state' in status:
-            ret['available'] = bool(status['state'])
-        if 'busy' in status:
-            ret['busy'] = bool(status['busy'])
-        if 'lengthQueue' in status:
-            ret['pending_jobs'] = status['lengthQueue']
 
-        ret['backend'] = backend_type
+        # Adjust fields according to the specs (BackendStatus).
+
+        # 'pending_jobs' is required, and should be >= 0.
+        if 'lengthQueue' in status:
+            ret['pending_jobs'] = max(status['lengthQueue'], 0)
+        else:
+            ret['pending_jobs'] = 0
+
+        ret['backend_name'] = backend_type
+        ret['backend_version'] = status.get('backend_version', '0.0.0')
+        ret['status_msg'] = status.get('status', '')
+        ret['operational'] = bool(status.get('state', False))
+
+        # Not part of the schema.
+        if 'busy' in status:
+            ret['dedicated'] = status['busy']
 
         return ret
 
