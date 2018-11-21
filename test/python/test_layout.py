@@ -77,18 +77,18 @@ class LayoutTest(QiskitTestCase):
         layout.length(4)
         self.assertEqual(layout.idle_wires(), [0, 1, 3])
 
-    def test_layout_get_logical(self):
+    def test_layout_get_bits(self):
         """Get the map from the logical (qu)bits view"""
         layout_dict = {('qr', 0): 0,
                        ('qr', 1): 1,
                        ('qr', 2): 2}
         layout = Layout(layout_dict)
-        self.assertDictEqual(layout_dict, layout.get_logical())
+        self.assertDictEqual(layout_dict, layout.get_bits())
 
-    def test_layout_get_physical(self):
+    def test_layout_get_wires(self):
         """Get the map from the physical wires view"""
         layout = Layout({('qr', 0): 0, ('qr', 1): 1, ('qr', 2): 2})
-        self.assertDictEqual(layout.get_physical(), {0: ('qr', 0), 1: ('qr', 1), 2: ('qr', 2)})
+        self.assertDictEqual(layout.get_wires(), {0: ('qr', 0), 1: ('qr', 1), 2: ('qr', 2)})
 
     def test_layout_add(self):
         """add() method"""
@@ -105,7 +105,7 @@ class LayoutTest(QiskitTestCase):
         layout.add(('qr', 0))
         layout.add(('qr', 1))
         layout.swap(0, 1)
-        self.assertDictEqual(layout.get_logical(), {('qr', 0): 1, ('qr', 1): 0})
+        self.assertDictEqual(layout.get_bits(), {('qr', 0): 1, ('qr', 1): 0})
 
     def test_layout_swap_error(self):
         """swap() method"""

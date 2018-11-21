@@ -108,14 +108,14 @@ class Layout(dict):
                 idle_wire_list.append(wire)
         return idle_wire_list
 
-    def get_logical(self):
+    def get_bits(self):
         """
         Returns the dictionary where the keys are logical (qu)bits and the
         values are physical wires.
         """
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
 
-    def get_physical(self):
+    def get_wires(self):
         """
         Returns the dictionary where the keys are physical wires and the
         values are logical (qu)bits.
