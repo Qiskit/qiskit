@@ -1108,6 +1108,16 @@ class DAGCircuit:
         return {node_id for node_id, data in self.multi_graph.nodes(data=True)
                 if data["type"] == "op" and data["name"] == name}
 
+    def get_cnot_nodes(self):
+        """Get the set of Cnot."""
+        cx_names = ['cx', 'CX']
+        cxs_nodes = []
+        for cx_name in cx_names:
+            if cx_name in self.basis:
+                for cx_id in self.get_named_nodes(cx_name):
+                    cxs_nodes.append(self.multi_graph.node[cx_id])
+        return cxs_nodes
+
     def _remove_op_node(self, n):
         """Remove an operation node n.
 
