@@ -12,10 +12,12 @@ This module is used for connecting to the Quantum Experience.
 import warnings
 import logging
 
+from marshmallow import ValidationError
+
 from qiskit import QISKitError
 from qiskit._util import _camel_case_to_snake_case
-from qiskit.backends import BaseBackend
-from qiskit.backends import JobStatus
+from qiskit.backends import BaseBackend, JobStatus
+from qiskit.backends.models import BackendStatus
 
 from .api import ApiError
 from .ibmqjob import IBMQJob, IBMQJobPreQobj
@@ -165,23 +167,13 @@ class IBMQBackend(BaseBackend):
             LookupError: If status for the backend can't be found.
             IBMQBackendError: If the status can't be formatted properly.
         """
-        base_status = super().status()
+        api_status = self._api.backend_status(self.name())
+
         try:
-            api_status = self._api.backend_status(base_status['backend_name'])
-            # FIXME: these corrections need to be resolved at the API level
-            # - eventually it will.
-            api_status.pop('busy', None)
-            if 'available' in api_status:
-                api_status['operational'] = api_status.pop('available')
-            if 'backend' in api_status:
-                api_status['backend_name'] = api_status.pop('backend')
-            if 'pending_jobs' in api_status:
-                if api_status['pending_jobs'] < 0:
-                    api_status['pending_jobs'] = 0
-        except Exception as ex:
+            return BackendStatus.from_dict(api_status)
+        except ValidationError as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-        return {**base_status, **api_status}
 
     def jobs(self, limit=50, skip=0, status=None, db_filter=None):
         """Attempt to get the jobs submitted to the backend.
