@@ -17,12 +17,6 @@ from qiskit.backends.aer import AerProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 
-def remove_backends_from_list(backends):
-    """Helper and temporary function for removing specific backends from a list"""
-    backends_to_remove = ['ibmq_qasm_simulator']
-    return [backend for backend in backends if str(backend) not in backends_to_remove]
-
-
 class TestBackends(QiskitTestCase):
     """QISKit Backends (Object) Tests."""
 
@@ -78,13 +72,14 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        backend = Aer.backends(name='qasm_simulator')[0]
-        status = backend.status()
         schema_path = self._get_resource_path(
             'backend_status_schema.json', path=Path.SCHEMAS)
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
-        jsonschema.validate(status, schema)
+
+        for backend in Aer.backends():
+            status = backend.status()
+            jsonschema.validate(status.to_dict(), schema)
 
     @requires_qe_access
     def test_remote_backend_status(self, qe_token, qe_url):
@@ -92,17 +87,15 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
+        schema_path = self._get_resource_path(
+            'backend_status_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
         IBMQ.enable_account(qe_token, qe_url)
-        remotes = IBMQ.backends()
-        remotes = remove_backends_from_list(remotes)
-        for backend in remotes:
+        for backend in IBMQ.backends():
             status = backend.status()
-            self.log.debug(status)
-            schema_path = self._get_resource_path(
-                'backend_status_schema.json', path=Path.SCHEMAS)
-            with open(schema_path, 'r') as schema_file:
-                schema = json.load(schema_file)
-            jsonschema.validate(status, schema)
+            jsonschema.validate(status.to_dict(), schema)
 
     def test_aer_backend_configuration(self):
         """Test backend configuration.

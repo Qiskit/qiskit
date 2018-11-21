@@ -12,8 +12,8 @@ Doing so requires that the required backend interface is implemented.
 """
 from abc import ABC, abstractmethod
 
-from qiskit._qiskiterror import QISKitError
 import qiskit
+from .models import BackendStatus
 
 
 class BaseBackend(ABC):
@@ -36,7 +36,7 @@ class BaseBackend(ABC):
             QISKitError: if there is no name in the configuration
         """
         if 'name' not in configuration:
-            raise QISKitError('backend does not have a name.')
+            raise qiskit.QISKitError('backend does not have a name.')
         self._configuration = configuration
         self._provider = provider
 
@@ -62,14 +62,16 @@ class BaseBackend(ABC):
         return self._provider
 
     def status(self):
-        """Return backend status"""
-        return {'backend_name': self.name(),
-                #  Backend version in the form X.X.X
-                'backend_version': qiskit.__version__,
-                #  Backend operational and accepting jobs (true/false)
-                'operational': True,
-                'pending_jobs': 0,
-                'status_msg': ''}
+        """Return backend status.
+
+        Returns:
+            BackendStatus: the status of the backend.
+        """
+        return BackendStatus(backend_name=self.name(),
+                             backend_version=qiskit.__version__,
+                             operational=True,
+                             pending_jobs=0,
+                             status_msg='')
 
     def name(self):
         """Return backend name"""
