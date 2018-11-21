@@ -12,6 +12,7 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.cx import CnotGate
@@ -23,7 +24,7 @@ class CrzGate(Gate):
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new crz gate."""
         super().__init__("crz", [theta], [ctl, tgt], circ)
-        self._define_decompositions(params)
+        self._define_decompositions([theta])
 
     def _define_decompositions(self, params):
         """

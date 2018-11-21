@@ -361,6 +361,7 @@ class DAGCircuit:
         self._check_bits(all_cbits, self.output_map)
 
         self._add_op_node(op, op.qargs, op.cargs, condition)
+
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
         # and adding new edges from the operation node to each output node

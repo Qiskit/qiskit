@@ -39,7 +39,7 @@ class Cu3Gate(Gate):
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u1", 1, 0, 1)
-        decomposition.add_basis_element("u3", 1, 0, 1)
+        decomposition.add_basis_element("u3", 1, 0, 3)
         decomposition.add_basis_element("cx", 2, 0, 0)
         decomposition.apply_operation_back(U1Gate((params[2] - params[1])/2, q[1]))
         decomposition.apply_operation_back(CnotGate(q[0], q[1]))

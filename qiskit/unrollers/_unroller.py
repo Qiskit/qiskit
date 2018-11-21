@@ -48,8 +48,6 @@ class Unroller(object):
         """
         # pylint: disable=inconsistent-return-statements
         reg = None
-        print("node.name: ", node.name)
-        print("self.qregs: ", self.qregs)
         if node.name in self.qregs:
             reg = self.qregs[node.name]
         elif node.name in self.cregs:
@@ -79,7 +77,6 @@ class Unroller(object):
     def _process_custom_unitary(self, node):
         """Process a custom unitary node."""
         name = node.name
-        print(name)
         if node.arguments is not None:
             args = self._process_node(node.arguments)
         else:
@@ -100,16 +97,11 @@ class Unroller(object):
                            [len(bits[j]) > 1 for j in range(len(bits))]]
                 self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
-                self.backend.start_gate(name,
-                                        [self.arg_stack[-1][s] for s in gargs],
-                                        [self.bit_stack[-1][s] for s in gbits],
-                                        self.arg_stack[0:-1])
-                if not self.gates[name]["opaque"]:
-                    self._process_children(gbody)
-                self.backend.end_gate(name,
-                                      [self.arg_stack[-1][s] for s in gargs],
-                                      [self.bit_stack[-1][s] for s in gbits],
-                                      self.arg_stack[0:-1])
+                self.backend.create_dag_op(name,
+                                           [self.arg_stack[-1][s] for s in gargs],
+                                           [self.bit_stack[-1][s] for s in gbits],
+                                           [],
+                                           self.arg_stack[0:-1])
                 self.arg_stack.pop()
                 self.bit_stack.pop()
         else:
@@ -121,6 +113,7 @@ class Unroller(object):
 
         If opaque is True, process the node as an opaque gate node.
         """
+        
         self.gates[node.name] = {}
         de_gate = self.gates[node.name]
         de_gate["print"] = True  # default
@@ -140,6 +133,7 @@ class Unroller(object):
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""
+        
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
         if not(len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
@@ -223,7 +217,6 @@ class Unroller(object):
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                print(element)
                 self.backend.u(args, element, self.arg_stack)
 
         elif node.type == "cnot":

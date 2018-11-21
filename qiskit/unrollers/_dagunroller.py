@@ -146,7 +146,8 @@ class DagUnroller(object):
                 # extensions to provide their own Qobj instructions.
                 # Extensions should not be hardcoded in the DAGUnroller.
                 extra_fields = None
-                if current_node["op"].name == "snapshot":
+                if current_node["op"].name == "snapshot" and \
+                        not isinstance(self.backend, DAGBackend):
                     extra_fields = {'type': 'MISSING', 'label': 'MISSING',
                                     'texparams': []}
 

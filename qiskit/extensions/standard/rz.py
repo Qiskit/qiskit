@@ -25,7 +25,7 @@ class RZGate(Gate):
     def __init__(self, phi, qubit, circ=None):
         """Create new rz single qubit gate."""
         super().__init__("rz", [phi], [qubit], circ)
-        self._define_decompositions(phi)
+        self._define_decompositions([phi])
 
     def _define_decompositions(self, params):
         """
@@ -35,7 +35,7 @@ class RZGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u1", 1, 0, 1)
-        decomposition.apply_operation_back(U3Gate(params[0], q[0]))
+        decomposition.apply_operation_back(U1Gate(params[0], q[0]))
         self.instructions.append(decomposition)
 
     def inverse(self):

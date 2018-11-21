@@ -12,11 +12,9 @@ Backend for the unroller that creates a DAGCircuit object.
 import logging
 from collections import OrderedDict
 
-from qiskit.extensions.standard.ubase import UBase
-from qiskit.extensions.standard.cxbase import CXBase
-from qiskit.extensions.standard.barrier import Barrier
 from qiskit._measure import Measure
 from qiskit._reset import Reset
+from qiskit.extensions.standard import *
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._quantumcircuit import QuantumCircuit
 from ._unrollerbackend import UnrollerBackend
@@ -104,15 +102,11 @@ class DAGBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, nested_scope=None, extra_fields=None):
+    def start_gate(self, op):
         """Begin a custom gate.
 
         Args:
             op (Instruction): operation to apply to the dag.
-            nested_scope (list[dict]): list of dictionaries mapping expression variables
-                to Node expression objects in order of increasing nesting depth.
-            extra_fields: extra_fields used by non-standard instructions for now
-                (e.g. snapshot)
         """
         if not self.listen:
             return
@@ -131,7 +125,6 @@ class DAGBackend(UnrollerBackend):
             condition = None
         self.in_gate = op
         self.listen = False
-        self.circuit.add_basis_element(op.name, len(op.qargs), len(op.cargs), len(op.param))
         self.circuit.apply_operation_back(op, condition)
 
     def end_gate(self, op):
@@ -147,3 +140,117 @@ class DAGBackend(UnrollerBackend):
     def get_output(self):
         """Returns the generated circuit."""
         return self.circuit
+
+    def u(self, arg, qubit, nested_scope=None):
+        """Universal single qubit rotation gate.
+        """
+        if self.listen:
+            if self.creg is not None:
+                condition = (self.creg, self.cval)
+            else:
+                condition = None
+            self.circuit.apply_operation_back(UBase(*list(map(lambda x: x.sym(nested_scope),arg)), qubit),
+                                              condition)
+
+    def cx(self, qubit0, qubit1):
+        """Fundamental two-qubit gate.
+        """
+        if self.listen:
+            if self.creg is not None:
+                condition = (self.creg, self.cval)
+            else:
+                condition = None
+            self.circuit.apply_operation_back(CXBase(qubit0, qubit1), condition)
+
+    def measure(self, qubit, bit):
+        """Measurement operation.
+        """
+        if self.creg is not None:
+            condition = (self.creg, self.cval)
+        else:
+            condition = None
+        self.circuit.apply_operation_back(Measure(qubit, bit), condition)
+
+    def barrier(self, qubitlists):
+        """Barrier instruction.
+        """
+        if self.listen:
+            qubits = []
+            for qubit in qubitlists:
+                for j, _ in enumerate(qubit):
+                    qubits.append(qubit[j])
+        self.circuit.apply_operation_back(Barrier(qubits))
+
+    def reset(self, qubit):
+        """Reset instruction.
+        """
+        if self.creg is not None:
+            condition = (self.creg, self.cval)
+        else:
+            condition = None
+        self.circuit.apply_operation_back(Reset(qubit), condition)
+
+    def create_dag_op(self, name, args, qubits, clbits, nested_scope=None, extra_fields=None):
+        """Create a DAG op node.
+        """
+        params = [a.sym(nested_scope) for a in args]
+        if name == "u0":
+            op = U0Gate(params[0], qubits[0])
+        elif name == "u1":
+            op = U1Gate(params[0], qubits[0])
+        elif name == "u2":
+            op = U2Gate(params[0], params[1], qubits[0])
+        elif name == "u3":
+            op = U3Gate(params[0], params[1], params[2], qubits[0])
+        elif name == "x":
+            op = XGate(qubits[0])
+        elif name == "y":
+            op = YGate(qubits[0])
+        elif name == "z":
+            op = ZGate(qubits[0])
+        elif name == "t":
+            op = TGate(qubits[0])
+        elif name == "tdg":
+            op = TdgGate(qubits[0])
+        elif name == "s":
+            op = SGate(qubits[0])
+        elif name == "sdg":
+            op = SdgGate(qubits[0])
+        elif name == "swap":
+            op = SwapGate(qubits[0], qubits[1])
+        elif name == "rx":
+            op = RXGate(params[0], qubits[0])
+        elif name == "ry":
+            op = RYGate(params[0], qubits[0])
+        elif name == "rz":
+            op = RZGate(params[0], qubits[0])
+        elif name == "rzz":
+            op = RZZGate(qubits[0], qubits[1])
+        elif name == "id":
+            op = IdGate(qubits[0])
+        elif name == "h":
+            op = HGate(qubits[0])
+        elif name == "cx":
+            op = CnotGate(qubits[0], qubits[1])
+        elif name == "cy":
+            op = CyGate(qubits[0], qubits[1])
+        elif name == "cz":
+            op = CzGate(qubits[0], qubits[1])
+        elif name == "ch":
+            op = CHGate(qubits[0], qubits[1])
+        elif name == "crz":
+            op = CrzGate(params[0], qubits[0], qubits[1])
+        elif name == "cu1":
+            op = Cu1Gate(params[0], qubits[0], qubits[1])
+        elif name == "cu3":
+            op = Cu3Gate(params[0], params[1], params[2], qubits[0], qubits[1])
+        elif name == "ccx":
+            op = ToffoliGate(qubits[0], qubits[1], qubits[2])
+        elif name == "cswap":
+            op = FredkinGate(qubits[0], qubits[1], qubits[2])
+        else:
+            raise BackendError("unknown operation for name ast node name %s" % name)
+
+        self.circuit.add_basis_element(op.name, len(op.qargs), len(op.cargs), len(op.param))        
+        self.start_gate(op)
+        self.end_gate(op)

@@ -46,7 +46,9 @@ from .swap import SwapGate
 from .h import HGate
 from .iden import IdGate
 from .s import SGate
+from .s import SdgGate
 from .t import TGate
+from .t import TdgGate
 from .u0 import U0Gate
 from .u1 import U1Gate
 from .u2 import U2Gate
