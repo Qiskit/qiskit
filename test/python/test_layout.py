@@ -108,6 +108,17 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(self.qr, 1)], 1)
         self.assertEqual(layout[1], (self.qr, 1))
 
+
+    def test_layout_add_register(self):
+        """add_register() method"""
+        layout = Layout()
+        layout.add_register(QuantumRegister(2, 'q0'))
+        layout.add_register(QuantumRegister(1, 'q1'))
+
+        self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
+        self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 1)
+        self.assertEqual(layout[(QuantumRegister(1, 'q1'), 0)], 2)
+
     def test_layout_swap(self):
         """swap() method"""
         layout = Layout()

@@ -73,18 +73,26 @@ class Layout(dict):
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
-    def add(self, qubit, wire=None):
+    def add(self, bit, wire=None):
         """
-        Adds a map element between `qubit` and `wire`. If `wire`
-        is not defined, `qubit` will be mapped to a new wire (extending
-        the length of the layout by one.)
+        Adds a map element between `bit` and `wire`. If `wire` is not defined, `bit`
+        will be mapped to a new wire (extending the length of the layout by one.)
         Args:
-            qubit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
+            bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
             wire (int): A wire. For example, 3.
         """
         if wire is None:
             wire = len(self)
-        self[qubit] = wire
+        self[bit] = wire
+
+    def add_register(self, reg):
+        """
+        Adds at the end wires that map each bit in reg.
+        Args:
+            reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
+        """
+        for bit in reg:
+            self.add(bit)
 
     def set_length(self, amount_of_wires):
         """
