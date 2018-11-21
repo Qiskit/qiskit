@@ -9,7 +9,10 @@
 
 """Tests for the wrapper functionality."""
 
-import unittest
+import logging
+
+import fixtures
+import testtools
 
 import qiskit.wrapper
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -17,12 +20,15 @@ from qiskit import Aer
 from qiskit import compile
 
 from qiskit.qobj import Qobj
-from .common import QiskitTestCase
+
+LOG = logging.getLogger(__name__)
 
 
-class TestWrapper(QiskitTestCase):
+class TestWrapper(testtools.TestCase):
     """Wrapper test case."""
     def setUp(self):
+        super(TestWrapper, self).setUp()
+        self.useFixture(fixtures.LoggerFixture())
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         self.circuit = QuantumCircuit(qr, cr)
@@ -50,13 +56,17 @@ class TestWrapper(QiskitTestCase):
         circuit_b.measure(qreg2[0], creg2[1])
         qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True)
         qasm_list = [x.qasm() for x in qiskit.wrapper.qobj_to_circuits(qobj)]
+        LOG.warning(qasm_list[1])
+        qobj_exp = qobj.experiments[1]
+        LOG.warning(str(qobj_exp.header.qubit_labels))
+        LOG.warning(str(qobj_exp.header.compiled_circuit_qasm))
+        LOG.warning(str(qobj_exp.header.clbit_labels))
+        for i in qobj_exp.instructions:
+            LOG.warning(str(i))
+        LOG.warning(circuit_b.qasm())
         self.assertEqual(qasm_list, [self.circuit.qasm(), circuit_b.qasm()])
 
     def test_qobj_to_circuits_with_qobj_no_qasm(self):
         """Verify that qobj_to_circuits returns None without QASM."""
         qobj = Qobj('abc123', {}, {}, {})
         self.assertIsNone(qiskit.wrapper.qobj_to_circuits(qobj))
-
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
