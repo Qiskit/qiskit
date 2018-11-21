@@ -8,9 +8,9 @@
 """
 A two-ways dict that represent a layout.
 
-Layout is the relation between logical (qu)bits and physical (qu)bits.
+Layout is the relation between logical (qu)bits and physical wires.
 Logical (qu)bits are tuples (eg, `('qr',2)`.
-Physical (qu)bits are numbers.
+Physical wires are numbers.
 """
 
 from qiskit import QISKitError
@@ -72,8 +72,9 @@ class Layout(dict):
 
     def add(self, logical, physical=None):
         """
-        Adds a map element between `logical` and `physical`. If physical is not defined,
-        `logical will be mapped to a new wire (extending the length of the layout)
+        Adds a map element between `logical` and `physical`. If `physical`
+        is not defined, `logical will be mapped to a new wire (extending
+        the length of the layout)
         Args:
             logical (tuple): A logical (qu)bit. For example, ('qr',2).
             physical (int): A physical wire. For example, 3.
