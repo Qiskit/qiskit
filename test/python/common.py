@@ -43,6 +43,7 @@ class QiskitTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(QiskitTestCase, cls).setUpClass()
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
         # Determines if the TestCase is using IBMQ credentials.
@@ -77,6 +78,7 @@ class QiskitTestCase(unittest.TestCase):
 
         IBMQ._accounts.clear()
         Aer._backends = Aer._verify_aer_backends()
+        super(QiskitTestCase, self).tearDown()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
