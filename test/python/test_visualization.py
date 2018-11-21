@@ -212,6 +212,5 @@ class TestVisualizationUtils(QiskitTestCase):
                          [op['cargs'] for op in ops])
 
 
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)
