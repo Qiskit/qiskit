@@ -74,7 +74,7 @@ class Layout(dict):
         """
         Adds a map element between `logical` and `physical`. If `physical`
         is not defined, `logical will be mapped to a new wire (extending
-        the length of the layout)
+        the length of the layout by one.)
         Args:
             logical (tuple): A logical (qu)bit. For example, ('qr',2).
             physical (int): A physical wire. For example, 3.
