@@ -34,6 +34,7 @@ The input is a AST and a basis set and returns a json memory object::
         ]
     }
 """
+import sympy
 from collections import OrderedDict
 
 from qiskit.unrollers._backenderror import BackendError
@@ -130,22 +131,26 @@ class JsonBackend(UnrollerBackend):
         nested_scope is a list of dictionaries mapping expression variables
         to Node expression objects in order of increasing nesting depth.
         """
-        if self.listen:
-            if "U" not in self.basis:
-                self.basis.append("U")
-            qubit_indices = [self._qubit_order_internal.get(qubit)]
-            self.circuit['instructions'].append({
-                'name': "U",
-                # TODO: keep these real for now, until a later time
-                'params': [float(arg[0].real(nested_scope)),
-                           float(arg[1].real(nested_scope)),
-                           float(arg[2].real(nested_scope))],
-                'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
-                              arg[1].latex(prec=8, nested_scope=nested_scope),
-                              arg[2].latex(prec=8, nested_scope=nested_scope)],
-                'qubits': qubit_indices
-            })
-            self._add_condition()
+        print("===== jsonify u =====")
+        print(arg)
+        print(qubit)
+        if not self.listen:
+            return
+        if "U" not in self.basis:
+            self.basis.append("U")
+        qubit_indices = [self._qubit_order_internal.get(qubit)]
+        self.circuit['instructions'].append({
+            'name': "U",
+            # TODO: keep these real for now, until a later time
+            'params': [float(arg[0].real(nested_scope)),
+                       float(arg[1].real(nested_scope)),
+                       float(arg[2].real(nested_scope))],
+            'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
+                          arg[1].latex(prec=8, nested_scope=nested_scope),
+                          arg[2].latex(prec=8, nested_scope=nested_scope)],
+            'qubits': qubit_indices
+        })
+        self._add_condition()
 
     def _add_condition(self):
         """Check for a condition (self.creg) and add fields if necessary.
@@ -174,16 +179,17 @@ class JsonBackend(UnrollerBackend):
         qubit0 is (regname, idx) tuple for the control qubit.
         qubit1 is (regname, idx) tuple for the target qubit.
         """
-        if self.listen:
-            if "CX" not in self.basis:
-                self.basis.append("CX")
-            qubit_indices = [self._qubit_order_internal.get(qubit0),
-                             self._qubit_order_internal.get(qubit1)]
-            self.circuit['instructions'].append({
-                'name': 'CX',
-                'qubits': qubit_indices,
-            })
-            self._add_condition()
+        if not self.listen:
+            return
+        if "CX" not in self.basis:
+            self.basis.append("CX")
+        qubit_indices = [self._qubit_order_internal.get(qubit0),
+                         self._qubit_order_internal.get(qubit1)]
+        self.circuit['instructions'].append({
+            'name': 'CX',
+            'qubits': qubit_indices,
+        })
+        self._add_condition()
 
     def measure(self, qubit, bit):
         """Measurement operation.
@@ -208,19 +214,20 @@ class JsonBackend(UnrollerBackend):
 
         qubitlists is a list of lists of (regname, idx) tuples.
         """
-        if self.listen:
-            if "barrier" not in self.basis:
-                self.basis.append("barrier")
-            qubit_indices = []
-            for qubitlist in qubitlists:
-                for qubits in qubitlist:
-                    qubit_indices.append(self._qubit_order_internal.get(qubits))
-            self.circuit['instructions'].append({
-                'name': 'barrier',
-                'qubits': qubit_indices,
-            })
-            # no conditions on barrier, even when it appears
-            # in body of conditioned gate
+        if not self.listen:
+            return
+        if "barrier" not in self.basis:
+            self.basis.append("barrier")
+        qubit_indices = []
+        for qubitlist in qubitlists:
+            for qubits in qubitlist:
+                qubit_indices.append(self._qubit_order_internal.get(qubits))
+        self.circuit['instructions'].append({
+            'name': 'barrier',
+            'qubits': qubit_indices,
+        })
+        # no conditions on barrier, even when it appears
+        # in body of conditioned gate
 
     def reset(self, qubit):
         """Reset instruction.

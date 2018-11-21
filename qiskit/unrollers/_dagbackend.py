@@ -144,13 +144,14 @@ class DAGBackend(UnrollerBackend):
     def u(self, arg, qubit, nested_scope=None):
         """Universal single qubit rotation gate.
         """
-        if self.listen:
-            if self.creg is not None:
-                condition = (self.creg, self.cval)
-            else:
-                condition = None
-            self.circuit.apply_operation_back(UBase(*list(map(lambda x: x.sym(nested_scope),arg)), qubit),
-                                              condition)
+        if not self.listen:
+            return
+        if self.creg is not None:
+            condition = (self.creg, self.cval)
+        else:
+            condition = None
+        params = map(lambda x: x.sym(nested_scope),arg)
+        self.circuit.apply_operation_back(UBase(*list(params), qubit), condition)
 
     def cx(self, qubit0, qubit1):
         """Fundamental two-qubit gate.
@@ -190,7 +191,8 @@ class DAGBackend(UnrollerBackend):
             condition = None
         self.circuit.apply_operation_back(Reset(qubit), condition)
 
-    def create_dag_op(self, name, args, qubits, clbits, nested_scope=None, extra_fields=None):
+    def create_dag_op(self, name, args, qubits, clbits,
+                      nested_scope=None, extra_fields=None):
         """Create a DAG op node.
         """
         params = [a.sym(nested_scope) for a in args]
@@ -251,6 +253,7 @@ class DAGBackend(UnrollerBackend):
         else:
             raise BackendError("unknown operation for name ast node name %s" % name)
 
-        self.circuit.add_basis_element(op.name, len(op.qargs), len(op.cargs), len(op.param))        
+        self.circuit.add_basis_element(op.name, len(op.qargs),
+                                       len(op.cargs), len(op.param))
         self.start_gate(op)
         self.end_gate(op)
