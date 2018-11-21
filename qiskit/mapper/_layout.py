@@ -9,7 +9,7 @@
 A two-ways dict that represent a layout.
 
 Layout is the relation between (qu)bits and wires.
-(Qu)Bits are tuples (eg, `('qr',2)`.
+(Qu)Bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Wires are numbers.
 """
 
@@ -32,7 +32,9 @@ class Layout(dict):
 
         Args:
             input_dict (dict): For example,
-            {('qr', 0): 0, ('qr', 1): 1, ('qr', 2): 2}
+            {(QuantumRegister(3, 'qr'), 0): 0,
+             (QuantumRegister(3, 'qr'), 1): 1,
+             (QuantumRegister(3, 'qr'), 2): 2}
         """
         for key, value in input_dict.items():
             self[key] = value
@@ -43,7 +45,8 @@ class Layout(dict):
 
         Args:
             input_list (list): For example,
-            [('qr', 0), None, ('qr', 2), ('qr', 3)]
+            [(QuantumRegister(3, 'qr'), 0), None,
+             (QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 3)]
         """
         for key, value in enumerate(input_list):
             self[key] = value
@@ -76,7 +79,7 @@ class Layout(dict):
         is not defined, `qubit` will be mapped to a new wire (extending
         the length of the layout by one.)
         Args:
-            qubit (tuple): A (qu)bit. For example, ('qr',2).
+            qubit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
             wire (int): A wire. For example, 3.
         """
         if wire is None:
