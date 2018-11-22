@@ -10,7 +10,6 @@ This pass checks if a DAG is mapped to a coupling map.
 """
 
 from qiskit.transpiler._basepasses import AnalysisPass
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 
 
@@ -24,6 +23,7 @@ class CheckMap(AnalysisPass):
         Checks if a DAGCircuit is mapped to `coupling_map`.
         Args:
             coupling_map (Coupling): Directed graph represented a coupling map.
+            initial_layout (Layout): The initial layout of the DAG to analyze.
         """
         super().__init__()
         self.layout = initial_layout
