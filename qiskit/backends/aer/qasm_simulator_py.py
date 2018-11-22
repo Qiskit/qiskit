@@ -78,6 +78,7 @@ from collections import Counter
 
 import numpy as np
 
+from qiskit.backends.models import BackendConfiguration
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
@@ -91,19 +92,21 @@ class QasmSimulatorPy(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator_py',
-        'backend_version': '2.0',
+        'backend_version': '2.0.0',
         'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
         'conditional': True,
+        'open_pulse': False,
         'description': 'A python simulator for qasm experiments',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,id,snapshot'
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
+        'gates': []
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         self._local_random = random.Random()
@@ -246,7 +249,7 @@ class QasmSimulatorPy(BaseBackend):
         for circuit in qobj.experiments:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
-        result = {'backend': self._configuration['name'],
+        result = {'backend': self.name(),
                   'id': qobj.qobj_id,
                   'job_id': job_id,
                   'result': result_list,
@@ -345,7 +348,7 @@ class QasmSimulatorPy(BaseBackend):
                     params = operation.params
                     self._add_qasm_snapshot(params[0])
                 else:
-                    backend = self._configuration['name']
+                    backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise SimulatorError(err_msg.format(backend,
                                                         operation.name))

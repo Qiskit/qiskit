@@ -86,6 +86,7 @@ import time
 
 import numpy as np
 
+from qiskit.backends.models import BackendConfiguration
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
@@ -105,19 +106,21 @@ class UnitarySimulatorPy(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'name': 'unitary_simulator_py',
         'backend_name': 'unitary_simulator',
-        'backend_version': 1.0,
+        'backend_version': '1.0.0',
         'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
         'conditional': False,
+        'open_pulse': False,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,id'
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
+        'gates': []
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Define attributes inside __init__.
@@ -193,7 +196,7 @@ class UnitarySimulatorPy(BaseBackend):
         for circuit in qobj.experiments:
             result_list.append(self.run_circuit(circuit))
         end = time.time()
-        result = {'backend': self._configuration['name'],
+        result = {'backend': self.name(),
                   'id': qobj.qobj_id,
                   'job_id': job_id,
                   'result': result_list,

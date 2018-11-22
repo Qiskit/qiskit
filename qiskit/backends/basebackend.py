@@ -81,7 +81,7 @@ class BaseBackend(ABC):
         Returns:
             str: the name of the backend.
         """
-        return self._configuration.name
+        return self._configuration.backend_name
 
     def __str__(self):
         return self.name()
