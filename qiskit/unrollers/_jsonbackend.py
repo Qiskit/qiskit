@@ -267,11 +267,12 @@ class JsonBackend(UnrollerBackend):
             extra_fields: extra_fields used by non-standard instructions for now
                 (e.g. snapshot)
         """
-        if self.listen and op.name not in self.basis \
-                and self.gates[op.name]["opaque"]:
+        if not self.listen:
+            return
+        if op.name not in self.basis and self.gates[op.name]["opaque"]:
             raise BackendError("opaque gate %s not in basis" % op.name)
-        if self.listen and op.name in self.basis:
-            self.in_gate = op.name
+        if op.name in self.basis:
+            self.in_gate = op
             self.listen = False
             qubit_indices = [self._qubit_order_internal.get((qubit[0].name, qubit[1]))
                              for qubit in op.qargs]

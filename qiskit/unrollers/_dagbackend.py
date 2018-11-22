@@ -55,7 +55,7 @@ class DAGBackend(UnrollerBackend):
         # extra user defined basis
         circuit = QuantumCircuit() # TODO: make nicer when definitions not attached to circuit
         for b in basis:
-            if b not in self.circuit.basis:
+            if b not in self.circuit.basis and b in circuit.definitions:
                 definition = circuit.definitions[b]
                 self.circuit.add_basis_element(name=b,
                                                number_qubits=definition["n_bits"],
