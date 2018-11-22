@@ -102,15 +102,15 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
+        schema_path = self._get_resource_path(
+            'backend_configuration_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
         aer_backends = Aer.backends()
         for backend in aer_backends:
             configuration = backend.configuration()
-            schema_path = self._get_resource_path(
-                'deprecated/backends/backend_configuration_schema_old_py.json',
-                path=Path.SCHEMAS)
-            with open(schema_path, 'r') as schema_file:
-                schema = json.load(schema_file)
-            jsonschema.validate(configuration, schema)
+            jsonschema.validate(configuration.to_dict(), schema)
 
     @requires_qe_access
     def test_remote_backend_configuration(self, qe_token, qe_url):
