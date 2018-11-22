@@ -90,11 +90,14 @@ class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'qasm_simulator_py',
+        'backend_name': 'qasm_simulator_py',
+        'backend_version': '2.0',
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
-        'description': 'A python simulator for qasm files',
+        'conditional': True,
+        'description': 'A python simulator for qasm experiments',
         'coupling_map': 'all-to-all',
         'basis_gates': 'u1,u2,u3,cx,id,snapshot'
     }

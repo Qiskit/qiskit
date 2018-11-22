@@ -46,13 +46,16 @@ class QasmSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'qasm_simulator',
+        'backend_name': 'qasm_simulator',
+        'backend_version': '1.0',
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
-        'description': 'A C++ realistic noise simulator for qobj files',
+        'conditional': True,
+        'description': 'A C++ realistic noise simulator for qasm experiments',
         'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
+        'basis_gates': 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
                        'snapshot,wait,noise,save,load'
     }
 
@@ -104,10 +107,13 @@ class CliffordSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'clifford_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator',
+        'backend_name': 'clifford_simulator',
+        'backend_version': '1.0',
+        'n_qubits': -1,
+        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
+        'conditional': True,
         'description': 'A C++ Clifford simulator with approximate noise',
         'coupling_map': 'all-to-all',
         'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
