@@ -25,12 +25,10 @@ import warnings
 
 from PIL import Image
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
-from qiskit.transpiler import transpile_dag
 from qiskit.tools.visualization import _matplotlib
 
 logger = logging.getLogger(__name__)
