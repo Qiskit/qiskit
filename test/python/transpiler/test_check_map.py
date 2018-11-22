@@ -104,5 +104,6 @@ class TestCheckMap(QiskitTestCase):
 
         self.assertFalse(pass_.property_set['is_mapped'])
 
+
 if __name__ == '__main__':
     unittest.main()

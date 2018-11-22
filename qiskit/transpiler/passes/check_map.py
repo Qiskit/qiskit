@@ -13,6 +13,7 @@ from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 
+
 class CheckMap(AnalysisPass):
     """
     Maps a DAGCircuit onto a `coupling_map` using swap gates.
@@ -40,7 +41,7 @@ class CheckMap(AnalysisPass):
             for qreg in dag.qregs.values():
                 self.layout.add_register(qreg)
 
-        self.property_set['is_mapped']= None
+        self.property_set['is_mapped'] = None
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
