@@ -44,14 +44,13 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'open_pulse': False,
         'description': 'A Python statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
-        'gates': []
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
-
 
     def run(self, qobj):
         """Run qobj asynchronously.

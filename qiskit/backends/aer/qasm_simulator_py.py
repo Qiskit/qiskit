@@ -101,7 +101,7 @@ class QasmSimulatorPy(BaseBackend):
         'open_pulse': False,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
-        'gates': []
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):

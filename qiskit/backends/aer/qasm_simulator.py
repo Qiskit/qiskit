@@ -59,7 +59,7 @@ class QasmSimulator(BaseBackend):
         'basis_gates': ['u0', 'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'rzz', 'snapshot', 'wait',
                         'noise', 'save', 'load'],
-        'gates': []
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
@@ -122,7 +122,7 @@ class CliffordSimulator(BaseBackend):
         'description': 'A C++ Clifford simulator with approximate noise',
         'basis_gates': ['cx', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'snapshot',
                         'wait', 'noise', 'save', 'load'],
-        'gates': []
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):

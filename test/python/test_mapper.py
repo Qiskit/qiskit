@@ -15,6 +15,7 @@ import qiskit.wrapper
 from qiskit import compile, QuantumCircuit
 from qiskit import mapper, qasm, unroll, Aer
 from qiskit.backends.models import BackendConfiguration
+from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
@@ -43,7 +44,7 @@ class FakeQX4BackEnd(object):
             local=True,
             conditional=False,
             open_pulse=False,
-            gates=[],
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=qx4_cmap,
         )
 
@@ -67,7 +68,7 @@ class FakeQX5BackEnd(object):
             local=True,
             conditional=False,
             open_pulse=False,
-            gates=[],
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=qx5_cmap,
         )
 

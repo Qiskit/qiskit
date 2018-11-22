@@ -115,7 +115,7 @@ class UnitarySimulatorPy(BaseBackend):
         'open_pulse': False,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
-        'gates': []
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):

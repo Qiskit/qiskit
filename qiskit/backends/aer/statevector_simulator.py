@@ -39,7 +39,7 @@ class StatevectorSimulator(QasmSimulator):
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h',
                         's', 'sdg', 't', 'tdg', 'rzz', 'load', 'save',
                         'snapshot'],
-        'gates': []
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):

@@ -18,6 +18,7 @@ from qiskit import transpiler
 from qiskit import compile
 from qiskit import Result
 from qiskit.backends.models import BackendConfiguration
+from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import execute
 from qiskit._qiskiterror import QISKitError
@@ -48,7 +49,7 @@ class FakeBackend(object):
             local=True,
             conditional=False,
             open_pulse=False,
-            gates=[],
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=qx5_cmap,
         )
 
