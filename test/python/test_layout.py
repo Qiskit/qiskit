@@ -45,7 +45,7 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
         self.assertEqual(layout[(QuantumRegister(2, 'q1'), 0)], 1)
         with self.assertRaises(KeyError):
-            layout[None]
+            _ = layout[None]
         self.assertEqual(layout[(QuantumRegister(2, 'q1'), 1)], 3)
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 4)
 
