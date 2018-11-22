@@ -25,12 +25,10 @@ import warnings
 
 from PIL import Image
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
-from qiskit.transpiler import transpile_dag
 from qiskit.tools.visualization import _matplotlib
 
 logger = logging.getLogger(__name__)
@@ -501,11 +499,9 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
-    qcimg = _latex.QCircuitImage(json_circuit, scale, style=style,
+    qregs, cregs, ops = _utils._get_instructions(circuit,
+                                                 reversebits=reverse_bits)
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)
     latex = qcimg.latex()
