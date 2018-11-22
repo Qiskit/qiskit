@@ -320,8 +320,7 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 
 
-def _text_circuit_drawer(circuit, filename=None,
-                         line_length=None, reversebits=False,
+def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=False,
                          plotbarriers=True):
     """
     Draws a circuit using ascii art.
@@ -338,11 +337,8 @@ def _text_circuit_drawer(circuit, filename=None,
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
-    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
-    text_drawing = _text.TextDrawing(json_circuit, reversebits=reversebits)
+    qregs, cregs, ops = _utils._get_instructions(circuit, reversebits=reversebits)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
