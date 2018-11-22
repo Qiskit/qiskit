@@ -25,12 +25,10 @@ import warnings
 
 from PIL import Image
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
-from qiskit.transpiler import transpile_dag
 from qiskit.tools.visualization import _matplotlib
 
 logger = logging.getLogger(__name__)
@@ -320,8 +318,7 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 
 
-def _text_circuit_drawer(circuit, filename=None,
-                         line_length=None, reversebits=False,
+def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=False,
                          plotbarriers=True):
     """
     Draws a circuit using ascii art.
@@ -338,11 +335,8 @@ def _text_circuit_drawer(circuit, filename=None,
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
-    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
-    text_drawing = _text.TextDrawing(json_circuit, reversebits=reversebits)
+    qregs, cregs, ops = _utils._get_instructions(circuit, reversebits=reversebits)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
@@ -505,11 +499,9 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-             "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-    dag_circuit = DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
-    json_circuit = transpile_dag(dag_circuit, basis_gates=basis, format='json')
-    qcimg = _latex.QCircuitImage(json_circuit, scale, style=style,
+    qregs, cregs, ops = _utils._get_instructions(circuit,
+                                                 reversebits=reverse_bits)
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)
     latex = qcimg.latex()
