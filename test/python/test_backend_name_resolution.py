@@ -10,7 +10,8 @@
 aliases."""
 
 from qiskit import IBMQ, Aer
-from qiskit.backends.aer import QasmSimulatorPy, QasmSimulator
+from qiskit.backends.aer import QasmSimulator
+from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,
                      requires_cpp_simulator,
@@ -36,7 +37,7 @@ class TestBackendNameResolution(QiskitTestCase):
                 try:
                     resolved_newname = _get_first_available_backend(newname)
                     real_backend = Aer.get_backend(resolved_newname)
-                except KeyError:
+                except QiskitBackendNotFoundError:
                     # The real name of the backend might not exist
                     pass
                 else:
@@ -54,7 +55,7 @@ class TestBackendNameResolution(QiskitTestCase):
                               backend_name=backend_name):
                 try:
                     backend_by_name = IBMQ.get_backend(backend_name)
-                except KeyError:
+                except QiskitBackendNotFoundError:
                     # The real name of the backend might not exist
                     pass
                 else:
@@ -62,36 +63,30 @@ class TestBackendNameResolution(QiskitTestCase):
                     self.assertEqual(backend_by_name, backend_by_display_name)
                     self.assertEqual(backend_by_display_name.name(), backend_name)
 
-    def test_groups(self):
-        """Test that aggregate group names map to the first available backend
-        of their list of backends."""
-        aer_groups = Aer.grouped_backend_names()
-        for group_name, priority_list in aer_groups.items():
-            with self.subTest(group_name=group_name,
-                              priority_list=priority_list):
-                target_backend = _get_first_available_backend(priority_list)
-                if target_backend:
-                    self.assertEqual(Aer.get_backend(group_name),
-                                     Aer.get_backend(target_backend))
-
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(LookupError, Aer.get_backend, 'bad_name')
+        self.assertRaises(QiskitBackendNotFoundError, Aer.get_backend, 'bad_name')
+
+    def test_aliases_return_empty_list(self):
+        """Test backends() return an empty list if name is unknown."""
+        self.assertEqual(Aer.backends("bad_name"), [])
+
+    def test_deprecated_cpp_simulator_return_no_backend(self):
+        """Test backends("local_qasm_simulator_cpp") does not return C++
+        simulator if it is not installed"""
+        name = "local_qasm_simulator_cpp"
+        backends = Aer.backends(name)
+        if is_cpp_simulator_available():
+            self.assertEqual(len(backends), 1)
+            self.assertIsInstance(backends[0] if backends else None, QasmSimulator)
+        else:
+            self.assertEqual(len(backends), 0)
 
 
 class TestAerBackendNames(QiskitTestCase):
     """
-    Test grouped/deprecated/aliased names from providers.
+    Test deprecated names from providers.
     """
-    def test_aer_groups(self):
-        """test aer group names are resolved correctly"""
-        group_name = 'qasm_simulator'
-        backend = Aer.get_backend(group_name)
-        if is_cpp_simulator_available():
-            self.assertIsInstance(backend, QasmSimulator)
-        else:
-            self.assertIsInstance(backend, QasmSimulatorPy)
-
     @requires_cpp_simulator
     def test_aer_deprecated(self):
         """test deprecated aer backends are resolved correctly"""
@@ -108,7 +103,7 @@ def _get_first_available_backend(backend_names):
     for backend_name in backend_names:
         try:
             return Aer.get_backend(backend_name).name()
-        except LookupError:
+        except QiskitBackendNotFoundError:
             pass
 
     return None

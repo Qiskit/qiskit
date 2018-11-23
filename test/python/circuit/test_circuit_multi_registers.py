@@ -19,12 +19,13 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit import QISKitError
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
 
+    @requires_cpp_simulator
     def test_circuit_multi(self):
         """Test circuit multi regs declared at start.
         """
@@ -63,7 +64,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_circ).result()
         state_py = result.get_statevector(circ)
 
-        backend_sim = Aer.get_backend('unitary_simulator')
+        backend_sim = Aer.get_backend('unitary_simulator_py')
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
@@ -97,15 +98,15 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc2 = circ2 + meas2
 
-        backend_sim = Aer.get_backend('statevector_simulator')
+        backend_sim = Aer.get_backend('statevector_simulator_py')
         result = execute(circ2, backend_sim).result()
         state = result.get_statevector(circ2)
 
-        backend_sim = Aer.get_backend('qasm_simulator')
+        backend_sim = Aer.get_backend('qasm_simulator_py')
         result = execute(qc2, backend_sim).result()
         counts = result.get_counts(qc2)
 
-        backend_sim = Aer.get_backend('unitary_simulator')
+        backend_sim = Aer.get_backend('unitary_simulator_py')
         result = execute(circ2, backend_sim).result()
         unitary = result.get_unitary(circ2)
 

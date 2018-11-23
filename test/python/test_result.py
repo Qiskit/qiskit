@@ -27,13 +27,13 @@ class TestQiskitResult(QiskitTestCase):
         self._qc1.measure(qr[0], cr[0])
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
-        self.backend = Aer.get_backend('qasm_simulator')
+        self.backend = Aer.get_backend('qasm_simulator_py')
         self._result1 = qiskit.execute(self._qc1, self.backend).result()
         self._result2 = qiskit.execute(self._qc2, self.backend).result()
 
     def test_aer_result_fields(self):
         """Test components of a result from a local simulator."""
-        self.assertIn('qasm_simulator', self._result1.backend_name)
+        self.assertEqual('qasm_simulator_py', self._result1.backend_name)
         self.assertIsInstance(self._result1.job_id, str)
         self.assertEqual(self._result1.status, 'COMPLETED')
         self.assertEqual(self._result1.circuit_statuses(), ['DONE'])
