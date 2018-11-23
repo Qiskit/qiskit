@@ -104,8 +104,7 @@ class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'unitary_simulator_py',
-        'backend_name': 'unitary_simulator',
+        'backend_name': 'unitary_simulator_py',
         'backend_version': '1.0.0',
         'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
