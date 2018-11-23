@@ -19,7 +19,7 @@ from qiskit.backends.aer import QasmSimulator
 from qiskit.backends.aer import QasmSimulatorPy
 from qiskit.backends.aer import StatevectorSimulator
 from qiskit.backends.aer import StatevectorSimulatorPy
-from qiskit.backends.aer import UnitarySimulator
+from qiskit.backends.aer import UnitarySimulatorPy
 from ..common import QiskitTestCase
 from .._mockutils import new_fake_qobj
 
@@ -32,7 +32,7 @@ class TestAerJob(QiskitTestCase):
         QasmSimulatorPy,
         StatevectorSimulator,
         StatevectorSimulatorPy,
-        UnitarySimulator
+        UnitarySimulatorPy
     ]
 
     def test_multiple_execution(self):

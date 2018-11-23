@@ -12,6 +12,8 @@
 from abc import ABC, abstractmethod
 import logging
 
+from .exceptions import QiskitBackendNotFoundError
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +36,14 @@ class BaseProvider(ABC):
             BaseBackend: a backend matching the filtering.
 
         Raises:
-            KeyError: if no backend could be found or more than one backend
-                matches.
+            QiskitBackendNotFoundError: if no backend could be found or
+                more than one backend matches.
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
-            raise KeyError('More than one backend matches the criteria')
+            raise QiskitBackendNotFoundError('More than one backend matches the criteria')
         elif not backends:
-            raise KeyError('No backend matches the criteria')
+            raise QiskitBackendNotFoundError('No backend matches the criteria')
 
         return backends[0]
 

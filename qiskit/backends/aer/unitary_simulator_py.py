@@ -23,7 +23,7 @@ and the output is the results object
 
 The simulator is run using
 
-    UnitarySimulator(compiled_circuit).run().
+    UnitarySimulatorPy(compiled_circuit).run().
 
 In the qasm, key operations with type 'measure' and 'reset' are dropped.
 
@@ -99,11 +99,11 @@ logger = logging.getLogger(__name__)
 # does not show up
 
 
-class UnitarySimulator(BaseBackend):
+class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'unitary_simulator',
+        'name': 'unitary_simulator_py',
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -216,7 +216,7 @@ class UnitarySimulator(BaseBackend):
         """
         self._number_of_qubits = circuit.header.number_of_qubits
         if self._number_of_qubits > 24:
-            raise QISKitError("np.einsum implementation limits unitary_simulator" +
+            raise QISKitError("np.einsum implementation limits unitary_simulator_py" +
                               " to 24 qubit circuits.")
         result = {
             'data': {},
