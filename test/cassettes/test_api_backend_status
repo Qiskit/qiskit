@@ -144,7 +144,7 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/Backends/ibmqx4/queue/status
   response:
-    body: {string: '{"state": false, "status": "maintenance", "lengthQueue": 42}'}
+    body: {string: '{"state": true, "status": "active", "lengthQueue": 42}'}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']

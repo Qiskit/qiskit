@@ -40,7 +40,7 @@ interactions:
     method: GET
     uri: https://quantumexperience.ng.bluemix.net/api/version?access_token=dummyapiusersloginWithTokenid01
   response:
-    body: {string: 6.4.13}
+    body: {string: 6.4.15}
     headers:
       Access-Control-Allow-Credentials: ['true']
       Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
