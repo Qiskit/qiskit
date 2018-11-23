@@ -55,7 +55,8 @@ class TestIBMQQobj(JobTestCase):
     def test_allow_qobj(self):
         """Test if backend support Qobj.
         """
-        self.assertTrue(self._remote_backend.configuration()['allow_q_object'])
+        self.assertTrue(getattr(self._remote_backend.configuration(),
+                                'allow_q_object', False))
 
     @slow_test
     @requires_qe_access

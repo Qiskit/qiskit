@@ -118,15 +118,16 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
+        schema_path = self._get_resource_path(
+            'backend_configuration_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
         IBMQ.enable_account(qe_token, qe_url)
-        remotes = IBMQ.backends(simulator=False)
+        remotes = IBMQ.backends()
         for backend in remotes:
             configuration = backend.configuration()
-            schema_path = self._get_resource_path(
-                'deprecated/backends/backend_configuration_schema_old_py.json', path=Path.SCHEMAS)
-            with open(schema_path, 'r') as schema_file:
-                schema = json.load(schema_file)
-            jsonschema.validate(configuration, schema)
+            jsonschema.validate(configuration.to_dict(), schema)
 
     def test_aer_backend_properties(self):
         """Test backend properties.
@@ -153,7 +154,7 @@ class TestBackends(QiskitTestCase):
             properties = backend.properties()
             # FIXME test against schema and decide what properties
             # is for a simulator
-            if backend.configuration()['simulator']:
+            if backend.configuration().simulator:
                 self.assertEqual(len(properties), 0)
             else:
                 self.assertTrue(all(key in properties for key in (
