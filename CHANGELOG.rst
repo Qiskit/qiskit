@@ -84,6 +84,8 @@ Deprecated
 - The ``plot_barriers`` and ``reverse_bits`` keys in the ``style`` kwarg dict
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
+- The transpiler methods do not support emitting multiple output `format`
+  anymore (#1319).
 
 
 Removed
