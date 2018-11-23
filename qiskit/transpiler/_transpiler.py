@@ -7,6 +7,7 @@
 
 """Tools for compiling a batch of quantum circuits."""
 import logging
+import warnings
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -17,7 +18,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit import _quantumcircuit
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
-from qiskit.unrollers import _jsonbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
@@ -123,9 +123,6 @@ def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Returns:
         list[DAGCircuit]: the dag circuits after going through transpilation
 
-    Raises:
-        TranspilerError: if the format is not valid.
-
     Events:
         terra.transpiler.transpile_dag.start: When the transpilation of the dags is about to start
         terra.transpiler.transpile_dag.done: When one of the dags has finished it's transpilation
@@ -224,8 +221,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 3): ("q", 3)
                               }
         get_layout (bool): flag for returning the final layout after mapping
-        format (str): The target format of the compilation:
-            {'dag', 'json', 'qasm'}
+        format (str): DEPRECATED The target format of the compilation: {'dag', 'json', 'qasm'}
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -287,23 +283,14 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("post-mapping properties: %s",
                         dag.properties())
 
-    # choose output format
-    # TODO: do we need all of these formats, or just the dag?
-    if format == 'dag':
-        compiled_circuit = dag
-    elif format == 'json':
-        # FIXME: JsonBackend is wrongly taking an ordered dict as basis, not list
-        dag_unroller = _dagunroller.DagUnroller(
-            dag, _jsonbackend.JsonBackend(dag.basis))
-        compiled_circuit = dag_unroller.execute()
-    elif format == 'qasm':
-        compiled_circuit = dag.qasm()
-    else:
-        raise TranspilerError('unrecognized circuit format')
+    if format != 'dag':
+        warnings.warn("transpiler no longer supports different formats. "
+                      "only dag to dag transformations are supported.",
+                      DeprecationWarning)
 
     if get_layout:
-        return compiled_circuit, final_layout
-    return compiled_circuit
+        return dag, final_layout
+    return dag
 
 
 def _best_subset(backend, n_qubits):

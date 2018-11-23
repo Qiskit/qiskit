@@ -130,7 +130,7 @@ class TestQobj(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         shots = 1024
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
         qobj1.experiments[0].config.shots = 50
