@@ -123,34 +123,6 @@ class JsonBackend(UnrollerBackend):
         """
         self.gates[name] = gatedata
 
-    def u(self, arg, qubit, nested_scope=None):
-        """Fundamental single-qubit gate.
-
-        arg is 3-tuple of Node expression objects.
-        qubit is (regname, idx) tuple.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
-        """
-        print("===== jsonify u =====")
-        print(arg)
-        print(qubit)
-        if not self.listen:
-            return
-        if "U" not in self.basis:
-            self.basis.append("U")
-        qubit_indices = [self._qubit_order_internal.get(qubit)]
-        self.circuit['instructions'].append({
-            'name': "U",
-            'params': [float(arg[0].real(nested_scope)),
-                       float(arg[1].real(nested_scope)),
-                       float(arg[2].real(nested_scope))],
-            'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
-                          arg[1].latex(prec=8, nested_scope=nested_scope),
-                          arg[2].latex(prec=8, nested_scope=nested_scope)],
-            'qubits': qubit_indices
-        })
-        self._add_condition()
-
     def _add_condition(self):
         """Check for a condition (self.creg) and add fields if necessary.
 
@@ -172,76 +144,6 @@ class JsonBackend(UnrollerBackend):
                 }
             self.circuit['instructions'][-1]['conditional'] = conditional
 
-    def cx(self, qubit0, qubit1):
-        """Fundamental two-qubit gate.
-
-        qubit0 is (regname, idx) tuple for the control qubit.
-        qubit1 is (regname, idx) tuple for the target qubit.
-        """
-        if not self.listen:
-            return
-        if "CX" not in self.basis:
-            self.basis.append("CX")
-        qubit_indices = [self._qubit_order_internal.get(qubit0),
-                         self._qubit_order_internal.get(qubit1)]
-        self.circuit['instructions'].append({
-            'name': 'CX',
-            'qubits': qubit_indices,
-        })
-        self._add_condition()
-
-    def measure(self, qubit, bit):
-        """Measurement operation.
-
-        qubit is (regname, idx) tuple for the input qubit.
-        bit is (regname, idx) tuple for the output bit.
-        """
-        if "measure" not in self.basis:
-            self.basis.append("measure")
-        qubit_indices = [self._qubit_order_internal.get(qubit)]
-        clbit_indices = [self._cbit_order_internal.get(bit)]
-        self.circuit['instructions'].append({
-            'name': 'measure',
-            'qubits': qubit_indices,
-            'clbits': clbit_indices,
-            'memory': clbit_indices.copy()
-        })
-        self._add_condition()
-
-    def barrier(self, qubitlists):
-        """Barrier instruction.
-
-        qubitlists is a list of lists of (regname, idx) tuples.
-        """
-        if not self.listen:
-            return
-        if "barrier" not in self.basis:
-            self.basis.append("barrier")
-        qubit_indices = []
-        for qubitlist in qubitlists:
-            for qubits in qubitlist:
-                qubit_indices.append(self._qubit_order_internal.get(qubits))
-        self.circuit['instructions'].append({
-            'name': 'barrier',
-            'qubits': qubit_indices,
-        })
-        # no conditions on barrier, even when it appears
-        # in body of conditioned gate
-
-    def reset(self, qubit):
-        """Reset instruction.
-
-        qubit is a (regname, idx) tuple.
-        """
-        if "reset" not in self.basis:
-            self.basis.append("reset")
-        qubit_indices = [self._qubit_order_internal.get(qubit)]
-        self.circuit['instructions'].append({
-            'name': 'reset',
-            'qubits': qubit_indices,
-        })
-        self._add_condition()
-
     def set_condition(self, creg, cval):
         """Attach a current condition.
 
@@ -256,14 +158,12 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, nested_scope=None, extra_fields=None):
+    def start_gate(self, op, extra_fields=None):
         """
         Begin a custom gate.
 
         Args:
             op (Instruction): operation to apply to the dag.
-            nested_scope (list[dict]): list of dictionaries mapping expression variables
-                to Node expression objects in order of increasing nesting depth.
             extra_fields: extra_fields used by non-standard instructions for now
                 (e.g. snapshot)
         """
@@ -278,12 +178,8 @@ class JsonBackend(UnrollerBackend):
                              for qubit in op.qargs]
             gate_instruction = {
                 'name': op.name,
-                'params': list(map(lambda x: float(x.real(nested_scope)),
-                                   op.param)),
-                'texparams': list(map(lambda x:
-                                      x.latex(prec=8,
-                                              nested_scope=nested_scope),
-                                      op.param)),
+                'params': list(map(lambda x: x.evalf(), op.param)),
+                'texparams': list(map(lambda x: sympy.latex(x), op.param)),
                 'qubits': qubit_indices,
             }
             if extra_fields is not None:

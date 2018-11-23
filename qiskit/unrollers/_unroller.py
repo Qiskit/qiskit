@@ -106,7 +106,7 @@ class Unroller(object):
                 self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
                 self.backend.create_dag_op(name,
-                                           [self.arg_stack[-1][s] for s in gargs],
+                                           [self.arg_stack[-1][s].sym() for s in gargs],
                                            [self.bit_stack[-1][s] for s in gbits],
                                            [],
                                            self.arg_stack[0:-1])

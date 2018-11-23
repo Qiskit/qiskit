@@ -117,7 +117,9 @@ class DagUnroller(object):
         return self.dag_circuit
 
     def _process(self):
-        """Process dag nodes, assuming that expand_gates has already been called.
+        """Process dag nodes.
+
+        This method does *not* unroll.
         """
         for qreg in self.dag_circuit.qregs.values():
             self.backend.new_qreg(qreg)

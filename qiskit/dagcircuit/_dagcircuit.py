@@ -343,6 +343,9 @@ class DAGCircuit:
         self.multi_graph.node[self.node_counter]["qargs"] = qargs
         self.multi_graph.node[self.node_counter]["cargs"] = cargs
         self.multi_graph.node[self.node_counter]["condition"] = condition
+        # Update the operation itself. TODO: remove after qargs not connected to op
+        op.qargs = qargs
+        op.cargs = cargs
 
     def apply_operation_back(self, op, condition=None):
         """Apply an operation to the output of the circuit.
@@ -707,8 +710,7 @@ class DAGCircuit:
             out += "\n{\n" + self.gates[name]["body"].qasm() + "}"
         return out
 
-    def qasm(self, decls_only=False, add_swap=False,
-             no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
+    def qasm(self, no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
         """Return a string containing QASM for this circuit.
 
         if qeflag is True, add a line to include "qelib1.inc"
@@ -722,11 +724,6 @@ class DAGCircuit:
         if aliases is not None, aliases contains a dict mapping
         the current qubits in the circuit to new qubit names.
         We will deduce the register names and sizes from aliases.
-
-        if decls_only is True, only print the declarations.
-
-        if add_swap is True, add the definition of swap in terms of
-        cx if necessary.
         """
         # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
@@ -773,55 +770,50 @@ class DAGCircuit:
                     if k not in printed_gates:
                         out += self._gate_string(k) + "\n"
                         printed_gates.append(k)
-            if add_swap and not qeflag and "cx" not in self.basis:
-                out += "gate cx a,b { CX a,b; }\n"
-            if add_swap and "swap" not in self.basis:
-                out += "gate swap a,b { cx a,b; cx b,a; cx a,b; }\n"
         # Write the instructions
-        if not decls_only:
-            for n in nx.lexicographical_topological_sort(self.multi_graph):
-                nd = self.multi_graph.node[n]
-                if nd["type"] == "op":
-                    if nd["condition"] is not None:
-                        out += "if(%s==%d) " \
-                               % (nd["condition"][0], nd["condition"][1])
-                    if not nd["cargs"]:
-                        nm = nd["op"].name
-                        if aliases:
-                            qarglist = map(lambda x: aliases[x], nd["qargs"])
-                        else:
-                            qarglist = nd["qargs"]
-                        qarg = ",".join(map(lambda x: "%s[%d]" % (x[0].name, x[1]),
-                                            qarglist))
-                        if nd["op"].param:
-                            if eval_symbols:
-                                param = ",".join(map(lambda x: str((x.real())),
-                                                     nd["op"].param))
-                            else:
-                                param = ",".join(map(lambda x: x.replace("**", "^"),
-                                        map(lambda x: str(x.sym()), nd["op"].param)))
-                            out += "%s(%s) %s;\n" % (nm, param, qarg)
-                        else:
-                            out += "%s %s;\n" % (nm, qarg)
+        for n in nx.lexicographical_topological_sort(self.multi_graph):
+            nd = self.multi_graph.node[n]
+            if nd["type"] == "op":
+                if nd["condition"] is not None:
+                    out += "if(%s==%d) " \
+                           % (nd["condition"][0], nd["condition"][1])
+                if not nd["cargs"]:
+                    nm = nd["op"].name
+                    if aliases:
+                        qarglist = map(lambda x: aliases[x], nd["qargs"])
                     else:
-                        if nd["op"].name == "measure":
-                            if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
-                               or nd["op"].param:
-                                raise DAGCircuitError("bad node data")
-
-                            qname = nd["qargs"][0][0].name
-                            qindex = nd["qargs"][0][1]
-                            if aliases:
-                                newq = aliases[(qname, qindex)]
-                                qname = newq[0]
-                                qindex = newq[1]
-                            out += "measure %s[%d] -> %s[%d];\n" \
-                                   % (qname,
-                                      qindex,
-                                      nd["cargs"][0][0].name,
-                                      nd["cargs"][0][1])
+                        qarglist = nd["qargs"]
+                    qarg = ",".join(map(lambda x: "%s[%d]" % (x[0].name, x[1]),
+                                        qarglist))
+                    if nd["op"].param:
+                        if eval_symbols:
+                            param = ",".join(map(lambda x: str(x.evalf()),
+                                                 nd["op"].param))
                         else:
+                            param = ",".join(map(lambda x: x.replace("**", "^"),
+                                    map(lambda x: str(x), nd["op"].param)))
+                        out += "%s(%s) %s;\n" % (nm, param, qarg)
+                    else:
+                        out += "%s %s;\n" % (nm, qarg)
+                else:
+                    if nd["op"].name == "measure":
+                        if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
+                           or nd["op"].param:
                             raise DAGCircuitError("bad node data")
+
+                        qname = nd["qargs"][0][0].name
+                        qindex = nd["qargs"][0][1]
+                        if aliases:
+                            newq = aliases[(qname, qindex)]
+                            qname = newq[0]
+                            qindex = newq[1]
+                        out += "measure %s[%d] -> %s[%d];\n" \
+                               % (qname,
+                                  qindex,
+                                  nd["cargs"][0][0].name,
+                                  nd["cargs"][0][1])
+                    else:
+                        raise DAGCircuitError("bad node data")
 
         return out
 

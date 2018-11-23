@@ -27,11 +27,10 @@ Instructions are identified by the following fields, and are serialized as such 
     instructions: List of other instructions comprising this instruction.
 """
 import sympy
-
+from qiskit.qasm._node import _node
 from ._qiskiterror import QISKitError
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
-
 
 class Instruction(object):
     """Generic quantum instruction."""
@@ -41,7 +40,7 @@ class Instruction(object):
 
         Args:
             name (str): instruction name
-            param (list[qasm.node.Real]): list of parameters
+            param (list[sympy.Basic or float]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit(QuantumCircuit or Instruction): where the instruction is attached
@@ -54,9 +53,14 @@ class Instruction(object):
         if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
             raise QISKitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
-        self.param = []
+        self.param = []  # a list of gate params stored as sympy objects
         for single_param in param:
-            self.param.append(single_param)
+            if isinstance(single_param, sympy.Basic):
+                self.param.append(single_param)
+            elif isinstance(single_param, _node.Node):
+                self.param.append(single_param.sym())
+            else:
+               self.param.append(sympy.Number(single_param))
         self.qargs = qargs
         self.cargs = cargs
         self.instructions = []
@@ -118,7 +122,7 @@ class Instruction(object):
         name_param = self.name
         if self.param:
             name_param = "%s(%s)" % (name_param,
-                                     ",".join([str(i.sym()) for i in self.param]))
+                                     ",".join([str(i) for i in self.param]))
 
         name_param_arg = "%s %s;" % (name_param,
                                      ",".join(["%s[%d]" % (j[0].name, j[1])
