@@ -38,7 +38,7 @@ class TestIBMQQobj(JobTestCase):
                           "testing Qobj capabilities.")
 
         IBMQ.enable_account(self._qe_token, self._qe_url)
-        self._local_backend = Aer.get_backend('local_qasm_simulator')
+        self._local_backend = Aer.get_backend('qasm_simulator_py')
         self._remote_backend = IBMQ.get_backend(self._testing_device)
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
