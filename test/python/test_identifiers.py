@@ -63,8 +63,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
         self.assertIn(self.cr_name, c_qasm)
 
-    def test_aer_unitary_simulator(self):
-        backend = Aer.get_backend('unitary_simulator')
+    def test_aer_unitary_simulator_py(self):
+        backend = Aer.get_backend('unitary_simulator_py')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
