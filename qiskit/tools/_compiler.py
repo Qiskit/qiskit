@@ -10,7 +10,6 @@ from copy import deepcopy
 import uuid
 import logging
 
-
 from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader

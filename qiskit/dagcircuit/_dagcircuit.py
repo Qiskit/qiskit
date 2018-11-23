@@ -50,13 +50,13 @@ class DAGCircuit:
 
         # Map from a wire's name (reg,idx) to a Bool that is True if the
         # wire is a classical bit and False if the wire is a qubit.
-        self.wire_type = {}
+        self.wire_type = OrderedDict()
 
         # Map from wire names (reg,idx) to input nodes of the graph
-        self.input_map = {}
+        self.input_map = OrderedDict()
 
         # Map from wire names (reg,idx) to output nodes of the graph
-        self.output_map = {}
+        self.output_map = OrderedDict()
 
         # Running count of the total number of nodes
         self.node_counter = 0
@@ -83,7 +83,7 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # Map of user defined gates to ast nodes defining them
-        self.gates = {}
+        self.gates = OrderedDict()
 
         # Output precision for printing floats
         self.prec = 10
@@ -738,7 +738,7 @@ class DAGCircuit:
         # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
         if aliases:
-            qregdata = {}
+            qregdata = OrderedDict()
             for q in aliases.values():
                 if q[0] not in qregdata:
                     qregdata[q[0]] = q[1] + 1
@@ -754,9 +754,9 @@ class DAGCircuit:
             out = "OPENQASM 2.0;\n"
             if qeflag:
                 out += "include \"qelib1.inc\";\n"
-            for k, v in sorted(qregdata.items()):
+            for k, v in qregdata.items():
                 out += "qreg %s[%d];\n" % (k, v.size)
-            for k, v in sorted(self.cregs.items()):
+            for k, v in self.cregs.items():
                 out += "creg %s[%d];\n" % (k, v.size)
             omit = ["U", "CX", "measure", "reset", "barrier"]
             # TODO: dagcircuit shouldn't know about extensions
@@ -1331,7 +1331,7 @@ class DAGCircuit:
                     op_dict[name] += 1
         return op_dict
 
-    def property_summary(self):
+    def properties(self):
         """Return a dictionary of circuit properties."""
         summary = {"size": self.size(),
                    "depth": self.depth(),
@@ -1356,9 +1356,9 @@ class DAGCircuit:
         """
         dagcircuit = DAGCircuit()
         dagcircuit.name = circuit.name
-        for register in circuit.qregs.values():
+        for register in circuit.qregs:
             dagcircuit.add_qreg(register)
-        for register in circuit.cregs.values():
+        for register in circuit.cregs:
             dagcircuit.add_creg(register)
         # Add user gate definitions
         for name, data in circuit.definitions.items():

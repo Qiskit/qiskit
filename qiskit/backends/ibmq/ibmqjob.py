@@ -136,8 +136,9 @@ class IBMQJob(BaseJob):
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
-            will ignore ``job_id`` and will create an instance representing
-            an already-created job retrieved from the API server.
+            will ignore ``job_id`` and will create an instance to be submitted to the
+            API server for job creation. Passing only a `job_id`will create an instance
+            representing an already-created job retrieved from the API server.
         """
         if 'backend_name' in kwargs:
             warnings.warn('Passing the parameter `backend_name` is deprecated, '

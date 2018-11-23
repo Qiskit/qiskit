@@ -31,14 +31,14 @@ class TestWrapper(QiskitTestCase):
 
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         qobj_in = compile(self.circuit, backend, skip_transpiler=True)
         out_circuit = qiskit.wrapper.qobj_to_circuits(qobj_in)
         self.assertEqual(out_circuit[0].qasm(), self.circuit.qasm())
 
     def test_qobj_to_circuits_multiple(self):
         """Check that qobj_to_circuits's result with multiple circuits"""
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         qreg1 = QuantumRegister(2)
         qreg2 = QuantumRegister(3)
         creg1 = ClassicalRegister(2)

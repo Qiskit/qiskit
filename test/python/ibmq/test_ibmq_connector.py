@@ -92,29 +92,19 @@ class TestIBMQConnector(QiskitTestCase):
                         if self.using_ibmq_credentials else 'ibmqx4')
         api = self._get_api(qe_token, qe_url)
         is_available = api.backend_status(backend_name)
-        self.assertIsNotNone(is_available['available'])
+        self.assertIsNotNone(is_available['operational'])
 
     @requires_qe_access
-    def test_api_backend_calibration(self, qe_token, qe_url):
+    def test_api_backend_properties(self, qe_token, qe_url):
         """
-        Check the calibration of a real chip
+        Check the properties of calibration of a real chip
         """
         backend_name = ('ibmq_20_tokyo'
                         if self.using_ibmq_credentials else 'ibmqx4')
         api = self._get_api(qe_token, qe_url)
-        calibration = api.backend_calibration(backend_name)
-        self.assertIsNotNone(calibration)
 
-    @requires_qe_access
-    def test_api_backend_parameters(self, qe_token, qe_url):
-        """
-        Check the parameters of calibration of a real chip
-        """
-        backend_name = ('ibmq_20_tokyo'
-                        if self.using_ibmq_credentials else 'ibmqx4')
-        api = self._get_api(qe_token, qe_url)
-        parameters = api.backend_parameters(backend_name)
-        self.assertIsNotNone(parameters)
+        properties = api.backend_properties(backend_name)
+        self.assertIsNotNone(properties)
 
     @requires_qe_access
     def test_api_backends_available(self, qe_token, qe_url):

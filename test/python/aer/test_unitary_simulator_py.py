@@ -14,19 +14,19 @@ import numpy as np
 from qiskit import qasm, unroll
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.unitary_simulator import UnitarySimulator
+from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
 from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
 from ..common import QiskitTestCase
 
 
-class AerUnitarySimulatorTest(QiskitTestCase):
+class AerUnitarySimulatorPyTest(QiskitTestCase):
     """Test aer unitary simulator."""
 
     def setUp(self):
         self.seed = 88
         self.qasm_filename = self._get_resource_path('qasm/example.qasm')
 
-    def test_unitary_simulator(self):
+    def test_unitary_simulator_py(self):
         """test generation of circuit unitary"""
         unroller = unroll.Unroller(
             qasm.Qasm(filename=self.qasm_filename).parse(),
@@ -48,7 +48,7 @@ class AerUnitarySimulatorTest(QiskitTestCase):
                                       max_credits=10),
                     experiments=[circuit],
                     header=QobjHeader(
-                        backend_name='unitary_simulator'))
+                        backend_name='unitary_simulator_py'))
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
@@ -57,15 +57,15 @@ class AerUnitarySimulatorTest(QiskitTestCase):
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
 
-        result = UnitarySimulator().run(qobj).result()
+        result = UnitarySimulatorPy().run(qobj).result()
         self.assertTrue(np.allclose(result.get_unitary('test'),
                                     expected,
                                     rtol=1e-3))
 
-    def test_aer_unitary_simulator(self):
+    def test_aer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        backend = UnitarySimulator()
+        backend = UnitarySimulatorPy()
         qobj = compile(circuits, backend=backend)
         job = backend.run(qobj)
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]

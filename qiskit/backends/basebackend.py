@@ -10,11 +10,10 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
-import warnings
 from abc import ABC, abstractmethod
 
-from qiskit._qiskiterror import QISKitError
 import qiskit
+from .models import BackendStatus
 
 
 class BaseBackend(ABC):
@@ -37,9 +36,9 @@ class BaseBackend(ABC):
             QISKitError: if there is no name in the configuration
         """
         if 'name' not in configuration:
-            raise QISKitError('backend does not have a name.')
+            raise qiskit.QISKitError('backend does not have a name.')
         self._configuration = configuration
-        self.provider = provider
+        self._provider = provider
 
     @abstractmethod
     def run(self, qobj):
@@ -50,31 +49,29 @@ class BaseBackend(ABC):
         """Return backend configuration"""
         return self._configuration
 
-    def calibration(self):
-        """Return backend calibration"""
-        warnings.warn("Backends will no longer return a calibration dictionary,"
-                      "use backend.properties() instead.", DeprecationWarning)
-        return {}
-
-    def parameters(self):
-        """Return backend parameters"""
-        warnings.warn("Backends will no longer return a parameters dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-        return {}
-
     def properties(self):
         """Return backend properties"""
         return {}
 
+    def provider(self):
+        """Return the backend Provider.
+
+        Returns:
+            BaseProvider: the Provider responsible for this backend.
+        """
+        return self._provider
+
     def status(self):
-        """Return backend status"""
-        return {'backend_name': self.name(),
-                #  Backend version in the form X.X.X
-                'backend_version': qiskit.__version__,
-                #  Backend operational and accepting jobs (true/false)
-                'operational': True,
-                'pending_jobs': 0,
-                'status_msg': ''}
+        """Return backend status.
+
+        Returns:
+            BackendStatus: the status of the backend.
+        """
+        return BackendStatus(backend_name=self.name(),
+                             backend_version=qiskit.__version__,
+                             operational=True,
+                             pending_jobs=0,
+                             status_msg='')
 
     def name(self):
         """Return backend name"""
@@ -94,4 +91,4 @@ class BaseBackend(ABC):
         """
         return "<{}('{}') from {}()>".format(self.__class__.__name__,
                                              self.name(),
-                                             self.provider)
+                                             self._provider)

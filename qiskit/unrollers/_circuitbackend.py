@@ -56,14 +56,14 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
         qreg = QuantumRegister object
         """
-        self.circuit.add(qreg)
+        self.circuit.add_register(qreg)
 
     def new_creg(self, creg):
         """Create a new classical register.
 
         creg = ClassicalRegister object
         """
-        self.circuit.add(creg)
+        self.circuit.add_register(creg)
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
@@ -77,26 +77,35 @@ class CircuitBackend(_unrollerbackend.UnrollerBackend):
 
     def _map_qubit(self, qubit):
         """Map qubit tuple (regname, index) to (QuantumRegister, index)."""
+
         qregs = self.circuit.qregs
-        if qubit[0] not in qregs:
+        regname = qubit[0]
+        qregs_names = [element.name for element in qregs]
+        if regname not in qregs_names:
             raise _backenderror.BackendError(
                 "qreg %s does not exist" % qubit[0])
-        return (qregs[qubit[0]], qubit[1])
+        index = qregs_names.index(regname)
+        return (qregs[index], qubit[1])
 
     def _map_bit(self, bit):
         """Map bit tuple (regname, index) to (ClassicalRegister, index)."""
         cregs = self.circuit.cregs
-        if bit[0] not in cregs:
+        regname = bit[0]
+        cregs_names = [element.name for element in cregs]
+        if regname not in cregs_names:
             raise _backenderror.BackendError(
                 "creg %s does not exist" % bit[0])
-        return (cregs[bit[0]], bit[1])
+        index = cregs_names.index(regname)
+        return (cregs[index], bit[1])
 
     def _map_creg(self, creg):
         """Map creg name to ClassicalRegister."""
         cregs = self.circuit.cregs
-        if creg not in cregs:
+        cregs_names = [element.name for element in cregs]
+        if creg not in cregs_names:
             raise _backenderror.BackendError("creg %s does not exist" % creg)
-        return cregs[creg]
+        index = cregs_names.index(creg)
+        return cregs[index]
 
     def u(self, arg, qubit, nested_scope=None):
         """Fundamental single qubit gate.

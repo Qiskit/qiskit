@@ -10,7 +10,6 @@
 """Test IBMQ online qasm simulator.
 TODO: Must expand tests. Re-evaluate after Aer."""
 
-from unittest import skip
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin
 from qiskit import compile
@@ -77,9 +76,6 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         self.assertDictAlmostEqual(counts1, target1, threshold)
         self.assertDictAlmostEqual(counts2, target2, threshold)
 
-    # TODO: Investigate why this test is failing in master:
-    # https://github.com/Qiskit/qiskit-terra/issues/1016
-    @skip('Intermittent failure, see: https://github.com/Qiskit/qiskit-terra/issues/1016 ')
     @requires_qe_access
     def test_online_qasm_simulator_two_registers(self, qe_token, qe_url):
         """Test online_qasm_simulator_two_registers.
@@ -106,7 +102,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         qcr2.measure(qr2[0], cr2[0])
         qcr2.measure(qr2[1], cr2[1])
         shots = 1024
-        qobj = compile([qcr1, qcr2], backend, seed=8458, shots=shots)
+        qobj = compile([qcr1, qcr2], backend, seed=8458, shots=shots, seed_mapper=88434)
         job = backend.run(qobj)
         result = job.result()
         result1 = result.get_counts(qcr1)

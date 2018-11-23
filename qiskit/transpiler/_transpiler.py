@@ -263,7 +263,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # if a coupling map is given compile to the map
         if coupling_map:
             logger.info("pre-mapping properties: %s",
-                        dag.property_summary())
+                        dag.properties())
             # Insert swap gates
             coupling = Coupling(coupling_list2dict(coupling_map))
             removed_meas = remove_last_measurements(dag)
@@ -285,7 +285,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             return_last_measurements(dag, removed_meas,
                                      last_layout)
             logger.info("post-mapping properties: %s",
-                        dag.property_summary())
+                        dag.properties())
 
     # choose output format
     # TODO: do we need all of these formats, or just the dag?
