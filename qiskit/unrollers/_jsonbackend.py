@@ -176,11 +176,15 @@ class JsonBackend(UnrollerBackend):
             self.listen = False
             qubit_indices = [self._qubit_order_internal.get((qubit[0].name, qubit[1]))
                              for qubit in op.qargs]
+            clbit_indices = [self._cbit_order_internal.get((cbit[0].name, cbit[1]))
+                             for cbit in op.cargs]
             gate_instruction = {
                 'name': op.name,
                 'params': list(map(lambda x: x.evalf(), op.param)),
                 'texparams': list(map(lambda x: sympy.latex(x), op.param)),
                 'qubits': qubit_indices,
+                'clbits': clbit_indices,
+                'memory': clbit_indices.copy()
             }
             if extra_fields is not None:
                 gate_instruction.update(extra_fields)

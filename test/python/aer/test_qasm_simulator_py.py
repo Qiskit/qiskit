@@ -10,7 +10,8 @@ from sys import version_info
 import unittest
 
 import numpy as np
-from qiskit import qasm, unroll
+from qiskit.qasm import Qasm
+from qiskit.unroll import Unroller, DAGBackend, DagUnroller, JsonBackend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
@@ -25,22 +26,22 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         qasm_filename = self._get_resource_path('qasm/example.qasm')
-        unroller = unroll.Unroller(qasm.Qasm(filename=qasm_filename).parse(),
-                                   unroll.JsonBackend([]))
-        circuit = QobjExperiment.from_dict(unroller.execute())
-        circuit.config = QobjItem(coupling_map=None,
-                                  basis_gates='u1,u2,u3,cx,id',
-                                  layout=None,
-                                  seed=self.seed)
-        circuit.header.name = 'test'
+        qasm_ast = Qasm(filename=qasm_filename).parse()
+        qasm_dag = Unroller(qasm_ast, DAGBackend()).execute()
+        qasm_json = DagUnroller(qasm_dag, JsonBackend(qasm_dag.basis)).execute()
+        compiled_circuit = QobjExperiment.from_dict(qasm_json)
+        compiled_circuit.header.name = 'test'
 
-        self.qobj = Qobj(qobj_id='test_sim_single_shot',
-                         config=QobjConfig(shots=1024,
-                                           memory_slots=6,
-                                           max_credits=3),
-                         experiments=[circuit],
-                         header=QobjHeader(
-                             backend_name='qasm_simulator_py'))
+        self.qobj = Qobj(
+            qobj_id='test_sim_single_shot',
+            config=QobjConfig(
+                shots=1024, memory_slots=6,
+                max_credits=3, seed=self.seed
+            ),
+            experiments=[compiled_circuit],
+            header=QobjHeader(backend_name='qasm_simulator_py')
+        )
+        self.backend = QasmSimulatorPy()
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -51,7 +52,7 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        result = QasmSimulatorPy().run(self.qobj).result()
+        result = self.backend.run(self.qobj).result()
         shots = 1024
         threshold = 0.04 * shots
         counts = result.get_counts('test')
@@ -86,11 +87,11 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         circuit_if_false.measure(qr[2], cr[2])
         basis_gates = []  # unroll to base gates
         unroller = unroll.Unroller(
-            qasm.Qasm(data=circuit_if_true.qasm()).parse(),
+            Qasm(data=circuit_if_true.qasm()).parse(),
             unroll.JsonBackend(basis_gates))
         ucircuit_true = QobjExperiment.from_dict(unroller.execute())
         unroller = unroll.Unroller(
-            qasm.Qasm(data=circuit_if_false.qasm()).parse(),
+            Qasm(data=circuit_if_false.qasm()).parse(),
             unroll.JsonBackend(basis_gates))
         ucircuit_false = QobjExperiment.from_dict(unroller.execute())
 
@@ -148,9 +149,8 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        backend = QasmSimulatorPy()
-        qobj = compile(circuit, backend=backend, shots=shots, seed=self.seed)
-        results = backend.run(qobj).result()
+        qobj = compile(circuit, backend=self.backend, shots=shots, seed=self.seed)
+        results = self.backend.run(qobj).result()
         data = results.get_counts('teleport')
         alice = {
             '00': data['0x0'] + data['0x4'],
