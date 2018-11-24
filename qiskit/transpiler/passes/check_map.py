@@ -15,7 +15,7 @@ from qiskit.mapper import Layout
 
 class CheckMap(AnalysisPass):
     """
-    Maps a DAGCircuit onto a `coupling_map` using swap gates.
+    Checks if a DAGCircuit is mapped to `coupling_map`.
     """
 
     def __init__(self, coupling_map, initial_layout=None):
