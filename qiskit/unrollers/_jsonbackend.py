@@ -133,7 +133,7 @@ class JsonBackend(UnrollerBackend):
         if self.creg is not None:
             mask = 0
             for cbit, index in self._cbit_order_internal.items():
-                if cbit[0] == self.creg:
+                if cbit[0] == self.creg.name:
                     mask |= (1 << index)
                 # Would be nicer to zero pad the mask, but we
                 # need to know the total number of cbits.

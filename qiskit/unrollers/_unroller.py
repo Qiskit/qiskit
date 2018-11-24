@@ -26,7 +26,8 @@ class Unroller(object):
         self.backend = backend
         if not isinstance(self.backend, DAGBackend):
             raise UnrollerError("AST Unroller only supports DagBackend.")
-        default_basis = set(['U', 'CX', 'measure', 'reset', 'barrier'])
+        default_basis = set(['U', 'CX', 'measure', 'reset', 'barrier',
+                             'snapshot', 'noise', 'save', 'load'])
         backend_basis = set(self.backend.circuit.basis.keys())
         if backend_basis != default_basis:
             raise UnrollerError("Cannot customize basis when converting from AST to DAG")

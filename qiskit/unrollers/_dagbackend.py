@@ -83,6 +83,12 @@ class DAGBackend(UnrollerBackend):
         self.circuit.add_basis_element("reset", 1, 0, 0)
         self.circuit.add_basis_element("barrier", -1)
 
+        # extra simulator basis that will not be unrolled to the above
+        self.circuit.add_basis_element("snapshot", -1, 0, 1)
+        self.circuit.add_basis_element("save", -1, 0, 1)
+        self.circuit.add_basis_element("load", -1, 0, 1)
+        self.circuit.add_basis_element("noise", -1, 0, 1)
+
         # extra user defined basis
         circuit = QuantumCircuit()  # TODO: make nicer when definitions not attached to circuit
         for b in basis:
