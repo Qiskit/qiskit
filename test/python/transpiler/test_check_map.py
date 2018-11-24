@@ -53,7 +53,7 @@ class TestCheckMap(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
-        coupling = Coupling({0: [1, 2]})
+        coupling = Coupling(couplingdict={0: [1, 2]})
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
         pass_ = CheckMap(coupling)
@@ -77,7 +77,7 @@ class TestCheckMap(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[3])
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        coupling = Coupling(couplingdict={0: [1], 1: [2], 2: [3]})
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
         pass_ = CheckMap(coupling)
@@ -96,7 +96,7 @@ class TestCheckMap(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = Coupling({0: [2], 2: [1]})
+        coupling = Coupling(couplingdict={0: [2], 2: [1]})
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
         pass_ = CheckMap(coupling)
