@@ -56,5 +56,3 @@ def measure(self, qubit, cbit):
     self._check_creg(cbit[0])
     cbit[0].check_range(cbit[1])
     return self._attach(Measure(qubit, cbit, self))
-
-
