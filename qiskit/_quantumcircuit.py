@@ -272,7 +272,7 @@ class QuantumCircuit(object):
     def _check_creg(self, register):
         """Raise exception if r is not in this circuit or not creg."""
         if not isinstance(register, ClassicalRegister):
-            raise QISKitError("expected classical register")
+            raise QISKitError("Expected ClassicalRegister, but %s given" % type(register))
         if not self.has_register(register):
             raise QISKitError(
                 "register '%s' not in this circuit" %
