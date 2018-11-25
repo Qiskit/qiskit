@@ -238,9 +238,9 @@ class QasmSimulatorPy(BaseBackend):
         """Snapshot instruction to record simulator's internal representation
         of quantum statevector.
 
-        slot is an integer indicating a snapshot slot number.
+        slot is a string indicating a snapshot slot label.
         """
-        self._snapshots.setdefault(str(int(slot)),
+        self._snapshots.setdefault(str(slot),
                                    {}).setdefault("statevector",
                                                   []).append(np.copy(self._statevector))
 

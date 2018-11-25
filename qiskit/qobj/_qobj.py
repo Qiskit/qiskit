@@ -56,6 +56,8 @@ class QobjItem(SimpleNamespace):
             return int(obj)
         if isinstance(obj, numpy.float):
             return float(obj)
+        if isinstance(obj, sympy.Symbol):
+            return str(obj)
         if isinstance(obj, sympy.Basic):
             return float(obj.evalf())
         if isinstance(obj, numpy.ndarray):

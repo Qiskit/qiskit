@@ -55,17 +55,24 @@ class Instruction(object):
         self.name = name
         self.param = []  # a list of gate params stored as sympy objects
         for single_param in param:
+            # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, sympy.Basic):
                 self.param.append(single_param)
+            # example: OpenQASM parsed instruction
             elif isinstance(single_param, _node.Node):
                 self.param.append(single_param.sym())
+            # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
                 self.param.append(sympy.Number(single_param))
+            # example: Initialize([complex(0,1), complex(0,0)])
             elif isinstance(single_param, complex):
                 self.param.append(single_param.real + single_param.imag * sympy.I)
+            # example: snapshot('label')
+            elif isinstance(single_param, str):
+                self.param.append(sympy.Symbol(single_param))
             else:
-                raise QISKitError("invalid type {1} for param {2}".format(
-                                  type(single_param), single_param))
+                raise QISKitError("invalid param type {0} in instruction {1}".format(
+                                  type(single_param), name))
         self.qargs = qargs
         self.cargs = cargs
         self._decompositions = []
