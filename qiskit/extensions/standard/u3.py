@@ -25,15 +25,19 @@ class U3Gate(Gate):
     def __init__(self, theta, phi, lam, qubit, circ=None):
         """Create new two-pulse single qubit gate."""
         super().__init__("u3", [theta, phi, lam], [qubit], circ)
-        self._define_decompositions(params=[theta, phi, lam])
+        self._define_decompositions()
 
-    def _define_decompositions(self, params):
+    def _define_decompositions(self):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         decomposition.add_basis_element("U", 1, 0, 3)
-        decomposition.apply_operation_back(UBase(params[0], params[1], params[2], q[0]))
-        self.instructions.append(decomposition)
+        rule = [
+            UBase(self.param[0], self.param[1], self.param[2], q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate.
@@ -44,6 +48,7 @@ class U3Gate(Gate):
         phi = self.param[1]
         self.param[1] = -self.param[2]
         self.param[2] = -phi
+        self._define_decompositions()
         return self
 
     def reapply(self, circ):

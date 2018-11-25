@@ -39,13 +39,18 @@ class CyGate(Gate):
         decomposition.add_basis_element("s", 1, 0, 0)
         decomposition.add_basis_element("sdg", 1, 0, 0)
         decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.apply_operation_back(SdgGate(q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(SGate(q[1]))
-        self.instructions.append(decomposition)
+        rule = [
+            SdgGate(q[1]),
+            CnotGate(q[0], q[1]),
+            SGate(q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

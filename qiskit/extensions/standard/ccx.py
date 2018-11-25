@@ -48,25 +48,30 @@ class ToffoliGate(Gate):
         decomposition.add_basis_element("tdg", 1, 0, 0)
         decomposition.add_basis_element("s", 1, 0, 0)
         decomposition.add_basis_element("sdg", 1, 0, 0)
-        decomposition.apply_operation_back(HGate(q[2]))
-        decomposition.apply_operation_back(CnotGate(q[1], q[2]))
-        decomposition.apply_operation_back(TdgGate(q[2]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[2]))
-        decomposition.apply_operation_back(TGate(q[2]))
-        decomposition.apply_operation_back(CnotGate(q[1], q[2]))
-        decomposition.apply_operation_back(TdgGate(q[2]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[2]))
-        decomposition.apply_operation_back(TGate(q[1]))
-        decomposition.apply_operation_back(TGate(q[2]))
-        decomposition.apply_operation_back(HGate(q[2]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(TGate(q[0]))
-        decomposition.apply_operation_back(TdgGate(q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        self.instructions.append(decomposition)
+        rule = [
+            HGate(q[2]),
+            CnotGate(q[1], q[2]),
+            TdgGate(q[2]),
+            CnotGate(q[0], q[2]),
+            TGate(q[2]),
+            CnotGate(q[1], q[2]),
+            TdgGate(q[2]),
+            CnotGate(q[0], q[2]),
+            TGate(q[1]),
+            TGate(q[2]),
+            HGate(q[2]),
+            CnotGate(q[0], q[1]),
+            TGate(q[0]),
+            TdgGate(q[1]),
+            CnotGate(q[0], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

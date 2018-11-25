@@ -25,9 +25,9 @@ class RZZGate(Gate):
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new rzz gate."""
         super().__init__("rzz", [theta], [ctl, tgt], circ)
-        self._define_decompositions([theta])
+        self._define_decompositions()
 
-    def _define_decompositions(self, params):
+    def _define_decompositions(self):
         """
         gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
         """
@@ -36,14 +36,19 @@ class RZZGate(Gate):
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u1", 1, 0, 1)
         decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.apply_operation_back(U1Gate(params[0], q[0]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(U1Gate(params[0], q[0]))
-        self.instructions.append(decomposition)
+        rule = [
+            CnotGate(q[0], q[1]),
+            U1Gate(self.param[0], q[0]),
+            CnotGate(q[0], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
+        self._define_decompositions()
         return self
 
     def reapply(self, circ):

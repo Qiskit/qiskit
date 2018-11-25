@@ -25,9 +25,9 @@ class Cu3Gate(Gate):
     def __init__(self, theta, phi, lam, ctl, tgt, circ=None):
         """Create new cu3 gate."""
         super().__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
-        self._define_decompositions(params=[theta, phi, lam])
+        self._define_decompositions()
 
-    def _define_decompositions(self, params):
+    def _define_decompositions(self):
         """
         gate cu3(theta,phi,lambda) c, t
         { u1((lambda-phi)/2) t; cx c,t;
@@ -41,12 +41,16 @@ class Cu3Gate(Gate):
         decomposition.add_basis_element("u1", 1, 0, 1)
         decomposition.add_basis_element("u3", 1, 0, 3)
         decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.apply_operation_back(U1Gate((params[2] - params[1])/2, q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(U3Gate(-params[0]/2, 0, -(params[1]+params[2])/2, q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(U3Gate(params[0]/2, params[1], 0, q[1]))
-        self.instructions.append(decomposition)
+        rule = [
+            U1Gate((self.param[2] - self.param[1])/2, q[1]),
+            CnotGate(q[0], q[1]),
+            U3Gate(-self.param[0]/2, 0, -(self.param[1]+self.param[2])/2, q[1]),
+            CnotGate(q[0], q[1]),
+            U3Gate(self.param[0]/2, self.param[1], 0, q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
@@ -54,6 +58,7 @@ class Cu3Gate(Gate):
         phi = self.param[1]
         self.param[1] = -self.param[2]
         self.param[2] = -phi
+        self._define_decompositions()
         return self
 
     def reapply(self, circ):

@@ -33,11 +33,16 @@ class ZGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u1", 1, 0, 1)
-        decomposition.apply_operation_back(U1Gate(pi, q[0]))
-        self.instructions.append(decomposition)
+        rule = [
+            U1Gate(pi, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

@@ -75,7 +75,7 @@ class DagUnroller(object):
                current_node["op"].name not in basis and \
                current_node["op"].name not in simulator_builtins and \
                not self.dag_circuit.gates[current_node["op"].name]["opaque"]:
-                   decomposition_rules = current_node["op"].instructions
+                   decomposition_rules = current_node["op"]._decompositions
                    if not len(decomposition_rules) > 0:
                        raise UnrollerError("no decomposition rules defined for ",
                                            current_node["op"].name)

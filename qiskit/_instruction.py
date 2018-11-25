@@ -24,7 +24,7 @@ Instructions are identified by the following fields, and are serialized as such 
 
     cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
 
-    instructions: List of other instructions comprising this instruction.
+    _decompositions: List of decomposition rule(s), in the form of mini DAG(s).
 """
 import sympy
 from qiskit.qasm._node import _node
@@ -40,7 +40,7 @@ class Instruction(object):
 
         Args:
             name (str): instruction name
-            param (list[sympy.Basic or float]): list of parameters
+            param (list[sympy.Basic or int or float or complex]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit(QuantumCircuit or Instruction): where the instruction is attached
@@ -59,11 +59,16 @@ class Instruction(object):
                 self.param.append(single_param)
             elif isinstance(single_param, _node.Node):
                 self.param.append(single_param.sym())
+            elif isinstance(single_param, (int, float)):
+                self.param.append(sympy.Number(single_param))
+            elif isinstance(single_param, complex):
+                self.param.append(single_param.real + single_param.imag * sympy.I)
             else:
-               self.param.append(sympy.Number(single_param))
+                raise QISKitError("invalid type {1} for param {2}".format(
+                                  type(single_param), single_param))
         self.qargs = qargs
         self.cargs = cargs
-        self.instructions = []
+        self._decompositions = []
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 

@@ -36,13 +36,18 @@ class CzGate(Gate):
         decomposition.add_qreg(q)
         decomposition.add_basis_element("h", 1, 0, 0)
         decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.apply_operation_back(HGate(q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(HGate(q[1]))
-        self.instructions.append(decomposition)
+        rule = [
+            HGate(q[1]),
+            CnotGate(q[0], q[1]),
+            HGate(q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

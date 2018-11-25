@@ -55,21 +55,26 @@ class CHGate(Gate):
         decomposition.add_basis_element("t", 1, 0, 0)
         decomposition.add_basis_element("s", 1, 0, 0)
         decomposition.add_basis_element("sdg", 1, 0, 0)
-        decomposition.apply_operation_back(HGate(q[1]))
-        decomposition.apply_operation_back(SdgGate(q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(HGate(q[1]))
-        decomposition.apply_operation_back(TGate(q[1]))
-        decomposition.apply_operation_back(CnotGate(q[0], q[1]))
-        decomposition.apply_operation_back(TGate(q[1]))
-        decomposition.apply_operation_back(HGate(q[1]))
-        decomposition.apply_operation_back(SGate(q[1]))
-        decomposition.apply_operation_back(XGate(q[1]))
-        decomposition.apply_operation_back(SGate(q[0]))        
-        self.instructions.append(decomposition)
+        rule = [
+            HGate(q[1]),
+            SdgGate(q[1]),
+            CnotGate(q[0], q[1]),
+            HGate(q[1]),
+            TGate(q[1]),
+            CnotGate(q[0], q[1]),
+            TGate(q[1]),
+            HGate(q[1]),
+            SGate(q[1]),
+            XGate(q[1]),
+            SGate(q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):
