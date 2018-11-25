@@ -10,7 +10,6 @@ Quantum measurement in the computational basis.
 """
 from ._instruction import Instruction
 from ._instructionset import InstructionSet
-from ._quantumcircuit import QuantumCircuit
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
 
@@ -59,4 +58,3 @@ def measure(self, qubit, cbit):
     return self._attach(Measure(qubit, cbit, self))
 
 
-QuantumCircuit.measure = measure
