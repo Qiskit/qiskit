@@ -15,7 +15,7 @@ import warnings
 from collections import OrderedDict
 from copy import deepcopy
 
-
+import qiskit._measure
 from qiskit.qasm import _qasm
 from qiskit.unrollers import _unroller
 from qiskit.unrollers import _circuitbackend
@@ -406,3 +406,5 @@ class QuantumCircuit(object):
 
     def __str__(self):
         return str(self.draw(output='text'))
+
+    measure = qiskit._measure.measure
