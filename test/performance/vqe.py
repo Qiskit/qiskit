@@ -74,7 +74,8 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     if 'statevector' not in device:
         H = group_paulis(pauli_list)
 
-    entangler_map = get_backend(device).configuration()['coupling_map']
+    entangler_map = getattr(get_backend(device).configuration(),
+                            'coupling_map', 'all-to-all')
 
     if entangler_map == 'all-to-all':
         entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}

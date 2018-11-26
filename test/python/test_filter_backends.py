@@ -39,8 +39,8 @@ class TestBackendFilters(QiskitTestCase):
         """Test filtering by lambda function on configuration properties"""
         IBMQ.enable_account(qe_token, qe_url)
         filtered_backends = IBMQ.backends(
-            filters=lambda x: (not x.configuration()['simulator']
-                               and x.configuration()['n_qubits'] > 5))
+            filters=lambda x: (not x.configuration().simulator
+                               and x.configuration().n_qubits > 5))
         self.assertTrue(filtered_backends)
 
     @requires_qe_access

@@ -24,6 +24,10 @@ from .http_recorder import http_recorder
 from ._test_options import get_test_options
 
 
+# Allows shorter stack trace for .assertDictAlmostEqual
+__unittest = True  # pylint: disable=invalid-name
+
+
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
     # Main SDK path:    qiskit/

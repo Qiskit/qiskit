@@ -32,24 +32,15 @@ class IBMQBackend(BaseBackend):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
-            configuration (dict): configuration of backend.
+            configuration (BackendConfiguration): configuration of backend.
             provider (IBMQProvider): provider.
             credentials (Credentials): credentials.
             api (IBMQConnector):
                 api for communicating with the Quantum Experience.
         """
         super().__init__(provider=provider, configuration=configuration)
-        self._api = api
-        if self._configuration:
-            configuration_edit = {}
-            for key, vals in self._configuration.items():
-                new_key = _camel_case_to_snake_case(key)
-                configuration_edit[new_key] = vals
-            self._configuration = configuration_edit
-            # FIXME: This is a hack to make sure that the
-            # local : False is added to the online device
-            self._configuration['local'] = False
 
+        self._api = api
         self._credentials = credentials
         self.hub = credentials.hub
         self.group = credentials.group
@@ -65,7 +56,8 @@ class IBMQBackend(BaseBackend):
             IBMQJob: an instance derived from BaseJob
         """
         job_class = _job_class_from_backend_support(self)
-        job = job_class(self, None, self._api, not self.configuration()['simulator'], qobj=qobj)
+        job = job_class(self, None, self._api,
+                        not self.configuration().simulator, qobj=qobj)
         job.submit()
         return job
 
@@ -146,7 +138,7 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendValueError: status keyword value unrecognized
         """
-        backend_name = self.configuration()['name']
+        backend_name = self.name()
         api_filter = {'backend.name': backend_name}
         if status:
             if isinstance(status, str):
@@ -175,7 +167,7 @@ class IBMQBackend(BaseBackend):
         job_list = []
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
-            is_device = not bool(self._configuration.get('simulator'))
+            is_device = not bool(self.configuration().simulator)
             job = job_class(self, job_info.get('id'), self._api, is_device,
                             creation_date=job_info.get('creationDate'),
                             api_status=job_info.get('status'))
@@ -203,7 +195,7 @@ class IBMQBackend(BaseBackend):
             raise IBMQBackendError('Failed to get job "{}":{}'
                                    .format(job_id, str(ex)))
         job_class = _job_class_from_job_response(job_info)
-        is_device = not bool(self._configuration.get('simulator'))
+        is_device = not bool(self.configuration().simulator)
         job = job_class(self, job_info.get('id'), self._api, is_device,
                         creation_date=job_info.get('creationDate'),
                         api_status=job_info.get('status'))
@@ -234,5 +226,5 @@ def _job_class_from_job_response(job_response):
 
 
 def _job_class_from_backend_support(backend):
-    support_qobj = backend.configuration().get('allow_q_object')
+    support_qobj = getattr(backend.configuration(), 'allow_q_object', False)
     return IBMQJob if support_qobj else IBMQJobPreQobj

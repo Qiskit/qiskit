@@ -109,7 +109,7 @@ class TestCrossSimulation(QiskitTestCase):
         result_py = execute(circuit, sim_py, shots=shots, seed=1).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
-        self.assertDictAlmostEqual(counts_cpp, counts_py, shots * 0.042)
+        self.assertDictAlmostEqual(counts_cpp, counts_py, shots * 0.06)
 
 
 if __name__ == '__main__':
