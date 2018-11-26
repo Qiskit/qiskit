@@ -5,14 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=no-value-for-parameter,broad-except
+# pylint: disable=no-value-for-parameter,broad-except,redefined-builtin
 
 """Tests for bit reordering fix."""
 
 import unittest
 import qiskit
 
-from qiskit import transpiler
+from qiskit import compile
 from qiskit.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
@@ -39,8 +39,8 @@ class TestBitReordering(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
 
         shots = 2000
-        qobj_real = transpiler.transpile(circuit, real)
-        qobj_sim = transpiler.transpile(circuit, sim)
+        qobj_real = compile(circuit, real)
+        qobj_sim = compile(circuit, sim)
         result_real = real.run(qobj_real).result(timeout=600)
         result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
@@ -55,7 +55,7 @@ class TestBitReordering(QiskitTestCase):
     def test_multi_register_reordering(self, qe_token, qe_url):
         """a more complicated reordering across 3 registers of different sizes"""
         sim, real = self._get_backends(qe_token, qe_url)
-        if not sim or real:
+        if not sim or not real:
             raise unittest.SkipTest('no remote device available')
 
         qr0 = qiskit.QuantumRegister(2)
@@ -78,8 +78,8 @@ class TestBitReordering(QiskitTestCase):
         circuit.measure(qr2[0], cr1[1])
 
         shots = 4000
-        qobj_real = transpiler.transpile(circuit, real)
-        qobj_sim = transpiler.transpile(circuit, sim)
+        qobj_real = compile(circuit, real)
+        qobj_sim = compile(circuit, sim)
         result_real = real.run(qobj_real).result(timeout=600)
         result_sim = sim.run(qobj_sim).result(timeout=600)
         counts_real = result_real.get_counts()
@@ -88,7 +88,7 @@ class TestBitReordering(QiskitTestCase):
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
     def _get_backends(self, qe_token, qe_url):
-        sim_backend = qiskit.Aer.get_backend('qasm_simulator')
+        sim_backend = qiskit.Aer.get_backend('qasm_simulator_py')
         try:
             qiskit.IBMQ.enable_account(qe_token, qe_url)
             real_backends = qiskit.IBMQ.backends(simulator=False)

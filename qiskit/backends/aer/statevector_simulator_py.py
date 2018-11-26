@@ -23,6 +23,7 @@ import uuid
 
 from qiskit.backends.aer.aerjob import AerJob
 from qiskit.backends.aer._simulatorerror import SimulatorError
+from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator_py import QasmSimulatorPy
 
@@ -33,17 +34,22 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'statevector_simulator_py',
+        'backend_name': 'statevector_simulator_py',
+        'backend_version': '1.0.0',
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
+        'conditional': False,
+        'open_pulse': False,
         'description': 'A Python statevector simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,id,snapshot'
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
     def run(self, qobj):

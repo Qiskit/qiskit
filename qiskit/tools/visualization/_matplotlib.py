@@ -25,10 +25,9 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit import dagcircuit
-from qiskit import transpiler
 from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
+from qiskit.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)
@@ -132,30 +131,19 @@ class MatplotlibDrawer:
                             labelleft=False, labelright=False)
 
     def parse_circuit(self, circuit):
-        dag_circuit = dagcircuit.DAGCircuit.fromQuantumCircuit(
-            circuit, expand_gates=False)
-        basis = ("id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,"
-                 "cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap")
-        self._ast = transpiler.transpile_dag(dag_circuit,
-                                             basis_gates=basis,
-                                             format='json')
-        self._registers()
-        self._ops = self._ast['instructions']
+        qregs, cregs, ops = _utils._get_instructions(
+            circuit, reversebits=self.reverse_bits)
+        self._registers(cregs, qregs)
+        self._ops = ops
 
-    def _registers(self):
+    def _registers(self, creg, qreg):
         # NOTE: formats of clbit and qubit are different!
-        header = self._ast['header']
         self._creg = []
-        for e in header['clbit_labels']:
-            for i in range(e[1]):
-                self._creg.append(Register(name=e[0], index=i))
-        if len(self._creg) != header['number_of_clbits']:
-            raise _error.VisualizationError('internal error')
+        for e in creg:
+            self._creg.append(Register(name=e[0], index=e[1]))
         self._qreg = []
-        for e in header['qubit_labels']:
+        for e in qreg:
             self._qreg.append(Register(name=e[0], index=e[1]))
-        if len(self._qreg) != header['number_of_qubits']:
-            raise _error.VisualizationError('internal error')
 
     @property
     def ast(self):
@@ -415,22 +403,6 @@ class MatplotlibDrawer:
                     }
                 self._cond['n_lines'] += 1
                 idx += 1
-        # reverse bit order
-        if self.reverse_bits:
-            self._reverse_bits(self._qreg_dict)
-            self._reverse_bits(self._creg_dict)
-
-    def _reverse_bits(self, target_dict):
-        coord = {}
-        # grouping
-        for dict_ in target_dict.values():
-            if dict_['group'] not in coord:
-                coord[dict_['group']] = [dict_['y']]
-            else:
-                coord[dict_['group']].insert(0, dict_['y'])
-        # reverse bit order
-        for key in target_dict.keys():
-            target_dict[key]['y'] = coord[target_dict[key]['group']].pop(0)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -520,20 +492,33 @@ class MatplotlibDrawer:
                 _iswide = False
                 gw = 1
             # get qreg index
-            if 'qubits' in op.keys():
-                q_idxs = op['qubits']
+            if 'qargs' in op.keys():
+                q_idxs = []
+                for qarg in op['qargs']:
+                    for index, reg in self._qreg_dict.items():
+                        if (reg['group'] == qarg[0] and
+                                reg['index'] == qarg[1]):
+                            q_idxs.append(index)
+                            break
             else:
                 q_idxs = []
             # get creg index
-            if 'clbits' in op.keys():
-                c_idxs = op['clbits']
+            if 'cargs' in op.keys():
+                c_idxs = []
+                for carg in op['cargs']:
+                    for index, reg in self._creg_dict.items():
+                        if (reg['group'] == carg[0] and
+                                reg['index'] == carg[1]):
+                            c_idxs.append(index)
+                            break
             else:
                 c_idxs = []
             # find empty space to place gate
             if not _barriers['group']:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
                 while True:
-                    if op['name'] in _force_next or 'conditional' in op.keys() or \
+                    if op['name'] in _force_next or (
+                            'condition' in op.keys() and op['condition']) or \
                             not self._style.compress:
                         occupied = self._qreg_dict.keys()
                     else:
@@ -570,16 +555,19 @@ class MatplotlibDrawer:
             else:
                 param = None
             # conditional gate
-            if 'conditional' in op.keys():
+            if 'condition' in op.keys() and op['condition']:
                 c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for
                         ii in self._creg_dict]
+                mask = 0
+                for index, cbit in enumerate(self._creg):
+                    if cbit.name == op['condition'][0]:
+                        mask |= (1 << index)
+                val = op['condition'][1]
                 # cbit list to consider
                 fmt_c = '{{:0{}b}}'.format(len(c_xy))
-                mask = int(op['conditional']['mask'], 16)
                 cmask = list(fmt_c.format(mask))[::-1]
                 # value
                 fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
-                val = int(op['conditional']['val'], 16)
                 vlist = list(fmt_v.format(val))[::-1]
                 # plot conditionals
                 v_ind = 0
@@ -594,7 +582,7 @@ class MatplotlibDrawer:
                             xy_plot.append(xy)
                         v_ind += 1
                 creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                self._subtext(creg_b, op['conditional']['val'])
+                self._subtext(creg_b, hex(val))
                 self._line(qreg_t, creg_b, lc=self._style.cc,
                            ls=self._style.cline)
             #

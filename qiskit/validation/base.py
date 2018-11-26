@@ -323,6 +323,14 @@ class BaseModel(SimpleNamespace):
         """
         return _base_model_from_kwargs, (self.__class__, self.__dict__)
 
+    def __contains__(self, item):
+        """Custom implementation of membership test.
+
+        Implement the ``__contains__`` method for catering to the common case
+        of finding out if a model contains a certain key (``key in model``).
+        """
+        return item in self.__dict__
+
 
 class ObjSchema(BaseSchema):
     """Generic object schema."""

@@ -738,7 +738,7 @@ class DAGCircuit:
         # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
         if aliases:
-            qregdata = {}
+            qregdata = OrderedDict()
             for q in aliases.values():
                 if q[0] not in qregdata:
                     qregdata[q[0]] = q[1] + 1
@@ -754,9 +754,9 @@ class DAGCircuit:
             out = "OPENQASM 2.0;\n"
             if qeflag:
                 out += "include \"qelib1.inc\";\n"
-            for k, v in sorted(qregdata.items()):
+            for k, v in qregdata.items():
                 out += "qreg %s[%d];\n" % (k, v.size)
-            for k, v in sorted(self.cregs.items()):
+            for k, v in self.cregs.items():
                 out += "creg %s[%d];\n" % (k, v.size)
             omit = ["U", "CX", "measure", "reset", "barrier"]
             # TODO: dagcircuit shouldn't know about extensions
@@ -1107,6 +1107,16 @@ class DAGCircuit:
         # may change when users iterate over the named nodes.
         return {node_id for node_id, data in self.multi_graph.nodes(data=True)
                 if data["type"] == "op" and data["name"] == name}
+
+    def get_cnot_nodes(self):
+        """Get the set of Cnot."""
+        cx_names = ['cx', 'CX']
+        cxs_nodes = []
+        for cx_name in cx_names:
+            if cx_name in self.basis:
+                for cx_id in self.get_named_nodes(cx_name):
+                    cxs_nodes.append(self.multi_graph.node[cx_id])
+        return cxs_nodes
 
     def _remove_op_node(self, n):
         """Remove an operation node n.

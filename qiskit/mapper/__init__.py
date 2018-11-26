@@ -13,3 +13,4 @@ from ._mappererror import MapperError
 from ._mapping import (swap_mapper, direction_mapper, cx_cancellation,
                        optimize_1q_gates, remove_last_measurements,
                        return_last_measurements)
+from ._layout import Layout
