@@ -32,6 +32,7 @@ from ._qiskiterror import QISKitError
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
 
+
 class Instruction(object):
     """Generic quantum instruction."""
 
@@ -40,10 +41,10 @@ class Instruction(object):
 
         Args:
             name (str): instruction name
-            param (list[sympy.Basic or int or float or complex]): list of parameters
+            param (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
-            circuit(QuantumCircuit or Instruction): where the instruction is attached
+            circuit(QuantumCircuit|Instruction): where the instruction is attached
 
         Raises:
             QISKitError: when the register is not in the correct format.
@@ -71,8 +72,8 @@ class Instruction(object):
             elif isinstance(single_param, str):
                 self.param.append(sympy.Symbol(single_param))
             else:
-                raise QISKitError("invalid param type {0} in instruction {1}".format(
-                                  type(single_param), name))
+                raise QISKitError("invalid param type {0} in instruction "
+                                  "{1}".format(type(single_param), name))
         self.qargs = qargs
         self.cargs = cargs
         self._decompositions = []

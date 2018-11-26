@@ -26,7 +26,7 @@ def _trim(image):
 def _get_instructions(circuit, reversebits=False):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
-    qregs and cregs are the quantum and classical registers 
+    qregs and cregs are the quantum and classical registers
     in order (based on reversebits) and ops is a list
     of DAG nodes which type is "operation".
     Args:

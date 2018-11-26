@@ -19,6 +19,7 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 
+
 class CzGate(Gate):
     """controlled-Z gate."""
 

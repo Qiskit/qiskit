@@ -5,21 +5,52 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=arguments-differ
+
 """
 Backend for the unroller that creates a DAGCircuit object.
 """
 
 import logging
-from collections import OrderedDict
+
+from qiskit.dagcircuit import DAGCircuit
+from qiskit._quantumcircuit import QuantumCircuit
 
 from qiskit._measure import Measure
 from qiskit._reset import Reset
-from qiskit.extensions.standard import *
-from qiskit.dagcircuit import DAGCircuit
-from qiskit._quantumcircuit import QuantumCircuit
+from qiskit.extensions.standard.ubase import UBase
+from qiskit.extensions.standard.cxbase import CXBase
+from qiskit.extensions.standard.barrier import Barrier
+from qiskit.extensions.standard.ccx import ToffoliGate
+from qiskit.extensions.standard.cswap import FredkinGate
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cy import CyGate
+from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.swap import SwapGate
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.iden import IdGate
+from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.s import SdgGate
+from qiskit.extensions.standard.t import TGate
+from qiskit.extensions.standard.t import TdgGate
+from qiskit.extensions.standard.u0 import U0Gate
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u2 import U2Gate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.x import XGate
+from qiskit.extensions.standard.y import YGate
+from qiskit.extensions.standard.z import ZGate
+from qiskit.extensions.standard.rx import RXGate
+from qiskit.extensions.standard.ry import RYGate
+from qiskit.extensions.standard.rz import RZGate
+from qiskit.extensions.standard.cu1 import Cu1Gate
+from qiskit.extensions.standard.ch import CHGate
+from qiskit.extensions.standard.crz import CrzGate
+from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.rzz import RZZGate
+
 from ._unrollerbackend import UnrollerBackend
 from ._backenderror import BackendError
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +84,7 @@ class DAGBackend(UnrollerBackend):
         self.circuit.add_basis_element("barrier", -1)
 
         # extra user defined basis
-        circuit = QuantumCircuit() # TODO: make nicer when definitions not attached to circuit
+        circuit = QuantumCircuit()  # TODO: make nicer when definitions not attached to circuit
         for b in basis:
             if b not in self.circuit.basis and b in circuit.definitions:
                 definition = circuit.definitions[b]
@@ -102,11 +133,14 @@ class DAGBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, extra_fields=None):
+    def start_gate(self, op):
         """Begin a custom gate.
 
         Args:
             op (Instruction): operation to apply to the dag.
+
+        Raises:
+            BackendError: if encountering a non-basis opaque gate
         """
         if not self.listen:
             return
@@ -116,7 +150,7 @@ class DAGBackend(UnrollerBackend):
                 raise BackendError("opaque gate %s not in basis" % op.name)
             else:
                 logger.info("ignoring non-basis gate %s. Make sure the gates are "
-                        "first expanded to basis via the DagUnroller." % op.name)
+                            "first expanded to basis via the DagUnroller.", op.name)
                 return
 
         if self.creg is not None:
@@ -141,7 +175,7 @@ class DAGBackend(UnrollerBackend):
         """Returns the generated circuit."""
         return self.circuit
 
-    def u(self, arg, qubit, nested_scope=None):
+    def u(self, arg, qubit):
         """Universal single qubit rotation gate.
         """
         if not self.listen:
@@ -190,8 +224,7 @@ class DAGBackend(UnrollerBackend):
             condition = None
         self.circuit.apply_operation_back(Reset(qubit), condition)
 
-    def create_dag_op(self, name, args, qubits, clbits,
-                      nested_scope=None, extra_fields=None):
+    def create_dag_op(self, name, args, qubits):
         """Create a DAG op node.
         """
         if name == "u0":
@@ -225,7 +258,7 @@ class DAGBackend(UnrollerBackend):
         elif name == "rz":
             op = RZGate(args[0], qubits[0])
         elif name == "rzz":
-            op = RZZGate(qubits[0], qubits[1])
+            op = RZZGate(args[0], qubits[0], qubits[1])
         elif name == "id":
             op = IdGate(qubits[0])
         elif name == "h":

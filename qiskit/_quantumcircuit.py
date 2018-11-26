@@ -10,11 +10,11 @@
 """
 Quantum circuit object.
 """
+from collections import OrderedDict
+from copy import deepcopy
 import itertools
 import warnings
 import networkx as nx
-from collections import OrderedDict
-from copy import deepcopy
 
 
 from qiskit.qasm import _qasm
@@ -24,20 +24,20 @@ from qiskit._classicalregister import ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
 
 
-def _circuit_from_qasm(qasm, basis=None):
+def _circuit_from_qasm(qasm):
     from qiskit.unroll import Unroller
     from qiskit.unroll import DAGBackend
     ast = qasm.parse()
-    dag = Unroller(ast, DAGBackend()).execute()    
+    dag = Unroller(ast, DAGBackend()).execute()
 
     circuit = QuantumCircuit()
     for qreg in dag.qregs.values():
         circuit.add_register(qreg)
     for creg in dag.cregs.values():
         circuit.add_register(creg)
-    G = dag.multi_graph
-    for node in nx.topological_sort(G):
-        n = G.nodes[node]
+    graph = dag.multi_graph
+    for node in nx.topological_sort(graph):
+        n = graph.nodes[node]
         if n['type'] == 'op':
             circuit._attach(n['op'])
 

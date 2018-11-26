@@ -15,7 +15,7 @@ from qiskit.unroll import Unroller, DAGBackend, DagUnroller, JsonBackend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
-from qiskit.qobj import Qobj, QobjHeader, QobjItem, QobjConfig, QobjExperiment
+from qiskit.qobj import Qobj, QobjHeader, QobjConfig, QobjExperiment
 
 from ..common import QiskitTestCase
 

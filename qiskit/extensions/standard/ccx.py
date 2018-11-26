@@ -18,8 +18,6 @@ from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
-from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SdgGate
 
 
 class ToffoliGate(Gate):

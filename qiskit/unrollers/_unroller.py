@@ -94,7 +94,6 @@ class Unroller(object):
         if name in self.gates:
             gargs = self.gates[name]["args"]
             gbits = self.gates[name]["bits"]
-            gbody = self.gates[name]["body"]
             # Loop over register arguments, if any.
             maxidx = max(map(len, bits))
             for idx in range(maxidx):
@@ -107,9 +106,7 @@ class Unroller(object):
                                        for j in range(len(gbits))})
                 self.backend.create_dag_op(name,
                                            [self.arg_stack[-1][s].sym() for s in gargs],
-                                           [self.bit_stack[-1][s] for s in gbits],
-                                           [],
-                                           self.arg_stack[0:-1])
+                                           [self.bit_stack[-1][s] for s in gbits])
                 self.arg_stack.pop()
                 self.bit_stack.pop()
         else:
@@ -121,7 +118,6 @@ class Unroller(object):
 
         If opaque is True, process the node as an opaque gate node.
         """
-        
         self.gates[node.name] = {}
         de_gate = self.gates[node.name]
         de_gate["print"] = True  # default
@@ -141,7 +137,6 @@ class Unroller(object):
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""
-        
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
         if not(len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
@@ -225,7 +220,7 @@ class Unroller(object):
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                self.backend.u(args, element, self.arg_stack)
+                self.backend.u(args, element)
 
         elif node.type == "cnot":
             self._process_cnot(node)

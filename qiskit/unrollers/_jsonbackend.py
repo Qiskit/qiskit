@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=arguments-differ
+
 """Backend for the unroller that composes qasm into json file.
 
 The input is a AST and a basis set and returns a json memory object::
@@ -34,8 +36,8 @@ The input is a AST and a basis set and returns a json memory object::
         ]
     }
 """
-import sympy
 from collections import OrderedDict
+import sympy
 
 from qiskit.unrollers._backenderror import BackendError
 from qiskit.unrollers._unrollerbackend import UnrollerBackend
@@ -164,8 +166,11 @@ class JsonBackend(UnrollerBackend):
 
         Args:
             op (Instruction): operation to apply to the dag.
-            extra_fields: extra_fields used by non-standard instructions for now
-                (e.g. snapshot)
+            extra_fields (dict): extra_fields used by non-standard instructions
+                for now (e.g. snapshot)
+
+        Raises:
+            BackendError: if using a non-basis opaque gate
         """
         if not self.listen:
             return
@@ -181,7 +186,7 @@ class JsonBackend(UnrollerBackend):
             gate_instruction = {
                 'name': op.name,
                 'params': list(map(lambda x: x.evalf(), op.param)),
-                'texparams': list(map(lambda x: sympy.latex(x), op.param)),
+                'texparams': list(map(sympy.latex, op.param)),
                 'qubits': qubit_indices,
                 'clbits': clbit_indices,
                 'memory': clbit_indices.copy()

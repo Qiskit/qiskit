@@ -23,6 +23,7 @@ from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 
+
 class CHGate(Gate):
     """controlled-H gate."""
 

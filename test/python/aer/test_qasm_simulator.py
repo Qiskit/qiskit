@@ -20,7 +20,7 @@ from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 cx_error_matrix,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
+from qiskit.qobj import Qobj, QobjConfig, QobjHeader, QobjExperiment
 from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
 

@@ -49,7 +49,7 @@ class Cu1Gate(Gate):
         for inst in rule:
             decomposition.apply_operation_back(inst)
         self._decompositions = [decomposition]
-        
+
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]

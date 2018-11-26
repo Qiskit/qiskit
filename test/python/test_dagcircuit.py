@@ -33,36 +33,36 @@ class TestDagRegisters(QiskitTestCase):
 
     def test_add_reg_duplicate(self):
         dag = DAGCircuit()
-        q = QuantumRegister(2)
-        dag.add_qreg(q)
-        self.assertRaises(DAGCircuitError, dag.add_qreg, q)
+        qr = QuantumRegister(2)
+        dag.add_qreg(qr)
+        self.assertRaises(DAGCircuitError, dag.add_qreg, qr)
 
     def test_add_reg_duplicate_name(self):
         dag = DAGCircuit()
-        q1 = QuantumRegister(3, 'q')
-        dag.add_qreg(q1)
-        q2 = QuantumRegister(2, 'q')
-        self.assertRaises(DAGCircuitError, dag.add_qreg, q2)
+        qr1 = QuantumRegister(3, 'qr')
+        dag.add_qreg(qr1)
+        qr2 = QuantumRegister(2, 'qr')
+        self.assertRaises(DAGCircuitError, dag.add_qreg, qr2)
 
     def test_add_reg_bad_type(self):
         dag = DAGCircuit()
-        c = ClassicalRegister(2)
-        self.assertRaises(DAGCircuitError, dag.add_qreg, c)
+        cr = ClassicalRegister(2)
+        self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
 
     def test_rename_register(self):
         dag = DAGCircuit()
-        q = QuantumRegister(2, 'q')
-        dag.add_qreg(q)
-        dag.rename_register('q', 'v')
+        qr = QuantumRegister(2, 'qr')
+        dag.add_qreg(qr)
+        dag.rename_register('qr', 'v')
         self.assertTrue('v' in dag.qregs)
-        self.assertEqual(dag.qregs['v'], q)
+        self.assertEqual(dag.qregs['v'], qr)
 
 
 class TestDagOperations(QiskitTestCase):
     """Test ops inside the dag"""
 
     def setUp(self):
-        self.dag = DAGCircuit()        
+        self.dag = DAGCircuit()
         qreg = QuantumRegister(3, 'qr')
         creg = ClassicalRegister(2, 'cr')
         self.dag.add_qreg(qreg)
@@ -156,6 +156,7 @@ class TestDagOperations(QiskitTestCase):
         named_nodes = self.dag.node_nums_in_topological_order()
         self.assertEqual([9, 10, 7, 8, 5, 3, 1, 11, 13, 4, 12, 14, 15, 6, 2],
                          [i for i in named_nodes])
+
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
@@ -311,7 +312,7 @@ class TestDagEquivalence(QiskitTestCase):
 class TestDagSubstitute(QiskitTestCase):
     """Test substitutuing a dag node with a sub-dag"""
     def setUp(self):
-        self.dag = DAGCircuit()        
+        self.dag = DAGCircuit()
         qreg = QuantumRegister(3, 'qr')
         creg = ClassicalRegister(2, 'cr')
         self.dag.add_qreg(qreg)
@@ -335,26 +336,24 @@ class TestDagSubstitute(QiskitTestCase):
         self.dag.apply_operation_back(XGate(self.qubit1))
 
     def test_substitute_circuit_one_middle(self):
-        cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop() # node to replace
+        # node to replace
+        cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop()
 
         flipped_cx_circuit = DAGCircuit()
-        p = QuantumRegister(2, "p")
-        flipped_cx_circuit.add_qreg(p)
+        v = QuantumRegister(2, "v")
+        flipped_cx_circuit.add_qreg(v)
         flipped_cx_circuit.add_basis_element("cx", 2)
         flipped_cx_circuit.add_basis_element("h", 1)
-        flipped_cx_circuit.apply_operation_back(HGate(p[0]))
-        flipped_cx_circuit.apply_operation_back(HGate(p[1]))
-        flipped_cx_circuit.apply_operation_back(CnotGate(p[1], p[0]))
-        flipped_cx_circuit.apply_operation_back(HGate(p[0]))
-        flipped_cx_circuit.apply_operation_back(HGate(p[1]))
+        flipped_cx_circuit.apply_operation_back(HGate(v[0]))
+        flipped_cx_circuit.apply_operation_back(HGate(v[1]))
+        flipped_cx_circuit.apply_operation_back(CnotGate(v[1], v[0]))
+        flipped_cx_circuit.apply_operation_back(HGate(v[0]))
+        flipped_cx_circuit.apply_operation_back(HGate(v[1]))
 
         self.dag.substitute_circuit_one(cx_node, input_circuit=flipped_cx_circuit,
-                                        wires=[p[0], p[1]])
+                                        wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()['h'], 5)
-
-    def test_substitute_circuit_one_middle(self):
-        pass
 
     def test_substitute_circuit_one_front(self):
         pass

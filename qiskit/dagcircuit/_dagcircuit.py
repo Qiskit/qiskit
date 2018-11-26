@@ -20,12 +20,9 @@ directly from the graph.
 from collections import OrderedDict
 import copy
 import itertools
-
 import networkx as nx
-import sympy
 
 from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import QISKitError
 from qiskit import _compositegate
 from ._dagcircuiterror import DAGCircuitError
 
@@ -107,7 +104,6 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register name %s" % newname)
         if regname not in self.qregs and regname not in self.cregs:
             raise DAGCircuitError("no register named %s" % regname)
-        iscreg = False
         if regname in self.qregs:
             reg = self.qregs[regname]
             reg.name = newname
@@ -118,7 +114,6 @@ class DAGCircuit:
             reg.name = newname
             self.qregs[newname] = reg
             self.qregs.pop(regname, None)
-            iscreg = True
         # n node d = data
         for _, d in self.multi_graph.nodes(data=True):
             if d["type"] == "in" or d["type"] == "out":
@@ -176,6 +171,9 @@ class DAGCircuit:
         Args:
             wire (tuple): (Register,int) containing a register instance and index
             This adds a pair of in and out nodes connected by an edge.
+
+        Raises:
+            DAGCircuitError: if trying to add duplicate wire
         """
         if wire not in self.wires:
             self.wires.add(wire)
@@ -289,8 +287,12 @@ class DAGCircuit:
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
 
-        name (string): used for error reporting
-        condition ((ClassicalRegister,int) or None): gives (creg, value)
+        Args:
+            name (string): used for error reporting
+            condition (tuple or None): a condition tuple (ClassicalRegister,int)
+
+        Raises:
+            DAGCircuitError: if conditioning on an invalid register
         """
         # Verify creg exists
         if condition is not None and condition[0].name not in self.cregs:
@@ -304,6 +306,9 @@ class DAGCircuit:
         Args:
             args (list): (register,idx) tuples
             amap (dict): a dictionary keyed on (register,idx) tuples
+
+        Raises:
+            DAGCircuitError: if a qubit is not contained in amap
         """
         # Check for each wire
         for wire in args:
@@ -314,7 +319,7 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-            cond ((ClassicalRegister, int) or None): optional condition (creg, value)
+            cond (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
             list[(ClassicalRegister, idx)]: list of bits
@@ -331,7 +336,7 @@ class DAGCircuit:
             op (Instruction): the operation associated with the DAG node
             qargs (list): list of quantum wires to attach to.
             cargs (list): list of classical wires to attach to.
-            condition ((ClassicalRegister, int) or None): optional condition (creg, value)
+            condition (tuple or None): optional condition (ClassicalRegister, int)
         """
         # Add a new operation node to the graph
         self.node_counter += 1
@@ -353,7 +358,10 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            condition ((ClassicalRegister, int) or None): optional condition (creg, value)
+            condition (tuple or None): optional condition (ClassicalRegister, int)
+
+        Raises:
+            DAGCircuitError: if a leaf node is connected to multiple outputs
         """
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(op.cargs)
@@ -385,7 +393,10 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            condition ((ClassicalRegister, int) or None): optional condition (creg, value)
+            condition (tuple or None): optional condition (ClassicalRegister, value)
+
+        Raises:
+            DAGCircuitError: if initial nodes connected to multiple out edges
         """
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(op.cargs)
@@ -403,7 +414,7 @@ class DAGCircuit:
         for q in itertools.chain(*al):
             ie = list(self.multi_graph.successors(self.input_map[q]))
             if len(ie) != 1:
-                raise QISKitError("input node has multiple out-edges")
+                raise DAGCircuitError("input node has multiple out-edges")
 
             self.multi_graph.add_edge(ie[0], self.node_counter,
                                       name=(q[0].name, q[1]), wire=q)
@@ -460,14 +471,17 @@ class DAGCircuit:
         it appears in both self and keyregs but not in wire_map.
 
         Args:
-            wire_map: map from (register,idx) in keyregs to (register,idx) in valregs
-            keyregs: a map from register names to Register objects
-            valregs: a map from register names to Register objects
-            valreg: a Bool, if False the method ignores valregs and does not
+            wire_map (): map from (register,idx) in keyregs to (register,idx) in valregs
+            keyregs (): a map from register names to Register objects
+            valregs (): a map from register names to Register objects
+            valreg (): a Bool, if False the method ignores valregs and does not
                 add regs for bits in the wire_map image that don't appear in valregs
 
         Returns:
             set(Register): the set of regs to add to self
+
+        Raises:
+            DAGCircuitError: if the wiremap fragments, or duplicates exist
         """
         # FIXME: some mixing of objects and strings here are awkward (due to
         # self.qregs/self.cregs still keying on string.
@@ -502,16 +516,20 @@ class DAGCircuit:
                         add_regs.add(qreg)
         return add_regs
 
-    def _check_wiremap_validity(self, wire_map, keymap, valmap, input_circuit):
+    def _check_wiremap_validity(self, wire_map, keymap, valmap):
         """Check that the wiremap is consistent.
 
         Check that the wiremap refers to valid wires and that
         those wires have consistent types.
 
-        wire_map: map from (register,idx) in keymap to (register,idx) in valmap
-        keymap: a map whose keys are wire_map keys
-        valmap: a map whose keys are wire_map values
-        input_circuit: a DAGCircuit
+        Args:
+            wire_map (dict): map from (register,idx) in keymap to
+                (register,idx) in valmap
+            keymap (dict): a map whose keys are wire_map keys
+            valmap (dict): a map whose keys are wire_map values
+
+        Raises:
+            DAGCircuitError: if wire_map not valid
         """
         for k, v in wire_map.items():
             kname = "%s[%d]" % (k[0].name, k[1])
@@ -520,16 +538,18 @@ class DAGCircuit:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
                 raise DAGCircuitError("invalid wire mapping value %s" % vname)
-            if type(k) != type(v):
-                raise DAGCircuitError("inconsistent wire_map at (%s,%s)"
-                                       (kname, vname))
+            if type(k) is not type(v):
+                raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
+                                      (kname, vname))
 
     def _map_condition(self, wire_map, condition):
         """Use the wire_map dict to change the condition tuple's creg name.
 
-        wire_map is map from wires to wires
-        condition is a tuple (ClassicalRegister,int)
-        Returns the new condition tuple
+        Args:
+            wire_map (dict): a map from wires to wires
+            condition (tuple): (ClassicalRegister,int)
+        Returns:
+            tuple(ClassicalRegister,int): new condition
         """
         if condition is None:
             new_condition = None
@@ -550,9 +570,12 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            wire_map (dict{(Register, int): (Register, int)}): map
-                from the input wires of input_circuit to output wires
+            wire_map (dict): map {(Register, int): (Register, int)}
+                from the output wires of input_circuit to input wires
                 of self.
+
+        Raises:
+            DAGCircuitError: if missing, duplicate or incosistent wire
         """
         wire_map = wire_map or {}
         union_basis = self._make_union_basis(input_circuit)
@@ -575,7 +598,7 @@ class DAGCircuit:
             self.add_creg(creg)
 
         self._check_wiremap_validity(wire_map, input_circuit.input_map,
-                                     self.output_map, input_circuit)
+                                     self.output_map)
 
         # Compose
         self.basis = union_basis
@@ -591,7 +614,7 @@ class DAGCircuit:
 
                 if nd["wire"] not in input_circuit.wires:
                     raise DAGCircuitError("inconsistent wire type for (%s,%d) in input_circuit"
-                            % (nd["wire"][0].name, nd["wire"][1]))
+                                          % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "out":
                 # ignore output nodes
@@ -599,8 +622,6 @@ class DAGCircuit:
             elif nd["type"] == "op":
                 condition = self._map_condition(wire_map, nd["condition"])
                 self._check_condition(nd["name"], condition)
-                m_qargs = list(map(lambda x: wire_map.get(x, x), nd["qargs"]))
-                m_cargs = list(map(lambda x: wire_map.get(x, x), nd["cargs"]))
                 self.apply_operation_back(nd["op"], condition)
             else:
                 raise DAGCircuitError("bad node type %s" % nd["type"])
@@ -615,9 +636,12 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            wire_map (dict{(Register, int): (Register, int)}): map
+            wire_map (dict): map {(Register, int): (Register, int)}
                 from the output wires of input_circuit to input wires
                 of self.
+
+        Raises:
+            DAGCircuitError: missing, duplicate or inconsistent wire
         """
         wire_map = wire_map or {}
         union_basis = self._make_union_basis(input_circuit)
@@ -640,7 +664,7 @@ class DAGCircuit:
             self.add_creg(creg)
 
         self._check_wiremap_validity(wire_map, input_circuit.output_map,
-                                     self.input_map, input_circuit)
+                                     self.input_map)
 
         # Compose
         self.basis = union_basis
@@ -665,8 +689,6 @@ class DAGCircuit:
             elif nd["type"] == "op":
                 condition = self._map_condition(wire_map, nd["condition"])
                 self._check_condition(nd["name"], condition)
-                m_qargs = list(map(lambda x: wire_map.get(x, x), nd["qargs"]))
-                m_cargs = list(map(lambda x: wire_map.get(x, x), nd["cargs"]))
                 self.apply_operation_front(nd["op"], condition)
             else:
                 raise DAGCircuitError("bad node type %s" % nd["type"])
@@ -676,7 +698,14 @@ class DAGCircuit:
         return self.multi_graph.order() - 2 * len(self.wires)
 
     def depth(self):
-        """Return the circuit depth."""
+        """Return the circuit depth.
+
+        Returns:
+            int: the circuit depth
+
+        Raises:
+            DAGCircuitError: if not a directed acyclic graph
+        """
         if not nx.is_directed_acyclic_graph(self.multi_graph):
             raise DAGCircuitError("not a DAG")
 
@@ -713,17 +742,24 @@ class DAGCircuit:
     def qasm(self, no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
         """Return a string containing QASM for this circuit.
 
-        if qeflag is True, add a line to include "qelib1.inc"
-        and only generate gate code for gates not in qelib1.
+        Args:
+            qeflag (bool): if True, add a line to include "qelib1.inc"
+                and only generate gate code for gates not in qelib1.
 
-        if eval_symbols is True, evaluate all symbolic
-        expressions to their floating point representation.
+            eval_symbols (bool): if True, evaluate all symbolic
+                expressions to their floating point representation.
 
-        if no_decls is True, only print the instructions.
+            no_decls (bool): if True, only print the instructions.
 
-        if aliases is not None, aliases contains a dict mapping
-        the current qubits in the circuit to new qubit names.
-        We will deduce the register names and sizes from aliases.
+            aliases (dict): if not None, aliases contains a dict mapping
+                the current qubits in the circuit to new qubit names.
+                We will deduce the register names and sizes from aliases.
+
+        Returns:
+            str: OpenQASM representation of the DAG
+
+        Raises:
+            DAGCircuitError: if dag nodes not in expected format
         """
         # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
@@ -791,7 +827,7 @@ class DAGCircuit:
                                                  nd["op"].param))
                         else:
                             param = ",".join(map(lambda x: x.replace("**", "^"),
-                                    map(lambda x: str(x), nd["op"].param)))
+                                                 map(str, nd["op"].param)))
                         out += "%s(%s) %s;\n" % (nm, param, qarg)
                     else:
                         out += "%s %s;\n" % (nm, qarg)
@@ -826,12 +862,12 @@ class DAGCircuit:
         Raise an exception otherwise.
 
         Args:
-            wires [list(register, index)]: gives an order for (qu)bits
+            wires (list[register, index]): gives an order for (qu)bits
                 in the input_circuit that is replacing the operation.
             op (Instruction): operation
             input_circuit (DAGCircuit): replacement circuit for operation
-            condition (None or (creg, value)): if this instance of the
-                operation is classically controlled
+            condition (tuple or None): if this instance of the
+                operation is classically controlled by a (ClassicalRegister, int)
 
         Raises:
             DAGCircuitError: if check doesn't pass.
@@ -876,10 +912,17 @@ class DAGCircuit:
         Map all wires of the input circuit to predecessor and
         successor nodes in self, keyed on wires in self.
 
-        pred_map, succ_map dicts come from _make_pred_succ_maps
-        input_circuit is the input circuit
-        wire_map is the wire map from wires of input_circuit to wires of self
-        returns full_pred_map, full_succ_map
+        Args:
+            pred_map (dict): comes from _make_pred_succ_maps
+            succ_map (dict): comes from _make_pred_succ_maps
+            input_circuit (DAGCircuit): the input circuit
+            wire_map (dict): the map from wires of input_circuit to wires of self
+
+        Returns:
+            tuple: full_pred_map, full_succ_map (dict, dict)
+
+        Raises:
+            DAGCircuitError: if more than one predecessor for output nodes
         """
         full_pred_map = {}
         full_succ_map = {}
@@ -926,7 +969,7 @@ class DAGCircuit:
         Returns the nodes (their ids) in topological order.
 
         Returns:
-            list (int): The list of node numbers in topological order
+            list: The list of node numbers in topological order
         """
         return nx.topological_sort(self.multi_graph)
 
@@ -936,8 +979,11 @@ class DAGCircuit:
         Args:
             op (Instruction): operation type to substitute across the dag.
             input_circuit (DAGCircuit): what to replace with
-            wires [list(register, index)]: gives an order for (qu)bits
+            wires (list[register, index]): gives an order for (qu)bits
                 in the input_circuit that is replacing the operation.
+
+        Raises:
+            DAGCircuitError: if met with unexpected predecessor/successors
         """
         # TODO: rewrite this method to call substitute_circuit_one
         wires = wires or []
@@ -980,7 +1026,7 @@ class DAGCircuit:
                                                      [i for s in [nd["qargs"], nd["cargs"]]
                                                       for i in s])}
                     self._check_wiremap_validity(wire_map, wires,
-                                                 self.input_map, input_circuit)
+                                                 self.input_map)
                     pred_map, succ_map = self._make_pred_succ_maps(n)
                     full_pred_map, full_succ_map = \
                         self._full_pred_succ_maps(pred_map, succ_map,
@@ -1034,9 +1080,12 @@ class DAGCircuit:
         Args:
             node (int): node of self.multi_graph (of type "op") to substitute
             input_circuit (DAGCircuit): circuit that will substitute the node
-            wires [list(Register, index)]: gives an order for (qu)bits
+            wires (list[(Register, index)]): gives an order for (qu)bits
                 in the input circuit. This order gets matched to the node wires
                 by qargs first, then cargs, then conditions.
+
+        Raises:
+            DAGCircuitError: if met with unexpected predecessor/successors
         """
         wires = wires or []
         nd = self.multi_graph.node[node]
@@ -1079,7 +1128,7 @@ class DAGCircuit:
                                                       condition_bit_list]
                                           for i in s])}
         self._check_wiremap_validity(wire_map, wires,
-                                     self.input_map, input_circuit)
+                                     self.input_map)
         pred_map, succ_map = self._make_pred_succ_maps(node)
         full_pred_map, full_succ_map = \
             self._full_pred_succ_maps(pred_map, succ_map,
@@ -1145,7 +1194,7 @@ class DAGCircuit:
             if data["type"] == "op":
                 if op is None:
                     nodes.add(node_id)
-                elif type(data["op"]) == type(op):
+                elif type(data["op"]) is type(op):
                     nodes.add(node_id)
 
         return nodes
@@ -1303,13 +1352,13 @@ class DAGCircuit:
                 # Operation data
                 op = copy.copy(nxt_nd["op"])
                 co = copy.copy(nxt_nd["condition"])
+                qa = copy.copy(nxt_nd["op"].qargs)
                 _ = self._bits_in_condition(co)
                 # Add node to new_layer
                 new_layer.apply_operation_back(op, co)
                 # Add operation to partition
                 if nxt_nd["name"] not in ["barrier",
                                           "snapshot", "save", "load", "noise"]:
-                    # support_list.append(list(set(qa) | set(ca) | set(cob)))
                     support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
                 yield l_dict

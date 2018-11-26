@@ -11,11 +11,9 @@
 import unittest
 import numpy as np
 
-from qiskit import qasm, unroll
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
-from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
 from ..common import QiskitTestCase
 
 

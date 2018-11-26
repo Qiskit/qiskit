@@ -16,7 +16,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import pi
-#from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.ubase import UBase
 
 
