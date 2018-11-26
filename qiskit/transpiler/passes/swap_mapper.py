@@ -33,6 +33,7 @@ class SwapMapper(TransformationPass):
             swap_basis_element (string):  Default: 'swap' the name of the gate
                that will be used for swaping.
             swap_data (dict): The swap "gate data". Default: the swap gate is opaque.
+            initial_layout (Layout): initial layout of qubits in mapping
         """
         super().__init__()
         self.coupling_map = coupling_map

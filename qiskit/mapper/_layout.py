@@ -160,8 +160,8 @@ class Layout(dict):
 
         for wire, bit in self.get_wires().items():
             if bit not in another_layout:
-                    raise LayoutError('The wire_map_from_layouts() method does not support when the'
-                                      ' other layout (another_layout) is smaller.')
+                raise LayoutError('The wire_map_from_layouts() method does not support when the'
+                                  ' other layout (another_layout) is smaller.')
             wire_map[('q', wire)] = ('q', another_layout[bit])
 
         return wire_map

@@ -19,9 +19,15 @@ from ..common import QiskitTestCase
 class TestSwapMapper(QiskitTestCase):
     """ Tests the SwapMapper pass."""
 
-    def assertEndswith(self, str, endlist):
+    def assertEndswith(self, long_str, endlist):
+        """
+        Asserts that the list of lines defined in `endlist` is at the end of `long_str`.
+        Args:
+            long_str (str): A long string.
+            endlist (list): A list of lines.
+        """
         end_string = '\n'.join(['}'] + endlist) + '\n'
-        self.assertEqual(str[-len(end_string):], end_string)
+        self.assertEqual(long_str[-len(end_string):], end_string)
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
