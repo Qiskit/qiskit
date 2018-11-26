@@ -145,9 +145,7 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 0))
 
         wire_map = layout.wire_map_from_layouts(another_layout)
-        self.assertDictEqual(wire_map, {(self.qr, 0): (self.qr, 1),
-                                        (self.qr, 1): (self.qr, 0)}
-                             )
+        self.assertDictEqual(wire_map, {('q', 0): ('q', 1), ('q', 1): ('q', 0)})
 
     def test_layout_wire_bigger(self):
         """wire_map_from_layouts() method with another_layout is bigger"""
@@ -160,8 +158,7 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 2))
 
         wire_map = layout.wire_map_from_layouts(another_layout)
-        self.assertDictEqual(wire_map, {(self.qr, 0): (self.qr, 1),
-                                        (self.qr, 1): (self.qr, 0)})
+        self.assertDictEqual(wire_map, {('q', 0): ('q', 1), ('q', 1): ('q', 0)})
 
     def test_layout_wire_smaller(self):
         """wire_map_from_layouts() method with another_layout is smaller and raises an Error"""
