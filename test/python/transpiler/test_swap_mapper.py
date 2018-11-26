@@ -19,6 +19,10 @@ from ..common import QiskitTestCase
 class TestSwapMapper(QiskitTestCase):
     """ Tests the SwapMapper pass."""
 
+    def assertEndswith(self, str, endlist):
+        end_string = '\n'.join(['}'] + endlist) + '\n'
+        self.assertEqual(str[-len(end_string):], end_string)
+
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
          q0:--(+)-[U]-(+)-
@@ -64,11 +68,10 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = DAGCircuit.fromQuantumCircuit(circuit)
-
         before = dag.qasm()
-
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
+
         self.assertEqual(before, after_dag.qasm())
 
     def test_a_single_swap(self):
@@ -95,14 +98,13 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = '\n'.join(['}',
-                              'swap q[0],q[2];',
-                              'cx q[1],q[0];'])+'\n'
+        expected = ['swap q[0],q[2];',
+                    'cx q[1],q[0];']
 
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 
-        self.assertTrue(after_dag.qasm().endswith(expected))
+        self.assertEndswith(after_dag.qasm(), expected)
 
     def test_keep_layout(self):
         """After a swap, the following gates also change the wires.
@@ -128,13 +130,14 @@ class TestSwapMapper(QiskitTestCase):
         circuit.h(qr[2])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = '\n'.join(['}',
-                              'swap q[1],q[2];',
-                              'cx q[0],q[1];',
-                              'h q[1];'])+'\n'
+        expected = ['swap q[1],q[2];',
+                    'cx q[0],q[1];',
+                    'h q[1];']
+
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
-        self.assertTrue(after_dag.qasm().endswith(expected))
+
+        self.assertEndswith(after_dag.qasm(), expected)
 
     def test_far_swap(self):
         """ A far swap that affects coming CXs.
@@ -164,15 +167,15 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[3], qr[0])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
-        expected = '\n'.join(['}',
-                              'swap q[1],q[3];',
-                              'cx q[0],q[1];',
-                              'cx q[1],q[0];'])+'\n'
+        expected = ['swap q[1],q[3];',
+                    'cx q[0],q[1];',
+                    'cx q[1],q[0];']
 
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 
-        self.assertTrue(after_dag.qasm().endswith(expected))
+        self.assertEndswith(after_dag.qasm(), expected)
+
 
 if __name__ == '__main__':
     unittest.main()
