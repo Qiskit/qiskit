@@ -9,9 +9,8 @@
 
 from collections import OrderedDict
 
-
-from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseProvider
+from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.providerutils import filter_backends
 
 from .api import IBMQConnector
@@ -45,7 +44,7 @@ class IBMQSingleProvider(BaseProvider):
         backends = self._backends.values()
 
         if name:
-            kwargs['name'] = name
+            kwargs['backend_name'] = name
 
         return filter_backends(backends, filters=filters, **kwargs)
 
@@ -78,28 +77,6 @@ class IBMQSingleProvider(BaseProvider):
             raise ConnectionError("Couldn't connect to IBMQ server: {0}"
                                   .format(ex)) from root_exception
 
-    @classmethod
-    def _parse_backend_configuration(cls, config):
-        """Parse a backend configuration returned by IBMQ.
-
-        Args:
-            config (dict): raw configuration as returned by IBMQ.
-
-        Returns:
-            dict: parsed configuration.
-        """
-        edited_config = {
-            'local': False
-        }
-
-        for key in config.keys():
-            new_key = _camel_case_to_snake_case(key)
-            if new_key not in ['id', 'serial_number', 'topology_id',
-                               'status']:
-                edited_config[new_key] = config[key]
-
-        return edited_config
-
     def _discover_remote_backends(self):
         """Return the remote backends available.
 
@@ -110,11 +87,11 @@ class IBMQSingleProvider(BaseProvider):
         ret = OrderedDict()
         configs_list = self._api.available_backends()
         for raw_config in configs_list:
-            config = self._parse_backend_configuration(raw_config)
-            ret[config['name']] = IBMQBackend(configuration=config,
-                                              provider=self._ibm_provider,
-                                              credentials=self.credentials,
-                                              api=self._api)
+            config = BackendConfiguration.from_dict(raw_config)
+            ret[config.backend_name] = IBMQBackend(configuration=config,
+                                                   provider=self._ibm_provider,
+                                                   credentials=self.credentials,
+                                                   api=self._api)
 
         return ret
 
