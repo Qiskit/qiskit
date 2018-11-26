@@ -80,16 +80,16 @@ class SwapMapper(TransformationPass):
                     farthest_qubit = current_layout[path[-1]['name'][1]]
 
                     # create the involved registers
-                    swap_layer.add_qreg(closest_qubit[0])
+                    if closest_qubit[0] not in swap_layer.qregs.values():
+                        swap_layer.add_qreg(closest_qubit[0])
+                    if farthest_qubit[0] not in swap_layer.qregs.values():
+                        swap_layer.add_qreg(farthest_qubit[0])
 
                     # create the swap operation
                     swap_layer.add_basis_element(self.swap_basis_element, 2)
-                    # swap_layer.add_gate_data(self.swap_basis_element, self.swap_data)
                     swap_layer.apply_operation_back(self.swap_basis_element,
-                                                     [(closest_qubit[0].name, closest_qubit[1]),
-                                                      (farthest_qubit[0].name, farthest_qubit[1])])
-                    # swap_layer.apply_operation_front(self.swap_basis_element,
-                    #                                  [closest_qubit, farthest_qubit])
+                                                    [(closest_qubit[0].name, closest_qubit[1]),
+                                                     (farthest_qubit[0].name, farthest_qubit[1])])
 
                     # layer insertion
                     wire_map = current_layout.wire_map_from_layouts(self.initial_layout)
