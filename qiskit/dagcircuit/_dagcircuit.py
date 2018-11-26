@@ -21,6 +21,7 @@ from collections import OrderedDict
 import copy
 import itertools
 import networkx as nx
+import re
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import _compositegate
@@ -117,8 +118,8 @@ class DAGCircuit:
         # n node d = data
         for _, d in self.multi_graph.nodes(data=True):
             if d["type"] == "in" or d["type"] == "out":
-                if d["name"][0] == regname:
-                    d["name"] = (newname, d["name"][1])
+                if regname in d["name"]:
+                    d["name"] = re.sub(regname, newname, d["name"])
             elif d["type"] == "op":
                 qa = []
                 for a in d["qargs"]:
@@ -137,8 +138,8 @@ class DAGCircuit:
                         d["condition"] = (newname, d["condition"][1])
         # eX = edge, d= data
         for _, _, d in self.multi_graph.edges(data=True):
-            if d["name"][0] == regname:
-                d["name"] = (newname, d["name"][1])
+            if regname in d["name"]:
+                d["name"] = re.sub(regname, newname, d["name"])
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -186,11 +187,11 @@ class DAGCircuit:
             self.multi_graph.add_edge(in_node, out_node)
             self.multi_graph.node[in_node]["type"] = "in"
             self.multi_graph.node[out_node]["type"] = "out"
-            self.multi_graph.node[in_node]["name"] = (wire[0].name, wire[1])
-            self.multi_graph.node[out_node]["name"] = (wire[0].name, wire[1])
+            self.multi_graph.node[in_node]["name"] = "%s[%s]" % (wire[0].name, wire[1])
+            self.multi_graph.node[out_node]["name"] = "%s[%s]" % (wire[0].name, wire[1])
             self.multi_graph.node[in_node]["wire"] = wire
             self.multi_graph.node[out_node]["wire"] = wire
-            self.multi_graph.adj[in_node][out_node][0]["name"] = (wire[0].name, wire[1])
+            self.multi_graph.adj[in_node][out_node][0]["name"] = "%s[%s]" % (wire[0].name, wire[1])
             self.multi_graph.adj[in_node][out_node][0]["wire"] = wire
         else:
             raise DAGCircuitError("duplicate wire %s" % (wire,))
@@ -383,10 +384,10 @@ class DAGCircuit:
                 raise DAGCircuitError("output node has multiple in-edges")
 
             self.multi_graph.add_edge(ie[0], self.node_counter,
-                                      name=(q[0].name, q[1]), wire=q)
+                                      name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
             self.multi_graph.add_edge(self.node_counter, self.output_map[q],
-                                      name=(q[0].name, q[1]), wire=q)
+                                      name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
     def apply_operation_front(self, op, condition=None):
         """Apply an operation to the output of the circuit.
@@ -417,10 +418,10 @@ class DAGCircuit:
                 raise DAGCircuitError("input node has multiple out-edges")
 
             self.multi_graph.add_edge(ie[0], self.node_counter,
-                                      name=(q[0].name, q[1]), wire=q)
+                                      name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(self.input_map[q], self.node_counter,
-                                      name=(q[0].name, q[1]), wire=q)
+                                      name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
     def _make_union_basis(self, input_circuit):
         """Return a new basis map.
@@ -807,7 +808,9 @@ class DAGCircuit:
                         out += self._gate_string(k) + "\n"
                         printed_gates.append(k)
         # Write the instructions
-        for n in nx.lexicographical_topological_sort(self.multi_graph):
+        for n in nx.lexicographical_topological_sort(
+                self.multi_graph, key=lambda x: (self.multi_graph.nodes[x]["type"],
+                                                 self.multi_graph.nodes[x]["name"])):
             nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 if nd["condition"] is not None:
@@ -1051,7 +1054,7 @@ class DAGCircuit:
                             for q in itertools.chain(*al):
                                 self.multi_graph.add_edge(full_pred_map[q],
                                                           self.node_counter,
-                                                          name=(q[0].name, q[1]),
+                                                          name="%s[%s]" % (q[0].name, q[1]),
                                                           wire=q)
                                 full_pred_map[q] = copy.copy(self.node_counter)
                     # Connect all predecessors and successors, and remove
@@ -1059,7 +1062,7 @@ class DAGCircuit:
                     for w in full_pred_map:
                         self.multi_graph.add_edge(full_pred_map[w],
                                                   full_succ_map[w],
-                                                  name=(w[0].name, w[1]),
+                                                  name="%s[%s]" % (w[0].name, w[1]),
                                                   wire=w)
                         o_pred = list(self.multi_graph.predecessors(
                             self.output_map[w]))
@@ -1154,7 +1157,7 @@ class DAGCircuit:
                 for q in itertools.chain(*al):
                     self.multi_graph.add_edge(full_pred_map[q],
                                               self.node_counter,
-                                              name=(q[0].name, q[1]),
+                                              name="%s[%s]" % (q[0].name, q[1]),
                                               wire=q)
                     full_pred_map[q] = copy.copy(self.node_counter)
         # Connect all predecessors and successors, and remove
@@ -1162,7 +1165,7 @@ class DAGCircuit:
         for w in full_pred_map:
             self.multi_graph.add_edge(full_pred_map[w],
                                       full_succ_map[w],
-                                      name=(w[0].name, w[1]),
+                                      name="%s[%s]" % (w[0].name, w[1]),
                                       wire=w)
             o_pred = list(self.multi_graph.predecessors(self.output_map[w]))
             if len(o_pred) > 1:
@@ -1229,7 +1232,7 @@ class DAGCircuit:
         self.multi_graph.remove_node(n)
         for w in pred_map.keys():
             self.multi_graph.add_edge(pred_map[w], succ_map[w],
-                                      name=(w[0].name, w[1]), wire=w)
+                                      name="%s[%s]" % (w[0].name, w[1]), wire=w)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
