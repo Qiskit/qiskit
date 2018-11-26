@@ -1,0 +1,111 @@
+interactions:
+- request:
+    body: apiToken=apiToken_dummy
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+      Content-Length: ['137']
+      Content-Type: [application/x-www-form-urlencoded]
+    method: POST
+    uri: https://quantumexperience.ng.bluemix.net/api/users/loginWithToken
+  response:
+    body: {string: '{"id": "dummyapiusersloginWithTokenid01", "ttl": 1209600, "created":
+        "dummyapiusersloginWithTokencreated01", "userId": "dummyapiusersloginWithTokenuserId01"}'}
+    headers:
+      Access-Control-Allow-Credentials: ['true']
+      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
+      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
+      Connection: [Keep-Alive]
+      Content-Type: [application/json; charset=utf-8]
+      Expires: ['0']
+      Pragma: [no-cache]
+      Set-Cookie: dummy_cookie
+      Strict-Transport-Security: [max-age=86400]
+      Surrogate-Control: [no-store]
+      Transfer-Encoding: [chunked]
+      Vary: ['Origin, Accept-Encoding']
+      X-Backside-Transport: [OK OK]
+      X-Content-Type-Options: [nosniff]
+      X-Download-Options: [noopen]
+      X-Frame-Options: [SAMEORIGIN]
+      X-Xss-Protection: [1; mode=block]
+    status: {code: 200, message: OK}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+    method: GET
+    uri: https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=dummyapiusersloginWithTokenid01&filter=%7B%22order%22%3A+%22creationDate+DESC%22%2C+%22limit%22%3A+2%2C+%22skip%22%3A+0%2C+%22where%22%3A+%7B%7D%7D
+  response:
+    body: {string: '[{"qasms": [{"qasm": "\ninclude \"qelib1.inc\";\nqreg q13[1];\ncreg
+        c12[1];\nmeasure q13[0] -> c12[0];\n", "status": "DONE", "name": "qc1", "executionId":
+        "dummyapiJobsqasms.executionId01", "result": {"date": "dummyapiJobsqasms.result.date01",
+        "data": {"creg_labels": "c12[1]", "additionalData": {"seed": 42}, "versionSimulationRun":
+        "IBM_Q_Simulator:CPU-v0.1.b5cdd73\n", "time": 0.42, "counts": {"0": 1024}}},
+        "metadata": {"compiled_circuit": {"header": {"number_of_qubits": 1, "number_of_clbits":
+        1, "qubit_labels": [["q13", 0]], "clbit_labels": [["c12", 1]], "name": "qc1",
+        "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q13[1];\ncreg
+        c12[1];\nmeasure q13[0] -> c12[0];\n"}, "operations": [{"name": "measure",
+        "qubits": [0], "clbits": [0], "memory": [0]}]}}}], "shots": 1024, "backend":
+        {"name": "ibmq_qasm_simulator"}, "status": "COMPLETED", "maxCredits": 10,
+        "usedCredits": 0, "creationDate": "dummyapiJobscreationDate01", "deleted":
+        false, "ip": {"ip": "67.250.53.219", "city": "Astoria", "country": "United
+        States", "continent": "North America"}, "id": "dummyapiJobsid01", "userId":
+        "dummyapiusersloginWithTokenuserId01", "calibration": {}}, {"qasms": [{"qasm":
+        "\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979)
+        q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n", "status":
+        "DONE", "name": "circuit19", "executionId": "dummyapiJobsqasms.executionId02",
+        "result": {"date": "dummyapiJobsqasms.result.date02", "data": {"creg_labels":
+        "c[2]", "additionalData": {"seed": 42}, "versionSimulationRun": "IBM_Q_Simulator:CPU-v0.1.b5cdd73\n",
+        "time": 0.42, "counts": {"11": 511, "00": 513}}}, "metadata": {"compiled_circuit":
+        {"header": {"number_of_qubits": 2, "number_of_clbits": 2, "qubit_labels":
+        [["q", 0], ["q", 1]], "clbit_labels": [["c", 2]], "name": "circuit19", "compiled_circuit_qasm":
+        "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979)
+        q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n"}, "operations":
+        [{"name": "u2", "params": [0, 3.141592653589793], "texparams": ["0", "\\pi"],
+        "qubits": [0]}, {"name": "cx", "params": [], "texparams": [], "qubits": [0,
+        1]}, {"name": "measure", "qubits": [1], "clbits": [1], "memory": [1]}, {"name":
+        "measure", "qubits": [0], "clbits": [0], "memory": [0]}]}}}, {"qasm": "\ninclude
+        \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nu2(0,3.14159265358979) q[1];\nmeasure
+        q[1] -> c[1];\nu2(0,3.14159265358979) q[0];\nmeasure q[0] -> c[0];\n", "status":
+        "DONE", "name": "hadamard", "executionId": "dummyapiJobsqasms.executionId03",
+        "result": {"date": "dummyapiJobsqasms.result.date03", "data": {"creg_labels":
+        "c[2]", "additionalData": {"seed": 42}, "versionSimulationRun": "IBM_Q_Simulator:CPU-v0.1.b5cdd73\n",
+        "time": 0.42, "counts": {"10": 257, "11": 255, "00": 243, "01": 269}}}, "metadata":
+        {"compiled_circuit": {"header": {"number_of_qubits": 2, "number_of_clbits":
+        2, "qubit_labels": [["q", 0], ["q", 1]], "clbit_labels": [["c", 2]], "name":
+        "hadamard", "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg
+        q[2];\ncreg c[2];\nu2(0,3.14159265358979) q[1];\nmeasure q[1] -> c[1];\nu2(0,3.14159265358979)
+        q[0];\nmeasure q[0] -> c[0];\n"}, "operations": [{"name": "u2", "params":
+        [0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [1]}, {"name":
+        "measure", "qubits": [1], "clbits": [1], "memory": [1]}, {"name": "u2", "params":
+        [0, 3.141592653589793], "texparams": ["0", "\\pi"], "qubits": [0]}, {"name":
+        "measure", "qubits": [0], "clbits": [0], "memory": [0]}]}}}], "shots": 1024,
+        "backend": {"name": "ibmq_qasm_simulator"}, "status": "COMPLETED", "maxCredits":
+        10, "usedCredits": 0, "creationDate": "dummyapiJobscreationDate02", "deleted":
+        false, "ip": {"ip": "67.250.53.219", "city": "Astoria", "country": "United
+        States", "continent": "North America"}, "id": "dummyapiJobsid02", "userId":
+        "dummyapiusersloginWithTokenuserId01", "calibration": {}}]'}
+    headers:
+      Access-Control-Allow-Credentials: ['true']
+      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
+      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
+      Connection: [Keep-Alive]
+      Content-Type: [application/json; charset=utf-8]
+      Expires: ['0']
+      Pragma: [no-cache]
+      Set-Cookie: dummy_cookie
+      Strict-Transport-Security: [max-age=86400]
+      Surrogate-Control: [no-store]
+      Transfer-Encoding: [chunked]
+      Vary: ['Origin, Accept-Encoding']
+      X-Backside-Transport: [OK OK]
+      X-Content-Type-Options: [nosniff]
+      X-Download-Options: [noopen]
+      X-Frame-Options: [SAMEORIGIN]
+      X-Xss-Protection: [1; mode=block]
+    status: {code: 200, message: OK}
+version: 1
