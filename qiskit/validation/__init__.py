@@ -6,4 +6,10 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Models and schemas for Terra."""
+
+from marshmallow import ValidationError
+
 from .base import BaseModel, BaseSchema, bind_schema
+
+
+__all__ = ['BaseModel', 'BaseSchema', 'bind_schema', 'ValidationError']

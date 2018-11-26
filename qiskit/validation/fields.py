@@ -6,12 +6,35 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Fields to be used with Qiskit validated classes."""
-
 from functools import partial
+from datetime import date, datetime
 
-from marshmallow import ValidationError, fields
+from marshmallow import fields as _fields
+from marshmallow.fields import Raw
 from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
+
+from . import ValidationError
+
+
+__all__ = [
+    'Boolean',
+    'ByAttribute',
+    'ByType',
+    'Email',
+    'Complex',
+    'Date',
+    'DateTime',
+    'Float',
+    'Integer',
+    'List',
+    'Nested',
+    'Number',
+    'Raw',
+    'String',
+    'TryFrom',
+    'Url'
+]
 
 
 class BasePolyField(PolyField):
@@ -66,6 +89,22 @@ class BasePolyField(PolyField):
             if 'serialization_schema_selector' in str(ex):
                 raise ValidationError('Data from an invalid schema')
             raise
+
+    def _validate_model(self, value, attr, data):
+        """Helper for minimal validation of fields.BasePolyField."""
+        if not self.many:
+            values = [value]
+        else:
+            values = value
+
+        for v in values:
+            schema = self.serialization_schema_selector(v, data)
+            if not schema:
+                raise _not_expected_type(
+                    value, self.__class__, fields=[self], field_names=attr,
+                    data=data)
+
+        return value
 
 
 class TryFrom(BasePolyField):
@@ -145,7 +184,7 @@ class ByAttribute(BasePolyField):
         return None
 
 
-class ByType(fields.Field):
+class ByType(_fields.Field):
     """Polymorphic field that disambiguates based on an attribute's type.
 
     Polymorphic field that accepts a list of ``Fields``, and checks that the
@@ -189,8 +228,20 @@ class ByType(fields.Field):
 
         self.fail('invalid', value=value, types=self.choices)
 
+    def _validate_model(self, value, attr, data):
+        for field in self.choices:
+            if hasattr(field, '_validate_model'):
+                try:
+                    return getattr(field, '_validate_model')(value, attr, data)
+                except ValidationError:
+                    pass
 
-class Complex(fields.Field):
+        raise _not_expected_type(
+            value, [field.__class__ for field in self.choices],
+            fields=[self], field_names=attr, data=data)
+
+
+class Complex(_fields.Field):
     """Field for complex numbers.
 
     Field for parsing complex numbers:
@@ -206,18 +257,170 @@ class Complex(fields.Field):
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
+
         if not isinstance(value, complex):
             self.fail('format', input=value)
+
         try:
             return [value.real, value.imag]
         except AttributeError:
             self.fail('format', input=value)
-        return value
 
     def _deserialize(self, value, attr, data):
         if not is_collection(value) or len(value) != 2:
             self.fail('invalid', input=value)
+
         try:
             return complex(*value)
         except (ValueError, TypeError):
             self.fail('invalid', input=value)
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, complex):
+            raise _not_expected_type(
+                value, complex, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class String(_fields.String):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.String.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, str):
+            raise _not_expected_type(
+                value, str, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class Date(_fields.Date):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Date.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, date):
+            raise _not_expected_type(
+                value, date, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class DateTime(_fields.DateTime):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Date.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, date):
+            raise _not_expected_type(
+                value, datetime, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class Email(String, _fields.Email):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Email.__doc__
+
+
+class Url(String, _fields.Email):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Email.__doc__
+
+
+class Nested(_fields.Nested):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Nested.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if self.many and not is_collection(value):
+            self.fail('type', input=value, type=value.__class__.__name__)
+
+        if not self.many:
+            values = [value]
+        else:
+            values = value
+
+        for v in values:
+            if not isinstance(v, self.schema.model_cls):
+                raise _not_expected_type(
+                    value, self.schema.model_cls, fields=[self], field_names=attr,
+                    data=data)
+
+        return value
+
+
+class List(_fields.List):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.List.__doc__
+
+    def _validate_model(self, value, *_):
+        errors = []
+        if not is_collection(value):
+            raise _not_expected_type(value, 'iterable')
+
+        for idx, v in enumerate(value):
+            if hasattr(self.container, '_validate_model'):
+                try:
+                    getattr(self.container, '_validate_model')(v, idx, value)
+                except ValidationError as err:
+                    errors.append(err.messages)
+
+        if errors:
+            raise ValidationError(errors)
+
+        return value
+
+
+class Number(_fields.Number):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Number.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, (int, float)):
+            raise _not_expected_type(
+                value, (int, float), fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class Integer(_fields.Integer):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Integer.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, int):
+            raise _not_expected_type(
+                value, int, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class Float(_fields.Float):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Float.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, float):
+            raise _not_expected_type(
+                value, float, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+class Boolean(_fields.Boolean):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Boolean.__doc__
+
+    def _validate_model(self, value, attr, data):
+        if not isinstance(value, bool):
+            raise _not_expected_type(
+                value, bool, fields=[self], field_names=attr, data=data)
+
+        return value
+
+
+def _not_expected_type(value, type_, **kwargs):
+    message = 'Value {} not of expected type {}'.format(value, type_)
+    return ValidationError(message, **kwargs)

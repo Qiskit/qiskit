@@ -23,14 +23,11 @@ together by using ``bind_schema``::
         pass
 """
 
-from functools import partial, wraps
-from types import SimpleNamespace
+from functools import wraps
+from types import SimpleNamespace, MethodType
 
 from marshmallow import ValidationError
-from marshmallow import Schema, post_dump, post_load, fields
-from marshmallow.utils import is_collection
-
-from .fields import BasePolyField, ByType
+from marshmallow import Schema, post_dump, post_load
 
 
 class BaseSchema(Schema):
@@ -142,88 +139,35 @@ class _SchemaBinder:
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
 
         # Add a Schema that performs minimal validation to the Model.
-        model_cls.shallow_schema = self._create_shallow_schema(self._schema_cls)
+        model_cls.shallow_schema = self._create_validation_schema(self._schema_cls)
 
         return model_cls
 
-    def _create_shallow_schema(self, schema_cls):
-        """Create a Schema with minimal validation for compound types.
+    @staticmethod
+    def _create_validation_schema(schema_cls):
+        """Create a patched Schema for validating models.
 
+        Model validation is not part of Marshmallow. Schemas have a ``validate``
+        method but this delegates execution on ``load`` and discards the result.
+        Similarly, ``load`` will call ``_deserialize`` on every field in the
+        schema.
 
-        This is a helper for performing the initial validation when
-        instantiating the Model via **kwargs. It works on the assumption that
-        **kwargs will contain:
-        * for compound types (`Nested`, `BasePolyField`), it will already
-          contain `BaseModels`, which should have been validated earlier
-          (during _their_ instantiation), and only type checking is performed.
-        * for `Number` and `String` types, both serialized and deserialized
-          are equivalent, and the shallow_schema will try to serialize in
-          order to perform stronger validation.
-        * for the rest of fields (the ones where the serialized and deserialized
-          data is different), it will contain _deserialized_ types that are
-          passed through.
-
-        The underlying idea is to be able to perform validation (in the schema)
-        at only the first level of the object, and at the same time take
-        advantage of validation during **kwargs instantiation as much as
-        possible (mimicking `.from_dict()` in that respect).
+        This function patches the ``_deserialize`` instance method of each
+        field to make it call a custom defined method ``_validate_model``
+        provided by Qiskit in the different fields at
+        ``qiskit.validation.fields``.
 
         Returns:
             BaseSchema: a copy of the original Schema, overriding the
                 ``_deserialize()`` call of its fields.
         """
-        shallow_schema = schema_cls()
-        for _, field in shallow_schema.fields.items():
-            if isinstance(field, fields.Nested):
-                field._deserialize = partial(self._overridden_nested_deserialize, field)
-            elif isinstance(field, BasePolyField):
-                field._deserialize = partial(self._overridden_basepolyfield_deserialize, field)
-            elif not isinstance(field, (fields.Number, fields.String, ByType)):
-                field._deserialize = partial(self._overridden_field_deserialize, field)
-        return shallow_schema
+        validation_schema = schema_cls()
+        for _, field in validation_schema.fields.items():
+            if hasattr(field.__class__, '_validate_model'):
+                validate_function = getattr(field.__class__, '_validate_model')
+                field._deserialize = MethodType(validate_function, field)
 
-    @staticmethod
-    def _overridden_nested_deserialize(field, value, _, data):
-        """Helper for minimal validation of fields.Nested."""
-        if field.many and not is_collection(value):
-            field.fail('type', input=value, type=value.__class__.__name__)
-
-        if not field.many:
-            values = [value]
-        else:
-            values = value
-
-        for v in values:
-            if not isinstance(v, field.schema.model_cls):
-                raise ValidationError(
-                    'Not a valid type for {}.'.format(field.__class__.__name__),
-                    data=data)
-        return value
-
-    @staticmethod
-    def _overridden_basepolyfield_deserialize(field, value, _, data):
-        """Helper for minimal validation of fields.BasePolyField."""
-        if not field.many:
-            values = [value]
-        else:
-            values = value
-
-        for v in values:
-            schema = field.serialization_schema_selector(v, data)
-            if not schema:
-                raise ValidationError(
-                    'Not a valid type for {}.'.format(field.__class__.__name__),
-                    data=data)
-        return value
-
-    @staticmethod
-    def _overridden_field_deserialize(field, value, attr, data):
-        """Helper for validation of generic Field."""
-        # Attempt to serialize, in order to catch validation errors.
-        field._serialize(value, attr, data)
-
-        # Propagate the original value upwards.
-        return value
+        return validation_schema
 
     @staticmethod
     def _to_dict(instance):

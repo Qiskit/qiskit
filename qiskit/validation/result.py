@@ -11,11 +11,11 @@ TODO: Note this file is temporary, and will be removed before 0.7, replacing
       qiskit.qobj.result and qiskit.result.
 """
 
-from marshmallow.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
 from marshmallow.validate import Length, OneOf, Regexp, Range
 
 from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
 from qiskit.validation.fields import Complex, ByType
+from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
 from qiskit.validation.validate import PatternProperties
 
 

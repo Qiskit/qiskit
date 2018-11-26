@@ -11,9 +11,8 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
-from marshmallow import ValidationError
-
 from qiskit import QISKitError
+from qiskit.validation import ValidationError
 from qiskit.backends import BaseBackend, JobStatus
 from qiskit.backends.models import BackendStatus, BackendProperties
 
