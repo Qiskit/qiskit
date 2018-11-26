@@ -29,9 +29,9 @@ def filter_backends(backends, filters=None, **kwargs):
         list[BaseBackend]: a list of backend instances matching the
             conditions.
     """
-    def _match_all(dict_, criteria):
-        """Return True if all items in criteria matches items in dict_."""
-        return all(dict_.get(key_) == value_ for
+    def _match_all(obj, criteria):
+        """Return True if all items in criteria matches items in obj."""
+        return all(getattr(obj, key_, None) == value_ for
                    key_, value_ in criteria.items())
 
     # Inspect the backends to decide which filters belong to
@@ -54,7 +54,7 @@ def filter_backends(backends, filters=None, **kwargs):
     # each backend).
     if status_filters:
         backends = [b for b in backends if
-                    _match_all(b.status().to_dict(), status_filters)]
+                    _match_all(b.status(), status_filters)]
 
     # 3. Apply acceptor filter.
     backends = list(filter(filters, backends))

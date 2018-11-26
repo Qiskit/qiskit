@@ -8,7 +8,7 @@
 # pylint: disable=missing-docstring,broad-except
 
 import unittest
-from qiskit import execute, load_qasm_file
+from qiskit import execute, QuantumCircuit
 from qiskit import Aer
 from ..common import QiskitTestCase, requires_cpp_simulator
 
@@ -19,7 +19,7 @@ class StatevectorSimulatorTest(QiskitTestCase):
 
     def setUp(self):
         self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
-        self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
+        self.q_circuit = QuantumCircuit.from_qasm_file(self.qasm_filename)
 
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
