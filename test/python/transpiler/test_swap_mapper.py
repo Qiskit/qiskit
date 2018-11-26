@@ -12,40 +12,12 @@ import unittest
 from qiskit.transpiler.passes import SwapMapper
 from qiskit.mapper import Coupling
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import QuantumRegister
+from qiskit import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 
 class TestSwapMapper(QiskitTestCase):
     """ Tests the SwapMapper pass."""
-
-    @staticmethod
-    def create_dag(instructions):
-        dag = DAGCircuit()
-        qregs = {}
-        basic_elements = {}
-
-        for instruction in instructions:
-            basic_elements[instruction[0]] = len(instruction[1])
-
-            for arg in instruction[1]:
-                if qregs.get(arg[0]) is None:
-                    qregs[arg[0]] = []
-                qregs[arg[0]].append(arg[1])
-
-        # dag.add_qreg
-        for name, regs in qregs.items():
-            dag.add_qreg(QuantumRegister(max(regs) + 1, name))
-
-        # dag.add_basis_element
-        for name, amount in basic_elements.items():
-            dag.add_basis_element(name, amount)
-
-        # apply_operation_back
-        for instruction, args in instructions:
-            dag.apply_operation_back(instruction, args)
-
-        return dag
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
@@ -58,10 +30,14 @@ class TestSwapMapper(QiskitTestCase):
          Coupling map: [1]--[0]--[2]
         """
         coupling = Coupling({0: [1, 2]})
-        dag = TestSwapMapper.create_dag([('CX', [('q', 0), ('q', 1)]),
-                                         ('U', [('q', 0)]),
-                                         ('CX', [('q', 0), ('q', 2)])])
 
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[2])
+
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
         before = dag.qasm()
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
@@ -81,50 +57,52 @@ class TestSwapMapper(QiskitTestCase):
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = Coupling({0: [1], 1: [2], 2: [3]})
-        dag = TestSwapMapper.create_dag([('CX', [('q', 2), ('q', 3)]),
-                                         ('CX', [('q', 0), ('q', 1)])])
+
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[2], qr[3])
+        circuit.cx(qr[0], qr[1])
+
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+
         before = dag.qasm()
 
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
-
         self.assertEqual(before, after_dag.qasm())
-        self.assertDictEqual(pass_.layout.get_bits(), {('q', 0): 0,
-                                                          ('q', 1): 1,
-                                                          ('q', 2): 2,
-                                                          ('q', 3): 3})
 
     def test_a_single_swap(self):
         """ Adding a swap
-         q0:--(+)------
+         q0:-------
+
+         q1:--(+)--
                |
-         q1:---.--(+)--
-                   |
-         q2:-------.---
+         q2:---.---
 
          Coupling map: [1]--[0]--[2]
 
-         q0:--(+)--X--.--- q2
-               |   |  |
-         q1:---.---|-(+)-- q1
-                   |
-         q2:-------X------ q0
+         q0:--X--.---
+              |  |
+         q1:--|-(+)--
+              |
+         q2:--X------
 
         """
         coupling = Coupling({0: [1, 2]})
-        dag = TestSwapMapper.create_dag([('CX', [('q', 0), ('q', 1)]),
-                                         ('CX', [('q', 1), ('q', 2)])])
-        expected = '\n'.join(["OPENQASM 2.0;",
-                              "qreg q[3];",
-                              "opaque swap a,b;",
-                              "CX q[0],q[1];",
-                              "swap q[0],q[2];",
-                              "CX q[1],q[0];"]) + '\n'
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[2])
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+
+        expected = '\n'.join(['}',
+                              'swap q[0],q[2];',
+                              'cx q[1],q[0];'])+'\n'
+
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 
-        self.assertEqual(expected, after_dag.qasm())
-        self.assertDictEqual(pass_.layout.get_bits(), {('q', 0): 2, ('q', 1): 1, ('q', 2): 0})
+        self.assertTrue(after_dag.qasm().endswith(expected))
 
     def test_keep_layout(self):
         """After a swap, the following gates also change the wires.
@@ -132,59 +110,69 @@ class TestSwapMapper(QiskitTestCase):
                 |
          qr1:---|--------
                 |
-         qr2:--(+)--[U]--
+         qr2:--(+)--[H]--
 
          Coupling map: [0]--[1]--[2]
 
          qr0:------.---------
                    |
-         qr1:--X--(+)--[U1]--
+         qr1:--X--(+)--[H]--
                |
          qr2:--X-------------
         """
         coupling = Coupling({1: [0, 2]})
-        dag = TestSwapMapper.create_dag([('CX', [('qr', 0), ('qr', 2)]),
-                                         ('U', [('qr', 2)])])
 
-        expected = '\n'.join(["OPENQASM 2.0;",
-                              "qreg q[3];",
-                              "opaque swap a,b;",
-                              "swap q[1],q[2];",
-                              "CX q[1],q[0];"]) + '\n'
-        expected = '\n'.join([])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[2])
+        circuit.h(qr[2])
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+
+        expected = '\n'.join(['}',
+                              'swap q[1],q[2];',
+                              'cx q[0],q[1];',
+                              'h q[1];'])+'\n'
+        pass_ = SwapMapper(coupling)
+        after_dag = pass_.run(dag)
+        self.assertTrue(after_dag.qasm().endswith(expected))
+
+    def test_far_swap(self):
+        """ A far swap that affects coming CXs.
+         qr0:--(+)---.--
+                |    |
+         qr1:---|----|--
+                |    |
+         qr2:---|----|--
+                |    |
+         qr3:---.---(+)-
+
+         Coupling map: [0]--[1]--[2]--[3]
+
+         qr0:----(+)---.--
+                  |    |
+         qr1:--X--.---(+)-
+               |
+         qr2:--|----------
+               |
+         qr3:--X----------
+
+        """
+        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[3])
+        circuit.cx(qr[3], qr[0])
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        expected = '\n'.join(['}',
+                              'swap q[1],q[3];',
+                              'cx q[0],q[1];',
+                              'cx q[1],q[0];'])+'\n'
+
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 
-        self.assertEqual(expected, after_dag.qasm())
-        # self.assertDictEqual(pass_.layout.get_bits(), {('q', 0): 2, ('q', 1): 1, ('q', 2): 0})
-
-    # def test_far_swap(self):
-    #     """ A far swap that affects coming CXs.
-    #      qr0:--(+)---.--
-    #             |    |
-    #      qr1:---|----|--
-    #             |    |
-    #      qr2:---|----|--
-    #             |    |
-    #      qr3:---.---(+)-
-    #
-    #      Coupling map: [0]--[1]--[2]--[3]
-    #     """
-    #     coupling = Coupling({0: [1], 1: [2], 2: [3]})
-    #     dag = TestSwapMapper.create_dag([('CX', [('qr', 0), ('qr', 3)]),
-    #                                      ('CX', [('qr', 3), ('qr', 0)])])
-    #     expected = '\n'.join(["OPENQASM 2.0;",
-    #                           "qreg q[3];",
-    #                           "opaque swap a,b;",
-    #                           "CX q[0],q[1];",
-    #                           "swap q[0],q[2];",
-    #                           "CX q[1],q[0];"]) + '\n'
-    #     expected = '\n'.join([])
-    #     pass_ = SwapMapper(coupling)
-    #     after_dag = pass_.run(dag)
-    #
-    #     # self.assertEqual(expected, after_dag.qasm())
-
+        self.assertTrue(after_dag.qasm().endswith(expected))
 
 if __name__ == '__main__':
     unittest.main()

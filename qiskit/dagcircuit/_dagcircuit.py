@@ -555,7 +555,7 @@ class DAGCircuit:
         return n_condition
 
     def extends_at_the_end(self, dag, wire_map=None):
-        """Add `dag` at the end of `self`, using `wire_map` for wiring.
+        """Add `dag` at the end of `self`, using `wire_map`.
         """
         for qreg in dag.qregs.values():
             if qreg.name not in self.qregs:
@@ -1363,18 +1363,6 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
-
-    def add_dag_at_the_end(self, dag, layout):
-        """Add `dag` at the end of `self`, using `layout` for wireing."""
-        for qreg in dag.qregs.values():
-            if qreg.name not in self.qregs:
-                self.add_qreg(QuantumRegister(qreg.size, qreg.name))
-
-        for creg in dag.cregs.values():
-            if creg.name not in self.cregs:
-                self.add_creg(ClassicalRegister(creg.size, creg.name))
-
-        self.compose_back(dag, { k:('q', v) for k, v in layout.get_bits().items()} )
 
     @staticmethod
     def fromQuantumCircuit(circuit, expand_gates=True):
