@@ -517,7 +517,8 @@ class MatplotlibDrawer:
             if not _barriers['group']:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
                 while True:
-                    if op['name'] in _force_next or 'conditional' in op.keys() or \
+                    if op['name'] in _force_next or (
+                            'condition' in op.keys() and op['condition']) or \
                             not self._style.compress:
                         occupied = self._qreg_dict.keys()
                     else:
@@ -554,16 +555,19 @@ class MatplotlibDrawer:
             else:
                 param = None
             # conditional gate
-            if 'conditional' in op.keys():
+            if 'condition' in op.keys() and op['condition']:
                 c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for
                         ii in self._creg_dict]
+                mask = 0
+                for index, cbit in enumerate(self._creg):
+                    if cbit.name == op['condition'][0]:
+                        mask |= (1 << index)
+                val = op['condition'][1]
                 # cbit list to consider
                 fmt_c = '{{:0{}b}}'.format(len(c_xy))
-                mask = int(op['conditional']['mask'], 16)
                 cmask = list(fmt_c.format(mask))[::-1]
                 # value
                 fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
-                val = int(op['conditional']['val'], 16)
                 vlist = list(fmt_v.format(val))[::-1]
                 # plot conditionals
                 v_ind = 0
@@ -578,7 +582,7 @@ class MatplotlibDrawer:
                             xy_plot.append(xy)
                         v_ind += 1
                 creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                self._subtext(creg_b, op['conditional']['val'])
+                self._subtext(creg_b, hex(val))
                 self._line(qreg_t, creg_b, lc=self._style.cc,
                            ls=self._style.cline)
             #
