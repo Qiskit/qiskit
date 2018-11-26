@@ -44,7 +44,8 @@ class BackendConfigurationSchema(BaseSchema):
                        validate=Or([Equal(-1), Range(min=1)]))
     basis_gates = List(String(), required=True,
                        validate=Length(min=1))
-    gates = Nested(GateConfigSchema, required=True, many=True)
+    gates = Nested(GateConfigSchema, required=True, many=True,
+                   validate=Length(min=1))
     local = Boolean(required=True)
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)

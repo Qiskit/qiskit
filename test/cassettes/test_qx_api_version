@@ -1,0 +1,63 @@
+interactions:
+- request:
+    body: apiToken=apiToken_dummy
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+      Content-Length: ['137']
+      Content-Type: [application/x-www-form-urlencoded]
+    method: POST
+    uri: https://quantumexperience.ng.bluemix.net/api/users/loginWithToken
+  response:
+    body: {string: '{"id": "dummyapiusersloginWithTokenid01", "ttl": 1209600, "created":
+        "dummyapiusersloginWithTokencreated01", "userId": "dummyapiusersloginWithTokenuserId01"}'}
+    headers:
+      Access-Control-Allow-Credentials: ['true']
+      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
+      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
+      Connection: [Keep-Alive]
+      Content-Type: [application/json; charset=utf-8]
+      Expires: ['0']
+      Pragma: [no-cache]
+      Set-Cookie: dummy_cookie
+      Strict-Transport-Security: [max-age=86400]
+      Surrogate-Control: [no-store]
+      Transfer-Encoding: [chunked]
+      Vary: ['Origin, Accept-Encoding']
+      X-Backside-Transport: [OK OK]
+      X-Content-Type-Options: [nosniff]
+      X-Download-Options: [noopen]
+      X-Frame-Options: [SAMEORIGIN]
+      X-Xss-Protection: [1; mode=block]
+    status: {code: 200, message: OK}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+    method: GET
+    uri: https://quantumexperience.ng.bluemix.net/api/version?access_token=dummyapiusersloginWithTokenid01
+  response:
+    body: {string: 6.4.15}
+    headers:
+      Access-Control-Allow-Credentials: ['true']
+      Access-Control-Allow-Origin: ['https://quantumexperience.mybluemix.net/']
+      Cache-Control: ['no-store, no-cache, must-revalidate, proxy-revalidate']
+      Connection: [Keep-Alive]
+      Content-Type: [text/html; charset=utf-8]
+      Expires: ['0']
+      Pragma: [no-cache]
+      Set-Cookie: dummy_cookie
+      Strict-Transport-Security: [max-age=86400]
+      Surrogate-Control: [no-store]
+      Transfer-Encoding: [chunked]
+      Vary: ['Origin, Accept-Encoding']
+      X-Backside-Transport: [OK OK]
+      X-Content-Type-Options: [nosniff]
+      X-Download-Options: [noopen]
+      X-Frame-Options: [SAMEORIGIN]
+      X-Xss-Protection: [1; mode=block]
+    status: {code: 200, message: OK}
+version: 1

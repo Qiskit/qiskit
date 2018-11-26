@@ -67,7 +67,7 @@ class TestTranspiler(QiskitTestCase):
                                     basis_gates=basis_gates, pass_manager=None)
         transpiler_json = DagUnroller(dag_circuit, JsonBackend(dag_circuit.basis)).execute()
 
-        qobj = compile(circuit, backend=Aer.get_backend('qasm_simulator'),
+        qobj = compile(circuit, backend=Aer.get_backend('qasm_simulator_py'),
                        coupling_map=coupling_map, basis_gates=basis_gates)
         compiler_json = qobj.experiments[0].as_dict()
 

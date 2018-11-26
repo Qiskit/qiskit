@@ -36,7 +36,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -54,7 +54,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -113,7 +113,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -131,7 +131,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator_py')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -179,3 +179,24 @@ class TestCircuitOperations(QiskitTestCase):
         target = {'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_measure_args_type_cohesion(self):
+        """Test for proper args types for measure function.
+        """
+        quantum_reg = QuantumRegister(2)
+        classical_reg_0 = ClassicalRegister(1)
+        classical_reg_1 = ClassicalRegister(1)
+        quantum_circuit = QuantumCircuit(quantum_reg, classical_reg_0, classical_reg_1)
+        quantum_circuit.h(quantum_reg)
+
+        with self.assertRaises(QISKitError) as ctx:
+            quantum_circuit.measure(quantum_reg, classical_reg_1)
+        self.assertEqual(ctx.exception.message,
+                         'qubit (2) and cbit (1) should have the same length')
+
+        with self.assertRaises(QISKitError) as ctx:
+            quantum_circuit.measure(quantum_reg[1], classical_reg_1)
+        self.assertEqual(ctx.exception.message, 'Both qubit <tuple> and cbit <ClassicalRegister> '
+                                                'should be Registers or formated as tuples. Hint: '
+                                                'You can use subscript eg. cbit[0] to '
+                                                'convert it into tuple.')
