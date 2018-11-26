@@ -14,6 +14,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import logging
 import uuid
 
+from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
 from ._simulatorerror import SimulatorError
@@ -26,17 +27,24 @@ class StatevectorSimulator(QasmSimulator):
     """C++ statevector simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'statevector_simulator',
+        'backend_name': 'statevector_simulator',
+        'backend_version': '1.0.0',
+        'n_qubits': -1,
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
-        'description': 'A C++ statevector simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,load,save,snapshot'
+        'conditional': False,
+        'open_pulse': False,
+        'description': 'A single-shot C++ statevector simulator for the |0> state evolution',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h',
+                        's', 'sdg', 't', 'tdg', 'rzz', 'load', 'save',
+                        'snapshot'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
     def run(self, qobj):

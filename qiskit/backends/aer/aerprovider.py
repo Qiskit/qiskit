@@ -115,7 +115,7 @@ class AerProvider(BaseProvider):
         for backend_cls in AER_STANDARD_BACKENDS:
             try:
                 backend_instance = self._get_backend_instance(backend_cls)
-                backend_name = backend_instance.configuration()['name']
+                backend_name = backend_instance.name()
                 ret[backend_name] = backend_instance
             except QISKitError as err:
                 # Ignore backends that could not be initialized.
@@ -132,8 +132,7 @@ class AerProvider(BaseProvider):
         Returns:
             BaseBackend: a backend instance.
         Raises:
-            QISKitError: if the backend could not be instantiated or does not
-                provide a valid configuration containing a name.
+            QISKitError: if the backend could not be instantiated.
         """
         # Verify that the backend can be instantiated.
         try:
@@ -141,12 +140,6 @@ class AerProvider(BaseProvider):
         except Exception as err:
             raise QISKitError('Backend %s could not be instantiated: %s' %
                               (backend_cls, err))
-
-        # Verify that the instance has a minimal valid configuration.
-        try:
-            _ = backend_instance.configuration()['name']
-        except (LookupError, TypeError):
-            raise QISKitError('Backend %s has an invalid configuration')
 
         return backend_instance
 

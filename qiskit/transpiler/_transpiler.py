@@ -55,13 +55,13 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     # 1. do all circuits have same coupling map?
     # 2. do all circuit have the same basis set?
     # 3. do they all have same registers etc?
-    backend_conf = backend.configuration()
     # Check for valid parameters for the experiments.
     if hpc is not None and \
             not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
         raise TranspilerError('Unknown HPC parameter format!')
-    basis_gates = basis_gates or backend_conf['basis_gates']
-    coupling_map = coupling_map or backend_conf['coupling_map']
+    basis_gates = basis_gates or ','.join(backend.configuration().basis_gates)
+    coupling_map = coupling_map or getattr(backend.configuration(),
+                                           'coupling_map', None)
 
     # step 1: Making the list of dag circuits
     dags = _circuits_2_dags(circuits)
@@ -77,7 +77,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     # TODO: move this inside mapper pass.
     initial_layouts = []
     for dag in dags:
-        if (initial_layout is None and not backend.configuration()['simulator']
+        if (initial_layout is None and not backend.configuration().simulator
                 and not _matches_coupling_map(dag, coupling_map)):
             _initial_layout = _pick_best_layout(dag, backend)
         initial_layouts.append(_initial_layout)
@@ -313,11 +313,11 @@ def _best_subset(backend, n_qubits):
     elif n_qubits <= 0:
         raise QISKitError('Number of qubits <= 0.')
 
-    device_qubits = backend.configuration()['n_qubits']
+    device_qubits = backend.configuration().n_qubits
     if n_qubits > device_qubits:
         raise QISKitError('Number of qubits greater than device.')
 
-    cmap = np.asarray(backend.configuration()['coupling_map'])
+    cmap = np.asarray(getattr(backend.configuration(), 'coupling_map', None))
     data = np.ones_like(cmap[:, 0])
     sp_cmap = sp.coo_matrix((data, (cmap[:, 0], cmap[:, 1])),
                             shape=(device_qubits, device_qubits)).tocsr()
