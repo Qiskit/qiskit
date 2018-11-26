@@ -12,8 +12,10 @@
 import unittest
 
 import qiskit.wrapper
-from qiskit import compile
-from qiskit import load_qasm_string, mapper, qasm, unroll, Aer
+from qiskit import compile, QuantumCircuit
+from qiskit import mapper, qasm, unroll, Aer
+from qiskit.backends.models import BackendConfiguration
+from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
@@ -32,11 +34,19 @@ class FakeQX4BackEnd(object):
 
     def configuration(self):
         qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
-        return {
-            'name': 'fake_qx4', 'basis_gates': 'u1,u2,u3,cx,id',
-            'simulator': False, 'n_qubits': 5,
-            'coupling_map': qx4_cmap
-        }
+
+        return BackendConfiguration(
+            backend_name='fake_qx4',
+            backend_version='0.0.0',
+            n_qubits=5,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=False,
+            open_pulse=False,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=qx4_cmap,
+        )
 
 
 class FakeQX5BackEnd(object):
@@ -48,11 +58,19 @@ class FakeQX5BackEnd(object):
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
                     [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
                     [13, 14], [15, 0], [15, 2], [15, 14]]
-        return {
-            'name': 'fake_qx5', 'basis_gates': 'u1,u2,u3,cx,id',
-            'simulator': False, 'n_qubits': 16,
-            'coupling_map': qx5_cmap
-        }
+
+        return BackendConfiguration(
+            backend_name='fake_qx5',
+            backend_version='0.0.0',
+            n_qubits=16,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=False,
+            open_pulse=False,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=qx5_cmap,
+        )
 
 
 class MapperTest(QiskitTestCase):
@@ -67,7 +85,8 @@ class MapperTest(QiskitTestCase):
         The mapper should not change the semantics of the input. An overoptimization introduced
         the issue #81: https://github.com/QISKit/qiskit-terra/issues/81
         """
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'))
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('qasm/overoptimization.qasm'))
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         result1 = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator_py"),
                                  coupling_map=coupling_map, seed=self.seed)
@@ -85,7 +104,8 @@ class MapperTest(QiskitTestCase):
         avoided.
         See: https://github.com/QISKit/qiskit-terra/issues/111
         """
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'))
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('qasm/math_domain_error.qasm'))
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
         qobj = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator_py"),
@@ -122,7 +142,8 @@ class MapperTest(QiskitTestCase):
 
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'))
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('qasm/random_n5_d5.qasm'))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = qiskit.execute(circ, backend=Aer.get_backend("qasm_simulator_py"),
@@ -251,10 +272,10 @@ class MapperTest(QiskitTestCase):
         See: https://github.com/QISKit/qiskit-terra/issues/607
         """
         backend = FakeQX4BackEnd()
-        circ1 = load_qasm_string(YZY_ZYZ_1)
+        circ1 = QuantumCircuit.from_qasm_str(YZY_ZYZ_1)
         qobj1 = compile(circ1, backend)
         self.assertIsInstance(qobj1, Qobj)
-        circ2 = load_qasm_string(YZY_ZYZ_2)
+        circ2 = QuantumCircuit.from_qasm_str(YZY_ZYZ_2)
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
@@ -262,9 +283,10 @@ class MapperTest(QiskitTestCase):
         """Measurements applied AFTER swap mapping.
         """
         backend = FakeQX5BackEnd()
-        cmap = backend.configuration()['coupling_map']
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/move_measurements.qasm'),
-                                     name='move')
+        cmap = backend.configuration().coupling_map
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('qasm/move_measurements.qasm'))
+
         dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
         lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),

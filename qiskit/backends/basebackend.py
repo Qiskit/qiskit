@@ -28,15 +28,13 @@ class BaseBackend(ABC):
         not available.
 
         Args:
-            configuration (dict): configuration dictionary
+            configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
 
         Raises:
             FileNotFoundError if backend executable is not available.
             QISKitError: if there is no name in the configuration
         """
-        if 'name' not in configuration:
-            raise qiskit.QISKitError('backend does not have a name.')
         self._configuration = configuration
         self._provider = provider
 
@@ -46,7 +44,11 @@ class BaseBackend(ABC):
         pass
 
     def configuration(self):
-        """Return backend configuration"""
+        """Return the backend configuration.
+
+        Returns:
+            BackendConfiguration: the configuration fot the backend.
+        """
         return self._configuration
 
     def properties(self):
@@ -57,7 +59,7 @@ class BaseBackend(ABC):
         """Return the backend Provider.
 
         Returns:
-            BaseProvider: the Provider responsible for this backend.
+            BaseProvider: the Provider responsible for the backend.
         """
         return self._provider
 
@@ -74,8 +76,12 @@ class BaseBackend(ABC):
                              status_msg='')
 
     def name(self):
-        """Return backend name"""
-        return self._configuration['name']
+        """Return backend name.
+
+        Returns:
+            str: the name of the backend.
+        """
+        return self._configuration.backend_name
 
     def __str__(self):
         return self.name()

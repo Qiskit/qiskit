@@ -17,6 +17,8 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpiler
 from qiskit import compile
 from qiskit import Result
+from qiskit.backends.models import BackendConfiguration
+from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import execute
 from qiskit._qiskiterror import QISKitError
@@ -38,11 +40,18 @@ class FakeBackend(object):
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
                     [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
                     [15, 2], [15, 14]]
-        return {
-            'name': 'fake', 'basis_gates': 'u1,u2,u3,cx,id',
-            'simulator': False, 'n_qubits': 16,
-            'coupling_map': qx5_cmap
-        }
+        return BackendConfiguration(
+            backend_name='fake',
+            backend_version='0.0.0',
+            n_qubits=16,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=False,
+            open_pulse=False,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=qx5_cmap,
+        )
 
 
 class TestCompiler(QiskitTestCase):
@@ -390,7 +399,7 @@ class TestCompiler(QiskitTestCase):
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
             if operation.name == 'cx':
-                self.assertIn(operation.qubits, backend.configuration()['coupling_map'])
+                self.assertIn(operation.qubits, backend.configuration().coupling_map)
 
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
