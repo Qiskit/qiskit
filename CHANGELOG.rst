@@ -68,6 +68,7 @@ Changed
   updated methods include:
     - ``backend.status()``(#1301).
     - ``backend.configuration()`` (and ``__init__``) (#1323).
+    - ``backend.properties()`` (#1331).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
 
