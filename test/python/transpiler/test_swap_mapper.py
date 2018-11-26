@@ -67,9 +67,6 @@ class TestSwapMapper(QiskitTestCase):
         after_dag = pass_.run(dag)
 
         self.assertEqual(before, after_dag.qasm())
-        self.assertDictEqual(pass_.layout.get_bits(), {('q', 0): 0,
-                                                          ('q', 1): 1,
-                                                          ('q', 2): 2})
 
     def test_trivial_in_same_layer(self):
         """ No need to have any swap, two CXs distance 1 to each other, in the same layer
