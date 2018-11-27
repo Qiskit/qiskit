@@ -27,7 +27,7 @@ class LoadFromQasmTest(QiskitTestCase):
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
         q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
-        qasm_string = q_circuit.qasm()
+        dag = DAGCircuit.fromQuantumCircuit(q_circuit)
         self.log.info(qasm_string)
         expected_qasm_string = """\
 OPENQASM 2.0;

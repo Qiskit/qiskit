@@ -26,7 +26,7 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         self.backend = QasmSimulatorPy()
-        backend_basis = self.backend.configuration()['basis_gates'].split(',')
+        backend_basis = self.backend.configuration().basis_gates
         qasm_filename = self._get_resource_path('qasm/example.qasm')
         qasm_ast = Qasm(filename=qasm_filename).parse()
         qasm_dag = Unroller(qasm_ast, DAGBackend()).execute()
