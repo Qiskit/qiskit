@@ -10,6 +10,7 @@
 
 from qiskit import QISKitError
 from qiskit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
 from ..common import QiskitTestCase, Path
 
 
@@ -28,36 +29,21 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
         dag = DAGCircuit.fromQuantumCircuit(q_circuit)
-        self.log.info(qasm_string)
-        expected_qasm_string = """\
-OPENQASM 2.0;
-include "qelib1.inc";
-qreg a[4];
-qreg b[4];
-creg c[4];
-creg d[4];
-h a[0];
-h a[1];
-h a[2];
-h a[3];
-cx a[0],b[0];
-cx a[1],b[1];
-cx a[2],b[2];
-cx a[3],b[3];
-barrier a[0],a[1],a[2],a[3];
-barrier b[0],b[1],b[2],b[3];
-measure a[0] -> c[0];
-measure a[1] -> c[1];
-measure a[2] -> c[2];
-measure a[3] -> c[3];
-measure b[0] -> d[0];
-measure b[1] -> d[1];
-measure b[2] -> d[2];
-measure b[3] -> d[3];
-"""
-        self.assertEqual(qasm_string, expected_qasm_string)
-        self.assertEqual(len(q_circuit.cregs), 2)
-        self.assertEqual(len(q_circuit.qregs), 2)
+        a = QuantumRegister(4)
+        b = QuantumRegister(4)
+        c = ClassicalRegister(4)
+        d = ClassicalRegister(4)
+        q_circuit_2 = QuantumCircuit(a, b, c, d)
+        q_circuit_2.h(a)
+        q_circuit_2.cx(a, b)
+        q_circuit_2.barrier(a)
+        q_circuit_2.barrier(b)
+        q_circuit_2.measure(a, c)
+        q_circuit_2.measure(b, d)
+        dag_2 = DAGCircuit.fromQuantumCircuit(q_circuit_2)
+        nx.is_isomorphic(dag.multi_graph, dag2.multi_graph,
+                         node_match=_match_dag_nodes)
+        self.assertEqual(dag, dag_2)
 
     def test_fail_qasm_file(self):
         """Test fail_qasm_file.
