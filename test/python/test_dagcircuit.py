@@ -28,8 +28,10 @@ class TestDagRegisters(QiskitTestCase):
 
     def test_add_qreg_creg(self):
         dag = DAGCircuit()
-        dag.add_qreg(QuantumRegister(2))
-        dag.add_creg(ClassicalRegister(1))
+        dag.add_qreg(QuantumRegister(2, 'qr'))
+        dag.add_creg(ClassicalRegister(1, 'cr'))
+        self.assertDictEqual(dag.qregs, {'qr': QuantumRegister(2, 'qr')})
+        self.assertDictEqual(dag.cregs, {'cr': ClassicalRegister(1, 'cr')})
 
     def test_add_reg_duplicate(self):
         dag = DAGCircuit()
