@@ -70,7 +70,7 @@ class Instruction(object):
         params.
 
         Args:
-            other (instructions): other instructions
+            other (instruction): other instruction
 
         Returns:
             bool: are self and other equal.
