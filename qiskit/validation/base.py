@@ -28,6 +28,30 @@ from types import SimpleNamespace, MethodType
 
 from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load
+from marshmallow import fields as _fields
+
+
+class ModelValidator(_fields.Field):
+    """A field able to validate the correct type of a value."""
+
+    valid_types = (object, )
+
+    def _expected_types(self):
+        return self.valid_types
+
+    def validate_model(self, value, attr, data):
+        """Validates a value against the correct type of the field."""
+
+        expected_types = self._expected_types()
+        if not isinstance(value, expected_types):
+            raise self._not_expected_type(
+                value, expected_types, fields=[self], field_names=attr, data=data)
+
+        return value
+
+    def _not_expected_type(self, value, type_, **kwargs):
+        message = 'Value {} not of expected type {}'.format(value, type_)
+        return ValidationError(message, **kwargs)
 
 
 class BaseSchema(Schema):
@@ -163,8 +187,8 @@ class _SchemaBinder:
         """
         validation_schema = schema_cls()
         for _, field in validation_schema.fields.items():
-            if hasattr(field.__class__, '_validate_model'):
-                validate_function = getattr(field.__class__, '_validate_model')
+            if isinstance(field, ModelValidator):
+                validate_function = field.__class__.validate_model
                 field._deserialize = MethodType(validate_function, field)
 
         return validation_schema

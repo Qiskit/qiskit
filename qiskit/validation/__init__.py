@@ -9,7 +9,13 @@
 
 from marshmallow import ValidationError
 
-from .base import BaseModel, BaseSchema, bind_schema
+from .base import BaseModel, BaseSchema, bind_schema, ModelValidator
 
 
-__all__ = ['BaseModel', 'BaseSchema', 'bind_schema', 'ValidationError']
+__all__ = [
+    'BaseModel',
+    'BaseSchema',
+    'ModelValidator',
+    'ValidationError',
+    'bind_schema'
+]
