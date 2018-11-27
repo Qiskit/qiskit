@@ -44,7 +44,7 @@ class Instruction(object):
             param (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
-            circuit(QuantumCircuit|Instruction): where the instruction is attached
+            circuit (QuantumCircuit|Instruction): where the instruction is attached
 
         Raises:
             QISKitError: when the register is not in the correct format.
