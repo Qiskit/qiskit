@@ -19,11 +19,10 @@ class StatevectorSimulatorTest(QiskitTestCase):
     """Test Aer's C++ statevector simulator."""
 
     def setUp(self):
-        q = QuantumRegister(2)
-        c = ClassicalRegister(2)
-        self.q_circuit = QuantumCircuit(q, c)
-        self.q_circuit.h(q[0])
-        self.q_circuit.cx(q[0], q[1])
+        qr = QuantumRegister(2)
+        self.q_circuit = QuantumCircuit(qr)
+        self.q_circuit.h(qr[0])
+        self.q_circuit.cx(qr[0], qr[1])
 
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
