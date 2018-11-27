@@ -15,7 +15,7 @@ import numpy as np
 
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import mapper, qasm, unroll, Aer
+from qiskit import mapper, Aer
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
