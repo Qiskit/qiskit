@@ -8,6 +8,7 @@
 """Helper function for loading all the circuits from a Qobj"""
 from qiskit import _quantumcircuit as qc
 
+
 def qobj_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj
 
