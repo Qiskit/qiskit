@@ -18,7 +18,7 @@ from qiskit import execute
 from ..common import QiskitTestCase
 
 
-class TestTools(QiskitTestCase):
+class TestJobMonitor(QiskitTestCase):
     """Tools test case."""
     def test_job_monitor(self):
         """Test job_monitor"""
