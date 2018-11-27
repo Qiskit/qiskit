@@ -48,7 +48,7 @@ $(function() {
                 $ul.attr('id', ulId);
                 $ul.addClass('collapse sublist');
                 $linkWrapper.addClass('title');
-                $linkWrapper.children('a').addClass('ibm-type-b-tight semibold');
+                $linkWrapper.children('a').addClass('ibm-type-b-tight');
                 $div.addClass('title');
                 $li.append($div.append(
                     $linkWrapper.append(
@@ -73,6 +73,12 @@ $(function() {
     function collapse() {
         $('.mdl-layout__drawer nav .item .link-wrapper').click(function() {
             const $toggle = $(this).children('span .nav-toggle').children('a');
+            if($toggle.href !== '#'){
+                const currentActive = $('.mdl-layout__drawer nav .item.active');
+                currentActive.removeClass('active');
+                $('.current.mdl-color-text--primary' ).removeClass('mdl-color-text--primary')
+                console.log($(this).parent().addClass('active'))
+            }
             $(this).toggleClass('sectionActive');
             const id = $toggle.attr('data-toggle');
             $(`ul${id}`).toggleClass('show').animate({height: "toggle", opacity: "toggle"});
