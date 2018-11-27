@@ -38,17 +38,16 @@ class Instruction(object):
 
     def __init__(self, name, param, qargs, cargs, circuit=None):
         """Create a new instruction.
-
         Args:
             name (str): instruction name
             param (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
-            circuit (QuantumCircuit|Instruction): where the instruction is attached
-
+            circuit (QuantumCircuit or Instruction): where the instruction is attached
         Raises:
             QISKitError: when the register is not in the correct format.
         """
+
         if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
             raise QISKitError("qarg not (QuantumRegister, int) tuple")
         if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
