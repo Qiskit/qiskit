@@ -22,6 +22,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
+from qiskit.backends.models import BackendProperties
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.backends.jobstatus import JobStatus
@@ -66,6 +67,23 @@ class DummySimulator(BaseBackend):
         """
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         self.time_alive = time_alive
+
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         job_id = str(uuid.uuid4())
