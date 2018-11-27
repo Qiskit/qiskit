@@ -17,11 +17,11 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
+import re
 from collections import OrderedDict
 import copy
 import itertools
 import networkx as nx
-import re
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import _compositegate

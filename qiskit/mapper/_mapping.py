@@ -34,7 +34,6 @@ from qiskit._measure import Measure
 
 logger = logging.getLogger(__name__)
 
-
 # Notes:
 # Measurements may occur and be followed by swaps that result in repeated
 # measurement of the same qubit. Near-term experiments cannot implement
@@ -183,7 +182,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     logger.debug("layer_permutation: gates = %s", pprint.pformat(gates))
 
     # Find layout maximum index
-    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
     # Can we already apply the gates?
     dist = sum([coupling.distance(layout[g[0]],
@@ -280,8 +279,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                     trial_layout = opt_layout
                     rev_trial_layout = rev_opt_layout
                     circ.apply_operation_back(
-                            SwapGate((opt_edge[0][0], opt_edge[0][1]),
-                                     (opt_edge[1][0], opt_edge[1][1])))
+                        SwapGate((opt_edge[0][0], opt_edge[0][1]),
+                                 (opt_edge[1][0], opt_edge[1][1])))
                     logger.debug("layer_permutation: chose pair %s",
                                  pprint.pformat(opt_edge))
                 else:
@@ -396,7 +395,7 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     Return DAGCircuit object to append to the output DAGCircuit.
     """
     layout = best_layout
-    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
     dagcircuit_output = DAGCircuit()
     dagcircuit_output.add_qreg(QuantumRegister(layout_max_index, "q"))
     # Identity wire-map for composing the circuits
@@ -482,7 +481,7 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()
-    layout_max_index = max(map(lambda x: x[1]+1, layout.values()))
+    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
     # Construct an empty DAGCircuit with one qreg "q"
     # and the same set of cregs as the input circuit
