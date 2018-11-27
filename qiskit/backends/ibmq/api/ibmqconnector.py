@@ -786,12 +786,43 @@ class IBMQConnector(object):
 
         url = get_backend_properties_url(self.config, backend_type, hub)
 
-        ret = self.req.get(url)
-        if not bool(ret):
-            ret = {}
-        else:
-            ret["backend_name"] = backend_type
-        return ret
+        response = self.req.get(url)
+
+        # Check for empty properties (simulators).
+        if not bool(response):
+            return {}
+
+        # Adjust fields according to the specs (BackendProperties).
+        properties = {
+            'backend_name': backend_type,
+            'backend_version': response.get('backend_version', '0.0.0'),
+            'last_update_date': response['lastUpdateDate'],
+            'gates': [],
+            'qubits': [],
+            'general': []
+        }
+
+        # Convert "gates" field..
+        for gate in response['multiQubitGates']:
+            properties['gates'].append({
+                'qubits': gate['qubits'],
+                'gate': gate['type'],
+                'parameters': [{'name': 'gateerr',
+                                'date': gate['gateError']['date'],
+                                'unit': 'us',
+                                'value': gate['gateError']['value']}]})
+
+        # Convert "qubits" field.
+        for qubit in response['qubits']:
+            qubit_edit = [
+                {'name': key,
+                 'date': value['date'],
+                 'unit': value.get('unit', '-'),
+                 'value': value['value']} for key, value in qubit.items()
+                if key not in ('name',)]
+            properties['qubits'].append(qubit_edit)
+
+        return properties
 
     def available_backends(self, hub=None, group=None, project=None,
                            access_token=None, user_id=None):

@@ -68,6 +68,7 @@ Changed
   updated methods include:
     - ``backend.status()``(#1301).
     - ``backend.configuration()`` (and ``__init__``) (#1323).
+    - ``backend.properties()`` (#1331).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
 
@@ -122,6 +123,8 @@ Fixed
   AerJob usage (#1125)
 - Fixed an edge case when connection checks would raise an unhandled exception
   (#1226)
+- Fixed a bug where the transpiler moved middle-of-circuit measurements to the
+  end (#1334)
 
 Removed
 """""""

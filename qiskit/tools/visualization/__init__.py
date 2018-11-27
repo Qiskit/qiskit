@@ -26,7 +26,7 @@ _MSG = 'The function %s needs matplotlib. Run "pip install matplotlib" before.'
 
 INTERACTIVE = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-    if _has_connection('https://qvisualization.mybluemix.net/', 443):
+    if _has_connection('qvisualization.mybluemix.net', 443):
         INTERACTIVE = True
 
 

@@ -134,12 +134,15 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
+        schema_path = self._get_resource_path(
+            'backend_properties_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
         aer_backends = Aer.backends()
         for backend in aer_backends:
             properties = backend.properties()
-            # FIXME test against schema and decide what properties
-            # is for a simulator
-            self.assertEqual(len(properties), 0)
+            jsonschema.validate(properties.to_dict(), schema)
 
     @requires_qe_access
     def test_remote_backend_properties(self, qe_token, qe_url):
@@ -147,17 +150,13 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
+        schema_path = self._get_resource_path(
+            'backend_properties_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
         IBMQ.enable_account(qe_token, qe_url)
         remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
-            self.log.info(backend.name())
             properties = backend.properties()
-            # FIXME test against schema and decide what properties
-            # is for a simulator
-            if backend.configuration().simulator:
-                self.assertEqual(len(properties), 0)
-            else:
-                self.assertTrue(all(key in properties for key in (
-                    'last_update_date',
-                    'qubits',
-                    'backend_name')))
+            jsonschema.validate(properties.to_dict(), schema)
