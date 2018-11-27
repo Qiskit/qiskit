@@ -658,8 +658,8 @@ def cx_cancellation(circuit):
         chunk = []
         for i in range(len(run) - 1):
             chunk.append(run[i])
-            qargs0 = circuit.multi_graph.node[run[i]]["qargs"]
-            qargs1 = circuit.multi_graph.node[run[i + 1]]["qargs"]
+            qargs0 = circuit.multi_graph.node[run[i]]["op"].qargs
+            qargs1 = circuit.multi_graph.node[run[i + 1]]["op"].qargs
             if qargs0 != qargs1:
                 partition.append(chunk)
                 chunk = []
@@ -673,6 +673,7 @@ def cx_cancellation(circuit):
             else:
                 for n in chunk[1:]:
                     circuit._remove_op_node(n)
+    return circuit
 
 
 def optimize_1q_gates(circuit):
@@ -686,7 +687,7 @@ def optimize_1q_gates(circuit):
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:
-        qname = unrolled.multi_graph.node[run[0]]["qargs"][0]
+        qname = unrolled.multi_graph.node[run[0]]["op"].qargs[0]
         right_name = "u1"
         right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for current_node in run:
@@ -698,20 +699,23 @@ def optimize_1q_gates(circuit):
                     or left_name not in ["u1", "u2", "u3", "id"]):
                 raise MapperError("internal error")
             if left_name == "u1":
-                left_parameters = (N(0), N(0), nd["params"][0])
+                left_parameters = (N(0), N(0), nd["op"].param[0])
             elif left_name == "u2":
-                left_parameters = (sympy.pi / 2, nd["params"][0], nd["params"][1])
+                left_parameters = (sympy.pi / 2, nd["op"].param[0], nd["op"].param[1])
             elif left_name == "u3":
-                left_parameters = tuple(nd["params"])
+                left_parameters = tuple(nd["op"].param)
             else:
                 left_name = "u1"  # replace id with u1
                 left_parameters = (N(0), N(0), N(0))
             # Compose gates
             name_tuple = (left_name, right_name)
             if name_tuple == ("u1", "u1"):
+                print("left: ", left_parameters)
+                print("right: ", right_parameters)
                 # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
                 right_parameters = (N(0), N(0), right_parameters[2] +
                                     left_parameters[2])
+                print("right: ", right_parameters)
             elif name_tuple == ("u1", "u2"):
                 # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
                 right_parameters = (sympy.pi / 2, right_parameters[1] +
