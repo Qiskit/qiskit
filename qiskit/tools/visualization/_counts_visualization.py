@@ -14,13 +14,13 @@ Visualization functions for measurement counts.
 from collections import Counter
 import functools
 import warnings
-
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-
+from ._matplotlib import HAS_MATPLOTLIB
 from ._error import VisualizationError
 
+if HAS_MATPLOTLIB:
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
 
 def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                    sort='asc', legend=None, bar_labels=True):
@@ -43,9 +43,12 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         matplotlib.Figure: A figure for the rendered histogram.
 
     Raises:
+        ImportError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if number_to_keep is not None:
         warnings.warn("number_to_keep has been deprecated, use the options "
                       "dictionary and set a number_to_keep key instead",
@@ -119,5 +122,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     plt.grid(which='major', axis='y', zorder=0, linestyle='--')
     if legend:
         plt.legend()
-
+    if fig:
+        plt.close(fig)
     return fig

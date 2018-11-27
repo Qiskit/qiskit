@@ -14,16 +14,16 @@ Visualization functions for quantum states.
 from functools import reduce
 
 import numpy as np
-from matplotlib import cm
-from matplotlib import pyplot as plt
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
 from scipy import linalg
 
 from qiskit.quantum_info import pauli_group, Pauli
-from qiskit.tools.visualization import VisualizationError
+from matplotlib import cm
+from matplotlib.ticker import MaxNLocator
+from matplotlib import pyplot as plt
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import proj3d
+from qiskit.tools.visualization._error import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
-
 
 class Arrow3D(FancyArrowPatch):
     """Standard 3D arrow."""
@@ -41,23 +41,20 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_hinton(rho, title='', filename=None, show=False):
+def plot_hinton(rho, title='', figsize=(8, 5)):
     """Plot a hinton diagram for the quanum state.
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window.
-        show (bool):  If set to true the rendered image will open in a new
-            window
+        figsize (tuple): Figure size in inches.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
 
     """
     num = int(np.log2(len(rho)))
-    fig = plt.figure()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
     datareal = np.real(rho)
     dataimag = np.imag(rho)
@@ -66,7 +63,6 @@ def plot_hinton(rho, title='', filename=None, show=False):
     lx = len(datareal[0])            # Work out matrix dimensions
     ly = len(datareal[:, 0])
     # Real
-    ax1 = fig.add_subplot(1, 2, 1)
     ax1.patch.set_facecolor('gray')
     ax1.set_aspect('equal', 'box')
     ax1.xaxis.set_major_locator(plt.NullLocator())
@@ -79,15 +75,14 @@ def plot_hinton(rho, title='', filename=None, show=False):
                              facecolor=color, edgecolor=color)
         ax1.add_patch(rect)
 
-    ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
-    ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
-    ax1.set_yticklabels(row_names, fontsize=12)
-    ax1.set_xticklabels(column_names, fontsize=12, rotation=-90)
+    ax1.set_xticks(np.arange(0, lx+0.5, 1))
+    ax1.set_yticks(np.arange(0, ly+0.5, 1))
+    ax1.set_yticklabels(row_names, fontsize=14)
+    ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
     ax1.autoscale_view()
     ax1.invert_yaxis()
-    ax1.set_title('Real[rho]')
+    ax1.set_title('Real[rho]', fontsize=14)
     # Imaginary
-    ax2 = fig.add_subplot(1, 2, 2)
     ax2.patch.set_facecolor('gray')
     ax2.set_aspect('equal', 'box')
     ax2.xaxis.set_major_locator(plt.NullLocator())
@@ -99,21 +94,19 @@ def plot_hinton(rho, title='', filename=None, show=False):
         rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
                              facecolor=color, edgecolor=color)
         ax2.add_patch(rect)
-
-    ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
-    ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
-    ax2.set_yticklabels(row_names, fontsize=12)
-    ax2.set_xticklabels(column_names, fontsize=12, rotation=-90)
+    if np.any(dataimag != 0):
+        ax2.set_xticks(np.arange(0, lx+0.5, 1))
+        ax2.set_yticks(np.arange(0, ly+0.5, 1))
+        ax2.set_yticklabels(row_names, fontsize=14)
+        ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
     ax2.autoscale_view()
     ax2.invert_yaxis()
-    ax2.set_title('Imag[rho]')
+    ax2.set_title('Imag[rho]', fontsize=14)
     if title:
         plt.title(title)
     plt.tight_layout()
-    if filename:
-        plt.savefig(filename)
-    elif show:
-        plt.show()
+    if fig:
+        plt.close(fig)
     return fig
 
 
@@ -126,25 +119,30 @@ def plot_bloch_vector(bloch, title="", ax=None):
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
         ax (matplotlib.Axes): An Axes to use for rendering the bloch sphere
+
+    Returns:
+        Figure: A matplotlib figure instance.
     """
     B = Bloch(axes=ax)
     B.add_vectors(bloch)
     B.render(title=title)
+    fig = B.fig
+    plt.close(fig)
+    return fig
 
 
-def plot_state_city(rho, title="", filename=None, show=False):
+def plot_state_city(rho, title="", color=None):
     """Plot the cityscape of quantum state.
 
-    Plot two 3d bargraphs (two dimensional) of the mixed state rho
+    Plot two 3d bar graphs (two dimensional) of the real and imaginary
+    part of the density matrix rho.
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window.
-        show (bool):  If set to true the rendered image will open in a new
-            window
+        color (list): A list of len=2 giving colors for real and
+        imaginary components of matrix elements.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
     """
@@ -173,40 +171,60 @@ def plot_state_city(rho, title="", filename=None, show=False):
     dzr = datareal.flatten()
     dzi = dataimag.flatten()
 
-    fig = plt.figure(figsize=(8, 8))
-    ax1 = fig.add_subplot(2, 1, 1, projection='3d')
-    ax1.bar3d(xpos, ypos, zpos, dx, dy, dzr, color="g", alpha=0.5)
-    ax2 = fig.add_subplot(2, 1, 2, projection='3d')
-    ax2.bar3d(xpos, ypos, zpos, dx, dy, dzi, color="g", alpha=0.5)
+    if color is None:
+        color = [["#648fff"]*len(dzr), ["#648fff"]*len(dzi)]
+    else:
+        if len(color) != 2:
+            raise Exception("'color' must be a list of len=2.")
+        if color[0] is None:
+            color[0] = ["#648fff"]*len(dzr)
+        elif isinstance(color[0], str):
+            color[0] = [color[0]]*len(dzr)
+        if color[1] is None:
+            color[1] = ["#648fff"]*len(dzr)
+        elif isinstance(color[1], str):
+            color[1] = [color[1]]*len(dzr)
+
+    fig = plt.figure(figsize=(15, 5))
+    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    ax1.bar3d(xpos, ypos, zpos, dx, dy, dzr, color=color[0], alpha=0.5)
+    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    ax2.bar3d(xpos, ypos, zpos, dx, dy, dzi, color=color[1], alpha=0.5)
 
     ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
     ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
-    ax1.axes.set_zlim3d(-1.0, 1.0001)
-    ax1.set_zticks(np.arange(-1, 1, 0.5))
-    ax1.w_xaxis.set_ticklabels(row_names, fontsize=12, rotation=45)
-    ax1.w_yaxis.set_ticklabels(column_names, fontsize=12, rotation=-22.5)
-    # ax1.set_xlabel('basis state', fontsize=12)
-    # ax1.set_ylabel('basis state', fontsize=12)
-    ax1.set_zlabel("Real[rho]")
+    ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
+    ax1.zaxis.set_major_locator(MaxNLocator(5))
+    ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
+    ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
+    ax1.set_zlabel("Real[rho]", fontsize=14)
+    for tick in ax1.zaxis.get_major_ticks():
+        tick.label.set_fontsize(14)
 
     ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
     ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
-    ax2.axes.set_zlim3d(-1.0, 1.0001)
-    ax2.set_zticks(np.arange(-1, 1, 0.5))
-    ax2.w_xaxis.set_ticklabels(row_names, fontsize=12, rotation=45)
-    ax2.w_yaxis.set_ticklabels(column_names, fontsize=12, rotation=-22.5)
+    if np.min(dzi) != np.max(dzi):
+        eps = 0
+        ax2.zaxis.set_major_locator(MaxNLocator(5))
+    else:
+        ax2.set_zticks([0])
+        eps = 1e-9
+    ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+    ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
+    ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
     # ax2.set_xlabel('basis state', fontsize=12)
     # ax2.set_ylabel('basis state', fontsize=12)
-    ax2.set_zlabel("Imag[rho]")
+    ax2.set_zlabel("Imag[rho]", fontsize=14)
+    for tick in ax2.zaxis.get_major_ticks():
+        tick.label.set_fontsize(14)
     plt.title(title)
-    if filename:
-        plt.savefig(filename)
-    elif show:
-        plt.show()
-    return plt.gcf()
+    plt.tight_layout()
+    if fig:
+        plt.close(fig)
+    return fig
 
 
-def plot_state_paulivec(rho, title="", filename=None, show=False):
+def plot_state_paulivec(rho, title="", figsize=(7, 5), color=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -215,10 +233,8 @@ def plot_state_paulivec(rho, title="", filename=None, show=False):
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window.
-        show (bool):  If set to true the rendered image will open in a new
-            window
+        figsize (tuple): Figure size in inches.
+        color (list or str): Color of the expectation value bars.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
     """
@@ -227,25 +243,31 @@ def plot_state_paulivec(rho, title="", filename=None, show=False):
     values = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                       pauli_group(num)))
     numelem = len(values)
+    if color is None:
+        color = ["#648fff"]*numelem
+    elif isinstance(color, str):
+        color = [color]*numelem
+
     ind = np.arange(numelem)  # the x locations for the groups
     width = 0.5  # the width of the bars
-    _, ax = plt.subplots()
-    ax.grid(zorder=0)
-    ax.bar(ind, values, width, color='seagreen')
-
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.grid(zorder=0, linewidth=1, linestyle='--')
+    ax.bar(ind, values, width, color=color, zorder=2)
+    ax.axhline(linewidth=1, color='k')
     # add some text for labels, title, and axes ticks
     ax.set_ylabel('Expectation value', fontsize=12)
     ax.set_xticks(ind)
     ax.set_yticks([-1, -0.5, 0, 0.5, 1])
-    ax.set_xticklabels(labels, fontsize=12, rotation=70)
-    ax.set_xlabel('Pauli', fontsize=12)
+    ax.set_xticklabels(labels, fontsize=14, rotation=70)
+    ax.set_xlabel('Pauli', fontsize=14)
     ax.set_ylim([-1, 1])
+    ax.set_facecolor('#eeeeee')
+    for tick in ax.xaxis.get_major_ticks()+ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(14)
     plt.title(title)
-    if filename:
-        plt.savefig(filename)
-    elif show:
-        plt.show()
-    return plt.gcf()
+    if fig:
+        plt.close(fig)
+    return fig
 
 
 def n_choose_k(n, k):
@@ -321,7 +343,7 @@ def phase_to_color_wheel(complex_number):
     return color_map[angle_round]
 
 
-def plot_state_qsphere(rho, filename=None, show=False):
+def plot_state_qsphere(rho, figsize=(7, 7)):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
     # get the eigenvectors and eigenvalues
@@ -351,7 +373,7 @@ def plot_state_qsphere(rho, filename=None, show=False):
             # print(state)
             state.flatten()
             # start the plotting
-            fig = plt.figure(figsize=(10, 10))
+            fig = plt.figure(figsize=figsize)
             ax = fig.add_subplot(111, projection='3d')
             ax.axes.set_xlim3d(-1.0, 1.0)
             ax.axes.set_ylim3d(-1.0, 1.0)
@@ -420,29 +442,23 @@ def plot_state_qsphere(rho, filename=None, show=False):
             ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
                     markeredgecolor=(.5, .5, .5), marker='o', markersize=10,
                     alpha=1)
-            if filename:
-                plt.savefig(filename)
-            elif show:
-                plt.show()
             we[prob_location] = 0
         else:
             break
-    return plt.gcf()
+    plt.tight_layout()
+    if fig:
+        plt.close(fig)
+    return fig
 
 
-def plot_state(quantum_state, method='city', filename=None, show=False):
+def plot_state(quantum_state, method='city'):
     """Plot the quantum state.
 
     Args:
         quantum_state (ndarray): statevector or density matrix
                                  representation of a quantum state.
         method (str): Plotting method to use.
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window. If
-            `bloch` method is used a `-n` will be added to the filename before
-            the extension for each qubit.
-        show (bool): If set to true the rendered image will open in a new
-            window
+
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
     Raises:
@@ -464,11 +480,11 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
         raise VisualizationError("Input is not a multi-qubit quantum state.")
     fig = None
     if method == 'city':
-        fig = plot_state_city(rho, filename=filename, show=show)
+        fig = plot_state_city(rho)
     elif method == "paulivec":
-        fig = plot_state_paulivec(rho, filename=filename, show=show)
+        fig = plot_state_paulivec(rho)
     elif method == "qsphere":
-        fig = plot_state_qsphere(rho, filename=filename, show=show)
+        fig = plot_state_qsphere(rho)
     elif method == "bloch":
         aspect = float(1 / num)
         fig = plt.figure(figsize=plt.figaspect(aspect))
@@ -483,14 +499,10 @@ def plot_state(quantum_state, method='city', filename=None, show=False):
                 map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                     pauli_singles))
             plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax)
-        if filename:
-            plt.savefig(filename)
-        elif show:
-            plt.show()
     elif method == "wigner":
-        fig = plot_wigner_function(rho, filename=filename, show=show)
+        fig = plot_wigner_function(rho)
     elif method == "hinton":
-        fig = plot_hinton(rho, filename=filename, show=show)
+        fig = plot_hinton(rho)
     return fig
 
 
