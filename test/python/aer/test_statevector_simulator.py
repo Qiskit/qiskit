@@ -8,7 +8,8 @@
 # pylint: disable=missing-docstring,broad-except
 
 import unittest
-from qiskit import execute, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import execute
 from qiskit import Aer
 from ..common import QiskitTestCase, requires_cpp_simulator
 
@@ -18,8 +19,10 @@ class StatevectorSimulatorTest(QiskitTestCase):
     """Test Aer's C++ statevector simulator."""
 
     def setUp(self):
-        self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
-        self.q_circuit = QuantumCircuit.from_qasm_file(self.qasm_filename)
+        qr = QuantumRegister(2)
+        self.q_circuit = QuantumCircuit(qr)
+        self.q_circuit.h(qr[0])
+        self.q_circuit.cx(qr[0], qr[1])
 
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""

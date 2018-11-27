@@ -71,6 +71,7 @@ disable=print-statement,parameter-unpacking,unpacking-in-except,old-raise-syntax
     protected-access,   # disabled as we don't follow the public vs private
                         # convention strictly
     duplicate-code,     # disabled as it is too verbose
+    redundant-returns-doc, # for @abstractmethod, it cannot interpret "pass"
     # disable the "too-many/few-..." refactoring hints
     too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
     too-many-statements, too-many-instance-attributes, too-many-arguments,

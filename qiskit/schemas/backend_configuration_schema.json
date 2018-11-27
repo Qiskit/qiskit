@@ -45,15 +45,10 @@
                     "description": "Backend version in the form X.X.X"
                     },
                 "n_qubits": {
-                    "oneOf":[{
                     "type": "integer",
                     "description": "Number of qubits",
                     "minimum": 1,
-                    "default": 1},
-                    {"type": "integer",
-                    "description": "Number of qubits",
-                    "minimum": -1,
-                    "maximum": -1}]
+                    "default": 1
                     },
                 "basis_gates": {
                     "type": "array",
