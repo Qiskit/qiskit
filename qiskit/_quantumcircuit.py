@@ -40,7 +40,7 @@ def _circuit_from_qasm(qasm):
         n = graph.nodes[node]
         if n['type'] == 'op':
             n['op'].circuit = circuit
-            if 'condition' in n:
+            if 'condition' in n and n['condition']:
                 circuit._attach(n['op'].c_if(*n['condition']))
             else:
                 circuit._attach(n['op'])
