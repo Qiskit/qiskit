@@ -15,7 +15,7 @@ import unittest
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-from .common import Path, QiskitTestCase, requires_cpp_simulator
+from ...common import Path, QiskitTestCase, requires_cpp_simulator
 
 
 # Timeout (in seconds) for a single notebook.
