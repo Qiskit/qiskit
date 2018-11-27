@@ -344,7 +344,7 @@ def direction_mapper(circuit_graph, coupling_graph):
 
     q = QuantumRegister(2, "q")
     flipped_cx_circuit = DAGCircuit()
-    flipped_cx_circuit.add_qreg()
+    flipped_cx_circuit.add_qreg(q)
     flipped_cx_circuit.add_basis_element("CX", 2)
     flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
     flipped_cx_circuit.add_basis_element("cx", 2)
