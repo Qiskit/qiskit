@@ -16,7 +16,7 @@ from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
 from qiskit.qobj import Qobj, QobjHeader, QobjItem, QobjConfig, QobjExperiment
 
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, bin_to_hex_keys
 
 
 class TestAerQasmSimulatorPy(QiskitTestCase):
@@ -55,10 +55,11 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         shots = 1024
         threshold = 0.04 * shots
         counts = result.get_counts('test')
-        target = {'100 100': shots / 8, '011 011': shots / 8,
-                  '101 101': shots / 8, '111 111': shots / 8,
-                  '000 000': shots / 8, '010 010': shots / 8,
-                  '110 110': shots / 8, '001 001': shots / 8}
+        target = bin_to_hex_keys({
+            '100 100': shots / 8, '011 011': shots / 8,
+            '101 101': shots / 8, '111 111': shots / 8,
+            '000 000': shots / 8, '010 010': shots / 8,
+            '110 110': shots / 8, '001 001': shots / 8})
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_if_statement(self):
@@ -97,13 +98,11 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         # Customize the experiments and create the qobj.
         ucircuit_true.config = QobjItem(coupling_map=None,
                                         basis_gates='u1,u2,u3,cx,id',
-                                        layout=None,
-                                        seed=None)
+                                        layout=None)
         ucircuit_true.header.name = 'test_if_true'
         ucircuit_false.config = QobjItem(coupling_map=None,
                                          basis_gates='u1,u2,u3,cx,id',
-                                         layout=None,
-                                         seed=None)
+                                         layout=None)
         ucircuit_false.header.name = 'test_if_false'
 
         qobj = Qobj(qobj_id='test_if_qobj',
@@ -123,8 +122,8 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         self.log.info('result_if_false circuit:')
         self.log.info(circuit_if_false.qasm())
         self.log.info('result_if_false=%s', result_if_false)
-        self.assertTrue(result_if_true['counts']['111'] == 100)
-        self.assertTrue(result_if_false['counts']['001'] == 100)
+        self.assertTrue(result_if_true['counts'][hex(int('111', 2))] == 100)
+        self.assertTrue(result_if_false['counts'][hex(int('001', 2))] == 100)
 
     @unittest.skipIf(version_info.minor == 5,
                      "Due to gate ordering issues with Python 3.5 "
@@ -154,16 +153,16 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         qobj = compile(circuit, backend=backend, shots=shots, seed=self.seed)
         results = backend.run(qobj).result()
         data = results.get_counts('teleport')
-        alice = {
+        alice = bin_to_hex_keys({
             '00': data['0 0 0'] + data['1 0 0'],
             '01': data['0 1 0'] + data['1 1 0'],
             '10': data['0 0 1'] + data['1 0 1'],
             '11': data['0 1 1'] + data['1 1 1']
-        }
-        bob = {
+        })
+        bob = bin_to_hex_keys({
             '0': data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1'],
             '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
-        }
+        })
         self.log.info('test_teleport: circuit:')
         self.log.info('test_teleport: circuit:')
         self.log.info(circuit.qasm())

@@ -49,6 +49,7 @@ class TestQiskitResult(QiskitTestCase):
         self.assertEqual(remote_result.status, 'COMPLETED')
         self.assertEqual(remote_result.circuit_statuses(), ['DONE'])
 
+    @unittest.skip('Temporarily disabled until moving to new module')
     def test_qubitpol(self):
         """Test the results of the qubitpol function in Results.
 
@@ -68,6 +69,7 @@ class TestQiskitResult(QiskitTestCase):
         self.assertTrue(array_equal(yvals, [[-1, -1], [1, -1]]))
         self.assertTrue(array_equal(xvals, [0, 1]))
 
+    @unittest.skip('Temporarily disabled until moving to new module')
     def test_average_data(self):
         """Test average_data."""
         qr = qiskit.QuantumRegister(2)

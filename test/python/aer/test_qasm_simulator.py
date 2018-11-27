@@ -20,7 +20,7 @@ from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
-from ..common import QiskitTestCase, requires_cpp_simulator
+from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
 
 class TestAerQasmSimulator(QiskitTestCase):
@@ -105,10 +105,11 @@ class TestAerQasmSimulator(QiskitTestCase):
         shots = self.qobj.config.shots
         threshold = 0.04 * shots
         counts = result.get_counts('test_circuit2')
-        target = {'100 100': shots / 8, '011 011': shots / 8,
-                  '101 101': shots / 8, '111 111': shots / 8,
-                  '000 000': shots / 8, '010 010': shots / 8,
-                  '110 110': shots / 8, '001 001': shots / 8}
+        target = bin_to_hex_keys(
+            {'100 100': shots / 8, '011 011': shots / 8,
+             '101 101': shots / 8, '111 111': shots / 8,
+             '000 000': shots / 8, '010 010': shots / 8,
+             '110 110': shots / 8, '001 001': shots / 8})
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_qobj_measure_opt(self):
@@ -168,7 +169,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         for name in expected_data:
             # Check counts:
             counts = result.get_counts(name)
-            expected_counts = expected_data[name]['counts']
+            expected_counts = bin_to_hex_keys(expected_data[name]['counts'])
             if expected_data[name].get('deterministic', False):
                 self.assertEqual(counts, expected_counts,
                                  msg=name + ' counts')

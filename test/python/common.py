@@ -379,12 +379,22 @@ def requires_qe_access(func):
     return _wrapper
 
 
+def bin_to_hex_keys(dict_):
+    """Replace the keys of a dict from bin to hex."""
+    # TODO: remove when all the tests are updated to the new counts format.
+    keys = list(dict_.keys())
+    for key in keys:
+        key_as_hex = hex(int(key.replace(' ', ''), 2))
+        dict_[key_as_hex] = dict_.pop(key)
+
+    return dict_
+
+
 def _get_http_recorder(test_options):
     vcr_mode = 'none'
     if test_options['rec']:
         vcr_mode = 'new_episodes'
     return http_recorder(vcr_mode, Path.CASSETTES.value)
-
 
 TEST_OPTIONS = get_test_options()
 VCR = _get_http_recorder(TEST_OPTIONS)

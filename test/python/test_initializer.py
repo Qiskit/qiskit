@@ -20,7 +20,7 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import execute, Aer
 from qiskit.quantum_info import state_fidelity
-from .common import QiskitTestCase
+from .common import QiskitTestCase, bin_to_hex_keys
 
 
 class TestInitialize(QiskitTestCase):
@@ -176,7 +176,8 @@ class TestInitialize(QiskitTestCase):
         job = execute(qc, Aer.get_backend('qasm_simulator_py'), shots=shots)
         result = job.result()
         counts = result.get_counts()
-        target = {'00': shots / 4, '01': shots / 4, '10': shots / 4, '11': shots / 4}
+        target = bin_to_hex_keys({'00': shots / 4, '01': shots / 4,
+                                  '10': shots / 4, '11': shots / 4})
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_sympy(self):

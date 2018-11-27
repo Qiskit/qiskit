@@ -22,7 +22,7 @@ from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import remove_last_measurements, MapperError
-from .common import QiskitTestCase
+from .common import QiskitTestCase, bin_to_hex_keys
 
 
 class FakeQX4BackEnd(object):
@@ -112,7 +112,7 @@ class MapperTest(QiskitTestCase):
                               coupling_map=coupling_map,
                               seed=self.seed, shots=shots)
         counts = qobj.result().get_counts()
-        target = {'0001': shots / 2, '0101':  shots / 2}
+        target = bin_to_hex_keys({'0001': shots / 2, '0101':  shots / 2})
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -150,7 +150,7 @@ class MapperTest(QiskitTestCase):
                               coupling_map=coupling_map, shots=shots,
                               seed=self.seed)
         counts = qobj.result().get_counts()
-        expected_probs = {
+        expected_probs = bin_to_hex_keys({
             '00000': 0.079239867254200971,
             '00001': 0.032859032998526903,
             '00010': 0.10752610993531816,
@@ -183,7 +183,7 @@ class MapperTest(QiskitTestCase):
             '11101': 0.0004788556283690458,
             '11110': 0.002232419390471667,
             '11111': 0.017684822659235985
-        }
+        })
         target = {key: shots * val for key, val in expected_probs.items()}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
