@@ -14,9 +14,8 @@ import logging
 from marshmallow import ValidationError
 
 from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case
 from qiskit.backends import BaseBackend, JobStatus
-from qiskit.backends.models import BackendStatus
+from qiskit.backends.models import BackendStatus, BackendProperties
 
 from .api import ApiError
 from .ibmqjob import IBMQJob, IBMQJobPreQobj
@@ -68,20 +67,10 @@ class IBMQBackend(BaseBackend):
 
         Returns:
             dict: The properties of the backend.
-
-        Raises:
-            LookupError: If properties for the backend can't be found.
         """
-        properties = self._api.backend_properties(self.name())
+        api_properties = self._api.backend_properties(self.name())
 
-        # Convert the properties to snake_case.
-        # TODO: ideally should be handled at the API level.
-        properties_edit = {}
-        for key, val in properties.items():
-            new_key = _camel_case_to_snake_case(key)
-            properties_edit[new_key] = val
-
-        return properties_edit
+        return BackendProperties.from_dict(api_properties)
 
     def status(self):
         """Return the online backend status.
