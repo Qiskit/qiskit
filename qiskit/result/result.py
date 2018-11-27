@@ -41,6 +41,42 @@ class Result(BaseModel):
 
         super().__init__(**kwargs)
 
+    def __len__(self):
+        return len(self.results)
+
+    def __iadd__(self, other):
+        """Append a Result object to current Result object.
+
+        Arg:
+            other (Result): a Result object to append.
+        Returns:
+            Result: The current object with appended results.
+        Raises:
+            QISKitError: if the Results cannot be combined.
+        """
+        this_backend = self.backend_name
+        other_backend = other.backend_name
+        if this_backend != other_backend:
+            raise QISKitError('Result objects from different backends cannot be combined.')
+
+        if not self.success or not other.success:
+            raise QISKitError('Can not combine a failed result with another result.')
+
+        self.results.extend(other.results)
+        return self
+
+    def __add__(self, other):
+        """Combine Result objects.
+
+        Arg:
+            other (Result): a Result object to combine.
+        Returns:
+            Result: A new Result object consisting of combined objects.
+        """
+        copy_of_self = self.from_dict(self.to_dict())
+        copy_of_self += other
+        return copy_of_self
+
     def get_data(self, circuit=None):
         """Get the data of an experiment.
 
@@ -180,10 +216,8 @@ class Result(BaseModel):
                 snapshot_list = snapshot_dict[snapshot_types[0]]
                 if len(snapshot_list) == 1:
                     return snapshot_list[0]
-                else:
-                    return snapshot_list
-            else:
-                return snapshot_dict
+                return snapshot_list
+            return snapshot_dict
         except KeyError:
             raise QISKitError('No snapshot at slot {0} for '
                               'circuit "{1}"'.format(slot, circuit))
@@ -191,6 +225,15 @@ class Result(BaseModel):
     def get_status(self):
         """Return whole result status."""
         return getattr(self, 'status', '')
+
+    def circuit_statuses(self):
+        """Return statuses of all circuits.
+
+        Returns:
+            list(str): List of status result strings.
+        """
+        return [getattr(experiment_result, 'status', '') for
+                experiment_result in self.results]
 
     def _get_experiment(self, key=None):
         """Return an experiment from a given key.
@@ -233,3 +276,63 @@ class Result(BaseModel):
         except StopIteration:
             raise QISKitError('Data for experiment "%s" could not be found.' %
                               key)
+
+    # Methods to be moved to a module.
+
+    def average_data(self, name, observable):
+        """Compute the mean value of an diagonal observable."""
+        # TODO: move to a module
+        raise NotImplementedError
+
+    def get_qubitpol_vs_xval(self, nqubits, xvals_dict=None):
+        """Compute the polarization of each qubit for all circuits."""
+        # TODO: move to a module
+        raise NotImplementedError
+
+    # Methods not covered by tests. Candidates for removal?
+
+    # TODO: disabled for testing.
+    # def __getitem__(self, i):
+    #     return list(self.results.values())[i]
+
+    def get_circuit_status(self, icircuit):
+        """Return the status of circuit at index icircuit.
+
+        Args:
+            icircuit (int): index of circuit
+        Returns:
+            string: the status of the circuit.
+        """
+        return self[icircuit].status
+
+    def get_job_id(self):
+        """Return the job id assigned by the api if this is a remote job.
+
+        Returns:
+            string: a string containing the job id.
+        """
+        return self.job_id
+
+    def get_ran_qasm(self, name):
+        """Get the ran qasm for the named circuit and backend.
+
+        Args:
+            name (str): the name of the quantum circuit.
+
+        Returns:
+            string: A text version of the qasm file that has been run.
+        Raises:
+            QISKitError: if the circuit was not found.
+        """
+        try:
+            return self.results[name].compiled_circuit_qasm
+        except KeyError:
+            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
+
+    def get_names(self):
+        """Get the circuit names of the results.
+
+        Returns:
+            List: A list of circuit names.
+        """
+        return list(self.results.keys())
