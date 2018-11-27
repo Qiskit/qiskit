@@ -374,12 +374,8 @@ class QCircuitImage(object):
                 if 'condition' in op and op['condition']:
                     raise _error.VisualizationError(
                         'conditional measures currently not supported.')
-                qindex = self._get_qubit_index(op['qargs'][0])
-                cindex = self._get_clbit_index(op['cargs'][0])
-                qname, qindex = self.total_2_register_index(
-                    qindex, self.qregs)
-                cname, cindex = self.total_2_register_index(
-                    cindex, self.cregs)
+                qname, qindex = op['qargs'][0]
+                cname, cindex = op['cargs'][0]
                 if aliases:
                     newq = aliases[(qname, qindex)]
                     qname = newq[0]
@@ -405,9 +401,7 @@ class QCircuitImage(object):
                 if 'conditional' in op and op['condition']:
                     raise _error.VisualizationError(
                         'conditional reset currently not supported.')
-                qindex = self._get_qubit_index(op['qargs'][0])
-                qname, qindex = self.total_2_register_index(
-                    qindex, self.qregs)
+                qname, qindex = op['qargs'][0]
                 if aliases:
                     newq = aliases[(qname, qindex)]
                     qname = newq[0]
@@ -463,71 +457,6 @@ class QCircuitImage(object):
         width = max(width, 10)
 
         return (height, width, self.scale)
-
-    def _get_qubit_index(self, qubit):
-        """Get the index number for a quantum bit
-
-        Args:
-            qubit (tuple): The tuple of the bit of the form
-                (register_name, bit_number)
-        Returns:
-            int: The index in the bit list
-        Raises:
-            VisualizationError: If the bit isn't found
-        """
-        for i, bit in enumerate(self.qubit_list):
-            if qubit == bit:
-                qindex = i
-                break
-        else:
-            raise _error.VisualizationError(
-                "unable to find bit for operation")
-        return qindex
-
-    def _get_clbit_index(self, clbit):
-        """Get the index number for a classical bit
-
-        Args:
-            clbit (tuple): The tuple of the bit of the form
-                (register_name, bit_number)
-        Returns:
-            int: The index in the bit list
-        Raises:
-            VisualizationError: If the bit isn't found
-        """
-        for i, bit in enumerate(self.clbit_list):
-            if clbit == bit:
-                cindex = i
-                break
-        else:
-            raise _error.VisualizationError(
-                "unable to find bit for operation")
-        return cindex
-
-    def total_2_register_index(self, index, registers):
-        """Get register name for qubit index.
-
-        This function uses the self.qregs ordered dictionary, which looks like
-        {'qr1': 2, 'qr2', 3}
-        to get the register name for the total qubit index. For the above
-        example, index in [0,1] returns 'qr1' and index in [2,4] returns 'qr2'.
-
-        Args:
-            index (int): total qubit index among all quantum registers
-            registers (OrderedDict): OrderedDict as described above.
-        Returns:
-            str: name of register associated with qubit index.
-        Raises:
-            ValueError: if the qubit index lies outside the range of qubit
-                registers.
-        """
-        count = 0
-        for name, size in registers.items():
-            if count + size > index:
-                return name, index - count
-            else:
-                count += size
-        raise ValueError('qubit index lies outside range of qubit registers')
 
     def _get_mask(self, creg_name):
         mask = 0
@@ -939,13 +868,8 @@ class QCircuitImage(object):
                     raise _error.VisualizationError(
                         "If controlled measures currently not supported.")
 
-                qindex = self._get_qubit_index(op['qargs'][0])
-                cindex = self._get_clbit_index(op['cargs'][0])
-                qname, qindex = self.total_2_register_index(
-                    qindex, self.qregs)
-                cname, cindex = self.total_2_register_index(
-                    cindex, self.cregs)
-
+                qname, qindex = op['qargs'][0]
+                cname, cindex = op['cargs'][0]
                 if aliases:
                     newq = aliases[(qname, qindex)]
                     qname = newq[0]
