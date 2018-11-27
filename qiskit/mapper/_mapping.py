@@ -850,7 +850,8 @@ def remove_last_measurements(dag_circuit, perform_remove=True):
 
     for idx in meas_nodes:
         _, succ_map = dag_circuit._make_pred_succ_maps(idx)
-        if len(succ_map) == 2:
+        if len(succ_map) == 2 and all([dag_circuit.multi_graph.node[n]["type"] == "out"
+                                       for n in succ_map.values()]):
             # All succesors of the measurement are outputs, one for qubit and one for cbit
             # (As opposed to more gates being applied), and it is safe to remove the
             # measurement node and add it back after the swap mapper is done.
