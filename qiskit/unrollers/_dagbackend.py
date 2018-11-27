@@ -124,13 +124,14 @@ class DAGBackend(UnrollerBackend):
         """
         self.circuit.add_creg(creg)
 
-    def set_condition(self, creg, cval):
+    def set_condition(self, creg_name, cval):
         """Attach a current condition.
 
         Args:
-            creg (ClassicalRegister): creg to condition on.
+            creg_name (str): creg name to condition on.
             cval (int): value for the condition comparison.
         """
+        creg = self.circuit.cregs[creg_name]
         self.creg = creg
         self.cval = cval
 

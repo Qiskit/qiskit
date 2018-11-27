@@ -39,7 +39,11 @@ def _circuit_from_qasm(qasm):
     for node in nx.topological_sort(graph):
         n = graph.nodes[node]
         if n['type'] == 'op':
-            circuit._attach(n['op'])
+            n['op'].circuit = circuit
+            if 'condition' in n:
+                circuit._attach(n['op'].c_if(*n['condition']))
+            else:
+                circuit._attach(n['op'])
 
     return circuit
 
