@@ -107,7 +107,9 @@ Removed
   the basis gates prior to visualizing the circuit. (#1151)
 - ``backend.parameters()`` and ``backend.calibration()`` have been fully
   deprecated, in favour of ``backend.properties()`` (#1305).
-
+- The ``qiskit.tools.file_io`` module has been removed. Conversion between
+  ``qiskit.Result`` and json can be achieved using ``.to_dict()`` and
+  ``.from_dict()`` directly.
 
 Fixed
 """""
