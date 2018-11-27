@@ -16,6 +16,7 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
+import warnings
 import networkx as nx
 from ._couplingerror import CouplingError
 
@@ -82,6 +83,10 @@ class Coupling:
         """
         if couplingdict is not None and couplinglist is not None:
             raise CouplingError('Cannot specify both couplingdict and couplinglist')
+
+        if couplingdict is not None:
+            warnings.warn('Initializing a coupling object through a couplingdict is deprecated. '
+                          'Use a couplinglist instead.', DeprecationWarning)
 
         self.graph = nx.DiGraph()
         if couplingdict is not None:

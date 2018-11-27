@@ -22,14 +22,14 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual("", str(coupling))
 
     def test_coupling_str(self):
-        coupling_dict = {0: [1, 2], 1: [2]}
-        coupling = Coupling(coupling_dict)
+        coupling_list = [(0, 1), (0, 2), (1, 2)]
+        coupling = Coupling(couplinglist=coupling_list)
         expected = ("[(0, 1), (0, 2), (1, 2)]")
         self.assertEqual(expected, str(coupling))
 
     def test_coupling_distance(self):
-        coupling_dict = {0: [1, 2], 1: [2]}
-        coupling = Coupling(coupling_dict)
+        coupling_list = [(0, 1), (0, 2), (1, 2)]
+        coupling = Coupling(couplinglist=coupling_list)
         self.assertTrue(coupling.is_connected())
         physical_qubits = coupling.physical_qubits
         result = coupling.distance(physical_qubits[0], physical_qubits[1])
