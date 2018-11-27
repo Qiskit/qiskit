@@ -33,6 +33,21 @@ class TestDagRegisters(QiskitTestCase):
         self.assertDictEqual(dag.qregs, {'qr': QuantumRegister(2, 'qr')})
         self.assertDictEqual(dag.cregs, {'cr': ClassicalRegister(1, 'cr')})
 
+    def test_dag_get_qubits(self):
+        dag = DAGCircuit()
+        dag.add_qreg(QuantumRegister(1, 'qr1'))
+        dag.add_qreg(QuantumRegister(1, 'qr10'))
+        dag.add_qreg(QuantumRegister(1, 'qr0'))
+        dag.add_qreg(QuantumRegister(1, 'qr3'))
+        dag.add_qreg(QuantumRegister(1, 'qr4'))
+        dag.add_qreg(QuantumRegister(1, 'qr6'))
+        self.assertListEqual(dag.get_qubits(), [(QuantumRegister(1, 'qr1'), 0),
+                                                (QuantumRegister(1, 'qr10'), 0),
+                                                (QuantumRegister(1, 'qr0'), 0),
+                                                (QuantumRegister(1, 'qr3'), 0),
+                                                (QuantumRegister(1, 'qr4'), 0),
+                                                (QuantumRegister(1, 'qr6'), 0)])
+
     def test_add_reg_duplicate(self):
         dag = DAGCircuit()
         qr = QuantumRegister(2)

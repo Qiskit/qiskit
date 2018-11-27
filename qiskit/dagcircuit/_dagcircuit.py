@@ -89,8 +89,8 @@ class DAGCircuit:
         self.layout = []
 
     def get_qubits(self):
-        """Return a list of qubits as (qreg, index) pairs."""
-        return [(k, i) for k, v in self.qregs.items() for i in range(v.size)]
+        """Return a list of qubits as (QuantumRegister, index) pairs."""
+        return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
     # TODO: unused function. is it needed?
     def rename_register(self, regname, newname):
