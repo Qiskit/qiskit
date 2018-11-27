@@ -7,9 +7,10 @@
 
 """Polymorphic fields are those that represent one of several schemas or types.
 """
-
+from collections import Iterable
 from functools import partial
 
+from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
 from qiskit.validation import ValidationError, ModelValidator
@@ -18,20 +19,17 @@ from qiskit.validation import ValidationError, ModelValidator
 class BasePolyField(PolyField, ModelValidator):
     """Base class for polymorphic fields.
 
-    Defines a Field that can contain data of different types. Deciding the
-    type is performed by the ``to_dict_selector()`` and ``from_dict_selector()``
-    functions, that act on ``choices``. Subclasses are recommended to:
+    Defines a Field that can contain data fitting different ``BaseSchema``.
+    Deciding the type is performed by the ``to_dict_selector()`` and
+    ``from_dict_selector()`` functions, that act on ``choices``.
 
-    * define the type of the ``choices`` attribute. It should contain a
-      reference to the individual Schemas that are accepted by the field, along
-      with other information specific to the subclass.
-    * customize the ``to_dict_selector()`` and ``from_dict_selector()``, adding
-      the necessary logic for inspecting ``choices`` and the data, and
-      returning one of the Schemas.
+    Subclasses are recommended to customize the ``to_dict_selector()`` and
+    ``from_dict_selector()``, adding the necessary logic for inspecting
+    ``choices`` and the data, and returning one of the Schemas.
 
      Args:
-        choices (iterable): iterable containing the schema instances and the
-            information needed for performing disambiguation.
+        choices (dict or iterable): iterable or dict containing the schema
+            instances and the information needed for performing disambiguation.
         many (bool): whether the field is a collection of objects.
         metadata (dict): the same keyword arguments that ``PolyField`` receives.
     """
@@ -52,15 +50,15 @@ class BasePolyField(PolyField, ModelValidator):
         super().__init__(to_dict_selector, from_dict_selector, many=many, **metadata)
 
     def to_dict_selector(self, choices, *args, **kwargs):
-        """Return an schema in `choices` for serialization."""
+        """Return an schema in ``choices`` for serialization."""
         raise NotImplementedError
 
     def from_dict_selector(self, choices, *args, **kwargs):
-        """Return an schema in `choices` for deserialization."""
+        """Return an schema in ``choices`` for deserialization."""
         raise NotImplementedError
 
     def _deserialize(self, value, attr, data):
-        """Override _deserialize for customizing the Exception raised."""
+        """Override ``_deserialize`` for customizing the exception raised."""
         try:
             return super()._deserialize(value, attr, data)
         except ValidationError as ex:
@@ -69,7 +67,7 @@ class BasePolyField(PolyField, ModelValidator):
             raise
 
     def _serialize(self, value, key, obj):
-        """Override _serialize for customizing the Exception raised."""
+        """Override ``_serialize`` for customizing the exception raised."""
         try:
             return super()._serialize(value, key, obj)
         except TypeError as ex:
@@ -77,19 +75,29 @@ class BasePolyField(PolyField, ModelValidator):
                 raise ValidationError('Data from an invalid schema')
             raise
 
-    def validate_model(self, value, attr, data):
-        """Helper for minimal validation of fields.BasePolyField."""
-        if not self.many:
-            values = [value]
-        else:
-            values = value
+    def _expected_types(self):
+        return tuple(schema.model_cls for schema in self._choices)
 
-        expected_types = tuple(schema.model_cls for schema in self._choices)
-        for v in values:
-            if not isinstance(v, expected_types):
-                raise self._not_expected_type(
-                    value, self._choices, fields=[self], field_names=attr,
-                    data=data)
+    def validate_model(self, value, attr, data):
+        """Check if the type of the value is one of the possible choices.
+
+        Possible choices are the model classes bound to the possible schemas.
+        """
+        if self.many and not is_collection(value):
+            raise self._not_expected_type(
+                value, Iterable, fields=[self], field_names=attr, data=data)
+
+        errors = []
+        values = value if self.many else [value]
+        for idx, v in enumerate(values):
+            try:
+                self._check_type(v, idx, values)
+            except ValidationError as err:
+                errors.append(err.messages)
+
+        if errors:
+            errors = errors if self.many else errors[0]
+            raise ValidationError(errors)
 
         return value
 
@@ -216,6 +224,10 @@ class ByType(ModelValidator):
         self.fail('invalid', value=value, types=self.choices)
 
     def validate_model(self, value, attr, data):
+        """Check if at least one of the possible choices validates the value.
+
+        Possible choices are assumed to be ``ModelValidator`` fields.
+        """
         for field in self.choices:
             if isinstance(field, ModelValidator):
                 try:

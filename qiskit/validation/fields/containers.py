@@ -7,6 +7,7 @@
 
 """Container fields are those that represent nested/collections of schemas or
 types."""
+from collections import Iterable
 
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
@@ -21,23 +22,51 @@ class Nested(_fields.Nested, ModelValidator):
     def _expected_types(self):
         return self.schema.model_cls
 
+    def validate_model(self, value, attr, data):
+        """Validate if the value is of the type of the schema's model.
+
+        Assumes the nested schema is a ``BaseSchema``.
+        """
+        if self.many and not is_collection(value):
+            raise self._not_expected_type(
+                value, Iterable, fields=[self], field_names=attr, data=data)
+
+        errors = []
+        values = value if self.many else [value]
+        for idx, v in enumerate(values):
+            try:
+                self._check_type(v, idx, values)
+            except ValidationError as err:
+                errors.append(err.messages)
+
+        if errors:
+            errors = errors if self.many else errors[0]
+            raise ValidationError(errors)
+
+        return value
+
 
 class List(_fields.List, ModelValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.List.__doc__
 
-    def validate_model(self, value, *_):
-        # pylint: disable=arguments-differ
-        errors = []
-        if not is_collection(value):
-            raise self._not_expected_type(value, 'iterable')
+    valid_types = (Iterable, )
 
+    def validate_model(self, value, *_):
+        """Validate if it's a list of valid item-field values.
+
+        Check if each element in the list can be validated by the item-field
+        passed during construction.
+        """
+        # pylint: disable=arguments-differ
+        super().validate_model(value, *_)
+
+        errors = []
         for idx, v in enumerate(value):
-            if isinstance(v, ModelValidator):
-                try:
-                    self.container.validate_model(v, idx, value)
-                except ValidationError as err:
-                    errors.append(err.messages)
+            try:
+                self.container.validate_model(v, idx, value)
+            except ValidationError as err:
+                errors.append(err.messages)
 
         if errors:
             raise ValidationError(errors)

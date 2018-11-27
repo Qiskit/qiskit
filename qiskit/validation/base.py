@@ -29,6 +29,7 @@ from types import SimpleNamespace, MethodType
 from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
+from marshmallow.utils import is_collection
 
 
 class ModelValidator(_fields.Field):
@@ -40,17 +41,43 @@ class ModelValidator(_fields.Field):
         return self.valid_types
 
     def validate_model(self, value, attr, data):
-        """Validates a value against the correct type of the field."""
+        """Validates a value against the correct type of the field.
 
+        Subclasses can do one of the following:
+
+            1. They can override the ``valid_types`` property with a tuple with
+            the expected types for this field.
+
+            2. They can override the ``_expected_types`` method to return a
+            tuple of expected types for the field.
+
+            3. They can override the ``_check_type`` method in charge of
+            raising a ``ValidationError`` if the type of the value is none of
+            the expected ones.
+
+            4. They can change ``validate_model`` completely to customize
+            validation.
+        """
+        self._check_type(value, attr, data)
+        return value
+
+    def _check_type(self, value, attr, data):
         expected_types = self._expected_types()
         if not isinstance(value, expected_types):
             raise self._not_expected_type(
                 value, expected_types, fields=[self], field_names=attr, data=data)
 
-        return value
+    @staticmethod
+    def _not_expected_type(value, type_, **kwargs):
+        if is_collection(type_) and len(type_) == 1:
+            type_ = type_[0]
 
-    def _not_expected_type(self, value, type_, **kwargs):
-        message = 'Value {} not of expected type {}'.format(value, type_)
+        if is_collection(type_):
+            body = 'is none of the expected types {}'.format(type_)
+        else:
+            body = 'is not the expected type {}'.format(type_)
+
+        message = 'Value \'{}\' {}'.format(value, body)
         return ValidationError(message, **kwargs)
 
 

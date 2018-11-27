@@ -9,7 +9,6 @@
 from datetime import date, datetime
 
 from marshmallow import fields as _fields
-from marshmallow.fields import Raw
 from marshmallow.utils import is_collection
 
 from qiskit.validation import ModelValidator
@@ -105,29 +104,34 @@ class Url(_fields.Url, String):
     __doc__ = _fields.Url.__doc__
 
 
-class Number(_fields.Number):
+class Number(_fields.Number, ModelValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Number.__doc__
 
     valid_types = (int, float)
 
 
-class Integer(_fields.Integer):
+class Integer(_fields.Integer, ModelValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Integer.__doc__
 
     valid_types = (int, )
 
 
-class Float(_fields.Float):
+class Float(_fields.Float, ModelValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Float.__doc__
 
-    valid_types = (int, )
+    valid_types = (float, )
 
 
-class Boolean(_fields.Boolean):
+class Boolean(_fields.Boolean, ModelValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Boolean.__doc__
 
     valid_types = (bool, )
+
+
+class Raw(_fields.Raw, ModelValidator):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Boolean.__doc__
