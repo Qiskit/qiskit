@@ -27,8 +27,6 @@ from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
 from qiskit.result._utils import result_from_old_style_dict
-from qiskit.qobj import Result as QobjResult
-from qiskit.qobj import ExperimentResult as QobjExperimentResult
 from qiskit.qobj import validate_qobj_against_schema
 
 from .api import ApiError
@@ -227,14 +225,7 @@ class IBMQJob(BaseJob):
         return job_response
 
     def _result_from_job_response(self, job_response):
-        experiment_results = []
-        result_json = job_response['qObjectResult']
-        for experiment_result_json in result_json['results']:
-            qobj_experiment_result = QobjExperimentResult(**experiment_result_json)
-            experiment_results.append(qobj_experiment_result)
-
-        result_kwargs = {**result_json, 'results': experiment_results}
-        return Result(QobjResult(**result_kwargs))
+        return Result.from_dict(job_response['qObjectResult'])
 
     def cancel(self):
         """Attempt to cancel a job.
@@ -517,13 +508,17 @@ class IBMQJobPreQobj(IBMQJob):
         experiment_results = []
         for circuit_result in job_response['qasms']:
             this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
                            'compiled_circuit_qasm': circuit_result.get('qasm'),
                            'status': circuit_result['status'],
                            'success': circuit_result['status'] == 'DONE',
                            'shots': job_response['shots']}
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
+                if 'header' in circuit_result['metadata'].get('compiled_circuit', {}):
+                    this_result['header'] = \
+                        circuit_result['metadata']['compiled_circuit']['header']
+                else:
+                    this_result['header'] = {}
             experiment_results.append(this_result)
 
         return result_from_old_style_dict({
@@ -532,8 +527,8 @@ class IBMQJobPreQobj(IBMQJob):
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
             'backend_name': self.backend().name(),
-            'success': job_response['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in job_response['qasms']])
+            'success': job_response['status'] == 'COMPLETED'
+        })
 
 
 def _reorder_bits(job_data):

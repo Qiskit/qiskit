@@ -34,7 +34,7 @@ class TestQiskitResult(QiskitTestCase):
         self.assertEqual('qasm_simulator_py', self._result1.backend_name)
         self.assertIsInstance(self._result1.job_id, str)
         self.assertEqual(self._result1.status, 'COMPLETED')
-        self.assertEqual(self._result1.circuit_statuses(), ['DONE'])
+        self.assertEqual(self._result1.results[0].status, 'DONE')
 
     @requires_qe_access
     def test_ibmq_result_fields(self, qe_token, qe_url):
@@ -45,7 +45,7 @@ class TestQiskitResult(QiskitTestCase):
         self.assertEqual(remote_result.backend_name, remote_backend.name())
         self.assertIsInstance(remote_result.job_id, str)
         self.assertEqual(remote_result.status, 'COMPLETED')
-        self.assertEqual(remote_result.circuit_statuses(), ['DONE'])
+        self.assertEqual(self._result1.results[0].status, 'DONE')
 
     def test_extend_result(self):
         """Test extending a Result instance is possible."""

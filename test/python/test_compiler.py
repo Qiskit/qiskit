@@ -23,7 +23,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit import execute
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends.ibmq import least_busy
-from .common import QiskitTestCase, requires_qe_access
+from .common import QiskitTestCase, requires_qe_access, bin_to_hex_keys
 
 
 class FakeBackend(object):
@@ -533,13 +533,13 @@ class TestCompiler(QiskitTestCase):
                          coupling_map=None, shots=1024,
                          seed=14).result()
         self.assertEqual(result.get_counts(qc),
-                         {'010000': 1024})
+                         bin_to_hex_keys({'010000': 1024}))
         # Second version: map to coupling graph
         result = execute(qc, backend=backend,
                          coupling_map=coupling_map, shots=1024,
                          seed=14).result()
         self.assertEqual(result.get_counts(qc),
-                         {'010000': 1024})
+                         bin_to_hex_keys({'010000': 1024}))
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile.

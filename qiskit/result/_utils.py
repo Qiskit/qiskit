@@ -8,26 +8,29 @@
 """Utilities for working with results."""
 
 import logging
-from qiskit import qobj
+
 from . import Result
 
 
 logger = logging.getLogger(__name__)
 
 
-def result_from_old_style_dict(result_dict, experiment_names=None):
+def result_from_old_style_dict(result_dict):
     """Return a `Result` from a dict that is using the previous format.
 
     Args:
         result_dict (dict): dictionary in the old format.
-        experiment_names (list): list of circuit names.
     Returns:
         qiskit.Result: a Result instance.
     """
-    # Prepare the experiment results.
-    experiment_results = [qobj.ExperimentResult(**kwargs) for
-                          kwargs in result_dict['result']]
-    del result_dict['result']
+    # Prepare the experiment results: "counts" keys as hex.
+    for experiment_result in result_dict['result']:
+        if 'counts' in experiment_result['data']:
+            counts = experiment_result['data']['counts']
+            keys = list(counts.keys())
+            for key in keys:
+                key_as_hex = hex(int(key.replace(' ', ''), 2))
+                counts[key_as_hex] = counts.pop(key)
 
     # TODO: simulators return `backend`, ibmq seems to return `backend_name`.
     # The schema expects `backend_name`.
@@ -38,20 +41,15 @@ def result_from_old_style_dict(result_dict, experiment_names=None):
     # TODO: some fields are missing. This should be revised when everything
     # outputs schema-conformant results (including `test_ibmqjob_states`).
     result_dict.update({
-        'backend_version': result_dict.get('backend_version', 'TODO'),
+        'backend_version': result_dict.get('backend_version', '0.0.0'),
         'job_id': result_dict.get('job_id', 'TODO'),
         'success': result_dict.get('success', False),
-        'backend_name': result_dict.get('backend_name', 'TODO')
+        'backend_name': result_dict.get('backend_name', 'TODO'),
+        'qobj_id': result_dict.pop('id'),
+        'results': result_dict.pop('result')
     })
 
-    result_dict.update({
-        'backend_version': 'TODO',
-        'qobj_id': result_dict['id'],
-        'results': experiment_results
-    })
-    del result_dict['id']
-
-    return Result(qobj.Result(**result_dict), experiment_names)
+    return Result.from_dict(result_dict)
 
 
 def copy_qasm_from_qobj_into_result(qobj_, result):
@@ -70,6 +68,10 @@ def copy_qasm_from_qobj_into_result(qobj_, result):
         experiment_result = _find_experiment_result(result, name)
         if qasm and experiment_result:
             experiment_result['compiled_circuit_qasm'] = qasm
+
+        # TODO: passing the header to the results should be done at a higher
+        # level. This ensures result[x].header.name is present, for results.
+        experiment_result['header'] = experiment.header.as_dict()
 
 
 def _find_experiment_result(result, name):

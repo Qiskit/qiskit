@@ -96,7 +96,7 @@ class DummySimulator(BaseBackend):
         """ Main dummy simulator loop """
         time.sleep(self.time_alive)
 
-        return Result(
+        return Result.from_dict(
             {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 
