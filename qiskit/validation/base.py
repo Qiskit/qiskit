@@ -65,9 +65,6 @@ class ModelTypeValidator(_fields.Field):
                 value, expected_types, fields=[self], field_names=attr, data=data)
         return value
 
-    def _check_type(self):
-        pass
-
     @staticmethod
     def _not_expected_type(value, type_, **kwargs):
         if is_collection(type_) and len(type_) == 1:
@@ -205,7 +202,7 @@ class _SchemaBinder:
         schema.
 
         This function patches the ``_deserialize`` instance method of each
-        field to make it call a custom defined method ``_validate_model``
+        field to make it call a custom defined method ``check_type``
         provided by Qiskit in the different fields at
         ``qiskit.validation.fields``.
 

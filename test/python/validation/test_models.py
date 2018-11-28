@@ -16,9 +16,9 @@ from qiskit.validation import fields, ValidationError
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 
 
-class CatSchema(BaseSchema):
-    """Example Cat schema."""
-    fur_density = fields.Float(required=True)
+class DummySchema(BaseSchema):
+    """Example Dummy schema."""
+    pass
 
 
 class PersonSchema(BaseSchema):
@@ -35,9 +35,9 @@ class BookSchema(BaseSchema):
     author = fields.Nested(PersonSchema, required=True)
 
 
-@bind_schema(CatSchema)
-class Cat(BaseModel):
-    """Example Cat model."""
+@bind_schema(DummySchema)
+class NotAPerson(BaseModel):
+    """Example of NotAPerson model."""
     pass
 
 
@@ -139,7 +139,7 @@ class TestModels(QiskitTestCase):
     def test_instantiate_nested_wrong_type(self):
         """Test model instantiation with nested fields of the wrong type."""
         with self.assertRaises(ValidationError):
-            _ = Book(title='A Book', author=Cat(fur_density=1.2))
+            _ = Book(title='A Book', author=NotAPerson())
 
         # From dict.
         with self.assertRaises(ValidationError):

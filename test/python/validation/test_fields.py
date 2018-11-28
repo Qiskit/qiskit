@@ -15,8 +15,8 @@ from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import TryFrom, ByAttribute, ByType
 
 
-class PersonSchema(BaseSchema):
-    """Simple Person schema."""
+class DummySchema(BaseSchema):
+    """Simple Dummy schema."""
     pass
 
 
@@ -38,9 +38,9 @@ class PetOwnerSchema(BaseSchema):
     by_type_contact = ByType([fields.Email(), fields.Url()])
 
 
-@bind_schema(PersonSchema)
-class Person(BaseModel):
-    """Simple Person model."""
+@bind_schema(DummySchema)
+class NotAPet(BaseModel):
+    """Simple NotAPet model."""
     pass
 
 
@@ -84,8 +84,7 @@ class TestFields(QiskitTestCase):
     def test_try_from_field_invalid(self):
         """Test the TryFrom field, with invalid kind of object."""
         with self.assertRaises(ValidationError) as context_manager:
-            _ = PetOwner(auto_pets=[Cat(fur_density=1.5),
-                                    Person(name='John Doe')])
+            _ = PetOwner(auto_pets=[Cat(fur_density=1.5), NotAPet()])
         self.assertIn('auto_pets', str(context_manager.exception))
 
     def test_try_from_field_invalid_from_dict(self):
@@ -114,8 +113,7 @@ class TestFields(QiskitTestCase):
     def test_by_attribute_field_invalid(self):
         """Test the ByAttribute field, with invalid kind of object."""
         with self.assertRaises(ValidationError) as context_manager:
-            _ = PetOwner(by_attribute_pets=[Cat(fur_density=1.5),
-                                            Person(name='John Doe')])
+            _ = PetOwner(by_attribute_pets=[Cat(fur_density=1.5), NotAPet()])
         self.assertIn('by_attribute_pets', str(context_manager.exception))
 
     def test_by_attribute_field_invalid_from_dict(self):
