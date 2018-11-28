@@ -206,5 +206,6 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
+
 if __name__ == '__main__':
     unittest.main()
