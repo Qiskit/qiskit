@@ -371,7 +371,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertEqual(len(instruction_set.instructions), 3)
         self.assertEqual(instruction_set.instructions[0].name, 'rx')
         self.assertEqual(instruction_set.instructions[1].qargs, [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].param, [1])        
+        self.assertEqual(instruction_set.instructions[2].param, [1])
 
     def test_rx_reg_inv(self):
         instruction_set = self.circuit.rx(1, self.qr).inverse()
@@ -580,7 +580,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.circuit.u1(1, self.qr[1])
         self.assertEqual(self.circuit[0].name, 'u1')
         self.assertEqual(self.circuit[0].param, [1])
-        self.assertEqual(self.circuit[0].qargs, [self.qr[1]])        
+        self.assertEqual(self.circuit[0].qargs, [self.qr[1]])
 
     def test_u1_invalid(self):
         qc = self.circuit
@@ -769,7 +769,7 @@ class TestStandard1Q(StandardExtensionTest):
         instruction_set = self.circuit.y(self.qr)
         self.assertEqual(instruction_set.instructions[0].name, 'y')
         self.assertEqual(instruction_set.instructions[1].qargs, [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].param, [])        
+        self.assertEqual(instruction_set.instructions[2].param, [])
 
     def test_y_reg_inv(self):
         instruction_set = self.circuit.y(self.qr).inverse()
@@ -799,6 +799,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertEqual(instruction_set.instructions[0].name, 'z')
         self.assertEqual(instruction_set.instructions[1].qargs, [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].param, [])
+
 
 class TestStandard2Q(StandardExtensionTest):
     """Standard Extension Test. Gates with two Qubits"""
