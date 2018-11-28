@@ -11,7 +11,7 @@ import warnings
 
 from qiskit import QISKitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
-from .schema import ResultSchema
+from .models import ResultSchema
 
 
 @bind_schema(ResultSchema)
@@ -42,9 +42,6 @@ class Result(BaseModel):
         self.results = results
 
         super().__init__(**kwargs)
-
-    def __len__(self):
-        return len(self.results)
 
     def get_data(self, circuit=None):
         """Get the results data for an experiment.
@@ -226,11 +223,6 @@ class Result(BaseModel):
         except StopIteration:
             raise QISKitError('Data for experiment "%s" could not be found.' %
                               key)
-
-    # Methods not covered by tests. Candidates for removal?
-
-    def __getitem__(self, i):
-        return list(self.results.values())[i]
 
     # To be deprecated after 0.7
 

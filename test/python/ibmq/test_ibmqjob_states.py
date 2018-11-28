@@ -261,7 +261,7 @@ class TestIBMQJobStates(JobTestCase):
                          {'0x0': 480, '0x3': 490, '0x1': 20, '0x2': 34})
         self.assertEqual(result.get_counts('Bell state XY'),
                          {'0x0': 29, '0x3': 15, '0x1': 510, '0x2': 480})
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result.results), 2)
 
     def run_with_api(self, api, job_class=IBMQJobPreQobj):
         """Creates a new ``IBMQJobPreQobj`` instance running with the provided API
