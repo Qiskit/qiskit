@@ -15,7 +15,8 @@ import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit._instruction import Instruction
-from qiskit.extensions.standard import h, cx
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CnotGate
 from ..common import QiskitTestCase
 
 
