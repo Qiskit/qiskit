@@ -13,8 +13,6 @@ import logging
 import copy
 from collections import OrderedDict
 
-import numpy
-
 from qiskit import QISKitError, QuantumCircuit
 
 
