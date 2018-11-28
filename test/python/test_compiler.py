@@ -459,11 +459,11 @@ class TestCompiler(QiskitTestCase):
 
         threshold = 0.04 * shots
         counts_bell = bell_result.get_counts()
-        target_bell = bin_to_hex_keys({'00000': shots / 2, '00011': shots / 2})
+        target_bell = {'00000': shots / 2, '00011': shots / 2}
         self.assertDictAlmostEqual(counts_bell, target_bell, threshold)
 
         counts_ghz = ghz_result.get_counts()
-        target_ghz = bin_to_hex_keys({'00000': shots / 2, '11111': shots / 2})
+        target_ghz = {'00000': shots / 2, '11111': shots / 2}
         self.assertDictAlmostEqual(counts_ghz, target_ghz, threshold)
 
     def test_compile_coupling_map(self):
@@ -495,7 +495,7 @@ class TestCompiler(QiskitTestCase):
         self.assertEqual(len(qasm_to_check), 173)
 
         counts = result.get_counts(qc)
-        target = bin_to_hex_keys({'000': shots / 2, '111': shots / 2})
+        target = {'000': shots / 2, '111': shots / 2}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 

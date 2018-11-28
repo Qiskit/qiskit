@@ -36,7 +36,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
-        target = bin_to_hex_keys({'00': shots / 2, '01': shots / 2})
+        target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -94,7 +94,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertGreater(fidelity, 0.99)
 
         counts = result.get_counts()
-        target = bin_to_hex_keys({'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4})
+        target = {'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -113,7 +113,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
-        target = bin_to_hex_keys({'00': shots / 2, '01': shots / 2})
+        target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -172,7 +172,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertGreater(fidelity, 0.99)
 
         counts = result.get_counts()
-        target = bin_to_hex_keys({'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4})
+        target = {'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 

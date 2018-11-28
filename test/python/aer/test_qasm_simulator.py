@@ -105,11 +105,10 @@ class TestAerQasmSimulator(QiskitTestCase):
         shots = self.qobj.config.shots
         threshold = 0.04 * shots
         counts = result.get_counts('test_circuit2')
-        target = bin_to_hex_keys(
-            {'100 100': shots / 8, '011 011': shots / 8,
-             '101 101': shots / 8, '111 111': shots / 8,
-             '000 000': shots / 8, '010 010': shots / 8,
-             '110 110': shots / 8, '001 001': shots / 8})
+        target = {'100 100': shots / 8, '011 011': shots / 8,
+                  '101 101': shots / 8, '111 111': shots / 8,
+                  '000 000': shots / 8, '010 010': shots / 8,
+                  '110 110': shots / 8, '001 001': shots / 8}
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_qobj_measure_opt(self):

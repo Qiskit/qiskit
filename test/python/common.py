@@ -131,6 +131,15 @@ class QiskitTestCase(unittest.TestCase):
         if delta is not None and places is not None:
             raise TypeError("specify delta or places not both")
 
+        # TODO: remove when all tests adjust to counts being hex
+        try:
+            dict1 = bin_to_hex_keys(dict1)
+        except ValueError:
+            try:
+                dict2 = bin_to_hex_keys(dict2)
+            except ValueError:
+                pass
+
         if places is not None:
             success = True
             standard_msg = ''
