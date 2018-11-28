@@ -47,7 +47,7 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         shots = 1
         self.qobj.config.shots = shots
         result = QasmSimulatorPy().run(self.qobj).result()
-        self.assertEqual(result.get_status(), 'COMPLETED')
+        self.assertEqual(result.success, True)
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""

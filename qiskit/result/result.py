@@ -7,6 +7,8 @@
 
 """Model for schema-conformant Results."""
 
+import warnings
+
 from qiskit import QISKitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
 from .schema import ResultSchema
@@ -222,19 +224,6 @@ class Result(BaseModel):
             raise QISKitError('No snapshot at slot {0} for '
                               'circuit "{1}"'.format(slot, circuit))
 
-    def get_status(self):
-        """Return whole result status."""
-        return getattr(self, 'status', '')
-
-    def circuit_statuses(self):
-        """Return statuses of all circuits.
-
-        Returns:
-            list(str): List of status result strings.
-        """
-        return [getattr(experiment_result, 'status', '') for
-                experiment_result in self.results]
-
     def _get_experiment(self, key=None):
         """Return an experiment from a given key.
 
@@ -324,3 +313,25 @@ class Result(BaseModel):
             List: A list of circuit names.
         """
         return list(self.results.keys())
+
+    # To be deprecated after 0.7
+
+    def get_status(self):
+        """Return whole result status."""
+        warnings.warn('get_status() is deprecated and will be removed in '
+                      'version 0.7+. Instead use result.status directly.',
+                      DeprecationWarning)
+        return getattr(self, 'status', '')
+
+    def circuit_statuses(self):
+        """Return statuses of all circuits.
+
+        Returns:
+            list(str): List of status result strings.
+        """
+        warnings.warn('circuit_statuses() is deprecated and will be removed in '
+                      'version 0.7+. Instead use result.results[x]status '
+                      'directly.', DeprecationWarning)
+
+        return [getattr(experiment_result, 'status', '') for
+                experiment_result in self.results]

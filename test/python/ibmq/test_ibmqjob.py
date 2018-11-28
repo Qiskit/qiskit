@@ -150,7 +150,7 @@ class TestIBMQJob(JobTestCase):
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
         self.assertTrue(all([job.status() is JobStatus.DONE for job in job_array]))
-        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+        self.assertTrue(all([result.success == True for result in result_array]))
 
         # Ensure job ids are unique.
         job_ids = [job.job_id() for job in job_array]
@@ -198,7 +198,7 @@ class TestIBMQJob(JobTestCase):
 
         # Ensure all jobs have finished.
         self.assertTrue(all([job.status() is JobStatus.DONE for job in job_array]))
-        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+        self.assertTrue(all([result.success == True for result in result_array]))
 
         # Ensure job ids are unique.
         job_ids = [job.job_id() for job in job_array]
