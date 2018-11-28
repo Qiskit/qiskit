@@ -142,7 +142,6 @@ def plot_hinton(rho, title='', figsize=None):
     return fig
 
 
-# pylint: disable=inconsistent-return-statements
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     """Plot the Bloch sphere.
 
@@ -172,6 +171,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
         fig.set_size_inches(figsize[0], figsize[1])
         plt.close(fig)
         return fig
+    return None
 
 
 def plot_state_city(rho, title="", figsize=None, color=None):
