@@ -82,7 +82,7 @@ class FakeQX5BackEnd(object):
         )
 
 
-class MapperTest(QiskitTestCase):
+class TestMapper(QiskitTestCase):
     """Test the mapper."""
 
     def setUp(self):
@@ -118,6 +118,7 @@ class MapperTest(QiskitTestCase):
         circ.measure(qr[3], cr[3])
 
         coupling_map = [[0, 2], [1, 2], [2, 3]]
+
         result1 = execute(circ, backend=self.backend,
                           coupling_map=coupling_map, seed=self.seed)
         count1 = result1.result().get_counts()
@@ -151,9 +152,9 @@ class MapperTest(QiskitTestCase):
 
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
-        qobj = execute(circ, backend=self.backend,
+        job = execute(circ, backend=self.backend,
                        coupling_map=coupling_map, seed=self.seed, shots=shots)
-        counts = qobj.result().get_counts()
+        counts = job.result().get_counts()
         target = {'0001': shots / 2, '0101':  shots / 2}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
@@ -212,7 +213,7 @@ class MapperTest(QiskitTestCase):
         for n in simplified_dag.multi_graph.nodes:
             node = simplified_dag.multi_graph.node[n]
             if node['name'] == 'u1':
-                params.add(node['params'][0])
+                params.add(node['op'].param[0])
 
         expected_params = {-3 * sympy.pi/2,
                            1.0 + 0.55 * sympy.pi,

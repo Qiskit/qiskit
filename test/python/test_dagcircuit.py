@@ -386,5 +386,6 @@ class TestDagSubstitute(QiskitTestCase):
         """The method substitute_circuit_one() replaces a leaf-in-the-back node with a DAG."""
         pass
 
+
 if __name__ == '__main__':
     unittest.main()
