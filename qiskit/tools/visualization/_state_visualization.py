@@ -308,7 +308,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
     ax.bar(ind, values, width, color=color, zorder=2)
     ax.axhline(linewidth=1, color='k')
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel('Expectation value', fontsize=12)
+    ax.set_ylabel('Expectation value', fontsize=14)
     ax.set_xticks(ind)
     ax.set_yticks([-1, -0.5, 0, 0.5, 1])
     ax.set_xticklabels(labels, fontsize=14, rotation=70)
