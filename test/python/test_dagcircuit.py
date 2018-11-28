@@ -18,6 +18,7 @@ from .common import QiskitTestCase
 
 class TestDagCircuit(QiskitTestCase):
     """Testing the dag circuit representation"""
+
     def test_create(self):
         """
         Creation using add_basis_element(), add_qreg(), add_creg(), and apply_operation_back()."""
@@ -119,11 +120,12 @@ class TestDagCircuit(QiskitTestCase):
             ['measure'],
             ['x'],
             ['measure', 'measure']
-            ], name_layers)
+        ], name_layers)
 
 
 class TestCircuitProperties(QiskitTestCase):
     """DAGCircuit properties test."""
+
     def setUp(self):
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)
@@ -170,6 +172,7 @@ class TestCircuitProperties(QiskitTestCase):
 
 class TestDagEquivalence(QiskitTestCase):
     """DAGCircuit equivalence check."""
+
     def setUp(self):
         self.qr1 = QuantumRegister(4, 'qr1')
         self.qr2 = QuantumRegister(2, 'qr2')
@@ -224,5 +227,7 @@ class TestDagEquivalence(QiskitTestCase):
         dag2 = DAGCircuit.fromQuantumCircuit(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
+
+
 if __name__ == '__main__':
     unittest.main()
