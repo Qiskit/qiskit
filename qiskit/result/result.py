@@ -47,13 +47,20 @@ class Result(BaseModel):
         return len(self.results)
 
     def get_data(self, circuit=None):
-        """Get the data of an experiment.
+        """Get the results data for an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): x
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment. Several types are accepted for convenience::
+                * str: the name of the experiment.
+                * QuantumCircuit: the name of the instance will be used.
+                * int: the position of the experiment.
+                * None: if there is only one experiment, returns it.
 
         Returns:
-            dict: A dictionary of data for the different backends.
+            dict: A dictionary of results data for an experiment. For more
+                information on the format, see also ``get_counts()``,
+                ``get_snapshots()``, ``get_statevector()``, ``get_unitary()``.
 
         Raises:
             QISKitError: if data for the experiment could not be retrieved.
@@ -64,21 +71,18 @@ class Result(BaseModel):
             raise QISKitError('No data for circuit "{0}"'.format(circuit))
 
     def get_counts(self, circuit=None):
-        """Get the histogram data of circuit name.
-
-        The data from the a qasm circuit is dictionary of the format
-        {'00000': XXXX, '00001': XXXXX}.
+        """Get the histogram data of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or None): reference to a quantum circuit
-                If None and there is only one circuit available, returns
-                that one.
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``get_data()``.
 
         Returns:
-            Dictionary: Counts {'00000': XXXX, '00001': XXXXX}.
+            dict[str:int]: a dictionary with the counts for each qubit, with
+                the keys containing a string in hex format (``0x123``).
 
         Raises:
-            QISKitError: if there are no counts for the circuit.
+            QISKitError: if there are no counts for the experiment.
         """
         try:
             return self._get_experiment(circuit).data.counts.to_dict()
@@ -86,21 +90,17 @@ class Result(BaseModel):
             raise QISKitError('No counts for circuit "{0}"'.format(circuit))
 
     def get_statevector(self, circuit=None):
-        """Get the final statevector of circuit name.
-
-        The data is a list of complex numbers
-        [1.+0.j, 0.+0.j].
+        """Get the final statevector of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or None): reference to a quantum circuit
-                If None and there is only one circuit available, returns
-                that one.
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``get_data()``.
 
         Returns:
             list[complex]: list of 2^n_qubits complex amplitudes.
 
         Raises:
-            QISKitError: if there is no statevector for the circuit.
+            QISKitError: if there is no statevector for the experiment.
         """
         try:
             return self._get_experiment(circuit).data.statevector
@@ -108,21 +108,18 @@ class Result(BaseModel):
             raise QISKitError('No statevector for circuit "{0}"'.format(circuit))
 
     def get_unitary(self, circuit=None):
-        """Get the final unitary of circuit name.
-
-        The data is a matrix of complex numbers
-        [[1.+0.j, 0.+0.j], .. ].
+        """Get the final unitary of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or None): reference to a quantum circuit
-                If None and there is only one circuit available, returns
-                that one.
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``get_data()``.
 
         Returns:
-            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex amplitudes.
+            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
+                amplitudes.
 
         Raises:
-            QISKitError: if there is no unitary for the circuit.
+            QISKitError: if there is no unitary for the experiment.
         """
         try:
             return self._get_experiment(circuit).data.unitary
@@ -130,22 +127,19 @@ class Result(BaseModel):
             raise QISKitError('No unitary for circuit "{0}"'.format(circuit))
 
     def get_snapshots(self, circuit=None):
-        """Get snapshots recorded during the run.
-
-        The data is a dictionary:
-        where keys are requested snapshot slots.
-        and values are a dictionary of the snapshots themselves.
+        """Get snapshots recorded during the run of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or None): reference to a quantum circuit
-                If None and there is only one circuit available, returns
-                that one.
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``get_data()``.
 
         Returns:
-            dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
+            dict[slot: dict[str: array]]: dictionary where the keys are the
+                requested snapshot slots, and the values are a dictionary of
+                the snapshots themselves.
 
         Raises:
-            QISKitError: if there are no snapshots for the circuit.
+            QISKitError: if there are no snapshots for the experiment.
         """
         try:
             return self._get_experiment(circuit).data.snapshots.to_dict()
@@ -153,14 +147,13 @@ class Result(BaseModel):
             raise QISKitError('No snapshots for circuit "{0}"'.format(circuit))
 
     def get_snapshot(self, slot=None, circuit=None):
-        """Get snapshot at a specific slot.
+        """Get snapshot at a specific slot of an experiment.
 
         Args:
             slot (str): snapshot slot to retrieve. If None and there is only one
                 slot, return that one.
-            circuit (str or QuantumCircuit or None): reference to a quantum circuit
-                If None and there is only one circuit available, returns
-                that one.
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``get_data()``.
 
         Returns:
             dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
@@ -195,7 +188,8 @@ class Result(BaseModel):
         """Return an experiment from a given key.
 
         Args:
-            key (str or QuantumCircuit or integer or None): x
+            key (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``get_data()``.
 
         Returns:
             ExperimentResult: the results for an experiment.
@@ -235,17 +229,8 @@ class Result(BaseModel):
 
     # Methods not covered by tests. Candidates for removal?
 
-    # TODO: disabled for testing.
-    # def __getitem__(self, i):
-    #     return list(self.results.values())[i]
-
-    def get_names(self):
-        """Get the circuit names of the results.
-
-        Returns:
-            List: A list of circuit names.
-        """
-        return list(self.results.keys())
+    def __getitem__(self, i):
+        return list(self.results.values())[i]
 
     # To be deprecated after 0.7
 
@@ -351,3 +336,14 @@ class Result(BaseModel):
             return self.results[name].compiled_circuit_qasm
         except KeyError:
             raise QISKitError('No  qasm for circuit "{0}"'.format(name))
+
+    def get_names(self):
+        """Get the circuit names of the results.
+
+        Returns:
+            List: A list of circuit names.
+        """
+        warnings.warn('get_names() is deprecated and will be removed in '
+                      'version 0.7+. Instead inspect result.results directly',
+                      DeprecationWarning)
+        return list(self.results.keys())
