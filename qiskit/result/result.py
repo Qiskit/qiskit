@@ -269,9 +269,9 @@ class Result(BaseModel):
         if isinstance(key, QuantumCircuit):
             key = key.name
         try:
-            # TODO: look into result.name AND result.header.name?
+            # Look into `result[x].header.name` for the names.
             return next(result for result in self.results
-                        if getattr(getattr(result, 'header', result),
+                        if getattr(getattr(result, 'header', None),
                                    'name', '') == key)
         except StopIteration:
             raise QISKitError('Data for experiment "%s" could not be found.' %

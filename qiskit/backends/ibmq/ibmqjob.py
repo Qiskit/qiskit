@@ -508,13 +508,17 @@ class IBMQJobPreQobj(IBMQJob):
         experiment_results = []
         for circuit_result in job_response['qasms']:
             this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
                            'compiled_circuit_qasm': circuit_result.get('qasm'),
                            'status': circuit_result['status'],
                            'success': circuit_result['status'] == 'DONE',
                            'shots': job_response['shots']}
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
+                if 'header' in circuit_result['metadata'].get('compiled_circuit', {}):
+                    this_result['header'] = \
+                        circuit_result['metadata']['compiled_circuit']['header']
+                else:
+                    this_result['header'] = {}
             experiment_results.append(this_result)
 
         return result_from_old_style_dict({

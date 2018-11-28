@@ -69,6 +69,10 @@ def copy_qasm_from_qobj_into_result(qobj_, result):
         if qasm and experiment_result:
             experiment_result['compiled_circuit_qasm'] = qasm
 
+        # TODO: passing the header to the results should be done at a higher
+        # level. This ensures result[x].header.name is present, for results.
+        experiment_result['header'] = experiment.header.as_dict()
+
 
 def _find_experiment_result(result, name):
     for experiment_result in result['result']:
