@@ -67,6 +67,7 @@ def _validate_input_state(quantum_state):
         raise VisualizationError("Input is not a multi-qubit quantum state.")
     return rho
 
+
 def plot_hinton(rho, title='', figsize=None):
     """Plot a hinton diagram for the quanum state.
 
