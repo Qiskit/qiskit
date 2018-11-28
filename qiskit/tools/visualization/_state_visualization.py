@@ -142,7 +142,7 @@ def plot_hinton(rho, title='', figsize=None):
     return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None):  # pylint: disable=inconsistent-return-statements
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
