@@ -86,7 +86,7 @@ import time
 
 import numpy as np
 
-from qiskit.backends.models import BackendConfiguration
+from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
@@ -125,6 +125,23 @@ class UnitarySimulatorPy(BaseBackend):
         # Define attributes inside __init__.
         self._unitary_state = None
         self._number_of_qubits = 0
+
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -204,8 +221,7 @@ class UnitarySimulatorPy(BaseBackend):
                   'time_taken': (end - start)}
         copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def run_circuit(self, circuit):
         """Apply the single-qubit gate.
@@ -260,8 +276,9 @@ class UnitarySimulatorPy(BaseBackend):
                 result['status'] = 'ERROR'
                 return result
         # Reshape unitary rank-2n tensor back to a matrix
-        result['data']['unitary'] = np.reshape(self._unitary_state,
-                                               2 * [2 ** self._number_of_qubits])
+        tmp = np.reshape(self._unitary_state, 2 * [2 ** self._number_of_qubits])
+        # Convert complex numbers to pair of (real, imag)
+        result['data']['unitary'] = np.stack((tmp.real, tmp.imag), axis=-1)
         result['status'] = 'DONE'
         result['success'] = True
         result['shots'] = 1

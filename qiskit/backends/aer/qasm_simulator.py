@@ -20,7 +20,7 @@ import platform
 
 import numpy as np
 
-from qiskit.backends.models import BackendConfiguration
+from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
@@ -82,6 +82,23 @@ class QasmSimulator(BaseBackend):
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     getattr(self._configuration, 'exe', 'default locations'))
 
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
+
     def run(self, qobj):
         """Run a qobj on the backend."""
         job_id = str(uuid.uuid4())
@@ -95,8 +112,7 @@ class QasmSimulator(BaseBackend):
         result['job_id'] = job_id
         copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def _validate(self, qobj):
         for experiment in qobj.experiments:
@@ -145,6 +161,23 @@ class CliffordSimulator(BaseBackend):
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     getattr(self._configuration, 'exe', 'default locations'))
 
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
+
     def run(self, qobj):
         """Run a Qobj on the backend.
 
@@ -175,8 +208,7 @@ class CliffordSimulator(BaseBackend):
         result = run(qobj, self._configuration.exe)
         result['job_id'] = job_id
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def _validate(self):
         return
