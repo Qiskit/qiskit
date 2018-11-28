@@ -13,8 +13,6 @@ import logging
 import copy
 from collections import OrderedDict
 
-import numpy
-
 from qiskit import QISKitError, QuantumCircuit
 
 
@@ -387,70 +385,6 @@ class Result(object):
             List: A list of circuit names.
         """
         return list(self.results.keys())
-
-    def average_data(self, name, observable):
-        """Compute the mean value of an diagonal observable.
-
-        Takes in an observable in dictionary format and then
-        calculates the sum_i value(i) P(i) where value(i) is the value of
-        the observable for state i.
-
-        Args:
-            name (str): the name of the quantum circuit
-            observable (dict): The observable to be averaged over. As an example
-            ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
-
-        Returns:
-            Double: Average of the observable
-        """
-        counts = self.get_counts(name)
-        temp = 0
-        tot = sum(counts.values())
-        for key in counts:
-            if key in observable:
-                temp += counts[key] * observable[key] / tot
-        return temp
-
-    def get_qubitpol_vs_xval(self, nqubits, xvals_dict=None):
-        """Compute the polarization of each qubit for all circuits.
-
-        Compute the polarization of each qubit for all circuits and pull out each circuits
-        xval into an array. Assumes that each circuit has the same number of qubits and that
-        all qubits are measured.
-
-        Args:
-            nqubits (int): number of qubits
-            xvals_dict (dict): xvals for each circuit {'circuitname1': xval1,...}. If this
-            is none then the xvals list is just left as an array of zeros
-
-        Returns:
-            qubit_pol: mxn double array where m is the number of circuit, n the number of qubits
-            xvals: mx1 array of the circuit xvals
-        """
-        ncircuits = len(self.results)
-        # Is this the best way to get the number of qubits?
-        qubitpol = numpy.zeros([ncircuits, nqubits], dtype=float)
-        xvals = numpy.zeros([ncircuits], dtype=float)
-
-        # build Z operators for each qubit
-        z_dicts = []
-        for qubit_ind in range(nqubits):
-            z_dicts.append(dict())
-            for qubit_state in range(2**nqubits):
-                new_key = ("{0:0"+"{:d}".format(nqubits) + "b}").format(qubit_state)
-                z_dicts[-1][new_key] = -1
-                if new_key[nqubits-qubit_ind-1] == '1':
-                    z_dicts[-1][new_key] = 1
-
-        # go through each circuit and for each qubit and apply the operators using "average_data"
-        for i, (circuit_name, _) in enumerate(self.results.items()):
-            if xvals_dict:
-                xvals[i] = xvals_dict[circuit_name]
-            for qubit_ind in range(nqubits):
-                qubitpol[i, qubit_ind] = self.average_data(
-                    circuit_name, z_dicts[qubit_ind])
-
-        return qubitpol, xvals
 
 
 def _status_or_success(obj):

@@ -9,8 +9,6 @@
 
 import unittest
 
-from numpy import array_equal
-
 import qiskit
 from qiskit import Aer
 from .common import QiskitTestCase, requires_qe_access
@@ -48,46 +46,6 @@ class TestQiskitResult(QiskitTestCase):
         self.assertIsInstance(remote_result.job_id, str)
         self.assertEqual(remote_result.status, 'COMPLETED')
         self.assertEqual(remote_result.circuit_statuses(), ['DONE'])
-
-    def test_qubitpol(self):
-        """Test the results of the qubitpol function in Results.
-
-        Do two 2Q circuits: on 1st do nothing, and on 2nd do X on the first qubit.
-        """
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        qc1 = qiskit.QuantumCircuit(qr, cr)
-        qc2 = qiskit.QuantumCircuit(qr, cr)
-        qc2.x(qr[0])
-        qc1.measure(qr, cr)
-        qc2.measure(qr, cr)
-        circuits = [qc1, qc2]
-        xvals_dict = {circuits[0].name: 0, circuits[1].name: 1}
-        result = qiskit.execute(circuits, self.backend).result()
-        yvals, xvals = result.get_qubitpol_vs_xval(2, xvals_dict=xvals_dict)
-        self.assertTrue(array_equal(yvals, [[-1, -1], [1, -1]]))
-        self.assertTrue(array_equal(xvals, [0, 1]))
-
-    def test_average_data(self):
-        """Test average_data."""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qr, cr, name="qc")
-        qc.h(qr[0])
-        qc.cx(qr[0], qr[1])
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
-        shots = 10000
-        result = qiskit.execute(qc, self.backend, shots=shots).result()
-        observable = {"00": 1, "11": 1, "01": -1, "10": -1}
-        mean_zz = result.average_data("qc", observable)
-        observable = {"00": 1, "11": -1, "01": 1, "10": -1}
-        mean_zi = result.average_data("qc", observable)
-        observable = {"00": 1, "11": -1, "01": -1, "10": 1}
-        mean_iz = result.average_data("qc", observable)
-        self.assertAlmostEqual(mean_zz, 1, places=1)
-        self.assertAlmostEqual(mean_zi, 0, places=1)
-        self.assertAlmostEqual(mean_iz, 0, places=1)
 
     def test_extend_result(self):
         """Test extending a Result instance is possible."""
