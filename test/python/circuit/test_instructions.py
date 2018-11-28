@@ -42,7 +42,7 @@ class TestInstructions(QiskitTestCase):
         self.assertTrue(uop1 == uop4)
         self.assertFalse(uop1 == uop3)
         self.assertTrue(HGate(qr[0]) == HGate(qr[1]))
-        self.assertFalse(h == cx)
+        self.assertFalse(HGate(qr[0]) == CnotGate(qr[0], qr[1]))
         self.assertFalse(hop1 == HGate(qr[2]))
 
 
