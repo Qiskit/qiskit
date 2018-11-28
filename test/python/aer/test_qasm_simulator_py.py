@@ -112,12 +112,12 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
                     header=QobjHeader(backend_name='qasm_simulator_py'))
 
         result = QasmSimulatorPy().run(qobj).result()
-        result_if_true = result.get_data('test_if_true')
+        result_if_true = result.data('test_if_true')
         self.log.info('result_if_true circuit:')
         self.log.info(circuit_if_true.qasm())
         self.log.info('result_if_true=%s', result_if_true)
 
-        result_if_false = result.get_data('test_if_false')
+        result_if_false = result.data('test_if_false')
         self.log.info('result_if_false circuit:')
         self.log.info(circuit_if_false.qasm())
         self.log.info('result_if_false=%s', result_if_false)

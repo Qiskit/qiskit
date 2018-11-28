@@ -43,8 +43,12 @@ class Result(BaseModel):
 
         super().__init__(**kwargs)
 
-    def get_data(self, circuit=None):
-        """Get the results data for an experiment.
+    def data(self, circuit=None):
+        """Get the raw data for an experiment.
+
+        Note this data will be a single classical and quantum register and in a
+        format required by the results schema. We recomened that most  users use
+        the get_xxx method and the data will be post processed for the data type.
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
@@ -55,9 +59,23 @@ class Result(BaseModel):
                 * None: if there is only one experiment, returns it.
 
         Returns:
-            dict: A dictionary of results data for an experiment. For more
-                information on the format, see also ``get_counts()``,
-                ``get_snapshots()``, ``get_statevector()``, ``get_unitary()``.
+            dict: A dictionary of results data for an experiment. The data depends on
+            the backend it ran on.
+
+            QASM backend backend returns a dictionary of dictionary with
+            key 'counts' and  with the counts, with the second dictionary keys
+            containing a string in hex format (``0x123``) and values equal to the
+            number of times this outcome was measured.
+
+            Statevector backend returns a dictionary with key 'statevector' and values being a
+            list[complex] list of 2^n_qubits complex amplitudes.
+
+            Unitary backend returns a dictionary with key 'unitary' and values being a
+            list[list[complex]] list of 2^n_qubits x 2^n_qubits complex
+            amplitudes.
+
+            The simulator backends also have an optional 'key' snapshot which returns
+            a dict of snapshots specified by the simulator backend.
 
         Raises:
             QISKitError: if data for the experiment could not be retrieved.
@@ -91,7 +109,7 @@ class Result(BaseModel):
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data()``.
 
         Returns:
             list[complex]: list of 2^n_qubits complex amplitudes.
@@ -109,7 +127,7 @@ class Result(BaseModel):
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data()``.
 
         Returns:
             list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
@@ -128,7 +146,7 @@ class Result(BaseModel):
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data()``.
 
         Returns:
             dict[slot: dict[str: array]]: dictionary where the keys are the
@@ -150,7 +168,7 @@ class Result(BaseModel):
             slot (str): snapshot slot to retrieve. If None and there is only one
                 slot, return that one.
             circuit (str or QuantumCircuit or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data()``.
 
         Returns:
             dict[slot: dict[str: array]]: list of 2^n_qubits complex amplitudes.
