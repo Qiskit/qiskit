@@ -15,7 +15,7 @@ from inspect import signature
 import unittest
 import qiskit
 from qiskit.tools.visualization import _utils, generate_latex_source
-from .common import QiskitTestCase
+from ...common import QiskitTestCase
 
 
 class TestLatexSourceGenerator(QiskitTestCase):

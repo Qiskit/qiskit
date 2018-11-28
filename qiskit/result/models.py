@@ -5,11 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Schema and Model for schema-conformant Results.
-
-TODO: Note this file is temporary, and will be removed before 0.7, replacing
-      qiskit.qobj.result and qiskit.result.
-"""
+"""Schema and helper models for schema-conformant Results."""
 
 from marshmallow.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
 from marshmallow.validate import Length, OneOf, Regexp, Range
@@ -28,10 +24,9 @@ class ExperimentResultDataSchema(BaseSchema):
     snapshots = Nested(ObjSchema)
     memory = List(Raw(),
                   validate=Length(min=1))
-    statevector = List(List(Complex(),
-                            validate=Length(min=1)))
-    unitary = List(List(List(Complex(),
-                             validate=Length(min=1)),
+    statevector = List(Complex(),
+                       validate=Length(min=1))
+    unitary = List(List(Complex(),
                         validate=Length(min=1)),
                    validate=Length(min=1))
 
@@ -99,35 +94,5 @@ class ExperimentResult(BaseModel):
         self.shots = shots
         self.success = success
         self.data = data
-
-        super().__init__(**kwargs)
-
-
-@bind_schema(ResultSchema)
-class Result(BaseModel):
-    """Model for Results.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``ResultSchema``.
-
-    Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version, in the form X.Y.Z.
-        qobj_id (str): user-generated Qobj id.
-        job_id (str): unique execution id from the backend.
-        success (bool): True if complete input qobj executed correctly. (Implies
-            each experiment success)
-        results (ExperimentResult): corresponding results for array of
-            experiments of the input qobj
-    """
-
-    def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
-                 results, **kwargs):
-        self.backend_name = backend_name
-        self.backend_version = backend_version
-        self.qobj_id = qobj_id
-        self.job_id = job_id
-        self.success = success
-        self.results = results
 
         super().__init__(**kwargs)
