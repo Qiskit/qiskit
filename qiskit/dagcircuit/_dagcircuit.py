@@ -917,7 +917,7 @@ class DAGCircuit:
             node2 (dict): The other node to compare.
 
         Returns:
-            Bool:
+            Bool: If node1 == node2
         """
         copy_node1 = {k: v for (k, v) in node1.items()}
         copy_node2 = {k: v for (k, v) in node2.items()}
