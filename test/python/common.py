@@ -405,5 +405,6 @@ def _get_http_recorder(test_options):
         vcr_mode = 'new_episodes'
     return http_recorder(vcr_mode, Path.CASSETTES.value)
 
+
 TEST_OPTIONS = get_test_options()
 VCR = _get_http_recorder(TEST_OPTIONS)

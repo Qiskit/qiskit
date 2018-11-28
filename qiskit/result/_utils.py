@@ -51,8 +51,6 @@ def result_from_old_style_dict(result_dict):
 
     return Result.from_dict(result_dict)
 
-    #return Result(qobj.Result(**result_dict), experiment_names)
-
 
 def copy_qasm_from_qobj_into_result(qobj_, result):
     """Copy QASMs belonging to the Qobj experiment into a Result.
