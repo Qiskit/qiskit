@@ -11,6 +11,7 @@
 Visualization functions for quantum states.
 """
 
+import warnings
 from functools import reduce
 import numpy as np
 from scipy import linalg
@@ -26,29 +27,51 @@ if HAS_MATPLOTLIB:
     from qiskit.tools.visualization._error import VisualizationError
     from qiskit.tools.visualization._bloch import Bloch
 
+if HAS_MATPLOTLIB:
+    class Arrow3D(FancyArrowPatch):
+        """Standard 3D arrow."""
 
-class Arrow3D(FancyArrowPatch):
-    """Standard 3D arrow."""
+        def __init__(self, xs, ys, zs, *args, **kwargs):
+            """Create arrow."""
+            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+            self._verts3d = xs, ys, zs
 
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        """Create arrow."""
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-        self._verts3d = xs, ys, zs
+        def draw(self, renderer):
+            """Draw the arrow."""
+            xs3d, ys3d, zs3d = self._verts3d
+            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+            FancyArrowPatch.draw(self, renderer)
 
-    def draw(self, renderer):
-        """Draw the arrow."""
-        xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        FancyArrowPatch.draw(self, renderer)
 
+def _validate_input_state(quantum_state):
+    """Validates the input to state visualization functions.
+
+    Args:
+        quantum_state (ndarray): Input state / density matrix.
+    Returns:
+        rho: A 2d numpy array for the density matrix.
+    Raises:
+        VisualizationError: Invalid input.
+    """
+    rho = np.asarray(quantum_state)
+    if rho.ndim == 1:
+        rho = np.outer(rho, np.conj(rho))
+    # Check the shape of the input is a square matrix
+    shape = np.shape(rho)
+    if len(shape) != 2 or shape[0] != shape[1]:
+        raise VisualizationError("Input is not a valid quantum state.")
+    # Check state is an n-qubit state
+    num = int(np.log2(len(rho)))
+    if 2 ** num != len(rho):
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    return rho
 
 def plot_hinton(rho, title='', figsize=None):
     """Plot a hinton diagram for the quanum state.
 
     Args:
-        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
-                                   numbers
+        rho (ndarray): Numpy array for state vector or density matrix.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
     Returns:
@@ -59,6 +82,7 @@ def plot_hinton(rho, title='', figsize=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (8, 5)
     num = int(np.log2(len(rho)))
@@ -123,13 +147,13 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>,<z>]
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>]
         title (str): a string that represents the plot title
         ax (matplotlib.Axes): An Axes to use for rendering the bloch sphere
-        figsize (tuple): Figure size in inches.
+        figsize (tuple): Figure size in inches. Has no effect is passing `ax`.
 
     Returns:
-        Figure: A matplotlib figure instance.
+        Figure: A matplotlib figure instance if `ax = None`.
 
     Raises:
         ImportError: Requires matplotlib.
@@ -141,10 +165,11 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     B = Bloch(axes=ax)
     B.add_vectors(bloch)
     B.render(title=title)
-    fig = B.fig
-    fig.set_size_inches(figsize[0], figsize[1])
-    plt.close(fig)
-    return fig
+    if ax is None:
+        fig = B.fig
+        fig.set_size_inches(figsize[0], figsize[1])
+        plt.close(fig)
+        return fig
 
 
 def plot_state_city(rho, title="", figsize=None, color=None):
@@ -154,8 +179,7 @@ def plot_state_city(rho, title="", figsize=None, color=None):
     part of the density matrix rho.
 
     Args:
-        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
-                                   numbers
+        rho (ndarray): Numpy array for state vector or density matrix.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         color (list): A list of len=2 giving colors for real and
@@ -169,8 +193,9 @@ def plot_state_city(rho, title="", figsize=None, color=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    num = int(np.log2(len(rho)))
+    rho = _validate_input_state(rho)
 
+    num = int(np.log2(len(rho)))
     # get the real and imag parts of rho
     datareal = np.real(rho)
     dataimag = np.imag(rho)
@@ -252,8 +277,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
     Plot a bargraph of the mixed state rho over the pauli matrices
 
     Args:
-        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
-                                   numbers
+        rho (ndarray): Numpy array for state vector or density matrix
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         color (list or str): Color of the expectation value bars.
@@ -264,6 +288,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 5)
     num = int(np.log2(len(rho)))
@@ -291,8 +316,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
     for tick in ax.xaxis.get_major_ticks()+ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(14)
     plt.title(title)
-    if fig:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
@@ -373,7 +397,8 @@ def plot_state_qsphere(rho, figsize=None):
     """Plot the qsphere representation of a quantum state.
 
     Args:
-        rho (ndarray): Density matrix reprentation of quantum state.
+        rho (ndarray): State vector or density matrix representation.
+        of quantum state.
         figsize (tuple): Figure size in inches.
 
     Returns:
@@ -384,6 +409,7 @@ def plot_state_qsphere(rho, figsize=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 7)
     num = int(np.log2(len(rho)))
@@ -509,18 +535,11 @@ def plot_state(quantum_state, method='city', figsize=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    warnings.warn("'plot_state' will be depreciated in terra-0.9.  \
+                  Call the desired plotting routine directly.",
+                  DeprecationWarning)
     # Check if input is a statevector, and convert to density matrix
-    rho = np.array(quantum_state)
-    if rho.ndim == 1:
-        rho = np.outer(rho, np.conj(rho))
-    # Check the shape of the input is a square matrix
-    shape = np.shape(rho)
-    if len(shape) != 2 or shape[0] != shape[1]:
-        raise VisualizationError("Input is not a valid quantum state.")
-    # Check state is an n-qubit state
-    num = int(np.log2(len(rho)))
-    if 2 ** num != len(rho):
-        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    rho = _validate_input_state(quantum_state)
     fig = None
     if method == 'city':
         fig = plot_state_city(rho, figsize=figsize)
@@ -529,6 +548,7 @@ def plot_state(quantum_state, method='city', figsize=None):
     elif method == "qsphere":
         fig = plot_state_qsphere(rho, figsize=figsize)
     elif method == "bloch":
+        num = int(np.log2(len(rho)))
         aspect = float(1 / num)
         fig = plt.figure(figsize=plt.figaspect(aspect))
         for i in range(num):
