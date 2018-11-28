@@ -27,7 +27,6 @@ def average_data(counts, observable):
         counts (dict): a dict of outcomes from an experiment
         observable (dict): The observable to be averaged over. As an example
         ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
-        
 
     Returns:
         Double: Average of the observable
