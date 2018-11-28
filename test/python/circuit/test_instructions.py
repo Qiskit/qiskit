@@ -43,7 +43,7 @@ class TestInstructions(QiskitTestCase):
         self.assertFalse(uop1 == uop3)
         self.assertTrue(HGate(qr[0]) == HGate(qr[1]))
         self.assertFalse(h == cx)
-        self.assertFalse(hop1 == h)
+        self.assertFalse(hop1 == HGate(qr[2]))
 
 
 if __name__ == '__main__':
