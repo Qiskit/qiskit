@@ -112,8 +112,7 @@ class QasmSimulator(BaseBackend):
         result['job_id'] = job_id
         copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def _validate(self, qobj):
         for experiment in qobj.experiments:
@@ -209,8 +208,7 @@ class CliffordSimulator(BaseBackend):
         result = run(qobj, self._configuration.exe)
         result['job_id'] = job_id
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def _validate(self):
         return

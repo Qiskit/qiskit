@@ -69,6 +69,7 @@ Changed
     - ``backend.status()``(#1301).
     - ``backend.configuration()`` (and ``__init__``) (#1323).
     - ``backend.properties()`` (#1331).
+    - ``qiskit.Result`` (#1360).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
 
@@ -90,24 +91,7 @@ Deprecated
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
 - The transpiler methods do not support emitting multiple output `format`
   anymore (#1319).
-
-
-Removed
-"""""""
-
-- ``matplotlib`` is no longer in the package requirements and is now an optional
-  dependency. In order to use any matplotlib based visualizations (which
-  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
-  `qiskit.tools.visualization.plot_state`,
-  `qiskit.tools.visualization.plot_histogram`, and
-  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
-  you manually install and configure matplotlib independently.
-- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
-  alternative list of basis gates has been removed. Instead users should adjust
-  the basis gates prior to visualizing the circuit. (#1151)
-- ``backend.parameters()`` and ``backend.calibration()`` have been fully
-  deprecated, in favour of ``backend.properties()`` (#1305).
-
+- Several methods of ``qiskit.Result`` have been deprecated (#1360).
 
 Fixed
 """""
@@ -143,7 +127,13 @@ Removed
 - The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
   alternative list of basis gates has been removed. Instead users should adjust
   the basis gates prior to visualizing the circuit. (#1151)
-
+- ``backend.parameters()`` and ``backend.calibration()`` have been fully
+  deprecated, in favour of ``backend.properties()`` (#1305).
+- The ``qiskit.tools.file_io`` module has been removed. Conversion between
+  ``qiskit.Result`` and json can be achieved using ``.to_dict()`` and
+  ``.from_dict()`` directly (#1360).
+- The ``qiskit.Result`` class method for ``len()`` and indexing have been
+  removed, along with the functions that perform post-processing (#1351).
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^
