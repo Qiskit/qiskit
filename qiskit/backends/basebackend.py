@@ -47,13 +47,18 @@ class BaseBackend(ABC):
         """Return the backend configuration.
 
         Returns:
-            BackendConfiguration: the configuration fot the backend.
+            BackendConfiguration: the configuration for the backend.
         """
         return self._configuration
 
+    @abstractmethod
     def properties(self):
-        """Return backend properties"""
-        return {}
+        """Return backend properties.
+
+        Returns:
+            BackendProperties: the configuration for the backend.
+        """
+        pass
 
     def provider(self):
         """Return the backend Provider.

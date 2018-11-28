@@ -176,7 +176,8 @@ class TestInitialize(QiskitTestCase):
         job = execute(qc, Aer.get_backend('qasm_simulator_py'), shots=shots)
         result = job.result()
         counts = result.get_counts()
-        target = {'00': shots / 4, '01': shots / 4, '10': shots / 4, '11': shots / 4}
+        target = {'00': shots / 4, '01': shots / 4,
+                  '10': shots / 4, '11': shots / 4}
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_sympy(self):

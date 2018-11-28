@@ -30,7 +30,8 @@ class GateSchema(BaseSchema):
     qubits = List(Number(), required=True,
                   validate=Length(min=1))
     gate = String(required=True)
-    parameters = Nested(NduvSchema, required=True, many=True)
+    parameters = Nested(NduvSchema, required=True, many=True,
+                        validate=Length(min=1))
 
 
 class BackendPropertiesSchema(BaseSchema):
@@ -41,9 +42,11 @@ class BackendPropertiesSchema(BaseSchema):
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
     last_update_date = DateTime(required=True)
-    qubits = List(Nested(NduvSchema, many=True), required=True,
+    qubits = List(Nested(NduvSchema, many=True,
+                         validate=Length(min=1)), required=True,
                   validate=Length(min=1))
-    gates = Nested(GateSchema, required=True, many=True)
+    gates = Nested(GateSchema, required=True, many=True,
+                   validate=Length(min=1))
     general = Nested(NduvSchema, required=True, many=True)
 
 
