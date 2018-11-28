@@ -9,8 +9,6 @@
 
 import unittest
 
-from numpy import array_equal
-
 import qiskit
 from qiskit import Aer
 from .common import QiskitTestCase, requires_qe_access

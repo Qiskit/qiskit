@@ -21,10 +21,13 @@ def average_data(counts, observable):
     calculates the sum_i value(i) P(i) where value(i) is the value of
     the observable for state i.
 
+    TODO: make the observable also include a matrix
+
     Args:
-        name (str): the name of the quantum circuit
+        counts (dict): a dict of outcomes from an experiment
         observable (dict): The observable to be averaged over. As an example
         ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
+        
 
     Returns:
         Double: Average of the observable
