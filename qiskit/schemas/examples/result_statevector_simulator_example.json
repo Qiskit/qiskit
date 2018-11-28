@@ -10,7 +10,7 @@
     "results": [
         {
             "header": {
-                "exp_descrip": "Bell state"
+                "name": "Bell state"
             },
             "shots": 1,
             "status": "DONE",

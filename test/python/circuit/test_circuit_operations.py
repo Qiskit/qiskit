@@ -5,21 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-import
 
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
-
-import qiskit.extensions.simulator
+import qiskit.extensions.simulator  # pylint: disable=unused-import
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QISKitError
 from qiskit.quantum_info import state_fidelity
-from ..common import QiskitTestCase
+
+from ..common import QiskitTestCase, bin_to_hex_keys
 
 
 class TestCircuitOperations(QiskitTestCase):
@@ -58,7 +54,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
-        target = {'11': shots}
+        target = bin_to_hex_keys({'11': shots})
         self.assertEqual(counts, target)
 
     def test_combine_circuit_fail(self):
@@ -135,7 +131,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
-        target = {'11': shots}
+        target = bin_to_hex_keys({'11': shots})
         self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):

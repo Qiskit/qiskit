@@ -65,6 +65,23 @@ class Instruction(object):
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 
+    def __eq__(self, other):
+        """Two instructions are the same if they have the same name and same
+        params.
+
+        Args:
+            other (instruction): other instruction
+
+        Returns:
+            bool: are self and other equal.
+        """
+        res = False
+        if type(self) is type(other) and \
+                self.name == other.name and \
+                self.param == other.param:
+            res = True
+        return res
+
     def check_circuit(self):
         """Raise exception if self.circuit is None."""
         if self.circuit is None:
