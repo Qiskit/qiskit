@@ -16,7 +16,7 @@ from qiskit.validation import fields, ValidationError
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
 from qiskit.validation.fields import TryFrom, ByAttribute, ByType
 from qiskit.validation.validate import PatternProperties
-from .common import QiskitTestCase
+from test.python.common import QiskitTestCase
 
 
 # Example classes for testing instantiation.
