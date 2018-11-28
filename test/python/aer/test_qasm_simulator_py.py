@@ -16,7 +16,7 @@ from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
 from qiskit.qobj import Qobj, QobjHeader, QobjItem, QobjConfig, QobjExperiment
 
-from ..common import QiskitTestCase, bin_to_hex_keys
+from ..common import QiskitTestCase
 
 
 class TestAerQasmSimulatorPy(QiskitTestCase):
@@ -152,16 +152,16 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         qobj = compile(circuit, backend=backend, shots=shots, seed=self.seed)
         results = backend.run(qobj).result()
         data = results.get_counts('teleport')
-        alice = bin_to_hex_keys({
-            '00': data['0 0 0'] + data['1 0 0'],
-            '01': data['0 1 0'] + data['1 1 0'],
-            '10': data['0 0 1'] + data['1 0 1'],
-            '11': data['0 1 1'] + data['1 1 1']
-        })
-        bob = bin_to_hex_keys({
-            '0': data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1'],
-            '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
-        })
+        alice = {
+            '00': data['0x0'] + data['0x4'],
+            '01': data['0x2'] + data['0x6'],
+            '10': data['0x1'] + data['0x5'],
+            '11': data['0x3'] + data['0x7']
+        }
+        bob = {
+            '0': data['0x0'] + data['0x2'] + data['0x1'] + data['0x3'],
+            '1': data['0x4'] + data['0x6'] + data['0x5'] + data['0x7']
+        }
         self.log.info('test_teleport: circuit:')
         self.log.info('test_teleport: circuit:')
         self.log.info(circuit.qasm())
