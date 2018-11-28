@@ -46,39 +46,6 @@ class Result(BaseModel):
     def __len__(self):
         return len(self.results)
 
-    def __iadd__(self, other):
-        """Append a Result object to current Result object.
-
-        Arg:
-            other (Result): a Result object to append.
-        Returns:
-            Result: The current object with appended results.
-        Raises:
-            QISKitError: if the Results cannot be combined.
-        """
-        this_backend = self.backend_name
-        other_backend = other.backend_name
-        if this_backend != other_backend:
-            raise QISKitError('Result objects from different backends cannot be combined.')
-
-        if not self.success or not other.success:
-            raise QISKitError('Can not combine a failed result with another result.')
-
-        self.results.extend(other.results)
-        return self
-
-    def __add__(self, other):
-        """Combine Result objects.
-
-        Arg:
-            other (Result): a Result object to combine.
-        Returns:
-            Result: A new Result object consisting of combined objects.
-        """
-        copy_of_self = self.from_dict(self.to_dict())
-        copy_of_self += other
-        return copy_of_self
-
     def get_data(self, circuit=None):
         """Get the data of an experiment.
 
@@ -315,6 +282,45 @@ class Result(BaseModel):
         return list(self.results.keys())
 
     # To be deprecated after 0.7
+
+    def __iadd__(self, other):
+        """Append a Result object to current Result object.
+
+        Arg:
+            other (Result): a Result object to append.
+        Returns:
+            Result: The current object with appended results.
+        Raises:
+            QISKitError: if the Results cannot be combined.
+        """
+        warnings.warn('Result addition is deprecated and will be removed in '
+                      'version 0.7+.', DeprecationWarning)
+
+        this_backend = self.backend_name
+        other_backend = other.backend_name
+        if this_backend != other_backend:
+            raise QISKitError('Result objects from different backends cannot be combined.')
+
+        if not self.success or not other.success:
+            raise QISKitError('Can not combine a failed result with another result.')
+
+        self.results.extend(other.results)
+        return self
+
+    def __add__(self, other):
+        """Combine Result objects.
+
+        Arg:
+            other (Result): a Result object to combine.
+        Returns:
+            Result: A new Result object consisting of combined objects.
+        """
+        warnings.warn('Result addition is deprecated and will be removed in '
+                      'version 0.7+.', DeprecationWarning)
+
+        copy_of_self = self.from_dict(self.to_dict())
+        copy_of_self += other
+        return copy_of_self
 
     def get_status(self):
         """Return whole result status."""
