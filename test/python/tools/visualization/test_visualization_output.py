@@ -17,7 +17,7 @@ from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import HAS_MATPLOTLIB, latex_circuit_drawer, \
     matplotlib_circuit_drawer, circuit_drawer
-from .common import QiskitTestCase
+from ...common import QiskitTestCase
 
 
 def _path_to_diagram_reference(filename):

@@ -277,18 +277,6 @@ class Result(BaseModel):
             raise QISKitError('Data for experiment "%s" could not be found.' %
                               key)
 
-    # Methods to be moved to a module.
-
-    def average_data(self, name, observable):
-        """Compute the mean value of an diagonal observable."""
-        # TODO: move to a module
-        raise NotImplementedError
-
-    def get_qubitpol_vs_xval(self, nqubits, xvals_dict=None):
-        """Compute the polarization of each qubit for all circuits."""
-        # TODO: move to a module
-        raise NotImplementedError
-
     # Methods not covered by tests. Candidates for removal?
 
     # TODO: disabled for testing.
