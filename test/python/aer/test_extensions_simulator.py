@@ -15,7 +15,7 @@ import qiskit.extensions.simulator
 from qiskit import Aer
 from qiskit.quantum_info import state_fidelity
 from qiskit import execute
-from ..common import QiskitTestCase, requires_cpp_simulator
+from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
 
 @requires_cpp_simulator
@@ -87,7 +87,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         shots = 1000
         result = execute(circuit, sim, config=config, shots=shots).result()
         counts = result.get_counts()
-        target = {'101': shots}
+        target = bin_to_hex_keys({'101': shots})
         self.assertEqual(counts, target)
 
 

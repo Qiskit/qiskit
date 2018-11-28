@@ -10,7 +10,7 @@
     "results": [
         {
             "header": {
-                "exp_descrip": "Bell state circuit (h q[0]; cx q[0], q[1];)"
+                "name": "Bell state circuit (h q[0]; cx q[0], q[1];)"
             },
             "shots": 1,
             "status": "DONE",
