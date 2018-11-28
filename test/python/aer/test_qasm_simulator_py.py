@@ -17,7 +17,7 @@ from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
 from qiskit.qobj import Qobj, QobjHeader, QobjConfig, QobjExperiment
 
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, bin_to_hex_keys
 
 
 class TestAerQasmSimulatorPy(QiskitTestCase):
