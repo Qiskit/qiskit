@@ -99,7 +99,7 @@ def iplot_histogram(data, figsize=None, number_to_keep=None,
     # Process data and execute
     div_number = str(time.time())
     div_number = re.sub('[.]', '', div_number)
-    
+
     # set default figure size if none provided
     if figsize is None:
         figsize = (7, 5)

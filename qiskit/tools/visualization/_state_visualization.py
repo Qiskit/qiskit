@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string
+# pylint: disable=invalid-name,anomalous-backslash-in-string, ungrouped-imports
 
 """
 Visualization functions for quantum states.
@@ -14,14 +14,18 @@ Visualization functions for quantum states.
 from functools import reduce
 import numpy as np
 from scipy import linalg
-from matplotlib import cm
-from matplotlib.ticker import MaxNLocator
-from matplotlib import pyplot as plt
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
 from qiskit.quantum_info import pauli_group, Pauli
-from qiskit.tools.visualization._error import VisualizationError
-from qiskit.tools.visualization._bloch import Bloch
+from ._matplotlib import HAS_MATPLOTLIB
+
+if HAS_MATPLOTLIB:
+    from matplotlib import cm
+    from matplotlib.ticker import MaxNLocator
+    from matplotlib import pyplot as plt
+    from matplotlib.patches import FancyArrowPatch
+    from mpl_toolkits.mplot3d import proj3d
+    from qiskit.tools.visualization._error import VisualizationError
+    from qiskit.tools.visualization._bloch import Bloch
+
 
 class Arrow3D(FancyArrowPatch):
     """Standard 3D arrow."""
@@ -50,7 +54,11 @@ def plot_hinton(rho, title='', figsize=None):
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
 
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if figsize is None:
         figsize = (8, 5)
     num = int(np.log2(len(rho)))
@@ -122,7 +130,12 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
 
     Returns:
         Figure: A matplotlib figure instance.
+
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
@@ -151,8 +164,11 @@ def plot_state_city(rho, title="", figsize=None, color=None):
          matplotlib.Figure: The matplotlib.Figure of the visualization
 
     Raises:
+        ImportError: Requires matplotlib.
         ValueError: When 'color' is not a list of len=2.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     num = int(np.log2(len(rho)))
 
     # get the real and imag parts of rho
@@ -243,7 +259,11 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
         color (list or str): Color of the expectation value bars.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if figsize is None:
         figsize = (7, 5)
     num = int(np.log2(len(rho)))
@@ -358,7 +378,12 @@ def plot_state_qsphere(rho, figsize=None):
 
     Returns:
         Figure: A matplotlib figure instance.
+
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if figsize is None:
         figsize = (7, 7)
     num = int(np.log2(len(rho)))
@@ -478,10 +503,12 @@ def plot_state(quantum_state, method='city', figsize=None):
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
     Raises:
+        ImportError: Requires matplotlib.
         VisualizationError: if the input is not a statevector or density
         matrix, or if the state is not an multi-qubit quantum state.
     """
-
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     # Check if input is a statevector, and convert to density matrix
     rho = np.array(quantum_state)
     if rho.ndim == 1:
@@ -540,6 +567,8 @@ def plot_wigner_function(state, res=100, figsize=None):
         figsize (tuple): Figure size in inches.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
+    Raises:
+        ImportError: Requires matplotlib.
 
     References:
         [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
@@ -547,6 +576,8 @@ def plot_wigner_function(state, res=100, figsize=None):
         [2] R. P. Rundle, P. W. Mills, T. Tilma, J. H. Samson, and
         M. J. Everitt, Phys. Rev. A 96, 022117 (2017).
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if figsize is None:
         figsize = (11, 9)
 
@@ -660,7 +691,11 @@ def plot_wigner_curve(wigner_data, xaxis=None, filename=None):
         xaxis (np.array):  the range of the x axis
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if not xaxis:
         xaxis = np.linspace(0, len(wigner_data)-1, num=len(wigner_data))
 
@@ -686,7 +721,11 @@ def plot_wigner_plaquette(wigner_data, max_wigner='local', filename=None):
             - float for a custom maximum.
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     wigner_data = np.matrix(wigner_data)
     dim = wigner_data.shape
 
@@ -739,7 +778,11 @@ def plot_wigner_data(wigner_data, phis=None, method=None, filename=None):
             plaquette: points plotted as circles
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+    Raises:
+        ImportError: Requires matplotlib.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if not method:
         wig_dim = len(np.shape(wigner_data))
         if wig_dim == 1:

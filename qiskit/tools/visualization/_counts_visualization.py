@@ -22,6 +22,7 @@ if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
+
 def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                    sort='asc', legend=None, bar_labels=True):
     """Plot a histogram of data.
