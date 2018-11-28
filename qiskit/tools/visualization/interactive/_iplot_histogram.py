@@ -50,7 +50,7 @@ def process_data(data, number_to_keep):
     return result
 
 
-def iplot_histogram(data, figsize=(7, 5), number_to_keep=None,
+def iplot_histogram(data, figsize=None, number_to_keep=None,
                     sort='asc', legend=None):
     """ Create a histogram representation.
 
@@ -99,6 +99,10 @@ def iplot_histogram(data, figsize=(7, 5), number_to_keep=None,
     # Process data and execute
     div_number = str(time.time())
     div_number = re.sub('[.]', '', div_number)
+    
+    # set default figure size if none provided
+    if figsize is None:
+        figsize = (7, 5)
 
     options = {'number_to_keep': 0 if number_to_keep is None else number_to_keep,
                'sort': sort,

@@ -19,16 +19,14 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_cities(rho, options=None):
+def iplot_cities(rho, figsize=None):
     """ Create a cities representation.
 
         Graphical representation of the input array using a city style graph.
 
         Args:
             rho (array): Density matrix
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
+            figsize (tuple): The figure size in inches.
     """
 
     # HTML
@@ -64,10 +62,10 @@ def iplot_cities(rho, options=None):
         });
     </script>
     """)
-
-    if not options:
+    if figsize is None:
         options = {}
-
+    else:
+        options = {'width': figsize[0], 'height': figsize[1]}
     # Process data and execute
     real = []
     imag = []

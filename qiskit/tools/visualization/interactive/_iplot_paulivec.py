@@ -35,18 +35,16 @@ def process_data(rho):
     return result
 
 
-def iplot_paulivec(rho, options=None):
+def iplot_paulivec(rho, figsize=None, slider=False, show_legend=False):
     """ Create a paulivec representation.
 
         Graphical representation of the input array.
 
         Args:
             rho (array): Density matrix
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
-                    - slider (bool): activate slider
-                    - show_legend (bool): show legend of graph content
+            figsize (tuple): Figure size in inches.
+            slider (bool): activate slider
+            show_legend (bool): show legend of graph content
     """
 
     # HTML
@@ -73,23 +71,16 @@ def iplot_paulivec(rho, options=None):
         });
     </script>
     """)
+    # set default figure size if none given
+    if figsize is None:
+        figsize = (7, 5)
 
-    if not options:
-        options = {}
+    options = {'width': figsize[0], 'height': figsize[1],
+               'slider': int(slider), 'show_legend': int(show_legend)}
 
     # Process data and execute
     div_number = str(time.time())
     div_number = re.sub('[.]', '', div_number)
-
-    if 'slider' in options and options['slider'] is True:
-        options['slider'] = 1
-    else:
-        options['slider'] = 0
-
-    if 'show_legend' in options and options['show_legend'] is False:
-        options['show_legend'] = 0
-    else:
-        options['show_legend'] = 1
 
     data_to_plot = []
     rho_data = process_data(rho)

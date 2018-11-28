@@ -19,7 +19,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_hinton(rho, options=None):
+def iplot_hinton(rho, figsize=None):
     """ Create a hinton representation.
 
         Graphical representation of the input array using a 2D city style
@@ -27,9 +27,7 @@ def iplot_hinton(rho, options=None):
 
         Args:
             rho (array): Density matrix
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
+            figsize (tuple): Figure size in inches.
     """
 
     # HTML
@@ -56,9 +54,10 @@ def iplot_hinton(rho, options=None):
         });
     </script>
     """)
-
-    if not options:
+    if figsize is None:
         options = {}
+    else:
+        options = {'width': figsize[0], 'height': figsize[1]}
 
     # Process data and execute
     div_number = str(time.time())

@@ -21,7 +21,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_blochsphere(rho, options=None):
+def iplot_blochsphere(rho, figsize=None):
     """ Create a bloch sphere representation.
 
         Graphical representation of the input array, using as much bloch
@@ -29,9 +29,7 @@ def iplot_blochsphere(rho, options=None):
 
         Args:
             rho (array): Density matrix
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
+            figsize (tuple): Figure size in inches.
     """
 
     # HTML
@@ -74,8 +72,10 @@ def iplot_blochsphere(rho, options=None):
     </script>
     """)
 
-    if not options:
+    if figsize is None:
         options = {}
+    else:
+        options = {'width': figsize[0], 'height': figsize[1]}
 
     # Process data and execute
     num = int(np.log2(len(rho)))

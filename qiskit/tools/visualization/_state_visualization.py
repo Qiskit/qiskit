@@ -12,16 +12,14 @@ Visualization functions for quantum states.
 """
 
 from functools import reduce
-
 import numpy as np
 from scipy import linalg
-
-from qiskit.quantum_info import pauli_group, Pauli
 from matplotlib import cm
 from matplotlib.ticker import MaxNLocator
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
+from qiskit.quantum_info import pauli_group, Pauli
 from qiskit.tools.visualization._error import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
 
@@ -41,7 +39,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_hinton(rho, title='', figsize=(8, 5)):
+def plot_hinton(rho, title='', figsize=None):
     """Plot a hinton diagram for the quanum state.
 
     Args:
@@ -53,6 +51,8 @@ def plot_hinton(rho, title='', figsize=(8, 5)):
          matplotlib.Figure: The matplotlib.Figure of the visualization
 
     """
+    if figsize is None:
+        figsize = (8, 5)
     num = int(np.log2(len(rho)))
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
@@ -105,12 +105,11 @@ def plot_hinton(rho, title='', figsize=(8, 5)):
     if title:
         plt.title(title)
     plt.tight_layout()
-    if fig:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -119,19 +118,23 @@ def plot_bloch_vector(bloch, title="", ax=None):
         bloch (list[double]): array of three elements where [<x>, <y>,<z>]
         title (str): a string that represents the plot title
         ax (matplotlib.Axes): An Axes to use for rendering the bloch sphere
+        figsize (tuple): Figure size in inches.
 
     Returns:
         Figure: A matplotlib figure instance.
     """
+    if figsize is None:
+        figsize = (5, 5)
     B = Bloch(axes=ax)
     B.add_vectors(bloch)
     B.render(title=title)
     fig = B.fig
+    fig.set_size_inches(figsize[0], figsize[1])
     plt.close(fig)
     return fig
 
 
-def plot_state_city(rho, title="", color=None):
+def plot_state_city(rho, title="", figsize=None, color=None):
     """Plot the cityscape of quantum state.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
@@ -141,10 +144,14 @@ def plot_state_city(rho, title="", color=None):
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
                                    numbers
         title (str): a string that represents the plot title
+        figsize (tuple): Figure size in inches.
         color (list): A list of len=2 giving colors for real and
         imaginary components of matrix elements.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
+
+    Raises:
+        ValueError: When 'color' is not a list of len=2.
     """
     num = int(np.log2(len(rho)))
 
@@ -172,20 +179,20 @@ def plot_state_city(rho, title="", color=None):
     dzi = dataimag.flatten()
 
     if color is None:
-        color = [["#648fff"]*len(dzr), ["#648fff"]*len(dzi)]
+        color = ["#648fff", "#648fff"]
     else:
         if len(color) != 2:
-            raise Exception("'color' must be a list of len=2.")
+            raise ValueError("'color' must be a list of len=2.")
         if color[0] is None:
-            color[0] = ["#648fff"]*len(dzr)
-        elif isinstance(color[0], str):
-            color[0] = [color[0]]*len(dzr)
+            color[0] = "#648fff"
         if color[1] is None:
-            color[1] = ["#648fff"]*len(dzr)
-        elif isinstance(color[1], str):
-            color[1] = [color[1]]*len(dzr)
+            color[1] = "#648fff"
 
-    fig = plt.figure(figsize=(15, 5))
+    # set default figure size
+    if figsize is None:
+        figsize = (15, 5)
+
+    fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(1, 2, 1, projection='3d')
     ax1.bar3d(xpos, ypos, zpos, dx, dy, dzr, color=color[0], alpha=0.5)
     ax2 = fig.add_subplot(1, 2, 2, projection='3d')
@@ -219,12 +226,11 @@ def plot_state_city(rho, title="", color=None):
         tick.label.set_fontsize(14)
     plt.title(title)
     plt.tight_layout()
-    if fig:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
-def plot_state_paulivec(rho, title="", figsize=(7, 5), color=None):
+def plot_state_paulivec(rho, title="", figsize=None, color=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -238,15 +244,15 @@ def plot_state_paulivec(rho, title="", figsize=(7, 5), color=None):
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
     """
+    if figsize is None:
+        figsize = (7, 5)
     num = int(np.log2(len(rho)))
     labels = list(map(lambda x: x.to_label(), pauli_group(num)))
     values = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                       pauli_group(num)))
     numelem = len(values)
     if color is None:
-        color = ["#648fff"]*numelem
-    elif isinstance(color, str):
-        color = [color]*numelem
+        color = "#648fff"
 
     ind = np.arange(numelem)  # the x locations for the groups
     width = 0.5  # the width of the bars
@@ -343,8 +349,18 @@ def phase_to_color_wheel(complex_number):
     return color_map[angle_round]
 
 
-def plot_state_qsphere(rho, figsize=(7, 7)):
-    """Plot the qsphere representation of a quantum state."""
+def plot_state_qsphere(rho, figsize=None):
+    """Plot the qsphere representation of a quantum state.
+
+    Args:
+        rho (ndarray): Density matrix reprentation of quantum state.
+        figsize (tuple): Figure size in inches.
+
+    Returns:
+        Figure: A matplotlib figure instance.
+    """
+    if figsize is None:
+        figsize = (7, 7)
     num = int(np.log2(len(rho)))
     # get the eigenvectors and eigenvalues
     we, stateall = linalg.eigh(rho)
@@ -446,18 +462,18 @@ def plot_state_qsphere(rho, figsize=(7, 7)):
         else:
             break
     plt.tight_layout()
-    if fig:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
-def plot_state(quantum_state, method='city'):
+def plot_state(quantum_state, method='city', figsize=None):
     """Plot the quantum state.
 
     Args:
         quantum_state (ndarray): statevector or density matrix
                                  representation of a quantum state.
         method (str): Plotting method to use.
+        figsize (tuple): Figure size in inches,
 
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
@@ -480,11 +496,11 @@ def plot_state(quantum_state, method='city'):
         raise VisualizationError("Input is not a multi-qubit quantum state.")
     fig = None
     if method == 'city':
-        fig = plot_state_city(rho)
+        fig = plot_state_city(rho, figsize=figsize)
     elif method == "paulivec":
-        fig = plot_state_paulivec(rho)
+        fig = plot_state_paulivec(rho, figsize=figsize)
     elif method == "qsphere":
-        fig = plot_state_qsphere(rho)
+        fig = plot_state_qsphere(rho, figsize=figsize)
     elif method == "bloch":
         aspect = float(1 / num)
         fig = plt.figure(figsize=plt.figaspect(aspect))
@@ -498,11 +514,12 @@ def plot_state(quantum_state, method='city'):
             bloch_state = list(
                 map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
                     pauli_singles))
-            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax)
+            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax,
+                              figsize=figsize)
     elif method == "wigner":
         fig = plot_wigner_function(rho)
     elif method == "hinton":
-        fig = plot_hinton(rho)
+        fig = plot_hinton(rho, figsize=figsize)
     return fig
 
 
@@ -510,7 +527,7 @@ def plot_state(quantum_state, method='city'):
 # Plotting Wigner functions
 ###############################################################
 
-def plot_wigner_function(state, res=100, filename=None, show=False):
+def plot_wigner_function(state, res=100, figsize=None):
     """Plot the equal angle slice spin Wigner function of an arbitrary
     quantum state.
 
@@ -520,10 +537,7 @@ def plot_wigner_function(state, res=100, filename=None, show=False):
             - State Vector of 2**n x 1 complex numbers
         res (int) : number of theta and phi values in meshgrid
             on sphere (creates a res x res grid of points)
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window.
-        show (bool): If set to true the rendered image will open in a new
-            window
+        figsize (tuple): Figure size in inches.
     Returns:
          matplotlib.Figure: The matplotlib.Figure of the visualization
 
@@ -533,12 +547,14 @@ def plot_wigner_function(state, res=100, filename=None, show=False):
         [2] R. P. Rundle, P. W. Mills, T. Tilma, J. H. Samson, and
         M. J. Everitt, Phys. Rev. A 96, 022117 (2017).
     """
-    state = np.array(state)
+    if figsize is None:
+        figsize = (11, 9)
+
+    state = np.asarray(state)
     if state.ndim == 1:
         state = np.outer(state,
                          state)  # turns state vector to a density matrix
-    state = np.matrix(state)
-    num = int(np.log2(len(state)))  # number of qubits
+    num = int(np.log2(state.shape[0]))  # number of qubits
     phi_vals = np.linspace(0, np.pi, num=res,
                            dtype=np.complex_)
     theta_vals = np.linspace(0, 0.5*np.pi, num=res,
@@ -562,18 +578,18 @@ def plot_wigner_function(state, res=100, filename=None, show=False):
                 kernel = np.kron(kernel,
                                  delta_su2)  # creates phase point kernel
 
-            w[phi, theta] = np.real(np.trace(state*kernel))  # Wigner function
+            w[phi, theta] = np.real(np.trace(state.dot(kernel)))  # Wigner function
 
     # Plot a sphere (x,y,z) with Wigner function facecolor data stored in Wc
-    fig = plt.figure(figsize=(11, 9))
+    fig = plt.figure(figsize=figsize)
     ax = fig.gca(projection='3d')
     w_max = np.amax(w)
     # Color data for plotting
-    w_c = cm.seismic_r((w+w_max)/(2*w_max))  # color data for sphere
-    w_c2 = cm.seismic_r((w[0:res, int(res/2):res]+w_max)/(2*w_max))  # bottom
-    w_c3 = cm.seismic_r((w[int(res/4):int(3*res/4), 0:res]+w_max) /
-                        (2*w_max))  # side
-    w_c4 = cm.seismic_r((w[int(res/2):res, 0:res]+w_max)/(2*w_max))  # back
+    w_c = cm.RdBu((w+w_max)/(2*w_max))  # color data for sphere
+    w_c2 = cm.RdBu((w[0:res, int(res/2):res]+w_max)/(2*w_max))  # bottom
+    w_c3 = cm.RdBu((w[int(res/4):int(3*res/4), 0:res]+w_max) /
+                   (2*w_max))  # side
+    w_c4 = cm.RdBu((w[int(res/2):res, 0:res]+w_max)/(2*w_max))  # back
 
     u = np.linspace(0, 2 * np.pi, res)
     v = np.linspace(0, np.pi, res)
@@ -614,26 +630,25 @@ def plot_wigner_function(state, res=100, filename=None, show=False):
                     linewidth=0, zorder=0.5,
                     antialiased=False)  # plots back reflection
 
-    ax.w_xaxis.set_pane_color((0.4, 0.4, 0.4, 1.0))
-    ax.w_yaxis.set_pane_color((0.4, 0.4, 0.4, 1.0))
-    ax.w_zaxis.set_pane_color((0.4, 0.4, 0.4, 1.0))
+    ax.w_xaxis.set_pane_color((0.8, 0.8, 0.8, 1.0))
+    ax.w_yaxis.set_pane_color((0.8, 0.8, 0.8, 1.0))
+    ax.w_zaxis.set_pane_color((0.8, 0.8, 0.8, 1.0))
     ax.set_xticks([], [])
     ax.set_yticks([], [])
     ax.set_zticks([], [])
     ax.grid(False)
-    ax.xaxis.pane.set_edgecolor('black')
-    ax.yaxis.pane.set_edgecolor('black')
-    ax.zaxis.pane.set_edgecolor('black')
+    ax.xaxis.pane.set_edgecolor('k')
+    ax.yaxis.pane.set_edgecolor('k')
+    ax.zaxis.pane.set_edgecolor('k')
     ax.set_xlim(-1.5, 1.5)
     ax.set_ylim(-1.5, 1.5)
     ax.set_zlim(-1.5, 1.5)
-    m = cm.ScalarMappable(cmap=cm.seismic_r)
+    m = cm.ScalarMappable(cmap=cm.RdBu)
     m.set_array([-w_max, w_max])
-    plt.colorbar(m, shrink=0.5, aspect=10)
-    if filename:
-        plt.savefig(filename)
-    elif show:
-        plt.show()
+    cbar = plt.colorbar(m, shrink=0.5, aspect=10,
+                        ticks=[-1, -0.5, 0, 0.5, 1.0])
+    cbar.ax.tick_params(labelsize=14)
+    plt.close(fig)
     return fig
 
 
@@ -740,7 +755,7 @@ def plot_wigner_data(wigner_data, phis=None, method=None, filename=None):
     elif method == 'plaquette':
         plot_wigner_plaquette(wigner_data, filename=filename)
     elif method == 'state':
-        plot_wigner_function(wigner_data, filename=filename)
+        plot_wigner_function(wigner_data)
     elif method == 'point':
         plot_wigner_plaquette(wigner_data, filename=filename)
         print('point in phase space is '+str(wigner_data))
