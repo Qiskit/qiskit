@@ -165,5 +165,46 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
 
+class TestDagEquivalence(QiskitTestCase):
+    """DAGCircuit equivalence check."""
+    def setUp(self):
+        self.qr1 = QuantumRegister(4, 'qr1')
+        self.qr2 = QuantumRegister(2, 'qr2')
+        circ1 = QuantumCircuit(self.qr2, self.qr1)
+        circ1.h(self.qr1[0])
+        circ1.cx(self.qr1[2], self.qr1[3])
+        circ1.h(self.qr1[2])
+        circ1.t(self.qr1[2])
+        circ1.ch(self.qr1[2], self.qr1[1])
+        circ1.u2(0.1, 0.2, self.qr1[3])
+        circ1.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
+        self.dag1 = DAGCircuit.fromQuantumCircuit(circ1)
+
+    def test_dag_eq(self):
+        circ2 = QuantumCircuit(self.qr1, self.qr2)
+        circ2.cx(self.qr1[2], self.qr1[3])
+        circ2.u2(0.1, 0.2, self.qr1[3])
+        circ2.h(self.qr1[0])
+        circ2.h(self.qr1[2])
+        circ2.t(self.qr1[2])
+        circ2.ch(self.qr1[2], self.qr1[1])
+        circ2.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
+        dag2 = DAGCircuit.fromQuantumCircuit(circ2)
+
+        self.assertEqual(self.dag1, dag2)
+
+    def test_dag_neq(self):
+        circ2 = QuantumCircuit(self.qr1, self.qr2)
+        circ2.cx(self.qr1[2], self.qr1[3])
+        circ2.u2(0.1, 0.2, self.qr1[3])
+        circ2.h(self.qr1[0])
+        circ2.h(self.qr1[2])
+        circ2.t(self.qr1[2])
+        circ2.ch(self.qr1[0], self.qr1[1])  # <--- The difference
+        circ2.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
+        dag2 = DAGCircuit.fromQuantumCircuit(circ2)
+
+        self.assertNotEqual(self.dag1, dag2)
+
 if __name__ == '__main__':
     unittest.main()
