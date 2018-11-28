@@ -13,92 +13,10 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
 from qiskit._qiskiterror import QISKitError
 
-from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.ccx import ToffoliGate
-from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crz import CrzGate
-from qiskit.extensions.standard.cswap import FredkinGate
-from qiskit.extensions.standard.cu1 import Cu1Gate
-from qiskit.extensions.standard.cu3 import Cu3Gate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.cxbase import CXBase
-from qiskit.extensions.standard.cy import CyGate
-from qiskit.extensions.standard.cz import CzGate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.iden import IdGate
-from qiskit.extensions.standard.rx import RXGate
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.s import SGate, SdgGate
-from qiskit.extensions.standard.swap import SwapGate
-from qiskit.extensions.standard.t import TGate, TdgGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.ubase import UBase
-from qiskit.extensions.standard.x import XGate
-from qiskit.extensions.standard.y import YGate
-from qiskit.extensions.standard.z import ZGate
-from qiskit.extensions.standard.rzz import RZZGate
-
 from .common import QiskitTestCase
 
 
-class StandardExtensionTest(QiskitTestCase):
-    def assertResult(self, type_, qasm_txt, type_inv=None, qasm_txt_inv=None):
-        """
-        Assert the single gate in self.circuit is of the type type_, the QASM
-        representation matches qasm_txt and the QASM representation of
-        inverse matches qasm_txt_inv and type_inv.
-
-        Args:
-            type_ (type): a gate type.
-            qasm_txt (str): QASM representation of the gate.
-            type_inv (type): a inverse gate type. If None, same as type_.
-            qasm_txt_inv (str): QASM representation of the inverse gate. If None, same as qasm_txt.
-        """
-        if not qasm_txt_inv:
-            qasm_txt_inv = qasm_txt
-        if not type_inv:
-            type_inv = type_
-        circuit = self.circuit
-        self.assertEqual(type(circuit[0]), type_)
-        self.assertQasm(qasm_txt)
-        circuit[0].reapply(circuit)
-        self.assertQasm(qasm_txt + '\n' + qasm_txt)
-        self.assertEqual(circuit[0].inverse(), circuit[0])
-        self.assertQasm(qasm_txt_inv + '\n' + qasm_txt)
-        self.assertEqual(type(circuit[0]), type_inv)
-
-    def assertStmtsType(self, stmts, type_):
-        """
-        Assert a list of statements stmts is of a type type_.
-
-        Args:
-            stmts (list): list of statements.
-            type_ (type): a gate type.
-        """
-        for stmt in stmts:
-            self.assertEqual(type(stmt), type_)
-
-    def assertQasm(self, qasm_txt, offset=1):
-        """
-        Assert the QASM representation of the circuit self.circuit includes
-        the text qasm_txt in the right position (which can be adjusted by
-        offset)
-
-        Args:
-            qasm_txt (str): a string with QASM code
-            offset (int): the offset in which qasm_txt should be found.
-        """
-        circuit = self.circuit
-        c_txt = len(qasm_txt)
-        self.assertIn('\n' + qasm_txt + '\n', circuit.qasm())
-        # pylint: disable=no-member
-        self.assertEqual(self.c_header + c_txt + offset, len(circuit.qasm()))
-
-
-class TestStandard1Q(StandardExtensionTest):
+class TestStandard1Q(QiskitTestCase):
     """Standard Extension Test. Gates with a single Qubit"""
 
     def setUp(self):
@@ -106,7 +24,6 @@ class TestStandard1Q(StandardExtensionTest):
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.qr, self.qr2, self.cr)
-        self.c_header = 69  # length of the header
 
     def test_barrier(self):
         self.circuit.barrier(self.qr[1])
@@ -254,7 +171,6 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertRaises(QISKitError, qc.cx, 'a', self.qr[1])
 
     def test_cxbase(self):
-        qasm_txt = 'CX q[1],q[2];'
         self.circuit.cx_base(self.qr[1], self.qr[2])
         self.assertEqual(self.circuit[0].name, 'CX')
         self.assertEqual(self.circuit[0].param, [])
@@ -801,7 +717,7 @@ class TestStandard1Q(StandardExtensionTest):
         self.assertEqual(instruction_set.instructions[2].param, [])
 
 
-class TestStandard2Q(StandardExtensionTest):
+class TestStandard2Q(QiskitTestCase):
     """Standard Extension Test. Gates with two Qubits"""
 
     def setUp(self):
@@ -809,7 +725,6 @@ class TestStandard2Q(StandardExtensionTest):
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.qr, self.qr2, self.cr)
-        self.c_header = 69  # length of the header
 
     def test_barrier_reg_bit(self):
         self.circuit.barrier(self.qr, self.qr2[0])
@@ -1113,7 +1028,7 @@ class TestStandard2Q(StandardExtensionTest):
         self.assertEqual(instruction_set.instructions[2].param, [])
 
 
-class TestStandard3Q(StandardExtensionTest):
+class TestStandard3Q(QiskitTestCase):
     """Standard Extension Test. Gates with three Qubits"""
 
     def setUp(self):
