@@ -390,7 +390,7 @@ class DAGCircuit:
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
     def apply_operation_front(self, op, condition=None):
-        """Apply an operation to the output of the circuit.
+        """Apply an operation to the input of the circuit.
 
         Args:
             op (Instruction): the operation associated with the DAG node
@@ -404,8 +404,8 @@ class DAGCircuit:
 
         self._check_basis_data(op.name, op.qargs, op.cargs, op.param)
         self._check_condition(op.name, condition)
-        self._check_bits(op.qargs, self.output_map)
-        self._check_bits(all_cbits, self.output_map)
+        self._check_bits(op.qargs, self.input_map)
+        self._check_bits(all_cbits, self.input_map)
 
         self._add_op_node(op, op.qargs, op.cargs, condition)
         # Add new out-edges to successors of the input nodes from the
@@ -417,7 +417,7 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
 
-            self.multi_graph.add_edge(ie[0], self.node_counter,
+            self.multi_graph.add_edge(self.node_counter, ie[0],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(self.input_map[q], self.node_counter,

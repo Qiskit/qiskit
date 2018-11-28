@@ -27,6 +27,7 @@ class TestDagRegisters(QiskitTestCase):
     """Test qreg and creg inside the dag"""
 
     def test_add_qreg_creg(self):
+        """ add_qreg() and  add_creg() methods"""
         dag = DAGCircuit()
         dag.add_qreg(QuantumRegister(2, 'qr'))
         dag.add_creg(ClassicalRegister(1, 'cr'))
@@ -34,6 +35,7 @@ class TestDagRegisters(QiskitTestCase):
         self.assertDictEqual(dag.cregs, {'cr': ClassicalRegister(1, 'cr')})
 
     def test_dag_get_qubits(self):
+        """ get_qubits() method """
         dag = DAGCircuit()
         dag.add_qreg(QuantumRegister(1, 'qr1'))
         dag.add_qreg(QuantumRegister(1, 'qr10'))
@@ -49,12 +51,14 @@ class TestDagRegisters(QiskitTestCase):
                                                 (QuantumRegister(1, 'qr6'), 0)])
 
     def test_add_reg_duplicate(self):
+        """ add_qreg with the same register twice is not allowed."""
         dag = DAGCircuit()
         qr = QuantumRegister(2)
         dag.add_qreg(qr)
         self.assertRaises(DAGCircuitError, dag.add_qreg, qr)
 
     def test_add_reg_duplicate_name(self):
+        """Adding quantum registers with the same name is not allowed."""
         dag = DAGCircuit()
         qr1 = QuantumRegister(3, 'qr')
         dag.add_qreg(qr1)
@@ -62,11 +66,13 @@ class TestDagRegisters(QiskitTestCase):
         self.assertRaises(DAGCircuitError, dag.add_qreg, qr2)
 
     def test_add_reg_bad_type(self):
+        """ add_qreg with a classical register is not allowed."""
         dag = DAGCircuit()
         cr = ClassicalRegister(2)
         self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
 
     def test_rename_register(self):
+        """The rename_register() method. """
         dag = DAGCircuit()
         qr = QuantumRegister(2, 'qr')
         dag.add_qreg(qr)
@@ -99,6 +105,7 @@ class TestDagOperations(QiskitTestCase):
         self.condition = (creg, 3)
 
     def test_apply_operation_back(self):
+        """The apply_operation_back() method."""
         self.dag.apply_operation_back(HGate(self.qubit0), condition=None)
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1), condition=None)
         self.dag.apply_operation_back(Measure(self.qubit1, self.clbit1), condition=None)
@@ -108,10 +115,8 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(self.dag.multi_graph.nodes), 16)
         self.assertEqual(len(self.dag.multi_graph.edges), 17)
 
-    @unittest.expectedFailure
-    # expected to fail until this function is fixed
-    # see: https://github.com/Qiskit/qiskit-terra/issues/1235
     def test_apply_operation_front(self):
+        """The apply_operation_front() method"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_front(Reset(self.qubit0))
         h_node = self.dag.get_op_nodes(op=HGate(self.qubit0)).pop()
@@ -120,6 +125,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertIn(reset_node, set(self.dag.multi_graph.predecessors(h_node)))
 
     def test_get_op_nodes_all(self):
+        """The method dag.get_op_nodes() returns all op nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
 
@@ -132,6 +138,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
 
     def test_get_op_nodes_particular(self):
+        """The method dag.get_op_nodes(op=AGate) returns all the AGAte nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(HGate(self.qubit1))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
@@ -145,6 +152,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
 
     def test_get_named_nodes(self):
+        """The get_named_nodes(AName) method returns all the nodes with name AName"""
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit2, self.qubit1))
@@ -179,7 +187,7 @@ class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
 
     def test_layers_basic(self):
-        """ The layers() method."""
+        """ The layers() method returns a list of layers, each of them with a list of nodes."""
         qreg = QuantumRegister(2, 'qr')
         creg = ClassicalRegister(2, 'cr')
         qubit0 = qreg[0]
@@ -309,7 +317,6 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
-<<<<<<< HEAD
     def test_dag_neq_same_topology(self):
         """ DAG equivalence check: False. Same topology."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
@@ -324,7 +331,6 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
-=======
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substitutuing a dag node with a sub-dag"""
@@ -353,7 +359,7 @@ class TestDagSubstitute(QiskitTestCase):
         self.dag.apply_operation_back(XGate(self.qubit1))
 
     def test_substitute_circuit_one_middle(self):
-        # node to replace
+        """The method substitute_circuit_one() replaces a in-the-middle node with a DAG."""
         cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop()
 
         flipped_cx_circuit = DAGCircuit()
@@ -373,13 +379,12 @@ class TestDagSubstitute(QiskitTestCase):
         self.assertEqual(self.dag.count_ops()['h'], 5)
 
     def test_substitute_circuit_one_front(self):
+        """The method substitute_circuit_one() replaces a leaf-in-the-front node with a DAG."""
         pass
 
-    def test_substitute_circuit_all(self):
+    def test_substitute_circuit_one_back(self):
+        """The method substitute_circuit_one() replaces a leaf-in-the-back node with a DAG."""
         pass
-
->>>>>>> decomposition rules in gate definitions as list of DAGs
->>>>>>> decomposition rules in gate definitions as list of DAGs
 
 if __name__ == '__main__':
     unittest.main()
