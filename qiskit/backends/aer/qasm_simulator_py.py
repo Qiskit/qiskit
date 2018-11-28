@@ -276,8 +276,7 @@ class QasmSimulatorPy(BaseBackend):
 
         copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def run_circuit(self, circuit):
         """Run a circuit and return a single Result.

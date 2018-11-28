@@ -20,7 +20,7 @@ from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
-from ..common import QiskitTestCase, requires_cpp_simulator
+from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
 
 class TestAerQasmSimulator(QiskitTestCase):
@@ -168,7 +168,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         for name in expected_data:
             # Check counts:
             counts = result.get_counts(name)
-            expected_counts = expected_data[name]['counts']
+            expected_counts = bin_to_hex_keys(expected_data[name]['counts'])
             if expected_data[name].get('deterministic', False):
                 self.assertEqual(counts, expected_counts,
                                  msg=name + ' counts')

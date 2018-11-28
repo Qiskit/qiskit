@@ -7,5 +7,5 @@
 
 """Module for working with results."""
 
-from ._result import Result
+from .result import Result
 from ._resulterror import ResultError
