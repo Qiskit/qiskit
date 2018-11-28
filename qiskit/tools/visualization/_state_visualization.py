@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string, ungrouped-imports
+# pylint: disable=invalid-name,anomalous-backslash-in-string,ungrouped-imports
 
 """
 Visualization functions for quantum states.
@@ -142,7 +142,8 @@ def plot_hinton(rho, title='', figsize=None):
     return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None):  # pylint: disable=inconsistent-return-statements
+# pylint: disable=inconsistent-return-statements
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
