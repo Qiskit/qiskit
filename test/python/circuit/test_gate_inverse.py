@@ -7,7 +7,7 @@
 
 # pylint: disable=unused-import
 
-"""Test Qiskit's QuantumCircuit class."""
+"""Test Qiskit's inverse gate operation."""
 
 import os
 import tempfile
