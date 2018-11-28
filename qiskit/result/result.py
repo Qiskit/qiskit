@@ -239,40 +239,6 @@ class Result(BaseModel):
     # def __getitem__(self, i):
     #     return list(self.results.values())[i]
 
-    def get_circuit_status(self, icircuit):
-        """Return the status of circuit at index icircuit.
-
-        Args:
-            icircuit (int): index of circuit
-        Returns:
-            string: the status of the circuit.
-        """
-        return self[icircuit].status
-
-    def get_job_id(self):
-        """Return the job id assigned by the api if this is a remote job.
-
-        Returns:
-            string: a string containing the job id.
-        """
-        return self.job_id
-
-    def get_ran_qasm(self, name):
-        """Get the ran qasm for the named circuit and backend.
-
-        Args:
-            name (str): the name of the quantum circuit.
-
-        Returns:
-            string: A text version of the qasm file that has been run.
-        Raises:
-            QISKitError: if the circuit was not found.
-        """
-        try:
-            return self.results[name].compiled_circuit_qasm
-        except KeyError:
-            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
-
     def get_names(self):
         """Get the circuit names of the results.
 
@@ -341,3 +307,47 @@ class Result(BaseModel):
 
         return [getattr(experiment_result, 'status', '') for
                 experiment_result in self.results]
+
+    def get_circuit_status(self, icircuit):
+        """Return the status of circuit at index icircuit.
+
+        Args:
+            icircuit (int): index of circuit
+        Returns:
+            string: the status of the circuit.
+        """
+        warnings.warn('get_circuit_status() is deprecated and will be removed '
+                      'in version 0.7+. Instead use result.results[x]status '
+                      'directly.', DeprecationWarning)
+        return self[icircuit].status
+
+    def get_job_id(self):
+        """Return the job id assigned by the api if this is a remote job.
+
+        Returns:
+            string: a string containing the job id.
+        """
+        warnings.warn('get_job_id() is deprecated and will be removed in '
+                      'version 0.7+. Instead use result.job_id directly.',
+                      DeprecationWarning)
+
+        return self.job_id
+
+    def get_ran_qasm(self, name):
+        """Get the ran qasm for the named circuit and backend.
+
+        Args:
+            name (str): the name of the quantum circuit.
+
+        Returns:
+            string: A text version of the qasm file that has been run.
+        Raises:
+            QISKitError: if the circuit was not found.
+        """
+        warnings.warn('get_ran_qasm() is deprecated and will be removed in '
+                      'version 0.7+.', DeprecationWarning)
+
+        try:
+            return self.results[name].compiled_circuit_qasm
+        except KeyError:
+            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
