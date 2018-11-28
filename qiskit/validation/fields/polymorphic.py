@@ -13,10 +13,10 @@ from functools import partial
 from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
-from qiskit.validation import ValidationError, ModelValidator
+from qiskit.validation import ValidationError, ModelTypeValidator
 
 
-class BasePolyField(PolyField, ModelValidator):
+class BasePolyField(PolyField, ModelTypeValidator):
     """Base class for polymorphic fields.
 
     Defines a Field that can contain data fitting different ``BaseSchema``.
@@ -78,7 +78,7 @@ class BasePolyField(PolyField, ModelValidator):
     def _expected_types(self):
         return tuple(schema.model_cls for schema in self._choices)
 
-    def validate_model(self, value, attr, data):
+    def check_type(self, value, attr, data):
         """Check if the type of the value is one of the possible choices.
 
         Possible choices are the model classes bound to the possible schemas.
@@ -87,11 +87,13 @@ class BasePolyField(PolyField, ModelValidator):
             raise self._not_expected_type(
                 value, Iterable, fields=[self], field_names=attr, data=data)
 
+        _check_type = super().check_type
+
         errors = []
         values = value if self.many else [value]
         for idx, v in enumerate(values):
             try:
-                self._check_type(v, idx, values)
+                _check_type(v, idx, values)
             except ValidationError as err:
                 errors.append(err.messages)
 
@@ -179,7 +181,7 @@ class ByAttribute(BasePolyField):
         return None
 
 
-class ByType(ModelValidator):
+class ByType(ModelTypeValidator):
     """Polymorphic field that disambiguates based on an attribute's type.
 
     Polymorphic field that accepts a list of ``Fields``, and checks that the
@@ -223,15 +225,15 @@ class ByType(ModelValidator):
 
         self.fail('invalid', value=value, types=self.choices)
 
-    def validate_model(self, value, attr, data):
+    def check_type(self, value, attr, data):
         """Check if at least one of the possible choices validates the value.
 
-        Possible choices are assumed to be ``ModelValidator`` fields.
+        Possible choices are assumed to be ``ModelTypeValidator`` fields.
         """
         for field in self.choices:
-            if isinstance(field, ModelValidator):
+            if isinstance(field, ModelTypeValidator):
                 try:
-                    return field.validate_model(value, attr, data)
+                    return field.check_type(value, attr, data)
                 except ValidationError:
                     pass
 

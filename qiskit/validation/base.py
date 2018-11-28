@@ -32,7 +32,7 @@ from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
 
 
-class ModelValidator(_fields.Field):
+class ModelTypeValidator(_fields.Field):
     """A field able to validate the correct type of a value."""
 
     valid_types = (object, )
@@ -40,8 +40,10 @@ class ModelValidator(_fields.Field):
     def _expected_types(self):
         return self.valid_types
 
-    def validate_model(self, value, attr, data):
+    def check_type(self, value, attr, data):
         """Validates a value against the correct type of the field.
+
+        It calls ``_expected_types`` to get a list of valid types.
 
         Subclasses can do one of the following:
 
@@ -51,21 +53,20 @@ class ModelValidator(_fields.Field):
             2. They can override the ``_expected_types`` method to return a
             tuple of expected types for the field.
 
-            3. They can override the ``_check_type`` method in charge of
-            raising a ``ValidationError`` if the type of the value is none of
-            the expected ones.
-
-            4. They can change ``validate_model`` completely to customize
+            3. They can change ``check_type`` completely to customize
             validation.
-        """
-        self._check_type(value, attr, data)
-        return value
 
-    def _check_type(self, value, attr, data):
+        This method or the overrides must return the ``value`` parameter
+        untouched.
+        """
         expected_types = self._expected_types()
         if not isinstance(value, expected_types):
             raise self._not_expected_type(
                 value, expected_types, fields=[self], field_names=attr, data=data)
+        return value
+
+    def _check_type(self):
+        pass
 
     @staticmethod
     def _not_expected_type(value, type_, **kwargs):
@@ -214,8 +215,8 @@ class _SchemaBinder:
         """
         validation_schema = schema_cls()
         for _, field in validation_schema.fields.items():
-            if isinstance(field, ModelValidator):
-                validate_function = field.__class__.validate_model
+            if isinstance(field, ModelTypeValidator):
+                validate_function = field.__class__.check_type
                 field._deserialize = MethodType(validate_function, field)
 
         return validation_schema
