@@ -12,7 +12,8 @@
 
 Marshamallow fields does not allow model validation so you need to create a new
 field, make it subclass of the Marshamallow field *and* ``ModelTypeValidator``
-and redefine ``valid_types`` to be the list of valid types. For instance::
+and redefine ``valid_types`` to be the list of valid types. Usually, **the
+same types this field deserializes to**. For instance::
 
     class Boolean(marshmallow.fields.Boolean, ModelTypeValidator):
         __doc__ = _fields.Boolean.__doc__
