@@ -67,14 +67,15 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
     print('The exact ground state energy is: {}'.format(exact))
 
     # Optimization
-    device = 'local_qasm_simulator'
+    device = 'qasm_simulator'
     if shots == 1:
-        device = 'local_statevector_simulator'
+        device = 'statevector_simulator'
 
     if 'statevector' not in device:
         H = group_paulis(pauli_list)
 
-    entangler_map = get_backend(device).configuration()['coupling_map']
+    entangler_map = getattr(get_backend(device).configuration(),
+                            'coupling_map', 'all-to-all')
 
     if entangler_map == 'all-to-all':
         entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}

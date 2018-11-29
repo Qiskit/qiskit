@@ -12,6 +12,7 @@ IBM Q Experience.
 """
 
 from concurrent import futures
+import warnings
 import time
 import logging
 import pprint
@@ -20,17 +21,16 @@ import json
 import datetime
 import numpy
 
-from IBMQuantumExperience import ApiError
-
 from qiskit.qobj import qobj_to_dict
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
 from qiskit.result._utils import result_from_old_style_dict
-from qiskit.qobj import Result as QobjResult
-from qiskit.qobj import ExperimentResult as QobjExperimentResult
 from qiskit.qobj import validate_qobj_against_schema
+
+from .api import ApiError
+
 
 logger = logging.getLogger(__name__)
 
@@ -113,26 +113,37 @@ class IBMQJob(BaseJob):
     """
     _executor = futures.ThreadPoolExecutor()
 
-    def __init__(self, api, is_device, qobj=None, job_id=None, backend_name=None,
-                 creation_date=None):
+    def __init__(self, backend, job_id, api, is_device, qobj=None,
+                 creation_date=None, api_status=None, **kwargs):
         """IBMQJob init function.
+
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
         the API servers.
 
         Args:
-            api (IBMQuantumExperience): IBM Q API
+            backend (str): The backend instance used to run this job.
+            job_id (str): The job ID of an already submitted job. Pass `None`
+                if you are creating a new one.
+            api (IBMQConnector): IBMQ connector.
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. See notes below
-            job_id (String): The job ID of an already submitted job.
-            backend_name(String): The name of the backend that run the job.
-            creation_date(String): When the job was run.
+            creation_date (str): When the job was run.
+            api_status (str): `status` field directly from the API response.
+            kwargs (dict): You can pass `backend_name` to this function although
+                it has been deprecated.
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
-            will ignore ``job_id`` and will create an instance representing
-            an already-created job retrieved from the API server.
+            will ignore ``job_id`` and will create an instance to be submitted to the
+            API server for job creation. Passing only a `job_id`will create an instance
+            representing an already-created job retrieved from the API server.
         """
-        super().__init__()
+        if 'backend_name' in kwargs:
+            warnings.warn('Passing the parameter `backend_name` is deprecated, '
+                          'pass the `backend` parameter with the instance of '
+                          'the backend running the job.', DeprecationWarning)
+
+        super().__init__(backend, job_id)
         self._job_data = None
 
         if qobj is not None:
@@ -151,15 +162,26 @@ class IBMQJob(BaseJob):
 
         self._future_captured_exception = None
         self._api = api
-        self._id = job_id
-        self._backend_name = qobj.header.backend_name if qobj is not None else backend_name
-        self._status = JobStatus.INITIALIZING
-        # In case of not providing a qobj, it assumes job_id has been provided
-        # and query the API for updating the status.
-        if qobj is None:
-            self.status()
-        self._queue_position = None
+        self._backend = backend
         self._cancelled = False
+        self._status = JobStatus.INITIALIZING
+        # In case of not providing a `qobj`, it is assumed the job already
+        # exists in the API (with `job_id`).
+        if qobj is None:
+            # Some API calls (`get_status_jobs`, `get_status_job`) provide
+            # enough information to recreate the `Job`. If that is the case, try
+            # to make use of that information during instantiation, as
+            # `self.status()` involves an extra call to the API.
+            if api_status == 'VALIDATING':
+                self._status = JobStatus.VALIDATING
+            elif api_status == 'COMPLETED':
+                self._status = JobStatus.DONE
+            elif api_status == 'CANCELLED':
+                self._status = JobStatus.CANCELLED
+                self._cancelled = True
+            else:
+                self.status()
+        self._queue_position = None
         self._is_device = is_device
 
         def current_utc_time():
@@ -203,14 +225,7 @@ class IBMQJob(BaseJob):
         return job_response
 
     def _result_from_job_response(self, job_response):
-        experiment_results = []
-        result_json = job_response['qObjectResult']
-        for experiment_result_json in result_json['results']:
-            qobj_experiment_result = QobjExperimentResult(**experiment_result_json)
-            experiment_results.append(qobj_experiment_result)
-
-        result_kwargs = {**result_json, 'results': experiment_results}
-        return Result(QobjResult(**result_kwargs))
+        return Result.from_dict(job_response['qObjectResult'])
 
     def cancel(self):
         """Attempt to cancel a job.
@@ -227,7 +242,7 @@ class IBMQJob(BaseJob):
         project = self._api.config.get('project', None)
 
         try:
-            response = self._api.cancel_job(self._id, hub, group, project)
+            response = self._api.cancel_job(self._job_id, hub, group, project)
             self._cancelled = 'error' not in response
             return self._cancelled
         except ApiError as error:
@@ -244,19 +259,18 @@ class IBMQJob(BaseJob):
             JobError: if there was an exception in the future being executed
                           or the server sent an unknown answer.
         """
-
-        # Implies self._id is None
+        # Implies self._job_id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
 
-        if self._id is None or self._status in JOB_FINAL_STATES:
+        if self._job_id is None or self._status in JOB_FINAL_STATES:
             return self._status
 
         try:
             # TODO: See result values
-            api_job = self._api.get_status_job(self._id)
+            api_job = self._api.get_status_job(self._job_id)
             if 'status' not in api_job:
-                raise JobError('get_job didn\'t return status: %s' %
+                raise JobError('get_status_job didn\'t return status: %s' %
                                pprint.pformat(api_job))
         # pylint: disable=broad-except
         except Exception as err:
@@ -314,13 +328,35 @@ class IBMQJob(BaseJob):
 
         If the Id is not set because the job is already initializing, this call
         will block until we have an Id.
+
+        .. deprecated:: 0.6+
+            After 0.6, this function is deprecated. Please use
+            `job.job_id()` instead.
+        """
+        warnings.warn('The method `job.id()` is deprecated, use '
+                      '``job.job_id()`` instead.', DeprecationWarning)
+        return self.job_id()
+
+    def job_id(self):
+        """Return backend determined id.
+
+        If the Id is not set because the job is already initializing, this call
+        will block until we have an Id.
         """
         self._wait_for_submission()
-        return self._id
+        return self._job_id
 
     def backend_name(self):
-        """Return backend name used for this job."""
-        return self._backend_name
+        """
+        Return backend name used for this job.
+
+        .. deprecated:: 0.6+
+            After 0.6, this function is deprecated. Please use
+            `job.backend().name()` instead.
+        """
+        warnings.warn('The use of `job.backend_name()` is deprecated, '
+                      'use `job.backend().name()` instead', DeprecationWarning)
+        return self.backend().name()
 
     def submit(self):
         """Submit job to IBM-Q.
@@ -329,9 +365,9 @@ class IBMQJob(BaseJob):
             JobError: If we have already submitted the job.
         """
         # TODO: Validation against the schema should be done here and not
-        # during initiliazation. Once done, we should document that the method
+        # during initialization. Once done, we should document that the method
         # can raise QobjValidationError.
-        if self._future is not None or self._id is not None:
+        if self._future is not None or self._job_id is not None:
             raise JobError("We have already submitted the job!")
         self._future = self._executor.submit(self._submit_callback)
 
@@ -341,7 +377,7 @@ class IBMQJob(BaseJob):
         Returns:
             dict: A dictionary with the response of the submitted job
         """
-        backend_name = self._backend_name
+        backend_name = self.backend().name()
 
         try:
             submit_info = self._api.run_job(self._qobj_payload, backend=backend_name)
@@ -359,10 +395,10 @@ class IBMQJob(BaseJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
-        self._id = submit_info.get('id')
+        self._job_id = submit_info.get('id')
         return submit_info
 
     def _wait_for_job(self, timeout=60, wait=5):
@@ -385,7 +421,7 @@ class IBMQJob(BaseJob):
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
                 raise JobTimeoutError(
-                    'Timeout while waiting for the job: {}'.format(self._id)
+                    'Timeout while waiting for the job: {}'.format(self._job_id)
                 )
 
             logger.info('status = %s (%d seconds)', self._status, elapsed_time)
@@ -395,11 +431,11 @@ class IBMQJob(BaseJob):
             raise JobError(
                 'Job result impossible to retrieve. The job was cancelled.')
 
-        return self._api.get_job(self._id)
+        return self._api.get_job(self._job_id)
 
     def _wait_for_submission(self, timeout=60):
         """Waits for the request to return a job ID"""
-        if self._id is None:
+        if self._job_id is None:
             if self._future is None:
                 raise JobError("You have to submit before asking for status or results!")
             try:
@@ -442,7 +478,7 @@ class IBMQJobPreQobj(IBMQJob):
         max_credits = self._job_data['max_credits']
 
         try:
-            submit_info = self._api.run_job(api_jobs, backend=self._backend_name,
+            submit_info = self._api.run_job(api_jobs, backend=self.backend().name(),
                                             shots=shots, max_credits=max_credits,
                                             seed=seed, hpc=hpc_camel_cased)
         # pylint: disable=broad-except
@@ -459,10 +495,10 @@ class IBMQJobPreQobj(IBMQJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
-        self._id = submit_info.get('id')
+        self._job_id = submit_info.get('id')
         return submit_info
 
     def _result_from_job_response(self, job_response):
@@ -472,23 +508,27 @@ class IBMQJobPreQobj(IBMQJob):
         experiment_results = []
         for circuit_result in job_response['qasms']:
             this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
                            'compiled_circuit_qasm': circuit_result.get('qasm'),
                            'status': circuit_result['status'],
                            'success': circuit_result['status'] == 'DONE',
                            'shots': job_response['shots']}
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
+                if 'header' in circuit_result['metadata'].get('compiled_circuit', {}):
+                    this_result['header'] = \
+                        circuit_result['metadata']['compiled_circuit']['header']
+                else:
+                    this_result['header'] = {}
             experiment_results.append(this_result)
 
         return result_from_old_style_dict({
-            'id': self._id,
+            'id': self._job_id,
             'status': job_response['status'],
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
-            'backend_name': self.backend_name(),
-            'success': job_response['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in job_response['qasms']])
+            'backend_name': self.backend().name(),
+            'success': job_response['status'] == 'COMPLETED'
+        })
 
 
 def _reorder_bits(job_data):
@@ -572,7 +612,7 @@ def _create_api_job_from_circuit(circuit):
     """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
     if not circuit.get('compiled_circuit_qasm'):
-        compiled_circuit = transpile(circuit['circuit'])
+        compiled_circuit = transpile_dag(circuit['circuit'])
         circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
 
     if isinstance(circuit['compiled_circuit_qasm'], bytes):

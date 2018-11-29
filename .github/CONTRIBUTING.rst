@@ -1,12 +1,15 @@
+
 Contributing
 ============
 
 **We appreciate all kinds of help, so thank you!**
 
+
 Contributing to the project
 ---------------------------
 
 You can contribute in many ways to this project.
+
 
 Issue reporting
 ~~~~~~~~~~~~~~~
@@ -15,12 +18,14 @@ This is a good point to start, when you find a problem please add
 it to the `issue tracker <https://github.com/Qiskit/qiskit-terra/issues>`_.
 The ideal report should include the steps to reproduce it.
 
+
 Doubts solving
 ~~~~~~~~~~~~~~
 
 To help less advanced users is another wonderful way to start. You can
 help us close some opened issues. This kind of tickets should be
 labeled as ``question``.
+
 
 Improvement proposal
 ~~~~~~~~~~~~~~~~~~~~
@@ -29,6 +34,7 @@ If you have an idea for a new feature please open a ticket labeled as
 ``enhancement``. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
 
+
 Contributor License Agreement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -36,7 +42,7 @@ We'd love to accept your code! Before we can, we have to get a few legal
 requirements sorted out. By signing a contributor license agreement (CLA), we
 ensure that the community is free to use your contributions.
 
-When you contribute to the Qiskit project with a new pull request, a bot will
+When you contribute to the Qiskit Terra project with a new pull request, a bot will
 evaluate whether you have signed the CLA. If required, the bot will comment on
 the pull request,  including a link to accept the agreement. The
 `individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
@@ -46,10 +52,95 @@ NOTE: If you work for a company that wants to allow you to contribute your work,
 then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
 and email it to us at qiskit@us.ibm.com.
 
+
+Good first contributions
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are welcome to contribute wherever in the code you want to, of course, but
+we recommend taking a look at the "Good first contribution" label into the
+issues and pick one. We would love to mentor you!
+
+
+Doc
+~~~
+
+Review the parts of the documentation regarding the new changes and update it
+if it's needed.
+
+
+Pull requests
+~~~~~~~~~~~~~
+
+We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
+to accept the contributions.
+
+A friendly reminder! We'd love to have a previous discussion about the best way to
+implement the feature/bug you are contributing with. This is a good way to
+improve code quality in our beloved Qiskit!, so remember to file a new Issue before
+starting to code for a solution.
+
+So after having discussed the best way to land your changes into the codebase,
+you are ready to start coding (yay!). We have two options here:
+
+1. You think your implementation doesn't introduce a lot of code, right?. Ok,
+   no problem, you are all set to create the PR once you have finished coding.
+   We are waiting for it!
+2. Your implementation does introduce many things in the codebase. That sounds
+   great! Thanks!. In this case you can start coding and create a PR with the
+   word: **[WIP]** as a prefix of the description. This means "Work In
+   Progress", and allow reviewers to make micro reviews from time to time
+   without waiting for the big and final solution... otherwise, it would make
+   reviewing and coming changes pretty difficult to accomplish. The reviewer
+   will remove the **[WIP]** prefix from the description once the PR is ready
+   to merge.
+
+
+Pull request checklist
+""""""""""""""""""""""
+
+When submitting a pull request and you feel it is ready for review, please
+double check that:
+
+* the code follows the code style of the project. For convenience, you can
+  execute ``make style`` and ``make lint`` locally, which will print potential
+  style warnings and fixes.
+* the documentation has been updated accordingly. In particular, if a function
+  or class has been modified during the PR, please update the docstring
+  accordingly.
+* your contribution passes the existing tests, and if developing a new feature,
+  that you have added new tests that cover those changes.
+* you add a new line to the ``CHANGELOG.rst`` file, in the ``UNRELEASED``
+  section, with the title of your pull request and its identifier (for example,
+  "``Replace OldComponent with FluxCapacitor (#123)``".
+
+
+Commit messages
+"""""""""""""""
+
+Please follow the next rules for the commit messages:
+
+- It should include a reference to the issue ID in the first line of the commit,
+  **and** a brief description of the issue, so everybody knows what this ID
+  actually refers to without wasting to much time on following the link to the
+  issue.
+
+- It should provide enough information for a reviewer to understand the changes
+  and their relation to the rest of the code.
+
+A good example:
+
+.. code-block:: text
+
+    Issue #190: Short summary of the issue
+    * One of the important changes
+    * Another important change
+
+
 Code
 ----
 
 This section include some tips that will help you to push source code.
+
 
 Dependencies
 ~~~~~~~~~~~~
@@ -69,6 +160,7 @@ For the python code, we need some libraries that can be installed in this way:
     # Depending on the system and setup to append "sudo -H" before could be needed.
     pip install -U -r requirements.txt
     pip install -U -r requirements-dev.txt
+
 
 Building
 ~~~~~~~~
@@ -100,15 +192,16 @@ more info about where to find libphreads.a for later building. Furthermore,
 we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
 
+
 Useful CMake flags
-------------------
+~~~~~~~~~~~~~~~~~~
 
 There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
 pass them right after ``-D`` cmake argument. Example:
 .. code::
 
-    qiskit-sdk-py/out$ cmake -DUSEFUL_FLAG=Value ..
+    qiskit-terra/out$ cmake -DUSEFUL_FLAG=Value ..
 
 Flags:
 
@@ -196,14 +289,47 @@ Linux and Mac:
 
 .. code-block:: bash
 
-    $ LOG_LEVEL=INFO python -m unittest test/python/test_apps.py
+    $ LOG_LEVEL=INFO python -m unittest test/python/test_circuit.py
 
 Windows:
 
 .. code-block:: bash
 
     C:\..\> set LOG_LEVEL="INFO"
-    C:\..\> python -m unittest test/python/test_apps.py
+    C:\..\> python -m unittest test/python/test_circuit.py
+
+Note many of the tests will not be executed unless you have setup an IBMQ
+account. To set this up please go to this
+`page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and
+register an account.
+
+By default, and if there is no user credentials available, the tests that
+require online access are run with recorded (mocked) information. This is, the
+remote requests are replayed from a ``test/cassettes`` and not real HTTP
+requests is generated. If user credentials are found, in that cases it use them
+to make the network requests.
+
+How and which tests are executed is controlled by a environment variable
+``QISKIT_TESTS``. The options are (where ``uc_available = True`` if the user
+credentials are available, and ``False`` otherwise):
+
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+|  Option           | Description                                                                                                        | Default               |  If ``True``, forces                             |
++===================+====================================================================================================================+=======================+==================================================+
+| ``skip_online``   | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | ``False``             | ``rec = False``                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``mock_online``   | It runs the online tests using mocked information. Does not require user credentials.                              | ``not uc_available``  | ``skip_online = False``                          |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``run_slow``      | It runs tests tagged as *slow*.                                                                                    | ``False``             |                                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``rec``           | It records the remote requests. It requires user credentials.                                                      | ``False``             | ``skip_online = False``                          |
+|                   |                                                                                                                    |                       | ``run_slow = False``                             |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+
+It is possible to provide more than one option separated with commas.
+The order of precedence in the options is right to left. For example,
+``QISKIT_TESTS=skip_online,rec`` will set the options as
+``skip_online == False`` and ``rec == True``.
 
 Style guide
 ~~~~~~~~~~~
@@ -223,90 +349,6 @@ All platforms:
     out$> make style
 
 
-Good first contributions
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-You are welcome to contribute wherever in the code you want to, of course, but
-we recommend taking a look at the "Good first contribution" label into the
-issues and pick one. We would love to mentor you!
-
-Doc
-~~~
-
-Review the parts of the documentation regarding the new changes and update it
-if it's needed.
-
-Pull requests
-~~~~~~~~~~~~~
-
-We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
-to accept the contributions.
-
-A friendly reminder! We'd love to have a previous discussion about the best way to
-implement the feature/bug you are contributing with. This is a good way to
-improve code quality in our beloved SDK!, so remember to file a new Issue before
-starting to code for a solution.
-
-So after having discussed the best way to land your changes into the codebase,
-you are ready to start coding (yay!). We have two options here:
-
-1. You think your implementation doesn't introduce a lot of code, right?. Ok,
-   no problem, you are all set to create the PR once you have finished coding.
-   We are waiting for it!
-2. Your implementation does introduce many things in the codebase. That sounds
-   great! Thanks!. In this case you can start coding and create a PR with the
-   word: **[WIP]** as a prefix of the description. This means "Work In
-   Progress", and allow reviewers to make micro reviews from time to time
-   without waiting to the big and final solution... otherwise, it would make
-   reviewing and coming changes pretty difficult to accomplish. The reviewer
-   will remove the **[WIP]** prefix from the description once the PR is ready
-   to merge.
-
-Pull request checklist
-""""""""""""""""""""""
-
-When submitting a pull request and you feel it is ready for review, please
-double check that:
-
-* the code follows the code style of the project. For convenience, you can
-  execute ``make style`` and ``make lint`` locally, which will print potential
-  style warnings and fixes.
-* the documentation has been updated accordingly. In particular, if a function
-  or class has been modified during the PR, please update the docstring
-  accordingly.
-* your contribution passes the existing tests, and if developing a new feature,
-  that you have added new tests that cover those changes.
-* you add a new line to the ``CHANGELOG.rst`` file, in the ``UNRELEASED``
-  section, with the title of your pull request and its identifier (for example,
-  "``Replace OldComponent with FluxCapacitor (#123)``".
-
-Commit messages
-"""""""""""""""
-
-Please follow the next rules for the commit messages:
-
-- It should include a reference to the issue ID in the first line of the commit,
-  **and** a brief description of the issue, so everybody knows what this ID
-  actually refers to without wasting to much time on following the link to the
-  issue.
-
-- It should provide enough information for a reviewer to understand the changes
-  and their relation to the rest of the code.
-
-A good example:
-
-.. code::
-
-    Issue #190: Short summary of the issue
-    * One of the important changes
-    * Another important change
-
-A (really) bad example:
-
-.. code::
-
-    Fixes #190
-
 Development cycle
 -----------------
 
@@ -318,6 +360,7 @@ beneficial for everyone. Whenever a new release is close to be launched, we'll
 announce it and detail what has changed since the latest version.
 The channels we'll use to announce new releases are still being discussed, but
 for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
+
 
 Branch model
 ~~~~~~~~~~~~
@@ -336,7 +379,7 @@ There are two main branches in the repository:
     we will fix it ASAP, promise :).
   - This should not be considered as a stable branch to use in production
     environments.
-  - The API of the SDK could change without prior notice.
+  - The API of Qiskit could change without prior notice.
 
 - ``stable``
 
@@ -349,10 +392,11 @@ There are two main branches in the repository:
     stable software ready for production environments.
   - All the tags from the release versions are created from this branch.
 
+
 Release cycle
 ~~~~~~~~~~~~~
 
-From time to time, we will release brand new versions of the Qiskit SDK. These
+From time to time, we will release brand new versions of Qiskit Terra. These
 are well-tested versions of the software.
 
 When the time for a new release has come, we will:
@@ -367,36 +411,51 @@ The ``stable`` branch should only receive changes in the form of bug fixes, so t
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
 
+
 What version should I use: development or stable?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It depends on your needs as a user.
 
-If you want to use Qiskit for building Apps which goal is to run Quantum
-programs, we encourage you to use the latest released version, installing it via
-Pip.
+If you want to use Qiskit Terra for building circuits for applications or research then we recommend
+that you should be using the stable version. However, to simplify this the latest stable version 
+can be installed using Pip.
 
 .. code:: sh
 
-    $ pip install qiskit`
+    $ pip install qiskit
 
 If you found out that the release version doesn't fit your needs, and you are
-thinking about extending the functionality of the SDK, you are more likely to
-use the ``master`` branch and thinking seriously about contributing with us :)
+thinking about extending the functionality of Qiskit Terra, you are more likely to
+use the ``master`` branch and thinking seriously about contributing with us :). 
+
+Please clone the distribution and set up the code as described above. To get the examples working 
+try  
+
+.. code:: sh
+
+    $ pip install -e .
+ 
+and then you can run them with 
+
+.. code:: sh
+
+    $ python examples/python/using_qiskit_core_level_0.py
+
 
 Documentation
 -------------
 
-The documentation for the project is in the ``doc`` directory. The
-documentation for the python SDK is auto-generated from python
+The documentation for the element of Qiskit is in the ``doc`` directory. The
+documentation for the Qiskit Terra is auto-generated from python
 docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
 documentation. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
 for docstrings. A good example of the style can also be found with
 `sphinx's napolean converter
 documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
-You can see the rendered documentation for the stable version of the SDK at
-`the SDK's landing page <https://qiskit.org/documentation>`_.
+You can see the rendered documentation for the stable version of Qiskit Terra at
+the `landing page <https://qiskit.org/terra>`_.
 
 To generate the documentation, we need to invoke CMake first in order to generate
 all specific files for our current platform.

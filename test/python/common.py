@@ -17,12 +17,15 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
-from qiskit.backends.ibmq import IBMQProvider
-from qiskit.backends.local import QasmSimulatorCpp
-from qiskit.wrapper.credentials import discover_credentials, get_account_name
-from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
+from qiskit.backends.aer import QasmSimulator
+from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
+
 from .http_recorder import http_recorder
 from ._test_options import get_test_options
+
+
+# Allows shorter stack trace for .assertDictAlmostEqual
+__unittest = True  # pylint: disable=invalid-name
 
 
 class Path(Enum):
@@ -71,10 +74,13 @@ class QiskitTestCase(unittest.TestCase):
             cls.log.debug("QISKIT_TESTS: %s", str(TEST_OPTIONS))
 
     def tearDown(self):
-        # Reset the default provider, as in practice it acts as a singleton
+        # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
-        from qiskit.wrapper import _wrapper
-        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
+        from qiskit.backends.ibmq import IBMQ
+        from qiskit.backends.aer import Aer
+
+        IBMQ._accounts.clear()
+        Aer._backends = Aer._verify_aer_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
@@ -124,6 +130,15 @@ class QiskitTestCase(unittest.TestCase):
             return
         if delta is not None and places is not None:
             raise TypeError("specify delta or places not both")
+
+        # TODO: remove when all tests adjust to counts being hex
+        try:
+            dict1 = bin_to_hex_keys(dict1)
+        except ValueError:
+            try:
+                dict2 = bin_to_hex_keys(dict2)
+            except ValueError:
+                pass
 
         if places is not None:
             success = True
@@ -261,14 +276,14 @@ def _get_credentials(test_object, test_options):
         test_options (dict): Options after QISKIT_TESTS was parsed by get_test_options.
 
     Returns:
-        dict: Credentials in a dictionary
+        Credentials: set of credentials
 
     Raises:
         Exception: When the credential could not be set and they are needed for that set of options
     """
 
-    dummy_credentials = {'qe_token': 'dummyapiusersloginWithTokenid01',
-                         'qe_url': 'https://quantumexperience.ng.bluemix.net/api'}
+    dummy_credentials = Credentials('dummyapiusersloginWithTokenid01',
+                                    'https://quantumexperience.ng.bluemix.net/api')
 
     if test_options['mock_online']:
         return dummy_credentials
@@ -277,22 +292,24 @@ def _get_credentials(test_object, test_options):
         # Special case: instead of using the standard credentials mechanism,
         # load them from different environment variables. This assumes they
         # will always be in place, as is used by the Travis setup.
-        test_object.using_ibmq_credentials = True
-        return {'qe_token': os.getenv('IBMQ_TOKEN'),
-                'qe_url': os.getenv('IBMQ_URL')}
+        return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
     else:
         # Attempt to read the standard credentials.
-        account_name = get_account_name(IBMQProvider)
         discovered_credentials = discover_credentials()
-        if account_name in discovered_credentials.keys():
-            credentials = discovered_credentials[account_name]
-            if all(item in credentials.get('url') for item in ['Hubs', 'Groups', 'Projects']):
-                test_object.using_ibmq_credentials = True
-            return {'qe_token': credentials.get('token'),
-                    'qe_url': credentials.get('url')}
+
+        if discovered_credentials:
+            # Decide which credentials to use for testing.
+            if len(discovered_credentials) > 1:
+                try:
+                    # Attempt to use QE credentials.
+                    return discovered_credentials[dummy_credentials.unique_id()]
+                except KeyError:
+                    pass
+
+            # Use the first available credentials.
+            return list(discovered_credentials.values())[0]
 
     # No user credentials were found.
-
     if test_options['rec']:
         raise Exception('Could not locate valid credentials. You need them for recording '
                         'tests against the remote API.')
@@ -311,7 +328,7 @@ def is_cpp_simulator_available():
         bool: True if simulator executable is available
     """
     try:
-        QasmSimulatorCpp()
+        QasmSimulator()
     except FileNotFoundError:
         return False
     return True
@@ -355,10 +372,10 @@ def requires_qe_access(func):
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
-        # Cleanup the credentials, as this file is shared by the tests.
-        from qiskit.wrapper import _wrapper as qiskit_wrapper
-        qiskit_wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
-        kwargs.update(_get_credentials(self, TEST_OPTIONS))
+        credentials = _get_credentials(self, TEST_OPTIONS)
+        self.using_ibmq_credentials = credentials.is_ibmq()
+        kwargs.update({'qe_token': credentials.token,
+                       'qe_url': credentials.url})
 
         decorated_func = func
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
@@ -369,6 +386,17 @@ def requires_qe_access(func):
         return decorated_func(self, *args, **kwargs)
 
     return _wrapper
+
+
+def bin_to_hex_keys(dict_):
+    """Replace the keys of a dict from bin to hex."""
+    # TODO: remove when all the tests are updated to the new counts format.
+    keys = list(dict_.keys())
+    for key in keys:
+        key_as_hex = hex(int(key.replace(' ', ''), 2))
+        dict_[key_as_hex] = dict_.pop(key)
+
+    return dict_
 
 
 def _get_http_recorder(test_options):

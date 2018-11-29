@@ -56,7 +56,7 @@ stage_osx: &stage_osx
   os: osx
   osx_image: xcode9.2
   language: generic
-  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-6 -D ENABLE_TARGETS_QA=False -D STATIC_LINKING=True"
+  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-6 -D ENABLE_TARGETS_QA=False -D STATIC_LINKING=True" MPLBACKEND=ps
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.

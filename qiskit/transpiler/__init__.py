@@ -6,12 +6,14 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Utils for transpiler."""
-
-from ._passmanager import PassManager
-from ._transpilererror import TranspilerError
-
-# pylint: disable=redefined-builtin
-from ._transpiler import compile, transpile
-
+import os
+from ._passmanager import PassManager, FlowController
+from ._propertyset import PropertySet
+from ._transpilererror import TranspilerError, TranspilerAccessError
+from ._fencedobjs import FencedDAGCircuit, FencedPropertySet
+from ._basepasses import AnalysisPass, TransformationPass
+from ._transpiler import transpile, transpile_dag
 from ._parallel import parallel_map
-from ._progressbar import TextProgressBar
+
+# Set parallel environmental variable
+os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'

@@ -22,6 +22,7 @@ import time
 from qiskit import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
+from qiskit.backends.models import BackendProperties
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.backends.jobstatus import JobStatus
@@ -32,23 +33,17 @@ logger = logging.getLogger(__name__)
 
 class DummyProvider(BaseProvider):
     """Dummy provider just for testing purposes."""
+
+    def get_backend(self, name=None, **kwargs):
+        return self._backend
+
+    def backends(self, name=None, **kwargs):
+        return [self._backend]
+
     def __init__(self):
         self._backend = DummySimulator()
 
         super().__init__()
-
-    def get_backend(self, name):
-        return self._backend
-
-    def available_backends(self, filters=None):
-        # pylint: disable=arguments-differ
-        backends = {DummySimulator.name: self._backend}
-
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration().get(key) == value}
-        return list(backends.values())
 
 
 class DummySimulator(BaseBackend):
@@ -73,18 +68,35 @@ class DummySimulator(BaseBackend):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         self.time_alive = time_alive
 
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
+
     def run(self, qobj):
-        job = DummyJob(self.run_job, qobj)
+        job_id = str(uuid.uuid4())
+        job = DummyJob(self.run_job, qobj, job_id, self)
         job.submit()
         return job
 
     # pylint: disable=unused-argument
-    def run_job(self, qobj):
+    def run_job(self, job_id, qobj):
         """ Main dummy simulator loop """
-        job_id = str(uuid.uuid4())
         time.sleep(self.time_alive)
 
-        return Result(
+        return Result.from_dict(
             {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 
@@ -92,8 +104,10 @@ class DummyJob(BaseJob):
     """Dummy simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, qobj):
+    def __init__(self, fn, qobj, job_id, backend):
         super().__init__()
+        self._job_id = job_id
+        self._backend = backend
         self._qobj = qobj
         self._future = None
         self._future_callback = fn
@@ -125,6 +139,12 @@ class DummyJob(BaseJob):
         _status_msg = None
         return {'status': _status,
                 'status_msg': _status_msg}
+
+    def job_id(self):
+        return self._job_id
+
+    def backend(self):
+        return self._backend
 
     @property
     def _cancelled(self):

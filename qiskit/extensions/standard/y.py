@@ -10,7 +10,6 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -25,18 +24,13 @@ class YGate(Gate):
         """Create new Y gate."""
         super().__init__("y", [], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("y %s[%d];" % (qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circuit):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circuit.y(self.arg[0]))
+        self._modifiers(circuit.y(self.qargs[0]))
 
 
 def y(self, q):
@@ -52,4 +46,3 @@ def y(self, q):
 
 
 QuantumCircuit.y = y
-CompositeGate.y = y

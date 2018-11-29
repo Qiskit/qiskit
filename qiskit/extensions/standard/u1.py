@@ -10,7 +10,6 @@
 """
 Diagonal single qubit gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
@@ -25,13 +24,6 @@ class U1Gate(Gate):
         """Create new diagonal single-qubit gate."""
         super().__init__("u1", [theta], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        return self._qasmif("u1(%s) %s[%d];" % (
-            theta, qubit[0].name, qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
@@ -39,7 +31,7 @@ class U1Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u1(self.param[0], self.arg[0]))
+        self._modifiers(circ.u1(self.param[0], self.qargs[0]))
 
 
 def u1(self, theta, q):
@@ -55,4 +47,3 @@ def u1(self, theta, q):
 
 
 QuantumCircuit.u1 = u1
-CompositeGate.u1 = u1

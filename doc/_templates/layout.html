@@ -1,0 +1,64 @@
+{% extends "basic/layout.html" %}
+
+{%- block doctype -%}
+<!DOCTYPE html>
+{%- endblock %}
+{% block htmltitle %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="stylesheet" href="{{ pathto('_static/theme.css', 1) }}" type="text/css" />
+    <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans|IBM+Plex+Sans+Condensed|IBM+Plex+Serif" rel="stylesheet">
+
+    {{ super() }}
+{% endblock %}
+
+{% set css_files = css_files + [
+    '_static/material-design-lite-1.3.0/material.' + theme_primary_color|e + '-' + theme_accent_color|e + '.min.css',
+    '_static/sphinx_materialdesign_theme.css',
+] %}
+
+{% set script_files = script_files + [
+    '_static/themeExt.js'
+  ]
+%}
+{%- block header %}{% endblock %}
+{%- block relbar1 %}{% endblock %}
+{%- block relbar2 %}{% include "relations.html" %}{% endblock %}
+{%- block sidebar2 %}{% endblock %}
+
+{%- block body_tag %}
+<body>
+  <header>
+    <div class="toolbar limited-width">
+        <a href="https://qiskit.org/" class="home">Qiskit Terra ™</a>
+        <nav class="first">
+        <a href="https://qiskit.org/terra">Terra</a>
+        <a href="https://qiskit.org/aqua">Aqua</a>
+      </nav>
+      <nav class="second">
+        <a href="/documentation/{{ pagename }}{{ file_suffix }}">English</a> /
+        <a href="/documentation/de/{{ pagename }}{{ file_suffix }}">German</a> /
+        <a href="/documentation/ja/{{ pagename }}{{ file_suffix }}">Japanese</a>
+        <a class="external" href="https://qiskit.org/vscode">Tools</a>
+        <a class="external" href="https://qiskit.org/fun">Fun</a>
+      </nav>
+    </div>
+  </header>
+    <div class="mdl-layout mdl-js-layout {% if theme_fixed_header|tobool %}mdl-layout--fixed-header{% endif %} {% if theme_fixed_drawer|tobool %}mdl-layout--fixed-drawer{% endif %}">
+        {%- block sidebar1 %}{% include "drawer.html" %}{% endblock %}
+        <main class="mdl-layout__content" tabIndex="0">
+{% endblock %}
+
+{%- block document %}
+        <div class="page-content">
+        {% block body %} {% endblock %}
+        </div>
+{% endblock %}
+
+{%- block footer %}
+        {% if theme_show_footer|tobool %}{% endif %}
+        </main>
+    </div>
+{%- endblock %}
+

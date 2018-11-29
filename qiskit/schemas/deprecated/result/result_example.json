@@ -1,5 +1,5 @@
 {
-    "backend": "local_qasm_simulator_cpp",
+    "backend": "qasm_simulator",
     "cpp_simulator_kernel": "qasm_simulator_cpp",
     "id": "test",
     "result": [{

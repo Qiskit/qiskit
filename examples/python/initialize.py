@@ -13,9 +13,7 @@ used `pip install`, the examples only work from the root directory.
 """
 
 import math
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
-from qiskit.tools.visualization import plot_circuit
-import Qconfig
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute, Aer
 
 
 ###############################################################
@@ -50,26 +48,25 @@ circuit.measure(qr[1], cr[1])
 circuit.measure(qr[2], cr[2])
 circuit.measure(qr[3], cr[3])
 
-QASM_source = circuit.qasm()
-
-print(QASM_source)
-plot_circuit(circuit)
+print(circuit.qasm())
 
 ###############################################################
 # Execute on a simulator backend.
 ###############################################################
-shots = 1024
+shots = 10000
 
 # Desired vector
 print("Desired probabilities...")
 print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
-result = execute(circuit, backend='local_qasm_simulator', shots=shots).result()
+sim_backend = Aer.get_backend('qasm_simulator')
+job = execute(circuit, sim_backend, shots=shots)
+result = job.result()
 
 print("Probabilities from simulator...[%s]" % result)
 n_qubits_qureg = qr.size
-counts = result.get_counts("initializer_circ")
+counts = result.get_counts(circuit)
 
 qubit_strings = [format(i, '0%sb' % n_qubits_qureg) for
                  i in range(2 ** n_qubits_qureg)]

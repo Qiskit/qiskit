@@ -6,5 +6,5 @@ if (NOT PYTHON)
 endif()
 
 add_test(NAME qiskit_python
-    COMMAND ${PYTHON} -m unittest discover -s test -v
+    COMMAND stestr run --concurrency 2
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})

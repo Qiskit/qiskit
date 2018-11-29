@@ -248,7 +248,7 @@ void CliffordBackend::qc_measure(const uint_t qubit, const uint_t cbit) {
   }
 
   // randomly generate measurement outcome (even if deterministic)
-  // this is to be consistant with rng for other engines
+  // this is to be consistent with rng for other engines
   const uint_t n = rng.rand_int(rvector_t({0.5, 0.5}));
   const uint_t meas = qreg.MeasZ(qubit, n); // Actual measurement outcome
 
@@ -271,7 +271,7 @@ void CliffordBackend::qc_reset(const uint_t qubit, const uint_t state) {
   // reset error state
   uint_t r = reset_error(state);
   // randomly generate measurement outcome (even if deterministic)
-  // this is to be consistant with rng for other engines
+  // this is to be consistent with rng for other engines
   const uint_t n = rng.rand_int(rvector_t({0.5, 0.5}));
   qreg.PrepZ(qubit, n); // ideal reset to |0> state
   if (r == 1)
@@ -483,7 +483,7 @@ void CliffordBackend::qc_pauli(const uint_t qubit, const uint_t p) {
 //------------------------------------------------------------------------------
 
 /**
- * Suppse we assume gates are implmented as Waltz gates (ie QubitEngine)
+ * Suppse we assume gates are implemented as Waltz gates (ie QubitEngine)
  * then our error model is that errors occur on the non X90 gates.
  * To get this we rewrite H = S*X90*S.
  * Now the 3 pauli errors that can occur pass through S gate giving

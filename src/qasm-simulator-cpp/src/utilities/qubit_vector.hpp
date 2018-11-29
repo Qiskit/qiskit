@@ -284,7 +284,7 @@ QubitVector::QubitVector(const rvector_t &vec) : QubitVector() {
 // Operators
 //------------------------------------------------------------------------------
 
-// Access opertors
+// Access operators
 
 complex_t &QubitVector::operator[](uint_t element) {
   // Error checking

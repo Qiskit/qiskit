@@ -13,7 +13,8 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import QISKitError
-from qiskit import wrapper
+# pylint: disable=redefined-builtin
+from qiskit import compile, Aer
 from .common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -30,9 +31,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.cr_name = cr.name
         self.circuits = [qc]
 
-    def test_local_qasm_simulator_py(self):
-        backend = wrapper.get_backend('local_qasm_simulator_py')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_aer_qasm_simulator_py(self):
+        backend = Aer.get_backend('qasm_simulator_py')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -41,9 +42,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_local_clifford_simulator_cpp(self):
-        backend = wrapper.get_backend('local_clifford_simulator_cpp')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_aer_clifford_simulator(self):
+        backend = Aer.get_backend('clifford_simulator')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -52,9 +53,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_local_qasm_simulator_cpp(self):
-        backend = wrapper.get_backend('local_qasm_simulator_cpp')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_aer_qasm_simulator(self):
+        backend = Aer.get_backend('qasm_simulator')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -62,9 +63,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
         self.assertIn(self.cr_name, c_qasm)
 
-    def test_local_unitary_simulator(self):
-        backend = wrapper.get_backend('local_unitary_simulator_py')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_aer_unitary_simulator_py(self):
+        backend = Aer.get_backend('unitary_simulator_py')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -78,34 +79,29 @@ class TestAnonymousIds(QiskitTestCase):
     """
 
     def test_create_anonymous_classical_register(self):
-        """ClassicalRegister with no name.
-        """
+        """ClassicalRegister with no name."""
         cr = ClassicalRegister(size=3)
         self.assertIsInstance(cr, ClassicalRegister)
 
     def test_create_anonymous_quantum_register(self):
-        """QuantumRegister with no name.
-        """
+        """QuantumRegister with no name."""
         qr = QuantumRegister(size=3)
         self.assertIsInstance(qr, QuantumRegister)
 
     def test_create_anonymous_classical_registers(self):
-        """Several ClassicalRegister with no name.
-        """
+        """Several ClassicalRegister with no name."""
         cr1 = ClassicalRegister(size=3)
         cr2 = ClassicalRegister(size=3)
         self.assertNotEqual(cr1.name, cr2.name)
 
     def test_create_anonymous_quantum_registers(self):
-        """Several QuantumRegister with no name.
-        """
+        """Several QuantumRegister with no name."""
         qr1 = QuantumRegister(size=3)
         qr2 = QuantumRegister(size=3)
         self.assertNotEqual(qr1.name, qr2.name)
 
     def test_create_anonymous_mixed_registers(self):
-        """Several Registers with no name.
-        """
+        """Several Registers with no name."""
         cr0 = ClassicalRegister(size=3)
         qr0 = QuantumRegister(size=3)
         # Get the current index counte of the registers
@@ -123,8 +119,7 @@ class TestAnonymousIds(QiskitTestCase):
         self.assertEqual(qr_current, qr_index + 2)
 
     def test_create_circuit_noname(self):
-        """Create_circuit with no name
-        """
+        """Create_circuit with no name."""
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
         qc = QuantumCircuit(qr, cr)
@@ -135,30 +130,25 @@ class TestInvalidIds(QiskitTestCase):
     """Circuits and records with invalid IDs"""
 
     def test_invalid_type_circuit_name(self):
-        """QuantumCircuit() with invalid type name
-        """
+        """QuantumCircuit() with invalid type name."""
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
         self.assertRaises(QISKitError, QuantumCircuit, qr, cr, name=1)
 
     def test_invalid_type_qr_name(self):
-        """QuantumRegister() with an invalid type name.
-        """
+        """QuantumRegister() with an invalid type name."""
         self.assertRaises(QISKitError, QuantumRegister, size=3, name=1)
 
     def test_invalid_type_cr_name(self):
-        """ClassicalRegister() with an invalid type name.
-        """
+        """ClassicalRegister() with an invalid type name."""
         self.assertRaises(QISKitError, ClassicalRegister, size=3, name=1)
 
     def test_invalid_qasmname_qr(self):
-        """QuantumRegister() with invalid name.
-        """
+        """QuantumRegister() with invalid name."""
         self.assertRaises(QISKitError, QuantumRegister, size=3, name='Qr')
 
     def test_invalid_qasmname_cr(self):
-        """ClassicalRegister() with invalid name.
-        """
+        """ClassicalRegister() with invalid name."""
         self.assertRaises(QISKitError, ClassicalRegister, size=3, name='Cr')
 
 

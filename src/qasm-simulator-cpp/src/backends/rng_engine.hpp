@@ -74,7 +74,7 @@ public:
   /**
    * Generate a pseudo random integer from a a discrete distribution
    * constructed from an input vector of probabilities for [0,..,n-1]
-   * where n is the lenght of the vector. If this vector is not normalized
+   * where n is the length of the vector. If this vector is not normalized
    * it will be scaled when it is converted to a discrete_distribution
    * @param probs the vector of probabilities
    * @return the generated integer

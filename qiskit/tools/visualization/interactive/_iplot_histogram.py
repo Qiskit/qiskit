@@ -13,6 +13,7 @@ from collections import Counter
 import sys
 import time
 import re
+import warnings
 import numpy as np
 from .._error import VisualizationError
 
@@ -117,11 +118,14 @@ def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
     else:
         options['show_legend'] = 1
 
+    if number_to_keep is not None:
+        warnings.warn("number_to_keep has been deprecated, use the options "
+                      "dictionary and set a number_to_keep key instead",
+                      DeprecationWarning)
+        options['number_to_keep'] = number_to_keep
+
     if 'number_to_keep' not in options:
-        if number_to_keep is False:
-            options['number_to_keep'] = 0
-        elif number_to_keep:
-            options['number_to_keep'] = number_to_keep
+        options['number_to_keep'] = 0
 
     data_to_plot = []
     if isinstance(data, dict):

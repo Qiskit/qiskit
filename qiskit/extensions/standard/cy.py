@@ -10,7 +10,6 @@
 """
 controlled-Y gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -25,20 +24,13 @@ class CyGate(Gate):
         """Create new CY gate."""
         super().__init__("cy", [], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("cy %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cy(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cy(self.qargs[0], self.qargs[1]))
 
 
 def cy(self, ctl, tgt):
@@ -69,4 +61,3 @@ def cy(self, ctl, tgt):
 
 
 QuantumCircuit.cy = cy
-CompositeGate.cy = cy
