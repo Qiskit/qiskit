@@ -18,8 +18,9 @@ import subprocess
 from subprocess import PIPE
 import platform
 
+from math import log2
 import numpy as np
-
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
@@ -49,7 +50,7 @@ class QasmSimulator(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
@@ -129,7 +130,7 @@ class CliffordSimulator(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'clifford_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
