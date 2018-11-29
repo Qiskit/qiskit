@@ -80,7 +80,7 @@ class Result(BaseModel):
             [[0.5+0j, 0-1j], ...] the value returned will be
             [[[0.5, 0], [0, -1]], ...].
 
-            The simulator backends also have an optional key 'snapshot' which
+            The simulator backends also have an optional key 'snapshots' which
             returns a dict of snapshots specified by the simulator backend.
             The value is of the form dict[slot: dict[str: array]]
             where the keys are the requested snapshot slots, and the values are
