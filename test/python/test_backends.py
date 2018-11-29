@@ -98,7 +98,6 @@ class TestBackends(QiskitTestCase):
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
-    @unittest.skip('Temporary skipping until #1156')
     def test_aer_backend_configuration(self):
         """Test backend configuration.
 
