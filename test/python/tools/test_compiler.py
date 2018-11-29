@@ -141,7 +141,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator')
+        backend = qiskit.Aer.get_backend('qasm_simulator_py')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
