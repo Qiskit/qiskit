@@ -695,7 +695,7 @@ def optimize_1q_gates(circuit):
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:
-        run_qarg = unrolled.multi_graph.node[run[0]]["op"].qargs[0]
+        run_qarg = unrolled.multi_graph.node[run[0]]["qargs"][0]
         right_name = "u1"
         right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
         for current_node in run:
