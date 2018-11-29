@@ -13,7 +13,8 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import logging
 import uuid
-
+from math import log2
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
@@ -29,7 +30,7 @@ class StatevectorSimulator(QasmSimulator):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
