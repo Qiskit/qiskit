@@ -47,7 +47,7 @@ class Result(BaseModel):
         """Get the raw data for an experiment.
 
         Note this data will be a single classical and quantum register and in a
-        format required by the results schema. We recomened that most  users use
+        format required by the results schema. We recomened that most users use
         the get_xxx method and the data will be post processed for the data type.
 
         Args:
@@ -59,23 +59,32 @@ class Result(BaseModel):
                 * None: if there is only one experiment, returns it.
 
         Returns:
-            dict: A dictionary of results data for an experiment. The data depends on
-            the backend it ran on.
+            dict: A dictionary of results data for an experiment. The data
+            depends on the backend it ran on.
 
-            QASM backend backend returns a dictionary of dictionary with
-            key 'counts' and  with the counts, with the second dictionary keys
-            containing a string in hex format (``0x123``) and values equal to the
-            number of times this outcome was measured.
+            QASM backends return a dictionary of dictionary with the key
+            'counts' and  with the counts, with the second dictionary keys
+            containing a string in hex format (``0x123``) and values equal to
+            the number of times this outcome was measured.
 
-            Statevector backend returns a dictionary with key 'statevector' and values being a
-            list[complex] list of 2^n_qubits complex amplitudes.
+            Statevector backends return a dictionary with key 'statevector' and
+            values being a list[list[complex components]] list of 2^n_qubits
+            complex amplitudes. Where each complex number is represented as a 2
+            entry list for each component. For example, a list of
+            [0.5+1j, 0-1j] would be represented as [[0.5, 1], [0, -1]].
 
-            Unitary backend returns a dictionary with key 'unitary' and values being a
-            list[list[complex]] list of 2^n_qubits x 2^n_qubits complex
-            amplitudes.
+            Unitary backends return a dictionary with key 'unitary' and values
+            being a list[list[list[complex components]]] list of
+            2^n_qubits x 2^n_qubits complex amplitudes in a two entry list for
+            each component. For example if the amplitude is
+            [[0.5+0j, 0-1j], ...] the value returned will be
+            [[[0.5, 0], [0, -1]], ...].
 
-            The simulator backends also have an optional 'key' snapshot which returns
-            a dict of snapshots specified by the simulator backend.
+            The simulator backends also have an optional key 'snapshot' which
+            returns a dict of snapshots specified by the simulator backend.
+            The value is of the form dict[slot: dict[str: array]]
+            where the keys are the requested snapshot slots, and the values are
+            a dictionary of the snapshots.
 
         Raises:
             QISKitError: if data for the experiment could not be retrieved.
@@ -151,7 +160,7 @@ class Result(BaseModel):
         Returns:
             dict[slot: dict[str: array]]: dictionary where the keys are the
                 requested snapshot slots, and the values are a dictionary of
-                the snapshots themselves.
+                the snapshots.
 
         Raises:
             QISKitError: if there are no snapshots for the experiment.
