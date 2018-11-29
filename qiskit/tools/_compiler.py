@@ -165,7 +165,7 @@ def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None)
 def execute(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
             shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False, seed_mapper=None):
+            skip_transpiler=False, seed_mapper=None, **kwargs):
     """Executes a set of circuits.
 
     Args:
@@ -182,6 +182,8 @@ def execute(circuits, backend,
         qobj_id (int): identifier for the generated qobj
         hpc (dict): HPC simulator parameters
         skip_transpiler (bool): skip most of the compile steps and produce qobj directly
+        kwargs: extra arguments used by AER for runing configurable backends. Refer to the
+        backend documentation for details on these arguments
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
@@ -190,4 +192,4 @@ def execute(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id, hpc,
                    skip_transpiler, seed_mapper)
-    return backend.run(qobj)
+    return backend.run(qobj, **kwargs)
