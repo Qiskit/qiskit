@@ -59,9 +59,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
         sim = Aer.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
-        snapshot = result.get_snapshot(slot='3')
+        snapshot = result.data(0)['snapshots']['3']['statevector']
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
-        fidelity = state_fidelity(snapshot, target)
+        fidelity = state_fidelity(snapshot[0], target)
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "snapshot has low fidelity{0:.2g}.".format(fidelity))
