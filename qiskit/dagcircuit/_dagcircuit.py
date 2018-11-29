@@ -908,6 +908,25 @@ class DAGCircuit:
 
         return full_pred_map, full_succ_map
 
+    @staticmethod
+    def _match_dag_nodes(node1, node2):
+        """
+        Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
+        Args:
+            node1 (dict): A node to compare.
+            node2 (dict): The other node to compare.
+
+        Returns:
+            Bool: If node1 == node2
+        """
+        copy_node1 = {k: v for (k, v) in node1.items()}
+        copy_node2 = {k: v for (k, v) in node2.items()}
+        return copy_node1 == copy_node2
+
+    def __eq__(self, other):
+        return nx.is_isomorphic(self.multi_graph, other.multi_graph,
+                                node_match=DAGCircuit._match_dag_nodes)
+
     def node_nums_in_topological_order(self):
         """
         Returns the nodes (their ids) in topological order.
