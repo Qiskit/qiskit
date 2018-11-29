@@ -166,7 +166,7 @@ class DAGBackend(UnrollerBackend):
             condition = None
         self.in_gate = op
         self.listen = False
-        self.circuit.apply_operation_back(op, condition)
+        self.circuit.apply_operation_back(op, condition=condition)
 
     def end_gate(self, op):
         """End a custom gate.
