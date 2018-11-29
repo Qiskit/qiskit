@@ -77,32 +77,30 @@ class LoadFromQasmTest(QiskitTestCase):
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
         qasm_data_string = q_circuit.qasm()
         self.log.info(qasm_data_string)
-        expected_qasm_data_string = """\
-OPENQASM 2.0;
-include "qelib1.inc";
-qreg a[4];
-qreg b[4];
-creg c[4];
-creg d[4];
-h a[0];
-h a[1];
-h a[2];
-h a[3];
-cx a[0],b[0];
-cx a[1],b[1];
-cx a[2],b[2];
-cx a[3],b[3];
-barrier a[0],a[1],a[2],a[3];
-barrier b[0],b[1],b[2],b[3];
-measure a[0] -> c[0];
-measure a[1] -> c[1];
-measure a[2] -> c[2];
-measure a[3] -> c[3];
-measure b[0] -> d[0];
-measure b[1] -> d[1];
-measure b[2] -> d[2];
-measure b[3] -> d[3];
-"""
+        expected_qasm_data_string = '\n'.join(["OPENQASM 2.0;",
+                                               "include \"qelib1.inc\";",
+                                               "qreg a[4];",
+                                               "qreg b[4];",
+                                               "creg c[4];",
+                                               "creg d[4];",
+                                               "h a[3];",
+                                               "cx a[3],b[3];",
+                                               "h a[2];",
+                                               "cx a[2],b[2];",
+                                               "h a[1];",
+                                               "cx a[1],b[1];",
+                                               "h a[0];",
+                                               "cx a[0],b[0];",
+                                               "barrier b[0],b[1],b[2],b[3];",
+                                               "measure b[3] -> d[3];",
+                                               "measure b[2] -> d[2];",
+                                               "measure b[1] -> d[1];",
+                                               "measure b[0] -> d[0];",
+                                               "barrier a[0],a[1],a[2],a[3];",
+                                               "measure a[3] -> c[3];",
+                                               "measure a[2] -> c[2];",
+                                               "measure a[1] -> c[1];",
+                                               "measure a[0] -> c[0];"]) + '\n'
         self.assertEqual(qasm_data_string, expected_qasm_data_string)
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 2)
@@ -136,19 +134,19 @@ measure b[3] -> d[3];
                               "qreg r[3];",
                               "creg c[3];",
                               "creg d[3];",
-                              "h q[0];",
-                              "h q[1];",
                               "h q[2];",
-                              "cx q[0],r[0];",
-                              "cx q[1],r[1];",
                               "cx q[2],r[2];",
-                              "barrier q[0],q[1],q[2];",
-                              "measure q[0] -> c[0];",
-                              "measure q[1] -> c[1];",
-                              "measure q[2] -> c[2];",
-                              "measure r[0] -> d[0];",
+                              "measure r[2] -> d[2];",
+                              "h q[1];",
+                              "cx q[1],r[1];",
                               "measure r[1] -> d[1];",
-                              "measure r[2] -> d[2];"]) + '\n'
+                              "h q[0];",
+                              "cx q[0],r[0];",
+                              "measure r[0] -> d[0];",
+                              "barrier q[0],q[1],q[2];",
+                              "measure q[2] -> c[2];",
+                              "measure q[1] -> c[1];",
+                              "measure q[0] -> c[0];"]) + '\n'
 
         q_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         qasm_data_string = q_circuit.qasm()
