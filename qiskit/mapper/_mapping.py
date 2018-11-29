@@ -702,8 +702,8 @@ def optimize_1q_gates(circuit):
             nd = unrolled.multi_graph.node[current_node]
             left_name = nd["name"]
             if (nd["condition"] is not None
-                    or len(nd["op"].qargs) != 1
-                    or nd["op"].qargs[0] != run_qarg
+                    or len(nd["qargs"]) != 1
+                    or nd["qargs"][0] != run_qarg
                     or left_name not in ["u1", "u2", "u3", "id"]):
                 raise MapperError("internal error")
             if left_name == "u1":
