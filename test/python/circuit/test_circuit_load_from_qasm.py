@@ -9,7 +9,7 @@
 """Test cases for the circuit qasm_file and qasm_string method."""
 
 from qiskit import QISKitError
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
 from ..common import QiskitTestCase, Path
 
@@ -41,8 +41,6 @@ class LoadFromQasmTest(QiskitTestCase):
         q_circuit_2.measure(a, c)
         q_circuit_2.measure(b, d)
         dag_2 = DAGCircuit.fromQuantumCircuit(q_circuit_2)
-        nx.is_isomorphic(dag.multi_graph, dag2.multi_graph,
-                         node_match=_match_dag_nodes)
         self.assertEqual(dag, dag_2)
 
     def test_fail_qasm_file(self):
