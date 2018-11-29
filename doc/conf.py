@@ -117,6 +117,11 @@ todo_include_todos = False
 # html_theme = 'bizstyle'
 # html_theme = agogo
 
+html_sidebars = {
+   '**': ['globaltoc.html']
+}
+
+
 html_theme = 'sphinx_materialdesign_theme' # use the theme in subdir 'theme'
 html_theme_path = ['./']  # make sphinx search for themes in current dir
 
