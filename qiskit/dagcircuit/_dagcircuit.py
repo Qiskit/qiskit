@@ -122,11 +122,11 @@ class DAGCircuit:
                     d["name"] = re.sub(regname, newname, d["name"])
             elif d["type"] == "op":
                 qa = []
-                for a in d["qargs"]:
+                for a in d["op"].qargs:
                     if a[0] == regname:
                         a = (newname, a[1])
                     qa.append(a)
-                d["qargs"] = qa
+                d["op"].qargs = qa
                 ca = []
                 for a in d["cargs"]:
                     if a[0] == regname:
@@ -321,7 +321,7 @@ class DAGCircuit:
             all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
         return all_bits
 
-    def _add_op_node(self, op, qargs=None, cargs=None, condition=None):
+    def _add_op_node(self, op, qargs, cargs, condition=None):
         """Add a new operation node to the graph and assign properties.
 
         Args:
@@ -333,6 +333,9 @@ class DAGCircuit:
         # Add a new operation node to the graph
         self.node_counter += 1
         self.multi_graph.add_node(self.node_counter)
+        # Update the operation itself. TODO: remove after qargs not connected to op
+        op.qargs = qargs
+        op.cargs = cargs        
         # Update that operation node's data
         self.multi_graph.node[self.node_counter]["type"] = "op"
         self.multi_graph.node[self.node_counter]["op"] = op
@@ -340,9 +343,6 @@ class DAGCircuit:
         self.multi_graph.node[self.node_counter]["qargs"] = qargs
         self.multi_graph.node[self.node_counter]["cargs"] = cargs
         self.multi_graph.node[self.node_counter]["condition"] = condition
-        # Update the operation itself. TODO: remove after qargs not connected to op
-        op.qargs = qargs
-        op.cargs = cargs
 
     def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
