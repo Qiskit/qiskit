@@ -111,7 +111,7 @@ class LoadFromQasmTest(QiskitTestCase):
                                  "qreg q[1];",
                                  "creg c0[4];",
                                  "creg c1[4];",
-                                 "if(c0==4) x q[0];",
+                                 "x q[0];",
                                  "if(c1==4) x q[0];"]) + '\n'
 
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
