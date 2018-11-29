@@ -7,7 +7,10 @@
 
 """Provider for a single IBMQ account."""
 
+import logging
 from collections import OrderedDict
+
+from marshmallow import ValidationError
 
 from qiskit.backends import BaseProvider
 from qiskit.backends.models import BackendConfiguration
@@ -15,6 +18,9 @@ from qiskit.backends.providerutils import filter_backends
 
 from .api import IBMQConnector
 from .ibmqbackend import IBMQBackend
+
+
+logger = logging.getLogger(__name__)
 
 
 class IBMQSingleProvider(BaseProvider):
@@ -87,11 +93,20 @@ class IBMQSingleProvider(BaseProvider):
         ret = OrderedDict()
         configs_list = self._api.available_backends()
         for raw_config in configs_list:
-            config = BackendConfiguration.from_dict(raw_config)
-            ret[config.backend_name] = IBMQBackend(configuration=config,
-                                                   provider=self._ibm_provider,
-                                                   credentials=self.credentials,
-                                                   api=self._api)
+            try:
+                config = BackendConfiguration.from_dict(raw_config)
+                ret[config.backend_name] = IBMQBackend(
+                    configuration=config,
+                    provider=self._ibm_provider,
+                    credentials=self.credentials,
+                    api=self._api)
+            except ValidationError as ex:
+                logger.warning(
+                    'Remote backend "%s" could not be instantiated due to an '
+                    'invalid config: %s',
+                    raw_config.get('backend_name',
+                                   raw_config.get('name', 'unknown')),
+                    ex)
 
         return ret
 
