@@ -134,6 +134,7 @@ Removed
   ``.from_dict()`` directly (#1360).
 - The ``qiskit.Result`` class method for ``len()`` and indexing have been
   removed, along with the functions that perform post-processing (#1351).
+- The ``get_snapshots`` from the ``result object.
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^
