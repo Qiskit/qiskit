@@ -9,8 +9,6 @@
 """Backends Test."""
 
 import json
-import unittest
-
 import jsonschema
 
 from qiskit import IBMQ, Aer
