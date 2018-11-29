@@ -13,7 +13,6 @@ Visualization functions for measurement counts.
 
 from collections import Counter
 import functools
-import warnings
 import numpy as np
 from ._matplotlib import HAS_MATPLOTLIB
 from ._error import VisualizationError
@@ -50,10 +49,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    if number_to_keep is not None:
-        warnings.warn("number_to_keep has been deprecated, use the options "
-                      "dictionary and set a number_to_keep key instead",
-                      DeprecationWarning)
 
     if isinstance(data, dict):
         data = [data]
@@ -70,6 +65,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     # Set bar colors
     if color is None:
         color = ['#648fff', '#dc267f', '#785ef0', '#ffb000', '#fe6100']
+    elif isinstance(color, str):
+        color = [color]
 
     for item, execution in enumerate(data):
         if number_to_keep is not None:
