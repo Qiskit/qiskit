@@ -83,9 +83,9 @@ returned results object::
 import logging
 import uuid
 import time
-
+from math import log2, sqrt
 import numpy as np
-
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
@@ -106,7 +106,7 @@ class UnitarySimulatorPy(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator_py',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
+        'n_qubits': int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16)),
         'url': 'https://github.com/QISKit/qiskit-terra',
         'simulator': True,
         'local': True,
