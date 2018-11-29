@@ -33,7 +33,6 @@ $(function() {
                 $div.addClass('active');
             }
              let $toggleWrapper;
-             console.log(isCurrent)
             if(!isCurrent){
                 $toggleWrapper = $('<span class="nav-toggle"></span>');
                 $ul.hide();
@@ -77,7 +76,6 @@ $(function() {
                 const currentActive = $('.mdl-layout__drawer nav .item.active');
                 currentActive.removeClass('active');
                 $('.current.mdl-color-text--primary' ).removeClass('mdl-color-text--primary')
-                console.log($(this).parent().addClass('active'))
             }
             $(this).toggleClass('sectionActive');
             const id = $toggle.attr('data-toggle');
