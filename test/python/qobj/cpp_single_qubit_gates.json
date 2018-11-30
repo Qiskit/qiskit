@@ -5,6 +5,7 @@
     "config": {
         "shots": 1,
         "memory_slots": 1,
+        "n_qubits": 1,
         "seed": 1
     },
     "header": {"backend_name": "qasm_simulator"},
@@ -13,8 +14,8 @@
             "header": {
                 "name": "snapshot",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -32,8 +33,8 @@
             "header": {
                 "name": "id(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -52,8 +53,8 @@
             "header": {
                 "name": "id(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -72,8 +73,8 @@
             "header": {
                 "name": "id(u1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -93,8 +94,8 @@
             "header": {
                 "name": "id(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -115,8 +116,8 @@
             "header": {
                 "name": "x(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -137,8 +138,8 @@
             "header": {
                 "name": "x(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -159,8 +160,8 @@
             "header": {
                 "name": "x(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -181,8 +182,8 @@
             "header": {
                 "name": "y(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -203,8 +204,8 @@
             "header": {
                 "name": "y(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -225,8 +226,8 @@
             "header": {
                 "name": "y(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -247,8 +248,8 @@
             "header": {
                 "name": "h(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -269,8 +270,8 @@
             "header": {
                 "name": "h(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -291,8 +292,8 @@
             "header": {
                 "name": "h(u2)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -313,8 +314,8 @@
             "header": {
                 "name": "h(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -335,8 +336,8 @@
             "header": {
                 "name": "h(direct) z(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -358,8 +359,8 @@
             "header": {
                 "name": "h(direct) z(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -381,8 +382,8 @@
             "header": {
                 "name": "h(direct) z(u1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -404,8 +405,8 @@
             "header": {
                 "name": "h(direct) z(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -427,8 +428,8 @@
             "header": {
                 "name": "h(direct) s(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -450,8 +451,8 @@
             "header": {
                 "name": "h(direct) s(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -473,8 +474,8 @@
             "header": {
                 "name": "h(direct) s(u1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -496,8 +497,8 @@
             "header": {
                 "name": "h(direct) s(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -519,8 +520,8 @@
             "header": {
                 "name": "h(direct) sdg(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -542,8 +543,8 @@
             "header": {
                 "name": "h(direct) sdg(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -565,8 +566,8 @@
             "header": {
                 "name": "h(direct) sdg(u1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -588,8 +589,8 @@
             "header": {
                 "name": "h(direct) sdg(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -611,8 +612,8 @@
             "header": {
                 "name": "h(direct) t(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -634,8 +635,8 @@
             "header": {
                 "name": "h(direct) t(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -657,8 +658,8 @@
             "header": {
                 "name": "h(direct) t(u1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -680,8 +681,8 @@
             "header": {
                 "name": "h(direct) t(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -703,8 +704,8 @@
             "header": {
                 "name": "h(direct) tdg(U)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -726,8 +727,8 @@
             "header": {
                 "name": "h(direct) tdg(u3)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -749,8 +750,8 @@
             "header": {
                 "name": "h(direct) tdg(u1)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -772,8 +773,8 @@
             "header": {
                 "name": "h(direct) tdg(direct)",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [

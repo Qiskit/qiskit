@@ -5,6 +5,7 @@
     "config": {
         "shots": 5,
         "memory_slots": 2,
+        "n_qubits": 1,
         "seed": 1
     },
     "header": {"backend_name": "qasm_simulator"},
@@ -13,8 +14,8 @@
             "header": {
                 "name": "measure (sampled)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -27,8 +28,8 @@
             "header": {
                 "name": "trivial (sampled)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -45,8 +46,8 @@
             "header": {
                 "name": "reset1 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -60,8 +61,8 @@
             "header": {
                 "name": "reset2 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -75,8 +76,8 @@
             "header": {
                 "name": "reset3 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -90,8 +91,8 @@
             "header": {
                 "name": "gate1 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -104,8 +105,8 @@
             "header": {
                 "name": "gate2 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -118,8 +119,8 @@
             "header": {
                 "name": "gate3 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
@@ -133,8 +134,8 @@
             "header": {
                 "name": "gate4 (shots)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 1,
+                "memory_slots": 2,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
