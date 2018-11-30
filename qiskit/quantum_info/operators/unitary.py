@@ -10,8 +10,6 @@ A module for common unitary matrix.
 """
 import math
 import numpy as np
-import scipy.linalg as la
-
 
 def rotation_matrix(angle, axis):
     """Generates a rotation matrix for a given angle and axis.
