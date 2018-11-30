@@ -86,11 +86,10 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         terra.transpiler.parallel.update: One of the parallel task has finished.
         terra.transpiler.parallel.finish: All the parallel tasks have finished.
     """
-    Publisher().publish("terra.transpiler.parallel.start", len(values))
     if len(values) == 1:
-        Publisher().publish("terra.transpiler.parallel.finish")
         return [task(values[0], *task_args, **task_kwargs)]
 
+    Publisher().publish("terra.transpiler.parallel.start", len(values))
     nfinished = [0]
 
     def _callback(_):
