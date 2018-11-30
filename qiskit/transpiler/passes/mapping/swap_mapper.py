@@ -14,7 +14,7 @@ from copy import copy
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
-
+from qiskit.extensions.standard import SwapGate
 
 class SwapMapper(TransformationPass):
     """
@@ -23,27 +23,19 @@ class SwapMapper(TransformationPass):
 
     def __init__(self,
                  coupling_map,
-                 swap_basis_element='swap',
-                 swap_data=None,
+                 swap_gate=None,
                  initial_layout=None):
         """
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
         Args:
             coupling_map (Coupling): Directed graph represented a coupling map.
-            swap_basis_element (string):  Default: 'swap' the name of the gate
-               that will be used for swaping.
-            swap_data (dict): The swap "gate data". Default: the swap gate is opaque.
+            swap_instruction (Type):  Default: SwapGate. The Gate class that defines a swap gate.
             initial_layout (Layout): initial layout of qubits in mapping
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.swap_basis_element = swap_basis_element
-        self.swap_data = swap_data if swap_data is not None else {"opaque": True,
-                                                                  "n_args": 0,
-                                                                  "n_bits": 2,
-                                                                  "args": [],
-                                                                  "bits": ["a", "b"]}
+        self.swap_gate = swap_gate if swap_gate is not None else SwapGate
 
     def run(self, dag):
         """
@@ -88,20 +80,15 @@ class SwapMapper(TransformationPass):
                             swap_layer.add_qreg(farthest_qubit[0])
 
                         # create the swap operation
-                        swap_layer.add_basis_element(self.swap_basis_element, 2)
-                        swap_layer.apply_operation_front(self.swap_basis_element,
-                                                        [(closest_qubit[0].name, closest_qubit[1]),
-                                                         (farthest_qubit[0].name,
-                                                          farthest_qubit[1])])
+                        swap_layer.add_basis_element('swap', 2, 0, 0)
+                        swap_layer.apply_operation_back(self.swap_gate(closest_qubit, farthest_qubit))
 
                         # update current_layout
                         current_layout.swap(closest_qubit, farthest_qubit)
 
                         # swap the order in shortest path
                         path[swap], path[swap + 1] = path[swap + 1], path[swap]
-                        print('path:',path)
-                        print('current_layout:', current_layout)
-
+                        
                     # layer insertion
                     wire_map = current_layout.wire_map_from_layouts(self.initial_layout)
                     new_dag.extends_at_the_end(swap_layer, wire_map)
