@@ -127,7 +127,7 @@ class MapperTest(QiskitTestCase):
 
         The math library operates over floats and introduces floating point
         errors that should be avoided.
-        See: https://github.com/QISKit/qiskit-terra/issues/111
+        See: https://github.com/Qiskit/qiskit-terra/issues/111
         """
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
@@ -157,7 +157,7 @@ class MapperTest(QiskitTestCase):
     def test_optimize_1q_gates_collapse_identity(self):
         """test optimize_1q_gates removes u1(2*pi) rotations.
 
-        See: https://github.com/QISKit/qiskit-terra/issues/159
+        See: https://github.com/Qiskit/qiskit-terra/issues/159
         """
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
@@ -183,7 +183,7 @@ class MapperTest(QiskitTestCase):
     def test_optimize_1q_gates_symbolic(self):
         """optimizes single qubit gate sequences with symbolic params.
 
-        See: https://github.com/QISKit/qiskit-terra/issues/172
+        See: https://github.com/Qiskit/qiskit-terra/issues/172
         """
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
@@ -267,7 +267,7 @@ class MapperTest(QiskitTestCase):
     def test_already_mapped(self):
         """Circuit not remapped if matches topology.
 
-        See: https://github.com/QISKit/qiskit-terra/issues/342
+        See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
         backend = FakeQX5BackEnd()
         qr = QuantumRegister(16, 'qr')
@@ -294,7 +294,7 @@ class MapperTest(QiskitTestCase):
     def test_yzy_zyz_cases(self):
         """yzy_to_zyz works in previously failed cases.
 
-        See: https://github.com/QISKit/qiskit-terra/issues/607
+        See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
         backend = FakeQX4BackEnd()
         qr = QuantumRegister(2)

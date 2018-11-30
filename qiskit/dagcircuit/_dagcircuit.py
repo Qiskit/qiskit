@@ -25,7 +25,7 @@ import networkx as nx
 import sympy
 
 from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit import _compositegate
 from ._dagcircuiterror import DAGCircuitError
 
@@ -384,7 +384,7 @@ class DAGCircuit:
         for q in itertools.chain(*al):
             ie = list(self.multi_graph.predecessors(self.output_map[q]))
             if len(ie) != 1:
-                raise QISKitError("output node has multiple in-edges")
+                raise QiskitError("output node has multiple in-edges")
 
             self.multi_graph.add_edge(ie[0], self.node_counter, name=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
@@ -419,7 +419,7 @@ class DAGCircuit:
         for q in itertools.chain(*al):
             ie = self.multi_graph.successors(self.input_map[q])
             if len(ie) != 1:
-                raise QISKitError("input node has multiple out-edges")
+                raise QiskitError("input node has multiple out-edges")
 
             self.multi_graph.add_edge(self.node_counter, ie[0], name=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
@@ -595,10 +595,10 @@ class DAGCircuit:
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
                 if m_name not in self.output_map:
-                    raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+                    raise QiskitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
 
                 if nd["name"] not in input_circuit.wire_type:
-                    raise QISKitError("inconsistent wire_type for (%s,%d) in input_circuit"
+                    raise QiskitError("inconsistent wire_type for (%s,%d) in input_circuit"
                                       % (nd["name"][0], nd["name"][1]))
 
             elif nd["type"] == "out":
@@ -612,7 +612,7 @@ class DAGCircuit:
                 self.apply_operation_back(nd["name"], m_qargs, m_cargs,
                                           nd["params"], condition, nd["op"])
             else:
-                raise QISKitError("bad node type %s" % nd["type"])
+                raise QiskitError("bad node type %s" % nd["type"])
 
     def compose_front(self, input_circuit, wire_map=None):
         """Apply the input circuit to the input of this circuit.
@@ -655,10 +655,10 @@ class DAGCircuit:
                 m_name = wire_map.get(nd["name"], nd["name"])
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
-                    raise QISKitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
+                    raise QiskitError("wire (%s,%d) not in self" % (m_name[0], m_name[1]))
 
                 if nd["name"] not in input_circuit.wire_type:
-                    raise QISKitError(
+                    raise QiskitError(
                         "inconsistent wire_type for (%s,%d) in input_circuit"
                         % (nd["name"][0], nd["name"][1]))
 
@@ -673,7 +673,7 @@ class DAGCircuit:
                 self.apply_operation_front(nd["name"], m_qargs, m_cargs,
                                            nd["params"], condition, nd["op"])
             else:
-                raise QISKitError("bad node type %s" % nd["type"])
+                raise QiskitError("bad node type %s" % nd["type"])
 
     def size(self):
         """Return the number of operations."""
@@ -682,7 +682,7 @@ class DAGCircuit:
     def depth(self):
         """Return the circuit depth."""
         if not nx.is_directed_acyclic_graph(self.multi_graph):
-            raise QISKitError("not a DAG")
+            raise QiskitError("not a DAG")
 
         return nx.dag_longest_path_length(self.multi_graph) - 1
 
@@ -814,7 +814,7 @@ class DAGCircuit:
                         if nd["name"] == "measure":
                             if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
                                     or nd["params"]:
-                                raise QISKitError("bad node data")
+                                raise QiskitError("bad node data")
 
                             qname = nd["qargs"][0][0]
                             qindex = nd["qargs"][0][1]
@@ -828,7 +828,7 @@ class DAGCircuit:
                                       nd["cargs"][0][0],
                                       nd["cargs"][0][1])
                         else:
-                            raise QISKitError("bad node data")
+                            raise QiskitError("bad node data")
 
         return out
 
@@ -902,7 +902,7 @@ class DAGCircuit:
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
                 if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
-                    raise QISKitError(
+                    raise QiskitError(
                         "too many predecessors for (%s,%d) output node" % (w[0], w[1])
                     )
 
@@ -1014,11 +1014,11 @@ class DAGCircuit:
                             self.output_map[w]))
                         if len(o_pred) > 1:
                             if len(o_pred) != 2:
-                                raise QISKitError("expected 2 predecessors here")
+                                raise QiskitError("expected 2 predecessors here")
 
                             p = [x for x in o_pred if x != full_pred_map[w]]
                             if len(p) != 1:
-                                raise QISKitError("expected 1 predecessor to pass filter")
+                                raise QiskitError("expected 1 predecessor to pass filter")
 
                             self.multi_graph.remove_edge(
                                 p[0], self.output_map[w])
@@ -1108,11 +1108,11 @@ class DAGCircuit:
             o_pred = list(self.multi_graph.predecessors(self.output_map[w]))
             if len(o_pred) > 1:
                 if len(o_pred) != 2:
-                    raise QISKitError("expected 2 predecessors here")
+                    raise QiskitError("expected 2 predecessors here")
 
                 p = [x for x in o_pred if x != full_pred_map[w]]
                 if len(p) != 1:
-                    raise QISKitError("expected 1 predecessor to pass filter")
+                    raise QiskitError("expected 1 predecessor to pass filter")
 
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 

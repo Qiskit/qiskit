@@ -8,7 +8,7 @@
 """
 Quantum measurement in the computational basis.
 """
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 from ._instruction import Instruction
 from ._instructionset import InstructionSet
@@ -46,7 +46,7 @@ def measure(self, qubit, cbit):
     Returns:
         qiskit.Instruction: the attached measure instruction.
     Raises:
-        QISKitError: if qubit is not in this circuit or bad format;
+        QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
     if isinstance(qubit, QuantumRegister) and isinstance(cbit, ClassicalRegister) \
@@ -57,10 +57,10 @@ def measure(self, qubit, cbit):
         return instructions
     elif isinstance(qubit, QuantumRegister) and isinstance(cbit, ClassicalRegister) and len(
             qubit) != len(cbit):
-        raise QISKitError("qubit (%s) and cbit (%s) should have the same length"
+        raise QiskitError("qubit (%s) and cbit (%s) should have the same length"
                           % (len(qubit), len(cbit)))
     elif not (isinstance(qubit, tuple) and isinstance(cbit, tuple)):
-        raise QISKitError(
+        raise QiskitError(
             "Both qubit <%s> and cbit <%s> should be Registers or formated as tuples. "
             "Hint: You can use subscript eg. cbit[0] to convert it into tuple."
             % (type(qubit).__name__, type(cbit).__name__))

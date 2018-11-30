@@ -6,12 +6,12 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by the QISKit SDK.
+Exception for errors raised by the Qiskit.
 """
 
 
-class QISKitError(Exception):
-    """Base class for errors raised by the QISKit SDK."""
+class QiskitError(Exception):
+    """Base class for errors raised by the Qiskit."""
 
     def __init__(self, *message):
         """Set the error message."""
@@ -23,6 +23,6 @@ class QISKitError(Exception):
         return repr(self.message)
 
 
-class QISKitIndexError(QISKitError, IndexError):
+class QiskitIndexError(QiskitError, IndexError):
     """Raised when a sequence subscript is out of range."""
     pass
