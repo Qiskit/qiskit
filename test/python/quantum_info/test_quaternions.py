@@ -6,10 +6,11 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Tests qiskit/mapper/_quaternion"""
+import math
 import numpy as np
 import scipy.linalg as la
-from qiskit.mapper._quaternion import (quaternion_from_euler, _rotm)
-from .common import QiskitTestCase
+from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
+from ..common import QiskitTestCase
 
 
 class TestQuaternions(QiskitTestCase):
@@ -22,8 +23,9 @@ class TestQuaternions(QiskitTestCase):
         for _ in range(1000):
             rnd = 4*np.pi*(np.random.random(3)-0.5)
             idx = np.random.randint(3, size=3)
-            mat1 = _rotm(rnd[0], axes[idx[0]]).dot(
-                _rotm(rnd[1], axes[idx[1]]).dot(_rotm(rnd[2], axes[idx[2]])))
+            mat1 = rotation_matrix(rnd[0], axes[idx[0]]).dot(
+                rotation_matrix(rnd[1], axes[idx[1]]).dot(
+                    rotation_matrix(rnd[2], axes[idx[2]])))
             axes_str = ''.join(axes[i] for i in idx)
             quat = quaternion_from_euler(rnd, axes_str)
             mat2 = quat.to_matrix()
@@ -70,3 +72,39 @@ class TestQuaternions(QiskitTestCase):
             euler = quat1.to_zyz()
             quat2 = quaternion_from_euler(euler, 'zyz')
             self.assertTrue(np.allclose(abs(quat1.data.dot(quat2.data)), 1))
+
+
+def rotation_matrix(angle, axis):
+    """Generates a rotation matrix for a given angle and axis.
+
+    Args:
+        angle (float): Rotation angle in radians.
+        axis (str): Axis for rotation: 'x', 'y', 'z'
+
+    Returns:
+        ndarray: Rotation matrix.
+
+    Raises:
+        ValueError: Invalid input axis.
+    """
+    direction = np.zeros(3, dtype=float)
+    if axis == 'x':
+        direction[0] = 1
+    elif axis == 'y':
+        direction[1] = 1
+    elif axis == 'z':
+        direction[2] = 1
+    else:
+        raise ValueError('Invalid axis.')
+    direction = np.asarray(direction, dtype=float)
+    sin_angle = math.sin(angle)
+    cos_angle = math.cos(angle)
+    rot = np.diag([cos_angle, cos_angle, cos_angle])
+    rot += np.outer(direction, direction) * (1.0 - cos_angle)
+    direction *= sin_angle
+    rot += np.array([
+        [0, -direction[2], direction[1]],
+        [direction[2], 0, -direction[0]],
+        [-direction[1], direction[0], 0]
+    ])
+    return rot
