@@ -8,7 +8,7 @@
 """Model for schema-conformant Results."""
 
 import warnings
-
+import numpy as np
 from qiskit import QISKitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
 from .models import ResultSchema
@@ -113,12 +113,13 @@ class Result(BaseModel):
         except KeyError:
             raise QISKitError('No counts for circuit "{0}"'.format(circuit))
 
-    def get_statevector(self, circuit=None):
+    def get_statevector(self, circuit=None, decimals=8):
         """Get the final statevector of an experiment.
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
+            decimals (int): the number of decimals in the statevector
 
         Returns:
             list[complex]: list of 2^n_qubits complex amplitudes.
@@ -127,16 +128,18 @@ class Result(BaseModel):
             QISKitError: if there is no statevector for the experiment.
         """
         try:
-            return self._get_experiment(circuit).data.statevector
+            return np.around(self._get_experiment(circuit).data.statevector,
+                             decimals=decimals)
         except KeyError:
             raise QISKitError('No statevector for circuit "{0}"'.format(circuit))
 
-    def get_unitary(self, circuit=None):
+    def get_unitary(self, circuit=None, decimals=8):
         """Get the final unitary of an experiment.
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
+            decimals (int): the number of decimals in the unitary
 
         Returns:
             list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
@@ -146,7 +149,8 @@ class Result(BaseModel):
             QISKitError: if there is no unitary for the experiment.
         """
         try:
-            return self._get_experiment(circuit).data.unitary
+            return np.around(self._get_experiment(circuit).data.unitary,
+                             decimals=decimals)
         except KeyError:
             raise QISKitError('No unitary for circuit "{0}"'.format(circuit))
 
