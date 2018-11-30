@@ -112,6 +112,8 @@ class UnitarySimulatorPy(BaseBackend):
         'local': True,
         'conditional': False,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
         'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
