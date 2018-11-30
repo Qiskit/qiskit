@@ -527,7 +527,8 @@ class IBMQJobPreQobj(IBMQJob):
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
             'backend_name': self.backend().name(),
-            'success': job_response['status'] == 'COMPLETED'
+            'success': job_response['status'] == 'COMPLETED',
+            'header': self._qobj_payload.get('header', {})
         })
 
 
