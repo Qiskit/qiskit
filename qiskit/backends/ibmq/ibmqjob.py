@@ -503,7 +503,9 @@ class IBMQJobPreQobj(IBMQJob):
 
     def _result_from_job_response(self, job_response):
         if self._is_device:
-            _reorder_bits(job_response)
+            # TODO: temporarily disabled for #1373, reenable before 0.7.
+            # _reorder_bits(job_response)
+            pass
 
         experiment_results = []
         for circuit_result in job_response['qasms']:
