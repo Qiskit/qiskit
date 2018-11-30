@@ -6,8 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Tests qiskit/mapper/_quaternion"""
-import numpy as np
 import math
+import numpy as np
 import scipy.linalg as la
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from ..common import QiskitTestCase
