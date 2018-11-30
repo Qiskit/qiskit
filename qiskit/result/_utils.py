@@ -75,7 +75,7 @@ def copy_qasm_from_qobj_into_result(qobj_, result):
 
 
 def _find_experiment_result(result, name):
-    for experiment_result in result['result']:
+    for experiment_result in result['results']:
         if experiment_result['name'] == name:
             return experiment_result
 

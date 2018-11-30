@@ -87,6 +87,7 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
+<<<<<<< HEAD
         qobj = compile([circuit_if_true, circuit_if_false],
                        backend=self.backend, shots=shots, seed=self.seed)
 
@@ -95,6 +96,51 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         counts_if_false = result.get_counts(circuit_if_false)
         self.assertEqual(counts_if_true, bin_to_hex_keys({'111': 100}))
         self.assertEqual(counts_if_false, bin_to_hex_keys({'001': 100}))
+=======
+        basis_gates = []  # unroll to base gates
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=circuit_if_true.qasm()).parse(),
+            unroll.JsonBackend(basis_gates))
+        ucircuit_true = QobjExperiment.from_dict(unroller.execute())
+        unroller = unroll.Unroller(
+            qasm.Qasm(data=circuit_if_false.qasm()).parse(),
+            unroll.JsonBackend(basis_gates))
+        ucircuit_false = QobjExperiment.from_dict(unroller.execute())
+
+        # Customize the experiments and create the qobj.
+        ucircuit_true.config = QobjItem(coupling_map=None,
+                                        basis_gates='u1,u2,u3,cx,id',
+                                        layout=None,
+                                        n_qubits=max_qubits,
+                                        memory_slots=max_qubits)
+        ucircuit_true.header.name = 'test_if_true'
+        ucircuit_false.config = QobjItem(coupling_map=None,
+                                         basis_gates='u1,u2,u3,cx,id',
+                                         layout=None,
+                                         n_qubits=max_qubits,
+                                         memory_slots=max_qubits)
+        ucircuit_false.header.name = 'test_if_false'
+
+        qobj = Qobj(qobj_id='test_if_qobj',
+                    config=QobjConfig(max_credits=3,
+                                      shots=shots,
+                                      memory_slots=max_qubits),
+                    experiments=[ucircuit_true, ucircuit_false],
+                    header=QobjHeader(backend_name='qasm_simulator_py'))
+
+        result = QasmSimulatorPy().run(qobj).result()
+        result_if_true = result.data('test_if_true')
+        self.log.info('result_if_true circuit:')
+        self.log.info(circuit_if_true.qasm())
+        self.log.info('result_if_true=%s', result_if_true)
+
+        result_if_false = result.data('test_if_false')
+        self.log.info('result_if_false circuit:')
+        self.log.info(circuit_if_false.qasm())
+        self.log.info('result_if_false=%s', result_if_false)
+        self.assertTrue(result_if_true['counts'][hex(int('111', 2))] == 100)
+        self.assertTrue(result_if_false['counts'][hex(int('001', 2))] == 100)
+>>>>>>> update qobj header and python simulators (#13)
 
     @unittest.skipIf(version_info.minor == 5,
                      "Due to gate ordering issues with Python 3.5 "
