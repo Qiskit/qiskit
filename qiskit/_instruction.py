@@ -47,7 +47,6 @@ class Instruction(object):
         Raises:
             QISKitError: when the register is not in the correct format.
         """
-
         if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
             raise QISKitError("qarg not (QuantumRegister, int) tuple")
         if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):

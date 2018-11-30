@@ -1468,7 +1468,7 @@ class DAGCircuit:
             DAGCircuit: the DAG representing the input circuit.
         """
         circuit = copy.deepcopy(circuit)
-        
+
         dagcircuit = DAGCircuit()
         dagcircuit.name = circuit.name
         for register in circuit.qregs:

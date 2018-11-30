@@ -148,7 +148,7 @@ def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None)
         'coupling_map': coupling_map,
         'basis_gates': basis_gates,
         'layout': [[[i[0][0].name, i[0][1]], [i[1][0].name, i[1][1]]]
-                   for i in dag.layout],
+                   for i in dag.layout] if dag.layout else [],
         'memory_slots': sum([creg.size for creg in dag.cregs.values()]),
         # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
         'n_qubits': sum([qreg.size for qreg in dag.qregs.values()])

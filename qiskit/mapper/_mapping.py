@@ -437,7 +437,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     Args:
         circuit_graph (DAGCircuit): input DAG circuit
         coupling_graph (CouplingGraph): coupling graph to map onto
-        initial_layout (dict): dict {(QuantumRegister, int): (QuantumRegister, int)}
+        initial_layout (dict): dict {(str, int): (str, int)}
             from qubits of circuit_graph to qubits of coupling_graph (optional)
         basis (str): basis string specifying basis of output DAGCircuit
         trials (int): number of trials.
@@ -466,6 +466,11 @@ def swap_mapper(circuit_graph, coupling_graph,
         logger.debug("    %d: %s", i, v["partition"])
 
     if initial_layout is not None:
+        # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
+        # to an expected dict{(reg,idx): (reg,idx)}
+        device_register = coupling_graph.get_qubits()[0][0]
+        initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
+                          for k, v in initial_layout.items()}
         # Check the input layout
         circ_qubits = circuit_graph.get_qubits()
         coup_qubits = coupling_graph.get_qubits()
