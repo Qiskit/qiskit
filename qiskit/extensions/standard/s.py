@@ -31,7 +31,7 @@ class SGate(Gate):
     def inverse(self):
         """Invert this gate."""
         inv = SdgGate(self.qargs[0])
-        self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
+        self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
 
@@ -49,7 +49,7 @@ class SdgGate(Gate):
     def inverse(self):
         """Invert this gate."""
         inv = SGate(self.qargs[0])
-        self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
+        self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
 

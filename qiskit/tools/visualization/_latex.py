@@ -910,15 +910,35 @@ class QCircuitImage(object):
                                 'noise']:
                 if self.plot_barriers:
                     qarglist = op['qargs']
+                    indexes = [self._get_qubit_index(x) for x in qarglist]
+                    start_bit = self.qubit_list[min(indexes)]
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
-                    start = self.img_regs[(qarglist[0][0],
-                                           qarglist[0][1])]
+                    start = self.img_regs[start_bit]
                     span = len(op['qargs']) - 1
                     self._latex[start][columns] += " \\barrier{" + str(
                         span) + "}"
             else:
                 raise _error.VisualizationError("bad node data")
+
+    def _get_qubit_index(self, qubit):
+        """Get the index number for a quantum bit
+        Args:
+            qubit (tuple): The tuple of the bit of the form
+                (register_name, bit_number)
+        Returns:
+            int: The index in the bit list
+        Raises:
+            VisualizationError: If the bit isn't found
+        """
+        for i, bit in enumerate(self.qubit_list):
+            if qubit == bit:
+                qindex = i
+                break
+        else:
+            raise _error.VisualizationError(
+                "unable to find bit for operation")
+        return qindex
 
     def _ffs(self, mask):
         """Find index of first set bit.
