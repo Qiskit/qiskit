@@ -109,6 +109,7 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
+- parallel_map no longer creates a progress bar for a single circuit (#1394).
 
 Removed
 """""""
