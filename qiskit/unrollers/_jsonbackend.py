@@ -160,7 +160,7 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, extra_fields=None):
+    def start_gate(self, op, qargs, extra_fields=None):
         """
         Begin a custom gate.
 
@@ -180,7 +180,7 @@ class JsonBackend(UnrollerBackend):
             self.in_gate = op
             self.listen = False
             qubit_indices = [self._qubit_order_internal.get((qubit[0].name, qubit[1]))
-                             for qubit in op.qargs]
+                             for qubit in qargs]
             clbit_indices = [self._cbit_order_internal.get((cbit[0].name, cbit[1]))
                              for cbit in op.cargs]
             gate_instruction = {

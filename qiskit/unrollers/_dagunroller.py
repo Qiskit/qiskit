@@ -150,10 +150,7 @@ class DagUnroller(object):
                     extra_fields = {'type': 'MISSING', 'label': 'MISSING',
                                     'texparams': []}
 
-                print("==== starting a json gate =====")
-                print(current_node["op"].qargs)
-                print(current_node["qargs"])
-                self.backend.start_gate(current_node["op"], extra_fields=extra_fields)
+                self.backend.start_gate(current_node["op"], qargs=current_node["qargs"], extra_fields=extra_fields)
                 self.backend.end_gate(current_node["op"])
 
                 self.backend.drop_condition()
