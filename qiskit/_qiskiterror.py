@@ -10,7 +10,13 @@ Exception for errors raised by the Qiskit.
 """
 
 
-class QiskitError(Exception):
+# NOTE(mtreinish): This class is here to maintain backwards compatibility and should not be
+# used directly. Instead use the QiskitError class.
+class QISKitError(Exception):
+    """Old Base class for errors raised by the Qiskit for backwards compat only, not for use."""
+
+
+class QiskitError(QISKitError):
     """Base class for errors raised by the Qiskit."""
 
     def __init__(self, *message):
