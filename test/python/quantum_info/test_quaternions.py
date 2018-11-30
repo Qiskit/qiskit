@@ -10,7 +10,6 @@ import numpy as np
 import math
 import scipy.linalg as la
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from qiskit.quantum_info.operators.unitary import rotation_matrix
 from ..common import QiskitTestCase
 
 
