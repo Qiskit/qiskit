@@ -23,6 +23,7 @@ from ..common import QiskitTestCase
 
 class TestQobj2Circuits(QiskitTestCase):
     """Wrapper test case."""
+
     def setUp(self):
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
@@ -30,7 +31,6 @@ class TestQobj2Circuits(QiskitTestCase):
         self.circuit.ccx(qr[0], qr[1], qr[2])
         self.circuit.measure(qr, cr)
         self.dag = DAGCircuit.fromQuantumCircuit(self.circuit)
-
 
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
