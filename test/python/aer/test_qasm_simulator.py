@@ -61,6 +61,13 @@ class TestAerQasmSimulator(QiskitTestCase):
         self.qobj.experiments[1].header.name = 'test_circuit2'
         self.backend = QasmSimulator()
 
+    def _to_complex_array(self, vec):
+        num_states = len(vec)
+        vec_complex = np.zeros(num_states, dtype=complex)
+        for i in range(num_states):
+            vec_complex[i] = vec[i][0] + 1j * vec[i][1]
+        return vec_complex
+
     def test_x90_coherent_error_matrix(self):
         x90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
         u_matrix = x90_error_matrix(0., 0.).dot(x90)
@@ -173,20 +180,16 @@ class TestAerQasmSimulator(QiskitTestCase):
                 self.assertDictAlmostEqual(counts, expected_counts,
                                            threshold, msg=name + 'counts')
             # Check snapshot
-            snapshots = result.data(name)['snapshots']
+            snapshots = result.data(name)['snapshots']['statevector']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 3,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['statevector'][0]
+            state = self._to_complex_array(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
-            rho = snapshots['0']['density_matrix']
-            self.assertAlmostEqual(np.trace(rho), 1)
-            prob = snapshots['0']['probabilities']
-            self.assertAlmostEqual(np.sum(prob), 1)
 
     def test_qobj_measure_opt_flag(self):
         filename = self._get_resource_path('qobj/cpp_measure_opt_flag.json')
@@ -207,14 +210,14 @@ class TestAerQasmSimulator(QiskitTestCase):
         }
 
         for name in sampled_measurements:
-            snapshots = result.data(name)['snapshots']
+            snapshots = result.data(name)['snapshots']['statevector']
             # Check snapshot keys
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             # Check number of snapshots
             # there should be 1 for measurement sampling optimization
             # and there should be >1 for each shot being simulated.
-            num_snapshots = len(snapshots['0'].get('statevector', []))
+            num_snapshots = len(snapshots['0'])
             if sampled_measurements[name] is True:
                 self.assertEqual(num_snapshots, 1,
                                  msg=name + ' snapshot length')
@@ -235,12 +238,12 @@ class TestAerQasmSimulator(QiskitTestCase):
         }
         for name in expected_data:
             # Check snapshot is |0> state
-            snapshots = result.data(name)['snapshots']
+            snapshots = result.data(name)['snapshots']['statevector']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['statevector'][0]
+            state = self._to_complex_array(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
@@ -252,13 +255,13 @@ class TestAerQasmSimulator(QiskitTestCase):
             qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
 
-        snapshots = result.data('save_command')['snapshots']
+        snapshots = result.data('save_command')['snapshots']['statevector']
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
                          msg='snapshot keys')
-        state0 = snapshots['0']['statevector'][0]
-        state10 = snapshots['10']['statevector'][0]
-        state1 = snapshots['1']['statevector'][0]
-        state11 = snapshots['11']['statevector'][0]
+        state0 = self._to_complex_array(snapshots['0'][0])
+        state10 = self._to_complex_array(snapshots['10'][0])
+        state1 = self._to_complex_array(snapshots['1'][0])
+        state11 = self._to_complex_array(snapshots['11'][0])
 
         expected_state0 = np.array([1, 0])
         expected_state10 = np.array([1 / np.sqrt(2), 1 / np.sqrt(2)])
@@ -352,12 +355,12 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.data(name)['snapshots']
+            snapshots = result.data(name)['snapshots']['statevector']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['statevector'][0]
+            state = self._to_complex_array(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']
             inner_product = expected_state.dot(state.conj())
             self.assertAlmostEqual(inner_product, 1.0, places=10,
@@ -409,12 +412,12 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.data(name)['snapshots']
+            snapshots = result.data(name)['snapshots']['statevector']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['statevector'][0]
+            state = self._to_complex_array(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
@@ -438,12 +441,12 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.data(name)['snapshots']
+            snapshots = result.data(name)['snapshots']['statevector']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
-            state = snapshots['0']['statevector'][0]
+            state = self._to_complex_array(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']
             fidelity = np.abs(expected_state.dot(state.conj())) ** 2
             self.assertAlmostEqual(fidelity, 1.0, places=10,
