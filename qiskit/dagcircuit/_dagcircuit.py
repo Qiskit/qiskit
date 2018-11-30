@@ -248,33 +248,28 @@ class DAGCircuit:
             op (Instruction): a quantum operation
             qargs (list[tuple]): qubits that op will be applied to
             cargs (list[tuple]): cbits that op will be applied to
+        Raises:
+            DAGCircuitError: If the check fails.
         """
         # Check that we have this operation
         if op.name not in self.basis:
-            raise DAGCircuitError("%s is not in the list of basis operations"
-                                  % op.name)
+            raise DAGCircuitError("%s is not in the list of basis operations" % op.name)
         # Check the number of arguments matches the signature
         if op.name in ["barrier"]:
             if not qargs:
-                raise DAGCircuitError("incorrect number of qubits for %s"
-                                      % op.name)
+                raise DAGCircuitError("incorrect number of qubits for %s" % op.name)
             if cargs:
-                raise DAGCircuitError("incorrect number of bits for %s"
-                                      % op.name)
+                raise DAGCircuitError("incorrect number of bits for %s" % op.name)
         elif op.name in ["snapshot", "noise", "save", "load"]:
             if not qargs:
-                raise DAGCircuitError("incorrect number of qubits for %s"
-                                      % op.name)
+                raise DAGCircuitError("incorrect number of qubits for %s" % op.name)
             if cargs:
-                raise DAGCircuitError("incorrect number of bits for %s"
-                                      % op.name)
+                raise DAGCircuitError("incorrect number of bits for %s" % op.name)
         else:
             if len(qargs) != self.basis[op.name][0]:
-                raise DAGCircuitError("incorrect number of qubits for %s"
-                                      % op.name)
+                raise DAGCircuitError("incorrect number of qubits for %s" % op.name)
             if len(cargs) != self.basis[op.name][1]:
-                raise DAGCircuitError("incorrect number of bits for %s"
-                                      % op.name)
+                raise DAGCircuitError("incorrect number of bits for %s" % op.name)
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
