@@ -24,7 +24,7 @@ from qiskit import execute
 from qiskit._qiskiterror import QISKitError
 from qiskit.backends.ibmq import least_busy
 from .common import QiskitTestCase, bin_to_hex_keys
-from .common import requires_qe_access, requires_qe_simulator
+from .common import requires_qe_access, requires_cpp_simulator
 
 
 class FakeBackend(object):
