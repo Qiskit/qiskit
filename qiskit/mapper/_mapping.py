@@ -25,7 +25,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
 from qiskit.unrollers._dagunroller import DagUnroller
 from qiskit.unrollers._dagbackend import DAGBackend
-from qiskit.mapper._quaternion import quaternion_from_euler
+from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit import QuantumRegister
 
 logger = logging.getLogger(__name__)
