@@ -88,7 +88,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     """
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
-    
+
     Publisher().publish("terra.transpiler.parallel.start", len(values))
     nfinished = [0]
 
