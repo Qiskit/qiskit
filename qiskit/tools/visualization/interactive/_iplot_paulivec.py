@@ -14,6 +14,7 @@ import time
 import re
 import numpy as np
 from qiskit.quantum_info import pauli_group
+from qiskit.tools.visualization._utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -35,13 +36,13 @@ def process_data(rho):
     return result
 
 
-def iplot_paulivec(rho, figsize=None, slider=False, show_legend=False):
+def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
     """ Create a paulivec representation.
 
         Graphical representation of the input array.
 
         Args:
-            rho (array): Density matrix
+            rho (array): State vector or density matrix.
             figsize (tuple): Figure size in inches.
             slider (bool): activate slider
             show_legend (bool): show legend of graph content
@@ -71,6 +72,7 @@ def iplot_paulivec(rho, figsize=None, slider=False, show_legend=False):
         });
     </script>
     """)
+    rho = _validate_input_state(rho)
     # set default figure size if none given
     if figsize is None:
         figsize = (7, 5)

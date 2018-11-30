@@ -109,7 +109,6 @@ def iplot_histogram(data, figsize=None, number_to_keep=None,
                'show_legend': 0,
                'width': int(figsize[0]),
                'height': int(figsize[1])}
-
     if legend:
         options['show_legend'] = 1
 

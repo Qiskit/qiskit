@@ -11,7 +11,7 @@
 Visualization functions for measurement counts.
 """
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import functools
 import numpy as np
 from ._matplotlib import HAS_MATPLOTLIB
@@ -32,7 +32,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot and rest
-            is made into a single bar called other values
+            is made into a single bar called 'rest'.
         sort (string): Could be 'asc' or 'desc'
         legend(list): A list of strings to use for labels of the data.
             The number of entries must match the length of data (if data is a
@@ -59,8 +59,14 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                                  (len(legend), len(data)))
 
     fig, ax = plt.subplots(figsize=figsize)
-    labels = sorted(
-        functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
+    labels = list(sorted(
+        functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
+    if number_to_keep is not None:
+        labels.append('rest')
+
+    labels_dict = OrderedDict()
+    for label in labels:
+        labels_dict[label] = 0
 
     # Set bar colors
     if color is None:
@@ -74,10 +80,11 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
         values = []
-        for key in labels:
+        for key in labels_dict:
             if key not in execution:
                 values.append(0)
             else:
+                labels_dict[key] += 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
         pvalues = values / sum(values)
@@ -88,10 +95,12 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         label = None
         if legend:
             label = legend[item]
-        adj = width * item
-        rects = ax.bar(ind+adj, pvalues, width, label=label,
-                       color=color[item % len(color)],
-                       zorder=2)
+
+        rects = []
+        for idx, val in enumerate(pvalues):
+            rects.append(ax.bar(idx+(labels_dict[labels[idx]]-1)*width, val, width, label=label,
+                                color=color[item % len(color)],
+                                zorder=2))
         # add some text for labels, title, and axes ticks
         ax.set_ylabel('Probabilities', fontsize=14)
         ax.set_xticks(ind)
@@ -100,11 +109,12 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         # attach some text labels
         if bar_labels:
             for rect in rects:
-                height = rect.get_height()
-                if height >= 1e-3:
-                    ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                            '%.3f' % float(height),
-                            ha='center', va='bottom', zorder=3)
+                for rec in rect:
+                    height = rec.get_height()
+                    if height >= 1e-3:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '%.3f' % float(height),
+                                ha='center', va='bottom', zorder=3)
 
     if sort == 'desc':
         ax.invert_xaxis()

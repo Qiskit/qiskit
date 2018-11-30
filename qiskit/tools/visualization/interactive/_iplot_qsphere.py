@@ -17,7 +17,7 @@ from string import Template
 
 import numpy as np
 from scipy import linalg
-
+from qiskit.tools.visualization._utils import _validate_input_state
 from qiskit.tools.visualization import VisualizationError
 
 
@@ -28,14 +28,14 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_qsphere(rho, figsize=None):
+def iplot_state_qsphere(rho, figsize=None):
     """ Create a Q sphere representation.
 
         Graphical representation of the input array, using a Q sphere for each
         eigenvalue.
 
         Args:
-            rho (array): Density matrix (complex array)
+            rho (array): State vector or density matrix.
             figsize (tuple): Figure size in inches.
     """
 
@@ -66,6 +66,7 @@ def iplot_qsphere(rho, figsize=None):
     </script>
 
     """)
+    rho = _validate_input_state(rho)
     if figsize is None:
         options = {}
     else:

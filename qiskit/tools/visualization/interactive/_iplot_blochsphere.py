@@ -14,6 +14,7 @@ import time
 import re
 import numpy as np
 from qiskit.quantum_info import Pauli
+from qiskit.tools.visualization._utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -21,14 +22,14 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_blochsphere(rho, figsize=None):
+def iplot_bloch_multivector(rho, figsize=None):
     """ Create a bloch sphere representation.
 
         Graphical representation of the input array, using as much bloch
         spheres as qubit are required.
 
         Args:
-            rho (array): Density matrix
+            rho (array): State vector or density matrix
             figsize (tuple): Figure size in inches.
     """
 
@@ -71,7 +72,7 @@ def iplot_blochsphere(rho, figsize=None):
         });
     </script>
     """)
-
+    rho = _validate_input_state(rho)
     if figsize is None:
         options = {}
     else:

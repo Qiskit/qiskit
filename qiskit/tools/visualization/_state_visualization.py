@@ -26,6 +26,7 @@ if HAS_MATPLOTLIB:
     from mpl_toolkits.mplot3d import proj3d
     from qiskit.tools.visualization._error import VisualizationError
     from qiskit.tools.visualization._bloch import Bloch
+    from qiskit.tools.visualization._utils import _validate_input_state
 
 if HAS_MATPLOTLIB:
     class Arrow3D(FancyArrowPatch):
@@ -44,31 +45,7 @@ if HAS_MATPLOTLIB:
             FancyArrowPatch.draw(self, renderer)
 
 
-def _validate_input_state(quantum_state):
-    """Validates the input to state visualization functions.
-
-    Args:
-        quantum_state (ndarray): Input state / density matrix.
-    Returns:
-        rho: A 2d numpy array for the density matrix.
-    Raises:
-        VisualizationError: Invalid input.
-    """
-    rho = np.asarray(quantum_state)
-    if rho.ndim == 1:
-        rho = np.outer(rho, np.conj(rho))
-    # Check the shape of the input is a square matrix
-    shape = np.shape(rho)
-    if len(shape) != 2 or shape[0] != shape[1]:
-        raise VisualizationError("Input is not a valid quantum state.")
-    # Check state is an n-qubit state
-    num = int(np.log2(len(rho)))
-    if 2 ** num != len(rho):
-        raise VisualizationError("Input is not a multi-qubit quantum state.")
-    return rho
-
-
-def plot_hinton(rho, title='', figsize=None):
+def plot_state_hinton(rho, title='', figsize=None):
     """Plot a hinton diagram for the quanum state.
 
     Args:
@@ -136,7 +113,7 @@ def plot_hinton(rho, title='', figsize=None):
     ax2.invert_yaxis()
     ax2.set_title('Imag[rho]', fontsize=14)
     if title:
-        plt.title(title)
+        fig.suptitle(title, fontsize=16)
     plt.tight_layout()
     plt.close(fig)
     return fig
@@ -172,6 +149,45 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
         plt.close(fig)
         return fig
     return None
+
+
+def plot_bloch_multivector(rho, title='', figsize=None):
+    """Plot the Bloch sphere.
+
+    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+
+    Args:
+        rho (ndarray): Numpy array for state vector or density matrix.
+        title (str): a string that represents the plot title
+        figsize (tuple): Has no effect, here for compatibility only.
+
+    Returns:
+        Figure: A matplotlib figure instance if `ax = None`.
+
+    Raises:
+        ImportError: Requires matplotlib.
+    """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
+    rho = _validate_input_state(rho)
+    num = int(np.log2(len(rho)))
+    width, height = plt.figaspect(1/num)
+    fig = plt.figure(figsize=(width, height))
+    for i in range(num):
+        ax = fig.add_subplot(1, num, i + 1, projection='3d')
+        pauli_singles = [
+            Pauli.pauli_single(num, i, 'X'),
+            Pauli.pauli_single(num, i, 'Y'),
+            Pauli.pauli_single(num, i, 'Z')
+        ]
+        bloch_state = list(
+            map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
+                pauli_singles))
+        plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax,
+                          figsize=figsize)
+    fig.suptitle(title, fontsize=16)
+    plt.close(fig)
+    return fig
 
 
 def plot_state_city(rho, title="", figsize=None, color=None):
@@ -267,7 +283,7 @@ def plot_state_city(rho, title="", figsize=None, color=None):
     ax2.set_zlabel("Imag[rho]", fontsize=14)
     for tick in ax2.zaxis.get_major_ticks():
         tick.label.set_fontsize(14)
-    plt.title(title)
+    plt.suptitle(title, fontsize=16)
     plt.tight_layout()
     plt.close(fig)
     return fig
@@ -317,7 +333,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
     ax.set_facecolor('#eeeeee')
     for tick in ax.xaxis.get_major_ticks()+ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(14)
-    plt.title(title)
+    ax.set_title(title, fontsize=16)
     plt.close(fig)
     return fig
 
@@ -417,12 +433,11 @@ def plot_state_qsphere(rho, figsize=None):
     num = int(np.log2(len(rho)))
     # get the eigenvectors and eigenvalues
     we, stateall = linalg.eigh(rho)
-    for k in range(2**num):
+    for _ in range(2**num):
         # start with the max
         probmix = we.max()
         prob_location = we.argmax()
         if probmix > 0.001:
-            print("The " + str(k) + "th eigenvalue = " + str(probmix))
             # get the max eigenvalue
             state = stateall[:, prob_location]
             loc = np.absolute(state).argmax()
@@ -537,8 +552,9 @@ def plot_state(quantum_state, method='city', figsize=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    warnings.warn("'plot_state' will be depreciated in terra-0.9.  \
-                  Call the desired plotting routine directly.",
+    warnings.warn("plot_state is deprecated, and will be removed in \
+                  the 0.9 release. Use the plot_state_ * functions \
+                  instead.",
                   DeprecationWarning)
     # Check if input is a statevector, and convert to density matrix
     rho = _validate_input_state(quantum_state)
@@ -550,25 +566,11 @@ def plot_state(quantum_state, method='city', figsize=None):
     elif method == "qsphere":
         fig = plot_state_qsphere(rho, figsize=figsize)
     elif method == "bloch":
-        num = int(np.log2(len(rho)))
-        aspect = float(1 / num)
-        fig = plt.figure(figsize=plt.figaspect(aspect))
-        for i in range(num):
-            ax = fig.add_subplot(1, num, i + 1, projection='3d')
-            pauli_singles = [
-                Pauli.pauli_single(num, i, 'X'),
-                Pauli.pauli_single(num, i, 'Y'),
-                Pauli.pauli_single(num, i, 'Z')
-            ]
-            bloch_state = list(
-                map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                    pauli_singles))
-            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax,
-                              figsize=figsize)
+        plot_bloch_multivector(rho, figsize=figsize)
     elif method == "wigner":
         fig = plot_wigner_function(rho)
     elif method == "hinton":
-        fig = plot_hinton(rho, figsize=figsize)
+        fig = plot_state_hinton(rho, figsize=figsize)
     return fig
 
 
