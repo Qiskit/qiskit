@@ -11,7 +11,6 @@ from marshmallow.fields import Boolean, DateTime, Integer, List, Nested, String
 from marshmallow.validate import Equal, Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.validate import Or
 
 
 class GateConfigSchema(BaseSchema):
@@ -40,8 +39,7 @@ class BackendConfigurationSchema(BaseSchema):
     backend_name = String(required=True)
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    n_qubits = Integer(required=True,
-                       validate=Or([Equal(-1), Range(min=1)]))
+    n_qubits = Integer(required=True, validate=Range(min=1))
     basis_gates = List(String(), required=True,
                        validate=Length(min=1))
     gates = Nested(GateConfigSchema, required=True, many=True,
