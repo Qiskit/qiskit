@@ -73,31 +73,38 @@ class SwapMapper(TransformationPass):
                 physical_q0 = ('q', current_layout[a_cx['op'].qargs[0]])
                 physical_q1 = ('q', current_layout[a_cx['op'].qargs[1]])
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    # Insert a new layer with the SWAP.
+                    # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
 
                     path = self.coupling_map.shortest_path(physical_q0, physical_q1)
-                    closest_qubit = current_layout[path[1]['name'][1]]
-                    farthest_qubit = current_layout[path[-1]['name'][1]]
+                    for swap in range(len(path) - 2):
+                        closest_qubit = current_layout[path[swap]['name'][1]]
+                        farthest_qubit = current_layout[path[swap + 1]['name'][1]]
 
-                    # create the involved registers
-                    if closest_qubit[0] not in swap_layer.qregs.values():
-                        swap_layer.add_qreg(closest_qubit[0])
-                    if farthest_qubit[0] not in swap_layer.qregs.values():
-                        swap_layer.add_qreg(farthest_qubit[0])
+                        # create the involved registers
+                        if closest_qubit[0] not in swap_layer.qregs.values():
+                            swap_layer.add_qreg(closest_qubit[0])
+                        if farthest_qubit[0] not in swap_layer.qregs.values():
+                            swap_layer.add_qreg(farthest_qubit[0])
 
-                    # create the swap operation
-                    swap_layer.add_basis_element(self.swap_basis_element, 2)
-                    swap_layer.apply_operation_back(self.swap_basis_element,
-                                                    [(closest_qubit[0].name, closest_qubit[1]),
-                                                     (farthest_qubit[0].name, farthest_qubit[1])])
+                        # create the swap operation
+                        swap_layer.add_basis_element(self.swap_basis_element, 2)
+                        swap_layer.apply_operation_front(self.swap_basis_element,
+                                                        [(closest_qubit[0].name, closest_qubit[1]),
+                                                         (farthest_qubit[0].name,
+                                                          farthest_qubit[1])])
+
+                        # update current_layout
+                        current_layout.swap(closest_qubit, farthest_qubit)
+
+                        # swap the order in shortest path
+                        path[swap], path[swap + 1] = path[swap + 1], path[swap]
+                        print('path:',path)
+                        print('current_layout:', current_layout)
 
                     # layer insertion
                     wire_map = current_layout.wire_map_from_layouts(self.initial_layout)
                     new_dag.extends_at_the_end(swap_layer, wire_map)
-
-                    # update current_layout
-                    current_layout.swap(closest_qubit, farthest_qubit)
 
             wire_map = current_layout.wire_map_from_layouts(self.initial_layout)
             new_dag.extends_at_the_end(subdag, wire_map)

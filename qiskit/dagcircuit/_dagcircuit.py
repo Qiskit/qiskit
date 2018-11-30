@@ -393,7 +393,7 @@ class DAGCircuit:
 
     def apply_operation_front(self, name, qargs, cargs=None, params=None,
                               condition=None, op=None):
-        """Apply an operation to the input of the circuit.
+        """Apply an operation to the output of the circuit.
 
         name is a string
         qargs is a list of strings like "q[0]"

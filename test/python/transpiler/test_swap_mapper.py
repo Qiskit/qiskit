@@ -176,7 +176,7 @@ class TestSwapMapper(QiskitTestCase):
         expected = ['swap q[1],q[3];',
                     'cx q[0],q[1];',
                     'cx q[1],q[0];']
-
+        expected=['A'*100]
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
 
