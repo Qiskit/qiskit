@@ -93,7 +93,7 @@ class Coupling:
             couplinglist = coupling_dict2list(couplingdict)
             num_qubits = 1 + max(max(x[0] for x in couplinglist),
                                  max(x[1] for x in couplinglist))
-            reg = _quantumregister.QuantumRegister(num_qubits, 'q')            
+            reg = _quantumregister.QuantumRegister(num_qubits, 'q')
             for v0, alist in couplingdict.items():
                 for v1 in alist:
                     self.add_edge((reg, v0), (reg, v1))
@@ -125,7 +125,7 @@ class Coupling:
             raise CouplingError("%s already in coupling graph" % qubit)
         if not isinstance(qubit, tuple):
             raise CouplingError("qubit %s is not a tuple")
-        if not (isinstance(qubit[0], _quantumregister.QuantumRegister) and \
+        if not (isinstance(qubit[0], _quantumregister.QuantumRegister) and
                 isinstance(qubit[1], int)):
             raise CouplingError("qubit %s is not of the right form, it must"
                                 " be: (reg, idx)")

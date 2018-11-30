@@ -13,6 +13,7 @@ from qiskit import QuantumRegister
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
 
+
 class CheckMap(AnalysisPass):
     """
     Checks if a DAGCircuit is mapped to `coupling_map`.

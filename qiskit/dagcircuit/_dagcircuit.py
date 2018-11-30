@@ -246,7 +246,7 @@ class DAGCircuit:
 
         Args:
             op (Instruction): a quantum operation
-            qargs (list[tuple]): qubits that op will be applied to 
+            qargs (list[tuple]): qubits that op will be applied to
             cargs (list[tuple]): cbits that op will be applied to
         """
         # Check that we have this operation
@@ -335,7 +335,7 @@ class DAGCircuit:
         self.multi_graph.add_node(self.node_counter)
         # Update the operation itself. TODO: remove after qargs not connected to op
         op.qargs = qargs
-        op.cargs = cargs        
+        op.cargs = cargs
         # Update that operation node's data
         self.multi_graph.node[self.node_counter]["type"] = "op"
         self.multi_graph.node[self.node_counter]["op"] = op
@@ -350,7 +350,7 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[tuple]): qubits that op will be applied to 
+            qargs (list[tuple]): qubits that op will be applied to
             cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
@@ -390,7 +390,7 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[tuple]): qubits that op will be applied to 
+            qargs (list[tuple]): qubits that op will be applied to
             cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
 
@@ -510,8 +510,7 @@ class DAGCircuit:
                     # fragment k
                     if not wire_map[(k, 0)][0].name in valregs:
                         size = max(map(lambda x: x[1],
-                                       filter(lambda x: x[0]
-                                              == wire_map[(k, 0)][0],
+                                       filter(lambda x: x[0] == wire_map[(k, 0)][0],
                                               wire_map.values())))
                         qreg = QuantumRegister(size + 1, wire_map[(k, 0)][0].name)
                         add_regs.add(qreg)
@@ -839,7 +838,7 @@ class DAGCircuit:
                 else:
                     if nd["op"].name == "measure":
                         if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
-                           or nd["op"].param:
+                                or nd["op"].param:
                             raise DAGCircuitError("bad node data")
 
                         qname = nd["qargs"][0][0].name
@@ -1316,7 +1315,7 @@ class DAGCircuit:
                 op_node[1]["qargs"]
                 for op_node in op_nodes
                 if op_node[1]["op"].name not in {"barrier", "snapshot", "save", "load", "noise"}
-                ]
+            ]
             new_layer.multi_graph.add_nodes_from(op_nodes)
 
             # Now add the edges to the multi_graph

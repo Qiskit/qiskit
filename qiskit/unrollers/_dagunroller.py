@@ -19,6 +19,7 @@ from ._dagbackend import DAGBackend
 
 class DagUnroller(object):
     """An Unroller that takes Dag circuits as the input."""
+
     def __init__(self, dag_circuit, backend=None):
         if dag_circuit is None:
             raise UnrollerError('Invalid dag circuit!!')
@@ -150,7 +151,8 @@ class DagUnroller(object):
                     extra_fields = {'type': 'MISSING', 'label': 'MISSING',
                                     'texparams': []}
 
-                self.backend.start_gate(current_node["op"], qargs=current_node["qargs"], extra_fields=extra_fields)
+                self.backend.start_gate(current_node["op"], qargs=current_node["qargs"],
+                                        extra_fields=extra_fields)
                 self.backend.end_gate(current_node["op"])
 
                 self.backend.drop_condition()
