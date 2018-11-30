@@ -177,7 +177,7 @@ class TestAerQasmSimulator(QiskitTestCase):
                 self.assertDictAlmostEqual(counts, expected_counts,
                                            threshold, msg=name + 'counts')
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 3,
@@ -211,7 +211,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         }
 
         for name in sampled_measurements:
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             # Check snapshot keys
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
@@ -239,7 +239,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         }
         for name in expected_data:
             # Check snapshot is |0> state
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -256,7 +256,7 @@ class TestAerQasmSimulator(QiskitTestCase):
             qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
 
-        snapshots = result.get_snapshots('save_command')
+        snapshots = result.data('save_command')['snapshots']
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
                          msg='snapshot keys')
         state0 = snapshots['0']['statevector'][0]
@@ -356,7 +356,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -413,7 +413,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -442,7 +442,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
