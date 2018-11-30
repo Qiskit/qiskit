@@ -254,8 +254,8 @@ class UnitarySimulatorPy(BaseBackend):
                 logger.info("unitary simulator only supports 1 shot. "
                             "Setting shots=1 for circuit %s.", experiment.name)
                 experiment.config.shots = 1
-            for op in experiment.instructions:
-                if op.name in ['measure', 'reset']:
+            for operation in experiment.instructions:
+                if operation.name in ['measure', 'reset']:
                     raise SimulatorError(
                         "In circuit {}: unitary simulator does not support "
                         "measure or reset.".format(experiment.header.name))
