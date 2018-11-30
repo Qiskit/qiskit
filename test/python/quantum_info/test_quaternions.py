@@ -8,8 +8,9 @@
 """Tests qiskit/mapper/_quaternion"""
 import numpy as np
 import scipy.linalg as la
-from qiskit.mapper._quaternion import (quaternion_from_euler, _rotm)
-from .common import QiskitTestCase
+from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
+from qiskit.quantum_info.operators.unitary import rotation_matrix
+from ..common import QiskitTestCase
 
 
 class TestQuaternions(QiskitTestCase):
@@ -22,8 +23,9 @@ class TestQuaternions(QiskitTestCase):
         for _ in range(1000):
             rnd = 4*np.pi*(np.random.random(3)-0.5)
             idx = np.random.randint(3, size=3)
-            mat1 = _rotm(rnd[0], axes[idx[0]]).dot(
-                _rotm(rnd[1], axes[idx[1]]).dot(_rotm(rnd[2], axes[idx[2]])))
+            mat1 = rotation_matrix(rnd[0], axes[idx[0]]).dot(
+                rotation_matrix(rnd[1], axes[idx[1]]).dot(
+                    rotation_matrix(rnd[2], axes[idx[2]])))
             axes_str = ''.join(axes[i] for i in idx)
             quat = quaternion_from_euler(rnd, axes_str)
             mat2 = quat.to_matrix()
