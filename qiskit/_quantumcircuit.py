@@ -415,3 +415,6 @@ class QuantumCircuit(object):
 
     def __str__(self):
         return str(self.draw(output='text'))
+
+    def __eq__(self, other):
+        return DAGCircuit.fromQuantumCircuit(self) == DAGCircuit.fromQuantumCircuit(other)
