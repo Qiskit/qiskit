@@ -90,7 +90,7 @@ class TestCircuitOperations(QiskitTestCase):
         backend = Aer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
-        snapshot_vectors = result.get_snapshot('1')
+        snapshot_vectors = result.data(0)['snapshots']['1']['statevector']
         fidelity = state_fidelity(snapshot_vectors[0], desired_vector)
         self.assertGreater(fidelity, 0.99)
 
