@@ -90,11 +90,6 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
     # Step 1: create the Qobj, with empty experiments.
     # Copy the configuration: the values in `config` have preference
     qobj_config = deepcopy(config or {})
-    # TODO: "memory_slots" is required by the qobj schema in the top-level
-    # qobj.config, and is user-defined. At the moment is set to the maximum
-    # number of *register* slots for the circuits, in order to have `measure`
-    # behave properly until the transition is over; and each circuit stores
-    # its memory_slots in its configuration.
     qobj_config.update({'shots': shots,
                         'max_credits': max_credits,
                         'memory_slots': 0})
@@ -115,14 +110,10 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
                                                        basis_gates,
                                                        coupling_map))
 
-    # Update the `memory_slots` value.
-    # TODO: remove when `memory_slots` can be provided by the user.
+    # Update the global `memory_slots` and `n_qubits` values.
     qobj.config.memory_slots = max(experiment.config.memory_slots for
                                    experiment in qobj.experiments)
 
-    # Update the `n_qubits` global value.
-    # TODO: num_qubits is not part of the qobj specification, but needed
-    # for the simulator.
     qobj.config.n_qubits = max(experiment.config.n_qubits for
                                experiment in qobj.experiments)
 
@@ -148,15 +139,9 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     experiment = QobjExperiment.from_dict(json_circuit)
     # Step 3b: populate the Experiment configuration and header
     experiment.header.name = circuit.name
-    # TODO: place in header or config?
     experiment_config = deepcopy(config or {})
     experiment_config.update({
-        'coupling_map': coupling_map,
-        'basis_gates': basis_gates,
-        'layout': [[[i[0][0].name, i[0][1]], [i[1][0].name, i[1][1]]]
-                   for i in dag.layout] if dag.layout else [],
         'memory_slots': sum([creg.size for creg in dag.cregs.values()]),
-        # TODO: `n_qubits` is not part of the qobj spec, but needed for the simulator.
         'n_qubits': sum([qreg.size for qreg in dag.qregs.values()])
         })
     experiment.config = QobjItem(**experiment_config)

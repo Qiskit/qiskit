@@ -4,6 +4,7 @@
     "schema_version": "1.0.0",
     "config": {
         "shots": 1,
+        "n_qubits": 1,
         "memory_slots": 1,
         "seed": 1
     },
@@ -13,8 +14,8 @@
             "header": {
                 "name": "save_command",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
+                "memory_slots": 1,
+                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
             },
             "instructions": [
