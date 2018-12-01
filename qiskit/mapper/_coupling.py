@@ -246,8 +246,8 @@ class Coupling:
 
     def distance_qubits(self, q1, q2): # TODO remove
         """Return the undirected distance_qubits between qubit q1 to qubit q2."""
-        warnings.warn("distance_qubits is being removed",
-                      DeprecationWarning)
+        warnings.warn("distance_qubits is being removed", DeprecationWarning, stacklevel=3)
+        self.compute_distance()
         if self.dist is None:
             raise CouplingError("distance_qubits has not been computed")
         if q1 not in self.qubits:
