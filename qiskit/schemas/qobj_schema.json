@@ -745,7 +745,7 @@
                                     "array"
                                 ]
                             },
-                            "minItems": 1,
+                            "minItems": 0,
                             "title": "List of quantum registers and their sizes.",
                             "type": "array"
                         },
@@ -777,7 +777,7 @@
                             "type": "array"
                         },
                         "qubit_labels": {
-                            "description": "A list of length n_qubits (from backend.configuration or in this header), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
+                            "description": "A list of length total physical qubits (from backend.configuration), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
                             "items": {
                                 "items": [
                                     {
