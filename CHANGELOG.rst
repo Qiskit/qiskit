@@ -79,6 +79,12 @@ Changed
   `qiskit.tools.visualization._state_visualization.py`, and 
   `qiskit.tools.visualization.interactive` have been modified to make them 
   in-line with standard Matplotlib calling conventions (#1359).
+- Remove local backend (Aer) fallback (#1303).
+- DAGCircuits store Instruction and Register objects, instead of name
+  references. The DAGCircuit class methods are updated accordingly (#1210).
+- Different unrollers are deprecated. The only unrolling happens
+  from DAG to DAG (#1210).
+
 
 Deprecated
 """"""""""
@@ -120,6 +126,7 @@ Fixed
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
 - The`number_to_keep` kwarg in `plot_histgram()`now functions correctly (#1359).
+- parallel_map no longer creates a progress bar for a single circuit (#1394).
 
 Removed
 """""""

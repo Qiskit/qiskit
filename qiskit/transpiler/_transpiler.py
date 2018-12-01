@@ -15,7 +15,7 @@ import scipy.sparse.csgraph as cs
 from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QISKitError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import _quantumcircuit
+from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
@@ -129,26 +129,26 @@ def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         terra.transpiler.transpile_dag.finish: When all the dags have finished transpiling
     """
 
-    def _emmit_start(num_dags):
-        """ Emmit a dag transpilation start event
+    def _emit_start(num_dags):
+        """ Emit a dag transpilation start event
         Arg:
             num_dags: Number of dags to be transpiled"""
         Publisher().publish("terra.transpiler.transpile_dag.start", num_dags)
-    Subscriber().subscribe("terra.transpiler.parallel.start", _emmit_start)
+    Subscriber().subscribe("terra.transpiler.parallel.start", _emit_start)
 
-    def _emmit_done(progress):
-        """ Emmit a dag transpilation done event
+    def _emit_done(progress):
+        """ Emit a dag transpilation done event
         Arg:
             progress: The dag number that just has finshed transpile"""
         Publisher().publish("terra.transpiler.transpile_dag.done", progress)
-    Subscriber().subscribe("terra.transpiler.parallel.done", _emmit_done)
+    Subscriber().subscribe("terra.transpiler.parallel.done", _emit_done)
 
-    def _emmit_finish():
-        """ Emmit a dag transpilation finish event
+    def _emit_finish():
+        """ Emit a dag transpilation finish event
         Arg:
             progress: The dag number that just has finshed transpile"""
         Publisher().publish("terra.transpiler.transpile_dag.finish")
-    Subscriber().subscribe("terra.transpiler.parallel.finish", _emmit_finish)
+    Subscriber().subscribe("terra.transpiler.parallel.finish", _emit_finish)
 
     dags_layouts = list(zip(dags, initial_layouts))
     final_dags = parallel_map(_transpile_dags_parallel, dags_layouts,
@@ -298,7 +298,7 @@ def _best_subset(backend, n_qubits):
     connectivity.
 
     Parameters:
-        backend (Qiskit.BaseBackend): A QISKit backend instance.
+        backend (BaseBackend): A Qiskit backend instance.
         n_qubits (int): Number of subset qubits to consider.
 
     Returns:
@@ -378,14 +378,15 @@ def _pick_best_layout(dag, backend):
 
     Returns:
         dict: A special ordered initial_layout
-
     """
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     best_sub = _best_subset(backend, num_qubits)
     layout = {}
     map_iter = 0
-    for key, value in dag.qregs.items():
-        for i in range(value.size):
-            layout[(key, i)] = ('q', best_sub[map_iter])
+    device_qubits = backend.configuration().n_qubits
+    q = _quantumregister.QuantumRegister(device_qubits, 'q')
+    for qreg in dag.qregs.values():
+        for i in range(qreg.size):
+            layout[(qreg.name, i)] = (q, int(best_sub[map_iter]))
             map_iter += 1
     return layout

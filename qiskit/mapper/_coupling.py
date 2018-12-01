@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=no-member
+
 """
 Directed graph object for representing coupling between qubits.
 
@@ -15,6 +17,7 @@ onto a device with this coupling.
 """
 from collections import OrderedDict
 import networkx as nx
+from qiskit import _quantumregister
 from ._couplingerror import CouplingError
 
 
@@ -76,7 +79,7 @@ class Coupling:
         specifies the graph as an adjacency list. For example,
         couplingdict = {0: [1, 2], 1: [2]}.
         """
-        # self.qubits is dict from qubit (regname,idx) tuples to node indices
+        # self.qubits is dict from qubit (reg,idx) tuples to node indices
         self.qubits = OrderedDict()
         # self.index_to_qubit is a dict from node indices to qubits
         self.index_to_qubit = {}
@@ -89,10 +92,13 @@ class Coupling:
         self.dist = None
         # Add edges to the graph if the couplingdict is present
         if couplingdict is not None:
+            couplinglist = coupling_dict2list(couplingdict)
+            num_qubits = 1 + max(max(x[0] for x in couplinglist),
+                                 max(x[1] for x in couplinglist))
+            reg = _quantumregister.QuantumRegister(num_qubits, 'q')
             for v0, alist in couplingdict.items():
                 for v1 in alist:
-                    regname = "q"
-                    self.add_edge((regname, v0), (regname, v1))
+                    self.add_edge((reg, v0), (reg, v1))
             self.compute_distance()
 
     def size(self):
@@ -111,38 +117,39 @@ class Coupling:
         return list(map(lambda x: (self.index_to_qubit[x[0]],
                                    self.index_to_qubit[x[1]]), self.G.edges()))
 
-    def add_qubit(self, name):
+    def add_qubit(self, qubit):
         """
         Add a qubit to the coupling graph.
 
-        name = tuple (regname, idx) for qubit
+        qubit = tuple (reg, idx) for qubit
         """
-        if name in self.qubits:
-            raise CouplingError("%s already in coupling graph" % name)
-        if not isinstance(name, tuple):
-            raise CouplingError("name %s is not a tuple")
-        if not (isinstance(name[0], str) and isinstance(name[1], int)):
-            raise CouplingError("name %s is not of the right form, it must"
-                                " be: (regname, idx)")
+        if qubit in self.qubits:
+            raise CouplingError("%s already in coupling graph" % qubit)
+        if not isinstance(qubit, tuple):
+            raise CouplingError("qubit %s is not a tuple")
+        if not (isinstance(qubit[0], _quantumregister.QuantumRegister) and
+                isinstance(qubit[1], int)):
+            raise CouplingError("qubit %s is not of the right form, it must"
+                                " be: (reg, idx)")
 
         self.node_counter += 1
         self.G.add_node(self.node_counter)
-        self.G.node[self.node_counter]["name"] = name
-        self.qubits[name] = self.node_counter
-        self.index_to_qubit[self.node_counter] = name
+        self.G.node[self.node_counter]["name"] = str((qubit[0].name, qubit[1]))
+        self.qubits[qubit] = self.node_counter
+        self.index_to_qubit[self.node_counter] = qubit
 
-    def add_edge(self, s_name, d_name):
+    def add_edge(self, s_qubit, d_qubit):
         """
         Add directed edge to coupling graph.
 
-        s_name = source qubit tuple
-        d_name = destination qubit tuple
+        s_qubit = source qubit tuple
+        d_qubit = destination qubit tuple
         """
-        if s_name not in self.qubits:
-            self.add_qubit(s_name)
-        if d_name not in self.qubits:
-            self.add_qubit(d_name)
-        self.G.add_edge(self.qubits[s_name], self.qubits[d_name])
+        if s_qubit not in self.qubits:
+            self.add_qubit(s_qubit)
+        if d_qubit not in self.qubits:
+            self.add_qubit(d_qubit)
+        self.G.add_edge(self.qubits[s_qubit], self.qubits[d_qubit])
 
     def connected(self):
         """
@@ -186,11 +193,11 @@ class Coupling:
         s = ""
         if self.qubits:
             s += "qubits: "
-            s += ", ".join(["%s[%d] @ %d" % (k[0], k[1], v)
+            s += ", ".join(["%s[%d] @ %d" % (k[0].name, k[1], v)
                             for k, v in self.qubits.items()])
         if self.get_edges():
             s += "\nedges: "
             s += ", ".join(
-                ["%s[%d]-%s[%d]" % (e[0][0], e[0][1], e[1][0], e[1][1])
+                ["%s[%d]-%s[%d]" % (e[0][0].name, e[0][1], e[1][0].name, e[1][1])
                  for e in self.get_edges()])
         return s
