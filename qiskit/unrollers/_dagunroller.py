@@ -98,7 +98,7 @@ class DagUnroller(object):
                     for n in decomposition_dag.get_op_nodes():
                         decomposition_dag._remove_op_node(n)
                     for n in to_replay:
-                        decomposition_dag.apply_operation_back(n["op"], condition)
+                        decomposition_dag.apply_operation_back(n["op"], condition=condition)
 
                 # the wires for substitute_circuit_one are expected as qargs first,
                 # then cargs, then conditions
