@@ -868,6 +868,8 @@ class IBMQConnector(object):
                 # Other fields.
                 config['basis_gates'] = config['basis_gates'].split(',')
                 config['local'] = config.get('local', False)
+                config['memory'] = config.get('memory', config['simulator'])
+                config['max_shots'] = config.get('max_shots', 8192)
                 config['open_pulse'] = config.get('open_pulse', False)
                 config['conditional'] = config.get('conditional', config['simulator'])
                 config['backend_name'] = config.pop('name')

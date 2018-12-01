@@ -36,6 +36,8 @@ class StatevectorSimulator(QasmSimulator):
         'local': True,
         'conditional': False,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A single-shot C++ statevector simulator for the |0> state evolution',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h',
                         's', 'sdg', 't', 'tdg', 'rzz', 'load', 'save',

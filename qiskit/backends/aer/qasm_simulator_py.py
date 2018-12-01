@@ -100,6 +100,8 @@ class QasmSimulatorPy(BaseBackend):
         'local': True,
         'conditional': True,
         'open_pulse': False,
+        'memory': True,
+        'max_shots': 65536,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
         'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
