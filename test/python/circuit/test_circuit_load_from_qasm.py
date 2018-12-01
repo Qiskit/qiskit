@@ -70,35 +70,28 @@ class LoadFromQasmTest(QiskitTestCase):
         qasm_string += "measure b[1]->d[1];\nmeasure b[2]->d[2];\n"
         qasm_string += "measure b[3]->d[3];"
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        qasm_data_string = q_circuit.qasm()
-        self.log.info(qasm_data_string)
-        expected_qasm_data_string = '\n'.join(["OPENQASM 2.0;",
-                                               "include \"qelib1.inc\";",
-                                               "qreg a[4];",
-                                               "qreg b[4];",
-                                               "creg c[4];",
-                                               "creg d[4];",
-                                               "h a[3];",
-                                               "cx a[3],b[3];",
-                                               "h a[2];",
-                                               "cx a[2],b[2];",
-                                               "h a[1];",
-                                               "cx a[1],b[1];",
-                                               "h a[0];",
-                                               "cx a[0],b[0];",
-                                               "barrier b[0],b[1],b[2],b[3];",
-                                               "measure b[3] -> d[3];",
-                                               "measure b[2] -> d[2];",
-                                               "measure b[1] -> d[1];",
-                                               "measure b[0] -> d[0];",
-                                               "barrier a[0],a[1],a[2],a[3];",
-                                               "measure a[3] -> c[3];",
-                                               "measure a[2] -> c[2];",
-                                               "measure a[1] -> c[1];",
-                                               "measure a[0] -> c[0];"]) + '\n'
-        self.assertEqual(qasm_data_string, expected_qasm_data_string)
+
+        qr_a = QuantumRegister(4, 'a')
+        qr_b = QuantumRegister(4, 'b')
+        cr_c = ClassicalRegister(4, 'c')
+        cr_d = ClassicalRegister(4, 'd')
+        ref = QuantumCircuit(qr_a, qr_b, cr_c, cr_d)
+        ref.h(qr_a[3])
+        ref.cx(qr_a[3], qr_b[3])
+        ref.h(qr_a[2])
+        ref.cx(qr_a[2], qr_b[2])
+        ref.h(qr_a[1])
+        ref.cx(qr_a[1], qr_b[1])
+        ref.h(qr_a[0])
+        ref.cx(qr_a[0], qr_b[0])
+        ref.barrier(qr_b)
+        ref.measure(qr_b, cr_d)
+        ref.barrier(qr_a)
+        ref.measure(qr_a, cr_c)
+
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 2)
+        self.assertEqual(q_circuit, ref)
 
     def test_qasm_text_conditional(self):
         """Test qasm_text and get_circuit when conditionals are present.
@@ -110,14 +103,18 @@ class LoadFromQasmTest(QiskitTestCase):
                                  "creg c1[4];",
                                  "x q[0];",
                                  "if(c1==4) x q[0];"]) + '\n'
-
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        qasm_data_string = q_circuit.qasm()
-        self.log.info(qasm_data_string)
 
-        self.assertEqual(qasm_data_string, qasm_string)
+        qr = QuantumRegister(1, 'q')
+        cr0 = ClassicalRegister(4, 'c0')
+        cr1 = ClassicalRegister(4, 'c1')
+        ref = QuantumCircuit(qr, cr0, cr1)
+        ref.x(qr[0])
+        ref.x(qr[0]).c_if(cr1, 4)
+
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 1)
+        self.assertEqual(q_circuit, ref)
 
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.
