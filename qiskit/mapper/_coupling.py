@@ -105,7 +105,6 @@ class Coupling:
             for v0, alist in couplingdict.items():
                 for v1 in alist:
                     self.add_edge_qubit((reg, v0), (reg, v1))
-            self.compute_distance()
 
     def size(self):
         """Return the number of qubits in this graph."""
@@ -136,7 +135,7 @@ class Coupling:
 
         Each edge is a pair of wires.
         """
-        return self.graph.edges()
+        return [edge for edge in self.graph.edges()]
 
     def add_qubit(self, qubit):
         """
@@ -144,8 +143,6 @@ class Coupling:
 
         qubit = tuple (reg, idx) for qubit
         """
-        warnings.warn("get_edges_qubits is being removed",
-                      DeprecationWarning)
         # TODO remove
         if qubit in self.qubits:
             raise CouplingError("%s already in coupling graph" % qubit)
@@ -225,8 +222,7 @@ class Coupling:
 
         Return True if connected, False otherwise
         """
-        warnings.warn("connected is being removed",
-                      DeprecationWarning)
+        warnings.warn("connected is being removed", DeprecationWarning, stacklevel=2)
         try:
             return nx.is_weakly_connected(self.G)
         except nx.exception.NetworkXException:

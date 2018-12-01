@@ -95,7 +95,7 @@ class CouplingTest(QiskitTestCase):
         coupling = Coupling()
         self.assertEqual(0, len(coupling))
         self.assertEqual([], coupling.wires)
-        self.assertEqual([], coupling.get_edges_qubits())
+        self.assertEqual([], coupling.get_edges())
         self.assertFalse(coupling.is_connected())
         self.assertEqual("", repr(coupling))
 
@@ -109,7 +109,6 @@ class CouplingTest(QiskitTestCase):
         coupling_dict = {0: [1, 2], 1: [2]}
         coupling = Coupling(coupling_dict)
         self.assertTrue(coupling.is_connected())
-        coupling.compute_distance()
         wires = coupling.wires
         result = coupling.distance(wires[0], wires[1])
         self.assertEqual(1, result)
