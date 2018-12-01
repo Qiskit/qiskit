@@ -189,8 +189,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
     # Can we already apply the gates?
-    dist = sum([coupling.distance_qubits(layout[g[0]],
-                                         layout[g[1]]) for g in gates])
+    dist = sum([coupling.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
     logger.debug("layer_permutation: dist = %s", dist)
     if dist == len(gates):
         logger.debug("layer_permutation: done already")
@@ -218,7 +217,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         trial_circ = DAGCircuit()
         trial_circ.add_qreg(QuantumRegister(coupling.size(), "q"))
 
-        # Compute Sergey's randomized distance_qubits
+        # Compute Sergey's randomized distance
         xi = {}
         for i in coupling.get_qubits():
             xi[i] = {}
@@ -347,9 +346,9 @@ def direction_mapper(circuit_graph, coupling_graph):
         raise MapperError("cx gate has unexpected signature %s" %
                           circuit_graph.basis["cx"])
 
-    q = QuantumRegister(2, "fcx")
+    qr_fcx = QuantumRegister(2, "fcx")
     flipped_cx_circuit = DAGCircuit()
-    flipped_cx_circuit.add_qreg(q)
+    flipped_cx_circuit.add_qreg(qr_fcx)
     flipped_cx_circuit.add_basis_element("CX", 2)
     flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
     flipped_cx_circuit.add_basis_element("cx", 2)
@@ -358,13 +357,15 @@ def direction_mapper(circuit_graph, coupling_graph):
     flipped_cx_circuit.add_gate_data("cx", cx_data)
     flipped_cx_circuit.add_gate_data("u2", u2_data)
     flipped_cx_circuit.add_gate_data("h", h_data)
-    flipped_cx_circuit.apply_operation_back(HGate(q[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(q[1]))
-    flipped_cx_circuit.apply_operation_back(CnotGate(q[1], q[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(q[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(q[1]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[0]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[1]))
+    flipped_cx_circuit.apply_operation_back(CnotGate(qr_fcx[1], qr_fcx[0]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[0]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[1]))
 
-    cg_edges = coupling_graph.get_edges_qubits()
+    q_tmp = QuantumRegister(coupling_graph.size(), 'q')
+    cg_edges = [((q_tmp, i), (q_tmp, j)) for i, j in coupling_graph.get_edges()]
+
     for cx_node in circuit_graph.get_named_nodes("cx"):
         nd = circuit_graph.multi_graph.node[cx_node]
         cxedge = tuple(nd["op"].qargs)
@@ -376,7 +377,7 @@ def direction_mapper(circuit_graph, coupling_graph):
         elif (cxedge[1], cxedge[0]) in cg_edges:
             circuit_graph.substitute_circuit_one(cx_node,
                                                  flipped_cx_circuit,
-                                                 wires=[q[0], q[1]])
+                                                 wires=[qr_fcx[0], qr_fcx[1]])
             logger.debug("cx %s[%d], %s[%d] -FLIP",
                          cxedge[0][0], cxedge[0][1],
                          cxedge[1][0], cxedge[1][1])

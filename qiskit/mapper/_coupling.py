@@ -107,11 +107,6 @@ class Coupling:
                     self.add_edge_qubit((reg, v0), (reg, v1))
 
     def size(self):
-        """Return the number of qubits in this graph."""
-        #TODO to remove
-        return len(self.qubits)
-
-    def __len__(self):
         """Return the number of wires in this graph."""
         return len(self.qubits)
 
@@ -124,8 +119,7 @@ class Coupling:
 
         Each edge is a pair of qubits and each qubit is a tuple (qreg, index).
         """
-        warnings.warn("get_edges_qubits is being removed",
-                      DeprecationWarning)
+        warnings.warn("get_edges_qubits is being removed", DeprecationWarning, stacklevel=2)
 
         return list(map(lambda x: (self.index_to_qubit[x[0]],
                                    self.index_to_qubit[x[1]]), self.G.edges()))
@@ -259,9 +253,9 @@ class Coupling:
     def distance(self, wire1, wire2):
         """Return the undirected distance between wire1 and wire2."""
         try:
-            return len(nx.shortest_path(self.graph, source=wire1, target=wire2))-1
+            return len(nx.shortest_path(self.graph.to_undirected(), source=wire1, target=wire2))-1
         except nx.exception.NetworkXNoPath:
-            raise CouplingError("Nodes %s and %s are not connected", str(wire1), str(wire2))
+            raise CouplingError("Nodes %s and %s are not connected" % (str(wire1), str(wire2)))
 
     def __str__(self): #TODO Remove
         """Return a string representation of the coupling graph."""
