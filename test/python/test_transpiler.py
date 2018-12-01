@@ -50,7 +50,7 @@ class TestTranspiler(QiskitTestCase):
         unroll, swap_mapper, direction_mapper, cx cancellation, optimize_1q_gates
         and should be equivalent to using wrapper.compile
         """
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[0])

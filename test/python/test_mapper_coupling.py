@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-
+from qiskit import QuantumRegister
 from qiskit.mapper import _coupling
 from .common import QiskitTestCase
 
@@ -63,22 +63,22 @@ class CouplingTest(QiskitTestCase):
     def test_add_qubit(self):
         coupling = _coupling.Coupling()
         self.assertEqual("", str(coupling))
-        coupling.add_qubit(('q', 0))
+        coupling.add_qubit((QuantumRegister(1, 'q'), 0))
         self.assertEqual("qubits: q[0] @ 1", str(coupling))
 
     def test_add_qubit_not_tuple(self):
         coupling = _coupling.Coupling()
-        self.assertRaises(_coupling.CouplingError, coupling.add_qubit, 'q0')
+        self.assertRaises(_coupling.CouplingError, coupling.add_qubit, QuantumRegister(1, 'q0'))
 
     def test_add_qubit_tuple_incorrect_form(self):
         coupling = _coupling.Coupling()
         self.assertRaises(_coupling.CouplingError, coupling.add_qubit,
-                          ('q', '0'))
+                          (QuantumRegister(1, 'q'), '0'))
 
     def test_add_edge(self):
         coupling = _coupling.Coupling()
         self.assertEqual("", str(coupling))
-        coupling.add_edge(("q", 0), ('q', 1))
+        coupling.add_edge((QuantumRegister(2, 'q'), 0), (QuantumRegister(1, 'q'), 1))
         expected = ("qubits: q[0] @ 1, q[1] @ 2\n"
                     "edges: q[0]-q[1]")
         self.assertEqual(expected, str(coupling))
@@ -86,4 +86,5 @@ class CouplingTest(QiskitTestCase):
     def test_distance_error(self):
         """Test distance method validation."""
         graph = _coupling.Coupling({0: [1, 2], 1: [2]})
-        self.assertRaises(_coupling.CouplingError, graph.distance, ('q0', 0), ('q1', 1))
+        self.assertRaises(_coupling.CouplingError, graph.distance, (QuantumRegister(3, 'q0'), 0),
+                          (QuantumRegister(3, 'q1'), 1))

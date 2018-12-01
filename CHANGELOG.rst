@@ -71,7 +71,12 @@ Changed
     - ``backend.properties()`` (#1331).
     - ``qiskit.Result`` (#1360).
 - ``backend.provider()`` is now a method instead of a property (#1312).
-- Remove local backend (Aer) fallback (#1303)
+- Remove local backend (Aer) fallback (#1303).
+- DAGCircuits store Instruction and Register objects, instead of name
+  references. The DAGCircuit class methods are updated accordingly (#1210).
+- Different unrollers are deprecated. The only unrolling happens
+  from DAG to DAG (#1210).
+
 
 Deprecated
 """"""""""

@@ -116,9 +116,11 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # v,w = typical vectors
 # x,y,z = typical axes
 # _ = placeholder name
-# qr,cr,qc = quantum and classical registers, and quantum circuit
+# q,r,qr,cr,qc = quantum and classical registers, and quantum circuit
 # pi = the PI constant
-good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,qr,cr,qc,pi
+# op = operation iterator
+# b = basis iterator
+good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,r,qr,cr,qc,pi,op,b
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,toto,tutu,tata
