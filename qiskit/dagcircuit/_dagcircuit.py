@@ -25,6 +25,7 @@ import networkx as nx
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import _compositegate
+from qiskit import QiskitError
 from ._dagcircuiterror import DAGCircuitError
 
 
