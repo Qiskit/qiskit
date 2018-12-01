@@ -20,5 +20,7 @@
     "local": true,
     "simulator": true,
     "conditional": true,
+    "memory": true,
+    "max_shots": 8192,
     "open_pulse": false
 }

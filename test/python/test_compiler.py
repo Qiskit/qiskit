@@ -49,6 +49,8 @@ class FakeBackend(object):
             local=True,
             conditional=False,
             open_pulse=False,
+            memory=False,
+            max_shots=65536,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=qx5_cmap,
         )
