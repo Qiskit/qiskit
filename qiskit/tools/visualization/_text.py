@@ -417,13 +417,13 @@ class TextDrawing():
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0], qubit[1]))
+            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0], clbit[1]))
+            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
         return clbits
 
     def single_string(self):
@@ -582,9 +582,9 @@ class TextDrawing():
 
     @staticmethod
     def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None of there is no param."""
-        if 'params' in instruction and instruction['params']:
-            return ['%.5g' % i for i in instruction['params']]
+        """Get the params and format them to add them to a label. None if there is no param."""
+        if 'op' in instruction and hasattr(instruction['op'], 'param'):
+            return ['%.5g' % i for i in instruction['op'].param]
         return None
 
     @staticmethod

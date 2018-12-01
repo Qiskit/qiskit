@@ -8,7 +8,7 @@
 # pylint: disable=missing-docstring,broad-except
 
 import unittest
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit import execute
 from qiskit import Aer
 from ..common import QiskitTestCase, requires_cpp_simulator

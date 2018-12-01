@@ -9,6 +9,7 @@
 This pass checks if a DAG is mapped to a coupling map.
 """
 
+from qiskit import QuantumRegister
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
 
@@ -46,8 +47,9 @@ class CheckMap(AnalysisPass):
             subdag = layer['graph']
 
             for a_cx in subdag.get_cnot_nodes():
-                physical_q0 = ('q', self.layout[a_cx['op'].qargs[0]])
-                physical_q1 = ('q', self.layout[a_cx['op'].qargs[1]])
+                q = QuantumRegister(self.coupling_map.node_counter, 'q')
+                physical_q0 = (q, self.layout[a_cx['op'].qargs[0]])
+                physical_q1 = (q, self.layout[a_cx['op'].qargs[1]])
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     self.property_set['is_mapped'] = False
                     return
