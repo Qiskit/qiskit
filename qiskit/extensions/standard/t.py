@@ -14,7 +14,10 @@ from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
+from qiskit.qasm import pi
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u1 import U1Gate
 
 
 class TGate(Gate):
@@ -23,6 +26,22 @@ class TGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new T gate."""
         super().__init__("t", [], [qubit], circ)
+        self._define_decompositions()
+
+    def _define_decompositions(self):
+        """
+        gate t a { u1(pi/4) a; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        rule = [
+            U1Gate(pi/4, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
@@ -32,6 +51,7 @@ class TGate(Gate):
         """Invert this gate."""
         inv = TdgGate(self.qargs[0])
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
+        self._define_decompositions()
         return inv
 
 
@@ -41,6 +61,22 @@ class TdgGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Tdg gate."""
         super().__init__("tdg", [], [qubit], circ)
+        self._define_decompositions()
+
+    def _define_decompositions(self):
+        """
+        gate t a { u1(pi/4) a; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        rule = [
+            U1Gate(-pi/4, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
@@ -50,6 +86,7 @@ class TdgGate(Gate):
         """Invert this gate."""
         inv = TGate(self.qargs[0])
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
+        self._define_decompositions()
         return inv
 
 
