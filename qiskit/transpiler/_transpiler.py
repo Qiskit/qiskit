@@ -18,7 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
-from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
+from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit._pubsub import Publisher, Subscriber
@@ -261,7 +261,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("pre-mapping properties: %s",
                         dag.properties())
             # Insert swap gates
-            coupling = Coupling(coupling_list2dict(coupling_map))
+            coupling = Coupling(Coupling.coupling_list2dict(coupling_map))
             removed_meas = remove_last_measurements(dag)
             logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)

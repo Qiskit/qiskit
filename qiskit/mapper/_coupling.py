@@ -21,46 +21,6 @@ from qiskit import _quantumregister
 from ._couplingerror import CouplingError
 
 
-def coupling_dict2list(couplingdict):
-    """Convert coupling map dictionary into list.
-
-    Example dictionary format: {0: [1, 2], 1: [2]}
-    Example list format: [[0, 1], [0, 2], [1, 2]]
-
-    We do not do any checking of the input.
-
-    Return coupling map in list format.
-    """
-    if not couplingdict:
-        return None
-    couplinglist = []
-    for ctl, tgtlist in couplingdict.items():
-        for tgt in tgtlist:
-            couplinglist.append([ctl, tgt])
-    return couplinglist
-
-
-def coupling_list2dict(couplinglist):
-    """Convert coupling map list into dictionary.
-
-    Example list format: [[0, 1], [0, 2], [1, 2]]
-    Example dictionary format: {0: [1, 2], 1: [2]}
-
-    We do not do any checking of the input.
-
-    Return coupling map in dict format.
-    """
-    if not couplinglist:
-        return None
-    couplingdict = {}
-    for pair in couplinglist:
-        if pair[0] in couplingdict:
-            couplingdict[pair[0]].append(pair[1])
-        else:
-            couplingdict[pair[0]] = [pair[1]]
-    return couplingdict
-
-
 class Coupling:
     """
     Directed graph specifying fixed coupling.
@@ -70,6 +30,46 @@ class Coupling:
     """
 
     # pylint: disable=invalid-name
+
+    @staticmethod
+    def coupling_dict2list(couplingdict):
+        """Convert coupling map dictionary into list.
+
+        Example dictionary format: {0: [1, 2], 1: [2]}
+        Example list format: [[0, 1], [0, 2], [1, 2]]
+
+        We do not do any checking of the input.
+
+        Return coupling map in list format.
+        """
+        if not couplingdict:
+            return None
+        couplinglist = []
+        for ctl, tgtlist in couplingdict.items():
+            for tgt in tgtlist:
+                couplinglist.append([ctl, tgt])
+        return couplinglist
+
+    @staticmethod
+    def coupling_list2dict(couplinglist):
+        """Convert coupling map list into dictionary.
+
+        Example list format: [[0, 1], [0, 2], [1, 2]]
+        Example dictionary format: {0: [1, 2], 1: [2]}
+
+        We do not do any checking of the input.
+
+        Return coupling map in dict format.
+        """
+        if not couplinglist:
+            return None
+        couplingdict = {}
+        for pair in couplinglist:
+            if pair[0] in couplingdict:
+                couplingdict[pair[0]].append(pair[1])
+            else:
+                couplingdict[pair[0]] = [pair[1]]
+        return couplingdict
 
     def __init__(self, couplingdict=None):
         """
@@ -92,7 +92,7 @@ class Coupling:
         self.dist = None
         # Add edges to the graph if the couplingdict is present
         if couplingdict is not None:
-            couplinglist = coupling_dict2list(couplingdict)
+            couplinglist = Coupling.coupling_dict2list(couplingdict)
             num_qubits = 1 + max(max(x[0] for x in couplinglist),
                                  max(x[1] for x in couplinglist))
             reg = _quantumregister.QuantumRegister(num_qubits, 'q')
