@@ -15,6 +15,7 @@ indicate which qubits are coupled and the permitted direction of CNOT gates.
 The object has a distance_qubits function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+import warnings
 from collections import OrderedDict
 import networkx as nx
 from qiskit import _quantumregister
@@ -124,6 +125,9 @@ class Coupling:
 
         Each edge is a pair of qubits and each qubit is a tuple (qreg, index).
         """
+        warnings.warn("get_edges_qubits is being removed",
+                      DeprecationWarning)
+
         return list(map(lambda x: (self.index_to_qubit[x[0]],
                                    self.index_to_qubit[x[1]]), self.G.edges()))
 
@@ -140,6 +144,8 @@ class Coupling:
 
         qubit = tuple (reg, idx) for qubit
         """
+        warnings.warn("get_edges_qubits is being removed",
+                      DeprecationWarning)
         # TODO remove
         if qubit in self.qubits:
             raise CouplingError("%s already in coupling graph" % qubit)
@@ -219,6 +225,8 @@ class Coupling:
 
         Return True if connected, False otherwise
         """
+        warnings.warn("connected is being removed",
+                      DeprecationWarning)
         try:
             return nx.is_weakly_connected(self.G)
         except nx.exception.NetworkXException:
@@ -242,6 +250,8 @@ class Coupling:
 
     def distance_qubits(self, q1, q2): # TODO remove
         """Return the undirected distance_qubits between qubit q1 to qubit q2."""
+        warnings.warn("distance_qubits is being removed",
+                      DeprecationWarning)
         if self.dist is None:
             raise CouplingError("distance_qubits has not been computed")
         if q1 not in self.qubits:
