@@ -25,7 +25,6 @@ import networkx as nx
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit import _compositegate
-from qiskit import QiskitError
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -938,7 +937,7 @@ class DAGCircuit:
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
                 if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
-                    raise QiskitError(
+                    raise DAGCircuitError(
 
                         "too many predecessors for (%s,%d) output node" % (w[0], w[1])
                     )
