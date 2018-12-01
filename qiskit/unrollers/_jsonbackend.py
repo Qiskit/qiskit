@@ -166,6 +166,7 @@ class JsonBackend(UnrollerBackend):
 
         Args:
             op (Instruction): operation to apply to the dag.
+            qargs (list[QuantumRegister, int]): qubit arguments
             extra_fields (dict): extra_fields used by non-standard instructions
                 for now (e.g. snapshot)
 

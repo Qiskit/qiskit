@@ -74,7 +74,6 @@ import random
 import uuid
 import time
 import logging
-import operator
 from collections import Counter
 
 from math import log2

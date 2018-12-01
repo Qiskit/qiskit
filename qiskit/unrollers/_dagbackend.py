@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=arguments-differ
+# pylint: disable=arguments-differ,unused-argument
 
 """
 Backend for the unroller that creates a DAGCircuit object.
@@ -145,6 +145,7 @@ class DAGBackend(UnrollerBackend):
 
         Args:
             op (Instruction): operation to apply to the dag.
+            qargs (list(QuantumRegister, int)): qubits to attach to
 
         Raises:
             BackendError: if encountering a non-basis opaque gate
