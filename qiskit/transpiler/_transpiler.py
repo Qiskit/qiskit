@@ -9,12 +9,13 @@
 import logging
 import warnings
 import numpy as np
- import networkx as nx 
+import networkx as nx 
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QiskitError
+from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
@@ -91,9 +92,9 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     for dag in dags:
         circuit = QuantumCircuit()
         for qreg in dag.qregs.values():
-            circuit.add(qreg)
+            circuit.add_register(qreg)
         for creg in dag.cregs.values():
-            circuit.add(creg)
+            circuit.add_register(creg)
         G = dag.multi_graph
         for node in nx.topological_sort(G):
             n = G.nodes[node]
