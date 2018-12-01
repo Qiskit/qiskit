@@ -9,6 +9,7 @@
 import logging
 import warnings
 import numpy as np
+ import networkx as nx 
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
@@ -86,9 +87,21 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
                         initial_layouts=initial_layouts, seed_mapper=seed_mapper,
                         pass_manager=pass_manager)
 
-    # TODO: change it to circuits
-    # TODO: make it parallel
-    return dags
+    circuits = []
+    for dag in dags:
+        circuit = QuantumCircuit()
+        for qreg in dag.qregs.values():
+            circuit.add(qreg)
+        for creg in dag.cregs.values():
+            circuit.add(creg)
+        G = dag.multi_graph
+        for node in nx.topological_sort(G):
+            n = G.nodes[node]
+            if n['type'] == 'op':
+                circuit._attach(n['op'])
+        circuits.append(circuit)
+
+    return circuits
 
 
 def _circuits_2_dags(circuits):
