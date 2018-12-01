@@ -50,8 +50,10 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
+    return_form_is_single = False
     if isinstance(circuits, _quantumcircuit.QuantumCircuit):
         circuits = [circuits]
+        return_form_is_single = True
 
     # FIXME: THIS NEEDS TO BE CLEANED UP -- some things to decide for list of circuits:
     # 1. do all circuits have same coupling map?
@@ -101,8 +103,11 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
             if n['type'] == 'op':
                 circuit._attach(n['op'])
         circuits.append(circuit)
-
-    return circuits
+    
+    if return_form_is_single:
+        return circuits[0]
+    else:
+        return circuits
 
 
 def _circuits_2_dags(circuits):
