@@ -10,7 +10,6 @@
 from collections import defaultdict
 from qiskit.transpiler._basepasses import AnalysisPass
 
-
 class FixedPoint(AnalysisPass):
     """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
         in property_set['fixed_point'][<property>] as a boolean.
@@ -28,6 +27,8 @@ class FixedPoint(AnalysisPass):
     def run(self, dag):
         if self.property_set['fixed_point'] is None:
             self.property_set['fixed_point'] = defaultdict(lambda: False)
+        
+        print("previous_value", self._previous_value)
 
         current_value = self.property_set[self._property]
 
@@ -35,3 +36,4 @@ class FixedPoint(AnalysisPass):
             self.property_set['fixed_point'][self._property] = self._previous_value == current_value
 
         self._previous_value = current_value
+        print("current value", current_value)

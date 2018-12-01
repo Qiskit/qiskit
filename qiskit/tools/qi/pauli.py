@@ -13,7 +13,7 @@ Tools for working with Pauli Operators.
 A simple pauli class and some tools.
 """
 import random
-import numpy as np
+import numpy as np 
 from scipy import sparse
 
 

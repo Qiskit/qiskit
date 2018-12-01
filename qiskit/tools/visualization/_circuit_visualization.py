@@ -13,7 +13,6 @@ Two quantum circuit drawers based on:
     1. LaTeX
     2. Matplotlib
 """
-
 import json
 import logging
 import operator
@@ -178,7 +177,6 @@ def circuit_drawer(circuit,
             registers for the output visualization.
 
     """
-
     im = None
     if not output:
         warnings.warn('The current behavior for the default output will change'
@@ -210,7 +208,6 @@ def circuit_drawer(circuit,
     if im and interactive:
         im.show()
     return im
-
 
 # -----------------------------------------------------------------------------
 # Plot style sheet option

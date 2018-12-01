@@ -9,7 +9,6 @@
 """
 from qiskit.transpiler._basepasses import TransformationPass
 
-
 class CXCancellation(TransformationPass):
     """Cancel back-to-back 'cx' gates in dag."""
 
@@ -44,4 +43,5 @@ class CXCancellation(TransformationPass):
                 else:
                     for n in chunk[1:]:
                         dag._remove_op_node(n)
+
         return dag
