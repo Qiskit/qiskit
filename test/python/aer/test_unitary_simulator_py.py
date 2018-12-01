@@ -11,11 +11,9 @@
 import unittest
 import numpy as np
 
-from qiskit import qasm, unroll
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
-from qiskit.qobj import Qobj, QobjItem, QobjExperiment, QobjConfig, QobjHeader
 from ..common import QiskitTestCase
 
 
@@ -25,30 +23,16 @@ class AerUnitarySimulatorPyTest(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         self.qasm_filename = self._get_resource_path('qasm/example.qasm')
+        self.backend = UnitarySimulatorPy()
 
     def test_unitary_simulator_py(self):
         """test generation of circuit unitary"""
-        unroller = unroll.Unroller(
-            qasm.Qasm(filename=self.qasm_filename).parse(),
-            unroll.JsonBackend([]))
-        circuit = unroller.execute()
+        circuit = QuantumCircuit.from_qasm_file(self.qasm_filename)
+        qobj = compile(circuit, backend=self.backend, shots=1)
         # strip measurements from circuit to avoid warnings
-        circuit['instructions'] = [op for op in circuit['instructions']
-                                   if op['name'] != 'measure']
-        circuit = QobjExperiment.from_dict(circuit)
-        circuit.config = QobjItem(coupling_map=None,
-                                  basis_gates=None,
-                                  layout=None,
-                                  seed=self.seed)
-        circuit.header.name = 'test'
-
-        qobj = Qobj(qobj_id='unitary',
-                    config=QobjConfig(shots=1,
-                                      memory_slots=6,
-                                      max_credits=10),
-                    experiments=[circuit],
-                    header=QobjHeader(
-                        backend_name='unitary_simulator_py'))
+        instructions = [op for op in qobj.experiments[0].instructions
+                        if op.name != 'measure']
+        qobj.experiments[0].instructions = instructions
         # numpy.savetxt currently prints complex numbers in a way
         # loadtxt can't read. To save file do,
         # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
@@ -57,17 +41,16 @@ class AerUnitarySimulatorPyTest(QiskitTestCase):
         expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
                               dtype='complex', delimiter=',')
 
-        result = UnitarySimulatorPy().run(qobj).result()
-        self.assertTrue(np.allclose(result.get_unitary('test'),
+        result = self.backend.run(qobj).result()
+        self.assertTrue(np.allclose(result.get_unitary(circuit),
                                     expected,
                                     rtol=1e-3))
 
     def test_aer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        backend = UnitarySimulatorPy()
-        qobj = compile(circuits, backend=backend)
-        job = backend.run(qobj)
+        qobj = compile(circuits, backend=self.backend)
+        job = self.backend.run(qobj)
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
         norms = [np.trace(np.dot(np.transpose(np.conj(target)), actual))

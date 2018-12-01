@@ -238,9 +238,9 @@ class QasmSimulatorPy(BaseBackend):
         """Snapshot instruction to record simulator's internal representation
         of quantum statevector.
 
-        slot is an integer indicating a snapshot slot number.
+        slot is a string indicating a snapshot slot label.
         """
-        self._snapshots.setdefault(str(int(slot)),
+        self._snapshots.setdefault(str(slot),
                                    {}).setdefault("statevector",
                                                   []).append(np.copy(self._statevector))
 
@@ -315,9 +315,12 @@ class QasmSimulatorPy(BaseBackend):
             cbit_index += cl_reg[1]
 
         # Get the seed looking in circuit, qobj, and then random.
-        seed = getattr(circuit.config, 'seed',
-                       getattr(self._qobj_config, 'seed',
-                               random.getrandbits(32)))
+        if hasattr(circuit, 'config') and hasattr(circuit.config, 'seed'):
+            seed = circuit.config.seed
+        elif hasattr(self._qobj_config, 'seed'):
+            seed = self._qobj_config.seed
+        else:
+            seed = random.getrandbits(32)
         self._local_random.seed(seed)
         outcomes = []
 

@@ -14,7 +14,9 @@ from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.cxbase import CXBase
 
 
 class CnotGate(Gate):
@@ -23,9 +25,26 @@ class CnotGate(Gate):
     def __init__(self, ctl, tgt, circ=None):
         """Create new CNOT gate."""
         super().__init__("cx", [], [ctl, tgt], circ)
+        self._define_decompositions()
+
+    def _define_decompositions(self):
+        """
+        gate cx c,t { CX c,t; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("CX", 2, 0, 0)
+        rule = [
+            CXBase(q[0], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

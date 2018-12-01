@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=arguments-differ
+
 """Backend for the unroller that composes qasm into json file.
 
 The input is a AST and a basis set and returns a json memory object::
@@ -35,6 +37,7 @@ The input is a AST and a basis set and returns a json memory object::
     }
 """
 from collections import OrderedDict
+import sympy
 
 from qiskit.unrollers._backenderror import BackendError
 from qiskit.unrollers._unrollerbackend import UnrollerBackend
@@ -122,31 +125,6 @@ class JsonBackend(UnrollerBackend):
         """
         self.gates[name] = gatedata
 
-    def u(self, arg, qubit, nested_scope=None):
-        """Fundamental single-qubit gate.
-
-        arg is 3-tuple of Node expression objects.
-        qubit is (regname, idx) tuple.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
-        """
-        if self.listen:
-            if "U" not in self.basis:
-                self.basis.append("U")
-            qubit_indices = [self._qubit_order_internal.get(qubit)]
-            self.circuit['instructions'].append({
-                'name': "U",
-                # TODO: keep these real for now, until a later time
-                'params': [float(arg[0].real(nested_scope)),
-                           float(arg[1].real(nested_scope)),
-                           float(arg[2].real(nested_scope))],
-                'texparams': [arg[0].latex(prec=8, nested_scope=nested_scope),
-                              arg[1].latex(prec=8, nested_scope=nested_scope),
-                              arg[2].latex(prec=8, nested_scope=nested_scope)],
-                'qubits': qubit_indices
-            })
-            self._add_condition()
-
     def _add_condition(self):
         """Check for a condition (self.creg) and add fields if necessary.
 
@@ -155,7 +133,7 @@ class JsonBackend(UnrollerBackend):
         if self.creg is not None:
             mask = 0
             for cbit, index in self._cbit_order_internal.items():
-                if cbit[0] == self.creg:
+                if cbit[0] == self.creg.name:
                     mask |= (1 << index)
                 # Would be nicer to zero pad the mask, but we
                 # need to know the total number of cbits.
@@ -167,74 +145,6 @@ class JsonBackend(UnrollerBackend):
                     'val': "0x%X" % self.cval
                 }
             self.circuit['instructions'][-1]['conditional'] = conditional
-
-    def cx(self, qubit0, qubit1):
-        """Fundamental two-qubit gate.
-
-        qubit0 is (regname, idx) tuple for the control qubit.
-        qubit1 is (regname, idx) tuple for the target qubit.
-        """
-        if self.listen:
-            if "CX" not in self.basis:
-                self.basis.append("CX")
-            qubit_indices = [self._qubit_order_internal.get(qubit0),
-                             self._qubit_order_internal.get(qubit1)]
-            self.circuit['instructions'].append({
-                'name': 'CX',
-                'qubits': qubit_indices,
-            })
-            self._add_condition()
-
-    def measure(self, qubit, bit):
-        """Measurement operation.
-
-        qubit is (regname, idx) tuple for the input qubit.
-        bit is (regname, idx) tuple for the output bit.
-        """
-        if "measure" not in self.basis:
-            self.basis.append("measure")
-        qubit_indices = [self._qubit_order_internal.get(qubit)]
-        clbit_indices = [self._cbit_order_internal.get(bit)]
-        self.circuit['instructions'].append({
-            'name': 'measure',
-            'qubits': qubit_indices,
-            'clbits': clbit_indices,
-            'memory': clbit_indices.copy()
-        })
-        self._add_condition()
-
-    def barrier(self, qubitlists):
-        """Barrier instruction.
-
-        qubitlists is a list of lists of (regname, idx) tuples.
-        """
-        if self.listen:
-            if "barrier" not in self.basis:
-                self.basis.append("barrier")
-            qubit_indices = []
-            for qubitlist in qubitlists:
-                for qubits in qubitlist:
-                    qubit_indices.append(self._qubit_order_internal.get(qubits))
-            self.circuit['instructions'].append({
-                'name': 'barrier',
-                'qubits': qubit_indices,
-            })
-            # no conditions on barrier, even when it appears
-            # in body of conditioned gate
-
-    def reset(self, qubit):
-        """Reset instruction.
-
-        qubit is a (regname, idx) tuple.
-        """
-        if "reset" not in self.basis:
-            self.basis.append("reset")
-        qubit_indices = [self._qubit_order_internal.get(qubit)]
-        self.circuit['instructions'].append({
-            'name': 'reset',
-            'qubits': qubit_indices,
-        })
-        self._add_condition()
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
@@ -250,52 +160,61 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, name, args, qubits, nested_scope=None, extra_fields=None):
-        if self.listen and name not in self.basis \
-                and self.gates[name]["opaque"]:
-            raise BackendError("opaque gate %s not in basis" % name)
-        if self.listen and name in self.basis:
-            self.in_gate = name
+    def start_gate(self, op, qargs, extra_fields=None):
+        """
+        Begin a custom gate.
+
+        Args:
+            op (Instruction): operation to apply to the dag.
+            qargs (list[QuantumRegister, int]): qubit arguments
+            extra_fields (dict): extra_fields used by non-standard instructions
+                for now (e.g. snapshot)
+
+        Raises:
+            BackendError: if using a non-basis opaque gate
+        """
+        if not self.listen:
+            return
+        if op.name not in self.basis and self.gates[op.name]["opaque"]:
+            raise BackendError("opaque gate %s not in basis" % op.name)
+        if op.name in self.basis:
+            self.in_gate = op
             self.listen = False
-            qubit_indices = [self._qubit_order_internal.get(qubit)
-                             for qubit in qubits]
+            qubit_indices = [self._qubit_order_internal.get((qubit[0].name, qubit[1]))
+                             for qubit in qargs]
+            clbit_indices = [self._cbit_order_internal.get((cbit[0].name, cbit[1]))
+                             for cbit in op.cargs]
             gate_instruction = {
-                'name': name,
-                # TODO: keep these real for now, until a later time
-                'params': list(map(lambda x: float(x.real(nested_scope)),
-                                   args)),
-                'texparams': list(map(lambda x:
-                                      x.latex(prec=8,
-                                              nested_scope=nested_scope),
-                                      args)),
+                'name': op.name,
+                'params': list(map(lambda x: x.evalf(), op.param)),
+                'texparams': list(map(sympy.latex, op.param)),
                 'qubits': qubit_indices,
+                'clbits': clbit_indices,
+                'memory': clbit_indices.copy()
             }
             if extra_fields is not None:
                 gate_instruction.update(extra_fields)
             self.circuit['instructions'].append(gate_instruction)
             self._add_condition()
 
-    def end_gate(self, name, args, qubits, nested_scope=None):
+    def end_gate(self, op):
         """End a custom gate.
 
-        name is name string.
-        args is list of Node expression objects.
-        qubits is list of (regname, idx) tuples.
-        nested_scope is a list of dictionaries mapping expression variables
-        to Node expression objects in order of increasing nesting depth.
+        Args:
+            op (Instruction): operation to apply to the dag.
         """
-        if name == self.in_gate:
-            self.in_gate = ""
+        if op == self.in_gate:
+            self.in_gate = None
             self.listen = True
 
     def get_output(self):
         """Returns the generated circuit."""
         if not self._is_circuit_valid():
             raise BackendError("Invalid circuit! Please check the syntax of your circuit."
-                               "Has the Qasm parsing been called?. e.g: unroller.execute().")
+                               "Has Qasm parsing been called?. e.g: unroller.execute().")
         return self.circuit
 
     def _is_circuit_valid(self):
         """Checks whether the circuit object is a valid one or not."""
         return (len(self.circuit['header']) > 0 and
-                len(self.circuit['instructions']) > 0)
+                len(self.circuit['instructions']) >= 0)
