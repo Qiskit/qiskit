@@ -10,7 +10,6 @@
 
 from qiskit import QISKitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.dagcircuit import DAGCircuit
 from ..common import QiskitTestCase, Path
 
 
@@ -28,7 +27,6 @@ class LoadFromQasmTest(QiskitTestCase):
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
         q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
-        dag = DAGCircuit.fromQuantumCircuit(q_circuit)
         qr_a = QuantumRegister(4, 'a')
         qr_b = QuantumRegister(4, 'b')
         cr_c = ClassicalRegister(4, 'c')
@@ -40,8 +38,7 @@ class LoadFromQasmTest(QiskitTestCase):
         q_circuit_2.barrier(qr_b)
         q_circuit_2.measure(qr_a, cr_c)
         q_circuit_2.measure(qr_b, cr_d)
-        dag_2 = DAGCircuit.fromQuantumCircuit(q_circuit_2)
-        self.assertEqual(dag, dag_2)
+        self.assertEqual(q_circuit, q_circuit_2)
 
     def test_fail_qasm_file(self):
         """Test fail_qasm_file.
@@ -126,30 +123,28 @@ class LoadFromQasmTest(QiskitTestCase):
         """Loads qasm/example.qasm.
         """
         qasm_filename = self._get_resource_path('qasm/example.qasm')
-        expected = '\n'.join(["OPENQASM 2.0;",
-                              "include \"qelib1.inc\";",
-                              "qreg q[3];",
-                              "qreg r[3];",
-                              "creg c[3];",
-                              "creg d[3];",
-                              "h q[2];",
-                              "cx q[2],r[2];",
-                              "measure r[2] -> d[2];",
-                              "h q[1];",
-                              "cx q[1],r[1];",
-                              "measure r[1] -> d[1];",
-                              "h q[0];",
-                              "cx q[0],r[0];",
-                              "measure r[0] -> d[0];",
-                              "barrier q[0],q[1],q[2];",
-                              "measure q[2] -> c[2];",
-                              "measure q[1] -> c[1];",
-                              "measure q[0] -> c[0];"]) + '\n'
+        expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
+                                                                   "include \"qelib1.inc\";",
+                                                                   "qreg q[3];",
+                                                                   "qreg r[3];",
+                                                                   "creg c[3];",
+                                                                   "creg d[3];",
+                                                                   "h q[2];",
+                                                                   "cx q[2],r[2];",
+                                                                   "measure r[2] -> d[2];",
+                                                                   "h q[1];",
+                                                                   "cx q[1],r[1];",
+                                                                   "measure r[1] -> d[1];",
+                                                                   "h q[0];",
+                                                                   "cx q[0],r[0];",
+                                                                   "measure r[0] -> d[0];",
+                                                                   "barrier q[0],q[1],q[2];",
+                                                                   "measure q[2] -> c[2];",
+                                                                   "measure q[1] -> c[1];",
+                                                                   "measure q[0] -> c[0];"]) + '\n')
 
         q_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
-        qasm_data_string = q_circuit.qasm()
-        self.log.info(qasm_data_string)
 
-        self.assertEqual(qasm_data_string, expected)
+        self.assertEqual(q_circuit, expected_circuit)
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 2)
