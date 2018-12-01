@@ -71,7 +71,7 @@ class Instruction(object):
             elif isinstance(single_param, str):
                 self.param.append(sympy.Symbol(single_param))
             else:
-                raise QISKitError("invalid param type {0} in instruction "
+                raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), name))
         self.qargs = qargs
         self.cargs = cargs
