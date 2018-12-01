@@ -66,8 +66,8 @@ def compile(circuits, backend,
     return qobj
 
 
-def circuits_to_qobj(circuits, backend_name, config=None, shots=None,
-                max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
+def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
+                max_credits=10, qobj_id=None, basis_gates=None, coupling_map=None,
                 seed=None):
     """Convert a list of dags into a qobj.
 

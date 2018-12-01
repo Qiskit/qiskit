@@ -77,7 +77,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         circuits = transpiler.transpile(qc, backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_compile_two(self):
         """Test Compiler.
@@ -190,7 +190,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         circuits = transpiler.transpile(qc, backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     @requires_qe_access
     def test_compile_two_remote(self, qe_token, qe_url):
@@ -360,7 +360,7 @@ class TestCompiler(QiskitTestCase):
             circuits = transpiler.transpile(circuit, backend)
         except QiskitError:
             circuits = None
-        self.assertIsInstance(circuits[0], QuantumCircuit)
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     @unittest.skip("Temporary skipping")
     # skipping temporarily due to mapping wire fragment bug.
@@ -382,7 +382,7 @@ class TestCompiler(QiskitTestCase):
             circuits = transpiler.transpile(qc, backend)
         except QisitError:
             circuits = None
-        self.assertIsInstance(circuits[0], QuantumCircuit)
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling

@@ -93,6 +93,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     circuits = []
     for dag in dags:
         circuit = QuantumCircuit()
+        circuit.name = dag.name
         for qreg in dag.qregs.values():
             circuit.add_register(qreg)
         for creg in dag.cregs.values():
