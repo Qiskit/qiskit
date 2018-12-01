@@ -98,7 +98,7 @@ class Coupling:
             reg = _quantumregister.QuantumRegister(num_qubits, 'q')
             for v0, alist in couplingdict.items():
                 for v1 in alist:
-                    self.add_edge((reg, v0), (reg, v1))
+                    self.add_edge_qubit((reg, v0), (reg, v1))
             self.compute_distance()
 
     def size(self):
@@ -138,7 +138,7 @@ class Coupling:
         self.qubits[qubit] = self.node_counter
         self.index_to_qubit[self.node_counter] = qubit
 
-    def add_edge(self, s_qubit, d_qubit):
+    def add_edge_qubit(self, s_qubit, d_qubit):
         """
         Add directed edge to coupling graph.
 

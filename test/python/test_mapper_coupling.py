@@ -78,7 +78,7 @@ class CouplingTest(QiskitTestCase):
     def test_add_edge(self):
         coupling = Coupling()
         self.assertEqual("", str(coupling))
-        coupling.add_edge((QuantumRegister(2, 'q'), 0), (QuantumRegister(1, 'q'), 1))
+        coupling.add_edge_qubit((QuantumRegister(2, 'q'), 0), (QuantumRegister(1, 'q'), 1))
         expected = ("qubits: q[0] @ 1, q[1] @ 2\n"
                     "edges: q[0]-q[1]")
         self.assertEqual(expected, str(coupling))
