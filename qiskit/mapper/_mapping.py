@@ -254,7 +254,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                 # Try to decrease objective function
                 progress_made = False
                 # Loop over edges of coupling graph
-                for e in coupling.get_edges():
+                for e in coupling.get_edges_qubits():
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
@@ -364,7 +364,7 @@ def direction_mapper(circuit_graph, coupling_graph):
     flipped_cx_circuit.apply_operation_back(HGate(q[0]))
     flipped_cx_circuit.apply_operation_back(HGate(q[1]))
 
-    cg_edges = coupling_graph.get_edges()
+    cg_edges = coupling_graph.get_edges_qubits()
     for cx_node in circuit_graph.get_named_nodes("cx"):
         nd = circuit_graph.multi_graph.node[cx_node]
         cxedge = tuple(nd["op"].qargs)
