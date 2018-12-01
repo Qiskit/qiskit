@@ -10,33 +10,41 @@
 """
 Quantum circuit object.
 """
-import itertools
-import warnings
 from collections import OrderedDict
 from copy import deepcopy
+import itertools
+import warnings
+import networkx as nx
 
 
 from qiskit.qasm import _qasm
-from qiskit.unrollers import _unroller
-from qiskit.unrollers import _circuitbackend
 from qiskit._qiskiterror import QISKitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
-from qiskit.tools import visualization
 from qiskit.dagcircuit import DAGCircuit
 
 
-def _circuit_from_qasm(qasm, basis=None):
-    default_basis = ["id", "u0", "u1", "u2", "u3", "x", "y", "z", "h", "s",
-                     "sdg", "t", "tdg", "rx", "ry", "rz", "cx", "cy", "cz",
-                     "ch", "crz", "cu1", "cu3", "swap", "ccx", "cswap"]
-    if not basis:
-        basis = default_basis
-
+def _circuit_from_qasm(qasm):
+    from qiskit.unroll import Unroller
+    from qiskit.unroll import DAGBackend
     ast = qasm.parse()
-    unroll = _unroller.Unroller(
-        ast, _circuitbackend.CircuitBackend(basis))
-    circuit = unroll.execute()
+    dag = Unroller(ast, DAGBackend()).execute()
+
+    circuit = QuantumCircuit()
+    for qreg in dag.qregs.values():
+        circuit.add_register(qreg)
+    for creg in dag.cregs.values():
+        circuit.add_register(creg)
+    graph = dag.multi_graph
+    for node in nx.topological_sort(graph):
+        n = graph.nodes[node]
+        if n['type'] == 'op':
+            n['op'].circuit = circuit
+            if 'condition' in n and n['condition']:
+                circuit._attach(n['op'].c_if(*n['condition']))
+            else:
+                circuit._attach(n['op'])
+
     return circuit
 
 
@@ -367,6 +375,7 @@ class QuantumCircuit(object):
             VisualizationError: when an invalid output method is selected
 
         """
+        from qiskit.tools import visualization
         return visualization.circuit_drawer(self, scale=scale,
                                             filename=filename, style=style,
                                             output=output,
@@ -406,3 +415,6 @@ class QuantumCircuit(object):
 
     def __str__(self):
         return str(self.draw(output='text'))
+
+    def __eq__(self, other):
+        return DAGCircuit.fromQuantumCircuit(self) == DAGCircuit.fromQuantumCircuit(other)

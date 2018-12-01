@@ -53,7 +53,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit = qiskit.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
-        circuit.snapshot(3)
+        circuit.snapshot('3')
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[1])
 

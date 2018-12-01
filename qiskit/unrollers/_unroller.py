@@ -12,19 +12,26 @@ from collections import OrderedDict
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
+from ._dagbackend import DAGBackend
 
 
 class Unroller(object):
     """OPENQASM interpreter object expands subroutines and unrolls loops."""
 
-    def __init__(self, ast, backend=None, precision=15, filename=None):
+    def __init__(self, ast, backend=None, filename=None):
         """Initialize interpreter's data."""
         # Abstract syntax tree from parser
         self.ast = ast
         # Backend object
         self.backend = backend
-        # Number of digits of precision
-        self.precision = precision
+        if not isinstance(self.backend, DAGBackend):
+            raise UnrollerError("AST Unroller only supports DagBackend.")
+        default_basis = set(['U', 'CX', 'measure', 'reset', 'barrier',
+                             'snapshot', 'noise', 'save', 'load'])
+        backend_basis = set(self.backend.circuit.basis.keys())
+        if backend_basis != default_basis:
+            raise UnrollerError("Cannot customize basis when converting from AST to DAG")
+
         # Input file name
         if filename:
             self.filename = filename
@@ -46,30 +53,32 @@ class Unroller(object):
     def _process_bit_id(self, node):
         """Process an Id or IndexedId node as a bit or register type.
 
-        Return a list of tuples (name,index).
+        Return a list of tuples (Register,index).
         """
         # pylint: disable=inconsistent-return-statements
+        reg = None
+        if node.name in self.qregs:
+            reg = self.qregs[node.name]
+        elif node.name in self.cregs:
+            reg = self.cregs[node.name]
+        else:
+            raise UnrollerError("expected qreg or creg name:",
+                                "line=%s" % node.line,
+                                "file=%s" % node.file)
+
         if node.type == "indexed_id":
             # An indexed bit or qubit
-            return [(node.name, node.index)]
+            return [(reg, node.index)]
         elif node.type == "id":
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
-                if node.name in self.qregs:
-                    return [(node.name, j)
-                            for j in range(self.qregs[node.name])]
-                elif node.name in self.cregs:
-                    return [(node.name, j)
-                            for j in range(self.cregs[node.name])]
-                raise UnrollerError("expected qreg or creg name:",
-                                    "line=%s" % node.line,
-                                    "file=%s" % node.file)
+                return [(reg, j) for j in range(reg.size)]
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
-                raise UnrollerError("excepted local bit name:",
+                raise UnrollerError("expected local bit name:",
                                     "line=%s" % node.line,
                                     "file=%s" % node.file)
         return None
@@ -86,7 +95,6 @@ class Unroller(object):
         if name in self.gates:
             gargs = self.gates[name]["args"]
             gbits = self.gates[name]["bits"]
-            gbody = self.gates[name]["body"]
             # Loop over register arguments, if any.
             maxidx = max(map(len, bits))
             for idx in range(maxidx):
@@ -97,16 +105,9 @@ class Unroller(object):
                            [len(bits[j]) > 1 for j in range(len(bits))]]
                 self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
-                self.backend.start_gate(name,
-                                        [self.arg_stack[-1][s] for s in gargs],
-                                        [self.bit_stack[-1][s] for s in gbits],
-                                        self.arg_stack[0:-1])
-                if not self.gates[name]["opaque"]:
-                    self._process_children(gbody)
-                self.backend.end_gate(name,
-                                      [self.arg_stack[-1][s] for s in gargs],
-                                      [self.bit_stack[-1][s] for s in gbits],
-                                      self.arg_stack[0:-1])
+                self.backend.create_dag_op(name,
+                                           [self.arg_stack[-1][s].sym() for s in gargs],
+                                           [self.bit_stack[-1][s] for s in gbits])
                 self.arg_stack.pop()
                 self.bit_stack.pop()
         else:
@@ -181,12 +182,12 @@ class Unroller(object):
 
         elif node.type == "qreg":
             qreg = QuantumRegister(node.index, node.name)
-            self.qregs[node.name] = qreg.size
+            self.qregs[node.name] = qreg
             self.backend.new_qreg(qreg)
 
         elif node.type == "creg":
             creg = ClassicalRegister(node.index, node.name)
-            self.cregs[node.name] = creg.size
+            self.cregs[node.name] = creg
             self.backend.new_creg(creg)
 
         elif node.type == "id":
@@ -220,7 +221,7 @@ class Unroller(object):
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                self.backend.u(args, element, self.arg_stack)
+                self.backend.u(args, element)
 
         elif node.type == "cnot":
             self._process_cnot(node)

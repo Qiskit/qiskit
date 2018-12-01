@@ -15,7 +15,7 @@ import scipy.sparse.csgraph as cs
 from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QISKitError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import _quantumcircuit
+from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
@@ -298,7 +298,7 @@ def _best_subset(backend, n_qubits):
     connectivity.
 
     Parameters:
-        backend (Qiskit.BaseBackend): A QISKit backend instance.
+        backend (BaseBackend): A Qiskit backend instance.
         n_qubits (int): Number of subset qubits to consider.
 
     Returns:
@@ -378,14 +378,15 @@ def _pick_best_layout(dag, backend):
 
     Returns:
         dict: A special ordered initial_layout
-
     """
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     best_sub = _best_subset(backend, num_qubits)
     layout = {}
     map_iter = 0
-    for key, value in dag.qregs.items():
-        for i in range(value.size):
-            layout[(key, i)] = ('q', best_sub[map_iter])
+    device_qubits = backend.configuration().n_qubits
+    q = _quantumregister.QuantumRegister(device_qubits, 'q')
+    for qreg in dag.qregs.values():
+        for i in range(qreg.size):
+            layout[(qreg.name, i)] = (q, int(best_sub[map_iter]))
             map_iter += 1
     return layout
