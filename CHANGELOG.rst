@@ -43,6 +43,8 @@ Added
   QuantumCircuit class. (#1172)
 - New methods in QuantumCircuit for common circuit metrics:
   `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
+- New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state
+  vector or density matrix. (#1359)
 
 Changed
 """""""
@@ -72,6 +74,11 @@ Changed
     - ``qiskit.Result`` (#1360).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
+- The signatures for the plotting functions in 
+  `qiskit.tools.visualization._counts_visualization.py`,
+  `qiskit.tools.visualization._state_visualization.py`, and 
+  `qiskit.tools.visualization.interactive` have been modified to make them 
+  in-line with standard Matplotlib calling conventions (#1359).
 
 Deprecated
 """"""""""
@@ -92,6 +99,9 @@ Deprecated
 - The transpiler methods do not support emitting multiple output `format`
   anymore (#1319).
 - Several methods of ``qiskit.Result`` have been deprecated (#1360).
+- The functions `plot_state()` and `iplot_state()` have been depreciated.
+  Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
+  called. (#1359)
 
 Fixed
 """""
@@ -109,6 +119,7 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
+- The`number_to_keep` kwarg in `plot_histgram()`now functions correctly (#1359).
 
 Removed
 """""""
