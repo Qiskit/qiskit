@@ -50,7 +50,7 @@ class CheckMap(AnalysisPass):
                 q = QuantumRegister(self.coupling_map.node_counter, 'q')
                 physical_q0 = (q, self.layout[a_cx['op'].qargs[0]])
                 physical_q1 = (q, self.layout[a_cx['op'].qargs[1]])
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                if self.coupling_map.distance_qubits(physical_q0, physical_q1) != 1:
                     self.property_set['is_mapped'] = False
                     return
         self.property_set['is_mapped'] = True

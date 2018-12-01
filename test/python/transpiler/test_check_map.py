@@ -62,7 +62,7 @@ class TestCheckMap(QiskitTestCase):
         self.assertTrue(pass_.property_set['is_mapped'])
 
     def test_true_map_in_same_layer(self):
-        """ Two CXs distance 1 to each other, in the same layer
+        """ Two CXs distance_qubits 1 to each other, in the same layer
          qr0:--(+)--
                |
          qr1:---.---

@@ -12,7 +12,7 @@ Directed graph object for representing coupling between qubits.
 
 The nodes of the graph correspond to named qubits and the directed edges
 indicate which qubits are coupled and the permitted direction of CNOT gates.
-The object has a distance function that can be used to map quantum circuits
+The object has a distance_qubits function that can be used to map quantum circuits
 onto a device with this coupling.
 """
 from collections import OrderedDict
@@ -93,7 +93,7 @@ class Coupling:
         # self.G is the coupling digraph
         self.G = nx.DiGraph()
         # self.dist is a dict of dicts from node pairs to distances
-        # it must be computed, it is the distance on the digraph
+        # it must be computed, it is the distance_qubits on the digraph
         self.dist = None
         # Add edges to the graph if the couplingdict is present
         if couplingdict is not None:
@@ -226,9 +226,9 @@ class Coupling:
 
     def compute_distance(self):
         """
-        Compute the undirected distance function on pairs of nodes.
+        Compute the undirected distance_qubits function on pairs of nodes.
 
-        The distance map self.dist is computed from the graph using
+        The distance_qubits map self.dist is computed from the graph using
         all_pairs_shortest_path_length.
         """
         if not self.connected():
@@ -240,15 +240,22 @@ class Coupling:
             for j in self.qubits.keys():
                 self.dist[i][j] = lengths[self.qubits[i]][self.qubits[j]]
 
-    def distance(self, q1, q2):
-        """Return the undirected distance between qubit q1 to qubit q2."""
+    def distance_qubits(self, q1, q2): # TODO remove
+        """Return the undirected distance_qubits between qubit q1 to qubit q2."""
         if self.dist is None:
-            raise CouplingError("distance has not been computed")
+            raise CouplingError("distance_qubits has not been computed")
         if q1 not in self.qubits:
             raise CouplingError("%s not in coupling graph" % (q1,))
         if q2 not in self.qubits:
             raise CouplingError("%s not in coupling graph" % (q2,))
         return self.dist[q1][q2]
+
+    def distance(self, wire1, wire2):
+        """Return the undirected distance between wire1 and wire2."""
+        try:
+            return len(nx.shortest_path(self.graph, source=wire1, target=wire2))-1
+        except nx.exception.NetworkXNoPath:
+            raise CouplingError("Nodes %s and %s are not connected", str(wire1), str(wire2))
 
     def __str__(self): #TODO Remove
         """Return a string representation of the coupling graph."""

@@ -53,7 +53,7 @@ class OldCouplingTest(QiskitTestCase):
         self.assertTrue(coupling.connected())
         coupling.compute_distance()
         qubits = coupling.get_qubits()
-        result = coupling.distance(qubits[0], qubits[1])
+        result = coupling.distance_qubits(qubits[0], qubits[1])
         self.assertEqual(1, result)
 
     def test_coupling_compute_distance_coupling_error(self):
@@ -84,9 +84,9 @@ class OldCouplingTest(QiskitTestCase):
         self.assertEqual(expected, str(coupling))
 
     def test_distance_error(self):
-        """Test distance method validation."""
+        """Test distance_qubits method validation."""
         graph = Coupling({0: [1, 2], 1: [2]})
-        self.assertRaises(CouplingError, graph.distance, (QuantumRegister(3, 'q0'), 0),
+        self.assertRaises(CouplingError, graph.distance_qubits, (QuantumRegister(3, 'q0'), 0),
                           (QuantumRegister(3, 'q1'), 1))
 
 class CouplingTest(QiskitTestCase):
@@ -97,7 +97,7 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual([], coupling.wires)
         self.assertEqual([], coupling.get_edges_qubits())
         self.assertFalse(coupling.is_connected())
-        self.assertEqual("", str(coupling))
+        self.assertEqual("", repr(coupling))
 
     def test_coupling_str(self):
         coupling_dict = {0: [1, 2], 1: [2]}
@@ -105,44 +105,36 @@ class CouplingTest(QiskitTestCase):
         expected = ("[(0, 1), (0, 2), (1, 2)]")
         self.assertEqual(expected, repr(coupling))
 
-    def test_coupling_compute_distance(self):
+    def test_coupling_distance(self):
         coupling_dict = {0: [1, 2], 1: [2]}
         coupling = Coupling(coupling_dict)
-        self.assertTrue(coupling.connected())
+        self.assertTrue(coupling.is_connected())
         coupling.compute_distance()
-        qubits = coupling.get_qubits()
-        result = coupling.distance(qubits[0], qubits[1])
+        wires = coupling.wires
+        result = coupling.distance(wires[0], wires[1])
         self.assertEqual(1, result)
 
-    def test_coupling_compute_distance_coupling_error(self):
+    def test_add_wire(self):
         coupling = Coupling()
-        self.assertRaises(CouplingError, coupling.compute_distance)
+        self.assertEqual("", repr(coupling))
+        coupling.add_wire(0)
+        self.assertEqual([0], coupling.wires)
+        self.assertEqual("", repr(coupling))
 
-    def test_add_qubit(self):
+    def test_add_wire_not_int(self):
         coupling = Coupling()
-        self.assertEqual("", str(coupling))
-        coupling.add_qubit((QuantumRegister(1, 'q'), 0))
-        self.assertEqual("qubits: q[0] @ 1", str(coupling))
-
-    def test_add_qubit_not_tuple(self):
-        coupling = Coupling()
-        self.assertRaises(CouplingError, coupling.add_qubit, QuantumRegister(1, 'q0'))
-
-    def test_add_qubit_tuple_incorrect_form(self):
-        coupling = Coupling()
-        self.assertRaises(CouplingError, coupling.add_qubit,
-                          (QuantumRegister(1, 'q'), '0'))
+        self.assertRaises(CouplingError, coupling.add_wire, 'q')
 
     def test_add_edge(self):
         coupling = Coupling()
-        self.assertEqual("", str(coupling))
-        coupling.add_edge_qubit((QuantumRegister(2, 'q'), 0), (QuantumRegister(1, 'q'), 1))
-        expected = ("qubits: q[0] @ 1, q[1] @ 2\n"
-                    "edges: q[0]-q[1]")
-        self.assertEqual(expected, str(coupling))
+        self.assertEqual("", repr(coupling))
+        coupling.add_edge(0, 1)
+        expected = ("[(0, 1)]")
+        self.assertEqual(expected, repr(coupling))
 
     def test_distance_error(self):
-        """Test distance method validation."""
-        graph = Coupling({0: [1, 2], 1: [2]})
-        self.assertRaises(CouplingError, graph.distance, (QuantumRegister(3, 'q0'), 0),
-                          (QuantumRegister(3, 'q1'), 1))
+        """Test distance between unconected wires."""
+        graph = Coupling()
+        graph.add_wire(0)
+        graph.add_wire(1)
+        self.assertRaises(CouplingError, graph.distance, 0, 1)
