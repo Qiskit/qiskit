@@ -10,12 +10,13 @@
 """
 Rotation around the z-axis.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u1 import U1Gate
 
 
 class RZGate(Gate):
@@ -24,12 +25,22 @@ class RZGate(Gate):
     def __init__(self, phi, qubit, circ=None):
         """Create new rz single qubit gate."""
         super().__init__("rz", [phi], [qubit], circ)
+        self._define_decompositions()
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        phi = self.param[0]
-        return self._qasmif("rz(%s) %s[%d];" % (phi, qubit[0].name, qubit[1]))
+    def _define_decompositions(self):
+        """
+        gate rz(phi) a { u1(phi) a; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        rule = [
+            U1Gate(self.param[0], q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate.
@@ -37,11 +48,12 @@ class RZGate(Gate):
         rz(phi)^dagger = rz(-phi)
         """
         self.param[0] = -self.param[0]
+        self._define_decompositions()
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rz(self.param[0], self.arg[0]))
+        self._modifiers(circ.rz(self.param[0], self.qargs[0]))
 
 
 def rz(self, phi, q):
@@ -57,4 +69,3 @@ def rz(self, phi, q):
 
 
 QuantumCircuit.rz = rz
-CompositeGate.rz = rz

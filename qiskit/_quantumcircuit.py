@@ -5,18 +5,47 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=cyclic-import
+
 """
 Quantum circuit object.
 """
-import itertools
 from collections import OrderedDict
-from ._qiskiterror import QISKitError
-from ._register import Register
-from ._quantumregister import QuantumRegister
-from ._classicalregister import ClassicalRegister
-from ._measure import Measure
-from ._reset import Reset
-from ._instructionset import InstructionSet
+from copy import deepcopy
+import itertools
+import warnings
+import networkx as nx
+
+
+from qiskit.qasm import _qasm
+from qiskit._qiskiterror import QiskitError
+from qiskit._quantumregister import QuantumRegister
+from qiskit._classicalregister import ClassicalRegister
+from qiskit.dagcircuit import DAGCircuit
+
+
+def _circuit_from_qasm(qasm):
+    from qiskit.unroll import Unroller
+    from qiskit.unroll import DAGBackend
+    ast = qasm.parse()
+    dag = Unroller(ast, DAGBackend()).execute()
+
+    circuit = QuantumCircuit()
+    for qreg in dag.qregs.values():
+        circuit.add_register(qreg)
+    for creg in dag.cregs.values():
+        circuit.add_register(creg)
+    graph = dag.multi_graph
+    for node in nx.topological_sort(graph):
+        n = graph.nodes[node]
+        if n['type'] == 'op':
+            n['op'].circuit = circuit
+            if 'condition' in n and n['condition']:
+                circuit._attach(n['op'].c_if(*n['condition']))
+            else:
+                circuit._attach(n['op'])
+
+    return circuit
 
 
 class QuantumCircuit(object):
@@ -39,32 +68,60 @@ class QuantumCircuit(object):
     #   "body"   = GateBody AST node
     definitions = OrderedDict()
 
+    @staticmethod
+    def from_qasm_file(path):
+        """Take in a QASM file and generate a QuantumCircuit object.
+
+        Args:
+          path (str): Path to the file for a QASM program
+        Return:
+          QuantumCircuit: The QuantumCircuit object for the input QASM
+        """
+        qasm = _qasm.Qasm(filename=path)
+        return _circuit_from_qasm(qasm)
+
+    @staticmethod
+    def from_qasm_str(qasm_str):
+        """Take in a QASM string and generate a QuantumCircuit object.
+
+        Args:
+          qasm_str (str): A QASM program string
+        Return:
+          QuantumCircuit: The QuantumCircuit object for the input QASM
+        """
+        qasm = _qasm.Qasm(data=qasm_str)
+        return _circuit_from_qasm(qasm)
+
     def __init__(self, *regs, name=None):
         """Create a new circuit.
+
+        A circuit is a list of instructions bound to some registers.
 
         Args:
             *regs (Registers): registers to include in the circuit.
             name (str or None): the name of the quantum circuit. If
-                None, an automatically generated identifier will be
-                assigned.
+                None, an automatically generated string will be assigned.
 
         Raises:
-            QISKitError: if the circuit name, if given, is not valid.
+            QiskitError: if the circuit name, if given, is not valid.
         """
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
         self._increment_instances()
 
         if not isinstance(name, str):
-            raise QISKitError("The circuit name should be a string "
-                              "(or None for autogenerate a name).")
+            raise QiskitError("The circuit name should be a string "
+                              "(or None to auto-generate a name).")
 
         self.name = name
+
         # Data contains a list of instructions in the order they were applied.
         self.data = []
+
         # This is a map of registers bound to this circuit, by name.
-        self.regs = OrderedDict()
-        self.add(*regs)
+        self.qregs = []
+        self.cregs = []
+        self.add_register(*regs)
 
     @classmethod
     def _increment_instances(cls):
@@ -85,33 +142,20 @@ class QuantumCircuit(object):
         """
         Test if this circuit has the register r.
 
-        Return True or False.
+        Args:
+            register (Register): a quantum or classical register.
+
+        Returns:
+            bool: True if the register is contained in this circuit.
         """
-        if register.name in self.regs:
-            registers = self.regs[register.name]
-            if registers.size == register.size:
-                if ((isinstance(register, QuantumRegister) and
-                     isinstance(registers, QuantumRegister)) or
-                        (isinstance(register, ClassicalRegister) and
-                         isinstance(registers, ClassicalRegister))):
-                    return True
-        return False
-
-    def get_qregs(self):
-        """Get the qregs from the registers."""
-        qregs = OrderedDict()
-        for name, register in self.regs.items():
-            if isinstance(register, QuantumRegister):
-                qregs[name] = register
-        return qregs
-
-    def get_cregs(self):
-        """Get the cregs from the registers."""
-        cregs = OrderedDict()
-        for name, register in self.regs.items():
-            if isinstance(register, ClassicalRegister):
-                cregs[name] = register
-        return cregs
+        has_reg = False
+        if (isinstance(register, QuantumRegister) and
+                register in self.qregs):
+            has_reg = True
+        elif (isinstance(register, ClassicalRegister) and
+              register in self.cregs):
+            has_reg = True
+        return has_reg
 
     def combine(self, rhs):
         """
@@ -124,26 +168,27 @@ class QuantumCircuit(object):
 
         Return self + rhs as a new object.
         """
-        combined_registers = []
         # Check registers in LHS are compatible with RHS
-        for name, register in self.regs.items():
-            if name in rhs.regs and register != rhs.regs[name]:
-                raise QISKitError("circuits are not compatible")
-            else:
-                combined_registers.append(register)
-        # Add registers in RHS not in LHS
-        complement_registers = set(rhs.regs) - set(self.regs)
-        for name in complement_registers:
-            combined_registers.append(rhs.regs[name])
+        self._check_compatible_regs(rhs)
+
         # Make new circuit with combined registers
-        circuit = QuantumCircuit(*combined_registers)
+        combined_qregs = deepcopy(self.qregs)
+        combined_cregs = deepcopy(self.cregs)
+
+        for element in rhs.qregs:
+            if element not in self.qregs:
+                combined_qregs.append(element)
+        for element in rhs.cregs:
+            if element not in self.cregs:
+                combined_cregs.append(element)
+        circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for gate in itertools.chain(self.data, rhs.data):
             gate.reapply(circuit)
         return circuit
 
     def extend(self, rhs):
         """
-        Append rhs to self if self if it contains compatible registers.
+        Append rhs to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -152,12 +197,16 @@ class QuantumCircuit(object):
 
         Modify and return self.
         """
-        # Check compatibility and add new registers
-        for name, register in rhs.regs.items():
-            if name not in self.regs:
-                self.add(register)
-            elif name in self.regs and register != self.regs[name]:
-                raise QISKitError("circuits are not compatible")
+        # Check registers in LHS are compatible with RHS
+        self._check_compatible_regs(rhs)
+
+        # Add new registers
+        for element in rhs.qregs:
+            if element not in self.qregs:
+                self.qregs.append(element)
+        for element in rhs.cregs:
+            if element not in self.cregs:
+                self.cregs.append(element)
 
         # Add new gates
         for gate in rhs.data:
@@ -180,40 +229,50 @@ class QuantumCircuit(object):
         """Return indexed operation."""
         return self.data[item]
 
-    def _attach(self, gate):
-        """Attach a gate."""
-        self.data.append(gate)
-        return gate
+    def _attach(self, instruction):
+        """Attach an instruction."""
+        self.data.append(instruction)
+        return instruction
+
+    def add_register(self, *regs):
+        """Add registers."""
+        for register in regs:
+            if register in self.qregs or register in self.cregs:
+                raise QiskitError("register name \"%s\" already exists"
+                                  % register.name)
+            if isinstance(register, QuantumRegister):
+                self.qregs.append(register)
+            elif isinstance(register, ClassicalRegister):
+                self.cregs.append(register)
+            else:
+                raise QiskitError("expected a register")
 
     def add(self, *regs):
         """Add registers."""
-        for register in regs:
-            if not isinstance(register, Register):
-                raise QISKitError("expected a register")
-            if register.name not in self.regs:
-                self.regs[register.name] = register
-            else:
-                raise QISKitError("register name \"%s\" already exists"
-                                  % register.name)
+
+        warnings.warn('The add() function is deprecated and will be '
+                      'removed in a future release. Instead use '
+                      'QuantumCircuit.add_register().', DeprecationWarning)
+        self.add_register(*regs)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
         if not isinstance(register, QuantumRegister):
-            raise QISKitError("expected quantum register")
+            raise QiskitError("expected quantum register")
         if not self.has_register(register):
-            raise QISKitError(
+            raise QiskitError(
                 "register '%s' not in this circuit" %
                 register.name)
 
     def _check_qubit(self, qubit):
         """Raise exception if qubit is not in this circuit or bad format."""
         if not isinstance(qubit, tuple):
-            raise QISKitError("%s is not a tuple."
+            raise QiskitError("%s is not a tuple."
                               "A qubit should be formated as a tuple." % str(qubit))
         if not len(qubit) == 2:
-            raise QISKitError("%s is not a tuple with two elements, but %i instead" % len(qubit))
+            raise QiskitError("%s is not a tuple with two elements, but %i instead" % len(qubit))
         if not isinstance(qubit[1], int):
-            raise QISKitError("The second element of a tuple defining a qubit should be an int:"
+            raise QiskitError("The second element of a tuple defining a qubit should be an int:"
                               "%s was found instead" % type(qubit[1]).__name__)
         self._check_qreg(qubit[0])
         qubit[0].check_range(qubit[1])
@@ -221,9 +280,9 @@ class QuantumCircuit(object):
     def _check_creg(self, register):
         """Raise exception if r is not in this circuit or not creg."""
         if not isinstance(register, ClassicalRegister):
-            raise QISKitError("expected classical register")
+            raise QiskitError("Expected ClassicalRegister, but %s given" % type(register))
         if not self.has_register(register):
-            raise QISKitError(
+            raise QiskitError(
                 "register '%s' not in this circuit" %
                 register.name)
 
@@ -231,7 +290,18 @@ class QuantumCircuit(object):
         """Raise exception if list of qubits contains duplicates."""
         squbits = set(qubits)
         if len(squbits) != len(qubits):
-            raise QISKitError("duplicate qubit arguments")
+            raise QiskitError("duplicate qubit arguments")
+
+    def _check_compatible_regs(self, rhs):
+        """Raise exception if the circuits are defined on incompatible registers"""
+
+        list1 = self.qregs + self.cregs
+        list2 = rhs.qregs + rhs.cregs
+        for element1 in list1:
+            for element2 in list2:
+                if element2.name == element1.name:
+                    if element1 != element2:
+                        raise QiskitError("circuits are not compatible")
 
     def _gate_string(self, name):
         """Return a QASM string for the named gate."""
@@ -255,40 +325,96 @@ class QuantumCircuit(object):
         for gate_name in self.definitions:
             if self.definitions[gate_name]["print"]:
                 string_temp += self._gate_string(gate_name)
-        for register in self.regs.values():
+        for register in self.qregs:
+            string_temp += register.qasm() + "\n"
+        for register in self.cregs:
             string_temp += register.qasm() + "\n"
         for instruction in self.data:
             string_temp += instruction.qasm() + "\n"
         return string_temp
 
-    def measure(self, qubit, cbit):
-        """Measure quantum bit into classical bit (tuples).
+    def draw(self, scale=0.7, filename=None, style=None, output='text',
+             interactive=False, line_length=None, plot_barriers=True,
+             reverse_bits=False):
+        """Draw the quantum circuit
+
+        Using the output parameter you can specify the format. The choices are:
+        0. text: ASCII art string
+        1. latex: high-quality images, but heavy external software dependencies
+        2. matplotlib: purely in Python with no external dependencies
+
+        Defaults to an overcomplete basis, in order to not alter gates.
+
+        Args:
+            scale (float): scale of image to draw (shrink if < 1)
+            filename (str): file path to save image to
+            style (dict or str): dictionary of style or file name of style
+                                 file. You can refer to the
+                                 :ref:`Style Dict Doc <style-dict-doc>` for
+                                 more information on the contents.
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are `text`, `latex`, `latex_source`,
+                `mpl`.
+            interactive (bool): when set true show the circuit in a new window
+                (cannot inline in Jupyter). Note when used with the
+                latex_source output type this has no effect
+            line_length (int): sets the length of the lines generated by `text`
+            reverse_bits (bool): When set to True reverse the bit order inside
+                registers for the output visualization.
+            plot_barriers (bool): Enable/disable drawing barriers in the output
+                circuit. Defaults to True.
+        Returns:
+            PIL.Image: (output `latex`) an in-memory representation of the
+                image of the circuit diagram.
+            matplotlib.figure: (output `mpl`) a matplotlib figure object for
+                the circuit diagram.
+            String: (output `latex_source`). The LaTeX source code.
+            TextDrawing: (output `text`). A drawing that can be printed as
+                ascii art
+        Raises:
+            VisualizationError: when an invalid output method is selected
+
+        """
+        from qiskit.tools import visualization
+        return visualization.circuit_drawer(self, scale=scale,
+                                            filename=filename, style=style,
+                                            output=output,
+                                            interactive=interactive,
+                                            line_length=line_length,
+                                            plot_barriers=plot_barriers,
+                                            reverse_bits=reverse_bits)
+
+    def size(self):
+        """Return total number of operations in circuit."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.size()
+
+    def depth(self):
+        """Return circuit depth (i.e. length of critical path)."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.depth()
+
+    def width(self):
+        """Return number of qubits in circuit."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.width()
+
+    def count_ops(self):
+        """Count each operation kind in the circuit.
 
         Returns:
-            qiskit.Gate: the attached measure gate.
-
-        Raises:
-            QISKitError: if qubit is not in this circuit or bad format;
-                if cbit is not in this circuit or not creg.
+            dict: a breakdown of how many operations of each kind.
         """
-        if isinstance(qubit, QuantumRegister) and \
-           isinstance(cbit, ClassicalRegister) and len(qubit) == len(cbit):
-            instructions = InstructionSet()
-            for i in range(qubit.size):
-                instructions.add(self.measure((qubit, i), (cbit, i)))
-            return instructions
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.count_ops()
 
-        self._check_qubit(qubit)
-        self._check_creg(cbit[0])
-        cbit[0].check_range(cbit[1])
-        return self._attach(Measure(qubit, cbit, self))
+    def num_tensor_factors(self):
+        """How many non-entangled subcircuits can the circuit be factored to."""
+        dag = DAGCircuit.fromQuantumCircuit(self)
+        return dag.num_tensor_factors()
 
-    def reset(self, quantum_register):
-        """Reset q."""
-        if isinstance(quantum_register, QuantumRegister):
-            instructions = InstructionSet()
-            for sizes in range(quantum_register.size):
-                instructions.add(self.reset((quantum_register, sizes)))
-            return instructions
-        self._check_qubit(quantum_register)
-        return self._attach(Reset(quantum_register, self))
+    def __str__(self):
+        return str(self.draw(output='text'))
+
+    def __eq__(self, other):
+        return DAGCircuit.fromQuantumCircuit(self) == DAGCircuit.fromQuantumCircuit(other)

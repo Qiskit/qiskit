@@ -71,6 +71,7 @@ disable=print-statement,parameter-unpacking,unpacking-in-except,old-raise-syntax
     protected-access,   # disabled as we don't follow the public vs private
                         # convention strictly
     duplicate-code,     # disabled as it is too verbose
+    redundant-returns-doc, # for @abstractmethod, it cannot interpret "pass"
     # disable the "too-many/few-..." refactoring hints
     too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
     too-many-statements, too-many-instance-attributes, too-many-arguments,
@@ -115,9 +116,11 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # v,w = typical vectors
 # x,y,z = typical axes
 # _ = placeholder name
-# qr,cr,qc = quantum and classical registers, and quantum circuit
+# q,r,qr,cr,qc = quantum and classical registers, and quantum circuit
 # pi = the PI constant
-good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,qr,cr,qc,pi
+# op = operation iterator
+# b = basis iterator
+good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,r,qr,cr,qc,pi,op,b
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,toto,tutu,tata
@@ -305,7 +308,7 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=self.circuit.*,qcs.h,qc1.h,qc2.cx,qc.h,self.u1,self.cx,self.ccx,trial_circuit
+generated-members=self.circuit.*,qcs.h,qc1.h,qc2.cx,qc.h,self.u1,self.cx,self.ccx,trial_circuit,requests.codes.ok
 # self.circuit.*: false positives when self.circuit == QuantumCircuit, as it
 # provides a "__getitem__" dynamic method and gate definition is dynamic.
 # For qiskit.extensions.standard, self.foo is also needed.

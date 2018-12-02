@@ -10,12 +10,14 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import InstructionSet
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.qasm import pi
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class YGate(Gate):
@@ -24,19 +26,28 @@ class YGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Y gate."""
         super().__init__("y", [], [qubit], circ)
+        self._define_decompositions()
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("y %s[%d];" % (qubit[0].name, qubit[1]))
+    def _define_decompositions(self):
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u3", 1, 0, 3)
+        rule = [
+            U3Gate(pi, pi/2, pi/2, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circuit):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circuit.y(self.arg[0]))
+        self._modifiers(circuit.y(self.qargs[0]))
 
 
 def y(self, q):
@@ -52,4 +63,3 @@ def y(self, q):
 
 
 QuantumCircuit.y = y
-CompositeGate.y = y

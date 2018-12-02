@@ -24,6 +24,10 @@ from .http_recorder import http_recorder
 from ._test_options import get_test_options
 
 
+# Allows shorter stack trace for .assertDictAlmostEqual
+__unittest = True  # pylint: disable=invalid-name
+
+
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
     # Main SDK path:    qiskit/
@@ -126,6 +130,15 @@ class QiskitTestCase(unittest.TestCase):
             return
         if delta is not None and places is not None:
             raise TypeError("specify delta or places not both")
+
+        # TODO: remove when all tests adjust to counts being hex
+        try:
+            dict1 = bin_to_hex_keys(dict1)
+        except ValueError:
+            try:
+                dict2 = bin_to_hex_keys(dict2)
+            except ValueError:
+                pass
 
         if places is not None:
             success = True
@@ -373,6 +386,17 @@ def requires_qe_access(func):
         return decorated_func(self, *args, **kwargs)
 
     return _wrapper
+
+
+def bin_to_hex_keys(dict_):
+    """Replace the keys of a dict from bin to hex."""
+    # TODO: remove when all the tests are updated to the new counts format.
+    keys = list(dict_.keys())
+    for key in keys:
+        key_as_hex = hex(int(key.replace(' ', ''), 2))
+        dict_[key_as_hex] = dict_.pop(key)
+
+    return dict_
 
 
 def _get_http_recorder(test_options):

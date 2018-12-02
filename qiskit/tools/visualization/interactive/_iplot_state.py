@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-QISKit visualization library.
+Qiskit visualization library.
 """
 
 import numpy as np

@@ -13,7 +13,9 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import logging
 import uuid
-
+from math import log2
+from qiskit._util import local_hardware_info
+from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
 from ._simulatorerror import SimulatorError
@@ -26,18 +28,44 @@ class StatevectorSimulator(QasmSimulator):
     """C++ statevector simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'statevector_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'backend_name': 'statevector_simulator',
+        'backend_version': '1.0.0',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
-        'description': 'A C++ statevector simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,load,save,snapshot'
+        'conditional': False,
+        'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
+        'description': 'A single-shot C++ statevector simulator for the |0> state evolution',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h',
+                        's', 'sdg', 't', 'tdg', 'rzz', 'load', 'save',
+                        'snapshot'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
+
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         """Run a qobj on the the backend."""
@@ -61,18 +89,18 @@ class StatevectorSimulator(QasmSimulator):
         for experiment in qobj.experiments:
             del experiment.instructions[-1]
         # Extract final state snapshot and move to 'statevector' data field
-        for experiment_result in result.results.values():
-            snapshots = experiment_result.snapshots
+        for experiment_result in result.results:
+            snapshots = experiment_result.data.snapshots.to_dict()
             if str(final_state_key) in snapshots:
                 final_state_key = str(final_state_key)
             # Pop off final snapshot added above
             final_state = snapshots.pop(final_state_key, None)
             final_state = final_state['statevector'][0]
             # Add final state to results data
-            experiment_result.data['statevector'] = final_state
+            experiment_result.data.statevector = final_state
             # Remove snapshot dict if empty
             if snapshots == {}:
-                experiment_result.data.pop('snapshots', None)
+                delattr(experiment_result.data, 'snapshots')
         return result
 
     def _validate(self, qobj):

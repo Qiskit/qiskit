@@ -9,15 +9,16 @@
 
 This module is used for connecting to the Quantum Experience.
 """
-import warnings
 import logging
 
-from IBMQuantumExperience import ApiError
-from qiskit import QISKitError
-from qiskit._util import _camel_case_to_snake_case, AvailableToOperationalDict, _dict_merge
-from qiskit.backends import BaseBackend
-from qiskit.backends.ibmq.ibmqjob import IBMQJob, IBMQJobPreQobj
-from qiskit.backends import JobStatus
+from marshmallow import ValidationError
+
+from qiskit import QiskitError
+from qiskit.backends import BaseBackend, JobStatus
+from qiskit.backends.models import BackendStatus, BackendProperties
+
+from .api import ApiError
+from .ibmqjob import IBMQJob, IBMQJobPreQobj
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +31,15 @@ class IBMQBackend(BaseBackend):
         """Initialize remote backend for IBM Quantum Experience.
 
         Args:
-            configuration (dict): configuration of backend.
+            configuration (BackendConfiguration): configuration of backend.
             provider (IBMQProvider): provider.
             credentials (Credentials): credentials.
-            api (IBMQuantumExperience.IBMQuantumExperience.IBMQuantumExperience):
+            api (IBMQConnector):
                 api for communicating with the Quantum Experience.
         """
         super().__init__(provider=provider, configuration=configuration)
-        self._api = api
-        if self._configuration:
-            configuration_edit = {}
-            for key, vals in self._configuration.items():
-                new_key = _camel_case_to_snake_case(key)
-                configuration_edit[new_key] = vals
-            self._configuration = configuration_edit
-            # FIXME: This is a hack to make sure that the
-            # local : False is added to the online device
-            self._configuration['local'] = False
 
+        self._api = api
         self._credentials = credentials
         self.hub = credentials.hub
         self.group = credentials.group
@@ -63,75 +55,10 @@ class IBMQBackend(BaseBackend):
             IBMQJob: an instance derived from BaseJob
         """
         job_class = _job_class_from_backend_support(self)
-        job = job_class(self, None, self._api, not self.configuration()['simulator'], qobj=qobj)
+        job = job_class(self, None, self._api,
+                        not self.configuration().simulator, qobj=qobj)
         job.submit()
         return job
-
-    def calibration(self):
-        """Return the online backend calibrations.
-
-        The return is via QX API call.
-
-        Returns:
-            dict: The calibration of the backend.
-
-        Raises:
-            LookupError: If a calibration for the backend can't be found.
-
-        :deprecated: will be removed after 0.7
-        """
-        warnings.warn("Backends will no longer return a calibration dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-
-        try:
-            backend_name = self.name()
-            calibrations = self._api.backend_calibration(backend_name)
-            # FIXME a hack to remove calibration data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
-                calibrations = {}
-        except Exception as ex:
-            raise LookupError(
-                "Couldn't get backend calibration: {0}".format(ex))
-
-        calibrations_edit = {}
-        for key, vals in calibrations.items():
-            new_key = _camel_case_to_snake_case(key)
-            calibrations_edit[new_key] = vals
-
-        return calibrations_edit
-
-    def parameters(self):
-        """Return the online backend parameters.
-
-        Returns:
-            dict: The parameters of the backend.
-
-        Raises:
-            LookupError: If parameters for the backend can't be found.
-
-        :deprecated: will be removed after 0.7
-        """
-        warnings.warn("Backends will no longer return a parameters dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-
-        try:
-            backend_name = self.name()
-            parameters = self._api.backend_parameters(backend_name)
-            # FIXME a hack to remove parameters data that is none.
-            # Needs to be fixed in api
-            if backend_name == 'ibmq_qasm_simulator':
-                parameters = {}
-        except Exception as ex:
-            raise LookupError(
-                "Couldn't get backend parameters: {0}".format(ex))
-
-        parameters_edit = {}
-        for key, vals in parameters.items():
-            new_key = _camel_case_to_snake_case(key)
-            parameters_edit[new_key] = vals
-
-        return parameters_edit
 
     def properties(self):
         """Return the online backend properties.
@@ -140,19 +67,10 @@ class IBMQBackend(BaseBackend):
 
         Returns:
             dict: The properties of the backend.
-
-        Raises:
-            LookupError: If properties for the backend can't be found.
         """
-        # FIXME: make this an actual call to _api.backend_properties
-        # for now this api endpoint does not exist.
-        warnings.simplefilter("ignore")
-        calibration = self.calibration()
-        parameters = self.parameters()
-        _dict_merge(calibration, parameters)
-        properties = calibration
-        warnings.simplefilter("default")
-        return properties
+        api_properties = self._api.backend_properties(self.name())
+
+        return BackendProperties.from_dict(api_properties)
 
     def status(self):
         """Return the online backend status.
@@ -162,30 +80,15 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             LookupError: If status for the backend can't be found.
+            IBMQBackendError: If the status can't be formatted properly.
         """
-        try:
-            backend_name = self.configuration()['name']
-            status = self._api.backend_status(backend_name)
-            # FIXME a hack to rename the key. Needs to be fixed in api
-            status['name'] = status['backend']
-            del status['backend']
-            # FIXME a hack to remove the key busy.  Needs to be fixed in api
-            if 'busy' in status:
-                del status['busy']
-            # FIXME a hack to add available to the hpc simulator.  Needs to
-            # be fixed in api
-            if status['name'] == 'ibmqx_hpc_qasm_simulator':
-                status['available'] = True
+        api_status = self._api.backend_status(self.name())
 
-            # FIXME: this needs to be replaced at the API level - eventually
-            # it will.
-            if 'available' in status:
-                status['operational'] = status['available']
-                del status['available']
-        except Exception as ex:
+        try:
+            return BackendStatus.from_dict(api_status)
+        except ValidationError as ex:
             raise LookupError(
                 "Couldn't get backend status: {0}".format(ex))
-        return AvailableToOperationalDict(status)
 
     def jobs(self, limit=50, skip=0, status=None, db_filter=None):
         """Attempt to get the jobs submitted to the backend.
@@ -224,7 +127,7 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendValueError: status keyword value unrecognized
         """
-        backend_name = self.configuration()['name']
+        backend_name = self.name()
         api_filter = {'backend.name': backend_name}
         if status:
             if isinstance(status, str):
@@ -253,7 +156,7 @@ class IBMQBackend(BaseBackend):
         job_list = []
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
-            is_device = not bool(self._configuration.get('simulator'))
+            is_device = not bool(self.configuration().simulator)
             job = job_class(self, job_info.get('id'), self._api, is_device,
                             creation_date=job_info.get('creationDate'),
                             api_status=job_info.get('status'))
@@ -281,7 +184,7 @@ class IBMQBackend(BaseBackend):
             raise IBMQBackendError('Failed to get job "{}":{}'
                                    .format(job_id, str(ex)))
         job_class = _job_class_from_job_response(job_info)
-        is_device = not bool(self._configuration.get('simulator'))
+        is_device = not bool(self.configuration().simulator)
         job = job_class(self, job_info.get('id'), self._api, is_device,
                         creation_date=job_info.get('creationDate'),
                         api_status=job_info.get('status'))
@@ -296,7 +199,7 @@ class IBMQBackend(BaseBackend):
             self.__class__.__name__, self.name(), credentials_info)
 
 
-class IBMQBackendError(QISKitError):
+class IBMQBackendError(QiskitError):
     """IBM Q Backend Errors"""
     pass
 
@@ -312,5 +215,5 @@ def _job_class_from_job_response(job_response):
 
 
 def _job_class_from_backend_support(backend):
-    support_qobj = backend.configuration().get('allow_q_object')
+    support_qobj = getattr(backend.configuration(), 'allow_q_object', False)
     return IBMQJob if support_qobj else IBMQJobPreQobj

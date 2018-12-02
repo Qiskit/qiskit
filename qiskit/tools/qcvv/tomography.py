@@ -50,7 +50,7 @@ from re import match
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit.tools.qi.qi import vectorize, devectorize, outer
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class TomographyBasis(dict):
     and the values are a list of projectors associated to that measurement.
     It also includes two optional methods `prep_gate` and `meas_gate`:
         - `prep_gate` adds gates to a circuit to prepare the corresponding
-          basis projector from an inital ground state.
+          basis projector from an initial ground state.
         - `meas_gate` adds gates to a circuit to transform the default
           Z-measurement into a measurement in the basis.
     With the exception of built in bases, these functions do nothing unless
@@ -176,7 +176,7 @@ def __pauli_prep_gates(circuit, qreg, op):
     """
     bas, proj = op
     if bas not in ['X', 'Y', 'Z']:
-        raise QISKitError("There's no X, Y or Z basis for this Pauli "
+        raise QiskitError("There's no X, Y or Z basis for this Pauli "
                           "preparation")
 
     if bas == "X":
@@ -198,7 +198,7 @@ def __pauli_meas_gates(circuit, qreg, op):
     Add state measurement gates to a circuit.
     """
     if op not in ['X', 'Y', 'Z']:
-        raise QISKitError("There's no X, Y or Z basis for this Pauli "
+        raise QiskitError("There's no X, Y or Z basis for this Pauli "
                           "measurement")
 
     if op == "X":
@@ -234,7 +234,7 @@ def __sic_prep_gates(circuit, qreg, op):
     bas, proj = op
 
     if bas != 'S':
-        raise QISKitError('Not in SIC basis!')
+        raise QiskitError('Not in SIC basis!')
 
     theta = -2 * np.arctan(np.sqrt(2))
     if proj == 1:
@@ -280,16 +280,16 @@ def tomography_set(qubits,
         `tomography_basis` and passing this in for the `meas_basis` argument.
 
     Quantum Process Tomography:
-        A quantum process tomography set is created by specifying a prepration
+        A quantum process tomography set is created by specifying a preparation
         basis along with a measurement basis. The preparation basis may be a
         user defined `tomography_basis`, or one of the two built in basis 'SIC'
         or 'Pauli'.
-        - SIC: Is a minimal symmetric informationally complete preparaiton
+        - SIC: Is a minimal symmetric informationally complete preparation
                basis for 4 states for each qubit (4 ^ number of qubits total
                preparation states). These correspond to the |0> state and the 3
-               other verteces of a tetrahedron on the Bloch-sphere.
+               other vertices of a tetrahedron on the Bloch-sphere.
         - Pauli: Is a tomographically overcomplete preparation basis of the six
-                 eigenstates of the 3 Pauli operaters (6 ^ number of qubits
+                 eigenstates of the 3 Pauli operators (6 ^ number of qubits
                  total preparation states).
 
     Args:
@@ -318,10 +318,10 @@ def tomography_set(qubits,
         }
         ```
     Raises:
-        QISKitError: if the Qubits argument is not a list.
+        QiskitError: if the Qubits argument is not a list.
     """
     if not isinstance(qubits, list):
-        raise QISKitError('Qubits argument must be a list')
+        raise QiskitError('Qubits argument must be a list')
 
     num_of_qubits = len(qubits)
 
@@ -395,16 +395,16 @@ def state_tomography_set(qubits, meas_basis='Pauli'):
         `tomography_basis` and passing this in for the `meas_basis` argument.
 
     Quantum Process Tomography:
-        A quantum process tomography set is created by specifying a prepration
+        A quantum process tomography set is created by specifying a preparation
         basis along with a measurement basis. The preparation basis may be a
         user defined `tomography_basis`, or one of the two built in basis 'SIC'
         or 'Pauli'.
-        - SIC: Is a minimal symmetric informationally complete preparaiton
+        - SIC: Is a minimal symmetric informationally complete preparation
                basis for 4 states for each qubit (4 ^ number of qubits total
                preparation states). These correspond to the |0> state and the 3
-               other verteces of a tetrahedron on the Bloch-sphere.
+               other vertices of a tetrahedron on the Bloch-sphere.
         - Pauli: Is a tomographically overcomplete preparation basis of the six
-                 eigenstates of the 3 Pauli operaters (6 ^ number of qubits
+                 eigenstates of the 3 Pauli operators (6 ^ number of qubits
                  total preparation states).
 
     Args:
@@ -437,16 +437,16 @@ def process_tomography_set(qubits, meas_basis='Pauli', prep_basis='SIC'):
     to generate state and process tomography circuits, and extract tomography
     data from results after execution on a backend.
 
-   A quantum process tomography set is created by specifying a prepration
+   A quantum process tomography set is created by specifying a preparation
     basis along with a measurement basis. The preparation basis may be a
     user defined `tomography_basis`, or one of the two built in basis 'SIC'
     or 'Pauli'.
-    - SIC: Is a minimal symmetric informationally complete preparaiton
+    - SIC: Is a minimal symmetric informationally complete preparation
            basis for 4 states for each qubit (4 ^ number of qubits total
            preparation states). These correspond to the |0> state and the 3
-           other verteces of a tetrahedron on the Bloch-sphere.
+           other vertices of a tetrahedron on the Bloch-sphere.
     - Pauli: Is a tomographically overcomplete preparation basis of the six
-             eigenstates of the 3 Pauli operaters (6 ^ number of qubits
+             eigenstates of the 3 Pauli operators (6 ^ number of qubits
              total preparation states).
 
     Args:
@@ -527,10 +527,10 @@ def create_tomography_circuits(circuit, qreg, creg, tomoset):
         list: A list of quantum tomography circuits for the input circuit.
 
     Raises:
-        QISKitError: if circuit is not a valid QuantumCircuit
+        QiskitError: if circuit is not a valid QuantumCircuit
 
     Example:
-        For a tomography set  specififying state tomography of qubit-0 prepared
+        For a tomography set specifying state tomography of qubit-0 prepared
         by a circuit 'circ' this would return:
         ```
         ['circ_meas_X(0)', 'circ_meas_Y(0)', 'circ_meas_Z(0)']
@@ -550,7 +550,7 @@ def create_tomography_circuits(circuit, qreg, creg, tomoset):
     """
 
     if not isinstance(circuit, QuantumCircuit):
-        raise QISKitError('Input circuit must be a QuantumCircuit object')
+        raise QiskitError('Input circuit must be a QuantumCircuit object')
 
     dics = tomoset['circuits']
     labels = tomography_circuit_names(tomoset, circuit.name)
@@ -652,7 +652,7 @@ def marginal_counts(counts, meas_qubits):
 
     meas_keys = count_keys(len(qs))
 
-    # get regex match strings for suming outcomes of other qubits
+    # get regex match strings for summing outcomes of other qubits
     rgx = [
         reduce(lambda x, y: (key[qs.index(y)] if y in qs else '\\d') + x,
                range(num_of_qubits), '') for key in meas_keys
@@ -719,7 +719,7 @@ def fit_tomography_data(tomo_data, method='wizard', options=None):
                       zero-count data. The default value is 0.50922.
             - 'epsilon: threshold for truncating small eigenvalues to zero.
                         The default value is 0
-        - 'leastsq': Fitting without postive-semidefinite constraint.
+        - 'leastsq': Fitting without positive-semidefinite constraint.
             Options:
             - 'trace': Same as for 'wizard' method.
             - 'beta': Same as for 'wizard' method.
@@ -870,7 +870,7 @@ def __tomo_linear_inv(freqs, ops, weights=None, trace=None):
 
 def __wizard(rho, epsilon=None):
     """
-    Returns the nearest postitive semidefinite operator to an operator.
+    Returns the nearest positive semidefinite operator to an operator.
 
     This method is based on reference [1]. It constrains positivity
     by setting negative eigenvalues to zero and rescaling the positive
@@ -926,11 +926,11 @@ def build_wigner_circuits(circuit, phis, thetas, qubits,
         list: A list of names of the added wigner function circuits.
 
     Raises:
-        QISKitError: if circuit is not a valid QuantumCircuit.
+        QiskitError: if circuit is not a valid QuantumCircuit.
     """
 
     if not isinstance(circuit, QuantumCircuit):
-        raise QISKitError('Input circuit must be a QuantumCircuit object')
+        raise QiskitError('Input circuit must be a QuantumCircuit object')
 
     tomography_circuits = []
     points = len(phis[0])

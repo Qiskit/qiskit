@@ -9,7 +9,7 @@
     "success": true,
     "header": {"description": "T1 Experiment with Cals"},
     "results": [
-        {"header": {"exp_descrip": "Ground state calibration"},
+        {"header": {"name": "Ground state calibration"},
         "shots": 1024,
         "status": "DONE",
         "success": true,
@@ -18,7 +18,7 @@
             "memory": [[1.5,0]]
         }
         },
-        {"header": {"exp_descrip": "Excited state calibration"},
+        {"header": {"name": "Excited state calibration"},
         "shots": 1024,
         "status": "DONE",
         "success": true,
@@ -27,7 +27,7 @@
             "memory": [[0,1.5]]
         }
         },
-        {"header": {"exp_descrip": "T1", "t1_time": 0},
+        {"header": {"name": "T1", "t1_time": 0},
         "shots": 5,
         "status": "DONE",
         "success": true,

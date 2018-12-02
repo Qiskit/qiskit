@@ -142,7 +142,7 @@ private:
   bool set_gateid(operation &op, std::string name, const gateset_t &gs);
 
   /**
-   *  Return true if tail of circuit operaitons are all measurements
+   *  Return true if tail of circuit operations are all measurements
    */
   bool check_opt_meas();
 };

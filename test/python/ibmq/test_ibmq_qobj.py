@@ -38,7 +38,7 @@ class TestIBMQQobj(JobTestCase):
                           "testing Qobj capabilities.")
 
         IBMQ.enable_account(self._qe_token, self._qe_url)
-        self._local_backend = Aer.get_backend('local_qasm_simulator')
+        self._local_backend = Aer.get_backend('qasm_simulator_py')
         self._remote_backend = IBMQ.get_backend(self._testing_device)
         self.log.info('Remote backend: %s', self._remote_backend.name())
         self.log.info('Local backend: %s', self._local_backend.name())
@@ -48,14 +48,15 @@ class TestIBMQQobj(JobTestCase):
     def test_operational(self):
         """Test if backend is operational.
         """
-        self.assertTrue(self._remote_backend.status()['operational'])
+        self.assertTrue(self._remote_backend.status().operational)
 
     @slow_test
     @requires_qe_access
     def test_allow_qobj(self):
         """Test if backend support Qobj.
         """
-        self.assertTrue(self._remote_backend.configuration()['allow_q_object'])
+        self.assertTrue(getattr(self._remote_backend.configuration(),
+                                'allow_q_object', False))
 
     @slow_test
     @requires_qe_access

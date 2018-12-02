@@ -50,22 +50,22 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         for node in G.nodes:
             n = G.nodes[node]
             if n['type'] == 'op':
-                n['label'] = str(n['name'])
+                n['label'] = n['name']
                 n['color'] = 'blue'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'lightblue'
             if n['type'] == 'in':
-                n['label'] = n['name'][0] + '[' + str(n['name'][1]) + ']'
+                n['label'] = n['name']
                 n['color'] = 'black'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'green'
             if n['type'] == 'out':
-                n['label'] = n['name'][0] + '[' + str(n['name'][1]) + ']'
+                n['label'] = n['name']
                 n['color'] = 'black'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'red'
         for e in G.edges(data=True):
-            e[2]['label'] = e[2]['name'][0] + "[" + str(e[2]['name'][1]) + "]"
+            e[2]['label'] = e[2]['name']
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 

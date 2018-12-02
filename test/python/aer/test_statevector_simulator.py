@@ -8,7 +8,9 @@
 # pylint: disable=missing-docstring,broad-except
 
 import unittest
-from qiskit import execute, load_qasm_file
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import execute
+from qiskit import Aer
 from ..common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -17,13 +19,15 @@ class StatevectorSimulatorTest(QiskitTestCase):
     """Test Aer's C++ statevector simulator."""
 
     def setUp(self):
-        self.qasm_filename = self._get_resource_path('qasm/simple.qasm')
-        self.q_circuit = load_qasm_file(self.qasm_filename, name='example')
+        qr = QuantumRegister(2)
+        self.q_circuit = QuantumCircuit(qr)
+        self.q_circuit.h(qr[0])
+        self.q_circuit.cx(qr[0], qr[1])
 
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
-        result = execute(self.q_circuit, backend='statevector_simulator').result()
-        self.assertEqual(result.get_status(), 'COMPLETED')
+        result = execute(self.q_circuit, backend=Aer.get_backend('statevector_simulator')).result()
+        self.assertEqual(result.success, True)
         actual = result.get_statevector(self.q_circuit)
 
         # state is 1/sqrt(2)|00> + 1/sqrt(2)|11>, up to a global phase

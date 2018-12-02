@@ -9,12 +9,13 @@
 Utilities for reading and writing credentials from and to configuration files.
 """
 
+import warnings
 import os
 from ast import literal_eval
 from collections import OrderedDict
 from configparser import ConfigParser, ParsingError
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from .credentials import Credentials
 
 DEFAULT_QISKITRC_FILE = os.path.join(os.path.expanduser("~"),
@@ -36,7 +37,7 @@ def read_credentials_from_qiskitrc(filename=None):
             {credential_unique_id: Credentials}
 
     Raises:
-        QISKitError: if the file was not parseable. Please note that this
+        QiskitError: if the file was not parseable. Please note that this
             exception is not raised if the file does not exist (instead, an
             empty dict is returned).
     """
@@ -45,7 +46,7 @@ def read_credentials_from_qiskitrc(filename=None):
     try:
         config_parser.read(filename)
     except ParsingError as ex:
-        raise QISKitError(str(ex))
+        raise QiskitError(str(ex))
 
     # Build the credentials dictionary.
     credentials_dict = OrderedDict()
@@ -116,15 +117,17 @@ def store_credentials(credentials, overwrite=False, filename=None):
             location is used (`HOME/.qiskit/qiskitrc`).
 
     Raises:
-        QISKitError: If credentials already exists and overwrite=False; or if
-            the account_name could not be assigned.
+        QiskitError: if the account_name could not be assigned.
     """
     # Read the current providers stored in the configuration file.
     filename = filename or DEFAULT_QISKITRC_FILE
     stored_credentials = read_credentials_from_qiskitrc(filename)
 
+    # Check if duplicated credentials are already stored. By convention,
+    # we assume (hub, group, project) is always unique.
     if credentials.unique_id() in stored_credentials and not overwrite:
-        raise QISKitError('Credentials already present and overwrite=False')
+        warnings.warn('Credentials already present. Set overwrite=True to overwrite.')
+        return
 
     # Append and write the credentials to file.
     stored_credentials[credentials.unique_id()] = credentials
@@ -140,7 +143,7 @@ def remove_credentials(credentials, filename=None):
             location is used (`HOME/.qiskit/qiskitrc`).
 
     Raises:
-        QISKitError: If there is no account with that name on the configuration
+        QiskitError: If there is no account with that name on the configuration
             file.
     """
     # Set the name of the Provider from the class.
@@ -149,6 +152,6 @@ def remove_credentials(credentials, filename=None):
     try:
         del stored_credentials[credentials.unique_id()]
     except KeyError:
-        raise QISKitError('The account "%s" does not exist in the '
+        raise QiskitError('The account "%s" does not exist in the '
                           'configuration file')
     write_qiskit_rc(stored_credentials, filename)

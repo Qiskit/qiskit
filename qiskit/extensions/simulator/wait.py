@@ -10,7 +10,6 @@
 """
 Aer's qasm_simulator single qubit wait gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
@@ -25,21 +24,13 @@ class WaitGate(Gate):
         """Create new wait gate."""
         super().__init__("wait", [t], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        t = self.param[0]
-        return self._qasmif("wait(%f) %s[%d];" % (t,
-                                                  qubit[0].name,
-                                                  qubit[1]))
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.wait(self.param[0], self.arg[0]))
+        self._modifiers(circ.wait(self.param[0], self.qargs[0]))
 
 
 def wait(self, t, q):
@@ -53,9 +44,8 @@ def wait(self, t, q):
     return self._attach(WaitGate(t, q, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.wait = wait
-CompositeGate.wait = wait
 
 
 # idle for time t (identity)

@@ -21,17 +21,16 @@ import json
 import datetime
 import numpy
 
-from IBMQuantumExperience import ApiError
-
 from qiskit.qobj import qobj_to_dict
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile_dag
 from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
 from qiskit.result._utils import result_from_old_style_dict
-from qiskit.qobj import Result as QobjResult
-from qiskit.qobj import ExperimentResult as QobjExperimentResult
 from qiskit.qobj import validate_qobj_against_schema
+
+from .api import ApiError
+
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +124,7 @@ class IBMQJob(BaseJob):
             backend (str): The backend instance used to run this job.
             job_id (str): The job ID of an already submitted job. Pass `None`
                 if you are creating a new one.
-            api (IBMQuantumExperience): IBM Q API
+            api (IBMQConnector): IBMQ connector.
             is_device (bool): whether backend is a real device  # TODO: remove this after Qobj
             qobj (Qobj): The Quantum Object. See notes below
             creation_date (str): When the job was run.
@@ -135,8 +134,9 @@ class IBMQJob(BaseJob):
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
-            will ignore ``job_id`` and will create an instance representing
-            an already-created job retrieved from the API server.
+            will ignore ``job_id`` and will create an instance to be submitted to the
+            API server for job creation. Passing only a `job_id`will create an instance
+            representing an already-created job retrieved from the API server.
         """
         if 'backend_name' in kwargs:
             warnings.warn('Passing the parameter `backend_name` is deprecated, '
@@ -225,14 +225,7 @@ class IBMQJob(BaseJob):
         return job_response
 
     def _result_from_job_response(self, job_response):
-        experiment_results = []
-        result_json = job_response['qObjectResult']
-        for experiment_result_json in result_json['results']:
-            qobj_experiment_result = QobjExperimentResult(**experiment_result_json)
-            experiment_results.append(qobj_experiment_result)
-
-        result_kwargs = {**result_json, 'results': experiment_results}
-        return Result(QobjResult(**result_kwargs))
+        return Result.from_dict(job_response['qObjectResult'])
 
     def cancel(self):
         """Attempt to cancel a job.
@@ -266,7 +259,6 @@ class IBMQJob(BaseJob):
             JobError: if there was an exception in the future being executed
                           or the server sent an unknown answer.
         """
-
         # Implies self._job_id is None
         if self._future_captured_exception is not None:
             raise JobError(str(self._future_captured_exception))
@@ -373,7 +365,7 @@ class IBMQJob(BaseJob):
             JobError: If we have already submitted the job.
         """
         # TODO: Validation against the schema should be done here and not
-        # during initiliazation. Once done, we should document that the method
+        # during initialization. Once done, we should document that the method
         # can raise QobjValidationError.
         if self._future is not None or self._job_id is not None:
             raise JobError("We have already submitted the job!")
@@ -403,7 +395,7 @@ class IBMQJob(BaseJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._job_id = submit_info.get('id')
@@ -503,7 +495,7 @@ class IBMQJobPreQobj(IBMQJob):
             self._api_error_msg = str(submit_info['error'])
             return submit_info
 
-        # Submisssion success.
+        # Submission success.
         self._creation_date = submit_info.get('creationDate')
         self._status = JobStatus.QUEUED
         self._job_id = submit_info.get('id')
@@ -516,13 +508,17 @@ class IBMQJobPreQobj(IBMQJob):
         experiment_results = []
         for circuit_result in job_response['qasms']:
             this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
                            'compiled_circuit_qasm': circuit_result.get('qasm'),
                            'status': circuit_result['status'],
                            'success': circuit_result['status'] == 'DONE',
                            'shots': job_response['shots']}
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
+                if 'header' in circuit_result['metadata'].get('compiled_circuit', {}):
+                    this_result['header'] = \
+                        circuit_result['metadata']['compiled_circuit']['header']
+                else:
+                    this_result['header'] = {}
             experiment_results.append(this_result)
 
         return result_from_old_style_dict({
@@ -531,8 +527,8 @@ class IBMQJobPreQobj(IBMQJob):
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
             'backend_name': self.backend().name(),
-            'success': job_response['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in job_response['qasms']])
+            'success': job_response['status'] == 'COMPLETED'
+        })
 
 
 def _reorder_bits(job_data):
@@ -616,7 +612,7 @@ def _create_api_job_from_circuit(circuit):
     """Helper function that creates a special job required by the API, from a circuit."""
     api_job = {}
     if not circuit.get('compiled_circuit_qasm'):
-        compiled_circuit = transpile(circuit['circuit'])
+        compiled_circuit = transpile_dag(circuit['circuit'])
         circuit['compiled_circuit_qasm'] = compiled_circuit.qasm(qeflag=True)
 
     if isinstance(circuit['compiled_circuit_qasm'], bytes):

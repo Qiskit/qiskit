@@ -12,6 +12,7 @@ qiskit/qasm/parser.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -58,6 +59,7 @@ coverage.xml
 test/python/*.log
 test/python/*.pdf
 test/python/*.prof
+.stestr/
 
 # Translations
 *.mo

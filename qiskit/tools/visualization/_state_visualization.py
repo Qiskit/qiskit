@@ -12,13 +12,15 @@ Visualization functions for quantum states.
 """
 
 from functools import reduce
-from scipy import linalg
-import matplotlib.pyplot as plt
+
+import numpy as np
 from matplotlib import cm
+from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
-import numpy as np
-from qiskit.tools.qi.pauli import pauli_group, pauli_singles
+from scipy import linalg
+
+from qiskit.quantum_info import pauli_group, Pauli
 from qiskit.tools.visualization import VisualizationError
 from qiskit.tools.visualization._bloch import Bloch
 
@@ -39,29 +41,8 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def plot_bloch_vector(bloch, title="", filename=None):
-    """Plot the Bloch sphere.
-
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
-
-    Args:
-        bloch (list[double]): array of three elements where [<x>, <y>,<z>]
-        title (str): a string that represents the plot title
-        filename (str): the output file to save the plot as. If specified it
-            will save and exit and not open up the plot in a new window.
-    """
-    B = Bloch()
-    B.add_vectors(bloch)
-    if filename:
-        B.save(filename)
-    else:
-        B.show(title=title)
-
-
-def plot_state_city(rho, title="", filename=None):
-    """Plot the cityscape of quantum state.
-
-    Plot two 3d bargraphs (two dimenstional) of the mixed state rho
+def plot_hinton(rho, title='', filename=None, show=False):
+    """Plot a hinton diagram for the quanum state.
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -69,6 +50,103 @@ def plot_state_city(rho, title="", filename=None):
         title (str): a string that represents the plot title
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+        show (bool):  If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
+
+    """
+    num = int(np.log2(len(rho)))
+    fig = plt.figure()
+    max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
+    datareal = np.real(rho)
+    dataimag = np.imag(rho)
+    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    lx = len(datareal[0])            # Work out matrix dimensions
+    ly = len(datareal[:, 0])
+    # Real
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax1.patch.set_facecolor('gray')
+    ax1.set_aspect('equal', 'box')
+    ax1.xaxis.set_major_locator(plt.NullLocator())
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(datareal):
+        color = 'white' if w > 0 else 'black'
+        size = np.sqrt(np.abs(w) / max_weight)
+        rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                             facecolor=color, edgecolor=color)
+        ax1.add_patch(rect)
+
+    ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
+    ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax1.set_yticklabels(row_names, fontsize=12)
+    ax1.set_xticklabels(column_names, fontsize=12, rotation=-90)
+    ax1.autoscale_view()
+    ax1.invert_yaxis()
+    ax1.set_title('Real[rho]')
+    # Imaginary
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.patch.set_facecolor('gray')
+    ax2.set_aspect('equal', 'box')
+    ax2.xaxis.set_major_locator(plt.NullLocator())
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+
+    for (x, y), w in np.ndenumerate(dataimag):
+        color = 'white' if w > 0 else 'black'
+        size = np.sqrt(np.abs(w) / max_weight)
+        rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                             facecolor=color, edgecolor=color)
+        ax2.add_patch(rect)
+
+    ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
+    ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
+    ax2.set_yticklabels(row_names, fontsize=12)
+    ax2.set_xticklabels(column_names, fontsize=12, rotation=-90)
+    ax2.autoscale_view()
+    ax2.invert_yaxis()
+    ax2.set_title('Imag[rho]')
+    if title:
+        plt.title(title)
+    plt.tight_layout()
+    if filename:
+        plt.savefig(filename)
+    elif show:
+        plt.show()
+    return fig
+
+
+def plot_bloch_vector(bloch, title="", ax=None):
+    """Plot the Bloch sphere.
+
+    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+
+    Args:
+        bloch (list[double]): array of three elements where [<x>, <y>,<z>]
+        title (str): a string that represents the plot title
+        ax (matplotlib.Axes): An Axes to use for rendering the bloch sphere
+    """
+    B = Bloch(axes=ax)
+    B.add_vectors(bloch)
+    B.render(title=title)
+
+
+def plot_state_city(rho, title="", filename=None, show=False):
+    """Plot the cityscape of quantum state.
+
+    Plot two 3d bargraphs (two dimensional) of the mixed state rho
+
+    Args:
+        rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
+                                   numbers
+        title (str): a string that represents the plot title
+        filename (str): the output file to save the plot as. If specified it
+            will save and exit and not open up the plot in a new window.
+        show (bool):  If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
     """
     num = int(np.log2(len(rho)))
 
@@ -123,14 +201,15 @@ def plot_state_city(rho, title="", filename=None):
     plt.title(title)
     if filename:
         plt.savefig(filename)
-    else:
+    elif show:
         plt.show()
+    return plt.gcf()
 
 
-def plot_state_paulivec(rho, title="", filename=None):
+def plot_state_paulivec(rho, title="", filename=None, show=False):
     """Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matricies
+    Plot a bargraph of the mixed state rho over the pauli matrices
 
     Args:
         rho (np.array[[complex]]): array of dimensions 2**n x 2**nn complex
@@ -138,7 +217,10 @@ def plot_state_paulivec(rho, title="", filename=None):
         title (str): a string that represents the plot title
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
-
+        show (bool):  If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
     """
     num = int(np.log2(len(rho)))
     labels = list(map(lambda x: x.to_label(), pauli_group(num)))
@@ -161,8 +243,9 @@ def plot_state_paulivec(rho, title="", filename=None):
     plt.title(title)
     if filename:
         plt.savefig(filename)
-    else:
+    elif show:
         plt.show()
+    return plt.gcf()
 
 
 def n_choose_k(n, k):
@@ -193,8 +276,11 @@ def lex_index(n, k, lst):
     Returns:
         int: returns int index for lex order
 
+    Raises:
+        VisualizationError: if length of list is not equal to k
     """
-    assert len(lst) == k, "list should have length k"
+    if len(lst) != k:
+        raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
     dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
     return int(dualm)
@@ -204,7 +290,8 @@ def bit_string_index(s):
     """Return the index of a string of 0s and 1s."""
     n = len(s)
     k = s.count("1")
-    assert s.count("0") == n - k, "s must be a string of 0 and 1"
+    if s.count("0") != n - k:
+        raise VisualizationError("s must be a string of 0 and 1")
     ones = [pos for pos, char in enumerate(s) if char == "1"]
     return lex_index(n, k, ones)
 
@@ -234,10 +321,10 @@ def phase_to_color_wheel(complex_number):
     return color_map[angle_round]
 
 
-def plot_state_qsphere(rho, filename=None):
+def plot_state_qsphere(rho, filename=None, show=False):
     """Plot the qsphere representation of a quantum state."""
     num = int(np.log2(len(rho)))
-    # get the eigenvectors and egivenvalues
+    # get the eigenvectors and eigenvalues
     we, stateall = linalg.eigh(rho)
     for k in range(2**num):
         # start with the max
@@ -335,14 +422,15 @@ def plot_state_qsphere(rho, filename=None):
                     alpha=1)
             if filename:
                 plt.savefig(filename)
-            else:
+            elif show:
                 plt.show()
             we[prob_location] = 0
         else:
             break
+    return plt.gcf()
 
 
-def plot_state(quantum_state, method='city', filename=None):
+def plot_state(quantum_state, method='city', filename=None, show=False):
     """Plot the quantum state.
 
     Args:
@@ -353,7 +441,10 @@ def plot_state(quantum_state, method='city', filename=None):
             will save and exit and not open up the plot in a new window. If
             `bloch` method is used a `-n` will be added to the filename before
             the extension for each qubit.
-
+        show (bool): If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
     Raises:
         VisualizationError: if the input is not a statevector or density
         matrix, or if the state is not an multi-qubit quantum state.
@@ -371,34 +462,43 @@ def plot_state(quantum_state, method='city', filename=None):
     num = int(np.log2(len(rho)))
     if 2 ** num != len(rho):
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-
+    fig = None
     if method == 'city':
-        plot_state_city(rho, filename=filename)
+        fig = plot_state_city(rho, filename=filename, show=show)
     elif method == "paulivec":
-        plot_state_paulivec(rho, filename=filename)
+        fig = plot_state_paulivec(rho, filename=filename, show=show)
     elif method == "qsphere":
-        plot_state_qsphere(rho, filename=filename)
+        fig = plot_state_qsphere(rho, filename=filename, show=show)
     elif method == "bloch":
-        orig_filename = filename
+        aspect = float(1 / num)
+        fig = plt.figure(figsize=plt.figaspect(aspect))
         for i in range(num):
-            if orig_filename:
-                filename_parts = orig_filename.split('.')
-                filename_parts[-2] += '-%d' % i
-                filename = '.'.join(filename_parts)
-                print(filename)
+            ax = fig.add_subplot(1, num, i + 1, projection='3d')
+            pauli_singles = [
+                Pauli.pauli_single(num, i, 'X'),
+                Pauli.pauli_single(num, i, 'Y'),
+                Pauli.pauli_single(num, i, 'Z')
+            ]
             bloch_state = list(
                 map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                    pauli_singles(i, num)))
-            plot_bloch_vector(bloch_state, "qubit " + str(i), filename=filename)
+                    pauli_singles))
+            plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax)
+        if filename:
+            plt.savefig(filename)
+        elif show:
+            plt.show()
     elif method == "wigner":
-        plot_wigner_function(rho, filename=filename)
+        fig = plot_wigner_function(rho, filename=filename, show=show)
+    elif method == "hinton":
+        fig = plot_hinton(rho, filename=filename, show=show)
+    return fig
 
 
 ###############################################################
 # Plotting Wigner functions
 ###############################################################
 
-def plot_wigner_function(state, res=100, filename=None):
+def plot_wigner_function(state, res=100, filename=None, show=False):
     """Plot the equal angle slice spin Wigner function of an arbitrary
     quantum state.
 
@@ -410,6 +510,10 @@ def plot_wigner_function(state, res=100, filename=None):
             on sphere (creates a res x res grid of points)
         filename (str): the output file to save the plot as. If specified it
             will save and exit and not open up the plot in a new window.
+        show (bool): If set to true the rendered image will open in a new
+            window
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization
 
     References:
         [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
@@ -516,8 +620,9 @@ def plot_wigner_function(state, res=100, filename=None):
     plt.colorbar(m, shrink=0.5, aspect=10)
     if filename:
         plt.savefig(filename)
-    else:
+    elif show:
         plt.show()
+    return fig
 
 
 def plot_wigner_curve(wigner_data, xaxis=None, filename=None):
@@ -541,7 +646,7 @@ def plot_wigner_curve(wigner_data, xaxis=None, filename=None):
 
 def plot_wigner_plaquette(wigner_data, max_wigner='local', filename=None):
     """Plots plaquette of wigner function data, the plaquette will
-    consist of cicles each colored to match the value of the Wigner
+    consist of circles each colored to match the value of the Wigner
     function at the given point in phase space.
 
     Args:

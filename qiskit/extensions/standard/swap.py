@@ -10,12 +10,13 @@
 """
 SWAP gate.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class SwapGate(Gate):
@@ -24,21 +25,33 @@ class SwapGate(Gate):
     def __init__(self, ctl, tgt, circ=None):
         """Create new SWAP gate."""
         super().__init__("swap", [], [ctl, tgt], circ)
+        self._define_decompositions()
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("swap %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                     tgt[0].name, tgt[1]))
+    def _define_decompositions(self):
+        """
+        gate swap a,b { cx a,b; cx b,a; cx a,b; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("cx", 2, 0, 0)
+        rule = [
+            CnotGate(q[0], q[1]),
+            CnotGate(q[1], q[0]),
+            CnotGate(q[0], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.swap(self.arg[0], self.arg[1]))
+        self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
 
 
 def swap(self, ctl, tgt):
@@ -57,4 +70,3 @@ def swap(self, ctl, tgt):
 
 
 QuantumCircuit.swap = swap
-CompositeGate.swap = swap

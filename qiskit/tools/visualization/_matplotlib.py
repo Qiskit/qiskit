@@ -15,20 +15,19 @@ import itertools
 import json
 import logging
 import math
-import os
-import tempfile
 
-from matplotlib import get_backend as get_matplotlib_backend
-from matplotlib import patches
-from matplotlib import pyplot as plt
 import numpy as np
-import PIL
 
-from qiskit import dagcircuit
-from qiskit import _qiskiterror
+try:
+    from matplotlib import patches
+    from matplotlib import pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
+from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
-from qiskit import transpiler
 
 
 logger = logging.getLogger(__name__)
@@ -92,12 +91,14 @@ class Anchor:
 
 class MatplotlibDrawer:
     def __init__(self,
-                 basis='id,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz,'
-                       'cx,cy,cz,ch,crz,cu1,cu3,swap,ccx,cswap',
-                 scale=1.0, style=None):
+                 scale=1.0, style=None, plot_barriers=True,
+                 reverse_bits=False):
+
+        if not HAS_MATPLOTLIB:
+            raise ImportError('The class MatplotlibDrawer needs matplotlib. '
+                              'Run "pip install matplotlib" before.')
 
         self._ast = None
-        self._basis = basis
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
@@ -111,6 +112,8 @@ class MatplotlibDrawer:
         }
 
         self._style = _qcstyle.QCStyle()
+        self.plot_barriers = plot_barriers
+        self.reverse_bits = reverse_bits
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -128,26 +131,19 @@ class MatplotlibDrawer:
                             labelleft=False, labelright=False)
 
     def parse_circuit(self, circuit):
-        dag_circuit = dagcircuit.DAGCircuit.fromQuantumCircuit(
-            circuit, expand_gates=False)
-        self._ast = transpiler.transpile(dag_circuit,
-                                         basis_gates=self._basis,
-                                         format='json')
-        self._registers()
-        self._ops = self._ast['instructions']
+        qregs, cregs, ops = _utils._get_instructions(
+            circuit, reversebits=self.reverse_bits)
+        self._registers(cregs, qregs)
+        self._ops = ops
 
-    def _registers(self):
+    def _registers(self, creg, qreg):
         # NOTE: formats of clbit and qubit are different!
-        header = self._ast['header']
         self._creg = []
-        for e in header['clbit_labels']:
-            for i in range(e[1]):
-                self._creg.append(Register(name=e[0], index=i))
-        assert len(self._creg) == header['number_of_clbits']
+        for e in creg:
+            self._creg.append(Register(name=e[0], index=e[1]))
         self._qreg = []
-        for e in header['qubit_labels']:
+        for e in qreg:
             self._qreg.append(Register(name=e[0], index=e[1]))
-        assert len(self._qreg) == header['number_of_qubits']
 
     @property
     def ast(self):
@@ -357,29 +353,11 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
-
-        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
-            # returns None when matplotlib is inline mode to prevent Jupyter
-            # with matplotlib inlining enabled to draw the diagram twice.
-            im = None
-        else:
-            # when matplotlib is not inline mode,
-            # self.figure.savefig is called twice because...
-            # ... this is needed to get the in-memory representation
-            with tempfile.TemporaryDirectory() as tmpdir:
-                tmpfile = os.path.join(tmpdir, 'circuit.png')
-                self.figure.savefig(tmpfile, dpi=self._style.dpi,
-                                    bbox_inches='tight')
-                im = PIL.Image.open(tmpfile)
-                _utils._trim(im)
-                os.remove(tmpfile)
-
-        # ... and this is needed to delegate in matplotlib the generation of
-        # the proper format.
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        return im
+        plt.close(self.figure)
+        return self.figure
 
     def _draw_regs(self):
         # quantum register
@@ -425,22 +403,6 @@ class MatplotlibDrawer:
                     }
                 self._cond['n_lines'] += 1
                 idx += 1
-        # reverse bit order
-        if self._style.reverse:
-            self._reverse_bits(self._qreg_dict)
-            self._reverse_bits(self._creg_dict)
-
-    def _reverse_bits(self, target_dict):
-        coord = {}
-        # grouping
-        for dict_ in target_dict.values():
-            if dict_['group'] not in coord:
-                coord[dict_['group']] = [dict_['y']]
-            else:
-                coord[dict_['group']].insert(0, dict_['y'])
-        # reverse bit order
-        for key in target_dict.keys():
-            target_dict[key]['y'] = coord[target_dict[key]['group']].pop(0)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -530,20 +492,33 @@ class MatplotlibDrawer:
                 _iswide = False
                 gw = 1
             # get qreg index
-            if 'qubits' in op.keys():
-                q_idxs = op['qubits']
+            if 'qargs' in op.keys():
+                q_idxs = []
+                for qarg in op['qargs']:
+                    for index, reg in self._qreg_dict.items():
+                        if (reg['group'] == qarg[0] and
+                                reg['index'] == qarg[1]):
+                            q_idxs.append(index)
+                            break
             else:
                 q_idxs = []
             # get creg index
-            if 'clbits' in op.keys():
-                c_idxs = op['clbits']
+            if 'cargs' in op.keys():
+                c_idxs = []
+                for carg in op['cargs']:
+                    for index, reg in self._creg_dict.items():
+                        if (reg['group'] == carg[0] and
+                                reg['index'] == carg[1]):
+                            c_idxs.append(index)
+                            break
             else:
                 c_idxs = []
             # find empty space to place gate
             if not _barriers['group']:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
                 while True:
-                    if op['name'] in _force_next or 'conditional' in op.keys() or \
+                    if op['name'] in _force_next or (
+                            'condition' in op.keys() and op['condition']) or \
                             not self._style.compress:
                         occupied = self._qreg_dict.keys()
                     else:
@@ -554,7 +529,9 @@ class MatplotlibDrawer:
                         this_anc, gw) for jj in q_list]
                     if all(locs):
                         for ii in q_list:
-                            if op['name'] == 'barrier' and not self._style.barrier:
+                            if op['name'] in [
+                                    'barrier', 'snapshot', 'load', 'save',
+                                    'noise'] and not self.plot_barriers:
                                 q_anchors[ii].set_index(this_anc - 1, gw)
                             else:
                                 q_anchors[ii].set_index(this_anc, gw)
@@ -563,7 +540,7 @@ class MatplotlibDrawer:
                         this_anc += 1
             # qreg coordinate
             q_xy = [q_anchors[ii].plot_coord(this_anc, gw) for ii in q_idxs]
-            # creg corrdinate
+            # creg coordinate
             c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in c_idxs]
             # bottom and top point of qreg
             qreg_b = min(q_xy, key=lambda xy: xy[1])
@@ -573,21 +550,24 @@ class MatplotlibDrawer:
                 print(i, op)
 
             # rotation parameter
-            if 'params' in op.keys():
-                param = self.param_parse(op['params'], self._style.pimode)
+            if 'op' in op.keys() and hasattr(op['op'], 'param'):
+                param = self.param_parse(op['op'].param, self._style.pimode)
             else:
                 param = None
             # conditional gate
-            if 'conditional' in op.keys():
+            if 'condition' in op.keys() and op['condition']:
                 c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for
                         ii in self._creg_dict]
+                mask = 0
+                for index, cbit in enumerate(self._creg):
+                    if cbit.name == op['condition'][0]:
+                        mask |= (1 << index)
+                val = op['condition'][1]
                 # cbit list to consider
                 fmt_c = '{{:0{}b}}'.format(len(c_xy))
-                mask = int(op['conditional']['mask'], 16)
                 cmask = list(fmt_c.format(mask))[::-1]
                 # value
                 fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
-                val = int(op['conditional']['val'], 16)
                 vlist = list(fmt_v.format(val))[::-1]
                 # plot conditionals
                 v_ind = 0
@@ -602,7 +582,7 @@ class MatplotlibDrawer:
                             xy_plot.append(xy)
                         v_ind += 1
                 creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                self._subtext(creg_b, op['conditional']['val'])
+                self._subtext(creg_b, hex(val))
                 self._line(qreg_t, creg_b, lc=self._style.cc,
                            ls=self._style.cline)
             #
@@ -611,7 +591,8 @@ class MatplotlibDrawer:
             if op['name'] == 'measure':
                 vv = self._creg_dict[c_idxs[0]]['index']
                 self._measure(q_xy[0], c_xy[0], vv)
-            elif op['name'] == 'barrier':
+            elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
+                                'noise']:
                 q_group = self._qreg_dict[q_idxs[0]]['group']
                 if q_group not in _barriers['group']:
                     _barriers['group'].append(q_group)
@@ -619,7 +600,7 @@ class MatplotlibDrawer:
                 if op_next and op_next['name'] == 'barrier':
                     continue
                 else:
-                    if self._style.barrier:
+                    if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
                     _barriers['group'].clear()
                     _barriers['coord'].clear()
@@ -693,7 +674,7 @@ class MatplotlibDrawer:
                 self._line(qreg_b, qreg_t)
             else:
                 logger.critical('Invalid gate %s', op)
-                raise _qiskiterror.QISKitError('invalid gate {}'.format(op))
+                raise _error.VisualizationError('invalid gate {}'.format(op))
         #
         # adjust window size and draw horizontal lines
         #

@@ -19,17 +19,16 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import execute, IBMQ, Aer
 from qiskit.backends.ibmq import least_busy
 
 
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 try:
@@ -52,7 +51,7 @@ try:
     print("(AER Backends)")
     print(Aer.backends())
 
-    # runing the job
+    # running the job
     job_sim = execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
     sim_result = job_sim.result()
 
@@ -90,5 +89,5 @@ try:
         print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

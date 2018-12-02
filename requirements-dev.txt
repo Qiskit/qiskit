@@ -1,9 +1,14 @@
 pillow>=4.2.1
 pylint>=1.8,<1.9
 pycodestyle
-Sphinx>=1.7,<1.8
+Sphinx==1.7.5
 better-apidoc==0.2.0
 sphinxcontrib-fulltoc==1.2.0
 coverage>=4.4.0
 wheel
 vcrpy
+jupyter
+ipywidgets
+stestr>=2.0.0
+sphinx_materialdesign_theme
+matplotlib>=2.1

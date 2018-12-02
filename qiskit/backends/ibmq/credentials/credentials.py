@@ -22,7 +22,7 @@ class Credentials(object):
     """IBM Q account credentials.
 
     Note that, by convention, two credentials that have the same hub, group
-    and token (regardless of other attributes) are considered equivalent.
+    and project (regardless of other attributes) are considered equivalent.
     The `unique_id()` returns the unique identifier.
     """
 

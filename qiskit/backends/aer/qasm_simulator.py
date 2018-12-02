@@ -18,11 +18,14 @@ import subprocess
 from subprocess import PIPE
 import platform
 
+from math import log2
 import numpy as np
-
+from qiskit._util import local_hardware_info
+from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
+from qiskit.qobj import Qobj
 from qiskit.qobj import qobj_to_dict
 
 logger = logging.getLogger(__name__)
@@ -45,34 +48,59 @@ class QasmSimulator(BaseBackend):
     """C++ quantum circuit simulator with realistic noise"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'qasm_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'backend_name': 'qasm_simulator',
+        'backend_version': '1.0.0',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
-        'description': 'A C++ realistic noise simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,' +
-                       'snapshot,wait,noise,save,load'
+        'conditional': True,
+        'open_pulse': False,
+        'memory': True,
+        'max_shots': 65536,
+        'description': 'A C++ realistic noise simulator for qasm experiments',
+        'basis_gates': ['u0', 'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+                        'h', 's', 'sdg', 't', 'tdg', 'rzz', 'snapshot', 'wait',
+                        'noise', 'save', 'load'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Try to use the default executable if not specified.
-        if self._configuration.get('exe'):
-            paths = [self._configuration.get('exe')]
+        if 'exe' in self._configuration:
+            paths = [self._configuration.exe]
         else:
             paths = DEFAULT_SIMULATOR_PATHS
 
         # Ensure that the executable is available.
         try:
-            self._configuration['exe'] = next(
+            self._configuration.exe = next(
                 path for path in paths if (os.path.exists(path) and
                                            os.path.getsize(path) > 100))
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
-                                    self._configuration.get('exe', 'default locations'))
+                                    getattr(self._configuration, 'exe', 'default locations'))
+
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         """Run a qobj on the backend."""
@@ -83,12 +111,11 @@ class QasmSimulator(BaseBackend):
 
     def _run_job(self, job_id, qobj):
         self._validate(qobj)
-        result = run(qobj, self._configuration['exe'])
+        result = run(qobj, self._configuration.exe)
         result['job_id'] = job_id
         copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def _validate(self, qobj):
         for experiment in qobj.experiments:
@@ -103,33 +130,58 @@ class CliffordSimulator(BaseBackend):
     """"C++ Clifford circuit simulator with realistic noise."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'clifford_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator',
+        'backend_name': 'clifford_simulator',
+        'backend_version': '1.0.0',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
+        'conditional': True,
+        'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A C++ Clifford simulator with approximate noise',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'cx,id,x,y,z,h,s,sdg,snapshot,wait,noise,save,load'
+        'basis_gates': ['cx', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'snapshot',
+                        'wait', 'noise', 'save', 'load'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=configuration or self.DEFAULT_CONFIGURATION.copy(),
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Try to use the default executable if not specified.
-        if self._configuration.get('exe'):
-            paths = [self._configuration.get('exe')]
+        if 'exe' in self._configuration:
+            paths = [self._configuration.exe]
         else:
             paths = DEFAULT_SIMULATOR_PATHS
 
         # Ensure that the executable is available.
         try:
-            self._configuration['exe'] = next(
+            self._configuration.exe = next(
                 path for path in paths if (os.path.exists(path) and
                                            os.path.getsize(path) > 100))
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
-                                    self._configuration.get('exe', 'default locations'))
+                                    getattr(self._configuration, 'exe', 'default locations'))
+
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         """Run a Qobj on the backend.
@@ -146,18 +198,22 @@ class CliffordSimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
+        if isinstance(qobj, Qobj):
+            qobj_dict = qobj.as_dict()
+        else:
+            qobj_dict = qobj
         self._validate()
         # set backend to Clifford simulator
-        if 'config' in qobj:
-            qobj['config']['simulator'] = 'clifford'
+        if 'config' in qobj_dict:
+            qobj_dict['config']['simulator'] = 'clifford'
         else:
-            qobj['config'] = {'simulator': 'clifford'}
+            qobj_dict['config'] = {'simulator': 'clifford'}
 
-        result = run(qobj, self._configuration['exe'])
+        qobj = Qobj.from_dict(qobj_dict)
+        result = run(qobj, self._configuration.exe)
         result['job_id'] = job_id
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        return result_from_old_style_dict(result)
 
     def _validate(self):
         return

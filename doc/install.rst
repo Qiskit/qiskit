@@ -1,14 +1,12 @@
-======================
-Installation and setup
-======================
 
-Installation
-============
+Terra Installation and setup
+============================
 
-1. Dependencies
----------------
 
-To use Qiskit you'll need to have installed at least
+Dependencies
+------------
+
+To use Qiskit Terra you'll need to have installed at least
 `Python 3.5 or later <https://www.python.org/downloads/>`__.
 `Jupyter Notebooks <https://jupyter.readthedocs.io/en/latest/install.html>`__
 is also recommended for interacting with
@@ -18,10 +16,10 @@ For this reason we recommend installing `Anaconda 3 <https://www.anaconda.com/do
 python distribution, which already comes with all these dependencies pre-installed.
 
 
-2. Installation
----------------
+Installation
+-------------
 
-The recommended way to install Qiskit is by using the PIP (Python
+The recommended way to install Qiskit Terra is by using the PIP (Python
 package manager) tool:
 
 .. code:: sh
@@ -30,11 +28,95 @@ package manager) tool:
 
 This will install the latest stable release, along with all the dependencies.
 
+.. note::
 
-.. _qconfig-setup:
+    We recommend using `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`__
+    to cleanly separate Qiskit from other applications and improve your experience.
 
-3. Configure your API token and QE credentials
-----------------------------------------------
+
+Install with visualization dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are optional dependencies that are required to use all the visualization
+functions included in Qiskit Terra. You can install these at the same time by
+running:
+
+.. code:: sh
+
+   pip install qiskit[visualization]
+
+which will install qiskit and all the visualization dependencies.
+
+
+Setup with an environment
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The simplest way to use environments is by using Anaconda
+
+.. code:: sh
+
+     conda create -y -n Qiskitenv python=3
+     activate Qiskitenv
+
+and install Qiskit Terra using 
+
+.. code:: sh
+
+    pip install qiskit
+
+
+
+Setup a standalone version
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The best way to install Qiskit Terra when the goal is to extend its capabilities is by cloning
+the `Terra repository <https://github.com/Qiskit/qiskit-terra>`__.
+
+Then to install Qiskit Terra and all the required dependencies use
+
+.. code:: sh
+
+     conda create -y -n Qiskitenv python=3
+     activate Qiskitenv
+     cd qiskit-terra
+     pip install -r requirements.txt
+
+To install the required dependencies for the development tools add the line 
+
+.. code:: sh
+
+    pip install -r requirements-dev.txt
+
+
+Building the C++ libraries  
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As our build system is based on CMake, we need to perform what is called an
+"out-of-source" build. This is as simple as executing these commands:
+
+Linux and Mac:
+
+.. code-block:: bash
+
+    $ mkdir out
+    $ cd out
+    out$ cmake ..
+    out$ make
+
+Windows:
+
+.. code-block:: bash
+
+    C:\..\> mkdir out
+    C:\..\> cd out
+    C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a -G "MinGW Makefiles" ..
+    C:\..\out> make
+
+This will generate all needed binaries for your specific platform.
+
+
+Configure your API token and IBMQ credentials
+---------------------------------------------
 
 -  Create an `IBM Q <https://quantumexperience.ng.bluemix.net>`__ account if
    you haven't already done so
@@ -42,8 +124,8 @@ This will install the latest stable release, along with all the dependencies.
    Account” > “Advanced”
 
 
-3.1 Automatically loading credentials
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Automatically loading credentials
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As of Qiskit Terra 0.6, credentials for accessing the IBM Q quantum devices can be loaded
 automatically from several locations, thus streamlining the set up of the IBM Q 
@@ -61,8 +143,9 @@ credentials from several sources (if needed), and authenticates against IBM Q,
 making the online devices available to your program. Please use one of the following
 methods for storing the credentials before calling the automatic registration:
 
-3.1.1 Store API credentials locally
-"""""""""""""""""""""""""""""""""""
+
+Store API credentials locally
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For most users, storing your API credentials is the most convenient approach.
 Your information is stored locally in a configuration file called `qiskitrc`,
@@ -91,89 +174,9 @@ along with any other additional information required (e.g. proxy information):
     IBMQ.save_account('MY_API_TOKEN', url='https://...')
 
 
-3.1.2 Load API credentials from environment variables
-"""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-For more advanced users, it is possible to load API credentials from 
-environment variables. Specifically, you can set the following environment
-variables:
-
-* `QE_TOKEN`,
-* `QE_URL`
-
-Note that if they are present in your environment, they will take precedence
-over the credentials stored in disk.
-
-3.1.3 Load API credentials from Qconfig.py
-""""""""""""""""""""""""""""""""""""""""""
-
-For compatibility with configurations set for Qiskit versions earlier than 0.6,
-the credentials can also be stored in a file called ``Qconfig.py`` placed in
-the directory where your program is invoked from. For convenience, we provide
-a default version of this file you can use as a reference - using your favorite
-editor, create a ``Qconfig.py`` file in the folder of your program with the
-following contents:
-
-.. code:: python
-
-    APItoken = 'PUT_YOUR_API_TOKEN_HERE'
-
-    config = {
-        'url': 'https://quantumexperience.ng.bluemix.net/api',
-
-        # If you have access to IBM Q features, you also need to fill the "hub",
-        # "group", and "project" details. Replace "None" on the lines below
-        # with your details from Quantum Experience, quoting the strings, for
-        # example: 'hub': 'my_hub'
-        # You will also need to update the 'url' above, pointing it to your custom
-        # URL for IBM Q.
-        'hub': None,
-        'group': None,
-        'project': None
-    }
-
-    if 'APItoken' not in locals():
-        raise Exception('Please set up your access token. See Qconfig.py.')
-
-And customize the following lines:
-
-* copy/paste your API token into the space between the quotation marks on the
-  first line (``APItoken = 'PUT_YOUR_API_TOKEN_HERE'``).
-* if you have access to the IBM Q features, you also need to setup the
-  values for your url, hub, group, and project. You can do so by filling the
-  ``config`` variable with the values you can find on your IBM Q account
-  page.
-
-For example, a valid and fully configured ``Qconfig.py`` file would look like:
-
-.. code:: python
-
-    APItoken = '123456789abc...'
-
-    config = {
-        'url': 'https://quantumexperience.ng.bluemix.net/api'
-    }
-
-For IBM Q users, a valid and fully configured ``Qconfig.py`` file would look
-like:
-
-.. code:: python
-
-    APItoken = '123456789abc...'
-
-    config = {
-        'url': 'https://quantumexperience.ng.bluemix.net/api',
-        # The following should only be needed for IBM Q users.
-        'hub': 'MY_HUB',
-        'group': 'MY_GROUP',
-        'project': 'MY_PROJECT'
-    }
-
-Note that if a ``Qconfig.py`` file is present in your directory, it will take
-precedence over the environment variables and/or the credentials stored locally on disk.
-
-3.2 Manually loading credentials
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Manually loading credentials
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In more complex scenarios or for users that need finer control over multiple
 accounts, one can pass the API token, and the other parameters, directly to the 
@@ -203,17 +206,9 @@ Manually loading from a ``Qconfig.py`` file can also be done:
 Please refer to the ``qiskit.IBMQ`` documentation for more information about
 using multiple credentials.
 
-Install Jupyter-based tutorials
-===============================
-
-The Qiskit project provides you a collection of tutorials in the form of Jupyter
-notebooks, which are essentially web pages that contain "cells" of embedded
-Python code. Please refer to the `tutorials repository`_ for detailed
-instructions.
-
 
 Troubleshooting
-===============
+---------------
 
 The installation steps described on this document assume familiarity with the
 Python environment on your setup (for example, standard Python, ``virtualenv``
@@ -230,6 +225,3 @@ Depending on the system and setup, appending "sudo -H" before the
 
 
 .. _tutorials: https://github.com/Qiskit/qiskit-tutorial
-.. _tutorials repository: https://github.com/Qiskit/qiskit-tutorial
-.. _documentation for contributors: https://github.com/Qiskit/qiskit-terra/blob/master/.github/CONTRIBUTING.rst
-.. _Qconfig.py.default: https://github.com/Qiskit/qiskit-terra/blob/stable/Qconfig.py.default

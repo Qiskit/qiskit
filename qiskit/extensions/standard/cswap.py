@@ -8,12 +8,14 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
-from qiskit import CompositeGate
 from qiskit import Gate
 from qiskit import QuantumCircuit
 from qiskit._instructionset import InstructionSet
 from qiskit._quantumregister import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.ccx import ToffoliGate
 
 
 class FredkinGate(Gate):
@@ -22,26 +24,38 @@ class FredkinGate(Gate):
     def __init__(self, ctl, tgt1, tgt2, circ=None):
         """Create new Fredkin gate."""
         super().__init__("cswap", [], [ctl, tgt1, tgt2], circ)
+        self._define_decompositions()
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt1 = self.arg[1]
-        tgt2 = self.arg[2]
-        return self._qasmif("cswap %s[%d],%s[%d],%s[%d];" % (ctl[0].name,
-                                                             ctl[1],
-                                                             tgt1[0].name,
-                                                             tgt1[1],
-                                                             tgt2[0].name,
-                                                             tgt2[1]))
+    def _define_decompositions(self):
+        """
+        gate cswap a,b,c
+        { cx c,b;
+          ccx a,b,c;
+          cx c,b;
+        }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(3, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("cx", 2, 0, 0)
+        decomposition.add_basis_element("ccx", 3, 0, 0)
+        rule = [
+            CnotGate(q[2], q[1]),
+            ToffoliGate(q[0], q[1], q[2]),
+            CnotGate(q[2], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
+        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cswap(self.arg[0], self.arg[1], self.arg[2]))
+        self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
 def cswap(self, ctl, tgt1, tgt2):
@@ -63,4 +77,3 @@ def cswap(self, ctl, tgt1, tgt2):
 
 
 QuantumCircuit.cswap = cswap
-CompositeGate.cswap = cswap
