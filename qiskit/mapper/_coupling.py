@@ -115,16 +115,6 @@ class Coupling:
         warnings.warn("get_qubits is being removed", DeprecationWarning, stacklevel=2)
         return sorted(list(self.qubits.keys()))
 
-    def get_edges_qubits(self): #TODO remove
-        """Return a list of edges in the coupling graph.
-
-        Each edge is a pair of qubits and each qubit is a tuple (qreg, index).
-        """
-        warnings.warn("get_edges_qubits is being removed", DeprecationWarning, stacklevel=2)
-
-        return list(map(lambda x: (self.index_to_qubit[x[0]],
-                                   self.index_to_qubit[x[1]]), self.G.edges()))
-
     def get_edges(self):
         """Return a list of edges in the coupling graph.
 
@@ -211,17 +201,6 @@ class Coupling:
         except nx.exception.NetworkXException:
             return False
 
-    def connected(self): # TODO remove!
-        """
-        Test if the graph is connected.
-
-        Return True if connected, False otherwise
-        """
-        warnings.warn("connected is being removed", DeprecationWarning, stacklevel=2)
-        try:
-            return nx.is_weakly_connected(self.G)
-        except nx.exception.NetworkXException:
-            return False
 
     def compute_distance(self):
         """

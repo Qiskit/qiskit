@@ -9,7 +9,6 @@
 This pass checks if a DAG is mapped to a coupling map.
 """
 
-from qiskit import QuantumRegister
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
 
