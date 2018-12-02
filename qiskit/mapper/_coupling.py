@@ -108,7 +108,7 @@ class Coupling:
 
     def size(self):
         """Return the number of wires in this graph."""
-        return len(self.qubits)
+        return len(self.graph.nodes)
 
     def get_qubits(self):
         """Return the qubits in this graph as a sorted (qreg, index) tuples."""
