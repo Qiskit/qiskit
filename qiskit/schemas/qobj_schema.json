@@ -745,7 +745,7 @@
                                     "array"
                                 ]
                             },
-                            "minItems": 0,
+                            "minItems": 1,
                             "title": "List of quantum registers and their sizes.",
                             "type": "array"
                         },

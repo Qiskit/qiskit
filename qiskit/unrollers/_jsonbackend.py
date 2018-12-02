@@ -104,6 +104,9 @@ class JsonBackend(UnrollerBackend):
 
         qreg = QuantumRegister object
         """
+        self._qreg_sizes.append([qreg.name, qreg.size])
+
+        # order qubits from lower to higher index. backends will do little endian.
         for j in range(qreg.size):
             self._qubit_order.append([qreg.name, j])
             self._qubit_order_internal[(qreg.name, j)] = self._number_of_qubits + j
@@ -127,6 +130,7 @@ class JsonBackend(UnrollerBackend):
         # TODO: avoid rewriting the same data over and over
         self.circuit['header']['memory_slots'] = self._number_of_clbits
         self.circuit['header']['creg_sizes'] = self._creg_sizes
+        self.circuit['header']['clbit_labels'] = self._cbit_order
 
     def define_gate(self, name, gatedata):
         """Define a new quantum gate.
