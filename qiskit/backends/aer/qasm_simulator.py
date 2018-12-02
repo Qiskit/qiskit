@@ -108,6 +108,7 @@ class QasmSimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
+        """Run a Qobj on the backend."""
         self._validate(qobj)
         qobj_dict = qobj.as_dict()
         result = run(qobj_dict, self._configuration.exe)

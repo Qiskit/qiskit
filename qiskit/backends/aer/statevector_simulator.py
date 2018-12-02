@@ -68,7 +68,7 @@ class StatevectorSimulator(QasmSimulator):
         return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
-        """Run a qobj on the the backend."""
+        """Run a qobj on the backend."""
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj)
         aer_job.submit()
