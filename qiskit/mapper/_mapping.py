@@ -224,7 +224,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         for i in coupling.get_qubits():
             for j in coupling.get_qubits():
                 scale = 1 + np.random.normal(0, 1 / n)
-                xi[i][j] = scale * coupling.distance_qubits(i, j) ** 2
+                xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
                 xi[j][i] = xi[i][j]
 
         # Loop over depths d up to a max depth of 2n+1
@@ -292,8 +292,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
             # We have either run out of qubits or failed to improve
             # Compute the coupling graph distance_qubits
-            dist = sum([coupling.distance_qubits(trial_layout[g[0]],
-                                                 trial_layout[g[1]]) for g in gates])
+            dist = sum([coupling.distance(trial_layout[g[0]][1],
+                                                 trial_layout[g[1]][1]) for g in gates])
             logger.debug("layer_permutation: dist = %s", dist)
             # If all gates can be applied now, we are finished
             # Otherwise we need to consider a deeper swap circuit
@@ -307,8 +307,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
             logger.debug("layer_permutation: increment depth to %s", d)
 
         # Either we have succeeded at some depth d < dmax or failed
-        dist = sum([coupling.distance_qubits(trial_layout[g[0]],
-                                             trial_layout[g[1]]) for g in gates])
+        dist = sum([coupling.distance(trial_layout[g[0]][1],
+                                             trial_layout[g[1]][1]) for g in gates])
         logger.debug("layer_permutation: dist = %s", dist)
         if dist == len(gates):
             if d < best_d:
