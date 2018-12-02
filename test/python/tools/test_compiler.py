@@ -428,7 +428,6 @@ class TestCompiler(QiskitTestCase):
 
         Pass if the results are correct.
         """
-        
         backend = qiskit.Aer.get_backend('qasm_simulator_py')
         coupling_map = [[0, 1], [0, 2],
                         [1, 2],

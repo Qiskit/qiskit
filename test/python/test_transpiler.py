@@ -63,14 +63,14 @@ class TestTranspiler(QiskitTestCase):
         coupling_map = [[1, 0]]
         basis_gates = 'u1,u2,u3,cx,id'
 
-        backend=Aer.get_backend('qasm_simulator_py')
+        backend = Aer.get_backend('qasm_simulator_py')
         circuit2 = transpile(circuit, backend, coupling_map=coupling_map, basis_gates=basis_gates,
                              pass_manager=None)
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
 
-        qobj2=circuits_to_qobj(circuit2, backend.name(), basis_gates=basis_gates, 
-                               coupling_map=coupling_map, qobj_id=qobj.qobj_id)
+        qobj2 = circuits_to_qobj(circuit2, backend.name(), basis_gates=basis_gates,
+                                 coupling_map=coupling_map, qobj_id=qobj.qobj_id)
 
         self.assertEqual(qobj, qobj2)
 

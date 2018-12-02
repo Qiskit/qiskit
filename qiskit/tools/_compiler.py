@@ -67,8 +67,8 @@ def compile(circuits, backend,
 
 
 def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
-                max_credits=10, qobj_id=None, basis_gates=None, coupling_map=None,
-                seed=None):
+                     max_credits=10, qobj_id=None, basis_gates=None, coupling_map=None,
+                     seed=None):
     """Convert a list of dags into a qobj.
 
     Args:
@@ -131,7 +131,7 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
     return qobj
 
 
-def _circuit_to_experiment(circuit, config=None, basis_gates=None, 
+def _circuit_to_experiment(circuit, config=None, basis_gates=None,
                            coupling_map=None):
     """Helper function for dags to qobj in parallel (if available).
 
@@ -171,9 +171,9 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     return experiment
 
 
-def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None, 
-            initial_layout=None, shots=1024, max_credits=10, seed=None, 
-            qobj_id=None, hpc=None, skip_transpiler=False, seed_mapper=None, 
+def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
+            initial_layout=None, shots=1024, max_credits=10, seed=None,
+            qobj_id=None, hpc=None, skip_transpiler=False, seed_mapper=None,
             **kwargs):
     """Executes a set of circuits.
 

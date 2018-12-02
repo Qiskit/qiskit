@@ -9,7 +9,7 @@
 import logging
 import warnings
 import numpy as np
-import networkx as nx 
+import networkx as nx
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
@@ -104,7 +104,6 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
             if n['type'] == 'op':
                 circuit._attach(n['op'])
         circuits.append(circuit)
-    
     if return_form_is_single:
         return circuits[0]
     else:
