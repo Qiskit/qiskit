@@ -21,7 +21,7 @@ from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import execute
-from qiskit._qiskiterror import QISKitError
+from qiskit._qiskiterror import QiskitError
 from qiskit.backends.ibmq import least_busy
 from .common import QiskitTestCase, bin_to_hex_keys
 from .common import requires_qe_access, requires_cpp_simulator
@@ -58,7 +58,7 @@ class FakeBackend(object):
 
 
 class TestCompiler(QiskitTestCase):
-    """QISKit Compiler Tests."""
+    """Qiskit Compiler Tests."""
 
     seed = 42
 
@@ -358,7 +358,7 @@ class TestCompiler(QiskitTestCase):
 
         try:
             dags = transpiler.transpile(circuit, backend)
-        except QISKitError:
+        except QiskitError:
             dags = None
         self.assertIsInstance(dags[0], DAGCircuit)
 
@@ -380,7 +380,7 @@ class TestCompiler(QiskitTestCase):
 
         try:
             dags = transpiler.transpile(qc, backend)
-        except QISKitError:
+        except QiskitError:
             dags = None
         self.assertIsInstance(dags[0], DAGCircuit)
 

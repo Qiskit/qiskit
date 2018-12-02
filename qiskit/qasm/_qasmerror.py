@@ -9,10 +9,10 @@
 Exception for errors raised while parsing OPENQASM.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class QasmError(QISKitError):
+class QasmError(QiskitError):
     """Base class for errors raised while parsing OPENQASM."""
 
     def __init__(self, *msg):

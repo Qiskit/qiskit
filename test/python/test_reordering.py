@@ -18,7 +18,7 @@ from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
 class TestBitReordering(QiskitTestCase):
-    """Test QISKit's fix for the ibmq hardware reordering bug.
+    """Test Qiskit's fix for the ibmq hardware reordering bug.
 
     The bug will be fixed with the introduction of qobj,
     in which case these tests can be used to verify correctness.

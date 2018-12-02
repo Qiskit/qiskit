@@ -4,7 +4,7 @@ Example used in the README. In this example a Bell state is made.
 """
 
 # Import the Qiskit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import execute, IBMQ, Aer
 from qiskit.backends.ibmq import least_busy
 
@@ -63,5 +63,5 @@ try:
     except:
         print("All devices are currently unavailable.")
 
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

@@ -19,7 +19,7 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import execute, IBMQ, Aer
 from qiskit.backends.ibmq import least_busy
 
@@ -89,5 +89,5 @@ try:
         print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
