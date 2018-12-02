@@ -714,7 +714,7 @@
                         },
                         "memory_slots": {
                             "description": "Total number of (slow) measurement slots used in this experiment.",
-                            "minimum": 1,
+                            "minimum": 0,
                             "type": "integer"
                         },                        
                         "n_qubits": {
