@@ -94,6 +94,7 @@ class DagUnroller(object):
                     for n_it in nx.topological_sort(decomposition_dag.multi_graph):
                         n = decomposition_dag.multi_graph.nodes[n_it]
                         if n["type"] == "op":
+                            n["op"].control = (condition[0], condition[1])
                             to_replay.append(n)
                     for n in decomposition_dag.get_op_nodes():
                         decomposition_dag._remove_op_node(n)

@@ -69,7 +69,7 @@ def compile(circuits, backend,
 def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
                      max_credits=10, qobj_id=None, basis_gates=None, coupling_map=None,
                      seed=None):
-    """Convert a list of dags into a qobj.
+    """Convert a list of circuits into a qobj.
 
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
@@ -148,7 +148,7 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     # Step 3a: create the Experiment based on json_circuit
     experiment = QobjExperiment.from_dict(json_circuit)
     # Step 3b: populate the Experiment configuration and header
-    experiment.header.name = dag.name
+    experiment.header.name = circuit.name
     # TODO: place in header or config?
     experiment_config = deepcopy(config or {})
     experiment_config.update({
@@ -164,8 +164,7 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
 
     # set eval_symbols=True to evaluate each symbolic expression
     # TODO: after transition to qobj, we can drop this
-    experiment.header.compiled_circuit_qasm = dag.qasm(
-        qeflag=True, eval_symbols=True)
+    experiment.header.compiled_circuit_qasm = circuit.qasm()
     # Step 3c: add the Experiment to the Qobj
     return experiment
 
