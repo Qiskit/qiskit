@@ -112,8 +112,8 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
 
     for circuit in circuits:
         qobj.experiments.append(_circuit_to_experiment(circuit,
-                                                       basis_gates,
                                                        config,
+                                                       basis_gates,
                                                        coupling_map)
                                 )
 
@@ -131,7 +131,8 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
     return qobj
 
 
-def _circuit_to_experiment(circuit, config=None, basis_gates=None, coupling_map=None):
+def _circuit_to_experiment(circuit, config=None, basis_gates=None, 
+                           coupling_map=None):
     """Helper function for dags to qobj in parallel (if available).
 
     Args:
