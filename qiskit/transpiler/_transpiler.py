@@ -98,16 +98,15 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
             circuit.add_register(qreg)
         for creg in dag.cregs.values():
             circuit.add_register(creg)
-        G = dag.multi_graph
-        for node in nx.topological_sort(G):
-            n = G.nodes[node]
+        graph = dag.multi_graph
+        for node in nx.topological_sort(graph):
+            n = graph.nodes[node]
             if n['type'] == 'op':
                 circuit._attach(n['op'])
         circuits.append(circuit)
     if return_form_is_single:
         return circuits[0]
-    else:
-        return circuits
+    return circuits
 
 
 def _circuits_2_dags(circuits):

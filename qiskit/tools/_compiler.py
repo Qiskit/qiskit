@@ -72,7 +72,7 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
     """Convert a list of dags into a qobj.
 
     Args:
-        dags (list[DAGCircuit]): dags to compile
+        circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
         backend_name (str): name of runner backend
         config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
@@ -114,8 +114,7 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
         qobj.experiments.append(_circuit_to_experiment(circuit,
                                                        config,
                                                        basis_gates,
-                                                       coupling_map)
-                                )
+                                                       coupling_map))
 
     # Update the `memory_slots` value.
     # TODO: remove when `memory_slots` can be provided by the user.
@@ -136,7 +135,7 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     """Helper function for dags to qobj in parallel (if available).
 
     Args:
-        dag (DAGCircuit): DAG to compile
+        circuit (QuantumCircuit): QuantumCircuit to convert into qobj experiment
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (list[str])): basis gates for the experiment
         coupling_map (list): coupling map (perhaps custom) to target in mapping
