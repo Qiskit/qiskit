@@ -238,18 +238,6 @@ class Coupling:
             for j in self.qubits.keys():
                 self.dist[i][j] = lengths[self.qubits[i]][self.qubits[j]]
 
-    def distance_qubits(self, q1, q2): # TODO remove
-        """Return the undirected distance_qubits between qubit q1 to qubit q2."""
-        warnings.warn("distance_qubits is being removed", DeprecationWarning, stacklevel=3)
-        self.compute_distance()
-        if self.dist is None:
-            raise CouplingError("distance_qubits has not been computed")
-        if q1 not in self.qubits:
-            raise CouplingError("%s not in coupling graph" % (q1,))
-        if q2 not in self.qubits:
-            raise CouplingError("%s not in coupling graph" % (q2,))
-        return self.distance(q1[1],q2[1])
-
     def distance(self, wire1, wire2):
         """Return the undirected distance between wire1 and wire2."""
         try:

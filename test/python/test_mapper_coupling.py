@@ -93,7 +93,7 @@ class CouplingTest(QiskitTestCase):
 
     def test_empty_coupling_class(self):
         coupling = Coupling()
-        self.assertEqual(0, len(coupling))
+        self.assertEqual(0, coupling.size())
         self.assertEqual([], coupling.wires)
         self.assertEqual([], coupling.get_edges())
         self.assertFalse(coupling.is_connected())
