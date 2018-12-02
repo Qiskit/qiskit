@@ -31,7 +31,7 @@ class StatevectorSimulator(QasmSimulator):
         'backend_name': 'statevector_simulator',
         'backend_version': '1.0.0',
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'conditional': False,

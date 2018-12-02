@@ -9,10 +9,10 @@
 Exception for errors raised by simulators.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class SimulatorError(QISKitError):
+class SimulatorError(QiskitError):
     """Base class for errors raised by simulators."""
 
     def __init__(self, *message):

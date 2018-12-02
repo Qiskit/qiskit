@@ -9,10 +9,10 @@
 Exceptions for errors raised while handling backends and jobs.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class JobError(QISKitError):
+class JobError(QiskitError):
     """Base class for errors raised by jobs."""
 
     def __init__(self, *message):
@@ -38,7 +38,7 @@ class JobTimeoutError(JobError):
         return repr(self.message)
 
 
-class QiskitBackendNotFoundError(QISKitError):
+class QiskitBackendNotFoundError(QiskitError):
     """Base class for errors raised while looking up for a backend."""
 
     def __init__(self, *message):

@@ -20,7 +20,7 @@ from functools import partial
 
 # import qiskit modules
 from qiskit import mapper
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 # import optimization tools
 from qiskit.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization, SPSA_calibration
@@ -54,7 +54,7 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
         max_distance = 5
 
     else:
-        raise QISKitError("Unknown molecule for VQE.")
+        raise QiskitError("Unknown molecule for VQE.")
 
     # Read Hamiltonian
     ham_name = os.path.join(os.path.dirname(__file__),

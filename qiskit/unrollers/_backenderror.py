@@ -9,10 +9,10 @@
 Exception for errors raised by unroller backends.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class BackendError(QISKitError):
+class BackendError(QiskitError):
     """Base class for errors raised by unroller backends."""
 
     def __init__(self, *message):

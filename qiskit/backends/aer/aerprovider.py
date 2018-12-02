@@ -11,7 +11,7 @@
 from collections import OrderedDict
 import logging
 
-from qiskit._qiskiterror import QISKitError
+from qiskit._qiskiterror import QiskitError
 from qiskit.backends import BaseProvider
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
@@ -117,7 +117,7 @@ class AerProvider(BaseProvider):
                 backend_instance = self._get_backend_instance(backend_cls)
                 backend_name = backend_instance.name()
                 ret[backend_name] = backend_instance
-            except QISKitError as err:
+            except QiskitError as err:
                 # Ignore backends that could not be initialized.
                 logger.info('aer backend %s is not available: %s',
                             backend_cls, str(err))
@@ -132,13 +132,13 @@ class AerProvider(BaseProvider):
         Returns:
             BaseBackend: a backend instance.
         Raises:
-            QISKitError: if the backend could not be instantiated.
+            QiskitError: if the backend could not be instantiated.
         """
         # Verify that the backend can be instantiated.
         try:
             backend_instance = backend_cls(provider=self)
         except Exception as err:
-            raise QISKitError('Backend %s could not be instantiated: %s' %
+            raise QiskitError('Backend %s could not be instantiated: %s' %
                               (backend_cls, err))
 
         return backend_instance

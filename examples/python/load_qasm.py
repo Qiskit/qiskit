@@ -3,7 +3,7 @@ Example on how to load a file into a QuantumCircuit
 
 """
 from qiskit import QuantumCircuit
-from qiskit import QISKitError, execute, Aer
+from qiskit import QiskitError, execute, Aer
 
 try:
     circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
@@ -21,6 +21,6 @@ try:
     print("simulation: ", sim_result)
     print(sim_result.get_counts(circ))
 
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an internal Qiskit error. Error = {}'.format(ex))
 

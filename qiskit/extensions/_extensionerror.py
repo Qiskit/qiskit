@@ -8,10 +8,10 @@
 """
 Exception for errors raised by extensions module.
 """
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class ExtensionError(QISKitError):
+class ExtensionError(QiskitError):
     """Base class for errors raised by extensions module."""
 
     def __init__(self, *message):

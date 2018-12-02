@@ -18,7 +18,7 @@ import time
 
 # import qiskit modules
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import QISKitError, execute
+from qiskit import QiskitError, execute
 
 # import tomography libary and other useful tools
 import qiskit.tools.qcvv.tomography as tomo
@@ -75,7 +75,7 @@ def state_tomography(state, n_qubits, shots):
     elif state == 'random':
         target = random_unitary_matrix(pow(2, n_qubits))[0]
     else:
-        raise QISKitError("Unknown state for tomography.")
+        raise QiskitError("Unknown state for tomography.")
 
     print("target: {}".format(target))
 

@@ -14,7 +14,7 @@ InitializeGate (CompositeGate instance) test.
 import math
 import unittest
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
@@ -24,7 +24,7 @@ from .common import QiskitTestCase
 
 
 class TestInitialize(QiskitTestCase):
-    """QISKIT InitializeGate tests."""
+    """Qiskit InitializeGate tests."""
 
     _desired_fidelity = 0.99
 
@@ -148,7 +148,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         self.assertRaises(
-            QISKitError,
+            QiskitError,
             qc.initialize, desired_vector, [qr[0], qr[1]])
 
     def test_non_unit_probability(self):
@@ -156,7 +156,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         self.assertRaises(
-            QISKitError,
+            QiskitError,
             qc.initialize, desired_vector, [qr[0], qr[1]])
 
     def test_initialize_middle_circuit(self):

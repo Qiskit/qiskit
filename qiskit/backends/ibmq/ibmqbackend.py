@@ -13,7 +13,7 @@ import logging
 
 from marshmallow import ValidationError
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit.backends import BaseBackend, JobStatus
 from qiskit.backends.models import BackendStatus, BackendProperties
 
@@ -199,7 +199,7 @@ class IBMQBackend(BaseBackend):
             self.__class__.__name__, self.name(), credentials_info)
 
 
-class IBMQBackendError(QISKitError):
+class IBMQBackendError(QiskitError):
     """IBM Q Backend Errors"""
     pass
 

@@ -9,10 +9,10 @@
 Exception for errors raised by mapper module.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class MapperError(QISKitError):
+class MapperError(QiskitError):
     """Base class for errors raised by mapper module."""
 
     def __init__(self, *message):

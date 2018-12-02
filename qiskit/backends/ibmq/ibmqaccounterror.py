@@ -9,9 +9,9 @@
 Exception for errors raised by jobs.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class IBMQAccountError(QISKitError):
+class IBMQAccountError(QiskitError):
     """Base class for errors raised by account management."""
     pass

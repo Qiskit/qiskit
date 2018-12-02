@@ -7,9 +7,9 @@
 
 """Exception for errors raised by visualization module."""
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class VisualizationError(QISKitError):
+class VisualizationError(QiskitError):
     """For visualization specific errors."""
     pass

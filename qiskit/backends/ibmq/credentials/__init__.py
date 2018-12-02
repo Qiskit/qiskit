@@ -11,7 +11,7 @@ Utilities for working with credentials for the wrapper.
 from collections import OrderedDict
 import logging
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from .credentials import Credentials
 from ._configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ
@@ -58,7 +58,7 @@ def discover_credentials(qiskitrc_filename=None):
             logger.info('Using credentials from %s', display_name)
             if credentials:
                 break
-        except QISKitError as ex:
+        except QiskitError as ex:
             logger.warning(
                 'Automatic discovery of %s credentials failed: %s',
                 display_name, str(ex))

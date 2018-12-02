@@ -8,10 +8,10 @@
 """
 Exception for errors raised by the Coupling object.
 """
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class CouplingError(QISKitError):
+class CouplingError(QiskitError):
     """Base class for errors raised by the coupling graph object."""
 
     def __init__(self, *msg):

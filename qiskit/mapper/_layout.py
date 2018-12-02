@@ -13,7 +13,7 @@ Layout is the relation between (qu)bits and wires.
 Wires are numbers.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
 class Layout(dict):
@@ -148,7 +148,7 @@ class Layout(dict):
         self[right] = temp
 
 
-class LayoutError(QISKitError):
+class LayoutError(QiskitError):
     """Errors raised by the layout object."""
     def __init__(self, *msg):
         """Set the error message."""

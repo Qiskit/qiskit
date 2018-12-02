@@ -13,7 +13,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler._transpilererror import TranspilerError
-from qiskit._qiskiterror import QISKitError
+from qiskit._qiskiterror import QiskitError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
@@ -306,16 +306,16 @@ def _best_subset(backend, n_qubits):
                 connectivity mapping.
 
     Raises:
-        QISKitError: Wrong number of qubits given.
+        QiskitError: Wrong number of qubits given.
     """
     if n_qubits == 1:
         return np.array([0])
     elif n_qubits <= 0:
-        raise QISKitError('Number of qubits <= 0.')
+        raise QiskitError('Number of qubits <= 0.')
 
     device_qubits = backend.configuration().n_qubits
     if n_qubits > device_qubits:
-        raise QISKitError('Number of qubits greater than device.')
+        raise QiskitError('Number of qubits greater than device.')
 
     cmap = np.asarray(getattr(backend.configuration(), 'coupling_map', None))
     data = np.ones_like(cmap[:, 0])

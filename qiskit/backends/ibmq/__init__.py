@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Backends provided by IBM Quantum Experience."""
-from qiskit._qiskiterror import QISKitError
+from qiskit._qiskiterror import QiskitError
 from .ibmqprovider import IBMQProvider
 from .ibmqbackend import IBMQBackend
 from .ibmqjob import IBMQJob
@@ -28,11 +28,11 @@ def least_busy(backends):
         BaseBackend: the the least busy backend
 
     Raises:
-        QISKitError: if passing a list of backend names that is
+        QiskitError: if passing a list of backend names that is
             either empty or none have attribute ``pending_jobs``
     """
     try:
         return min([b for b in backends if b.status().operational],
                    key=lambda b: b.status().pending_jobs)
     except (ValueError, TypeError):
-        raise QISKitError("Can only find least_busy backend from a non-empty list.")
+        raise QiskitError("Can only find least_busy backend from a non-empty list.")

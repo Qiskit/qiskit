@@ -95,7 +95,7 @@ class QasmSimulatorPy(BaseBackend):
         'backend_name': 'qasm_simulator_py',
         'backend_version': '2.0.0',
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'conditional': True,

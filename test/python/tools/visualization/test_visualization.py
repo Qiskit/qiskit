@@ -19,7 +19,7 @@ from ...common import QiskitTestCase
 
 
 class TestLatexSourceGenerator(QiskitTestCase):
-    """QISKit latex source generator tests."""
+    """Qiskit latex source generator tests."""
 
     def random_circuit(self, width=3, depth=3, max_operands=3):
         """Generate random circuit of arbitrary size.

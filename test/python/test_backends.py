@@ -17,7 +17,7 @@ from .common import Path, QiskitTestCase, requires_qe_access
 
 
 class TestBackends(QiskitTestCase):
-    """QISKit Backends (Object) Tests."""
+    """Qiskit Backends (Object) Tests."""
 
     def test_aer_backends_exist(self):
         """Test if there are local backends.

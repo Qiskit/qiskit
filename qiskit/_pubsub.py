@@ -9,7 +9,7 @@
 Message broker for the Publisher / Subscriber mechanism
 """
 
-from ._qiskiterror import QISKitError
+from ._qiskiterror import QiskitError
 
 
 class _Broker(object):
@@ -61,7 +61,7 @@ class _Broker(object):
                                   emitted.
         """
         if not callable(callback):
-            raise QISKitError("Callback is not a callable!")
+            raise QiskitError("Callback is not a callable!")
 
         if event not in self._subscribers:
             self._subscribers[event] = []

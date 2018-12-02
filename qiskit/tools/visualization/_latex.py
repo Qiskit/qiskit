@@ -29,7 +29,7 @@ class QCircuitImage(object):
     The class targets the \\LaTeX package Q-circuit
     (https://arxiv.org/pdf/quant-ph/0406003).
 
-    Thanks to Eric Sabo for the initial implementation for QISKit.
+    Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
     def __init__(self, qregs, cregs, ops, scale, style=None,

@@ -116,7 +116,7 @@ Befehl:
     pip install -U --no-cache-dir qiskit
 
 Für zusätzliche Tipps zur Problembehandlung, verwenden Sie bitte die `Qiskit
-troubleshooting page <https://github.com/Qiskit/qiskit-terra/wiki/QISKit-Troubleshooting>`_ auf dem GitHub Wiki
+troubleshooting page <https://github.com/Qiskit/qiskit-terra/wiki/Qiskit-Troubleshooting>`_ auf dem GitHub Wiki
 des Projektes.
 
 .. _tutorials: https://github.com/Qiskit/qiskit-tutorial

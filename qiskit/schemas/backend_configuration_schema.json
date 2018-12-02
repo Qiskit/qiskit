@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/backend_config_schema.json",
-    "description": "QISKit device backend configuration",
+    "description": "Qiskit device backend configuration",
     "version": "1.0.0",
     "definitions": {
       "hamiltonian": {

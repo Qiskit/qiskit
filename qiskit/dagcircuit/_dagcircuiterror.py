@@ -8,10 +8,10 @@
 """
 Exception for errors raised by the DAGCircuit object.
 """
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class DAGCircuitError(QISKitError):
+class DAGCircuitError(QiskitError):
     """Base class for errors raised by the DAGCircuit object."""
 
     def __init__(self, *msg):

@@ -8,12 +8,12 @@
 """
 Exception for errors raised by the transpiler.
 """
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class TranspilerError(QISKitError):
+class TranspilerError(QiskitError):
     """Exceptions raised during transpilation"""
 
 
-class TranspilerAccessError(QISKitError):
+class TranspilerAccessError(QiskitError):
     """ Exception of access error in the transpiler passes. """

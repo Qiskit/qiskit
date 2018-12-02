@@ -12,7 +12,7 @@ import os
 import logging
 import jsonschema
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
@@ -214,12 +214,12 @@ def _format_causes(err, level=0):
     return '\n'.join(lines)
 
 
-class SchemaValidationError(QISKitError):
+class SchemaValidationError(QiskitError):
     """Represents an error during JSON Schema validation."""
     pass
 
 
-class _SummaryValidationError(QISKitError):
+class _SummaryValidationError(QiskitError):
     """Cut off the message of a jsonschema.ValidationError for compactness.
 
     Cut off the message of a jsonschema.ValidationError to avoid printing

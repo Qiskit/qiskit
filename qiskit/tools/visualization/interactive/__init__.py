@@ -8,7 +8,7 @@
 # pylint: disable=wrong-import-order
 # pylint: disable=redefined-builtin
 
-"""QISKit visualization library."""
+"""Qsikit visualization library."""
 
 from ._iplot_state import iplot_state
 from ._iplot_blochsphere import iplot_blochsphere

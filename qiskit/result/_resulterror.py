@@ -9,13 +9,13 @@
 Exception for errors when there's an error in the Result
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class ResultError(QISKitError):
+class ResultError(QiskitError):
     """Exceptions raised due to errors in result output.
 
-    It may be better for the QISKit API to raise this exception.
+    It may be better for the Qiskit API to raise this exception.
 
     Args:
         error (dict): This is the error record as it comes back from

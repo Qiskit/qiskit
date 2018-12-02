@@ -22,7 +22,7 @@ import scipy.linalg as la
 from scipy.stats import unitary_group
 
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit.quantum_info import pauli_group
 from qiskit.quantum_info import state_fidelity as new_state_fidelity
 
@@ -357,14 +357,14 @@ def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
     Returns:
         ndarray: rho (length, length) a density matrix.
     Raises:
-        QISKitError: if the method is not valid.
+        QiskitError: if the method is not valid.
     """
     if method == 'Hilbert-Schmidt':
         return __random_density_hs(length, rank)
     elif method == 'Bures':
         return __random_density_bures(length, rank)
     else:
-        raise QISKitError('Error: unrecognized method {}'.format(method))
+        raise QiskitError('Error: unrecognized method {}'.format(method))
 
 
 def __ginibre_matrix(nrow, ncol=None):

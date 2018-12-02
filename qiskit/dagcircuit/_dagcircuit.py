@@ -411,7 +411,6 @@ class DAGCircuit:
             ie = list(self.multi_graph.successors(self.input_map[q]))
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
-
             self.multi_graph.add_edge(self.node_counter, ie[0],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
@@ -939,6 +938,7 @@ class DAGCircuit:
                     self.output_map[w])[0]
                 if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
                     raise DAGCircuitError(
+
                         "too many predecessors for (%s,%d) output node" % (w[0], w[1])
                     )
 

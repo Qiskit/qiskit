@@ -11,7 +11,7 @@
 import sys
 import time
 import threading
-from qiskit._qiskiterror import QISKitError
+from qiskit._qiskiterror import QiskitError
 
 _NOTEBOOK_ENV = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
@@ -63,7 +63,7 @@ def job_monitor(job, interval=2, monitor_async=False):
         monitor_async (bool): Monitor asyncronously (in Jupyter only).
 
     Raises:
-        QISKitError: When trying to run async outside of Jupyter
+        QiskitError: When trying to run async outside of Jupyter
     """
     if _NOTEBOOK_ENV:
         style = "font-size:16px;"
@@ -79,5 +79,5 @@ def job_monitor(job, interval=2, monitor_async=False):
 
     else:
         if monitor_async:
-            raise QISKitError('monitor_async only available in Jupyter notebooks.')
+            raise QiskitError('monitor_async only available in Jupyter notebooks.')
         _text_checker(job, interval)
