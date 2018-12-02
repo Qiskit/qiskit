@@ -19,7 +19,6 @@ from qiskit import compile
 from qiskit import Result
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
-from qiskit._quantumcircuit import QuantumCircuit
 from qiskit import execute
 from qiskit._qiskiterror import QiskitError
 from qiskit.backends.ibmq import least_busy
@@ -380,7 +379,7 @@ class TestCompiler(QiskitTestCase):
 
         try:
             circuits = transpiler.transpile(qc, backend)
-        except QisitError:
+        except QiskitError:
             circuits = None
         self.assertIsInstance(circuits, QuantumCircuit)
 
