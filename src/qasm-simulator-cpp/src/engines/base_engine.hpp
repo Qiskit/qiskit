@@ -49,7 +49,7 @@ public:
   //============================================================================
 
   // Counts formatting
-  
+
   bool counts_show = true;       // Dislay the map of final creg bitstrings
   bool hex_counts = true;        // Return counts as hexadecimal strings
   bool counts_sort = true;       // Sort the map of bitstrings by occurrence
@@ -259,18 +259,20 @@ template <typename StateType>
 inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
   engine = BaseEngine<StateType>();
   std::vector<std::string> opts;
-  for (auto &o : js) {
-    to_lowercase(o);
-    string_trim(o);
-    // check options
-    if (o == "memory") {
-      engine.show_final_creg = true;
-    } else if (o == "bitstringcounts") {
-      engine.hex_counts = false;
-    } else if (o == "nosort") {
-      engine.counts_sort = false;
-    } else if (o == "hidesnapshots" || o == "hidesnapshots") {
+  if (JSON::get_value(opts, "data", js)) {
+    for (auto &o : opts) {
+      to_lowercase(o);
+      string_trim(o);
+      // check options
+      if (o == "memory") {
+        engine.show_final_creg = true;
+      } else if (o == "bitstringcounts") {
+        engine.hex_counts = false;
+      } else if (o == "nosort") {
+        engine.counts_sort = false;
+      } else if (o == "hidesnapshots" || o == "hidesnapshots") {
       engine.show_snapshots = false;
+      }
     }
   }
 
