@@ -15,7 +15,6 @@ from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.tools._compiler import circuits_to_qobj
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.unroll import DagUnroller, JsonBackend
 from .common import QiskitTestCase
 
 
