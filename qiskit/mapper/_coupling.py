@@ -224,7 +224,7 @@ class Coupling:
 
     def compute_distance(self):
         """
-        Compute the undirected distance_qubits function on pairs of nodes.
+        Compute the undirected distance function on pairs of nodes.
 
         The distance_qubits map self.dist is computed from the graph using
         all_pairs_shortest_path_length.
@@ -248,7 +248,7 @@ class Coupling:
             raise CouplingError("%s not in coupling graph" % (q1,))
         if q2 not in self.qubits:
             raise CouplingError("%s not in coupling graph" % (q2,))
-        return self.dist[q1][q2]
+        return self.distance(q1[1],q2[1])
 
     def distance(self, wire1, wire2):
         """Return the undirected distance between wire1 and wire2."""
