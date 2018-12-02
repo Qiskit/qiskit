@@ -112,6 +112,7 @@ class Coupling:
 
     def get_qubits(self):
         """Return the qubits in this graph as a sorted (qreg, index) tuples."""
+        warnings.warn("get_qubits is being removed", DeprecationWarning, stacklevel=2)
         return sorted(list(self.qubits.keys()))
 
     def get_edges_qubits(self): #TODO remove
