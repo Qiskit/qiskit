@@ -401,9 +401,11 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr, cr)
         qobj = compile(qc, backend)
         compiled_ops = qobj.experiments[0].instructions
+        original_cx_qubits = [[1, 2], [2, 3], [3, 4], [3, 14]]
         for operation in compiled_ops:
             if operation.name == 'cx':
                 self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                self.assertIn(operation.qubits, original_cx_qubits)
 
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
@@ -560,25 +562,6 @@ class TestCompiler(QiskitTestCase):
         qlist = [qc for k in range(10)]
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
-
-    def test_already_matching(self):
-        """Map qubit i -> i if circuit is already compatible with topology.
-        """
-        backend = FakeBackend()
-        qr = QuantumRegister(16, 'qr')
-        cr = ClassicalRegister(4, 'cr')
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr)
-        qc.cx(qr[1], qr[0])
-        qc.cx(qr[6], qr[11])
-        qc.cx(qr[8], qr[7])
-        qc.measure(qr[1], cr[0])
-        qc.measure(qr[0], cr[1])
-        qc.measure(qr[6], cr[2])
-        qc.measure(qr[11], cr[3])
-        qobj = compile(qc, backend=backend)
-        for qubit_layout in qobj.experiments[0].config.layout:
-            self.assertEqual(qubit_layout[0][1], qubit_layout[1][1])
 
 
 if __name__ == '__main__':
