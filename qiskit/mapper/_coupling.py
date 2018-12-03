@@ -187,7 +187,7 @@ class Coupling:
 
     @property
     def wires(self):
-        return [wire for wire in self.graph.nodes]
+        return sorted([wire for wire in self.graph.nodes])
 
 
     def is_connected(self):

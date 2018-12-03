@@ -219,10 +219,12 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Compute Sergey's randomized distance
         xi = {}
-        for i in coupling.get_qubits():
-            xi[i] = {}
-        for i in coupling.get_qubits():
-            for j in coupling.get_qubits():
+        for i in coupling.wires:
+            xi[(QuantumRegister(coupling.size(), 'q'), i)] = {}
+        for i in coupling.wires:
+            i = (QuantumRegister(coupling.size(), 'q'), i)
+            for j in coupling.wires:
+                j = (QuantumRegister(coupling.size(), 'q'), j)
                 scale = 1 + np.random.normal(0, 1 / n)
                 xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
                 xi[j][i] = xi[i][j]
@@ -470,12 +472,12 @@ def swap_mapper(circuit_graph, coupling_graph,
     if initial_layout is not None:
         # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
         # to an expected dict{(reg,idx): (reg,idx)}
-        device_register = coupling_graph.get_qubits()[0][0]
+        device_register = QuantumRegister(coupling_graph.size(), 'q')
         initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
                           for k, v in initial_layout.items()}
         # Check the input layout
         circ_qubits = circuit_graph.get_qubits()
-        coup_qubits = coupling_graph.get_qubits()
+        coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in coupling_graph.wires]
         qubit_subset = []
         for k, v in initial_layout.items():
             qubit_subset.append(v)
@@ -487,10 +489,10 @@ def swap_mapper(circuit_graph, coupling_graph,
                                   "CouplingGraph" % (v[0].name, v[1]))
     else:
         # Supply a default layout
-        qubit_subset = coupling_graph.get_qubits()
+        qubit_subset = [ (QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in coupling_graph.wires ]
         qubit_subset = qubit_subset[0:circuit_graph.width()]
-        initial_layout = {a: b for a, b in
-                          zip(circuit_graph.get_qubits(), qubit_subset)}
+        circuit_qubits = [(QuantumRegister(circuit_graph.size(), 'q'), wire) for wire in circuit_graph.wires]
+        initial_layout = {a: b for a, b in zip(circuit_graph.get_qubits(), qubit_subset)}
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()
