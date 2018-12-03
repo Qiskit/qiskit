@@ -19,7 +19,9 @@ from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qobj import Qobj
-from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
+from qiskit import compile
+from ..common import QiskitTestCase, Path
+from ..common import requires_cpp_simulator, bin_to_hex_keys
 
 
 class TestAerQasmSimulator(QiskitTestCase):
@@ -31,8 +33,10 @@ class TestAerQasmSimulator(QiskitTestCase):
     def setUp(self):
         self.backend = QasmSimulator()
 
-        qasm_filename = self._get_resource_path('qasm/example.qasm')
-        qc1 = QuantumCircuit.from_qasm_file(qasm_filename)
+        qasm_file_name = 'example.qasm'
+        qasm_file_path = self._get_resource_path(
+            'qasm/' + qasm_file_name, Path.TEST)
+        qc1 = QuantumCircuit.from_qasm_file(qasm_file_path)
 
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
