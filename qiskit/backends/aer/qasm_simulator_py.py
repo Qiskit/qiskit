@@ -76,8 +76,9 @@ import time
 import logging
 from collections import Counter
 
+from math import log2
 import numpy as np
-
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
@@ -93,12 +94,14 @@ class QasmSimulatorPy(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator_py',
         'backend_version': '2.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'conditional': True,
         'open_pulse': False,
+        'memory': True,
+        'max_shots': 65536,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
         'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
@@ -235,9 +238,9 @@ class QasmSimulatorPy(BaseBackend):
         """Snapshot instruction to record simulator's internal representation
         of quantum statevector.
 
-        slot is an integer indicating a snapshot slot number.
+        slot is a string indicating a snapshot slot label.
         """
-        self._snapshots.setdefault(str(int(slot)),
+        self._snapshots.setdefault(str(slot),
                                    {}).setdefault("statevector",
                                                   []).append(np.copy(self._statevector))
 
@@ -312,9 +315,12 @@ class QasmSimulatorPy(BaseBackend):
             cbit_index += cl_reg[1]
 
         # Get the seed looking in circuit, qobj, and then random.
-        seed = getattr(circuit.config, 'seed',
-                       getattr(self._qobj_config, 'seed',
-                               random.getrandbits(32)))
+        if hasattr(circuit, 'config') and hasattr(circuit.config, 'seed'):
+            seed = circuit.config.seed
+        elif hasattr(self._qobj_config, 'seed'):
+            seed = self._qobj_config.seed
+        else:
+            seed = random.getrandbits(32)
         self._local_random.seed(seed)
         outcomes = []
 

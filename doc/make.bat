@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=QISKit
+set SPHINXPROJ=Qiskit
 
 if "%1" == "" goto help
 

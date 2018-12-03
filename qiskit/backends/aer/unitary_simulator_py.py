@@ -83,14 +83,14 @@ returned results object::
 import logging
 import uuid
 import time
-
+from math import log2, sqrt
 import numpy as np
-
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
-from qiskit import QISKitError
+from qiskit import QiskitError
 from ._simulatortools import single_gate_matrix, einsum_matmul_index
 
 logger = logging.getLogger(__name__)
@@ -106,12 +106,14 @@ class UnitarySimulatorPy(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator_py',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'n_qubits': int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'conditional': False,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
         'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
@@ -233,12 +235,12 @@ class UnitarySimulatorPy(BaseBackend):
             dict: A dictionary of results.
 
         Raises:
-            QISKitError: if the number of qubits in the circuit is greater than 24.
+            QiskitError: if the number of qubits in the circuit is greater than 24.
             Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = circuit.header.number_of_qubits
         if self._number_of_qubits > 24:
-            raise QISKitError("np.einsum implementation limits unitary_simulator_py" +
+            raise QiskitError("np.einsum implementation limits unitary_simulator_py" +
                               " to 24 qubit circuits.")
         result = {
             'data': {},

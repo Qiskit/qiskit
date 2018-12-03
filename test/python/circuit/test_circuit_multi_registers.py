@@ -17,7 +17,7 @@ import unittest
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
 from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 

@@ -13,13 +13,14 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
-from qiskit.unroll import DagUnroller, JsonBackend
+from qiskit.qasm import Qasm
+from qiskit.unroll import Unroller, DAGBackend, DagUnroller, JsonBackend
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 cx_error_matrix,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjExperiment
+from qiskit.qobj import Qobj, QobjConfig, QobjHeader, QobjExperiment
 from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
 
@@ -30,39 +31,34 @@ class TestAerQasmSimulator(QiskitTestCase):
 
     @requires_cpp_simulator
     def setUp(self):
-        self.seed = 88
-        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
-        self.qasm_circ = QuantumCircuit.from_qasm_file(self.qasm_filename)
+        qasm_filename = self._get_resource_path('qasm/example.qasm')
+        qasm_ast = Qasm(filename=qasm_filename).parse()
+        qasm_dag = Unroller(qasm_ast, DAGBackend()).execute()
+        qasm_json = DagUnroller(qasm_dag, JsonBackend(qasm_dag.basis)).execute()
+
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
-        self.qc = qc
+        qc_dag = DAGCircuit.fromQuantumCircuit(qc)
+        qc_json = DagUnroller(qc_dag, JsonBackend(qc_dag.basis)).execute()
 
         # create qobj
-        dag = DAGCircuit.fromQuantumCircuit(self.qc)
-        json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-        compiled_circuit1 = QobjExperiment.from_dict(json_circuit)
-
-        dag = DAGCircuit.fromQuantumCircuit(self.qasm_circ)
-        json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
-        compiled_circuit2 = QobjExperiment.from_dict(json_circuit)
+        compiled_circuit1 = QobjExperiment.from_dict(qc_json)
+        compiled_circuit2 = QobjExperiment.from_dict(qasm_json)
 
         self.qobj = Qobj(
             qobj_id='test_qobj',
             config=QobjConfig(
                 shots=2000, memory_slots=1,
-                max_credits=3,
-                seed=1111
+                max_credits=3, seed=1111
             ),
             experiments=[compiled_circuit1, compiled_circuit2],
             header=QobjHeader(backend_name='qasm_simulator')
         )
         self.qobj.experiments[0].header.name = 'test_circuit1'
-        self.qobj.experiments[0].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
         self.qobj.experiments[1].header.name = 'test_circuit2'
-        self.qobj.experiments[1].config = QobjItem(basis_gates='u1,u2,u3,cx,id')
         self.backend = QasmSimulator()
 
     def test_x90_coherent_error_matrix(self):
@@ -177,7 +173,7 @@ class TestAerQasmSimulator(QiskitTestCase):
                 self.assertDictAlmostEqual(counts, expected_counts,
                                            threshold, msg=name + 'counts')
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 3,
@@ -211,7 +207,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         }
 
         for name in sampled_measurements:
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             # Check snapshot keys
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
@@ -239,7 +235,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         }
         for name in expected_data:
             # Check snapshot is |0> state
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -256,7 +252,7 @@ class TestAerQasmSimulator(QiskitTestCase):
             qobj = Qobj.from_dict(json.load(file))
         result = self.backend.run(qobj).result()
 
-        snapshots = result.get_snapshots('save_command')
+        snapshots = result.data('save_command')['snapshots']
         self.assertEqual(set(snapshots), {'0', '1', '10', '11'},
                          msg='snapshot keys')
         state0 = snapshots['0']['statevector'][0]
@@ -356,7 +352,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -413,7 +409,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,
@@ -442,7 +438,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
         for name in expected_data:
             # Check snapshot
-            snapshots = result.get_snapshots(name)
+            snapshots = result.data(name)['snapshots']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
             self.assertEqual(len(snapshots['0']), 1,

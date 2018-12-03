@@ -14,6 +14,7 @@ import time
 import re
 import numpy as np
 from qiskit.quantum_info import pauli_group
+from qiskit.tools.visualization._utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -35,18 +36,16 @@ def process_data(rho):
     return result
 
 
-def iplot_paulivec(rho, options=None):
+def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
     """ Create a paulivec representation.
 
         Graphical representation of the input array.
 
         Args:
-            rho (array): Density matrix
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
-                    - slider (bool): activate slider
-                    - show_legend (bool): show legend of graph content
+            rho (array): State vector or density matrix.
+            figsize (tuple): Figure size in inches.
+            slider (bool): activate slider
+            show_legend (bool): show legend of graph content
     """
 
     # HTML
@@ -73,23 +72,17 @@ def iplot_paulivec(rho, options=None):
         });
     </script>
     """)
+    rho = _validate_input_state(rho)
+    # set default figure size if none given
+    if figsize is None:
+        figsize = (7, 5)
 
-    if not options:
-        options = {}
+    options = {'width': figsize[0], 'height': figsize[1],
+               'slider': int(slider), 'show_legend': int(show_legend)}
 
     # Process data and execute
     div_number = str(time.time())
     div_number = re.sub('[.]', '', div_number)
-
-    if 'slider' in options and options['slider'] is True:
-        options['slider'] = 1
-    else:
-        options['slider'] = 0
-
-    if 'show_legend' in options and options['show_legend'] is False:
-        options['show_legend'] = 0
-    else:
-        options['show_legend'] = 1
 
     data_to_plot = []
     rho_data = process_data(rho)

@@ -9,8 +9,6 @@
 """Backends Test."""
 
 import json
-import unittest
-
 import jsonschema
 
 from qiskit import IBMQ, Aer
@@ -19,7 +17,7 @@ from .common import Path, QiskitTestCase, requires_qe_access
 
 
 class TestBackends(QiskitTestCase):
-    """QISKit Backends (Object) Tests."""
+    """Qiskit Backends (Object) Tests."""
 
     def test_aer_backends_exist(self):
         """Test if there are local backends.
@@ -98,7 +96,6 @@ class TestBackends(QiskitTestCase):
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
-    @unittest.skip('Temporary skipping until #1156')
     def test_aer_backend_configuration(self):
         """Test backend configuration.
 

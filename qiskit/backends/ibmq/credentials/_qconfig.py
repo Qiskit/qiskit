@@ -13,7 +13,7 @@ import os
 from collections import OrderedDict
 from importlib.util import module_from_spec, spec_from_file_location
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from .credentials import Credentials
 
 DEFAULT_QCONFIG_FILE = 'Qconfig.py'
@@ -30,7 +30,7 @@ def read_credentials_from_qconfig():
             {credentials_unique_id: Credentials}
 
     Raises:
-        QISKitError: if the Qconfig.py was not parseable. Please note that this
+        QiskitError: if the Qconfig.py was not parseable. Please note that this
             exception is not raised if the file does not exist (instead, an
             empty dict is returned).
     """
@@ -59,7 +59,7 @@ def read_credentials_from_qconfig():
         credentials['url'] = credentials.get('url', QE_URL)
     except Exception as ex:
         # pylint: disable=broad-except
-        raise QISKitError('Error loading Qconfig.py: %s' % str(ex))
+        raise QiskitError('Error loading Qconfig.py: %s' % str(ex))
 
     credentials = Credentials(**credentials)
     return OrderedDict({credentials.unique_id(): credentials})

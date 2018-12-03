@@ -18,8 +18,9 @@ import subprocess
 from subprocess import PIPE
 import platform
 
+from math import log2
 import numpy as np
-
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
@@ -49,12 +50,14 @@ class QasmSimulator(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'conditional': True,
         'open_pulse': False,
+        'memory': True,
+        'max_shots': 65536,
         'description': 'A C++ realistic noise simulator for qasm experiments',
         'basis_gates': ['u0', 'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'rzz', 'snapshot', 'wait',
@@ -129,12 +132,14 @@ class CliffordSimulator(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'clifford_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'conditional': True,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A C++ Clifford simulator with approximate noise',
         'basis_gates': ['cx', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'snapshot',
                         'wait', 'noise', 'save', 'load'],

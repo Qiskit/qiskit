@@ -23,10 +23,13 @@ Instructions are identified by the following fields, and are serialized as such 
     qargs: List of qubits (QuantumRegister, index) that the instruction acts on.
 
     cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
+
+    _decompositions: List of decomposition rule(s), in the form of mini DAG(s).
 """
 import sympy
 
-from ._qiskiterror import QISKitError
+from qiskit.qasm._node import _node
+from ._qiskiterror import QiskitError
 from ._quantumregister import QuantumRegister
 from ._classicalregister import ClassicalRegister
 
@@ -36,32 +39,43 @@ class Instruction(object):
 
     def __init__(self, name, param, qargs, cargs, circuit=None):
         """Create a new instruction.
-
         Args:
             name (str): instruction name
-            param (list[sympy.Number or complex]): list of parameters
+            param (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
-            circuit(QuantumCircuit or Instruction): where the instruction is attached
-
+            circuit (QuantumCircuit or Instruction): where the instruction is attached
         Raises:
-            QISKitError: when the register is not in the correct format.
+            QiskitError: when the register is not in the correct format.
         """
         if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
-            raise QISKitError("qarg not (QuantumRegister, int) tuple")
+            raise QiskitError("qarg not (QuantumRegister, int) tuple")
         if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
-            raise QISKitError("carg not (ClassicalRegister, int) tuple")
+            raise QiskitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
-        self.param = []
+        self.param = []  # a list of gate params stored as sympy objects
         for single_param in param:
-            if not isinstance(single_param, (sympy.Basic, complex)):
-                # If the item in param is not symbolic or complex (used
-                # by InitializeGate), make it symbolic.
-                self.param.append(sympy.Number(single_param))
-            else:
+            # example: u2(pi/2, sin(pi/4))
+            if isinstance(single_param, sympy.Basic):
                 self.param.append(single_param)
+            # example: OpenQASM parsed instruction
+            elif isinstance(single_param, _node.Node):
+                self.param.append(single_param.sym())
+            # example: u3(0.1, 0.2, 0.3)
+            elif isinstance(single_param, (int, float)):
+                self.param.append(sympy.Number(single_param))
+            # example: Initialize([complex(0,1), complex(0,0)])
+            elif isinstance(single_param, complex):
+                self.param.append(single_param.real + single_param.imag * sympy.I)
+            # example: snapshot('label')
+            elif isinstance(single_param, str):
+                self.param.append(sympy.Symbol(single_param))
+            else:
+                raise QiskitError("invalid param type {0} in instruction "
+                                  "{1}".format(type(single_param), name))
         self.qargs = qargs
         self.cargs = cargs
+        self._decompositions = []
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 
@@ -85,14 +99,14 @@ class Instruction(object):
     def check_circuit(self):
         """Raise exception if self.circuit is None."""
         if self.circuit is None:
-            raise QISKitError("Instruction's circuit not assigned")
+            raise QiskitError("Instruction's circuit not assigned")
 
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""
         self.check_circuit()
         self.circuit._check_creg(classical)
         if val < 0:
-            raise QISKitError("control value should be non-negative")
+            raise QiskitError("control value should be non-negative")
         self.control = (classical, val)
         return self
 
@@ -101,7 +115,7 @@ class Instruction(object):
         if self.control is not None:
             self.check_circuit()
             if not gate.circuit.has_register(self.control[0]):
-                raise QISKitError("control register %s not found"
+                raise QiskitError("control register %s not found"
                                   % self.control[0].name)
             gate.c_if(self.control[0], self.control[1])
 
@@ -115,7 +129,7 @@ class Instruction(object):
         """Return a default OpenQASM string for the instruction.
 
         Derived instructions may override this to print in a
-        different format (e.g. measure).
+        different format (e.g. measure q[0] -> c[0];).
         """
         name_param = self.name
         if self.param:

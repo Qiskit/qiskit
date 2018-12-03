@@ -44,6 +44,8 @@ Added
 - New methods in QuantumCircuit for common circuit metrics:
   `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
 - Added a `Layout` object (#1313)
+- New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state
+  vector or density matrix. (#1359)
 
 Changed
 """""""
@@ -73,6 +75,18 @@ Changed
     - ``qiskit.Result`` (#1360).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
+- The signatures for the plotting functions in 
+  `qiskit.tools.visualization._counts_visualization.py`,
+  `qiskit.tools.visualization._state_visualization.py`, and 
+  `qiskit.tools.visualization.interactive` have been modified to make them 
+  in-line with standard Matplotlib calling conventions (#1359).
+- Remove local backend (Aer) fallback (#1303).
+- DAGCircuits store Instruction and Register objects, instead of name
+  references. The DAGCircuit class methods are updated accordingly (#1210).
+- Different unrollers are deprecated. The only unrolling happens
+  from DAG to DAG (#1210).
+- ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
+  processing is only done internally (#1397).
 
 Deprecated
 """"""""""
@@ -93,6 +107,9 @@ Deprecated
 - The transpiler methods do not support emitting multiple output `format`
   anymore (#1319).
 - Several methods of ``qiskit.Result`` have been deprecated (#1360).
+- The functions `plot_state()` and `iplot_state()` have been depreciated.
+  Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
+  called. (#1359)
 
 Fixed
 """""
@@ -110,6 +127,8 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
+- The`number_to_keep` kwarg in `plot_histgram()`now functions correctly (#1359).
+- parallel_map no longer creates a progress bar for a single circuit (#1394).
 
 Removed
 """""""
@@ -135,6 +154,9 @@ Removed
   ``.from_dict()`` directly (#1360).
 - The ``qiskit.Result`` class method for ``len()`` and indexing have been
   removed, along with the functions that perform post-processing (#1351).
+- The ``get_snapshot()`` and ``get_snapshots()`` method from the ``Result``
+  class has been removed. Instead you can access the snapshots in a Result
+  using ``Result.data()['snapshots']``.
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^

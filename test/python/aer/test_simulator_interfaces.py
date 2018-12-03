@@ -61,33 +61,6 @@ class TestCrossSimulation(QiskitTestCase):
         counts_py = result_py.get_counts()
         self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.05)
 
-    def test_qasm_snapshot(self):
-        """snapshot a circuit at multiple places"""
-        qr = qiskit.QuantumRegister(3)
-        cr = qiskit.ClassicalRegister(3)
-        circuit = qiskit.QuantumCircuit(qr, cr)
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.snapshot(1)
-        circuit.ccx(qr[0], qr[1], qr[2])
-        circuit.snapshot(2)
-        circuit.reset(qr)
-        circuit.snapshot(3)
-        circuit.measure(qr, cr)
-
-        sim_cpp = Aer.get_backend('qasm_simulator')
-        sim_py = Aer.get_backend('qasm_simulator_py')
-        result_cpp = execute(circuit, sim_cpp, shots=2).result()
-        result_py = execute(circuit, sim_py, shots=2).result()
-        snapshots_cpp = result_cpp.get_snapshots()
-        snapshots_py = result_py.get_snapshots()
-        self.assertEqual(snapshots_cpp.keys(), snapshots_py.keys())
-        snapshot_cpp_1 = result_cpp.get_snapshot(slot='1')
-        snapshot_py_1 = result_py.get_snapshot(slot='1')
-        self.assertEqual(len(snapshot_cpp_1), len(snapshot_py_1))
-        fidelity = state_fidelity(snapshot_cpp_1[0], snapshot_py_1[0])
-        self.assertGreater(fidelity, self._desired_fidelity)
-
     def test_qasm_reset_measure(self):
         """counts from a qasm program with measure and reset in the middle"""
         qr = qiskit.QuantumRegister(3)

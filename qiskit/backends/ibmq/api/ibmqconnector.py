@@ -851,31 +851,39 @@ class IBMQConnector(object):
 
             config = {}
 
-            # Convert camelCase to snake_case.
-            for key in original_config.keys():
-                new_key = _camel_case_to_snake_case(key)
-                if new_key not in ['id', 'serial_number', 'topology_id',
-                                   'status']:
-                    config[new_key] = original_config[key]
+            try:
+                # Convert camelCase to snake_case.
+                for key in original_config.keys():
+                    new_key = _camel_case_to_snake_case(key)
+                    if new_key not in ['id', 'serial_number', 'topology_id',
+                                       'status']:
+                        config[new_key] = original_config[key]
 
-            # Empty and non-schema conformat versions.
-            if not re.match(r'[0-9]+.[0-9]+.[0-9]+', config.get('version', '')):
-                config['version'] = '0.0.0'
-            # Coupling map for simulators.
-            if config.get('coupling_map', None) == 'all-to-all':
-                config.pop('coupling_map')
-            # Other fields.
-            config['basis_gates'] = config['basis_gates'].split(',')
-            config['local'] = config.get('local', False)
-            config['open_pulse'] = config.get('open_pulse', False)
-            config['conditional'] = config.get('conditional', True)
-            config['backend_name'] = config.pop('name')
-            config['backend_version'] = config.pop('version')
-            config['gates'] = [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
+                # Empty and non-schema conformat versions.
+                if not re.match(r'[0-9]+.[0-9]+.[0-9]+', config.get('version', '')):
+                    config['version'] = '0.0.0'
+                # Coupling map for simulators.
+                if config.get('coupling_map', None) == 'all-to-all':
+                    config.pop('coupling_map')
+                # Other fields.
+                config['basis_gates'] = config['basis_gates'].split(',')
+                config['local'] = config.get('local', False)
+                config['memory'] = config.get('memory', config['simulator'])
+                config['max_shots'] = config.get('max_shots', 8192)
+                config['open_pulse'] = config.get('open_pulse', False)
+                config['conditional'] = config.get('conditional', config['simulator'])
+                config['backend_name'] = config.pop('name')
+                config['backend_version'] = config.pop('version')
+                config['gates'] = [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
 
-            # Append to returned list.
-            ret.append(config)
-
+                # Append to returned list.
+                ret.append(config)
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.warning(
+                    'Could not parse old-style config of backend "%s": %s',
+                    original_config.get('backend_name',
+                                        original_config.get('name', 'unknown')),
+                    str(ex))
         return ret
 
     def api_version(self):

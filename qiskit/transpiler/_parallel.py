@@ -46,7 +46,7 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit._qiskiterror import QISKitError
+from qiskit._qiskiterror import QiskitError
 from qiskit._util import local_hardware_info
 from qiskit._pubsub import Publisher
 
@@ -79,18 +79,17 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
                     each value in ``values``.
 
     Raises:
-        QISKitError: If user interrupts via keyboard.
+        QiskitError: If user interrupts via keyboard.
 
     Events:
         terra.transpiler.parallel.start: The collection of parallel tasks are about to start.
         terra.transpiler.parallel.update: One of the parallel task has finished.
         terra.transpiler.parallel.finish: All the parallel tasks have finished.
     """
-    Publisher().publish("terra.transpiler.parallel.start", len(values))
     if len(values) == 1:
-        Publisher().publish("terra.transpiler.parallel.finish")
         return [task(values[0], *task_args, **task_kwargs)]
 
+    Publisher().publish("terra.transpiler.parallel.start", len(values))
     nfinished = [0]
 
     def _callback(_):
@@ -118,7 +117,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
             pool.terminate()
             pool.join()
             Publisher().publish("terra.parallel.parallel.finish")
-            raise QISKitError('Keyboard interrupt in parallel_map.')
+            raise QiskitError('Keyboard interrupt in parallel_map.')
 
         Publisher().publish("terra.transpiler.parallel.finish")
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'

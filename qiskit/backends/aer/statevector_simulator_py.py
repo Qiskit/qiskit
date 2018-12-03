@@ -20,7 +20,8 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 """
 import logging
 import uuid
-
+from math import log2
+from qiskit._util import local_hardware_info
 from qiskit.backends.aer.aerjob import AerJob
 from qiskit.backends.aer._simulatorerror import SimulatorError
 from qiskit.backends.models import BackendConfiguration, BackendProperties
@@ -36,12 +37,14 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator_py',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'conditional': False,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A Python statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
         'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]

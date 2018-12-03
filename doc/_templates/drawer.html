@@ -1,0 +1,21 @@
+<header class="mdl-layout__drawer">
+    {% if theme_show_drawer_title|tobool %}
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="{{ pathto(master_doc) }}">
+              {%- if logo %}
+              <img class="logo" src="{{ pathto('_static/' + logo, 1) }}" alt="{{ project }}"/>
+              {%- else %}
+              <span class="title-text">
+                  {{ project }}
+              </span>
+              {%- endif %}
+          </a>
+      </span>
+    {% endif %}
+    {%- if sidebars != None %}
+    {%- for sidebartemplate in sidebars %}
+    {%- include sidebartemplate %}
+    {%- endfor %}
+{%- endif %}
+</header>

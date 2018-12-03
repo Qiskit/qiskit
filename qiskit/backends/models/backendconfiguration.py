@@ -11,7 +11,6 @@ from marshmallow.fields import Boolean, DateTime, Integer, List, Nested, String
 from marshmallow.validate import Equal, Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.validate import Or
 
 
 class GateConfigSchema(BaseSchema):
@@ -40,8 +39,7 @@ class BackendConfigurationSchema(BaseSchema):
     backend_name = String(required=True)
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    n_qubits = Integer(required=True,
-                       validate=Or([Equal(-1), Range(min=1)]))
+    n_qubits = Integer(required=True, validate=Range(min=1))
     basis_gates = List(String(), required=True,
                        validate=Length(min=1))
     gates = Nested(GateConfigSchema, required=True, many=True,
@@ -50,6 +48,8 @@ class BackendConfigurationSchema(BaseSchema):
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)
     open_pulse = Boolean(required=True, validate=Equal(False))
+    memory = Boolean(required=True)
+    max_shots = Integer(required=True, validate=Range(min=1))
 
     # Optional properties.
     sample_name = String()
@@ -106,10 +106,13 @@ class BackendConfiguration(BaseModel):
         simulator (bool): backend is a simulator.
         conditional (bool): backend supports conditional operations.
         open_pulse (bool): backend supports open pulse.
+        memory (bool): backend supports memory.
+        max_shots (int): maximum number of shots supported.
     """
 
     def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
-                 gates, local, simulator, conditional, open_pulse, **kwargs):
+                 gates, local, simulator, conditional, open_pulse, memory,
+                 max_shots, **kwargs):
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.n_qubits = n_qubits
@@ -119,5 +122,7 @@ class BackendConfiguration(BaseModel):
         self.simulator = simulator
         self.conditional = conditional
         self.open_pulse = open_pulse
+        self.memory = memory
+        self.max_shots = max_shots
 
         super().__init__(**kwargs)

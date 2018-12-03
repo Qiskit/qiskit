@@ -9,7 +9,7 @@
 Unitary gate.
 """
 from ._instruction import Instruction
-from ._qiskiterror import QISKitError
+from ._qiskiterror import QiskitError
 
 
 class Gate(Instruction):
@@ -31,9 +31,9 @@ class Gate(Instruction):
 
     def inverse(self):
         """Invert this gate."""
-        raise QISKitError("inverse not implemented")
+        raise QiskitError("inverse not implemented")
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
         # pylint: disable=unused-argument
-        raise QISKitError("control not implemented")
+        raise QiskitError("control not implemented")

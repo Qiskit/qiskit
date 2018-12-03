@@ -12,7 +12,7 @@ import re
 import logging
 import itertools
 
-from ._qiskiterror import QISKitError, QISKitIndexError
+from ._qiskiterror import QiskitError, QiskitIndexError
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +33,17 @@ class Register(object):
             name = '%s%i' % (self.prefix, next(self.instances_counter))
 
         if not isinstance(name, str):
-            raise QISKitError("The circuit name should be a string "
+            raise QiskitError("The circuit name should be a string "
                               "(or None for autogenerate a name).")
 
         test = re.compile('[a-z][a-zA-Z0-9_]*')
         if test.match(name) is None:
-            raise QISKitError("%s is an invalid OPENQASM register name." % name)
+            raise QiskitError("%s is an invalid OPENQASM register name." % name)
 
         self.name = name
         self.size = size
         if size <= 0:
-            raise QISKitError("register size must be positive")
+            raise QiskitError("register size must be positive")
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -57,7 +57,7 @@ class Register(object):
     def check_range(self, j):
         """Check that j is a valid index into self."""
         if j < 0 or j >= self.size:
-            raise QISKitIndexError("register index out of range")
+            raise QiskitIndexError("register index out of range")
 
     def __getitem__(self, key):
         """
@@ -68,12 +68,12 @@ class Register(object):
             tuple[Register, int]: a tuple in the form `(self, key)`.
 
         Raises:
-            QISKitError: if the `key` is not an integer.
-            QISKitIndexError: if the `key` is not in the range
+            QiskitError: if the `key` is not an integer.
+            QiskitIndexError: if the `key` is not in the range
                 `(0, self.size)`.
         """
         if not isinstance(key, int):
-            raise QISKitError("expected integer index into register")
+            raise QiskitError("expected integer index into register")
         self.check_range(key)
         return self, key
 
