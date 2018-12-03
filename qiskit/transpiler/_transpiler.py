@@ -7,6 +7,7 @@
 
 """Tools for compiling a batch of quantum circuits."""
 import logging
+import copy
 import warnings
 import numpy as np
 import networkx as nx
@@ -102,7 +103,10 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         for node in nx.topological_sort(graph):
             n = graph.nodes[node]
             if n['type'] == 'op':
-                circuit._attach(n['op'])
+                op = copy.deepcopy(n['op'])
+                op.qargs = n['qargs']
+                op.cargs = n['cargs']
+                circuit._attach(op)
         circuits.append(circuit)
     if return_form_is_single:
         return circuits[0]
@@ -205,7 +209,7 @@ def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
                         for k, v in final_layout.items()] if final_layout else None
     return final_dag
 
-
+# pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                   initial_layout=None, get_layout=False,
                   format='dag', seed_mapper=None, pass_manager=None):
