@@ -92,7 +92,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         result = self.backend.run(self.qobj).result()
         shots = self.qobj.config.shots
         threshold = 0.04 * shots
-        counts = result.get_counts(self.qc2)
+        counts = result.get_counts(self.qc1)
         target = {'100 100': shots / 8, '011 011': shots / 8,
                   '101 101': shots / 8, '111 111': shots / 8,
                   '000 000': shots / 8, '010 010': shots / 8,
