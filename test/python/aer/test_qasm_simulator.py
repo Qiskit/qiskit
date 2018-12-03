@@ -36,15 +36,15 @@ class TestAerQasmSimulator(QiskitTestCase):
         qasm_file_name = 'example.qasm'
         qasm_file_path = self._get_resource_path(
             'qasm/' + qasm_file_name, Path.TEST)
-        qc1 = QuantumCircuit.from_qasm_file(qasm_file_path)
+        self.qc1 = QuantumCircuit.from_qasm_file(qasm_file_path)
 
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.h(qr[0])
-        qc2.measure(qr[0], cr[0])
+        self.qc2 = QuantumCircuit(qr, cr)
+        self.qc2.h(qr[0])
+        self.qc2.measure(qr[0], cr[0])
 
-        self.qobj = compile([qc1, qc2], backend=self.backend,
+        self.qobj = compile([self.qc1, self.qc2], backend=self.backend,
                             shots=2000, seed=1111)
 
     def _to_complex_array(self, vec):
@@ -93,7 +93,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         result = self.backend.run(self.qobj).result()
         shots = self.qobj.config.shots
         threshold = 0.04 * shots
-        counts = result.get_counts('test_circuit2')
+        counts = result.get_counts(self.qc2)
         target = {'100 100': shots / 8, '011 011': shots / 8,
                   '101 101': shots / 8, '111 111': shots / 8,
                   '000 000': shots / 8, '010 010': shots / 8,
