@@ -150,24 +150,24 @@ class Layout(dict):
         self[left] = self[right]
         self[right] = temp
 
-    def wire_map_from_layouts(self, another_layout):
-        """ Combines self and another_layout into a wire map
+    def combine_into_edge_map(self, another_layout):
+        """ Combines self and another_layout into an "edge map".
         Args:
             another_layout (Layout): The other layout to combine.
         Returns:
-            Dict: A "wire map".
+            Dict: A "edge map".
         Raises:
             LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
         """
-        wire_map = dict()
+        edge_map = dict()
 
-        for wire, bit in self.get_wires().items():
-            if bit not in another_layout:
+        for virtual, physical in self.get_virtual_bits().items():
+            if physical not in another_layout:
                 raise LayoutError('The wire_map_from_layouts() method does not support when the'
                                   ' other layout (another_layout) is smaller.')
-            wire_map[('q', wire)] = ('q', another_layout[bit])
+            edge_map[virtual] = another_layout[physical]
 
-        return wire_map
+        return edge_map
 
 
 class LayoutError(QiskitError):

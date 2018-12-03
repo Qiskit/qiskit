@@ -135,8 +135,8 @@ class LayoutTest(QiskitTestCase):
         with self.assertRaises(LayoutError):
             layout.swap(0, (self.qr, 0))
 
-    def test_layout_wire(self):
-        """wire_map_from_layouts() method"""
+    def test_layout_combine(self):
+        """combine_into_edge_map() method"""
         layout = Layout()
         layout.add((self.qr, 0))
         layout.add((self.qr, 1))
@@ -144,11 +144,11 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 1))
         another_layout.add((self.qr, 0))
 
-        wire_map = layout.wire_map_from_layouts(another_layout)
-        self.assertDictEqual(wire_map, {('q', 0): ('q', 1), ('q', 1): ('q', 0)})
+        wire_map = layout.combine_into_edge_map(another_layout)
+        self.assertDictEqual(wire_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
 
-    def test_layout_wire_bigger(self):
-        """wire_map_from_layouts() method with another_layout is bigger"""
+    def test_layout_combine_bigger(self):
+        """combine_into_edge_map() method with another_layout is bigger"""
         layout = Layout()
         layout.add((self.qr, 0))
         layout.add((self.qr, 1))
@@ -157,8 +157,8 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 0))
         another_layout.add((self.qr, 2))
 
-        wire_map = layout.wire_map_from_layouts(another_layout)
-        self.assertDictEqual(wire_map, {('q', 0): ('q', 1), ('q', 1): ('q', 0)})
+        wire_map = layout.combine_into_edge_map(another_layout)
+        self.assertDictEqual(wire_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
 
     def test_layout_wire_smaller(self):
         """wire_map_from_layouts() method with another_layout is smaller and raises an Error"""
@@ -171,7 +171,7 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 0))
 
         with self.assertRaises(LayoutError):
-            _ = layout.wire_map_from_layouts(another_layout)
+            _ = layout.combine_into_edge_map(another_layout)
 
 
 if __name__ == '__main__':
