@@ -140,12 +140,13 @@ class DAGBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, qargs=None):
+    def start_gate(self, op, qargs=None, cargs=None):
         """Begin a custom gate.
 
         Args:
             op (Instruction): operation to apply to the dag.
             qargs (list(QuantumRegister, int)): qubits to attach to
+            cargs (list(ClassicalRegister, int)): clbits to attach to
 
         Raises:
             BackendError: if encountering a non-basis opaque gate

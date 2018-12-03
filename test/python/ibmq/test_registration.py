@@ -17,7 +17,7 @@ from unittest import skipIf
 from unittest.mock import patch
 
 import qiskit
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit.backends.ibmq.credentials import (
     _configrc, _qconfig, discover_credentials, store_credentials, Credentials,
     read_credentials_from_qiskitrc)
@@ -168,7 +168,7 @@ class TestCredentials(QiskitTestCase):
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
         with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
-            with self.assertRaises(QISKitError) as context_manager:
+            with self.assertRaises(QiskitError) as context_manager:
                 qiskit.IBMQ.load_accounts()
 
         self.assertIn('No IBMQ credentials found', str(context_manager.exception))

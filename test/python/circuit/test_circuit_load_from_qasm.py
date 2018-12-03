@@ -8,8 +8,9 @@
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
 from ..common import QiskitTestCase, Path
 
 
@@ -43,17 +44,17 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_fail_qasm_file(self):
         """Test fail_qasm_file.
 
-        If all is correct we should get a QISKitError
+        If all is correct we should get a QiskitError
         """
-        self.assertRaises(QISKitError,
+        self.assertRaises(QiskitError,
                           QuantumCircuit.from_qasm_file, "")
 
     def test_fail_qasm_string(self):
         """Test fail_qasm_string.
 
-        If all is correct we should get a QISKitError
+        If all is correct we should get a QiskitError
         """
-        self.assertRaises(QISKitError,
+        self.assertRaises(QiskitError,
                           QuantumCircuit.from_qasm_str, "")
 
     def test_qasm_text(self):

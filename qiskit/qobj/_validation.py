@@ -12,7 +12,7 @@ from qiskit import _schema_validation
 from qiskit import _qiskiterror
 
 
-class QobjValidationError(_qiskiterror.QISKitError):
+class QobjValidationError(_qiskiterror.QiskitError):
     """Represents an error during Qobj validation."""
     pass
 

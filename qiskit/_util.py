@@ -6,7 +6,7 @@
 
 # pylint: disable=too-many-ancestors,broad-except
 
-"""Common utilities for QISKit."""
+"""Common utilities for Qiskit."""
 
 import logging
 import re
@@ -26,7 +26,7 @@ def _check_python_version():
     """Check for Python version 3.5+
     """
     if sys.version_info < (3, 5):
-        raise Exception('QISKit requires Python version 3.5 or greater.')
+        raise Exception('Qiskit requires Python version 3.5 or greater.')
 
 
 def _enable_deprecation_warnings():
