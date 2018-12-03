@@ -9,7 +9,7 @@
 Composite gate, a container for a sequence of unitary gates.
 """
 from ._gate import Gate
-from ._qiskiterror import QISKitError
+from ._qiskiterror import QiskitError
 
 
 class CompositeGate(Gate):
@@ -64,7 +64,7 @@ class CompositeGate(Gate):
         self.circuit._check_qubit(qubit)
         if (qubit[0].name, qubit[1]) not in map(
                 lambda x: (x[0].name, x[1]), self.qargs):
-            raise QISKitError("qubit '%s[%d]' not argument of gate"
+            raise QiskitError("qubit '%s[%d]' not argument of gate"
                               % (qubit[0].name, qubit[1]))
 
     def _check_qreg(self, register):
@@ -90,7 +90,7 @@ class CompositeGate(Gate):
         """
         squbits = set(qubits)
         if len(squbits) != len(qubits):
-            raise QISKitError("duplicate qubit arguments")
+            raise QiskitError("duplicate qubit arguments")
 
     def qasm(self):
         """Return OPENQASM string."""

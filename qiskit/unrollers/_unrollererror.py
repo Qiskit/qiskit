@@ -9,10 +9,10 @@
 Exception for errors raised by unroller.
 """
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class UnrollerError(QISKitError):
+class UnrollerError(QiskitError):
     """Base class for errors raised by unroller."""
 
     def __init__(self, *message):
