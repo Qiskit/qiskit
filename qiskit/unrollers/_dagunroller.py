@@ -152,7 +152,9 @@ class DagUnroller(object):
                     extra_fields = {'type': 'MISSING', 'label': 'MISSING',
                                     'texparams': []}
 
-                self.backend.start_gate(current_node["op"], qargs=current_node["qargs"],
+                self.backend.start_gate(current_node["op"],
+                                        qargs=current_node["qargs"],
+                                        cargs=current_node["cargs"],
                                         extra_fields=extra_fields)
                 self.backend.end_gate(current_node["op"])
 

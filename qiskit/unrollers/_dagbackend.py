@@ -140,7 +140,7 @@ class DAGBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, qargs=None):
+    def start_gate(self, op, qargs=None, cargs=None):
         """Begin a custom gate.
 
         Args:
