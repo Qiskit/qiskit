@@ -279,8 +279,8 @@ class QasmSimulatorPy(BaseBackend):
         self._snapshots = {}
 
         # Get the seed looking in circuit, qobj, and then random.
-        if hasattr(circuit, 'config') and hasattr(circuit.config, 'seed'):
-            seed = circuit.config.seed
+        if hasattr(experiment, 'config') and hasattr(experiment.config, 'seed'):
+            seed = experiment.config.seed
         elif hasattr(self._qobj_config, 'seed'):
             seed = self._qobj_config.seed
         else:
