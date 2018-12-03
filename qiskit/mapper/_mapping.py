@@ -256,7 +256,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                 progress_made = False
                 # Loop over edges of coupling graph
                 for e in coupling.get_edges():
-                    e = [ (QuantumRegister(coupling.size(), 'q'), edge) for edge in e ]
+                    e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
@@ -296,7 +296,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
             # We have either run out of qubits or failed to improve
             # Compute the coupling graph distance_qubits
             dist = sum([coupling.distance(trial_layout[g[0]][1],
-                                                 trial_layout[g[1]][1]) for g in gates])
+                                          trial_layout[g[1]][1]) for g in gates])
             logger.debug("layer_permutation: dist = %s", dist)
             # If all gates can be applied now, we are finished
             # Otherwise we need to consider a deeper swap circuit
@@ -311,7 +311,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Either we have succeeded at some depth d < dmax or failed
         dist = sum([coupling.distance(trial_layout[g[0]][1],
-                                             trial_layout[g[1]][1]) for g in gates])
+                                      trial_layout[g[1]][1]) for g in gates])
         logger.debug("layer_permutation: dist = %s", dist)
         if dist == len(gates):
             if d < best_d:
@@ -477,7 +477,8 @@ def swap_mapper(circuit_graph, coupling_graph,
                           for k, v in initial_layout.items()}
         # Check the input layout
         circ_qubits = circuit_graph.get_qubits()
-        coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in coupling_graph.wires]
+        coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
+                       coupling_graph.wires]
         qubit_subset = []
         for k, v in initial_layout.items():
             qubit_subset.append(v)
@@ -489,9 +490,9 @@ def swap_mapper(circuit_graph, coupling_graph,
                                   "CouplingGraph" % (v[0].name, v[1]))
     else:
         # Supply a default layout
-        qubit_subset = [ (QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in coupling_graph.wires ]
+        qubit_subset = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
+                        coupling_graph.wires]
         qubit_subset = qubit_subset[0:circuit_graph.width()]
-        circuit_qubits = [(QuantumRegister(circuit_graph.size(), 'q'), wire) for wire in circuit_graph.wires]
         initial_layout = {a: b for a, b in zip(circuit_graph.get_qubits(), qubit_subset)}
 
     # Find swap circuit to preceed to each layer of input circuit

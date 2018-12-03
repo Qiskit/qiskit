@@ -15,10 +15,8 @@ indicate which qubits are coupled and the permitted direction of CNOT gates.
 The object has a distance_qubits function that can be used to map quantum circuits
 onto a device with this coupling.
 """
-import warnings
-from collections import OrderedDict
+
 import networkx as nx
-from qiskit import _quantumregister
 from ._couplingerror import CouplingError
 
 
@@ -127,7 +125,6 @@ class Coupling:
     def wires(self):
         return sorted([wire for wire in self.graph.nodes])
 
-
     def is_connected(self):
         """
         Test if the graph is connected.
@@ -138,7 +135,6 @@ class Coupling:
             return nx.is_weakly_connected(self.graph)
         except nx.exception.NetworkXException:
             return False
-
 
     def compute_distance(self):
         """
@@ -159,7 +155,7 @@ class Coupling:
     def distance(self, wire1, wire2):
         """Return the undirected distance between wire1 and wire2."""
         try:
-            return len(nx.shortest_path(self.graph.to_undirected(), source=wire1, target=wire2))-1
+            return len(nx.shortest_path(self.graph.to_undirected(), source=wire1, target=wire2)) - 1
         except nx.exception.NetworkXNoPath:
             raise CouplingError("Nodes %s and %s are not connected" % (str(wire1), str(wire2)))
 
@@ -168,6 +164,6 @@ class Coupling:
         s = ""
         if self.get_edges():
             s += "["
-            s += ", ".join([ "(%s, %s)" % (src,dst) for (src,dst) in self.get_edges()])
+            s += ", ".join(["(%s, %s)" % (src, dst) for (src, dst) in self.get_edges()])
             s += "]"
         return s
