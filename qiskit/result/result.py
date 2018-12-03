@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 from qiskit import QiskitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
+from .postprocess import format_readout, format_statevector, format_unitary
 from .models import ResultSchema
 
 
