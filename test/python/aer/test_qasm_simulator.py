@@ -13,14 +13,12 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, DAGBackend, DagUnroller, JsonBackend
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 cx_error_matrix,
                                                 x90_error_matrix)
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.qobj import Qobj, QobjConfig, QobjHeader, QobjExperiment
+from qiskit.qobj import Qobj
 from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
 
@@ -31,35 +29,19 @@ class TestAerQasmSimulator(QiskitTestCase):
 
     @requires_cpp_simulator
     def setUp(self):
+        self.backend = QasmSimulator()
+
         qasm_filename = self._get_resource_path('qasm/example.qasm')
-        qasm_ast = Qasm(filename=qasm_filename).parse()
-        qasm_dag = Unroller(qasm_ast, DAGBackend()).execute()
-        qasm_json = DagUnroller(qasm_dag, JsonBackend(qasm_dag.basis)).execute()
+        qc1 = QuantumCircuit.from_qasm_file(qasm_filename)
 
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0])
-        qc.measure(qr[0], cr[0])
-        qc_dag = DAGCircuit.fromQuantumCircuit(qc)
-        qc_json = DagUnroller(qc_dag, JsonBackend(qc_dag.basis)).execute()
+        qc2 = QuantumCircuit(qr, cr)
+        qc2.h(qr[0])
+        qc2.measure(qr[0], cr[0])
 
-        # create qobj
-        compiled_circuit1 = QobjExperiment.from_dict(qc_json)
-        compiled_circuit2 = QobjExperiment.from_dict(qasm_json)
-
-        self.qobj = Qobj(
-            qobj_id='test_qobj',
-            config=QobjConfig(
-                shots=2000, memory_slots=1,
-                max_credits=3, seed=1111
-            ),
-            experiments=[compiled_circuit1, compiled_circuit2],
-            header=QobjHeader(backend_name='qasm_simulator')
-        )
-        self.qobj.experiments[0].header.name = 'test_circuit1'
-        self.qobj.experiments[1].header.name = 'test_circuit2'
-        self.backend = QasmSimulator()
+        self.qobj = compile([qc1, qc2], backend=self.backend,
+                            shots=2000, seed=1111)
 
     def _to_complex_array(self, vec):
         num_states = len(vec)
