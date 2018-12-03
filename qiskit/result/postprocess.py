@@ -7,26 +7,22 @@
 
 """Post-processing of raw result."""
 
-import warnings
-import numpy as np
-from qiskit import QiskitError, QuantumCircuit
-from qiskit.validation.base import BaseModel, bind_schema
-from .models import ResultSchema
-
-
 def _hex_to_bin(self, hexstring):
     """Convert hexadecimal readouts (memory) to binary readouts."""
     return str(bin(int(hexstring, 16)))[2:]
+
 
 def _pad_zeros(self, bitstring, memory_slots):
     """If the bitstring is truncated, pad extra zeros to make its
     length equal to memory_slots"""
     return format(int(bitstring, 2), '0{}b'.format(memory_slots))
 
+
 def _histogram(self, outcomes):
     """Build histogram from measurement outcomes of each shot."""
     counts = dict(Counter(outcomes))
     return counts
+
 
 def _little_endian(self, bitstring, clbit_labels, creg_sizes):
     """
@@ -45,6 +41,7 @@ def _little_endian(self, bitstring, clbit_labels, creg_sizes):
                             index_significance(clbit_labels[position][1]))
     return ''.join([bitstring[i] for i in sorted(range(len(bitstring)), key=key)])
 
+
 def _separate_bitstring(self, bitstring, creg_sizes):
     """Separate a bitstring according to the registers defined in the result header."""
     substrings = []
@@ -53,6 +50,7 @@ def _separate_bitstring(self, bitstring, creg_sizes):
         substrings.append(bitstring[running_index: running_index + size])
         running_index += size
     return ' '.join(substrings)
+
 
 def _format_resultstring(self, resultstring, exp_result_header):
     """
@@ -70,6 +68,7 @@ def _format_resultstring(self, resultstring, exp_result_header):
     if creg_sizes:
         resultstring = self._separate_bitstring(resultstring, creg_sizes)
     return resultstring
+
 
 def format_readout(self, exp_result):
     """Format a single experiment result coming from backend to present
@@ -100,9 +99,30 @@ def format_readout(self, exp_result):
         counts_dict[key] = val
     exp_result.data['counts'] = counts_dict
 
-def format_statevector(self, exp_result):
+
+def format_statevector(self, vec):
     """Format statevector coming from the backend to present to the Qiskit user.
 
     Args:
-        exp_result (ExperimentResult): result of a single experiment
+        vec (list): a list of [re, im] complex numbers
+
+    Returns:
+        list[complex]: a list of python complex numbers
     """
+    num_states = len(vec)
+    vec_complex = np.zeros(num_states, dtype=complex)
+    for i in range(num_states):
+        vec_complex[i] = vec[i][0] + 1j * vec[i][1]
+    return vec_complex
+
+
+def format_unitary(self, mat):
+    """Format statevector coming from the backend to present to the Qiskit user.
+
+    Args:
+        mat (list[list]): a list of list of [re, im] complex numbers
+
+    Returns:
+        list[list[complex]]: a matrix of complex numbers
+    """
+    pass

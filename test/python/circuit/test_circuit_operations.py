@@ -14,6 +14,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
+from qiskit.result.postprocess import format_statevector
 
 from ..common import QiskitTestCase, bin_to_hex_keys, requires_cpp_simulator
 
@@ -91,7 +92,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         snapshot_vectors = result.data(0)['snapshots']['statevector']['1']
-        snapshot = np.array([v[0] + 1j * v[1] for v in snapshot_vectors[0]], dtype=complex)
+        snapshot = format_statevector(snapshot_vectors[0])
         fidelity = state_fidelity(snapshot, desired_vector)
         self.assertGreater(fidelity, 0.99)
 

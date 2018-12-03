@@ -15,6 +15,7 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit import Aer
 from qiskit.quantum_info import state_fidelity
+from qiskit.result.postprocess import format_statevector
 from qiskit import execute
 from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
 
@@ -62,7 +63,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         result = execute(circuit, sim).result()
         # TODO: rely on Result.get_statevector() postprocessing rather than manual
         snapshots = result.data(0)['snapshots']['statevector']['3']
-        snapshot = np.array([v[0] + 1j * v[1] for v in snapshots[0]], dtype=complex)
+        snapshot = format_statevector(snapshots[0])
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
         fidelity = state_fidelity(snapshot, target)
         self.assertGreater(
