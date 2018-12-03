@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
               seed_mapper=None, hpc=None, pass_manager=None):
-    """transpile a list of circuits into a dags.
+    """transpile a list of circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
@@ -45,7 +45,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        dags: a list of dags.
+        list[QuantumCircuit]: a list of transpiled circuits.
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
@@ -206,7 +206,6 @@ def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
     return final_dag
 
 
-# pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                   initial_layout=None, get_layout=False,
                   format='dag', seed_mapper=None, pass_manager=None):
