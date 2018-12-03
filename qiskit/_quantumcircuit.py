@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=cyclic-import
+# pylint: disable=cyclic-import,invalid-name
 
 """
 Quantum circuit object.
@@ -14,6 +14,8 @@ from collections import OrderedDict
 from copy import deepcopy
 import itertools
 import warnings
+import random
+import string
 import networkx as nx
 
 
@@ -22,30 +24,6 @@ from qiskit._qiskiterror import QiskitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
-
-
-def _circuit_from_qasm(qasm):
-    from qiskit.unroll import Unroller
-    from qiskit.unroll import DAGBackend
-    ast = qasm.parse()
-    dag = Unroller(ast, DAGBackend()).execute()
-
-    circuit = QuantumCircuit()
-    for qreg in dag.qregs.values():
-        circuit.add_register(qreg)
-    for creg in dag.cregs.values():
-        circuit.add_register(creg)
-    graph = dag.multi_graph
-    for node in nx.topological_sort(graph):
-        n = graph.nodes[node]
-        if n['type'] == 'op':
-            n['op'].circuit = circuit
-            if 'condition' in n and n['condition']:
-                circuit._attach(n['op'].c_if(*n['condition']))
-            else:
-                circuit._attach(n['op'])
-
-    return circuit
 
 
 class QuantumCircuit(object):
@@ -67,30 +45,6 @@ class QuantumCircuit(object):
     #   "bits"   = list of qubit names
     #   "body"   = GateBody AST node
     definitions = OrderedDict()
-
-    @staticmethod
-    def from_qasm_file(path):
-        """Take in a QASM file and generate a QuantumCircuit object.
-
-        Args:
-          path (str): Path to the file for a QASM program
-        Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
-        """
-        qasm = _qasm.Qasm(filename=path)
-        return _circuit_from_qasm(qasm)
-
-    @staticmethod
-    def from_qasm_str(qasm_str):
-        """Take in a QASM string and generate a QuantumCircuit object.
-
-        Args:
-          qasm_str (str): A QASM program string
-        Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
-        """
-        qasm = _qasm.Qasm(data=qasm_str)
-        return _circuit_from_qasm(qasm)
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
@@ -122,6 +76,12 @@ class QuantumCircuit(object):
         self.qregs = []
         self.cregs = []
         self.add_register(*regs)
+
+    def __str__(self):
+        return str(self.draw(output='text'))
+
+    def __eq__(self, other):
+        return DAGCircuit.fromQuantumCircuit(self) == DAGCircuit.fromQuantumCircuit(other)
 
     @classmethod
     def _increment_instances(cls):
@@ -413,8 +373,67 @@ class QuantumCircuit(object):
         dag = DAGCircuit.fromQuantumCircuit(self)
         return dag.num_tensor_factors()
 
-    def __str__(self):
-        return str(self.draw(output='text'))
+    @staticmethod
+    def from_qasm_file(path):
+        """Take in a QASM file and generate a QuantumCircuit object.
 
-    def __eq__(self, other):
-        return DAGCircuit.fromQuantumCircuit(self) == DAGCircuit.fromQuantumCircuit(other)
+        Args:
+          path (str): Path to the file for a QASM program
+        Return:
+          QuantumCircuit: The QuantumCircuit object for the input QASM
+        """
+        qasm = _qasm.Qasm(filename=path)
+        return _circuit_from_qasm(qasm)
+
+    @staticmethod
+    def from_qasm_str(qasm_str):
+        """Take in a QASM string and generate a QuantumCircuit object.
+
+        Args:
+          qasm_str (str): A QASM program string
+        Return:
+          QuantumCircuit: The QuantumCircuit object for the input QASM
+        """
+        qasm = _qasm.Qasm(data=qasm_str)
+        return _circuit_from_qasm(qasm)
+
+    @staticmethod
+    def fromDAGCircuit(dag):
+        """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
+
+        Args:
+            dag (DAGCircuit): the input dag.
+
+        Return:
+            QuantumCircuit: the circuit representing the input dag.
+        """
+        circuit = QuantumCircuit()
+        random_name = QuantumCircuit.cls_prefix() + \
+            str(''.join(random.choice(string.ascii_lowercase) for i in range(8)))
+        circuit.name = dag.name or random_name
+        for qreg in dag.qregs.values():
+            circuit.add_register(qreg)
+        for creg in dag.cregs.values():
+            circuit.add_register(creg)
+        graph = dag.multi_graph
+        for node in nx.topological_sort(graph):
+            n = graph.nodes[node]
+            if n['type'] == 'op':
+                op = deepcopy(n['op'])
+                op.qargs = n['qargs']
+                op.cargs = n['cargs']
+                op.circuit = circuit
+                if 'condition' in n and n['condition']:
+                    op = op.c_if(*n['condition'])
+                circuit._attach(op)
+
+        return circuit
+
+
+def _circuit_from_qasm(qasm):
+    from qiskit.unroll import Unroller
+    from qiskit.unroll import DAGBackend
+    ast = qasm.parse()
+    dag = Unroller(ast, DAGBackend()).execute()
+
+    return QuantumCircuit.fromDAGCircuit(dag)

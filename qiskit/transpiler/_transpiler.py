@@ -14,6 +14,7 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QiskitError
+from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
               seed_mapper=None, hpc=None, pass_manager=None):
-    """transpile a list of circuits into a dags.
+    """transpile a list of circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
@@ -43,13 +44,15 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        dags: a list of dags.
+        QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
+    return_form_is_single = False
     if isinstance(circuits, _quantumcircuit.QuantumCircuit):
         circuits = [circuits]
+        return_form_is_single = True
 
     # FIXME: THIS NEEDS TO BE CLEANED UP -- some things to decide for list of circuits:
     # 1. do all circuits have same coupling map?
@@ -86,23 +89,38 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
                         initial_layouts=initial_layouts, seed_mapper=seed_mapper,
                         pass_manager=pass_manager)
 
-    # TODO: change it to circuits
-    # TODO: make it parallel
-    return dags
+    # step 3: Converting the dags back to circuits
+    circuits = _dags_2_circuits(dags)
+
+    if return_form_is_single:
+        return circuits[0]
+    return circuits
 
 
 def _circuits_2_dags(circuits):
     """Convert a list of circuits into a list of dags.
 
     Args:
-        circuits (list[QuantumCircuit]): circuit to compile
+        circuits (list[QuantumCircuit]): circuits to convert
 
     Returns:
         list[DAGCircuit]: the dag representation of the circuits
-        to be used in the transpiler
     """
     dags = parallel_map(DAGCircuit.fromQuantumCircuit, circuits)
     return dags
+
+
+def _dags_2_circuits(dags):
+    """Convert a list of dags into a list of circuits.
+
+    Args:
+        dags (list[DAGCircuit]): dags to convert
+
+    Returns:
+        list[QuantumCircuit]: the circuit representation of the dags
+    """
+    circuits = parallel_map(QuantumCircuit.fromDAGCircuit, dags)
+    return circuits
 
 
 def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,

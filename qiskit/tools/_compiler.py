@@ -14,7 +14,8 @@ from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
 from qiskit.unroll import DagUnroller, JsonBackend
-from qiskit.transpiler._parallel import parallel_map
+from qiskit.dagcircuit import DAGCircuit
+from qiskit._quantumcircuit import QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -48,30 +49,29 @@ def compile(circuits, backend,
         TranspilerError: in case of bad compile options, e.g. the hpc options.
 
     """
-
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
 
-    dags = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
-                                seed_mapper, hpc, pass_manager)
+    circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
+                                    seed_mapper, hpc, pass_manager)
 
-    # step 3: Making a qobj
-    qobj_standard = dags_2_qobj(dags, backend_name=backend.name(),
-                                config=config, shots=shots, max_credits=max_credits,
-                                qobj_id=qobj_id, basis_gates=basis_gates,
-                                coupling_map=coupling_map, seed=seed)
+    # step 4: Making a qobj
+    qobj = circuits_to_qobj(circuits, backend_name=backend.name(),
+                            config=config, shots=shots, max_credits=max_credits,
+                            qobj_id=qobj_id, basis_gates=basis_gates,
+                            coupling_map=coupling_map, seed=seed)
 
-    return qobj_standard
+    return qobj
 
 
-def dags_2_qobj(dags, backend_name, config=None, shots=None,
-                max_credits=None, qobj_id=None, basis_gates=None, coupling_map=None,
-                seed=None):
-    """Convert a list of dags into a qobj.
+def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
+                     max_credits=10, qobj_id=None, basis_gates=None, coupling_map=None,
+                     seed=None):
+    """Convert a list of circuits into a qobj.
 
     Args:
-        dags (list[DAGCircuit]): dags to compile
+        circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
         backend_name (str): name of runner backend
         config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
@@ -106,10 +106,14 @@ def dags_2_qobj(dags, backend_name, config=None, shots=None,
     if seed:
         qobj.config.seed = seed
 
-    qobj.experiments = parallel_map(_dags_2_qobj_parallel, dags,
-                                    task_kwargs={'basis_gates': basis_gates,
-                                                 'config': config,
-                                                 'coupling_map': coupling_map})
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+
+    for circuit in circuits:
+        qobj.experiments.append(_circuit_to_experiment(circuit,
+                                                       config,
+                                                       basis_gates,
+                                                       coupling_map))
 
     # Update the `memory_slots` value.
     # TODO: remove when `memory_slots` can be provided by the user.
@@ -125,11 +129,12 @@ def dags_2_qobj(dags, backend_name, config=None, shots=None,
     return qobj
 
 
-def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None):
+def _circuit_to_experiment(circuit, config=None, basis_gates=None,
+                           coupling_map=None):
     """Helper function for dags to qobj in parallel (if available).
 
     Args:
-        dag (DAGCircuit): DAG to compile
+        circuit (QuantumCircuit): QuantumCircuit to convert into qobj experiment
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (list[str])): basis gates for the experiment
         coupling_map (list): coupling map (perhaps custom) to target in mapping
@@ -137,11 +142,12 @@ def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None)
     Returns:
         Qobj: Qobj to be run on the backends
     """
+    dag = DAGCircuit.fromQuantumCircuit(circuit)
     json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
     # Step 3a: create the Experiment based on json_circuit
     experiment = QobjExperiment.from_dict(json_circuit)
     # Step 3b: populate the Experiment configuration and header
-    experiment.header.name = dag.name
+    experiment.header.name = circuit.name
     # TODO: place in header or config?
     experiment_config = deepcopy(config or {})
     experiment_config.update({
@@ -157,16 +163,15 @@ def _dags_2_qobj_parallel(dag, config=None, basis_gates=None, coupling_map=None)
 
     # set eval_symbols=True to evaluate each symbolic expression
     # TODO: after transition to qobj, we can drop this
-    experiment.header.compiled_circuit_qasm = dag.qasm(
-        qeflag=True, eval_symbols=True)
+    experiment.header.compiled_circuit_qasm = circuit.qasm()
     # Step 3c: add the Experiment to the Qobj
     return experiment
 
 
-def execute(circuits, backend,
-            config=None, basis_gates=None, coupling_map=None, initial_layout=None,
-            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False, seed_mapper=None, **kwargs):
+def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
+            initial_layout=None, shots=1024, max_credits=10, seed=None,
+            qobj_id=None, hpc=None, skip_transpiler=False, seed_mapper=None,
+            **kwargs):
     """Executes a set of circuits.
 
     Args:
