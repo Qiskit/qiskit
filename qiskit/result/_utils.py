@@ -52,30 +52,8 @@ def result_from_old_style_dict(result_dict):
     return Result.from_dict(result_dict)
 
 
-def copy_qasm_from_qobj_into_result(qobj_, result):
-    """Copy QASMs belonging to the Qobj experiment into a Result.
-
-    Find the QASMs belonging to the Qobj experiments and copy them
-    into the corresponding result entries.
-
-    Args:
-        qobj_ (qobj): Qobj
-        result (qiskit.Result): Result (modified in-place).
-    """
-    for experiment in qobj_.experiments:
-        name = experiment.header.name
-        qasm = getattr(experiment.header, 'compiled_circuit_qasm', None)
-        experiment_result = _find_experiment_result(result, name)
-        if qasm and experiment_result:
-            experiment_result['compiled_circuit_qasm'] = qasm
-
-        # TODO: passing the header to the results should be done at a higher
-        # level. This ensures result[x].header.name is present, for results.
-        experiment_result['header'] = experiment.header.as_dict()
-
-
 def _find_experiment_result(result, name):
-    for experiment_result in result['result']:
+    for experiment_result in result['results']:
         if experiment_result['name'] == name:
             return experiment_result
 
