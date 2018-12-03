@@ -8,8 +8,33 @@
 """Common visualization utilities."""
 
 import PIL
-
+import numpy as np
 from qiskit import dagcircuit
+from qiskit.tools.visualization._error import VisualizationError
+
+
+def _validate_input_state(quantum_state):
+    """Validates the input to state visualization functions.
+
+    Args:
+        quantum_state (ndarray): Input state / density matrix.
+    Returns:
+        rho: A 2d numpy array for the density matrix.
+    Raises:
+        VisualizationError: Invalid input.
+    """
+    rho = np.asarray(quantum_state)
+    if rho.ndim == 1:
+        rho = np.outer(rho, np.conj(rho))
+    # Check the shape of the input is a square matrix
+    shape = np.shape(rho)
+    if len(shape) != 2 or shape[0] != shape[1]:
+        raise VisualizationError("Input is not a valid quantum state.")
+    # Check state is an n-qubit state
+    num = int(np.log2(rho.shape[0]))
+    if 2 ** num != rho.shape[0]:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    return rho
 
 
 def _trim(image):
