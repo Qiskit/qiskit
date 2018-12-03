@@ -219,11 +219,11 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Compute Sergey's randomized distance
         xi = {}
-        for i in coupling.wires:
+        for i in coupling.physical_qubits:
             xi[(QuantumRegister(coupling.size(), 'q'), i)] = {}
-        for i in coupling.wires:
+        for i in coupling.physical_qubits:
             i = (QuantumRegister(coupling.size(), 'q'), i)
-            for j in coupling.wires:
+            for j in coupling.physical_qubits:
                 j = (QuantumRegister(coupling.size(), 'q'), j)
                 scale = 1 + np.random.normal(0, 1 / n)
                 xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
@@ -478,7 +478,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         # Check the input layout
         circ_qubits = circuit_graph.get_qubits()
         coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
-                       coupling_graph.wires]
+                       coupling_graph.physical_qubits]
         qubit_subset = []
         for k, v in initial_layout.items():
             qubit_subset.append(v)
@@ -491,7 +491,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     else:
         # Supply a default layout
         qubit_subset = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
-                        coupling_graph.wires]
+                        coupling_graph.physical_qubits]
         qubit_subset = qubit_subset[0:circuit_graph.width()]
         initial_layout = {a: b for a, b in zip(circuit_graph.get_qubits(), qubit_subset)}
 
