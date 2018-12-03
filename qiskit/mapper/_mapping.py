@@ -367,7 +367,7 @@ def direction_mapper(circuit_graph, coupling_graph):
     cg_edges = coupling_graph.get_edges()
     for cx_node in circuit_graph.get_named_nodes("cx"):
         nd = circuit_graph.multi_graph.node[cx_node]
-        cxedge = tuple(nd["op"].qargs)
+        cxedge = tuple(nd["qargs"])
         if cxedge in cg_edges:
             logger.debug("cx %s[%d], %s[%d] -- OK",
                          cxedge[0][0], cxedge[0][1],
@@ -671,8 +671,8 @@ def cx_cancellation(circuit):
         chunk = []
         for i in range(len(run) - 1):
             chunk.append(run[i])
-            qargs0 = circuit.multi_graph.node[run[i]]["op"].qargs
-            qargs1 = circuit.multi_graph.node[run[i + 1]]["op"].qargs
+            qargs0 = circuit.multi_graph.node[run[i]]["qargs"]
+            qargs1 = circuit.multi_graph.node[run[i + 1]]["qargs"]
             if qargs0 != qargs1:
                 partition.append(chunk)
                 chunk = []
@@ -892,6 +892,6 @@ def return_last_measurements(dag_circuit, removed_meas, final_layout):
     if any(removed_meas) and 'measure' not in dag_circuit.basis.keys():
         dag_circuit.add_basis_element("measure", 1, 1, 0)
     for meas in removed_meas:
-        new_q = final_layout[meas['op'].qargs[0]]
-        new_c = meas['op'].cargs[0]
+        new_q = final_layout[meas['qargs'][0]]
+        new_c = meas['cargs'][0]
         dag_circuit.apply_operation_back(Measure(new_q, new_c))

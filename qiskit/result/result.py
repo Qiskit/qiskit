@@ -9,7 +9,7 @@
 
 import warnings
 import numpy as np
-from qiskit import QISKitError, QuantumCircuit
+from qiskit import QiskitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
 from .models import ResultSchema
 
@@ -87,12 +87,12 @@ class Result(BaseModel):
             a dictionary of the snapshots.
 
         Raises:
-            QISKitError: if data for the experiment could not be retrieved.
+            QiskitError: if data for the experiment could not be retrieved.
         """
         try:
             return self._get_experiment(circuit).data.to_dict()
         except (KeyError, TypeError):
-            raise QISKitError('No data for circuit "{0}"'.format(circuit))
+            raise QiskitError('No data for circuit "{0}"'.format(circuit))
 
     def get_counts(self, circuit=None):
         """Get the histogram data of an experiment.
@@ -106,12 +106,12 @@ class Result(BaseModel):
                 the keys containing a string in hex format (``0x123``).
 
         Raises:
-            QISKitError: if there are no counts for the experiment.
+            QiskitError: if there are no counts for the experiment.
         """
         try:
             return self._get_experiment(circuit).data.counts.to_dict()
         except KeyError:
-            raise QISKitError('No counts for circuit "{0}"'.format(circuit))
+            raise QiskitError('No counts for circuit "{0}"'.format(circuit))
 
     def get_statevector(self, circuit=None, decimals=8):
         """Get the final statevector of an experiment.
@@ -125,13 +125,13 @@ class Result(BaseModel):
             list[complex]: list of 2^n_qubits complex amplitudes.
 
         Raises:
-            QISKitError: if there is no statevector for the experiment.
+            QiskitError: if there is no statevector for the experiment.
         """
         try:
             return np.around(self._get_experiment(circuit).data.statevector,
                              decimals=decimals)
         except KeyError:
-            raise QISKitError('No statevector for circuit "{0}"'.format(circuit))
+            raise QiskitError('No statevector for circuit "{0}"'.format(circuit))
 
     def get_unitary(self, circuit=None, decimals=8):
         """Get the final unitary of an experiment.
@@ -146,13 +146,13 @@ class Result(BaseModel):
                 amplitudes.
 
         Raises:
-            QISKitError: if there is no unitary for the experiment.
+            QiskitError: if there is no unitary for the experiment.
         """
         try:
             return np.around(self._get_experiment(circuit).data.unitary,
                              decimals=decimals)
         except KeyError:
-            raise QISKitError('No unitary for circuit "{0}"'.format(circuit))
+            raise QiskitError('No unitary for circuit "{0}"'.format(circuit))
 
     def _get_experiment(self, key=None):
         """Return an experiment from a given key.
@@ -165,17 +165,17 @@ class Result(BaseModel):
             ExperimentResult: the results for an experiment.
 
         Raises:
-            QISKitError: if there is no data for the circuit, or an unhandled
+            QiskitError: if there is no data for the circuit, or an unhandled
                 error occurred while fetching the data.
         """
         if not self.success:
-            raise QISKitError(getattr(self, 'status',
+            raise QiskitError(getattr(self, 'status',
                                       'Result was not successful'))
 
         # Automatically return the first result if no key was provided.
         if key is None:
             if len(self.results) != 1:
-                raise QISKitError(
+                raise QiskitError(
                     'You have to select a circuit when there is more than '
                     'one available')
             else:
@@ -194,7 +194,7 @@ class Result(BaseModel):
                         if getattr(getattr(result, 'header', None),
                                    'name', '') == key)
         except StopIteration:
-            raise QISKitError('Data for experiment "%s" could not be found.' %
+            raise QiskitError('Data for experiment "%s" could not be found.' %
                               key)
 
     # To be deprecated after 0.7
@@ -207,7 +207,7 @@ class Result(BaseModel):
         Returns:
             Result: The current object with appended results.
         Raises:
-            QISKitError: if the Results cannot be combined.
+            QiskitError: if the Results cannot be combined.
         """
         warnings.warn('Result addition is deprecated and will be removed in '
                       'version 0.7+.', DeprecationWarning)
@@ -215,10 +215,10 @@ class Result(BaseModel):
         this_backend = self.backend_name
         other_backend = other.backend_name
         if this_backend != other_backend:
-            raise QISKitError('Result objects from different backends cannot be combined.')
+            raise QiskitError('Result objects from different backends cannot be combined.')
 
         if not self.success or not other.success:
-            raise QISKitError('Can not combine a failed result with another result.')
+            raise QiskitError('Can not combine a failed result with another result.')
 
         self.results.extend(other.results)
         return self
@@ -292,7 +292,7 @@ class Result(BaseModel):
         Returns:
             string: A text version of the qasm file that has been run.
         Raises:
-            QISKitError: if the circuit was not found.
+            QiskitError: if the circuit was not found.
         """
         warnings.warn('get_ran_qasm() is deprecated and will be removed in '
                       'version 0.7+.', DeprecationWarning)
@@ -300,7 +300,7 @@ class Result(BaseModel):
         try:
             return self.results[name].compiled_circuit_qasm
         except KeyError:
-            raise QISKitError('No  qasm for circuit "{0}"'.format(name))
+            raise QiskitError('No  qasm for circuit "{0}"'.format(name))
 
     def get_names(self):
         """Get the circuit names of the results.
