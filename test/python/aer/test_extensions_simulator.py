@@ -10,6 +10,7 @@
 """Tests for verifying the correctness of simulator extension instructions."""
 
 import unittest
+import numpy as np
 import qiskit
 import qiskit.extensions.simulator
 from qiskit import Aer
@@ -59,9 +60,11 @@ class TestExtensionsSimulator(QiskitTestCase):
 
         sim = Aer.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
-        snapshot = result.data(0)['snapshots']['3']['statevector']
+        # TODO: rely on Result.get_statevector() postprocessing rather than manual
+        snapshots = result.data(0)['snapshots']['statevector']['3']
+        snapshot = np.array([v[0] + 1j * v[1] for v in snapshots[0]], dtype=complex)
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
-        fidelity = state_fidelity(snapshot[0], target)
+        fidelity = state_fidelity(snapshot, target)
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "snapshot has low fidelity{0:.2g}.".format(fidelity))
