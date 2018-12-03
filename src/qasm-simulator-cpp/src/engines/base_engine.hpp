@@ -253,34 +253,20 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
         "Error: Failed to convert state type to JSON";
     }
   }
+  // check for edge case of null array and instead return empty object
+  if (js.is_null())
+    js = json_t::object();
 }
 
 template <typename StateType>
 inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
   engine = BaseEngine<StateType>();
-  std::vector<std::string> opts;
-  if (JSON::get_value(opts, "data", js)) {
-    for (auto &o : opts) {
-      to_lowercase(o);
-      string_trim(o);
-      // check options
-      if (o == "memory") {
-        engine.show_final_creg = true;
-      } else if (o == "bitstringcounts") {
-        engine.hex_counts = false;
-      } else if (o == "nosort") {
-        engine.counts_sort = false;
-      } else if (o == "hidesnapshots" || o == "hidesnapshots") {
-      engine.show_snapshots = false;
-      }
-    }
-  }
-
+  // Check for single shot memory
+  JSON::get_value(engine.show_final_creg, "memory", js);
   // parse initial state from JSON
   if (JSON::get_value(engine.initial_state, "initial_state", js)) {
     engine.initial_state_flag = true;
   }
-
 }
 
 //------------------------------------------------------------------------------

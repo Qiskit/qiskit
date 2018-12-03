@@ -240,7 +240,7 @@ operation Circuit::parse_op(const json_t &node, const gateset_t &gs) {
     JSON::get_value(op.params, "params", node);
   }
   JSON::get_value(op.qubits, "qubits", node);
-  JSON::get_value(op.clbits, "clbits", node);
+  JSON::get_value(op.clbits, "memory", node);
 
   // Check op
   for (auto q : op.qubits)
