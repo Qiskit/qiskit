@@ -14,9 +14,11 @@
             "header": {
                 "name": "save_command",
                 "clbit_labels": [["c0", 1]],
-                "memory_slots": 1,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 1,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "save", "params": [0]},

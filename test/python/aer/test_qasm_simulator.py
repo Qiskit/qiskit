@@ -165,7 +165,7 @@ class TestAerQasmSimulator(QiskitTestCase):
             snapshots = result.data(name)['snapshots']['statevector']
             self.assertEqual(set(snapshots), {'0'},
                              msg=name + ' snapshot keys')
-            self.assertEqual(len(snapshots['0']), 3,
+            self.assertEqual(len(snapshots['0']), 1,
                              msg=name + ' snapshot length')
             state = self._to_complex_array(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']

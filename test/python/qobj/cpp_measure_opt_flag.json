@@ -14,9 +14,11 @@
             "header": {
                 "name": "measure (sampled)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},
@@ -28,9 +30,11 @@
             "header": {
                 "name": "trivial (sampled)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},
@@ -46,9 +50,11 @@
             "header": {
                 "name": "reset1 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "reset", "qubits": [0]},
@@ -61,9 +67,11 @@
             "header": {
                 "name": "reset2 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},
@@ -76,9 +84,11 @@
             "header": {
                 "name": "reset3 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},
@@ -91,9 +101,11 @@
             "header": {
                 "name": "gate1 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
@@ -105,9 +117,11 @@
             "header": {
                 "name": "gate2 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "measure", "memory": [0], "params": [], "qubits": [0], "clbits": [0]},
@@ -119,9 +133,11 @@
             "header": {
                 "name": "gate3 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},
@@ -134,9 +150,11 @@
             "header": {
                 "name": "gate4 (shots)",
                 "clbit_labels": [["c", 2]],
-                "memory_slots": 2,
-                "n_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},

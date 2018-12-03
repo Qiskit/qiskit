@@ -162,21 +162,6 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
   // Parse header
   JSON::get_value(header, "header", circuit);
   JSON::get_value(name, "name", header);
-  // legacy
-  JSON::get_value(nqubits, "number_of_qubits", header);
-  JSON::get_value(nclbits, "number_of_clbits", header);
-  // future
-  JSON::get_value(nqubits, "n_qubits", qobjconf);
-  JSON::get_value(nclbits, "memory_slots", qobjconf);
-
-  // parse operations
-  const json_t &ops = circuit["instructions"];
-  if (ops.empty())
-    throw std::runtime_error(std::string("instructions list is empty"));
-  for (auto it = ops.begin(); it != ops.end(); ++it)
-    operations.push_back(parse_op(*it, gs));
-  opt_meas = check_opt_meas(); // check measurement optimization
-
   // Parse Config
   config = qobjconf; // copy qobj level config
   if (JSON::check_key("config", circuit)) {
@@ -185,11 +170,22 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
-
-  // load config
+  // legacy
+  JSON::get_value(nqubits, "number_of_qubits", header);
+  JSON::get_value(nclbits, "number_of_clbits", header);
+  // Load config
+  JSON::get_value(nqubits, "n_qubits", config);
+  JSON::get_value(nclbits, "memory_slots", config);
   JSON::get_value(shots, "shots", config);
   JSON::get_value(rng_seed, "seed", config);
   JSON::get_value(noise, "noise_params", config);
+  // parse operations
+  const json_t &ops = circuit["instructions"];
+  if (ops.empty())
+    throw std::runtime_error(std::string("instructions list is empty"));
+  for (auto it = ops.begin(); it != ops.end(); ++it)
+    operations.push_back(parse_op(*it, gs));
+  opt_meas = check_opt_meas(); // check measurement optimization
   // Verify noise
   if (noise.verify(2) == false) {
     std::string msg = "invalid noise parameters";

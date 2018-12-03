@@ -14,6 +14,7 @@ Interface to C++ quantum circuit simulator with realistic noise.
 import logging
 import uuid
 from math import log2
+from numpy import array
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration, BackendProperties
 from qiskit.qobj import QobjInstruction
@@ -95,6 +96,7 @@ class StatevectorSimulator(QasmSimulator):
                 final_state_key = str(final_state_key)
             # Pop off final snapshot added above
             final_state = snapshots['statevector'].pop(final_state_key)[0]
+            final_state = array([v[0] + 1j * v[1] for v in final_state], dtype=complex)
             # Add final state to results data
             experiment_result.data.statevector = final_state
             # Remove snapshot dict if empty
