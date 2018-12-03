@@ -457,7 +457,7 @@ class DAGCircuit:
                                       % k)
         return union_gates
 
-    def _check_wiremap_registers(self, wire_map, keyregs, valregs, valreg=True):
+    def _check_wiremap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
 
         1. There are no fragmented registers. A register in keyregs
@@ -466,7 +466,7 @@ class DAGCircuit:
         it appears in both self and keyregs but not in wire_map.
 
         Args:
-            wire_map (dict): map from (reg,idx) in keyregs to (reg,idx) in valregs
+            edge_map (dict): map from (reg,idx) in keyregs to (reg,idx) in valregs
             keyregs (dict): a map from register names to Register objects
             valregs (dict): a map from register names to Register objects
             valreg (bool): if False the method ignores valregs and does not
@@ -483,8 +483,8 @@ class DAGCircuit:
         add_regs = set()
         reg_frag_chk = {}
         for v in keyregs.values():
-            reg_frag_chk[v] = {j: False for j in range(len(keyregs))}
-        for k in wire_map.keys():
+            reg_frag_chk[v] = {j: False for j in range(len(v))}
+        for k in edge_map.keys():
             if k[0].name in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
         for k, v in reg_frag_chk.items():
@@ -502,11 +502,11 @@ class DAGCircuit:
                     # If mapping to a register not in valregs, add it.
                     # (k,0) exists in wire_map because wire_map doesn't
                     # fragment k
-                    if not wire_map[(k, 0)][0].name in valregs:
+                    if not edge_map[(k, 0)][0].name in valregs:
                         size = max(map(lambda x: x[1],
-                                       filter(lambda x: x[0] == wire_map[(k, 0)][0],
-                                              wire_map.values())))
-                        qreg = QuantumRegister(size + 1, wire_map[(k, 0)][0].name)
+                                       filter(lambda x: x[0] == edge_map[(k, 0)][0],
+                                              edge_map.values())))
+                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)][0].name)
                         add_regs.add(qreg)
         return add_regs
 
@@ -555,8 +555,8 @@ class DAGCircuit:
             new_condition = (wire_map.get(bit0, bit0)[0], condition[1])
         return new_condition
 
-    def extends_at_the_end(self, dag, wire_map=None):
-        """Add `dag` at the end of `self`, using `wire_map`.
+    def extends_at_the_end(self, dag, edge_map=None):
+        """Add `dag` at the end of `self`, using `edge_map`.
         """
         for qreg in dag.qregs.values():
             if qreg.name not in self.qregs:
@@ -566,9 +566,9 @@ class DAGCircuit:
             if creg.name not in self.cregs:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
 
-        self.compose_back(dag, wire_map)
+        self.compose_back(dag, edge_map)
 
-    def compose_back(self, input_circuit, wire_map=None):
+    def compose_back(self, input_circuit, edge_map=None):
         """Apply the input circuit to the output of this circuit.
 
         The two bases must be "compatible" or an exception occurs.
@@ -577,34 +577,34 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            wire_map (dict): map {(Register, int): (Register, int)}
+            edge_map (dict): map {(Register, int): (Register, int)}
                 from the output wires of input_circuit to input wires
                 of self.
 
         Raises:
             DAGCircuitError: if missing, duplicate or incosistent wire
         """
-        wire_map = wire_map or {}
+        edge_map = edge_map or {}
         union_basis = self._make_union_basis(input_circuit)
         union_gates = self._make_union_gates(input_circuit)
 
         # Check the wire map for duplicate values
-        if len(set(wire_map.values())) != len(wire_map):
+        if len(set(edge_map.values())) != len(edge_map):
             raise DAGCircuitError("duplicates in wire_map")
 
-        add_qregs = self._check_wiremap_registers(wire_map,
+        add_qregs = self._check_wiremap_registers(edge_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_wiremap_registers(wire_map,
+        add_cregs = self._check_wiremap_registers(edge_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
         for creg in add_cregs:
             self.add_creg(creg)
 
-        self._check_wiremap_validity(wire_map, input_circuit.input_map,
+        self._check_wiremap_validity(edge_map, input_circuit.input_map,
                                      self.output_map)
 
         # Compose
@@ -614,7 +614,7 @@ class DAGCircuit:
             nd = input_circuit.multi_graph.node[node]
             if nd["type"] == "in":
                 # if in wire_map, get new name, else use existing name
-                m_wire = wire_map.get(nd["wire"], nd["wire"])
+                m_wire = edge_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
                     raise DAGCircuitError("wire (%s,%d) not in self" % (m_wire[0].name, m_wire[1]))
@@ -627,10 +627,10 @@ class DAGCircuit:
                 # ignore output nodes
                 pass
             elif nd["type"] == "op":
-                condition = self._map_condition(wire_map, nd["condition"])
+                condition = self._map_condition(edge_map, nd["condition"])
                 self._check_condition(nd["name"], condition)
-                m_qargs = list(map(lambda x: wire_map.get(x, x), nd["qargs"]))
-                m_cargs = list(map(lambda x: wire_map.get(x, x), nd["cargs"]))
+                m_qargs = list(map(lambda x: edge_map.get(x, x), nd["qargs"]))
+                m_cargs = list(map(lambda x: edge_map.get(x, x), nd["cargs"]))
                 self.apply_operation_back(nd["op"], m_qargs, m_cargs, condition)
             else:
                 raise DAGCircuitError("bad node type %s" % nd["type"])

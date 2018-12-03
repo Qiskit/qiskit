@@ -182,39 +182,39 @@ class TestSwapMapper(QiskitTestCase):
         after_dag = pass_.run(dag)
         self.assertEndswith(after_dag.qasm(), expected)
 
-    # def test_swap_between_qregs (self):
-    #     """ Adding a swap affecting different qregs
-    #      qr0_0:-------
-    #
-    #      qr1_0:--(+)--
-    #               |
-    #      qr1_1:---.---
-    #
-    #      Coupling map: [1]--[0]--[2]
-    #
-    #      qr0_0:--X--.---
-    #              |  |
-    #      qr1_0:--|-(+)--
-    #              |
-    #      qr1_1:--X------
-    #
-    #     """
-    #     coupling = Coupling({0: [1, 2]})
-    #
-    #     qr0 = QuantumRegister(1, 'qr0')
-    #     qr1 = QuantumRegister(2, 'qr1')
-    #
-    #     circuit = QuantumCircuit(qr0,qr1)
-    #     circuit.cx(qr1[0], qr1[1])
-    #     dag = DAGCircuit.fromQuantumCircuit(circuit)
-    #
-    #     expected = ['swap qr0[0],qr1[1];',
-    #                 'cx qr1[0],qr0[0];']
-    #
-    #     pass_ = SwapMapper(coupling)
-    #     after_dag = pass_.run(dag)
-    #
-    #     self.assertEndswith(after_dag.qasm(), expected)
+    def test_swap_between_qregs (self):
+        """ Adding a swap affecting different qregs
+         qr0_0:-------
+
+         qr1_0:--(+)--
+                  |
+         qr1_1:---.---
+
+         Coupling map: [1]--[0]--[2]
+
+         qr0_0:--X--.---
+                 |  |
+         qr1_0:--|-(+)--
+                 |
+         qr1_1:--X------
+
+        """
+        coupling = Coupling({0: [1, 2]})
+
+        qr0 = QuantumRegister(1, 'qr0')
+        qr1 = QuantumRegister(2, 'qr1')
+
+        circuit = QuantumCircuit(qr0,qr1)
+        circuit.cx(qr1[0], qr1[1])
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+
+        expected = ['swap qr1[1],qr0[0];',
+                    'cx qr1[0],qr0[0];']
+
+        pass_ = SwapMapper(coupling)
+        after_dag = pass_.run(dag)
+
+        self.assertEndswith(after_dag.qasm(), expected)
 
 
 if __name__ == '__main__':
