@@ -47,7 +47,6 @@ def compile(circuits, backend,
 
     Raises:
         TranspilerError: in case of bad compile options, e.g. the hpc options.
-
     """
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
@@ -133,6 +132,9 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     Returns:
         Qobj: Qobj to be run on the backends
     """
+    # pylint: disable=unused-argument
+    #  TODO: if arguments are really unused, consider changing the signature
+
     dag = DAGCircuit.fromQuantumCircuit(circuit)
     json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
     # Step 3a: create the Experiment based on json_circuit
