@@ -146,6 +146,7 @@ class DAGBackend(UnrollerBackend):
         Args:
             op (Instruction): operation to apply to the dag.
             qargs (list(QuantumRegister, int)): qubits to attach to
+            cargs (list(ClassicalRegister, int)): clbits to attach to
 
         Raises:
             BackendError: if encountering a non-basis opaque gate

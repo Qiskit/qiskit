@@ -49,7 +49,6 @@ def compile(circuits, backend,
         TranspilerError: in case of bad compile options, e.g. the hpc options.
 
     """
-
     pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
@@ -57,7 +56,7 @@ def compile(circuits, backend,
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                     seed_mapper, hpc, pass_manager)
 
-    # step 3: Making a qobj
+    # step 4: Making a qobj
     qobj = circuits_to_qobj(circuits, backend_name=backend.name(),
                             config=config, shots=shots, max_credits=max_credits,
                             qobj_id=qobj_id, basis_gates=basis_gates,
