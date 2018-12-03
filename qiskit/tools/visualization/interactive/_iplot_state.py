@@ -8,52 +8,43 @@
 """
 Qiskit visualization library.
 """
-
-import numpy as np
+import warnings
 from qiskit.tools.visualization import VisualizationError
-from ._iplot_blochsphere import iplot_blochsphere
-from ._iplot_cities import iplot_cities
-from ._iplot_hinton import iplot_hinton
-from ._iplot_paulivec import iplot_paulivec
-from ._iplot_qsphere import iplot_qsphere
+from qiskit.tools.visualization._utils import _validate_input_state
+from ._iplot_blochsphere import iplot_bloch_multivector
+from ._iplot_cities import iplot_state_city
+from ._iplot_hinton import iplot_state_hinton
+from ._iplot_paulivec import iplot_state_paulivec
+from ._iplot_qsphere import iplot_state_qsphere
 
 
-def iplot_state(quantum_state, method='city', options=None):
+def iplot_state(quantum_state, method='city', figsize=None):
     """Plot the quantum state.
 
     Args:
         quantum_state (ndarray): statevector or density matrix
                                  representation of a quantum state.
         method (str): Plotting method to use.
-        options (dict): Plotting settings.
+        figsize (tuple): Figure size in inches.
 
     Raises:
         VisualizationError: if the input is not a statevector or density
         matrix, or if the state is not an multi-qubit quantum state.
     """
-
-    # Check if input is a statevector, and convert to density matrix
-    rho = np.array(quantum_state)
-    if rho.ndim == 1:
-        rho = np.outer(rho, np.conj(rho))
-    # Check the shape of the input is a square matrix
-    shape = np.shape(rho)
-    if len(shape) != 2 or shape[0] != shape[1]:
-        raise VisualizationError("Input is not a valid quantum state.")
-    # Check state is an n-qubit state
-    num = int(np.log2(len(rho)))
-    if 2 ** num != len(rho):
-        raise VisualizationError("Input is not a multi-qubit quantum state.")
-
+    warnings.warn("iplot_state is deprecated, and will be removed in \
+                  the 0.9 release. Use the iplot_state_ * functions \
+                  instead.",
+                  DeprecationWarning)
+    rho = _validate_input_state(quantum_state)
     if method == "city":
-        iplot_cities(rho, options)
+        iplot_state_city(rho, figsize=figsize)
     elif method == "paulivec":
-        iplot_paulivec(rho, options)
+        iplot_state_paulivec(rho, figsize=figsize)
     elif method == "qsphere":
-        iplot_qsphere(rho, options)
+        iplot_state_qsphere(rho, figsize=figsize)
     elif method == "bloch":
-        iplot_blochsphere(rho, options)
+        iplot_bloch_multivector(rho, figsize=figsize)
     elif method == "hinton":
-        iplot_hinton(rho, options)
+        iplot_state_hinton(rho, figsize=figsize)
     else:
-        print("Unknown method '" + method + "'.")
+        raise VisualizationError('Invalid plot state method.')
