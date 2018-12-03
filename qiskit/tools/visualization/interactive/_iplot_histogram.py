@@ -13,7 +13,6 @@ from collections import Counter
 import sys
 import time
 import re
-import warnings
 import numpy as np
 from .._error import VisualizationError
 
@@ -51,7 +50,8 @@ def process_data(data, number_to_keep):
     return result
 
 
-def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
+def iplot_histogram(data, figsize=None, number_to_keep=None,
+                    sort='asc', legend=None):
     """ Create a histogram representation.
 
         Graphical representation of the input array using a vertical bars
@@ -60,17 +60,12 @@ def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
         Args:
             data (list or dict):  This is either a list of dicts or a single
                 dict containing the values to represent (ex. {'001' : 130})
-            number_to_keep (int): DEPRECATED the number of terms to plot and
+            figsize (tuple): Tuple giving figure width and height.
+            number_to_keep (int): The number of terms to plot and
                 rest is made into a single bar called other values
+            sort (string): Could be 'asc' or 'desc'
             legend (list): A list of strings to use for labels of the data.
                 The number of entries must match the length of data.
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
-                    - slider (bool): activate slider
-                    - number_to_keep (integer): groups max values
-                    - show_legend (bool): show legend of graph content
-                    - sort (string): Could be 'asc' or 'desc'
         Raises:
             VisualizationError: When legend is provided and the length doesn't
                 match the input data.
@@ -105,27 +100,17 @@ def iplot_histogram(data, number_to_keep=False, options=None, legend=None):
     div_number = str(time.time())
     div_number = re.sub('[.]', '', div_number)
 
-    if not options:
-        options = {}
+    # set default figure size if none provided
+    if figsize is None:
+        figsize = (7, 5)
 
-    if 'slider' in options and options['slider'] is True:
-        options['slider'] = 1
-    else:
-        options['slider'] = 0
-
-    if 'show_legend' in options and options['show_legend'] is False:
-        options['show_legend'] = 0
-    else:
+    options = {'number_to_keep': 0 if number_to_keep is None else number_to_keep,
+               'sort': sort,
+               'show_legend': 0,
+               'width': int(figsize[0]),
+               'height': int(figsize[1])}
+    if legend:
         options['show_legend'] = 1
-
-    if number_to_keep is not None:
-        warnings.warn("number_to_keep has been deprecated, use the options "
-                      "dictionary and set a number_to_keep key instead",
-                      DeprecationWarning)
-        options['number_to_keep'] = number_to_keep
-
-    if 'number_to_keep' not in options:
-        options['number_to_keep'] = 0
 
     data_to_plot = []
     if isinstance(data, dict):
