@@ -48,7 +48,7 @@ class TestTranspiler(QiskitTestCase):
 
         It should perform the default qiskit flow:
         unroll, swap_mapper, direction_mapper, cx cancellation, optimize_1q_gates
-        and should be equivalent to using tool.compile
+        and should be equivalent to using tools.compile
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
