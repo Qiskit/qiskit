@@ -59,7 +59,6 @@ class TestIBMQBackends(QiskitTestCase):
         custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
 
         for backend in backends:
-            print(backend)
             with self.subTest(backend=backend):
                 qobj = compile(self.qc1, backend)
 
