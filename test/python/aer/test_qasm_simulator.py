@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-docstring,redefined-builtin
 
 import json
 import unittest
@@ -17,7 +17,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 cx_error_matrix,
                                                 x90_error_matrix)
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.qobj import Qobj
 from qiskit import compile
 from ..common import QiskitTestCase, Path
