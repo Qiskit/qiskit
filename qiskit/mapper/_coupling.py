@@ -8,11 +8,11 @@
 # pylint: disable=no-member
 
 """
-Directed graph object for representing coupling between qubits.
+Directed graph object for representing coupling between wires.
 
-The nodes of the graph correspond to named qubits and the directed edges
-indicate which qubits are coupled and the permitted direction of CNOT gates.
-The object has a distance_qubits function that can be used to map quantum circuits
+The nodes of the graph correspond to wires (ints) and the directed edges
+indicate which wires are coupled and the permitted direction of CNOT gates.
+The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
 
@@ -24,7 +24,7 @@ class Coupling:
     """
     Directed graph specifying fixed coupling.
 
-    Nodes correspond to qubits and directed edges correspond to permitted
+    Nodes correspond to wires (int) and directed edges correspond to permitted
     CNOT gates
     """
 
@@ -123,6 +123,7 @@ class Coupling:
 
     @property
     def wires(self):
+        """ Returns a sorted list of wires """
         return sorted([wire for wire in self.graph.nodes])
 
     def is_connected(self):
@@ -135,22 +136,6 @@ class Coupling:
             return nx.is_weakly_connected(self.graph)
         except nx.exception.NetworkXException:
             return False
-
-    def compute_distance(self):
-        """
-        Compute the undirected distance function on pairs of nodes.
-
-        The distance_qubits map self.dist is computed from the graph using
-        all_pairs_shortest_path_length.
-        """
-        if not self.connected():
-            raise CouplingError("coupling graph not connected")
-        lengths = dict(nx.all_pairs_shortest_path_length(self.G.to_undirected()))
-        self.dist = {}
-        for i in self.qubits.keys():
-            self.dist[i] = {}
-            for j in self.qubits.keys():
-                self.dist[i][j] = lengths[self.qubits[i]][self.qubits[j]]
 
     def distance(self, wire1, wire2):
         """Return the undirected distance between wire1 and wire2."""
