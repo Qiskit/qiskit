@@ -62,6 +62,8 @@ class QobjItem(SimpleNamespace):
             return float(obj.evalf())
         if isinstance(obj, numpy.ndarray):
             return obj.tolist()
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
         return obj
 
     @classmethod
