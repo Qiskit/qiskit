@@ -144,8 +144,8 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 1))
         another_layout.add((self.qr, 0))
 
-        wire_map = layout.combine_into_edge_map(another_layout)
-        self.assertDictEqual(wire_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
+        edge_map = layout.combine_into_edge_map(another_layout)
+        self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
 
     def test_layout_combine_bigger(self):
         """combine_into_edge_map() method with another_layout is bigger"""
@@ -157,11 +157,11 @@ class LayoutTest(QiskitTestCase):
         another_layout.add((self.qr, 0))
         another_layout.add((self.qr, 2))
 
-        wire_map = layout.combine_into_edge_map(another_layout)
-        self.assertDictEqual(wire_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
+        edge_map = layout.combine_into_edge_map(another_layout)
+        self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
 
-    def test_layout_wire_smaller(self):
-        """wire_map_from_layouts() method with another_layout is smaller and raises an Error"""
+    def test_layout_combine_smaller(self):
+        """combine_into_edge_map() method with another_layout is smaller and raises an Error"""
         layout = Layout()
         layout.add((self.qr, 0))
         layout.add((self.qr, 1))
