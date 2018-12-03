@@ -14,6 +14,8 @@ from collections import OrderedDict
 from copy import deepcopy
 import itertools
 import warnings
+import random
+import string
 import networkx as nx
 
 
@@ -406,7 +408,9 @@ class QuantumCircuit(object):
             QuantumCircuit: the circuit representing the input dag.
         """
         circuit = QuantumCircuit()
-        circuit.name = dag.name
+        random_name = QuantumCircuit.cls_prefix() + \
+            str(''.join(random.choice(string.ascii_lowercase) for i in range(8)))
+        circuit.name = dag.name or random_name
         for qreg in dag.qregs.values():
             circuit.add_register(qreg)
         for creg in dag.cregs.values():
