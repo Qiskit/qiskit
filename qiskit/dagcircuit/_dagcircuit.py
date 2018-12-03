@@ -122,11 +122,11 @@ class DAGCircuit:
                     d["name"] = re.sub(regname, newname, d["name"])
             elif d["type"] == "op":
                 qa = []
-                for a in d["op"].qargs:
+                for a in d["qargs"]:
                     if a[0] == regname:
                         a = (newname, a[1])
                     qa.append(a)
-                d["op"].qargs = qa
+                d["qargs"] = qa
                 ca = []
                 for a in d["cargs"]:
                     if a[0] == regname:
@@ -406,7 +406,7 @@ class DAGCircuit:
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
-        al = [op.qargs, all_cbits]
+        al = [qargs, all_cbits]
         for q in itertools.chain(*al):
             ie = list(self.multi_graph.successors(self.input_map[q]))
             if len(ie) != 1:
@@ -616,8 +616,8 @@ class DAGCircuit:
             elif nd["type"] == "op":
                 condition = self._map_condition(wire_map, nd["condition"])
                 self._check_condition(nd["name"], condition)
-                m_qargs = list(map(lambda x: wire_map.get(x, x), nd["op"].qargs))
-                m_cargs = list(map(lambda x: wire_map.get(x, x), nd["op"].cargs))
+                m_qargs = list(map(lambda x: wire_map.get(x, x), nd["qargs"]))
+                m_cargs = list(map(lambda x: wire_map.get(x, x), nd["cargs"]))
                 self.apply_operation_back(nd["op"], m_qargs, m_cargs, condition)
             else:
                 raise DAGCircuitError("bad node type %s" % nd["type"])
@@ -1349,15 +1349,17 @@ class DAGCircuit:
                 support_list = []
                 # Operation data
                 op = copy.copy(nxt_nd["op"])
+                qa = copy.copy(nxt_nd["qargs"])
+                ca = copy.copy(nxt_nd["cargs"])
                 co = copy.copy(nxt_nd["condition"])
                 _ = self._bits_in_condition(co)
 
                 # Add node to new_layer
-                new_layer.apply_operation_back(op, op.qargs, op.cargs, co)
+                new_layer.apply_operation_back(op, qa, ca, co)
                 # Add operation to partition
                 if nxt_nd["name"] not in ["barrier",
                                           "snapshot", "save", "load", "noise"]:
-                    support_list.append(list(op.qargs))
+                    support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
                 yield l_dict
 

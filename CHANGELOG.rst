@@ -76,7 +76,8 @@ Changed
   references. The DAGCircuit class methods are updated accordingly (#1210).
 - Different unrollers are deprecated. The only unrolling happens
   from DAG to DAG (#1210).
-
+- ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
+  processing is only done internally (#1397).
 
 Deprecated
 """"""""""

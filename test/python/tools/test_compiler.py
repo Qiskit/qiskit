@@ -19,12 +19,11 @@ from qiskit import compile
 from qiskit import Result
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
-from qiskit.dagcircuit import DAGCircuit
 from qiskit import execute
 from qiskit._qiskiterror import QiskitError
 from qiskit.backends.ibmq import least_busy
-from .common import QiskitTestCase, bin_to_hex_keys
-from .common import requires_qe_access, requires_cpp_simulator
+from ..common import QiskitTestCase, bin_to_hex_keys
+from ..common import requires_qe_access, requires_cpp_simulator
 
 
 class FakeBackend(object):
@@ -36,7 +35,7 @@ class FakeBackend(object):
         return 'qiskit_is_cool'
 
     def configuration(self):
-        """Return a make up configuration for a fake QX5 device."""
+        """Return a make up configuration for a fake device."""
         qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
                     [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
                     [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
@@ -76,8 +75,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        dags = transpiler.transpile(qc, backend)
-        self.assertIsInstance(dags[0], DAGCircuit)
+        circuits = transpiler.transpile(qc, backend)
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_compile_two(self):
         """Test Compiler.
@@ -96,9 +95,9 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        dags = transpiler.transpile([qc, qc_extra], backend)
-        self.assertIsInstance(dags[0], DAGCircuit)
-        self.assertIsInstance(dags[1], DAGCircuit)
+        circuits = transpiler.transpile([qc, qc_extra], backend)
+        self.assertIsInstance(circuits[0], QuantumCircuit)
+        self.assertIsInstance(circuits[1], QuantumCircuit)
 
     def test_compile_run(self):
         """Test Compiler and run.
@@ -189,8 +188,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        dags = transpiler.transpile(qc, backend)
-        self.assertIsInstance(dags[0], DAGCircuit)
+        circuits = transpiler.transpile(qc, backend)
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     @requires_qe_access
     def test_compile_two_remote(self, qe_token, qe_url):
@@ -209,9 +208,9 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        dags = transpiler.transpile([qc, qc_extra], backend)
-        self.assertIsInstance(dags[0], DAGCircuit)
-        self.assertIsInstance(dags[1], DAGCircuit)
+        circuits = transpiler.transpile([qc, qc_extra], backend)
+        self.assertIsInstance(circuits[0], QuantumCircuit)
+        self.assertIsInstance(circuits[1], QuantumCircuit)
 
     @requires_qe_access
     def test_compile_run_remote(self, qe_token, qe_url):
@@ -357,10 +356,10 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(qr, cr)
 
         try:
-            dags = transpiler.transpile(circuit, backend)
+            circuits = transpiler.transpile(circuit, backend)
         except QiskitError:
-            dags = None
-        self.assertIsInstance(dags[0], DAGCircuit)
+            circuits = None
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     @unittest.skip("Temporary skipping")
     # skipping temporarily due to mapping wire fragment bug.
@@ -379,10 +378,10 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr, cr)
 
         try:
-            dags = transpiler.transpile(qc, backend)
+            circuits = transpiler.transpile(qc, backend)
         except QiskitError:
-            dags = None
-        self.assertIsInstance(dags[0], DAGCircuit)
+            circuits = None
+        self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling
@@ -420,8 +419,8 @@ class TestCompiler(QiskitTestCase):
             circuit.measure(qr, cr)
             circuits.append(circuit)
 
-        dags = transpiler.transpile(circuits, backend)
-        self.assertIsInstance(dags[0], DAGCircuit)
+        circuits = transpiler.transpile(circuits, backend)
+        self.assertIsInstance(circuits[0], QuantumCircuit)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.

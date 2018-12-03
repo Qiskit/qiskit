@@ -160,13 +160,14 @@ class JsonBackend(UnrollerBackend):
         self.creg = None
         self.cval = None
 
-    def start_gate(self, op, qargs, extra_fields=None):
+    def start_gate(self, op, qargs, cargs, extra_fields=None):
         """
         Begin a custom gate.
 
         Args:
             op (Instruction): operation to apply to the dag.
             qargs (list[QuantumRegister, int]): qubit arguments
+            cargs (list[ClassicalRegister, int]): clbit arguments
             extra_fields (dict): extra_fields used by non-standard instructions
                 for now (e.g. snapshot)
 
@@ -183,7 +184,7 @@ class JsonBackend(UnrollerBackend):
             qubit_indices = [self._qubit_order_internal.get((qubit[0].name, qubit[1]))
                              for qubit in qargs]
             clbit_indices = [self._cbit_order_internal.get((cbit[0].name, cbit[1]))
-                             for cbit in op.cargs]
+                             for cbit in cargs]
             gate_instruction = {
                 'name': op.name,
                 'params': list(map(lambda x: x.evalf(), op.param)),
