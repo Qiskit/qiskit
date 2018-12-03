@@ -90,11 +90,11 @@ class TestSwapMapper(QiskitTestCase):
 
          Coupling map: [1]--[0]--[2]
 
-         q0:--X--.---
-              |  |
-         q1:--|-(+)--
+         q0:--X---.---
+              |   |
+         q1:--|--(+)--
               |
-         q2:--X------
+         q2:--X-------
 
         """
         coupling = Coupling({0: [1, 2]})
@@ -104,7 +104,7 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = ['swap q[0],q[2];',
+        expected = ['swap q[2],q[0];',
                     'cx q[1],q[0];']
 
         pass_ = SwapMapper(coupling)
@@ -136,7 +136,7 @@ class TestSwapMapper(QiskitTestCase):
         circuit.h(qr[2])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = ['swap q[1],q[2];',
+        expected = ['swap q[2],q[1];',
                     'cx q[0],q[1];',
                     'h q[1];']
 
@@ -157,13 +157,13 @@ class TestSwapMapper(QiskitTestCase):
 
          Coupling map: [0]--[1]--[2]--[3]
 
-         qr0:----(+)---.--
-                  |    |
-         qr1:--X--.---(+)-
-               |
-         qr2:--|----------
-               |
-         qr3:--X----------
+         qr0:-------(+)---.--
+                     |    |
+         qr1:-----X--.---(+)-
+                  |
+         qr2:--X--|----------
+               |  |
+         qr3:--X--X----------
 
         """
         coupling = Coupling({0: [1], 1: [2], 2: [3]})
@@ -173,13 +173,13 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[3], qr[0])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
-        expected = ['swap q[1],q[3];',
+        expected = ['swap q[2],q[3];',
+                    'swap q[3],q[1];',
                     'cx q[0],q[1];',
                     'cx q[1],q[0];']
-        expected=['A'*100]
+
         pass_ = SwapMapper(coupling)
         after_dag = pass_.run(dag)
-
         self.assertEndswith(after_dag.qasm(), expected)
 
     # def test_swap_between_qregs (self):

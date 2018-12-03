@@ -168,10 +168,8 @@ class Coupling:
 
     def shortest_path(self, node1, node2):
         """ Return the shorter path between two nodes in an undirected coupling graph. """
-        path = nx.algorithms.shortest_paths.generic.shortest_path(self.G.to_undirected(),
-                                                                  self.qubits[node1],
-                                                                  self.qubits[node2])
-        return [self.G.node[node] for node in path]
+        return nx.algorithms.shortest_paths.generic.shortest_path(self.graph.to_undirected(),
+                                                                  node1, node2)
 
     def __str__(self):
         """Return a string representation of the coupling graph."""

@@ -16,6 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
 
+
 class SwapMapper(TransformationPass):
     """
     Maps a DAGCircuit onto a `coupling_map` using swap gates.
@@ -62,16 +63,16 @@ class SwapMapper(TransformationPass):
             subdag = layer['graph']
 
             for a_cx in subdag.get_cnot_nodes():
-                physical_q0 = ('q', current_layout[a_cx['op'].qargs[0]])
-                physical_q1 = ('q', current_layout[a_cx['op'].qargs[1]])
+                physical_q0 = current_layout[a_cx['op'].qargs[0]]
+                physical_q1 = current_layout[a_cx['op'].qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
 
                     path = self.coupling_map.shortest_path(physical_q0, physical_q1)
                     for swap in range(len(path) - 2):
-                        closest_qubit = current_layout[path[swap]['name'][1]]
-                        farthest_qubit = current_layout[path[swap + 1]['name'][1]]
+                        closest_qubit = current_layout[path[swap + 1]]
+                        farthest_qubit = current_layout[path[swap + 2]]
 
                         # create the involved registers
                         if closest_qubit[0] not in swap_layer.qregs.values():
@@ -81,19 +82,20 @@ class SwapMapper(TransformationPass):
 
                         # create the swap operation
                         swap_layer.add_basis_element('swap', 2, 0, 0)
-                        swap_layer.apply_operation_back(self.swap_gate(closest_qubit, farthest_qubit))
+                        swap_layer.apply_operation_back(
+                            self.swap_gate(closest_qubit, farthest_qubit))
 
                         # update current_layout
                         current_layout.swap(closest_qubit, farthest_qubit)
 
                         # swap the order in shortest path
-                        path[swap], path[swap + 1] = path[swap + 1], path[swap]
-                        
-                    # layer insertion
-                    wire_map = current_layout.wire_map_from_layouts(self.initial_layout)
-                    new_dag.extends_at_the_end(swap_layer, wire_map)
+                        path[swap + 2], path[swap + 1] = path[swap + 1], path[swap + 2]
 
-            wire_map = current_layout.wire_map_from_layouts(self.initial_layout)
-            new_dag.extends_at_the_end(subdag, wire_map)
+                    # layer insertion
+                    edge_map = current_layout.combine_into_edge_map(self.initial_layout)
+                    new_dag.extends_at_the_end(swap_layer, edge_map)
+
+            edge_map = current_layout.combine_into_edge_map(self.initial_layout)
+            new_dag.extends_at_the_end(subdag, edge_map)
 
         return new_dag
