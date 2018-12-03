@@ -10,12 +10,9 @@ from sys import version_info
 import unittest
 
 import numpy as np
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, DAGBackend, DagUnroller, JsonBackend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
-from qiskit.qobj import Qobj, QobjHeader, QobjConfig, QobjExperiment
 
 from ..common import QiskitTestCase, bin_to_hex_keys
 
@@ -26,24 +23,10 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         self.backend = QasmSimulatorPy()
-        backend_basis = self.backend.configuration().basis_gates
         qasm_filename = self._get_resource_path('qasm/example.qasm')
-        qasm_ast = Qasm(filename=qasm_filename).parse()
-        qasm_dag = Unroller(qasm_ast, DAGBackend()).execute()
-        qasm_dag = DagUnroller(qasm_dag, DAGBackend(backend_basis)).expand_gates()
-        qasm_json = DagUnroller(qasm_dag, JsonBackend(qasm_dag.basis)).execute()
-        compiled_circuit = QobjExperiment.from_dict(qasm_json)
-        compiled_circuit.header.name = 'test'
-
-        self.qobj = Qobj(
-            qobj_id='test_sim_single_shot',
-            config=QobjConfig(
-                shots=1024, memory_slots=6,
-                max_credits=3, seed=self.seed
-            ),
-            experiments=[compiled_circuit],
-            header=QobjHeader(backend_name='qasm_simulator_py')
-        )
+        compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+        compiled_circuit.name = 'test'
+        self.qobj = compile(compiled_circuit, backend=self.backend)
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
