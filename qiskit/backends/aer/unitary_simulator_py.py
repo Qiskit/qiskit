@@ -86,7 +86,7 @@ import time
 from math import log2, sqrt
 import numpy as np
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration, BackendProperties
+from qiskit.backends.models import BackendConfiguration
 from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
@@ -127,23 +127,6 @@ class UnitarySimulatorPy(BaseBackend):
         # Define attributes inside __init__.
         self._unitary_state = None
         self._number_of_qubits = 0
-
-    def properties(self):
-        """Return backend properties"""
-        properties = {
-            'backend_name': self.name(),
-            'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                         'unit': 'TODO', 'value': 0}]],
-            'gates': [{'qubits': [0], 'gate': 'TODO',
-                       'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                             'unit': 'TODO', 'value': 0}]}],
-            'general': []
-        }
-
-        return BackendProperties.from_dict(properties)
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
