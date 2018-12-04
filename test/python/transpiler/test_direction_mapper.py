@@ -56,13 +56,64 @@ class TestDirectionMapper(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
-        coupling = Coupling({0: [2,1]})
+        coupling = Coupling({0: [2, 1]})
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
         pass_ = DirectionMapper(coupling)
 
         with self.assertRaises(MapperError):
             pass_.run(dag)
+
+    def test_direction_correct(self):
+        """
+         qr0:---(+)---
+                 |
+         qr1:----.----
+
+         Coupling map: [0] -> [1]
+        """
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        coupling = Coupling({0: [1]})
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        before = deepcopy(dag)
+
+        pass_ = DirectionMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(before, after)
+
+    def test_direction_flip(self):
+        """
+         qr0:----.----
+                 |
+         qr1:---(+)---
+
+         Coupling map: [0] -> [1]
+
+         qr0:---(+)---
+                 |
+         qr1:----.----
+        """
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])
+        coupling = Coupling({0: [1]})
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[1])
+        expected.cx(qr[0], qr[1])
+        expected.h(qr[0])
+        expected.h(qr[1])
+
+        pass_ = DirectionMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
+
 
 if __name__ == '__main__':
     unittest.main()

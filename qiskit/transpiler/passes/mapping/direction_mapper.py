@@ -22,6 +22,10 @@ class DirectionMapper(TransformationPass):
     """
      Rearrenges the direction of the cx nodes to make the circuit
      compatible to the directed coupling map.
+     It uses this equivalence:
+        ---(+)---      --[H]---.---[H]--
+            |      =           |
+        ----.----      --[H]--(+)--[H]--
     """
 
     def __init__(self, coupling_map, h_gate=None, initial_layout=None):
@@ -35,7 +39,7 @@ class DirectionMapper(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.swap_gate = h_gate if h_gate is not None else HGate
+        self.h_gate = h_gate if h_gate is not None else HGate
 
     def run(self, dag):
         """
@@ -61,12 +65,35 @@ class DirectionMapper(TransformationPass):
             subdag = layer['graph']
 
             for cnot in subdag.get_cnot_nodes():
-                op = cnot['op']
-                physical_q0 = current_layout[op.qargs[0]]
-                physical_q1 = current_layout[op.qargs[1]]
+
+                control = cnot['op'].qargs[0]
+                target = cnot['op'].qargs[1]
+
+                physical_q0 = current_layout[control]
+                physical_q1 = current_layout[target]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     raise MapperError('The circuit requires a connectiontion between the phsycial '
                                       'qubits %s and %s' % (physical_q0, physical_q1))
+
+                if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
+                    # A flip needs to be done
+
+                    # Create the involved registers
+                    if control[0] not in subdag.qregs.values():
+                        subdag.add_qreg(control[0])
+                    if target[0] not in subdag.qregs.values():
+                        subdag.add_qreg(target[0])
+
+                    # Add H gates around
+                    subdag.add_basis_element('h', 1, 0, 0)
+                    subdag.apply_operation_back(self.h_gate(target))
+                    subdag.apply_operation_back(self.h_gate(control))
+                    subdag.apply_operation_front(self.h_gate(target))
+                    subdag.apply_operation_front(self.h_gate(control))
+
+                    # Flips the CX
+                    cnot['op'].qargs[0], cnot['op'].qargs[1] = target, control
+
             edge_map = current_layout.combine_into_edge_map(self.initial_layout)
             new_dag.extends_at_the_end(subdag, edge_map)
 
