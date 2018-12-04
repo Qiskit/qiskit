@@ -20,8 +20,9 @@ from qiskit.extensions.standard import HGate
 
 class DirectionMapper(TransformationPass):
     """
-     Rearrenges the direction of the cx nodes to make the circuit
-     compatible to the directed coupling map.
+     Rearranges the direction of the cx nodes to make the circuit
+     compatible with the directed coupling map.
+
      It uses this equivalence:
         ---(+)---      --[H]---.---[H]--
             |      =           |
