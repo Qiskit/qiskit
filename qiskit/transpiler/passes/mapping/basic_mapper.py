@@ -23,7 +23,7 @@ from qiskit.extensions.standard import SwapGate
 
 class BasicMapper(TransformationPass):
     """
-    Maps a DAGCircuit onto a `coupling_map` using swap gates.
+    Maps (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
     """
 
     def __init__(self,
