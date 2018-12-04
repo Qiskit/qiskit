@@ -317,21 +317,6 @@ class IBMQJob(BaseJob):
         """
         return self._creation_date
 
-    # pylint: disable=invalid-name
-    def id(self):
-        """Return backend determined id.
-
-        If the Id is not set because the job is already initializing, this call
-        will block until we have an Id.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.job_id()` instead.
-        """
-        warnings.warn('The method `job.id()` is deprecated, use '
-                      '``job.job_id()`` instead.', DeprecationWarning)
-        return self.job_id()
-
     def job_id(self):
         """Return backend determined id.
 
