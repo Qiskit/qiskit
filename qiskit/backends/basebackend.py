@@ -51,14 +51,14 @@ class BaseBackend(ABC):
         """
         return self._configuration
 
-    @abstractmethod
     def properties(self):
         """Return backend properties.
 
         Returns:
-            BackendProperties: the configuration for the backend.
+            BackendProperties: the configuration for the backend. If the backend
+            does not support properties, it returns ``None``.
         """
-        pass
+        return None
 
     def provider(self):
         """Return the backend Provider.
