@@ -159,6 +159,8 @@ class IBMQJob(BaseJob):
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
+        else:
+            self._qobj_payload = {}
 
         self._future_captured_exception = None
         self._api = api
@@ -503,7 +505,9 @@ class IBMQJobPreQobj(IBMQJob):
 
     def _result_from_job_response(self, job_response):
         if self._is_device:
-            _reorder_bits(job_response)
+            # TODO: temporarily disabled for #1373, reenable before 0.7.
+            # _reorder_bits(job_response)
+            pass
 
         experiment_results = []
         for circuit_result in job_response['qasms']:
@@ -521,14 +525,22 @@ class IBMQJobPreQobj(IBMQJob):
                     this_result['header'] = {}
             experiment_results.append(this_result)
 
-        return result_from_old_style_dict({
+        ret = {
             'id': self._job_id,
             'status': job_response['status'],
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
             'backend_name': self.backend().name(),
-            'success': job_response['status'] == 'COMPLETED'
-        })
+            'success': job_response['status'] == 'COMPLETED',
+        }
+
+        # Append header: from the response; from the payload; or none.
+        header = job_response.get('header',
+                                  self._qobj_payload.get('header', {}))
+        if header:
+            ret['header'] = header
+
+        return result_from_old_style_dict(ret)
 
 
 def _reorder_bits(job_data):

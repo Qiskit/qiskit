@@ -63,7 +63,7 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[0], (self.qr, 0))
 
     def test_layout_len(self):
-        """Length of the layout is the amount of wires"""
+        """Length of the layout is the amount of physical bits"""
         layout = Layout()
         self.assertEqual(len(layout), 0)
         layout.add((self.qr, 0))
@@ -78,12 +78,12 @@ class LayoutTest(QiskitTestCase):
         layout.set_length(4)
         self.assertEqual(len(layout), 4)
 
-    def test_layout_idle_wires(self):
-        """Get wires that are not mapped"""
+    def test_layout_idle_physical_bits(self):
+        """Get physical_bits that are not mapped"""
         layout = Layout()
         layout.add((self.qr, 1), 2)
         layout.set_length(4)
-        self.assertEqual(layout.idle_wires(), [0, 1, 3])
+        self.assertEqual(layout.idle_physical_bits(), [0, 1, 3])
 
     def test_layout_get_bits(self):
         """Get the map from the (qu)bits view"""
@@ -91,14 +91,14 @@ class LayoutTest(QiskitTestCase):
                        (self.qr, 1): 1,
                        (self.qr, 2): 2}
         layout = Layout(layout_dict)
-        self.assertDictEqual(layout_dict, layout.get_bits())
+        self.assertDictEqual(layout_dict, layout.get_virtual_bits())
 
-    def test_layout_get_wires(self):
-        """Get the map from the wires view"""
+    def test_layout_get_physical_bits(self):
+        """Get the map from the physical bits view"""
         layout = Layout({(self.qr, 0): 0, (self.qr, 1): 1, (self.qr, 2): 2})
-        self.assertDictEqual(layout.get_wires(), {0: (self.qr, 0),
-                                                  1: (self.qr, 1),
-                                                  2: (self.qr, 2)})
+        self.assertDictEqual(layout.get_physical_bits(), {0: (self.qr, 0),
+                                                          1: (self.qr, 1),
+                                                          2: (self.qr, 2)})
 
     def test_layout_add(self):
         """add() method"""
@@ -125,7 +125,7 @@ class LayoutTest(QiskitTestCase):
         layout.add((self.qr, 0))
         layout.add((self.qr, 1))
         layout.swap(0, 1)
-        self.assertDictEqual(layout.get_bits(), {(self.qr, 0): 1, (self.qr, 1): 0})
+        self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 0})
 
     def test_layout_swap_error(self):
         """swap() method error"""

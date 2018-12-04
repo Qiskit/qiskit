@@ -7,7 +7,7 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
-
+import numpy as np
 import qiskit.extensions.simulator  # pylint: disable=unused-import
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -80,7 +80,7 @@ class TestCircuitOperations(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc1 = QuantumCircuit(qr)
-        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        desired_vector = [0.5 + 0.j, 0.5 + 0.j, 0.5 + 0.j, 0.5 + 0.j]
         qc1.initialize(desired_vector, qr)
         qc1.barrier()
         qc2 = QuantumCircuit(qr, cr)
@@ -90,8 +90,9 @@ class TestCircuitOperations(QiskitTestCase):
         backend = Aer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
-        snapshot_vectors = result.data(0)['snapshots']['1']['statevector']
-        fidelity = state_fidelity(snapshot_vectors[0], desired_vector)
+        snapshot_vectors = result.data(0)['snapshots']['statevector']['1']
+        snapshot = np.array([v[0] + 1j * v[1] for v in snapshot_vectors[0]], dtype=complex)
+        fidelity = state_fidelity(snapshot, desired_vector)
         self.assertGreater(fidelity, 0.99)
 
         counts = result.get_counts()
