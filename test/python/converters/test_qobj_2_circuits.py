@@ -94,6 +94,5 @@ class TestQobjToCircuits(QiskitTestCase):
                                     DAGCircuit.fromQuantumCircuit(circuit_b)])
 
 
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)

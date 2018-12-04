@@ -11,6 +11,7 @@ from qiskit import _classicalregister as cr
 from qiskit import _quantumcircuit as qc
 from qiskit import _quantumregister as qr
 
+
 def _get_registers(reg_list, constructor):
     registers = {}
     for bits in reg_list:
