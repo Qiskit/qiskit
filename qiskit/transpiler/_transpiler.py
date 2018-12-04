@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
               seed_mapper=None, hpc=None, pass_manager=None):
-    """transpile a list of circuits.
+    """transpile one or more circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
