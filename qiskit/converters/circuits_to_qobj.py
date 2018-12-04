@@ -85,8 +85,8 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     """
     # pylint: disable=unused-argument
     #  TODO: if arguments are really unused, consider changing the signature
-
-    dag = DAGCircuit.fromQuantumCircuit(circuit)
+    from qiskit.converters import circuit_to_dag
+    dag = circuit_to_dag(circuit)
     json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
     # Step 3a: create the Experiment based on json_circuit
     experiment = QobjExperiment.from_dict(json_circuit)
