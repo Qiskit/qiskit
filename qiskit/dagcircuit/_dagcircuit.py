@@ -483,7 +483,7 @@ class DAGCircuit:
         add_regs = set()
         reg_frag_chk = {}
         for v in keyregs.values():
-            reg_frag_chk[v] = {j: False for j in range(len(v))}
+            reg_frag_chk[v] = {j: False for j in range(len(keyregs))}
         for k in edge_map.keys():
             if k[0].name in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
