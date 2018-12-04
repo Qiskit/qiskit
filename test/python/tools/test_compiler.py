@@ -14,7 +14,7 @@ import unittest
 
 import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import transpiler
+from qiskit.transpiler import PassManager, transpile
 from qiskit import compile
 from qiskit import Result
 from qiskit.backends.models import BackendConfiguration
@@ -75,7 +75,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        circuits = transpiler.transpile(qc, backend)
+        circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_compile_two(self):
@@ -95,7 +95,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        circuits = transpiler.transpile([qc, qc_extra], backend)
+        circuits = transpile([qc, qc_extra], backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
         self.assertIsInstance(circuits[1], QuantumCircuit)
 
@@ -188,7 +188,7 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        circuits = transpiler.transpile(qc, backend)
+        circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
 
     @requires_qe_access
@@ -208,7 +208,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        circuits = transpiler.transpile([qc, qc_extra], backend)
+        circuits = transpile([qc, qc_extra], backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
         self.assertIsInstance(circuits[1], QuantumCircuit)
 
@@ -356,7 +356,7 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(qr, cr)
 
         try:
-            circuits = transpiler.transpile(circuit, backend)
+            circuits = transpile(circuit, backend)
         except QiskitError:
             circuits = None
         self.assertIsInstance(circuits, QuantumCircuit)
@@ -378,7 +378,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr, cr)
 
         try:
-            circuits = transpiler.transpile(qc, backend)
+            circuits = transpile(qc, backend)
         except QiskitError:
             circuits = None
         self.assertIsInstance(circuits, QuantumCircuit)
@@ -421,7 +421,7 @@ class TestCompiler(QiskitTestCase):
             circuit.measure(qr, cr)
             circuits.append(circuit)
 
-        circuits = transpiler.transpile(circuits, backend)
+        circuits = transpile(circuits, backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
 
     def test_example_multiple_compile(self):
@@ -562,6 +562,19 @@ class TestCompiler(QiskitTestCase):
         qlist = [qc for k in range(10)]
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
+
+    def test_compile_skip_transpiler(self):
+        """Test compile with and without an empty pass manager."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.u1(3.14, qr[0])
+        qc.u2(3.14, 1.57, qr[0])
+        qc.measure(qr, cr)
+        backend = qiskit.Aer.get_backend('qasm_simulator_py')
+        rtrue = execute(qc, backend, seed=42).result()
+        rfalse = execute(qc, backend, seed=42, pass_manager=PassManager()).result()
+        self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
 
 if __name__ == '__main__':

@@ -109,6 +109,8 @@ Deprecated
 - The functions `plot_state()` and `iplot_state()` have been depreciated.
   Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
   called. (#1359)
+- The ``skip_transpiler`` arg has been deprecated from ``tools.compile()`` and
+  ``tools.execute()`` in favor of using the PassManager directly.
 
 Fixed
 """""
@@ -126,7 +128,7 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
-- The`number_to_keep` kwarg in `plot_histgram()`now functions correctly (#1359).
+- The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly (#1359).
 - parallel_map no longer creates a progress bar for a single circuit (#1394).
 
 Removed
@@ -134,14 +136,14 @@ Removed
 
 - Remove register, available_backends (#1131).
 - Remove tools/apps (#1184).
-- Removed the dependency on `IBMQuantumExperience`, as it is now included
-  in `qiskit.backends.IBMQ` (#1198).
+- Removed the dependency on ``IBMQuantumExperience``, as it is now included
+  in ``qiskit.backends.IBMQ`` (#1198).
 - ``matplotlib`` is no longer in the package requirements and is now an optional
   dependency. In order to use any matplotlib based visualizations (which
-  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
-  `qiskit.tools.visualization.plot_state`,
-  `qiskit.tools.visualization.plot_histogram`, and
-  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
+  includes the ``qiskit.tools.visualization.circuit_drawer()`` ``mpl`` output,
+  ``qiskit.tools.visualization.plot_state``,
+  ``qiskit.tools.visualization.plot_histogram``, and
+  ``qiskit.tools.visualization.plot_bloch_vector`` you will now need to ensure
   you manually install and configure matplotlib independently.
 - The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
   alternative list of basis gates has been removed. Instead users should adjust
