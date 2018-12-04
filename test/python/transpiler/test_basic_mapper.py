@@ -205,7 +205,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit.cx(qr1[0], qr1[1])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr0, qr1)
         expected.swap(qr1[1], qr0[0])
         expected.cx(qr1[1], qr0[0])
 
