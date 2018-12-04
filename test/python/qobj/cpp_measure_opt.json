@@ -5,6 +5,7 @@
     "config": {
         "shots": 2000,
         "memory_slots": 2,
+        "n_qubits": 2,
         "seed": 1,
         "data" : ["density_matrix", "probabilities"]
     },
@@ -16,9 +17,11 @@
             "header": {
                 "name": "measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "snapshot", "label": "", "type": "", "params": [0]},
@@ -30,9 +33,11 @@
             "header": {
                 "name": "x0 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "x", "qubits": [0]},
@@ -45,9 +50,11 @@
             "header": {
                 "name": "x1 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "x", "qubits": [1]},
@@ -60,9 +67,11 @@
             "header": {
                 "name": "x0 x1 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "x", "qubits": [0]},
@@ -76,9 +85,11 @@
             "header": {
                 "name": "y0 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "y", "qubits": [0]},
@@ -91,9 +102,11 @@
             "header": {
                 "name": "y1 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "y", "qubits": [1]},
@@ -106,9 +119,11 @@
             "header": {
                 "name": "y0 y1 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "y", "qubits": [0]},
@@ -122,9 +137,11 @@
             "header": {
                 "name": "h0 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "h", "qubits": [0]},
@@ -137,9 +154,11 @@
             "header": {
                 "name": "h1 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "h", "qubits": [1]},
@@ -152,9 +171,11 @@
             "header": {
                 "name": "h0 h1 measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "h", "qubits": [0]},
@@ -168,9 +189,11 @@
             "header": {
                 "name": "bell measure (opt)",
                 "clbit_labels": [["c", 2]],
-                "number_of_clbits": 2,
-                "number_of_qubits": 2,
                 "qubit_labels": [["q", 0], ["q", 1]]
+            },
+            "config": {
+                "memory_slots": 2,
+                "n_qubits": 2
             },
             "instructions": [
                 {"name": "h", "qubits": [0]},

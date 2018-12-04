@@ -59,7 +59,7 @@ class TestCrossSimulation(QiskitTestCase):
         result_py = execute(circuit, sim_py, shots=shots).result()
         counts_cpp = result_cpp.get_counts()
         counts_py = result_py.get_counts()
-        self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.05)
+        self.assertDictAlmostEqual(counts_cpp, counts_py, shots*0.08)
 
     def test_qasm_reset_measure(self):
         """counts from a qasm program with measure and reset in the middle"""
