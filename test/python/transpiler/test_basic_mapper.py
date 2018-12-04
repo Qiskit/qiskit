@@ -16,7 +16,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 
-class TestSwapMapper(QiskitTestCase):
+class TestBasicMapper(QiskitTestCase):
     """ Tests the BasicMapper pass."""
 
     def test_trivial_case(self):
