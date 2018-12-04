@@ -11,7 +11,7 @@
 
 import unittest
 
-from qiskit.tools import qobj_to_circuits
+from qiskit.converters import qobj_to_circuits
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import Aer
 from qiskit import compile
