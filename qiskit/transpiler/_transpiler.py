@@ -80,7 +80,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
 def _parallel_transpilation(circuit, backend, basis_gates=None, coupling_map=None,
                             initial_layout=None, seed_mapper=None,
                             pass_manager=None):
-    """Perform transpilation of a single.
+    """Perform transpilation of a single circuit.
 
     Args:
         circuit (QuantumCircuit): A circuit to transpile.
