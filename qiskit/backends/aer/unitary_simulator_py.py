@@ -25,7 +25,7 @@ import time
 from math import log2, sqrt
 import numpy as np
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration, BackendProperties
+from qiskit.backends.models import BackendConfiguration
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
 from qiskit.result import Result
