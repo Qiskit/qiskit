@@ -5,6 +5,7 @@
     "config": {
         "shots": 1,
         "memory_slots": 1,
+        "n_qubits": 1,
         "seed": 1
     },
     "header": {"backend_name": "qasm_simulator"},
@@ -13,9 +14,11 @@
             "header": {
                 "name": "reset",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 1,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "reset", "qubits": [0]},
@@ -33,9 +36,11 @@
             "header": {
                 "name": "x reset",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 1,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "x", "qubits": [0]},
@@ -54,9 +59,11 @@
             "header": {
                 "name": "y reset",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 1,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "y", "qubits": [0]},
@@ -75,9 +82,11 @@
             "header": {
                 "name": "h reset",
                 "clbit_labels": [["c0", 1]],
-                "number_of_clbits": 1,
-                "number_of_qubits": 1,
                 "qubit_labels": [["q", 0]]
+            },
+            "config": {
+                "memory_slots": 1,
+                "n_qubits": 1
             },
             "instructions": [
                 {"name": "h", "qubits": [0]},

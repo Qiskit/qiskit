@@ -18,6 +18,7 @@ from qiskit import compile
 
 from qiskit.qobj import Qobj
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler import PassManager
 from ..common import QiskitTestCase
 
 
@@ -35,7 +36,7 @@ class TestQobj2Circuits(QiskitTestCase):
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
         backend = Aer.get_backend('qasm_simulator_py')
-        qobj_in = compile(self.circuit, backend, skip_transpiler=True)
+        qobj_in = compile(self.circuit, backend, pass_manager=PassManager())
         out_circuit = qobj_to_circuits(qobj_in)
         self.assertEqual(DAGCircuit.fromQuantumCircuit(out_circuit[0]), self.dag)
 
@@ -51,7 +52,7 @@ class TestQobj2Circuits(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = compile([self.circuit, circuit_b], backend, skip_transpiler=True)
+        qobj = compile([self.circuit, circuit_b], backend, pass_manager=PassManager())
         dag_list = [DAGCircuit.fromQuantumCircuit(x) for x in qobj_to_circuits(qobj)]
         self.assertEqual(dag_list, [self.dag, DAGCircuit.fromQuantumCircuit(circuit_b)])
 

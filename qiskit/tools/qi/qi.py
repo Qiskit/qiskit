@@ -199,9 +199,9 @@ def vectorize(density_matrix, method='col'):
         if len(density_matrix) != 2**num:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
-            pgroup = pauli_group(num, case=0)
+            pgroup = pauli_group(num, case='weight')
         else:
-            pgroup = pauli_group(num, case=1)
+            pgroup = pauli_group(num, case='tensor')
         vals = [np.trace(np.dot(p.to_matrix(), density_matrix))
                 for p in pgroup]
         return np.array(vals)
@@ -239,9 +239,9 @@ def devectorize(vectorized_mat, method='col'):
         if dimension != 2 ** num_qubits:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
-            pgroup = pauli_group(num_qubits, case=0)
+            pgroup = pauli_group(num_qubits, case='weight')
         else:
-            pgroup = pauli_group(num_qubits, case=1)
+            pgroup = pauli_group(num_qubits, case='tensor')
         pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num_qubits
         return np.tensordot(vectorized_mat, pbasis, axes=1)
     return None
@@ -272,6 +272,11 @@ def choi_to_rauli(choi, order=1):
     Returns:
         np.array: A superoperator in the Pauli basis.
     """
+    if order == 0:
+        order = 'weight'
+    elif order == 1:
+        order = 'tensor'
+
     # get number of qubits'
     num_qubits = int(np.log2(np.sqrt(len(choi))))
     pgp = pauli_group(num_qubits, case=order)
