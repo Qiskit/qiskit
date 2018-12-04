@@ -184,7 +184,7 @@ class TestSwapMapper(QiskitTestCase):
 
     @unittest.expectedFailure
     # TODO It seems to be a problem in compose_back
-    def test_swap_between_qregs (self):
+    def test_swap_between_qregs(self):
         """ Adding a swap affecting different qregs
          qr0_0:-------
 
@@ -206,7 +206,7 @@ class TestSwapMapper(QiskitTestCase):
         qr0 = QuantumRegister(1, 'qr0')
         qr1 = QuantumRegister(2, 'qr1')
 
-        circuit = QuantumCircuit(qr0,qr1)
+        circuit = QuantumCircuit(qr0, qr1)
         circuit.cx(qr1[0], qr1[1])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
