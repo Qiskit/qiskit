@@ -11,11 +11,11 @@
 
 import os
 import random
-from inspect import signature
 import unittest
+from inspect import signature
+
 import qiskit
-from qiskit.tools.visualization import (_utils, generate_latex_source,
-                                        circuit_drawer)
+from qiskit.tools.visualization import _utils, circuit_drawer
 from ...common import QiskitTestCase
 
 
