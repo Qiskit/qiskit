@@ -1,0 +1,68 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""Test the Direction Mapper pass"""
+
+import unittest
+from copy import deepcopy
+
+from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.transpiler import MapperError
+from qiskit.transpiler.passes import DirectionMapper
+from qiskit.mapper import Coupling
+from qiskit.dagcircuit import DAGCircuit
+from ..common import QiskitTestCase
+
+
+class TestDirectionMapper(QiskitTestCase):
+    """ Tests the DirectionMapper pass."""
+
+    def test_no_cnots(self):
+        """ Trivial map in a circuit without entanglement
+         qr0:---[H]---
+
+         qr1:---[H]---
+
+         qr2:---[H]---
+
+         Coupling map: None
+        """
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr)
+        coupling = Coupling()
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        before = deepcopy(dag)
+
+        pass_ = DirectionMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(before, after)
+
+    def test_direction_error(self):
+        """
+         qr0:---------
+
+         qr1:---(+)---
+                 |
+         qr2:----.----
+
+         Coupling map: [2] <- [0] -> [1]
+        """
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[2])
+        coupling = Coupling({0: [2,1]})
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
+
+        pass_ = DirectionMapper(coupling)
+
+        with self.assertRaises(MapperError):
+            pass_.run(dag)
+
+if __name__ == '__main__':
+    unittest.main()

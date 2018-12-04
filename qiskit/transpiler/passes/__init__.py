@@ -10,3 +10,4 @@
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .check_map import CheckMap
+from .mapping.direction_mapper import DirectionMapper
