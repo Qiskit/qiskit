@@ -78,8 +78,8 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
 
 
 def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
-                            initial_layout=None, seed_mapper=None,
-                            pass_manager=None):
+                   initial_layout=None, seed_mapper=None,
+                   pass_manager=None):
     """Perform transpilation of a single circuit.
 
     Args:
