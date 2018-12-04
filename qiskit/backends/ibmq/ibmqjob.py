@@ -12,7 +12,6 @@ IBM Q Experience.
 """
 
 from concurrent import futures
-import warnings
 import time
 import logging
 import pprint
@@ -114,7 +113,7 @@ class IBMQJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, api, is_device, qobj=None,
-                 creation_date=None, api_status=None, **kwargs):
+                 creation_date=None, api_status=None):
         """IBMQJob init function.
 
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by

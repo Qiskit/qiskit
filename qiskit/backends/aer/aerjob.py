@@ -7,7 +7,6 @@
 
 """This module implements the job class used for AerBackend objects."""
 
-import warnings
 from concurrent import futures
 import logging
 import sys
