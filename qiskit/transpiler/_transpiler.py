@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
-              seed_mapper=None, hpc=None, pass_manager=None):
+              seed_mapper=None, pass_manager=None):
     """transpile one or more circuits.
 
     Args:
@@ -39,14 +39,10 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
         seed_mapper (int): random seed for the swap_mapper
-        hpc (dict): HPC simulator parameters
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
-
-    Raises:
-        TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
     return_form_is_single = False
     if isinstance(circuits, _quantumcircuit.QuantumCircuit):
@@ -58,9 +54,6 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     # 2. do all circuit have the same basis set?
     # 3. do they all have same registers etc?
     # Check for valid parameters for the experiments.
-    if hpc is not None and \
-            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
-        raise TranspilerError('Unknown HPC parameter format!')
     basis_gates = basis_gates or ','.join(backend.configuration().basis_gates)
     coupling_map = coupling_map or getattr(backend.configuration(),
                                            'coupling_map', None)
