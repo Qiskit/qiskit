@@ -96,6 +96,15 @@ class QasmSimulator(BaseBackend):
         qobj_dict = qobj.as_dict()
         result = run(qobj_dict, self._configuration.exe)
         result['job_id'] = job_id
+
+        # Ensure that the required results fields are present, even if the
+        # job failed.
+        result['results'] = result.get('results', [])
+        result['qobj_id'] = result.get('qobj_id', 'unavailable')
+        result['backend_name'] = result.get('backend_name', self.name())
+        result['backend_version'] = result.get('backend_version',
+                                               self.configuration().backend_version)
+
         return Result.from_dict(result)
 
     def _validate(self, qobj):
@@ -171,6 +180,15 @@ class CliffordSimulator(BaseBackend):
             qobj_dict['config'] = {'simulator': 'clifford'}
         result = run(qobj_dict, self._configuration.exe)
         result['job_id'] = job_id
+
+        # Ensure that the required results fields are present, even if the
+        # job failed.
+        result['results'] = result.get('results', [])
+        result['qobj_id'] = result.get('qobj_id', 'unavailable')
+        result['backend_name'] = result.get('backend_name', self.name())
+        result['backend_version'] = result.get('backend_version',
+                                               self.configuration().backend_version)
+
         return Result.from_dict(result)
 
     def _validate(self):
@@ -199,11 +217,10 @@ def run(qobj, executable):
                          cerr.decode())
         sim_output = json.loads(cout.decode())
         return sim_output
-
     except FileNotFoundError:
         msg = "ERROR: Simulator exe not found at: %s" % executable
         logger.error(msg)
-        return {"status": msg, "success": False}
+        return {'status': msg, 'success': False}
 
 
 def cx_error_matrix(cal_error, zz_error):
