@@ -92,7 +92,11 @@
                     "description": "Maximum number of shots supported",
                     "minimum": 1
                     },
-
+                "max_experiments": {
+                    "type": "integer",
+                    "description": "Maximum number of experiments supported",
+                    "minimum": 1
+                    },
                 "n_registers": {
                     "type": "integer",
                     "description": "Number of register slots available for feedback (if conditional is true)",
