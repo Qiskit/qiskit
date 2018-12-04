@@ -14,3 +14,4 @@ The functions in this module provide convenience converters
 
 from .qobj_to_circuits import qobj_to_circuits
 from .circuits_to_qobj import circuits_to_qobj
+from .circuit_to_dag import circuit_to_dag

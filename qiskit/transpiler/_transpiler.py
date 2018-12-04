@@ -21,6 +21,7 @@ from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
+from qiskit.converters import circuit_to_dag
 from ._parallel import parallel_map
 
 
@@ -87,7 +88,7 @@ def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
         QuantumCircuit: A transpiled circuit.
 
     """
-    dag = DAGCircuit.fromQuantumCircuit(circuit)
+    dag = circuit_to_dag(circuit)
     if (initial_layout is None and not backend.configuration().simulator
             and not _matches_coupling_map(dag, coupling_map)):
         initial_layout = _pick_best_layout(dag, backend)

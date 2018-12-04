@@ -15,6 +15,7 @@ from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.tools._compiler import circuits_to_qobj
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 
@@ -34,7 +35,7 @@ class TestTranspiler(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
+        dag_circuit = circuit_to_dag(circuit)
         resources_before = dag_circuit.count_ops()
 
         pass_manager = PassManager()
@@ -88,7 +89,7 @@ class TestTranspiler(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[0])
         circuit.cx(qr[1], qr[0])
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circuit)
+        dag_circuit = circuit_to_dag(circuit)
 
         pass_manager = PassManager()
         pass_manager.add_passes(CXCancellation())
