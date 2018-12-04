@@ -445,7 +445,10 @@ def state_fidelity(state1, state2):
     Returns:
         array_like: The state fidelity F(state1, state2).
     """
-    warnings.warn('The state_fidelity() function has moved to states not qi', DeprecationWarning)
+    warnings.warn('The state_fidelity() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the state_fidelity() function in qiskit.quantum_info',
+                  DeprecationWarning)
     return new_state_fidelity(state1, state2)
 
 
