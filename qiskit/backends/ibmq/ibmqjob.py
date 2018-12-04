@@ -348,18 +348,6 @@ class IBMQJob(BaseJob):
         self._wait_for_submission()
         return self._job_id
 
-    def backend_name(self):
-        """
-        Return backend name used for this job.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.backend().name()` instead.
-        """
-        warnings.warn('The use of `job.backend_name()` is deprecated, '
-                      'use `job.backend().name()` instead', DeprecationWarning)
-        return self.backend().name()
-
     def submit(self):
         """Submit job to IBM-Q.
 
