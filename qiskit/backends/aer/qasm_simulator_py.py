@@ -151,8 +151,6 @@ class QasmSimulatorPy(BaseBackend):
         self._shots = 0
         self._qobj_config = None
 
-        print(self.configuration())
-
     def _add_qasm_single(self, gate, qubit):
         """Apply an arbitrary 1-qubit operator to a qubit.
 
