@@ -9,5 +9,5 @@
 
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
-from .mapping.swap_mapper import SwapMapper
+from .mapping.basic_mapper import BasicMapper
 from .mapping.check_map import CheckMap

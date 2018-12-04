@@ -6,7 +6,11 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-TODO
+A pass implementing a basic mapper.
+
+The basic mapper is a minimum effort to insert swap gates to map the DAG into a coupling map. When
+a cx is not in the coupling map possibilities, it inserts one or more swaps in front to make it
+compatible.
 """
 
 from copy import copy
@@ -17,7 +21,7 @@ from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
 
 
-class SwapMapper(TransformationPass):
+class BasicMapper(TransformationPass):
     """
     Maps a DAGCircuit onto a `coupling_map` using swap gates.
     """
@@ -40,7 +44,7 @@ class SwapMapper(TransformationPass):
 
     def run(self, dag):
         """
-        Runs the SwapMapper pass on `dag`.
+        Runs the BasicMapper pass on `dag`.
         Args:
             dag (DAGCircuit): DAG to map.
 
