@@ -65,7 +65,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     coupling_map = coupling_map or getattr(backend.configuration(),
                                            'coupling_map', None)
 
-    circuits = parallel_map(_parallel_transpilation, circuits,
+    circuits = parallel_map(_transpilation, circuits,
                             task_args=(backend,),
                             task_kwargs={'basis_gates': basis_gates,
                                          'coupling_map': coupling_map,
@@ -77,7 +77,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     return circuits
 
 
-def _parallel_transpilation(circuit, backend, basis_gates=None, coupling_map=None,
+def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
                             initial_layout=None, seed_mapper=None,
                             pass_manager=None):
     """Perform transpilation of a single circuit.
