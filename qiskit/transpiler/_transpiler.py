@@ -22,7 +22,6 @@ from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
-from qiskit._pubsub import Publisher, Subscriber
 from ._parallel import parallel_map
 
 
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
               seed_mapper=None, hpc=None, pass_manager=None):
-    """transpile a list of circuits.
+    """transpile one or more circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
@@ -66,144 +65,53 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
     coupling_map = coupling_map or getattr(backend.configuration(),
                                            'coupling_map', None)
 
-    # step 1: Making the list of dag circuits
-    dags = _circuits_2_dags(circuits)
-
-    # step 2: Transpile all the dags
-
-    # FIXME: Work-around for transpiling multiple circuits with different qreg names.
-    # Make compile take a list of initial_layouts.
-    _initial_layout = initial_layout
-
-    # Pick a good initial layout if coupling_map is not already satisfied
-    # otherwise keep it as q[i]->q[i].
-    # TODO: move this inside mapper pass.
-    initial_layouts = []
-    for dag in dags:
-        if (initial_layout is None and not backend.configuration().simulator
-                and not _matches_coupling_map(dag, coupling_map)):
-            _initial_layout = _pick_best_layout(dag, backend)
-        initial_layouts.append(_initial_layout)
-
-    dags = _dags_2_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
-                        initial_layouts=initial_layouts, seed_mapper=seed_mapper,
-                        pass_manager=pass_manager)
-
-    # step 3: Converting the dags back to circuits
-    circuits = _dags_2_circuits(dags)
-
+    circuits = parallel_map(_transpilation, circuits,
+                            task_args=(backend,),
+                            task_kwargs={'basis_gates': basis_gates,
+                                         'coupling_map': coupling_map,
+                                         'initial_layout': initial_layout,
+                                         'seed_mapper': seed_mapper,
+                                         'pass_manager': pass_manager})
     if return_form_is_single:
         return circuits[0]
     return circuits
 
 
-def _circuits_2_dags(circuits):
-    """Convert a list of circuits into a list of dags.
+def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
+                   initial_layout=None, seed_mapper=None,
+                   pass_manager=None):
+    """Perform transpilation of a single circuit.
 
     Args:
-        circuits (list[QuantumCircuit]): circuits to convert
+        circuit (QuantumCircuit): A circuit to transpile.
+        backend (BaseBackend): a backend to compile for
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        seed_mapper (int): random seed for the swap_mapper
+        pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        list[DAGCircuit]: the dag representation of the circuits
+        QuantumCircuit: A transpiled circuit.
+
     """
-    dags = parallel_map(DAGCircuit.fromQuantumCircuit, circuits)
-    return dags
+    dag = DAGCircuit.fromQuantumCircuit(circuit)
+    if (initial_layout is None and not backend.configuration().simulator
+            and not _matches_coupling_map(dag, coupling_map)):
+        initial_layout = _pick_best_layout(dag, backend)
 
-
-def _dags_2_circuits(dags):
-    """Convert a list of dags into a list of circuits.
-
-    Args:
-        dags (list[DAGCircuit]): dags to convert
-
-    Returns:
-        list[QuantumCircuit]: the circuit representation of the dags
-    """
-    circuits = parallel_map(QuantumCircuit.fromDAGCircuit, dags)
-    return circuits
-
-
-def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                 initial_layouts=None, seed_mapper=None, pass_manager=None):
-    """Transform multiple dags through a sequence of passes.
-
-    Args:
-        dags (list[DAGCircuit]): dag circuits to transform
-        basis_gates (str): a comma separated string for the target basis gates
-        coupling_map (list): A graph of coupling
-        initial_layouts (list[dict]): A mapping of qubit to qubit for each dag
-        seed_mapper (int): random seed_mapper for the swap mapper
-        pass_manager (PassManager): pass manager instance for the transpilation process
-            If None, a default set of passes are run.
-            Otherwise, the passes defined in it will run.
-            If contains no passes in it, no dag transformations occur.
-
-    Returns:
-        list[DAGCircuit]: the dag circuits after going through transpilation
-
-    Events:
-        terra.transpiler.transpile_dag.start: When the transpilation of the dags is about to start
-        terra.transpiler.transpile_dag.done: When one of the dags has finished it's transpilation
-        terra.transpiler.transpile_dag.finish: When all the dags have finished transpiling
-    """
-
-    def _emit_start(num_dags):
-        """ Emit a dag transpilation start event
-        Arg:
-            num_dags: Number of dags to be transpiled"""
-        Publisher().publish("terra.transpiler.transpile_dag.start", num_dags)
-    Subscriber().subscribe("terra.transpiler.parallel.start", _emit_start)
-
-    def _emit_done(progress):
-        """ Emit a dag transpilation done event
-        Arg:
-            progress: The dag number that just has finshed transpile"""
-        Publisher().publish("terra.transpiler.transpile_dag.done", progress)
-    Subscriber().subscribe("terra.transpiler.parallel.done", _emit_done)
-
-    def _emit_finish():
-        """ Emit a dag transpilation finish event
-        Arg:
-            progress: The dag number that just has finshed transpile"""
-        Publisher().publish("terra.transpiler.transpile_dag.finish")
-    Subscriber().subscribe("terra.transpiler.parallel.finish", _emit_finish)
-
-    dags_layouts = list(zip(dags, initial_layouts))
-    final_dags = parallel_map(_transpile_dags_parallel, dags_layouts,
-                              task_kwargs={'basis_gates': basis_gates,
-                                           'coupling_map': coupling_map,
-                                           'seed_mapper': seed_mapper,
-                                           'pass_manager': pass_manager})
-    return final_dags
-
-
-def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
-                             coupling_map=None, seed_mapper=None, pass_manager=None):
-    """Helper function for transpiling in parallel (if available).
-
-    Args:
-        dag_layout_tuple (tuple): Tuples of dags and their initial_layouts
-        basis_gates (str): a comma separated string for the target basis gates
-        coupling_map (list): A graph of coupling
-        seed_mapper (int): random seed_mapper for the swap mapper
-        pass_manager (PassManager): pass manager instance for the transpilation process
-            If None, a default set of passes are run.
-            Otherwise, the passes defined in it will run.
-            If contains no passes in it, no dag transformations occur.
-    Returns:
-        DAGCircuit: DAG circuit after going through transpilation.
-    """
-    final_dag, final_layout = transpile_dag(
-        dag_layout_tuple[0],
-        basis_gates=basis_gates,
-        coupling_map=coupling_map,
-        initial_layout=dag_layout_tuple[1],
-        get_layout=True,
-        seed_mapper=seed_mapper,
-        pass_manager=pass_manager)
+    final_dag, final_layout = transpile_dag(dag, basis_gates=basis_gates,
+                                            coupling_map=coupling_map,
+                                            initial_layout=initial_layout,
+                                            get_layout=True, format='dag',
+                                            seed_mapper=seed_mapper,
+                                            pass_manager=pass_manager)
     final_dag.layout = [[k, v]
                         for k, v in final_layout.items()] if final_layout else None
-    return final_dag
+
+    out_circuit = QuantumCircuit.fromDAGCircuit(final_dag)
+
+    return out_circuit
 
 
 # pylint: disable=redefined-builtin
