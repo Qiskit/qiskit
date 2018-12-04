@@ -31,7 +31,7 @@ from collections import Counter
 import numpy as np
 
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration, BackendProperties
+from qiskit.backends.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
@@ -75,23 +75,6 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_qubits = 0
         self._shots = 0
         self._qobj_config = None
-
-    def properties(self):
-        """Return backend properties"""
-        properties = {
-            'backend_name': self.name(),
-            'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                         'unit': 'TODO', 'value': 0}]],
-            'gates': [{'qubits': [0], 'gate': 'TODO',
-                       'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                             'unit': 'TODO', 'value': 0}]}],
-            'general': []
-        }
-
-        return BackendProperties.from_dict(properties)
 
     def _add_qasm_single(self, gate, qubit):
         """Apply an arbitrary 1-qubit operator to a qubit.
