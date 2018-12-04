@@ -39,6 +39,7 @@ The input is a AST and a basis set and returns a json memory object::
 from collections import OrderedDict
 import sympy
 
+from qiskit import ClassicalRegister
 from qiskit.unrollers._backenderror import BackendError
 from qiskit.unrollers._unrollerbackend import UnrollerBackend
 
@@ -131,20 +132,7 @@ class JsonBackend(UnrollerBackend):
         Fields are added to the last operation in the circuit.
         """
         if self.creg is not None:
-            mask = 0
-            for cbit, index in self._cbit_order_internal.items():
-                if cbit[0] == self.creg.name:
-                    mask |= (1 << index)
-                # Would be nicer to zero pad the mask, but we
-                # need to know the total number of cbits.
-                # format_spec = "{0:#0{%d}X}" % number_of_clbits
-                # format_spec.format(mask)
-                conditional = {
-                    'type': "equals",
-                    'mask': "0x%X" % mask,
-                    'val': "0x%X" % self.cval
-                }
-            self.circuit['instructions'][-1]['conditional'] = conditional
+            self.circuit['instructions'][-1]['conditional'] = self._number_of_cbits - 1
 
     def set_condition(self, creg, cval):
         """Attach a current condition.
@@ -154,6 +142,20 @@ class JsonBackend(UnrollerBackend):
         """
         self.creg = creg
         self.cval = cval
+
+        mask = 0
+        for cbit, index in self._cbit_order_internal.items():
+            if cbit[0] == creg.name:
+                mask |= (1 << index)
+
+        self.new_creg(ClassicalRegister(1))
+        self.circuit['instructions'].append({
+            'name': 'bfunc',
+            'mask': '0x%X' % mask,
+            'relation': '==',
+            'val': cval,
+            'register': self._number_of_cbits - 1,
+        })
 
     def drop_condition(self):
         """Drop the current condition."""
