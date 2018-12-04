@@ -8,7 +8,7 @@
 """Test the Swap Mapper pass"""
 
 import unittest
-
+from copy import deepcopy
 from qiskit.transpiler.passes import SwapMapper
 from qiskit.mapper import Coupling
 from qiskit.dagcircuit import DAGCircuit
@@ -18,16 +18,6 @@ from ..common import QiskitTestCase
 
 class TestSwapMapper(QiskitTestCase):
     """ Tests the SwapMapper pass."""
-
-    def assertEndswith(self, long_str, endlist):
-        """
-        Asserts that the list of lines defined in `endlist` is at the end of `long_str`.
-        Args:
-            long_str (str): A long string.
-            endlist (list): A list of lines.
-        """
-        end_string = '\n'.join(['}'] + endlist) + '\n'
-        self.assertEqual(long_str[-len(end_string):], end_string)
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
@@ -48,11 +38,11 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = DAGCircuit.fromQuantumCircuit(circuit)
-        before = dag.qasm()
+        before = deepcopy(dag)
         pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
+        after = pass_.run(dag)
 
-        self.assertEqual(before, after_dag.qasm())
+        self.assertEqual(before, after)
 
     def test_trivial_in_same_layer(self):
         """ No need to have any swap, two CXs distance 1 to each other, in the same layer
@@ -74,11 +64,11 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = DAGCircuit.fromQuantumCircuit(circuit)
-        before = dag.qasm()
+        before = deepcopy(dag)
         pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
+        after = pass_.run(dag)
 
-        self.assertEqual(before, after_dag.qasm())
+        self.assertEqual(before, after)
 
     def test_a_single_swap(self):
         """ Adding a swap
@@ -104,13 +94,14 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = ['swap q[2],q[0];',
-                    'cx q[1],q[0];']
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[2], qr[0])
+        expected.cx(qr[1], qr[0])
 
         pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
+        after = pass_.run(dag)
 
-        self.assertEndswith(after_dag.qasm(), expected)
+        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
 
     def test_keep_layout(self):
         """After a swap, the following gates also change the wires.
@@ -136,14 +127,15 @@ class TestSwapMapper(QiskitTestCase):
         circuit.h(qr[2])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = ['swap q[2],q[1];',
-                    'cx q[0],q[1];',
-                    'h q[1];']
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[0], qr[1])
+        expected.h(qr[1])
 
         pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
+        after = pass_.run(dag)
 
-        self.assertEndswith(after_dag.qasm(), expected)
+        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
 
     def test_far_swap(self):
         """ A far swap that affects coming CXs.
@@ -173,14 +165,17 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[3], qr[0])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
-        expected = ['swap q[2],q[3];',
-                    'swap q[3],q[1];',
-                    'cx q[0],q[1];',
-                    'cx q[1],q[0];']
+
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[2], qr[3])
+        expected.swap(qr[3], qr[1])
+        expected.cx(qr[0], qr[1])
+        expected.cx(qr[1], qr[0])
 
         pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
-        self.assertEndswith(after_dag.qasm(), expected)
+        after = pass_.run(dag)
+
+        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
 
     @unittest.expectedFailure
     # TODO It seems to be a problem in compose_back
@@ -210,13 +205,14 @@ class TestSwapMapper(QiskitTestCase):
         circuit.cx(qr1[0], qr1[1])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
 
-        expected = ['swap qr1[1],qr0[0];',
-                    'cx qr1[0],qr0[0];']
+        expected = QuantumCircuit(qr)
+        expected.swap(qr1[1], qr0[0])
+        expected.cx(qr1[1], qr0[0])
 
         pass_ = SwapMapper(coupling)
-        after_dag = pass_.run(dag)
+        after = pass_.run(dag)
 
-        self.assertEndswith(after_dag.qasm(), expected)
+        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
 
 
 if __name__ == '__main__':
