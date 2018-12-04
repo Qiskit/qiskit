@@ -5,26 +5,22 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+import numpy as np
+
 """Post-processing of raw result."""
 
-def _hex_to_bin(self, hexstring):
+def _hex_to_bin(hexstring):
     """Convert hexadecimal readouts (memory) to binary readouts."""
     return str(bin(int(hexstring, 16)))[2:]
 
 
-def _pad_zeros(self, bitstring, memory_slots):
+def _pad_zeros(bitstring, memory_slots):
     """If the bitstring is truncated, pad extra zeros to make its
     length equal to memory_slots"""
     return format(int(bitstring, 2), '0{}b'.format(memory_slots))
 
 
-def _histogram(self, outcomes):
-    """Build histogram from measurement outcomes of each shot."""
-    counts = dict(Counter(outcomes))
-    return counts
-
-
-def _little_endian(self, bitstring, clbit_labels, creg_sizes):
+def _little_endian(bitstring, clbit_labels, creg_sizes):
     """
     Reorder the bitstring to little endian (Least Significant Bit last, and
     Least Significant Register last).
@@ -42,7 +38,7 @@ def _little_endian(self, bitstring, clbit_labels, creg_sizes):
     return ''.join([bitstring[i] for i in sorted(range(len(bitstring)), key=key)])
 
 
-def _separate_bitstring(self, bitstring, creg_sizes):
+def _separate_bitstring(bitstring, creg_sizes):
     """Separate a bitstring according to the registers defined in the result header."""
     substrings = []
     running_index = 0
@@ -52,77 +48,100 @@ def _separate_bitstring(self, bitstring, creg_sizes):
     return ' '.join(substrings)
 
 
-def _format_resultstring(self, resultstring, exp_result_header):
+def format_memory(memory, header):
     """
-    Convert from hex to binary, make little endian, and insert space between registers.
+    Format a single bitstring (memory) from a single shot experiment.
+
+    - The hexadecimals are expanded to bitstrings
+    
+    - The order is made little endian (LSB on the right)
+    
+    - Spaces are inserted at register divisions.
+    
+    Args:
+        memory (str): result of a single experiment.
+        header (dict): the experiment header dictionary containing
+            useful information for postprocessing.
+
+    Returns:
+        dict: a formatted memory
     """
-    creg_sizes = exp_result_header.get('creg_sizes')
-    clbit_labels = exp_result_header.get('clbit_labels')
-    memory_slots = exp_result_header.get('memory_slots')
-    if resultstring.startswith('0x'):
-        resultstring = self._hex_to_bin(resultstring)
+    creg_sizes = header.get('creg_sizes')
+    clbit_labels = header.get('clbit_labels')
+    memory_slots = header.get('memory_slots')
+    if memory.startswith('0x'):
+        memory = _hex_to_bin(memory)
     if memory_slots:
-        resultstring = self._pad_zeros(resultstring, memory_slots)
+        memory = _pad_zeros(memory, memory_slots)
     if clbit_labels and creg_sizes:
-        resultstring = self._little_endian(resultstring, clbit_labels, creg_sizes)
+        memory = _little_endian(memory, clbit_labels, creg_sizes)
     if creg_sizes:
-        resultstring = self._separate_bitstring(resultstring, creg_sizes)
-    return resultstring
+        memory = _separate_bitstring(memory, creg_sizes)
+    return memory
 
 
-def format_readout(self, exp_result):
+def format_counts(counts, header):
     """Format a single experiment result coming from backend to present
     to the Qiskit user.
 
-    Histograms "counts" are created from "memory" data (if the backend has
-    not already created them)
-    
-    The hexadecimals are expanded to bitstrings
-    
-    The order is made little endian (LSB on the right)
-    
-    Spaces are inserted at register divisions.
-
     Args:
-        exp_result (ExperimentResult): result of a single experiment
-    """
-    if 'memory' in exp_result.data and 'counts' not in exp_result.data:
-        exp_result.data['counts'] = self._histogram(exp_result.data['memory'])
-    memory_list = []
-    for element in exp_result.data.get('memory', []):
-        element = self._format_resultstring(element, exp_result.header)
-        memory_list.append(element)
-    exp_result.data['memory'] = memory_list
-    counts_dict = {}
-    for key, val in exp_result.data.get('counts', {}).items():
-        key = self._format_resultstring(key, exp_result.header)
-        counts_dict[key] = val
-    exp_result.data['counts'] = counts_dict
-
-
-def format_statevector(self, vec):
-    """Format statevector coming from the backend to present to the Qiskit user.
-
-    Args:
-        vec (list): a list of [re, im] complex numbers
+        counts (dict{str: int}): counts histogram of multiple shots
+        header (dict): the experiment header dictionary containing
+            useful information for postprocessing.
 
     Returns:
-        list[complex]: a list of python complex numbers
+        dict: a formatted counts
     """
-    num_states = len(vec)
-    vec_complex = np.zeros(num_states, dtype=complex)
-    for i in range(num_states):
-        vec_complex[i] = vec[i][0] + 1j * vec[i][1]
-    return vec_complex
+    """
+    if 'memory' in exp_result.data and 'counts' not in exp_result.data:
+        exp_result.data['counts'] = _histogram(exp_result.data['memory'])
+    memory_list = []
+    for element in exp_result.data.get('memory', []):
+        element = _format_resultstring(element, exp_result.header)
+        memory_list.append(element)
+    exp_result.data['memory'] = memory_list
+    """
+    counts_dict = {}
+    for key, val in counts.items():
+        key = format_memory(key, header)
+        counts_dict[key] = val
+    return counts_dict
 
 
-def format_unitary(self, mat):
+def format_statevector(vec, decimals=8):
     """Format statevector coming from the backend to present to the Qiskit user.
+
+    Args:
+        vec (list): a list of [re, im] complex numbers.
+        decimals (int): the number of decimals in the statevector.
+            If None, no rounding is done.
+
+    Returns:
+        list[complex]: a list of python complex numbers.
+    """
+    num_basis = len(vec)
+    vec_complex = np.zeros(num_basis, dtype=complex)
+    for i in range(num_basis):
+        vec_complex[i] = vec[i][0] + 1j * vec[i][1]
+    if not decimals:
+        return vec_complex
+    else:
+        return np.around(vec_complex, decimals=decimals)
+
+
+def format_unitary(mat, decimals=8):
+    """Format unitary coming from the backend to present to the Qiskit user.
 
     Args:
         mat (list[list]): a list of list of [re, im] complex numbers
+        decimals (int): the number of decimals in the statevector.
+            If None, no rounding is done.
 
     Returns:
         list[list[complex]]: a matrix of complex numbers
     """
-    pass
+    num_basis = len(mat)
+    mat_complex = np.zeros((num_basis, num_basis), dtype=complex)
+    for i, vec in enumerate(mat):
+        mat_complex[i] = format_statevector(vec, decimals)
+    return mat_complex
