@@ -15,7 +15,6 @@ import time
 import requests
 from requests_ntlm import HttpNtlmAuth
 
-from qiskit._util import _camel_case_to_snake_case
 
 logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
