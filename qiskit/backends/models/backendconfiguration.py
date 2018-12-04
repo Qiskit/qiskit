@@ -52,6 +52,7 @@ class BackendConfigurationSchema(BaseSchema):
     max_shots = Integer(required=True, validate=Range(min=1))
 
     # Optional properties.
+    max_experiments = Integer(validate=Range(min=1))
     sample_name = String()
     coupling_map = List(List(Integer(),
                              validate=Length(min=1)),
