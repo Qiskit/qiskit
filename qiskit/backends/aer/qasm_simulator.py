@@ -21,7 +21,7 @@ import platform
 from math import log2
 import numpy as np
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration, BackendProperties
+from qiskit.backends.models import BackendConfiguration
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
 from qiskit.result import Result
@@ -82,23 +82,6 @@ class QasmSimulator(BaseBackend):
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     getattr(self._configuration, 'exe', 'default locations'))
-
-    def properties(self):
-        """Return backend properties"""
-        properties = {
-            'backend_name': self.name(),
-            'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                         'unit': 'TODO', 'value': 0}]],
-            'gates': [{'qubits': [0], 'gate': 'TODO',
-                       'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                             'unit': 'TODO', 'value': 0}]}],
-            'general': []
-        }
-
-        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         """Run a qobj on the backend."""
@@ -163,23 +146,6 @@ class CliffordSimulator(BaseBackend):
         except StopIteration:
             raise FileNotFoundError('Simulator executable not found (using %s)' %
                                     getattr(self._configuration, 'exe', 'default locations'))
-
-    def properties(self):
-        """Return backend properties"""
-        properties = {
-            'backend_name': self.name(),
-            'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                         'unit': 'TODO', 'value': 0}]],
-            'gates': [{'qubits': [0], 'gate': 'TODO',
-                       'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                             'unit': 'TODO', 'value': 0}]}],
-            'general': []
-        }
-
-        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         """Run a Qobj on the backend.
