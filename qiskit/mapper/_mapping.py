@@ -189,8 +189,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
     # Can we already apply the gates?
-    dist = sum([coupling.distance(layout[g[0]],
-                                  layout[g[1]]) for g in gates])
+    dist = sum([coupling.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
     logger.debug("layer_permutation: dist = %s", dist)
     if dist == len(gates):
         logger.debug("layer_permutation: done already")
@@ -220,12 +219,14 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Compute Sergey's randomized distance
         xi = {}
-        for i in coupling.get_qubits():
-            xi[i] = {}
-        for i in coupling.get_qubits():
-            for j in coupling.get_qubits():
+        for i in coupling.physical_qubits:
+            xi[(QuantumRegister(coupling.size(), 'q'), i)] = {}
+        for i in coupling.physical_qubits:
+            i = (QuantumRegister(coupling.size(), 'q'), i)
+            for j in coupling.physical_qubits:
+                j = (QuantumRegister(coupling.size(), 'q'), j)
                 scale = 1 + np.random.normal(0, 1 / n)
-                xi[i][j] = scale * coupling.distance(i, j) ** 2
+                xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
                 xi[j][i] = xi[i][j]
 
         # Loop over depths d up to a max depth of 2n+1
@@ -255,6 +256,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                 progress_made = False
                 # Loop over edges of coupling graph
                 for e in coupling.get_edges():
+                    e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
@@ -292,9 +294,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                     break
 
             # We have either run out of qubits or failed to improve
-            # Compute the coupling graph distance
-            dist = sum([coupling.distance(trial_layout[g[0]],
-                                          trial_layout[g[1]]) for g in gates])
+            # Compute the coupling graph distance_qubits
+            dist = sum([coupling.distance(trial_layout[g[0]][1],
+                                          trial_layout[g[1]][1]) for g in gates])
             logger.debug("layer_permutation: dist = %s", dist)
             # If all gates can be applied now, we are finished
             # Otherwise we need to consider a deeper swap circuit
@@ -308,8 +310,8 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
             logger.debug("layer_permutation: increment depth to %s", d)
 
         # Either we have succeeded at some depth d < dmax or failed
-        dist = sum([coupling.distance(trial_layout[g[0]],
-                                      trial_layout[g[1]]) for g in gates])
+        dist = sum([coupling.distance(trial_layout[g[0]][1],
+                                      trial_layout[g[1]][1]) for g in gates])
         logger.debug("layer_permutation: dist = %s", dist)
         if dist == len(gates):
             if d < best_d:
@@ -347,9 +349,9 @@ def direction_mapper(circuit_graph, coupling_graph):
         raise MapperError("cx gate has unexpected signature %s" %
                           circuit_graph.basis["cx"])
 
-    q = QuantumRegister(2, "fcx")
+    qr_fcx = QuantumRegister(2, "fcx")
     flipped_cx_circuit = DAGCircuit()
-    flipped_cx_circuit.add_qreg(q)
+    flipped_cx_circuit.add_qreg(qr_fcx)
     flipped_cx_circuit.add_basis_element("CX", 2)
     flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
     flipped_cx_circuit.add_basis_element("cx", 2)
@@ -358,13 +360,15 @@ def direction_mapper(circuit_graph, coupling_graph):
     flipped_cx_circuit.add_gate_data("cx", cx_data)
     flipped_cx_circuit.add_gate_data("u2", u2_data)
     flipped_cx_circuit.add_gate_data("h", h_data)
-    flipped_cx_circuit.apply_operation_back(HGate(q[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(q[1]))
-    flipped_cx_circuit.apply_operation_back(CnotGate(q[1], q[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(q[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(q[1]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[0]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[1]))
+    flipped_cx_circuit.apply_operation_back(CnotGate(qr_fcx[1], qr_fcx[0]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[0]))
+    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[1]))
 
-    cg_edges = coupling_graph.get_edges()
+    q_tmp = QuantumRegister(coupling_graph.size(), 'q')
+    cg_edges = [((q_tmp, i), (q_tmp, j)) for i, j in coupling_graph.get_edges()]
+
     for cx_node in circuit_graph.get_named_nodes("cx"):
         nd = circuit_graph.multi_graph.node[cx_node]
         cxedge = tuple(nd["qargs"])
@@ -376,7 +380,7 @@ def direction_mapper(circuit_graph, coupling_graph):
         elif (cxedge[1], cxedge[0]) in cg_edges:
             circuit_graph.substitute_circuit_one(cx_node,
                                                  flipped_cx_circuit,
-                                                 wires=[q[0], q[1]])
+                                                 wires=[qr_fcx[0], qr_fcx[1]])
             logger.debug("cx %s[%d], %s[%d] -FLIP",
                          cxedge[0][0], cxedge[0][1],
                          cxedge[1][0], cxedge[1][1])
@@ -468,12 +472,13 @@ def swap_mapper(circuit_graph, coupling_graph,
     if initial_layout is not None:
         # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
         # to an expected dict{(reg,idx): (reg,idx)}
-        device_register = coupling_graph.get_qubits()[0][0]
+        device_register = QuantumRegister(coupling_graph.size(), 'q')
         initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
                           for k, v in initial_layout.items()}
         # Check the input layout
         circ_qubits = circuit_graph.get_qubits()
-        coup_qubits = coupling_graph.get_qubits()
+        coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
+                       coupling_graph.physical_qubits]
         qubit_subset = []
         for k, v in initial_layout.items():
             qubit_subset.append(v)
@@ -485,10 +490,10 @@ def swap_mapper(circuit_graph, coupling_graph,
                                   "CouplingGraph" % (v[0].name, v[1]))
     else:
         # Supply a default layout
-        qubit_subset = coupling_graph.get_qubits()
+        qubit_subset = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
+                        coupling_graph.physical_qubits]
         qubit_subset = qubit_subset[0:circuit_graph.width()]
-        initial_layout = {a: b for a, b in
-                          zip(circuit_graph.get_qubits(), qubit_subset)}
+        initial_layout = {a: b for a, b in zip(circuit_graph.get_qubits(), qubit_subset)}
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()

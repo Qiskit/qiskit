@@ -8,9 +8,9 @@
 """
 A two-ways dict that represent a layout.
 
-Layout is the relation between (qu)bits and wires.
-(Qu)Bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
-Wires are numbers.
+Layout is the relation between virtual (qu)bits and physical (qu)bits.
+Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
+Physical (qu)bits are numbers.
 """
 
 from qiskit import QiskitError
@@ -73,63 +73,66 @@ class Layout(dict):
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
-    def add(self, bit, wire=None):
+    def add(self, virtual_bit, physical_bit=None):
         """
-        Adds a map element between `bit` and `wire`. If `wire` is not defined, `bit`
-        will be mapped to a new wire (extending the length of the layout by one.)
+        Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
+        defined, `bit` will be mapped to a new physical bit (extending the length of the
+        layout by one.)
         Args:
-            bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
-            wire (int): A wire. For example, 3.
+            virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
+            physical_bit (int): A physical bit. For example, 3.
         """
-        if wire is None:
-            wire = len(self)
-        self[bit] = wire
+        if physical_bit is None:
+            physical_bit = len(self)
+        self[virtual_bit] = physical_bit
 
     def add_register(self, reg):
         """
-        Adds at the end wires that map each bit in reg.
+        Adds at the end physical_qubits that map each bit in reg.
         Args:
             reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
         """
         for bit in reg:
             self.add(bit)
 
-    def set_length(self, amount_of_wires):
+    def set_length(self, amount_of_physical_bits):
         """
-        Extends the layout length to `amount_of_wires`.
+        Extends the layout length to `amount_of_physical_bits`.
         Args:
-            amount_of_wires (int): The amount of wires to set in the layout.
+            amount_of_physical_bits (int): The amount of physical_qubits to
+            set in the layout.
         Raises:
-            LayoutError: If amount_of_wires is used to reduced the length instead
-                of extending it.
+            LayoutError: If amount_of_physical_bits is used to reduced the
+            length instead of extending it.
         """
         current_length = len(self)
-        if amount_of_wires < current_length:
-            raise LayoutError('Lenght setting cannot be smaller than the current amount of wires.')
-        for new_wire in range(current_length, amount_of_wires):
-            self[new_wire] = None
+        if amount_of_physical_bits < current_length:
+            raise LayoutError('Lenght setting cannot be smaller than the current amount of physical'
+                              ' (qu)bits.')
+        for new_physical_bit in range(current_length, amount_of_physical_bits):
+            self[new_physical_bit] = None
 
-    def idle_wires(self):
+    def idle_physical_bits(self):
         """
-        Returns the wires that are not mapped to a (qu)bit.
+        Returns a list of physical (qu)bits that are not mapped to a virtual (qu)bit.
         """
-        idle_wire_list = []
-        for wire in range(self.__len__()):
-            if self[wire] is None:
-                idle_wire_list.append(wire)
-        return idle_wire_list
+        idle_physical_bit_list = []
+        for physical_bit in range(self.__len__()):
+            if self[physical_bit] is None:
+                idle_physical_bit_list.append(physical_bit)
+        return idle_physical_bit_list
 
-    def get_bits(self):
+    def get_virtual_bits(self):
         """
-        Returns the dictionary where the keys are (qu)bits and the
-        values are wires.
+        Returns the dictionary where the keys are virtual (qu)bits and the
+        values are physical (qu)bits.
         """
         return {key: value for key, value in self.items() if isinstance(key, tuple)}
 
-    def get_wires(self):
+    def get_physical_bits(self):
         """
-        Returns the dictionary where the keys are wires and the
-        values are (qu)bits.
+        Returns the dictionary where the keys are physical (qu)bits and the
+        values are virtual (qu)bits.
         """
         return {key: value for key, value in self.items() if isinstance(key, int)}
 
@@ -150,6 +153,7 @@ class Layout(dict):
 
 class LayoutError(QiskitError):
     """Errors raised by the layout object."""
+
     def __init__(self, *msg):
         """Set the error message."""
         super().__init__(*msg)
