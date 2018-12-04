@@ -66,8 +66,12 @@ class IBMQBackend(BaseBackend):
         The return is via QX API call.
 
         Returns:
-            dict: The properties of the backend.
+            BackendProperties: The properties of the backend. If the backend
+            is a simulator, it returns ``None``.
         """
+        if self.configuration().simulator:
+            return None
+
         api_properties = self._api.backend_properties(self.name())
 
         return BackendProperties.from_dict(api_properties)
@@ -76,7 +80,7 @@ class IBMQBackend(BaseBackend):
         """Return the online backend status.
 
         Returns:
-            dict: The status of the backend.
+            BackendStatus: The status of the backend.
 
         Raises:
             LookupError: If status for the backend can't be found.
