@@ -11,8 +11,9 @@ This module is used for connecting to the Quantum Experience.
 """
 import logging
 
-from qiskit import QISKitError
-from qiskit.validation import ValidationError
+from marshmallow import ValidationError
+
+from qiskit import QiskitError
 from qiskit.backends import BaseBackend, JobStatus
 from qiskit.backends.models import BackendStatus, BackendProperties
 
@@ -65,8 +66,12 @@ class IBMQBackend(BaseBackend):
         The return is via QX API call.
 
         Returns:
-            dict: The properties of the backend.
+            BackendProperties: The properties of the backend. If the backend
+            is a simulator, it returns ``None``.
         """
+        if self.configuration().simulator:
+            return None
+
         api_properties = self._api.backend_properties(self.name())
 
         return BackendProperties.from_dict(api_properties)
@@ -75,7 +80,7 @@ class IBMQBackend(BaseBackend):
         """Return the online backend status.
 
         Returns:
-            dict: The status of the backend.
+            BackendStatus: The status of the backend.
 
         Raises:
             LookupError: If status for the backend can't be found.
@@ -198,7 +203,7 @@ class IBMQBackend(BaseBackend):
             self.__class__.__name__, self.name(), credentials_info)
 
 
-class IBMQBackendError(QISKitError):
+class IBMQBackendError(QiskitError):
     """IBM Q Backend Errors"""
     pass
 

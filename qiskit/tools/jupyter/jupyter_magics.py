@@ -153,6 +153,6 @@ class ProgressBarMagic(Magics):
         elif args.type == 'text':
             TextProgressBar()
         else:
-            raise qiskit.QISKitError('Invalid progress bar type.')
+            raise qiskit.QiskitError('Invalid progress bar type.')
 
         self.shell.ex(cell)

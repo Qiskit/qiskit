@@ -65,7 +65,6 @@ job = backend.run(qobj)
 qobj_exp = qobj.experiments[0]
 
 result = job.result()
-print(result)
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
@@ -74,7 +73,6 @@ qobj_exp = qobj.experiments[0]
 qobj_exp.header.compiled_circuit_qasm = ""
 job = backend.run(qobj)
 result = job.result()
-print(result)
 print(result.get_counts(qc))
-
+print(result.data(0))
 # Both versions should give the same distribution

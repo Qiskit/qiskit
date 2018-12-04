@@ -51,7 +51,7 @@ class DummySimulator(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_dummy_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A dummy simulator for testing purposes',
@@ -96,7 +96,7 @@ class DummySimulator(BaseBackend):
         """ Main dummy simulator loop """
         time.sleep(self.time_alive)
 
-        return Result(
+        return Result.from_dict(
             {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 

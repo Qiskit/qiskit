@@ -9,8 +9,6 @@
 """Backends Test."""
 
 import json
-import unittest
-
 import jsonschema
 
 from qiskit import IBMQ, Aer
@@ -19,7 +17,7 @@ from .common import Path, QiskitTestCase, requires_qe_access
 
 
 class TestBackends(QiskitTestCase):
-    """QISKit Backends (Object) Tests."""
+    """Qiskit Backends (Object) Tests."""
 
     def test_aer_backends_exist(self):
         """Test if there are local backends.
@@ -98,7 +96,6 @@ class TestBackends(QiskitTestCase):
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
-    @unittest.skip('Temporary skipping until #1156')
     def test_aer_backend_configuration(self):
         """Test backend configuration.
 
@@ -136,15 +133,10 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        schema_path = self._get_resource_path(
-            'backend_properties_schema.json', path=Path.SCHEMAS)
-        with open(schema_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
         aer_backends = Aer.backends()
         for backend in aer_backends:
             properties = backend.properties()
-            jsonschema.validate(properties.to_dict(), schema)
+            self.assertEqual(properties, None)
 
     @requires_qe_access
     def test_remote_backend_properties(self, qe_token, qe_url):
@@ -161,4 +153,7 @@ class TestBackends(QiskitTestCase):
         remotes = IBMQ.backends(simulator=False)
         for backend in remotes:
             properties = backend.properties()
-            jsonschema.validate(properties.to_dict(), schema)
+            if backend.configuration().simulator:
+                self.assertEqual(properties, None)
+            else:
+                jsonschema.validate(properties.to_dict(), schema)
