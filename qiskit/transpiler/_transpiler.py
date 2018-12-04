@@ -12,7 +12,6 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
-from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit._qiskiterror import QiskitError
 from qiskit._quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
@@ -150,9 +149,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Returns:
         DAGCircuit: transformed dag
         DAGCircuit, dict: transformed dag along with the final layout on backend qubits
-
-    Raises:
-        TranspilerError: if the format is not valid.
     """
     # TODO: `basis_gates` will be removed after we have the unroller pass.
     # TODO: `coupling_map`, `initial_layout`, `get_layout`, `seed_mapper` removed after mapper pass.
