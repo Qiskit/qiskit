@@ -91,13 +91,11 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
         width = 0.35  # the width of the bars
-
-        label = None
-        if legend:
-            label = legend[item]
-
         rects = []
         for idx, val in enumerate(pvalues):
+            label = None
+            if not idx and legend:
+                label = legend[item]
             rects.append(ax.bar(idx+(labels_dict[labels[idx]]-1)*width, val, width, label=label,
                                 color=color[item % len(color)],
                                 zorder=2))
