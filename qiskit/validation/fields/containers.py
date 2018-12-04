@@ -5,8 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Container fields are those that represent nested/collections of schemas or
-types."""
+"""Container fields that represent nested/collections of schemas or types."""
+
 from collections import Iterable
 
 from marshmallow import fields as _fields
@@ -54,14 +54,13 @@ class List(_fields.List, ModelTypeValidator):
 
     valid_types = (Iterable, )
 
-    def check_type(self, value, *_):
+    def check_type(self, value, attr, data):
         """Validate if it's a list of valid item-field values.
 
         Check if each element in the list can be validated by the item-field
         passed during construction.
         """
-        # pylint: disable=arguments-differ
-        super().check_type(value, *_)
+        super().check_type(value, attr, data)
 
         errors = []
         for idx, v in enumerate(value):

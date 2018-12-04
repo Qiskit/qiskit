@@ -5,13 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Fields to be used with Qiskit validated classes. Add new fields if you want:
+"""Fields to be used with Qiskit validated classes.
+
+When extending this module with new Fields:
 
     1. Distinguish a new type, like the ``Complex`` number in this module.
     2. Use a new Marshmallow field not used in ``qiskit`` yet.
 
 Marshamallow fields does not allow model validation so you need to create a new
-field, make it subclass of the Marshamallow field *and* ``ModelTypeValidator``
+field, make it subclass of the Marshamallow field *and* ``ModelTypeValidator``,
 and redefine ``valid_types`` to be the list of valid types. Usually, **the
 same types this field deserializes to**. For instance::
 
@@ -30,26 +32,6 @@ from marshmallow.utils import is_collection
 from qiskit.validation import ModelTypeValidator
 from qiskit.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
 from qiskit.validation.fields.containers import Nested, List
-
-
-__all__ = [
-    'Boolean',
-    'ByAttribute',
-    'ByType',
-    'Email',
-    'Complex',
-    'Date',
-    'DateTime',
-    'Float',
-    'Integer',
-    'List',
-    'Nested',
-    'Number',
-    'Raw',
-    'String',
-    'TryFrom',
-    'Url'
-]
 
 
 class Complex(ModelTypeValidator):

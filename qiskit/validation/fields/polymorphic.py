@@ -5,8 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Polymorphic fields are those that represent one of several schemas or types.
-"""
+"""Polymorphic fields that represent one of several schemas or types."""
+
 from collections import Iterable
 from functools import partial
 
