@@ -129,8 +129,6 @@ class IBMQJob(BaseJob):
             qobj (Qobj): The Quantum Object. See notes below
             creation_date (str): When the job was run.
             api_status (str): `status` field directly from the API response.
-            kwargs (dict): You can pass `backend_name` to this function although
-                it has been deprecated.
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
@@ -138,11 +136,6 @@ class IBMQJob(BaseJob):
             API server for job creation. Passing only a `job_id`will create an instance
             representing an already-created job retrieved from the API server.
         """
-        if 'backend_name' in kwargs:
-            warnings.warn('Passing the parameter `backend_name` is deprecated, '
-                          'pass the `backend` parameter with the instance of '
-                          'the backend running the job.', DeprecationWarning)
-
         super().__init__(backend, job_id)
         self._job_data = None
 
