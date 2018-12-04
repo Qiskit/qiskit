@@ -56,11 +56,11 @@ class BasicMapper(TransformationPass):
         if self.initial_layout is None:
             # create a one-to-one layout
             self.initial_layout = Layout()
-            wire_no = 0
+            physical_qubit = 0
             for qreg in dag.qregs.values():
                 for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = wire_no
-                    wire_no += 1
+                    self.initial_layout[(qreg, index)] = physical_qubit
+                    physical_qubit += 1
         current_layout = copy(self.initial_layout)
 
         for layer in dag.serial_layers():
@@ -73,7 +73,7 @@ class BasicMapper(TransformationPass):
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
 
-                    path = self.coupling_map.shortest_path(physical_q0, physical_q1)
+                    path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
                     for swap in range(len(path) - 2):
                         closest_qubit = current_layout[path[swap + 1]]
                         farthest_qubit = current_layout[path[swap + 2]]
