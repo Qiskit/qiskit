@@ -173,7 +173,7 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         seed (int): random seed for simulators
         seed_mapper (int): random seed for swapper mapper
         qobj_id (int): identifier for the generated qobj
-        pass_manager (PassManager)
+        pass_manager (PassManager): a pass manger for the transpiler pipeline
         skip_transpiler (bool): DEPRECATED skip transpiler and create qobj directly
         kwargs: extra arguments used by AER for running configurable backends.
                 Refer to the backend documentation for details on these arguments
@@ -190,6 +190,6 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
                    shots, max_credits, seed, qobj_id,
-                   skip_transpiler, seed_mapper)
+                   skip_transpiler, seed_mapper, pass_manager)
 
     return backend.run(qobj, **kwargs)

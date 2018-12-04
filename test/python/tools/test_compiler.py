@@ -574,6 +574,7 @@ class TestCompiler(QiskitTestCase):
         backend = qiskit.Aer.get_backend('qasm_simulator_py')
         rtrue = execute(qc, backend, seed=42).result()
         rfalse = execute(qc, backend, seed=42, pass_manager=PassManager()).result()
+        self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
 
 if __name__ == '__main__':
