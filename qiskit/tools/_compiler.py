@@ -7,6 +7,7 @@
 
 """Helper module for simplified Qiskit usage."""
 from copy import deepcopy
+import warnings
 import uuid
 import logging
 
@@ -23,8 +24,8 @@ logger = logging.getLogger(__name__)
 # pylint: disable=redefined-builtin
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
-            shots=1024, max_credits=10, seed=None, qobj_id=None, hpc=None,
-            skip_transpiler=False, seed_mapper=None):
+            shots=1024, max_credits=10, seed=None, qobj_id=None,
+            skip_transpiler=False, seed_mapper=None, pass_manager=None):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -39,21 +40,20 @@ def compile(circuits, backend,
         seed (int): random seed for simulators
         seed_mapper (int): random seed for swapper mapper
         qobj_id (int): identifier for the generated qobj
-        hpc (dict): HPC simulator parameters
-        skip_transpiler (bool): skip most of the compile steps and produce qobj directly
+        pass_manager (PassManager): a pass manger for the transpiler pipeline
+        skip_transpiler (bool): DEPRECATED skip transpiler and create qobj directly
 
     Returns:
         Qobj: the qobj to be run on the backends
-
-    Raises:
-        TranspilerError: in case of bad compile options, e.g. the hpc options.
     """
-    pass_manager = None  # default pass manager which executes predetermined passes
     if skip_transpiler:  # empty pass manager which does nothing
         pass_manager = PassManager()
+        warnings.warn('The skip_transpiler option has been deprecated. '
+                      'Please pass an empty PassManager() instance instead',
+                      DeprecationWarning)
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
-                                    seed_mapper, hpc, pass_manager)
+                                    seed_mapper, pass_manager)
 
     # step 4: Making a qobj
     qobj = circuits_to_qobj(circuits, backend_name=backend.name(),
@@ -157,7 +157,7 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
 
 def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
             initial_layout=None, shots=1024, max_credits=10, seed=None,
-            qobj_id=None, hpc=None, skip_transpiler=False, seed_mapper=None,
+            qobj_id=None, skip_transpiler=False, seed_mapper=None, pass_manager=None,
             **kwargs):
     """Executes a set of circuits.
 
@@ -173,16 +173,23 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         seed (int): random seed for simulators
         seed_mapper (int): random seed for swapper mapper
         qobj_id (int): identifier for the generated qobj
-        hpc (dict): HPC simulator parameters
-        skip_transpiler (bool): skip most of the compile steps and produce qobj directly
-        kwargs: extra arguments used by AER for runing configurable backends. Refer to the
-        backend documentation for details on these arguments
+        pass_manager (PassManager): a pass manger for the transpiler pipeline
+        skip_transpiler (bool): DEPRECATED skip transpiler and create qobj directly
+        kwargs: extra arguments used by AER for running configurable backends.
+                Refer to the backend documentation for details on these arguments
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
     """
+    if skip_transpiler:  # empty pass manager which does nothing
+        pass_manager = PassManager()
+        warnings.warn('The skip_transpiler option has been deprecated. '
+                      'Please pass an empty PassManager() instance instead',
+                      DeprecationWarning)
+
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
-                   shots, max_credits, seed, qobj_id, hpc,
-                   skip_transpiler, seed_mapper)
+                   shots, max_credits, seed, qobj_id,
+                   skip_transpiler, seed_mapper, pass_manager)
+
     return backend.run(qobj, **kwargs)
