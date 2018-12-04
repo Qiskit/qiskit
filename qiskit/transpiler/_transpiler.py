@@ -80,7 +80,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
 def _parallel_transpilation(circuit, backend, basis_gates=None, coupling_map=None,
                             initial_layout=None, seed_mapper=None,
                             pass_manager=None):
-    """Perform transpilation of multiple circuits in parallel.
+    """Perform transpilation of a single.
 
     Args:
         circuit (QuantumCircuit): A circuit to transpile.
@@ -92,7 +92,7 @@ def _parallel_transpilation(circuit, backend, basis_gates=None, coupling_map=Non
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        list[QuantumCircuit]: Transpiled circuit(s)
+        QuantumCircuit: A transpiled circuit.
 
     """
     dag = DAGCircuit.fromQuantumCircuit(circuit)
