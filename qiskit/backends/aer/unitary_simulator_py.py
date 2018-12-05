@@ -94,7 +94,6 @@ class UnitarySimulatorPy(BaseBackend):
         # Define attributes inside __init__.
         self._unitary_state = None
         self._number_of_qubits = 0
-        self._max_qubits = max_qubits
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
