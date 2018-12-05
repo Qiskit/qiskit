@@ -471,7 +471,6 @@ class IBMQJobPreQobj(IBMQJob):
     def _result_from_job_response(self, job_response):
         if self._is_device:
             _reorder_bits(job_response)
-            pass
 
         experiment_results = []
         for circuit_result in job_response['qasms']:

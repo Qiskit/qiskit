@@ -19,6 +19,7 @@ from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
                                                 x90_error_matrix)
 from qiskit.qobj import Qobj
 from qiskit.result.postprocess import format_statevector
+from qiskit.quantum_info import state_fidelity
 from qiskit import compile
 from ..common import QiskitTestCase, Path
 from ..common import requires_cpp_simulator
@@ -398,7 +399,7 @@ class TestAerQasmSimulator(QiskitTestCase):
                              msg=name + ' snapshot length')
             state = format_statevector(snapshots['0'][0])
             expected_state = expected_data[name]['statevector']
-            fidelity = np.abs(expected_state.dot(state.conj())) ** 2
+            fidelity = state_fidelity(expected_state, state)
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
 

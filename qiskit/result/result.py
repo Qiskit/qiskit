@@ -116,7 +116,7 @@ class Result(BaseModel):
         except KeyError:
             raise QiskitError('No counts for circuit "{0}"'.format(circuit))
 
-    def get_statevector(self, circuit=None, decimals=10):
+    def get_statevector(self, circuit=None, decimals=None):
         """Get the final statevector of an experiment.
 
         Args:
@@ -137,7 +137,7 @@ class Result(BaseModel):
         except KeyError:
             raise QiskitError('No statevector for circuit "{0}"'.format(circuit))
 
-    def get_unitary(self, circuit=None, decimals=10):
+    def get_unitary(self, circuit=None, decimals=None):
         """Get the final unitary of an experiment.
 
         Args:

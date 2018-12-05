@@ -7,7 +7,6 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
-import numpy as np
 import qiskit.extensions.simulator  # pylint: disable=unused-import
 from qiskit import Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
