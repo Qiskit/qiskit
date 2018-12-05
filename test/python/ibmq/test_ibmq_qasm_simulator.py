@@ -14,7 +14,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin
 from qiskit import compile
 from qiskit import IBMQ
-from ..common import requires_qe_access, QiskitTestCase, bin_to_hex_keys
+from ..common import requires_qe_access, QiskitTestCase
 
 
 class TestIbmqQasmSimulator(QiskitTestCase):
@@ -107,5 +107,5 @@ class TestIbmqQasmSimulator(QiskitTestCase):
         result = job.result()
         result1 = result.get_counts(qcr1)
         result2 = result.get_counts(qcr2)
-        self.assertEqual(result1, bin_to_hex_keys({'00 01': 1024}))
-        self.assertEqual(result2, bin_to_hex_keys({'10 00': 1024}))
+        self.assertEqual(result1, {'00 01': 1024})
+        self.assertEqual(result2, {'10 00': 1024})

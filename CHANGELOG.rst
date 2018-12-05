@@ -160,6 +160,10 @@ Removed
   using ``Result.data()['snapshots']``.
 - Completed the deprecation of ``job.backend_name()``, ``job.id()``, and the
   ``backend_name`` parameter in its constructor.
+- The ``qiskit.Result`` class now does post-processing of results returned
+  from backends if they are called via the ``Result.get_xxx()`` methods
+  (i.e. ``get_counts()``, ``get_memory()``, ``get_statevector()``,
+  ``get_unitary()``). The raw data is accessible through ``Result.data()`` (#1404).
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^

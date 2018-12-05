@@ -470,9 +470,7 @@ class IBMQJobPreQobj(IBMQJob):
 
     def _result_from_job_response(self, job_response):
         if self._is_device:
-            # TODO: temporarily disabled for #1373, reenable before 0.7.
-            # _reorder_bits(job_response)
-            pass
+            _reorder_bits(job_response)
 
         experiment_results = []
         for circuit_result in job_response['qasms']:
@@ -528,7 +526,7 @@ def _reorder_bits(job_data):
                            ' bits: bits may be out of order')
             return
         # device_qubit -> device_clbit (how it should have been)
-        measure_dict = {op['qubits'][0]: op['clbits'][0]
+        measure_dict = {op['qubits'][0]: op['memory'][0]
                         for op in circ['operations']
                         if op['name'] == 'measure'}
         counts_dict_new = {}
@@ -545,13 +543,13 @@ def _reorder_bits(job_data):
             reordered_bits.reverse()
 
             # only keep the clbits specified by circuit, not everything on device
-            num_clbits = circ['header']['number_of_clbits']
+            num_clbits = circ['header']['memory_slots']
             compact_key = reordered_bits[-num_clbits:]
             compact_key = "".join([b if b != 'x' else '0'
                                    for b in compact_key])
 
             # insert spaces to signify different classical registers
-            cregs = circ['header']['clbit_labels']
+            cregs = circ['header']['creg_sizes']
             if sum([creg[1] for creg in cregs]) != num_clbits:
                 raise JobError("creg sizes don't add up in result header.")
             creg_begin_pos = []

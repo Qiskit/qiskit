@@ -19,7 +19,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
-from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
@@ -54,7 +54,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_qc).result()
         counts_py = result.get_counts(qc)
 
-        target = bin_to_hex_keys({'01 10': 1024})
+        target = {'01 10': 1024}
 
         backend_sim = Aer.get_backend('statevector_simulator')
         result = backend_sim.run(qobj_circ).result()
@@ -110,7 +110,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = execute(circ2, backend_sim).result()
         unitary = result.get_unitary(circ2)
 
-        target = bin_to_hex_keys({'01 10': 1024})
+        target = {'01 10': 1024}
         self.assertEqual(target, counts)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
         self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
