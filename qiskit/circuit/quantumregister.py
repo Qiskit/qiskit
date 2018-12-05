@@ -10,7 +10,7 @@ Quantum register reference object.
 """
 import itertools
 
-from ._register import Register
+from .register import Register
 
 
 class QuantumRegister(Register):

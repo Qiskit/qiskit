@@ -18,8 +18,8 @@ import warnings
 
 from qiskit.qasm import _qasm
 from qiskit._qiskiterror import QiskitError
-from qiskit._quantumregister import QuantumRegister
-from qiskit._classicalregister import ClassicalRegister
+from .quantumregister import QuantumRegister
+from .classicalregister import ClassicalRegister
 
 
 class QuantumCircuit(object):

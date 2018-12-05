@@ -7,9 +7,9 @@
 
 """Helper function for converting qobj to a list of circuits"""
 
-from qiskit import _classicalregister as cr
-from qiskit import _quantumcircuit as qc
-from qiskit import _quantumregister as qr
+from qiskit.circuit import classicalregister as cr
+from qiskit.circuit import quantumcircuit as qc
+from qiskit.circuit import quantumregister as qr
 
 
 def qobj_to_circuits(qobj):
