@@ -10,12 +10,12 @@
 import unittest
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit._quantumregister import QuantumRegister
-from qiskit._classicalregister import ClassicalRegister
-from qiskit._quantumcircuit import QuantumCircuit
-from qiskit._measure import Measure
-from qiskit._reset import Reset
-from qiskit._gate import Gate
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Measure
+from qiskit.circuit import Reset
+from qiskit.circuit import Gate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
