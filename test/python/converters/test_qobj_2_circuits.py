@@ -68,8 +68,7 @@ class TestQobjToCircuits(QiskitTestCase):
         for i in qobj_in.experiments:
             del i.header.compiled_circuit_qasm
         out_circuit = qobj_to_circuits(qobj_in)
-        self.assertEqual(DAGCircuit.fromQuantumCircuit(out_circuit[0]),
-                         self.dag)
+        self.assertEqual(circuit_to_dag(out_circuit[0]), self.dag)
 
     def test_qobj_to_circuits_multiple_no_qasm(self):
         """Check that qobj_to_circuits's result with multiple circuits"""
@@ -88,10 +87,8 @@ class TestQobjToCircuits(QiskitTestCase):
         for i in qobj.experiments:
             del i.header.compiled_circuit_qasm
 
-        dag_list = [
-            DAGCircuit.fromQuantumCircuit(x) for x in qobj_to_circuits(qobj)]
-        self.assertEqual(dag_list, [self.dag,
-                                    DAGCircuit.fromQuantumCircuit(circuit_b)])
+        dag_list = [circuit_to_dag(x) for x in qobj_to_circuits(qobj)]
+        self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])
 
 
 if __name__ == '__main__':
