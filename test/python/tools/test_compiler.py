@@ -22,7 +22,7 @@ from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit import execute
 from qiskit._qiskiterror import QiskitError
 from qiskit.backends.ibmq import least_busy
-from ..common import QiskitTestCase, bin_to_hex_keys
+from ..common import QiskitTestCase
 from ..common import requires_qe_access, requires_cpp_simulator
 
 
@@ -539,14 +539,12 @@ class TestCompiler(QiskitTestCase):
         result = execute(qc, backend=backend,
                          coupling_map=None, shots=1024,
                          seed=14).result()
-        self.assertEqual(result.get_counts(qc),
-                         bin_to_hex_keys({'010000': 1024}))
+        self.assertEqual(result.get_counts(qc), {'010000': 1024})
         # Second version: map to coupling graph
         result = execute(qc, backend=backend,
                          coupling_map=coupling_map, shots=1024,
                          seed=14).result()
-        self.assertEqual(result.get_counts(qc),
-                         bin_to_hex_keys({'010000': 1024}))
+        self.assertEqual(result.get_counts(qc), {'010000': 1024})
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile.

@@ -5,16 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-
 """Tests for visualization tools."""
 
 import os
 import random
-from inspect import signature
 import unittest
+from inspect import signature
+
 import qiskit
-from qiskit.tools.visualization import _utils, generate_latex_source
+from qiskit.tools.visualization import _utils, circuit_drawer
 from ...common import QiskitTestCase
 
 
@@ -72,7 +71,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_tiny.tex')
         qc = self.random_circuit(1, 1, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -83,7 +82,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_normal.tex')
         qc = self.random_circuit(5, 5, 3)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -94,7 +93,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_wide.tex')
         qc = self.random_circuit(100, 1, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -105,7 +104,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_deep.tex')
         qc = self.random_circuit(1, 100, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -116,7 +115,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_huge.tex')
         qc = self.random_circuit(40, 40, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -145,7 +144,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc.x(qr[2]).c_if(cr, 2)
         qc.measure(qr[2], cr[2])
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):

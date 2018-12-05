@@ -27,7 +27,7 @@ from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq import least_busy
 
-from ..common import requires_qe_access, JobTestCase, slow_test, bin_to_hex_keys
+from ..common import requires_qe_access, JobTestCase, slow_test
 
 
 class TestIBMQJob(JobTestCase):
@@ -55,9 +55,8 @@ class TestIBMQJob(JobTestCase):
         result = job.result()
         counts_qx1 = result.get_counts(0)
         counts_qx2 = result.get_counts(1)
-        counts_ex1 = bin_to_hex_keys({'00': shots/2, '11': shots/2})
-        counts_ex2 = bin_to_hex_keys({'00': shots/4, '11': shots/4,
-                                      '10': shots/4, '01': shots/4})
+        counts_ex1 = {'00': shots/2, '11': shots/2}
+        counts_ex2 = {'00': shots/4, '11': shots/4, '10': shots/4, '01': shots/4}
         states1 = counts_qx1.keys() | counts_ex1.keys()
         states2 = counts_qx2.keys() | counts_ex2.keys()
         # contingency table
@@ -94,7 +93,7 @@ class TestIBMQJob(JobTestCase):
         self.log.info(job.status)
         result = job.result()
         counts_qx = result.get_counts(0)
-        counts_ex = bin_to_hex_keys({'00': shots/2, '11': shots/2})
+        counts_ex = {'00': shots/2, '11': shots/2}
         states = counts_qx.keys() | counts_ex.keys()
         # contingency table
         ctable = numpy.array([[counts_qx.get(key, 0) for key in states],

@@ -14,7 +14,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
 
-from ..common import QiskitTestCase, bin_to_hex_keys
+from ..common import QiskitTestCase
 
 
 class TestAerQasmSimulatorPy(QiskitTestCase):
@@ -76,8 +76,8 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         result = self.backend.run(qobj).result()
         counts_if_true = result.get_counts(circuit_if_true)
         counts_if_false = result.get_counts(circuit_if_false)
-        self.assertEqual(counts_if_true, bin_to_hex_keys({'111': 100}))
-        self.assertEqual(counts_if_false, bin_to_hex_keys({'001': 100}))
+        self.assertEqual(counts_if_true, {'111': 100})
+        self.assertEqual(counts_if_false, {'001': 100})
 
     @unittest.skipIf(version_info.minor == 5,
                      "Due to gate ordering issues with Python 3.5 "
@@ -106,15 +106,16 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         qobj = compile(circuit, backend=self.backend, shots=shots, seed=self.seed)
         results = self.backend.run(qobj).result()
         data = results.get_counts('teleport')
+        print(data)
         alice = {
-            '00': data['0x0'] + data['0x4'],
-            '01': data['0x2'] + data['0x6'],
-            '10': data['0x1'] + data['0x5'],
-            '11': data['0x3'] + data['0x7']
+            '00': data['0 0 0'] + data['1 0 0'],
+            '01': data['0 1 0'] + data['1 1 0'],
+            '10': data['0 0 1'] + data['1 0 1'],
+            '11': data['0 1 1'] + data['1 1 1']
         }
         bob = {
-            '0': data['0x0'] + data['0x2'] + data['0x1'] + data['0x3'],
-            '1': data['0x4'] + data['0x6'] + data['0x5'] + data['0x7']
+            '0': data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1'],
+            '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
         }
         self.log.info('test_teleport: circuit:')
         self.log.info('test_teleport: circuit:')
