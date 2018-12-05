@@ -11,8 +11,8 @@ from sys import version_info
 import unittest
 
 from qiskit import qasm, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.unroll import Unroller, DagUnroller, DAGBackend, JsonBackend
+from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 
@@ -50,7 +50,7 @@ measure r[0] -> d[0];
 measure r[1] -> d[1];
 measure r[2] -> d[2];
 """
-        expected_dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit.from_qasm_str(expected_result))
+        expected_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(expected_result))
         self.assertEqual(dag_circuit, expected_dag)
 
     def test_dag_to_dag_expand_gates_default_basis(self):
@@ -80,7 +80,7 @@ measure q[1] -> c[1];
 measure q[2] -> c[2];
 measure r[0] -> d[0];
 """
-        expected_dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit.from_qasm_str(expected_result))
+        expected_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(expected_result))
         self.assertEqual(expanded_dag_circuit, expected_dag)
 
     def test_dag_to_dag_expand_gates_custom_basis(self):
