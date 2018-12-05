@@ -16,7 +16,9 @@
         {
             "header": {
                 "name": "measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -32,7 +34,9 @@
         {
             "header": {
                 "name": "x0 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -49,7 +53,9 @@
         {
             "header": {
                 "name": "x1 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -66,7 +72,9 @@
         {
             "header": {
                 "name": "x0 x1 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -84,7 +92,9 @@
         {
             "header": {
                 "name": "y0 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -101,7 +111,9 @@
         {
             "header": {
                 "name": "y1 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -118,7 +130,9 @@
         {
             "header": {
                 "name": "y0 y1 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -136,7 +150,9 @@
         {
             "header": {
                 "name": "h0 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -153,7 +169,9 @@
         {
             "header": {
                 "name": "h1 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -170,7 +188,9 @@
         {
             "header": {
                 "name": "h0 h1 measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
@@ -188,7 +208,9 @@
         {
             "header": {
                 "name": "bell measure (opt)",
-                "clbit_labels": [["c", 2]],
+                "memory_slots": 2,
+                "creg_sizes": [["c", 2]],
+                "clbit_labels": [["c", 0], ["c", 1]],
                 "qubit_labels": [["q", 0], ["q", 1]]
             },
             "config": {
