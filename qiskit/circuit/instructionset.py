@@ -8,8 +8,8 @@
 """
 Instruction collection.
 """
-from ._instruction import Instruction
-from ._qiskiterror import QiskitError
+from qiskit._qiskiterror import QiskitError
+from .instruction import Instruction
 
 
 class InstructionSet(object):

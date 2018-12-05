@@ -10,7 +10,7 @@ from copy import deepcopy
 import uuid
 
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
-from qiskit._quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,

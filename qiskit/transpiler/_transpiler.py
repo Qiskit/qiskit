@@ -13,7 +13,8 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit._qiskiterror import QiskitError
-from qiskit import _quantumcircuit, _quantumregister
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
@@ -44,7 +45,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
     """
     return_form_is_single = False
-    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
+    if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
         return_form_is_single = True
 
@@ -299,7 +300,7 @@ def _pick_best_layout(dag, backend):
     layout = {}
     map_iter = 0
     device_qubits = backend.configuration().n_qubits
-    q = _quantumregister.QuantumRegister(device_qubits, 'q')
+    q = QuantumRegister(device_qubits, 'q')
     for qreg in dag.qregs.values():
         for i in range(qreg.size):
             layout[(qreg.name, i)] = (q, int(best_sub[map_iter]))

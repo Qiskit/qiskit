@@ -8,10 +8,10 @@
 """
 Qubit reset to computational zero.
 """
-from ._instruction import Instruction
-from ._instructionset import InstructionSet
-from ._quantumcircuit import QuantumCircuit
-from ._quantumregister import QuantumRegister
+from .instruction import Instruction
+from .instructionset import InstructionSet
+from .quantumcircuit import QuantumCircuit
+from .quantumregister import QuantumRegister
 
 
 class Reset(Instruction):

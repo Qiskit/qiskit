@@ -33,8 +33,8 @@ from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
-from qiskit._measure import Measure
-from qiskit._instruction import Instruction
+from qiskit.circuit.measure import Measure
+from qiskit.circuit.instruction import Instruction
 
 logger = logging.getLogger(__name__)
 
