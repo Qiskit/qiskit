@@ -42,10 +42,12 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
+    max_qubits = int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16))
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator_py',
         'backend_version': '1.0.0',
-        'n_qubits': int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16)),
+        'n_qubits': max_qubits,
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -206,7 +208,7 @@ class UnitarySimulatorPy(BaseBackend):
             Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = experiment.header.n_qubits
-        if self._number_of_qubits > 24:
+        if self._number_of_qubits > self.max_qubits:
             raise SimulatorError("np.einsum implementation limits unitary_simulator_py" +
                                  " to 24 qubit circuits.")
         result = {
