@@ -300,7 +300,7 @@ def _pick_best_layout(dag, backend):
     layout = {}
     map_iter = 0
     device_qubits = backend.configuration().n_qubits
-    q = _quantumregister.QuantumRegister(device_qubits, 'q')
+    q = QuantumRegister(device_qubits, 'q')
     for qreg in dag.qregs.values():
         for i in range(qreg.size):
             layout[(qreg.name, i)] = (q, int(best_sub[map_iter]))

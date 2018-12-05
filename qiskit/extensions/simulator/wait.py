@@ -12,8 +12,8 @@ Aer's qasm_simulator single qubit wait gate.
 """
 from qiskit import Gate
 from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import QuantumRegister
 from qiskit.qasm import _node as node
 
 
