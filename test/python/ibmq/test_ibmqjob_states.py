@@ -258,9 +258,9 @@ class TestIBMQJobStates(JobTestCase):
         result = job.result()
         self.assertEqual(result.success, True)
         self.assertEqual(result.get_counts('Bell state'),
-                         {'0x0': 480, '0x3': 490, '0x1': 20, '0x2': 34})
+                         {'00': 480, '11': 490, '01': 20, '10': 34})
         self.assertEqual(result.get_counts('Bell state XY'),
-                         {'0x0': 29, '0x3': 15, '0x1': 510, '0x2': 480})
+                         {'00': 29, '11': 15, '01': 510, '10': 480})
         self.assertEqual(len(result.results), 2)
 
     def run_with_api(self, api, job_class=IBMQJobPreQobj):
@@ -514,7 +514,13 @@ class QObjResultAPI(BaseFakeAPI):
                 'status': 'COMPLETED',
                 'results': [
                     {
-                        'header': {'name': 'Bell state'},
+                        'header': {
+                            'name': 'Bell state',
+                            'memory_slots': 2,
+                            'creg_sizes': [['c', 2]],
+                            'clbit_labels': [['c', 0], ['c', 1]],
+                            'qubit_labels': [['q', 0], ['q', 1]]
+                        },
                         'shots': 1024,
                         'status': 'DONE',
                         'success': True,
@@ -525,7 +531,13 @@ class QObjResultAPI(BaseFakeAPI):
                         }
                     },
                     {
-                        'header': {'name': 'Bell state XY'},
+                        'header': {
+                            'name': 'Bell state XY',
+                            'memory_slots': 2,
+                            'creg_sizes': [['c', 2]],
+                            'clbit_labels': [['c', 0], ['c', 1]],
+                            'qubit_labels': [['q', 0], ['q', 1]]
+                        },
                         'shots': 1024,
                         'status': 'DONE',
                         'success': True,
