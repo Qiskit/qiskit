@@ -14,9 +14,6 @@ from collections import OrderedDict
 from copy import deepcopy
 import itertools
 import warnings
-import random
-import string
-import networkx as nx
 
 
 from qiskit.qasm import _qasm
