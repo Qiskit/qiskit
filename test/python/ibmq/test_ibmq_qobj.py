@@ -23,7 +23,7 @@ from ..common import require_multiple_credentials, JobTestCase, slow_test
 # Timeout duration
 TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
 BLACKLIST = ('ibmq_4_atlantis',)
-ALWAYS_BLACKLISTED = ('ibmqx_hpc_qasm_simulator',)
+ALWAYS_BLACKLISTED = ('ibmqx_hpc_qasm_simulator', 'QC20')
 
 
 def per_non_blacklisted_backend(*blacklist):
@@ -45,9 +45,9 @@ def per_non_blacklisted_backend(*blacklist):
                 IBMQ.enable_account(qe_token, qe_url)
             for backend in IBMQ.backends():
                 config = backend.configuration()
-                if config['allow_q_object'] and backend.name() not in blacklist:
+                if config.allow_q_object and backend.name() not in blacklist:
                     with self.subTest(backend=backend):
-                        backend_test = test if config['simulator'] else slow_test(test)
+                        backend_test = test if config.simulator else slow_test(test)
                         backend_test(self, backend, *args, **kwargs)
             for qe_token, _ in credentials:
                 IBMQ.disable_accounts(token=qe_token)
@@ -71,7 +71,7 @@ class TestBackendQobj(JobTestCase):
     @per_qobj_backend
     def test_operational(self, remote_backend):
         """Test if backend is operational."""
-        self.assertTrue(remote_backend.status()['operational'])
+        self.assertTrue(remote_backend.status().operational)
 
     @per_restricted_qobj_backend
     def test_one_qubit_no_operation(self, remote_backend):
@@ -85,7 +85,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
     @per_restricted_qobj_backend
     def test_one_qubit_operation(self, remote_backend):
@@ -100,14 +100,16 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
     @per_restricted_qobj_backend
     def test_simple_circuit(self, remote_backend):
         """Test one circuit, one register, in-order readout."""
         config = remote_backend.configuration()
-        n_qubits = config['n_qubits']
-        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+        n_qubits = config.n_qubits
+        if 'n_registers' not in config:
+            self.skipTest('Backend does not have registers.')
+        if n_qubits < 4 or config.n_registers < 4:
             self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
@@ -123,14 +125,16 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
     @per_restricted_qobj_backend
     def test_readout_order(self, remote_backend):
         """Test one circuit, one register, out-of-order readout."""
         config = remote_backend.configuration()
-        n_qubits = config['n_qubits']
-        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+        n_qubits = config.n_qubits
+        if 'n_registers' not in config:
+            self.skipTest('Backend does not have registers.')
+        if n_qubits < 4 or config.n_registers < 4:
             self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
@@ -147,14 +151,16 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj_remote).result()
         result_local = self._local_backend.run(qobj_local).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
     @per_restricted_qobj_backend
     def test_multi_register(self, remote_backend):
         """Test one circuit, two registers, out-of-order readout."""
         config = remote_backend.configuration()
-        n_qubits = config['n_qubits']
-        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+        n_qubits = config.n_qubits
+        if 'n_registers' not in config:
+            self.skipTest('Backend does not have registers.')
+        if n_qubits < 4 or config.n_registers < 4:
             self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
@@ -177,14 +183,16 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
     @per_restricted_qobj_backend
     def test_multi_circuit(self, remote_backend):
         """Test two circuits, two registers, out-of-order readout."""
         config = remote_backend.configuration()
-        n_qubits = config['n_qubits']
-        if n_qubits < 4 or config.get('n_registers', n_qubits) < 4:
+        n_qubits = config.n_qubits
+        if 'n_registers' not in config:
+            self.skipTest('Backend does not have registers.')
+        if n_qubits < 4 or config.n_registers < 4:
             self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
@@ -216,16 +224,16 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ1),
-                                   result_local.get_counts(circ1), delta=100)
+                                   result_local.get_counts(circ1), delta=200)
         self.assertDictAlmostEqual(result_remote.get_counts(circ2),
-                                   result_local.get_counts(circ2), delta=100)
+                                   result_local.get_counts(circ2), delta=200)
 
     @per_restricted_qobj_backend
     def test_conditional_operation(self, remote_backend):
         """Test conditional operation.
         """
         config = remote_backend.configuration()
-        if not config.get('conditional', False):
+        if not config.conditional:
             self.skipTest('Backend does not support conditional tests')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
@@ -238,14 +246,16 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
     @per_qobj_backend
     def test_ry_circuit(self, remote_backend):
         """Test Atlantis staging device deterministic ry operation."""
         config = remote_backend.configuration()
-        n_qubits = config['n_qubits']
-        if n_qubits < 3 or config.get('n_registers', n_qubits) < 3:
+        n_qubits = config.n_qubits
+        if 'n_registers' not in config:
+            self.skipTest('Backend does not have registers.')
+        if n_qubits < 3 or config.n_registers < 3:
             self.skipTest('Backend does not have enough qubits or registers to run test.')
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
@@ -258,7 +268,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=100)
+                                   result_local.get_counts(circ), delta=200)
 
 
 if __name__ == '__main__':
