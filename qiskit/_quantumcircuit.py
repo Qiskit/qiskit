@@ -25,8 +25,6 @@ from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
 
 
-
-
 class QuantumCircuit(object):
     """Quantum circuit."""
     instances = 0
@@ -406,43 +404,11 @@ class QuantumCircuit(object):
         qasm = _qasm.Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
 
-    @staticmethod
-    def fromDAGCircuit(dag):
-        """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
-
-        Args:
-            dag (DAGCircuit): the input dag.
-
-        Return:
-            QuantumCircuit: the circuit representing the input dag.
-        """
-        circuit = QuantumCircuit()
-        random_name = QuantumCircuit.cls_prefix() + \
-            str(''.join(random.choice(string.ascii_lowercase) for i in range(8)))
-        circuit.name = dag.name or random_name
-        for qreg in dag.qregs.values():
-            circuit.add_register(qreg)
-        for creg in dag.cregs.values():
-            circuit.add_register(creg)
-        graph = dag.multi_graph
-        for node in nx.topological_sort(graph):
-            n = graph.nodes[node]
-            if n['type'] == 'op':
-                op = deepcopy(n['op'])
-                op.qargs = n['qargs']
-                op.cargs = n['cargs']
-                op.circuit = circuit
-                if 'condition' in n and n['condition']:
-                    op = op.c_if(*n['condition'])
-                circuit._attach(op)
-
-        return circuit
-
 
 def _circuit_from_qasm(qasm):
     from qiskit.unroll import Unroller
     from qiskit.unroll import DAGBackend
     ast = qasm.parse()
     dag = Unroller(ast, DAGBackend()).execute()
-
-    return QuantumCircuit.fromDAGCircuit(dag)
+    from qiskit.converters import dag_to_circuit
+    return dag_to_circuit(dag)

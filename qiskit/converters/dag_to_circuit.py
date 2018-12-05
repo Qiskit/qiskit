@@ -6,10 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting a dag to a circuit"""
-from collections import OrderedDict
 from copy import deepcopy
-import itertools
-import warnings
 import random
 import string
 import networkx as nx

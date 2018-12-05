@@ -8,7 +8,6 @@
 """Helper function for converting a circuit to a dag"""
 
 import copy
-import random
 
 from qiskit import _compositegate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit

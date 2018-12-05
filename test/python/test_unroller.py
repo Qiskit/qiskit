@@ -11,7 +11,6 @@ from sys import version_info
 import unittest
 
 from qiskit import qasm, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.unroll import Unroller, DagUnroller, DAGBackend, JsonBackend
 from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase

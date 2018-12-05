@@ -20,7 +20,6 @@ from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
-from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import remove_last_measurements, MapperError

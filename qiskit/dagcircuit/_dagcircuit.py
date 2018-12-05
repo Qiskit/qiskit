@@ -24,7 +24,6 @@ import itertools
 import networkx as nx
 
 from qiskit import QuantumRegister, ClassicalRegister
-from qiskit import _compositegate
 from ._dagcircuiterror import DAGCircuitError
 
 

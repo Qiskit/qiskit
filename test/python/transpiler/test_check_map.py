@@ -12,7 +12,6 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.passes import CheckMap
 from qiskit.mapper import Coupling
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
