@@ -16,16 +16,17 @@ import pkgutil
 # First, check for required Python and API version
 from . import _util
 
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Gate
+from qiskit.circuit import CompositeGate
+from qiskit.circuit import Instruction
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import Reset
+from qiskit.circuit import Measure
+
 from ._qiskiterror import QiskitError, QISKitError
-from ._classicalregister import ClassicalRegister
-from ._quantumregister import QuantumRegister
-from ._quantumcircuit import QuantumCircuit
-from ._gate import Gate
-from ._compositegate import CompositeGate
-from ._instruction import Instruction
-from ._instructionset import InstructionSet
-from ._reset import Reset
-from ._measure import Measure
 from ._schema_validation import (validate_json_against_schema,
                                  SchemaValidationError)
 from .result import Result

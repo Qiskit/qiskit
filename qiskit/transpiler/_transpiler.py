@@ -13,7 +13,8 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit._qiskiterror import QiskitError
-from qiskit import _quantumcircuit, _quantumregister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
@@ -44,7 +45,7 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
     """
     return_form_is_single = False
-    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
+    if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
         return_form_is_single = True
 
