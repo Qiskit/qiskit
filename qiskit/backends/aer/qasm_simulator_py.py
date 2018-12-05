@@ -239,6 +239,7 @@ class QasmSimulatorPy(BaseBackend):
         self._validate(qobj)
         result_list = []
         self._shots = qobj.config.shots
+        self._memory = qobj.config.memory
         self._qobj_config = qobj.config
         start = time.time()
 
@@ -359,9 +360,11 @@ class QasmSimulatorPy(BaseBackend):
 
         data = {
             'counts': dict(Counter(outcomes)),
-            'memory': outcomes,
             'snapshots': self._snapshots
         }
+        if self._memory:
+            data['memory'] = outcomes
+
         end = time.time()
         return {'name': experiment.header.name,
                 'seed': seed,
