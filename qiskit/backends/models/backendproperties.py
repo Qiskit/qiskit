@@ -7,10 +7,10 @@
 
 """Model and schema for backend configuration."""
 
-from marshmallow.fields import DateTime, List, Nested, Number, String
 from marshmallow.validate import Length, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.fields import DateTime, List, Nested, Number, String
 
 
 class NduvSchema(BaseSchema):
