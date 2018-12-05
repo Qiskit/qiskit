@@ -13,7 +13,9 @@ Interface to C++ quantum circuit simulator with realistic noise.
 
 import logging
 import uuid
-
+from math import log2
+from numpy import array
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
@@ -29,12 +31,14 @@ class StatevectorSimulator(QasmSimulator):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'conditional': False,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A single-shot C++ statevector simulator for the |0> state evolution',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h',
                         's', 'sdg', 't', 'tdg', 'rzz', 'load', 'save',
@@ -139,7 +143,7 @@ class StatevectorSimulator(QasmSimulator):
                          provider=provider)
 
     def run(self, qobj):
-        """Run a qobj on the the backend."""
+        """Run a qobj on the backend."""
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj)
         aer_job.submit()
@@ -160,18 +164,18 @@ class StatevectorSimulator(QasmSimulator):
         for experiment in qobj.experiments:
             del experiment.instructions[-1]
         # Extract final state snapshot and move to 'statevector' data field
-        for experiment_result in result.results.values():
-            snapshots = experiment_result.snapshots
-            if str(final_state_key) in snapshots:
+        for experiment_result in result.results:
+            snapshots = experiment_result.data.snapshots.to_dict()
+            if str(final_state_key) in snapshots['statevector']:
                 final_state_key = str(final_state_key)
             # Pop off final snapshot added above
-            final_state = snapshots.pop(final_state_key, None)
-            final_state = final_state['statevector'][0]
+            final_state = snapshots['statevector'].pop(final_state_key)[0]
+            final_state = array([v[0] + 1j * v[1] for v in final_state], dtype=complex)
             # Add final state to results data
-            experiment_result.data['statevector'] = final_state
+            experiment_result.data.statevector = final_state
             # Remove snapshot dict if empty
             if snapshots == {}:
-                experiment_result.data.pop('snapshots', None)
+                delattr(experiment_result.data, 'snapshots')
         return result
 
     def _validate(self, qobj):

@@ -15,7 +15,7 @@ from codecs import encode
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import _text as elements
 from qiskit.tools.visualization import _text_circuit_drawer
-from .common import QiskitTestCase
+from ...common import QiskitTestCase
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -636,7 +636,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_measure_html(self):
         """ The measure operator. HTML representation. """
-        expected = '\n'.join(["<pre style=\"line-height: 15px;\">        ┌─┐",
+        expected = '\n'.join(["<pre style=\"word-wrap: normal;"
+                              "white-space: pre;line-height: 15px;\">        ┌─┐",
                               "q_0: |0>┤M├",
                               "        └╥┘",
                               " c_0: 0 ═╩═",

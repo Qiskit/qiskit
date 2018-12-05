@@ -12,6 +12,7 @@ from string import Template
 import sys
 import time
 import re
+from qiskit.tools.visualization._utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -19,16 +20,14 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_cities(rho, options=None):
+def iplot_state_city(rho, figsize=None):
     """ Create a cities representation.
 
         Graphical representation of the input array using a city style graph.
 
         Args:
-            rho (array): Density matrix
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
+            rho (array): State vector or density matrix.
+            figsize (tuple): The figure size in inches.
     """
 
     # HTML
@@ -64,10 +63,11 @@ def iplot_cities(rho, options=None):
         });
     </script>
     """)
-
-    if not options:
+    rho = _validate_input_state(rho)
+    if figsize is None:
         options = {}
-
+    else:
+        options = {'width': figsize[0], 'height': figsize[1]}
     # Process data and execute
     real = []
     imag = []

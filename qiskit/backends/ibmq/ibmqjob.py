@@ -12,7 +12,6 @@ IBM Q Experience.
 """
 
 from concurrent import futures
-import warnings
 import time
 import logging
 import pprint
@@ -27,8 +26,6 @@ from qiskit.backends import BaseJob, JobError, JobTimeoutError
 from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
 from qiskit.result._utils import result_from_old_style_dict
-from qiskit.qobj import Result as QobjResult
-from qiskit.qobj import ExperimentResult as QobjExperimentResult
 from qiskit.qobj import validate_qobj_against_schema
 
 from .api import ApiError
@@ -116,7 +113,7 @@ class IBMQJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, api, is_device, qobj=None,
-                 creation_date=None, api_status=None, **kwargs):
+                 creation_date=None, api_status=None):
         """IBMQJob init function.
 
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
@@ -131,8 +128,6 @@ class IBMQJob(BaseJob):
             qobj (Qobj): The Quantum Object. See notes below
             creation_date (str): When the job was run.
             api_status (str): `status` field directly from the API response.
-            kwargs (dict): You can pass `backend_name` to this function although
-                it has been deprecated.
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
@@ -140,11 +135,6 @@ class IBMQJob(BaseJob):
             API server for job creation. Passing only a `job_id`will create an instance
             representing an already-created job retrieved from the API server.
         """
-        if 'backend_name' in kwargs:
-            warnings.warn('Passing the parameter `backend_name` is deprecated, '
-                          'pass the `backend` parameter with the instance of '
-                          'the backend running the job.', DeprecationWarning)
-
         super().__init__(backend, job_id)
         self._job_data = None
 
@@ -161,6 +151,8 @@ class IBMQJob(BaseJob):
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }
+        else:
+            self._qobj_payload = {}
 
         self._future_captured_exception = None
         self._api = api
@@ -227,14 +219,7 @@ class IBMQJob(BaseJob):
         return job_response
 
     def _result_from_job_response(self, job_response):
-        experiment_results = []
-        result_json = job_response['qObjectResult']
-        for experiment_result_json in result_json['results']:
-            qobj_experiment_result = QobjExperimentResult(**experiment_result_json)
-            experiment_results.append(qobj_experiment_result)
-
-        result_kwargs = {**result_json, 'results': experiment_results}
-        return Result(QobjResult(**result_kwargs))
+        return Result.from_dict(job_response['qObjectResult'])
 
     def cancel(self):
         """Attempt to cancel a job.
@@ -331,21 +316,6 @@ class IBMQJob(BaseJob):
         """
         return self._creation_date
 
-    # pylint: disable=invalid-name
-    def id(self):
-        """Return backend determined id.
-
-        If the Id is not set because the job is already initializing, this call
-        will block until we have an Id.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.job_id()` instead.
-        """
-        warnings.warn('The method `job.id()` is deprecated, use '
-                      '``job.job_id()`` instead.', DeprecationWarning)
-        return self.job_id()
-
     def job_id(self):
         """Return backend determined id.
 
@@ -354,18 +324,6 @@ class IBMQJob(BaseJob):
         """
         self._wait_for_submission()
         return self._job_id
-
-    def backend_name(self):
-        """
-        Return backend name used for this job.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.backend().name()` instead.
-        """
-        warnings.warn('The use of `job.backend_name()` is deprecated, '
-                      'use `job.backend().name()` instead', DeprecationWarning)
-        return self.backend().name()
 
     def submit(self):
         """Submit job to IBM-Q.
@@ -512,28 +470,42 @@ class IBMQJobPreQobj(IBMQJob):
 
     def _result_from_job_response(self, job_response):
         if self._is_device:
-            _reorder_bits(job_response)
+            # TODO: temporarily disabled for #1373, reenable before 0.7.
+            # _reorder_bits(job_response)
+            pass
 
         experiment_results = []
         for circuit_result in job_response['qasms']:
             this_result = {'data': circuit_result['data'],
-                           'name': circuit_result.get('name'),
                            'compiled_circuit_qasm': circuit_result.get('qasm'),
                            'status': circuit_result['status'],
                            'success': circuit_result['status'] == 'DONE',
                            'shots': job_response['shots']}
             if 'metadata' in circuit_result:
                 this_result['metadata'] = circuit_result['metadata']
+                if 'header' in circuit_result['metadata'].get('compiled_circuit', {}):
+                    this_result['header'] = \
+                        circuit_result['metadata']['compiled_circuit']['header']
+                else:
+                    this_result['header'] = {}
             experiment_results.append(this_result)
 
-        return result_from_old_style_dict({
+        ret = {
             'id': self._job_id,
             'status': job_response['status'],
             'used_credits': job_response.get('usedCredits'),
             'result': experiment_results,
             'backend_name': self.backend().name(),
-            'success': job_response['status'] == 'DONE'
-        }, [circuit_result['name'] for circuit_result in job_response['qasms']])
+            'success': job_response['status'] == 'COMPLETED',
+        }
+
+        # Append header: from the response; from the payload; or none.
+        header = job_response.get('header',
+                                  self._qobj_payload.get('header', {}))
+        if header:
+            ret['header'] = header
+
+        return result_from_old_style_dict(ret)
 
 
 def _reorder_bits(job_data):

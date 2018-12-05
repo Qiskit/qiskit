@@ -18,14 +18,13 @@ import subprocess
 from subprocess import PIPE
 import platform
 
+from math import log2
 import numpy as np
-
+from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
-from qiskit.result._utils import copy_qasm_from_qobj_into_result, result_from_old_style_dict
 from qiskit.backends import BaseBackend
 from qiskit.backends.aer.aerjob import AerJob
-from qiskit.qobj import Qobj
-from qiskit.qobj import qobj_to_dict
+from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +48,14 @@ class QasmSimulator(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'conditional': True,
         'open_pulse': False,
+        'memory': True,
+        'max_shots': 65536,
         'description': 'A C++ realistic noise simulator for qasm experiments',
         'basis_gates': ['u0', 'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'rzz', 'snapshot', 'wait',
@@ -196,13 +197,21 @@ class QasmSimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
+        """Run a Qobj on the backend."""
         self._validate(qobj)
-        result = run(qobj, self._configuration.exe)
+        qobj_dict = qobj.as_dict()
+        result = run(qobj_dict, self._configuration.exe)
         result['job_id'] = job_id
-        copy_qasm_from_qobj_into_result(qobj, result)
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        # Ensure that the required results fields are present, even if the
+        # job failed.
+        result['results'] = result.get('results', [])
+        result['qobj_id'] = result.get('qobj_id', 'unavailable')
+        result['backend_name'] = result.get('backend_name', self.name())
+        result['backend_version'] = result.get('backend_version',
+                                               self.configuration().backend_version)
+
+        return Result.from_dict(result)
 
     def _validate(self, qobj):
         for experiment in qobj.experiments:
@@ -219,12 +228,14 @@ class CliffordSimulator(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'clifford_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': -1,
-        'url': 'https://github.com/QISKit/qiskit-terra/src/qasm-simulator-cpp',
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'url': 'https://github.com/Qiskit/qiskit-terra/src/qasm-simulator-cpp',
         'simulator': True,
         'local': True,
         'conditional': True,
         'open_pulse': False,
+        'memory': False,
+        'max_shots': 65536,
         'description': 'A C++ Clifford simulator with approximate noise',
         'basis_gates': ['cx', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'snapshot',
                         'wait', 'noise', 'save', 'load'],
@@ -332,75 +343,28 @@ class CliffordSimulator(BaseBackend):
         return aer_job
 
     def _run_job(self, job_id, qobj):
-        if isinstance(qobj, Qobj):
-            qobj_dict = qobj.as_dict()
-        else:
-            qobj_dict = qobj
+        qobj_dict = qobj.as_dict()
         self._validate()
         # set backend to Clifford simulator
         if 'config' in qobj_dict:
             qobj_dict['config']['simulator'] = 'clifford'
         else:
             qobj_dict['config'] = {'simulator': 'clifford'}
-
-        qobj = Qobj.from_dict(qobj_dict)
-        result = run(qobj, self._configuration.exe)
+        result = run(qobj_dict, self._configuration.exe)
         result['job_id'] = job_id
 
-        return result_from_old_style_dict(
-            result, [circuit.header.name for circuit in qobj.experiments])
+        # Ensure that the required results fields are present, even if the
+        # job failed.
+        result['results'] = result.get('results', [])
+        result['qobj_id'] = result.get('qobj_id', 'unavailable')
+        result['backend_name'] = result.get('backend_name', self.name())
+        result['backend_version'] = result.get('backend_version',
+                                               self.configuration().backend_version)
+
+        return Result.from_dict(result)
 
     def _validate(self):
         return
-
-
-class QASMSimulatorEncoder(json.JSONEncoder):
-    """
-    JSON encoder for NumPy arrays and complex numbers.
-
-    This functions as the standard JSON Encoder but adds support
-    for encoding:
-
-        * complex numbers z as lists [z.real, z.imag]
-        * ndarrays as nested lists.
-    """
-
-    # pylint: disable=method-hidden,arguments-differ
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        return json.JSONEncoder.default(self, obj)
-
-
-class QASMSimulatorDecoder(json.JSONDecoder):
-    """
-    JSON decoder for the output from C++ qasm_simulator.
-
-    This converts complex vectors and matrices into numpy arrays
-    for the following keys.
-    """
-    def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
-
-    # pylint: disable=method-hidden
-    def object_hook(self, obj):
-        """Special decoding rules for simulator output."""
-
-        for key in ['U_error', 'density_matrix']:
-            # JSON is a complex matrix
-            if key in obj and isinstance(obj[key], list):
-                tmp = np.array(obj[key])
-                obj[key] = tmp[::, ::, 0] + 1j * tmp[::, ::, 1]
-        for key in ['statevector', 'inner_products']:
-            # JSON is a list of complex vectors
-            if key in obj:
-                for j in range(len(obj[key])):
-                    if isinstance(obj[key][j], list):
-                        tmp = np.array(obj[key][j])
-                        obj[key][j] = tmp[::, 0] + 1j * tmp[::, 1]
-        return obj
 
 
 def run(qobj, executable):
@@ -418,19 +382,17 @@ def run(qobj, executable):
     try:
         with subprocess.Popen([executable, '-'],
                               stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc:
-            cin = json.dumps(qobj_to_dict(qobj, version='0.0.1'),
-                             cls=QASMSimulatorEncoder).encode()
+            cin = json.dumps(qobj).encode()
             cout, cerr = proc.communicate(cin)
         if cerr:
             logger.error('ERROR: Simulator encountered a runtime error: %s',
                          cerr.decode())
-        sim_output = cout.decode()
-        return json.loads(sim_output, cls=QASMSimulatorDecoder)
-
+        sim_output = json.loads(cout.decode())
+        return sim_output
     except FileNotFoundError:
         msg = "ERROR: Simulator exe not found at: %s" % executable
         logger.error(msg)
-        return {"status": msg, "success": False}
+        return {'status': msg, 'success': False}
 
 
 def cx_error_matrix(cal_error, zz_error):

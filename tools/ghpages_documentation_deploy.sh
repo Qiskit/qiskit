@@ -14,7 +14,7 @@
 # GH_TOKEN
 
 # Non-travis variables used by this script.
-TARGET_REPOSITORY_USER="QISKit"
+TARGET_REPOSITORY_USER="Qiskit"
 TARGET_REPOSITORY_NAME="qiskit.github.io"
 TARGET_DOC_DIR="documentation"
 TARGET_DOC_DIR_DE="documentation/de"

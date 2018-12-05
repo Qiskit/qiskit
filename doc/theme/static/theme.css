@@ -223,7 +223,7 @@ a.reference.external:hover{
     font-weight: 200;
 }
 .active>span.link-wrapper.title{
-    margin-left: 43px !important;
+    margin-left: 29px !important;
     height: 32px !important;
     width: 100% !important;
 }

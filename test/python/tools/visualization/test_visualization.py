@@ -5,21 +5,20 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-
 """Tests for visualization tools."""
 
 import os
 import random
-from inspect import signature
 import unittest
+from inspect import signature
+
 import qiskit
-from qiskit.tools.visualization import _utils, generate_latex_source
-from .common import QiskitTestCase
+from qiskit.tools.visualization import _utils, circuit_drawer
+from ...common import QiskitTestCase
 
 
 class TestLatexSourceGenerator(QiskitTestCase):
-    """QISKit latex source generator tests."""
+    """Qiskit latex source generator tests."""
 
     def random_circuit(self, width=3, depth=3, max_operands=3):
         """Generate random circuit of arbitrary size.
@@ -72,7 +71,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_tiny.tex')
         qc = self.random_circuit(1, 1, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -83,7 +82,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_normal.tex')
         qc = self.random_circuit(5, 5, 3)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -94,7 +93,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_wide.tex')
         qc = self.random_circuit(100, 1, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -105,7 +104,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_deep.tex')
         qc = self.random_circuit(1, 100, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -116,7 +115,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         filename = self._get_resource_path('test_huge.tex')
         qc = self.random_circuit(40, 40, 1)
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -145,7 +144,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc.x(qr[2]).c_if(cr, 2)
         qc.measure(qr[2], cr[2])
         try:
-            generate_latex_source(qc, filename)
+            circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
@@ -158,58 +157,68 @@ class TestVisualizationUtils(QiskitTestCase):
     the need to be check if the interface or their result changes."""
 
     def setUp(self):
-        qreg_a = qiskit.QuantumRegister(2, 'qr1')
-        qreg_b = qiskit.QuantumRegister(2, 'qr2')
-        creg_a = qiskit.ClassicalRegister(2, 'cr1')
-        creg_b = qiskit.ClassicalRegister(2, 'cr2')
+        self.qr1 = qiskit.QuantumRegister(2, 'qr1')
+        self.qr2 = qiskit.QuantumRegister(2, 'qr2')
+        self.cr1 = qiskit.ClassicalRegister(2, 'cr1')
+        self.cr2 = qiskit.ClassicalRegister(2, 'cr2')
 
-        self.circuit = qiskit.QuantumCircuit(qreg_a, qreg_b, creg_a, creg_b)
-        self.circuit.cx(qreg_b[0], qreg_b[1])
-        self.circuit.measure(qreg_b[0], creg_b[0])
-        self.circuit.cx(qreg_b[1], qreg_b[0])
-        self.circuit.measure(qreg_b[1], creg_b[1])
-        self.circuit.cx(qreg_a[0], qreg_a[1])
-        self.circuit.measure(qreg_a[0], creg_a[0])
-        self.circuit.cx(qreg_a[1], qreg_a[0])
-        self.circuit.measure(qreg_a[1], creg_a[1])
+        self.circuit = qiskit.QuantumCircuit(self.qr1, self.qr2, self.cr1, self.cr2)
+        self.circuit.cx(self.qr2[0], self.qr2[1])
+        self.circuit.measure(self.qr2[0], self.cr2[0])
+        self.circuit.cx(self.qr2[1], self.qr2[0])
+        self.circuit.measure(self.qr2[1], self.cr2[1])
+        self.circuit.cx(self.qr1[0], self.qr1[1])
+        self.circuit.measure(self.qr1[0], self.cr1[0])
+        self.circuit.cx(self.qr1[1], self.qr1[0])
+        self.circuit.measure(self.qr1[1], self.cr1[1])
 
     def test_get_instructions(self):
         """ _get_instructions without reversebits """
         (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
-        self.assertEqual([('qr2', 1), ('qr2', 0), ('qr1', 1), ('qr1', 0)], qregs)
-        self.assertEqual([('cr2', 1), ('cr2', 0), ('cr1', 1), ('cr1', 0)], cregs)
+        self.assertEqual([(self.qr2, 1), (self.qr2, 0), (self.qr1, 1), (self.qr1, 0)], qregs)
+        self.assertEqual([(self.cr2, 1), (self.cr2, 0), (self.cr1, 1), (self.cr1, 0)], cregs)
         self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
                          [op['name'] for op in ops])
-        self.assertEqual([[('qr2', 0), ('qr2', 1)],
-                          [('qr2', 0)],
-                          [('qr2', 1), ('qr2', 0)],
-                          [('qr2', 1)],
-                          [('qr1', 0), ('qr1', 1)],
-                          [('qr1', 0)],
-                          [('qr1', 1), ('qr1', 0)],
-                          [('qr1', 1)]],
-                         [op['qargs'] for op in ops])
-        self.assertEqual([[], [('cr2', 0)], [], [('cr2', 1)], [], [('cr1', 0)], [], [('cr1', 1)]],
-                         [op['cargs'] for op in ops])
+        self.assertEqual([op['qargs'] for op in ops], [[(self.qr2, 0), (self.qr2, 1)],
+                                                       [(self.qr2, 0)],
+                                                       [(self.qr2, 1), (self.qr2, 0)],
+                                                       [(self.qr2, 1)],
+                                                       [(self.qr1, 0), (self.qr1, 1)],
+                                                       [(self.qr1, 0)],
+                                                       [(self.qr1, 1), (self.qr1, 0)],
+                                                       [(self.qr1, 1)]])
+        self.assertEqual([op['cargs'] for op in ops], [[],
+                                                       [(self.cr2, 0)],
+                                                       [],
+                                                       [(self.cr2, 1)],
+                                                       [],
+                                                       [(self.cr1, 0)],
+                                                       [],
+                                                       [(self.cr1, 1)]])
 
     def test_get_instructions_reversebits(self):
         """ _get_instructions with reversebits=True """
         (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reversebits=True)
-        self.assertEqual([('qr1', 0), ('qr1', 1), ('qr2', 0), ('qr2', 1)], qregs)
-        self.assertEqual([('cr1', 0), ('cr1', 1), ('cr2', 0), ('cr2', 1)], cregs)
-        self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
-                         [op['name'] for op in ops])
-        self.assertEqual([[('qr2', 0), ('qr2', 1)],
-                          [('qr2', 0)],
-                          [('qr2', 1), ('qr2', 0)],
-                          [('qr2', 1)],
-                          [('qr1', 0), ('qr1', 1)],
-                          [('qr1', 0)],
-                          [('qr1', 1), ('qr1', 0)],
-                          [('qr1', 1)]],
-                         [op['qargs'] for op in ops])
-        self.assertEqual([[], [('cr2', 0)], [], [('cr2', 1)], [], [('cr1', 0)], [], [('cr1', 1)]],
-                         [op['cargs'] for op in ops])
+        self.assertEqual([(self.qr1, 0), (self.qr1, 1), (self.qr2, 0), (self.qr2, 1)], qregs)
+        self.assertEqual([(self.cr1, 0), (self.cr1, 1), (self.cr2, 0), (self.cr2, 1)], cregs)
+        self.assertEqual([op['name'] for op in ops],
+                         ['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'])
+        self.assertEqual([op['qargs'] for op in ops], [[(self.qr2, 0), (self.qr2, 1)],
+                                                       [(self.qr2, 0)],
+                                                       [(self.qr2, 1), (self.qr2, 0)],
+                                                       [(self.qr2, 1)],
+                                                       [(self.qr1, 0), (self.qr1, 1)],
+                                                       [(self.qr1, 0)],
+                                                       [(self.qr1, 1), (self.qr1, 0)],
+                                                       [(self.qr1, 1)]])
+        self.assertEqual([op['cargs'] for op in ops], [[],
+                                                       [(self.cr2, 0)],
+                                                       [],
+                                                       [(self.cr2, 1)],
+                                                       [],
+                                                       [(self.cr1, 0)],
+                                                       [],
+                                                       [(self.cr1, 1)]])
 
 
 if __name__ == '__main__':

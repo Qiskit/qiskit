@@ -20,7 +20,7 @@ To control the passes and we have a pass manager for level 2 user.
 import pprint, time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import compile, IBMQ, Aer
 from qiskit.backends.ibmq import least_busy
 
@@ -109,5 +109,5 @@ try:
     except:
         print("All devices are currently unavailable.")
 
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

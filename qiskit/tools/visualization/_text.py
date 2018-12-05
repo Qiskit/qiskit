@@ -10,6 +10,7 @@ A module for drawing circuits in ascii art or some other text representation
 """
 
 from shutil import get_terminal_size
+import sys
 
 from ._error import VisualizationError
 
@@ -412,18 +413,20 @@ class TextDrawing():
         return self.single_string()
 
     def _repr_html_(self):
-        return '<pre style="line-height: 15px;">%s</pre>' % self.single_string()
+        return '<pre style="word-wrap: normal;' \
+               'white-space: pre;' \
+               'line-height: 15px;">%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0], qubit[1]))
+            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0], clbit[1]))
+            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
         return clbits
 
     def single_string(self):
@@ -460,7 +463,10 @@ class TextDrawing():
         if line_length is None:
             line_length = self.line_length
         if line_length is None:
-            line_length, _ = get_terminal_size()
+            if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+                line_length = 80
+            else:
+                line_length, _ = get_terminal_size()
 
         noqubits = len(self.qregs)
         layers = self.build_layers()
@@ -582,9 +588,9 @@ class TextDrawing():
 
     @staticmethod
     def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None of there is no param."""
-        if 'params' in instruction and instruction['params']:
-            return ['%.5g' % i for i in instruction['params']]
+        """Get the params and format them to add them to a label. None if there is no param."""
+        if 'op' in instruction and hasattr(instruction['op'], 'param'):
+            return ['%.5g' % i for i in instruction['op'].param]
         return None
 
     @staticmethod

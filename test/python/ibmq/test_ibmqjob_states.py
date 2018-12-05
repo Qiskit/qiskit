@@ -159,7 +159,7 @@ class TestIBMQJobStates(JobTestCase):
         job.cancel()
         self._current_api.progress()
         with self.assertRaises(JobError):
-            job.result().get_status()
+            _ = job.result()
             self.assertEqual(job.status(), JobStatus.CANCELLED)
 
     def test_errored_result(self):
@@ -173,7 +173,7 @@ class TestIBMQJobStates(JobTestCase):
 
         self.wait_for_initialization(job)
         self._current_api.progress()
-        self.assertEqual(job.result().get_status(), 'COMPLETED')
+        self.assertEqual(job.result().success, True)
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_block_on_result_waiting_until_completed(self):
@@ -184,7 +184,7 @@ class TestIBMQJobStates(JobTestCase):
             executor.submit(_auto_progress_api, self._current_api)
 
         result = job.result()
-        self.assertEqual(result.get_status(), 'COMPLETED')
+        self.assertEqual(result.success, True)
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_block_on_result_waiting_until_cancelled(self):
@@ -256,12 +256,12 @@ class TestIBMQJobStates(JobTestCase):
         self.wait_for_initialization(job)
         self._current_api.progress()
         result = job.result()
-        self.assertEqual(result.get_status(), 'COMPLETED')
+        self.assertEqual(result.success, True)
         self.assertEqual(result.get_counts('Bell state'),
                          {'0x0': 480, '0x3': 490, '0x1': 20, '0x2': 34})
         self.assertEqual(result.get_counts('Bell state XY'),
                          {'0x0': 29, '0x3': 15, '0x1': 510, '0x2': 480})
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result.results), 2)
 
     def run_with_api(self, api, job_class=IBMQJobPreQobj):
         """Creates a new ``IBMQJobPreQobj`` instance running with the provided API

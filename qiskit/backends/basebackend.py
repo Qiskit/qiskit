@@ -33,7 +33,7 @@ class BaseBackend(ABC):
 
         Raises:
             FileNotFoundError if backend executable is not available.
-            QISKitError: if there is no name in the configuration
+            QiskitError: if there is no name in the configuration
         """
         self._configuration = configuration
         self._provider = provider
@@ -47,13 +47,18 @@ class BaseBackend(ABC):
         """Return the backend configuration.
 
         Returns:
-            BackendConfiguration: the configuration fot the backend.
+            BackendConfiguration: the configuration for the backend.
         """
         return self._configuration
 
     def properties(self):
-        """Return backend properties"""
-        return {}
+        """Return backend properties.
+
+        Returns:
+            BackendProperties: the configuration for the backend. If the backend
+            does not support properties, it returns ``None``.
+        """
+        return None
 
     def provider(self):
         """Return the backend Provider.
