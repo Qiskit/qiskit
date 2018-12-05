@@ -105,6 +105,7 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_cbits = 0
         self._number_of_qubits = 0
         self._shots = 0
+        self._memory = False
         self._qobj_config = None
 
     def _add_qasm_single(self, gate, qubit):

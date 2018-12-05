@@ -129,17 +129,17 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         self.assertLess(error, 0.05)
 
     def test_memory(self):
-        q = QuantumRegister(4, 'q')
-        c0 = ClassicalRegister(2, 'c0')
-        c1 = ClassicalRegister(2, 'c1')
-        circ = QuantumCircuit(q, c0, c1)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.x(q[3])
-        circ.measure(q[0], c0[0])
-        circ.measure(q[1], c0[1])
-        circ.measure(q[2], c1[0])
-        circ.measure(q[3], c1[1])
+        qr = QuantumRegister(4, 'qr')
+        cr0 = ClassicalRegister(2, 'cr0')
+        cr1 = ClassicalRegister(2, 'cr1')
+        circ = QuantumCircuit(qr, cr0, cr1)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.x(qr[3])
+        circ.measure(qr[0], cr0[0])
+        circ.measure(qr[1], cr0[1])
+        circ.measure(qr[2], cr1[0])
+        circ.measure(qr[3], cr1[1])
 
         shots = 50
         qobj = compile(circ, backend=self.backend, shots=shots, memory=True)
