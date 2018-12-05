@@ -8,7 +8,6 @@
 """Test the Direction Mapper pass"""
 
 import unittest
-from copy import deepcopy
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import MapperError
@@ -36,12 +35,11 @@ class TestDirectionMapper(QiskitTestCase):
         circuit.h(qr)
         coupling = Coupling()
         dag = circuit_to_dag(circuit)
-        before = deepcopy(dag)
 
         pass_ = DirectionMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(before, after)
+        self.assertEqual(dag, after)
 
     def test_direction_error(self):
         """
@@ -77,12 +75,11 @@ class TestDirectionMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         coupling = Coupling({0: [1]})
         dag = circuit_to_dag(circuit)
-        before = deepcopy(dag)
 
         pass_ = DirectionMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(before, after)
+        self.assertEqual(dag, after)
 
     def test_direction_flip(self):
         """
