@@ -208,7 +208,7 @@ class UnitarySimulatorPy(BaseBackend):
             Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = experiment.header.n_qubits
-        if self._number_of_qubits > self._max_qubits:
+        if self._number_of_qubits > self.max_qubits:
             raise SimulatorError("np.einsum implementation limits unitary_simulator_py" +
                                  " to 24 qubit circuits.")
         result = {
