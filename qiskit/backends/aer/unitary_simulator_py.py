@@ -42,7 +42,6 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
-
     max_qubits = int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16))
 
     DEFAULT_CONFIGURATION = {
