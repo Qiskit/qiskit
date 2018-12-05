@@ -8,8 +8,8 @@
 """
 Composite gate, a container for a sequence of unitary gates.
 """
-from ._gate import Gate
-from ._qiskiterror import QiskitError
+from qiskit._qiskiterror import QiskitError
+from .gate import Gate
 
 
 class CompositeGate(Gate):
