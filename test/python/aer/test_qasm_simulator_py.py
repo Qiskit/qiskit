@@ -106,7 +106,6 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         qobj = compile(circuit, backend=self.backend, shots=shots, seed=self.seed)
         results = self.backend.run(qobj).result()
         data = results.get_counts('teleport')
-        print(data)
         alice = {
             '00': data['0 0 0'] + data['1 0 0'],
             '01': data['0 1 0'] + data['1 1 0'],
@@ -128,6 +127,27 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         error = abs(alice_ratio - bob_ratio) / alice_ratio
         self.log.info('test_teleport: relative error = %s', error)
         self.assertLess(error, 0.05)
+
+    def test_memory(self):
+        q = QuantumRegister(4, 'q')
+        c0 = ClassicalRegister(2, 'c0')
+        c1 = ClassicalRegister(2, 'c1')
+        circ = QuantumCircuit(q, c0, c1)
+        circ.h(q[0])
+        circ.cx(q[0], q[1])
+        circ.x(q[3])
+        circ.measure(q[0], c0[0])
+        circ.measure(q[1], c0[1])
+        circ.measure(q[2], c1[0])
+        circ.measure(q[3], c1[1])
+
+        shots = 50
+        qobj = compile(circ, backend=self.backend, shots=shots, memory=True)
+        result = self.backend.run(qobj).result()
+        memory = result.get_memory()
+        self.assertEqual(len(memory), shots)
+        for mem in memory:
+            self.assertIn(mem, ['10 00', '10 11'])
 
 
 if __name__ == '__main__':

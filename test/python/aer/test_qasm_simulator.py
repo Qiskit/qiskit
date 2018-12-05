@@ -432,6 +432,27 @@ class TestAerQasmSimulator(QiskitTestCase):
             self.assertAlmostEqual(fidelity, 1.0, places=10,
                                    msg=name + ' snapshot fidelity')
 
+    def test_memory(self):
+        q = QuantumRegister(4, 'q')
+        c0 = ClassicalRegister(2, 'c0')
+        c1 = ClassicalRegister(2, 'c1')
+        circ = QuantumCircuit(q, c0, c1)
+        circ.h(q[0])
+        circ.cx(q[0], q[1])
+        circ.x(q[3])
+        circ.measure(q[0], c0[0])
+        circ.measure(q[1], c0[1])
+        circ.measure(q[2], c1[0])
+        circ.measure(q[3], c1[1])
+
+        shots = 50
+        qobj = compile(circ, backend=self.backend, shots=shots, memory=True)
+        result = self.backend.run(qobj).result()
+        memory = result.get_memory()
+        self.assertEqual(len(memory), shots)
+        for mem in memory:
+            self.assertIn(mem, ['10 00', '10 11'])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
