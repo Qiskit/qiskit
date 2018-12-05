@@ -51,7 +51,7 @@ def qobj_to_circuits(qobj):
                     clbit_label = x.header.clbit_labels[clbit]
                     clbits.append(
                         creg_dict[clbit_label[0]][clbit_label[1]])
-                instr_method(*qubits, *clbits, *i.params)
+                instr_method(*i.params, *qubits, *clbits)
             circuits.append(circuit)
         return circuits
     return None
