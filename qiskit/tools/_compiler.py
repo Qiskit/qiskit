@@ -12,6 +12,7 @@ import logging
 from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
 from qiskit.converters import circuits_to_qobj
+from qiskit import QiskitError
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,11 @@ def compile(circuits, backend,
         warnings.warn('The skip_transpiler option has been deprecated. '
                       'Please pass an empty PassManager() instance instead',
                       DeprecationWarning)
+
+    backend_memory = getattr(backend.configuration(), 'memory', False)
+    if memory and not backend_memory:
+        raise QiskitError("Backend %s only returns total counts, not single-shot memory." %
+                          backend.name())
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                     seed_mapper, pass_manager)
