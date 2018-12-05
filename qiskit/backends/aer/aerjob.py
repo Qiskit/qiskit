@@ -7,7 +7,6 @@
 
 """This module implements the job class used for AerBackend objects."""
 
-import warnings
 from concurrent import futures
 import logging
 import sys
@@ -121,18 +120,6 @@ class AerJob(BaseJob):
             _status = JobStatus.INITIALIZING
 
         return _status
-
-    def backend_name(self):
-        """
-        Return the name of the backend used for this job.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.backend().name()` instead.
-        """
-        warnings.warn('The use of `job.backend_name()` is deprecated, use '
-                      '`job.backend().name()` instead.', DeprecationWarning)
-        return self._backend.name()
 
     def backend(self):
         """Return the instance of the backend used for this job."""

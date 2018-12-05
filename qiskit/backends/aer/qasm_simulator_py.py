@@ -57,7 +57,38 @@ class QasmSimulatorPy(BaseBackend):
         'max_shots': 65536,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
-        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
+        'gates': [
+            {
+                'name': 'u1',
+                'parameters': ['lambda'],
+                'qasm_def': 'gate u1(lambda) q { U(0,0,lambda) q; }'
+            },
+            {
+                'name': 'u2',
+                'parameters': ['phi', 'lambda'],
+                'qasm_def': 'gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }'
+            },
+            {
+                'name': 'u3',
+                'parameters': ['theta', 'phi', 'lambda'],
+                'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
+            },
+            {
+                'name': 'cx',
+                'parameters': ['c', 't'],
+                'qasm_def': 'gate cx c,t { CX c,t; }'
+            },
+            {
+                'name': 'id',
+                'parameters': ['a'],
+                'qasm_def': 'gate id a { U(0,0,0) a; }'
+            },
+            {
+                'name': 'snapshot',
+                'parameters': ['slot'],
+                'qasm_def': 'gate snapshot(slot) q { TODO }'
+            }
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):

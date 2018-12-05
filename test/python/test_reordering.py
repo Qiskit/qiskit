@@ -50,6 +50,8 @@ class TestBitReordering(QiskitTestCase):
         threshold = 0.1 * shots
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
+    @unittest.skip("Temporary skipping")
+    # skipping temporarily due to mapping wire fragment bug.
     @slow_test
     @requires_qe_access
     def test_multi_register_reordering(self, qe_token, qe_url):

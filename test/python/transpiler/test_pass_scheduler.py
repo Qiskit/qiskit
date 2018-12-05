@@ -16,6 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager, transpile_dag, TranspilerAccessError, TranspilerError, \
     FlowController
 from qiskit.transpiler._passmanager import DoWhileController, ConditionalController
+from qiskit.converters import circuit_to_dag
 from ._dummy_passes import PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point_property
@@ -60,7 +61,7 @@ class TestUseCases(SchedulerTestCase):
      many ways, and checks that passes are ran in the right order. """
 
     def setUp(self):
-        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
+        self.dag = circuit_to_dag(QuantumCircuit(QuantumRegister(1)))
         self.passmanager = PassManager()
 
     def test_chain(self):
@@ -250,7 +251,7 @@ class TestUseCases(SchedulerTestCase):
         circ.cx(qr[0], qr[1])
         circ.cx(qr[1], qr[0])
         circ.cx(qr[1], qr[0])
-        dag = DAGCircuit.fromQuantumCircuit(circ)
+        dag = circuit_to_dag(circ)
 
         self.passmanager.add_passes(PassI_Bad_AP())
         self.assertSchedulerRaises(dag, self.passmanager,
@@ -442,7 +443,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def setUp(self):
         self.passmanager = PassManager()
-        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
+        self.dag = circuit_to_dag(QuantumCircuit(QuantumRegister(1)))
 
     def test_control_flow_plugin(self):
         """ Adds a control flow plugin with a single parameter and runs it. """

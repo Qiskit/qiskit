@@ -5,52 +5,60 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Fields to be used with Qiskit validated classes."""
+"""Polymorphic fields that represent one of several schemas or types."""
 
+from collections import Iterable
 from functools import partial
 
-from marshmallow import ValidationError, fields
 from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
+from qiskit.validation import ValidationError, ModelTypeValidator
 
-class BasePolyField(PolyField):
+
+class BasePolyField(PolyField, ModelTypeValidator):
     """Base class for polymorphic fields.
 
-    Defines a Field that can contain data of different types. Deciding the
-    type is performed by the ``to_dict_selector()`` and ``from_dict_selector()``
-    functions, that act on ``choices``. Subclasses are recommended to:
+    Defines a Field that can contain data fitting different ``BaseSchema``.
+    Deciding the type is performed by the ``to_dict_selector()`` and
+    ``from_dict_selector()`` functions, that act on ``choices``.
 
-    * define the type of the ``choices`` attribute. It should contain a
-      reference to the individual Schemas that are accepted by the field, along
-      with other information specific to the subclass.
-    * customize the ``to_dict_selector()`` and ``from_dict_selector()``, adding
-      the necessary logic for inspecting ``choices`` and the data, and
-      returning one of the Schemas.
+    Subclasses are recommended to customize the ``to_dict_selector()`` and
+    ``from_dict_selector()``, adding the necessary logic for inspecting
+    ``choices`` and the data, and returning one of the Schemas.
 
      Args:
-        choices (iterable): iterable containing the schema instances and the
-            information needed for performing disambiguation.
+        choices (dict or iterable): iterable or dict containing the schema
+            instances and the information needed for performing disambiguation.
         many (bool): whether the field is a collection of objects.
         metadata (dict): the same keyword arguments that ``PolyField`` receives.
     """
 
     def __init__(self, choices, many=False, **metadata):
+
+        if isinstance(choices, dict):
+            self._choices = choices.values()
+        elif isinstance(choices, (list, tuple)):
+            self._choices = list(choices)
+        else:
+            raise ValueError(
+                '`choices` parameter must be a dict, a list or a tuple')
+
         to_dict_selector = partial(self.to_dict_selector, choices)
         from_dict_selector = partial(self.from_dict_selector, choices)
 
         super().__init__(to_dict_selector, from_dict_selector, many=many, **metadata)
 
     def to_dict_selector(self, choices, *args, **kwargs):
-        """Return an schema in `choices` for serialization."""
+        """Return an schema in ``choices`` for serialization."""
         raise NotImplementedError
 
     def from_dict_selector(self, choices, *args, **kwargs):
-        """Return an schema in `choices` for deserialization."""
+        """Return an schema in ``choices`` for deserialization."""
         raise NotImplementedError
 
     def _deserialize(self, value, attr, data):
-        """Override _deserialize for customizing the Exception raised."""
+        """Override ``_deserialize`` for customizing the exception raised."""
         try:
             return super()._deserialize(value, attr, data)
         except ValidationError as ex:
@@ -59,13 +67,41 @@ class BasePolyField(PolyField):
             raise
 
     def _serialize(self, value, key, obj):
-        """Override _serialize for customizing the Exception raised."""
+        """Override ``_serialize`` for customizing the exception raised."""
         try:
             return super()._serialize(value, key, obj)
         except TypeError as ex:
             if 'serialization_schema_selector' in str(ex):
                 raise ValidationError('Data from an invalid schema')
             raise
+
+    def _expected_types(self):
+        return tuple(schema.model_cls for schema in self._choices)
+
+    def check_type(self, value, attr, data):
+        """Check if the type of the value is one of the possible choices.
+
+        Possible choices are the model classes bound to the possible schemas.
+        """
+        if self.many and not is_collection(value):
+            raise self._not_expected_type(
+                value, Iterable, fields=[self], field_names=attr, data=data)
+
+        _check_type = super().check_type
+
+        errors = []
+        values = value if self.many else [value]
+        for idx, v in enumerate(values):
+            try:
+                _check_type(v, idx, values)
+            except ValidationError as err:
+                errors.append(err.messages)
+
+        if errors:
+            errors = errors if self.many else errors[0]
+            raise ValidationError(errors)
+
+        return value
 
 
 class TryFrom(BasePolyField):
@@ -145,7 +181,7 @@ class ByAttribute(BasePolyField):
         return None
 
 
-class ByType(fields.Field):
+class ByType(ModelTypeValidator):
     """Polymorphic field that disambiguates based on an attribute's type.
 
     Polymorphic field that accepts a list of ``Fields``, and checks that the
@@ -189,35 +225,18 @@ class ByType(fields.Field):
 
         self.fail('invalid', value=value, types=self.choices)
 
+    def check_type(self, value, attr, data):
+        """Check if at least one of the possible choices validates the value.
 
-class Complex(fields.Field):
-    """Field for complex numbers.
+        Possible choices are assumed to be ``ModelTypeValidator`` fields.
+        """
+        for field in self.choices:
+            if isinstance(field, ModelTypeValidator):
+                try:
+                    return field.check_type(value, attr, data)
+                except ValidationError:
+                    pass
 
-    Field for parsing complex numbers:
-    * deserializes to Python's `complex`.
-    * serializes to a tuple of 2 decimals `(float, imaginary)`
-    """
-
-    default_error_messages = {
-        'invalid': '{input} cannot be parsed as a complex number.',
-        'format': '"{input}" cannot be formatted as complex number.',
-    }
-
-    def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        if not isinstance(value, complex):
-            self.fail('format', input=value)
-        try:
-            return [value.real, value.imag]
-        except AttributeError:
-            self.fail('format', input=value)
-        return value
-
-    def _deserialize(self, value, attr, data):
-        if not is_collection(value) or len(value) != 2:
-            self.fail('invalid', input=value)
-        try:
-            return complex(*value)
-        except (ValueError, TypeError):
-            self.fail('invalid', input=value)
+        raise self._not_expected_type(
+            value, [field.__class__ for field in self.choices],
+            fields=[self], field_names=attr, data=data)

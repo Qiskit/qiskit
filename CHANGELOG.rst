@@ -66,8 +66,8 @@ Changed
 - `IBMQ.save_account()` now takes an `overwrite` option to replace an existing
   account on disk. Default is False (#1295).
 - Backend and Provider methods defined in the specification use model objects
-  rather than dicts, along with validation against schemas (#1249, #1277). The
-  updated methods include:
+  rather than dicts, along with validation against schemas (#1249, #1277,
+  #1350). The updated methods include:
     - ``backend.status()``(#1301).
     - ``backend.configuration()`` (and ``__init__``) (#1323).
     - ``backend.properties()``, returning ``None`` for sims (#1331, #1401).
@@ -158,6 +158,12 @@ Removed
 - The ``get_snapshot()`` and ``get_snapshots()`` method from the ``Result``
   class has been removed. Instead you can access the snapshots in a Result
   using ``Result.data()['snapshots']``.
+- Completed the deprecation of ``job.backend_name()``, ``job.id()``, and the
+  ``backend_name`` parameter in its constructor.
+- The ``qiskit.Result`` class now does post-processing of results returned
+  from backends if they are called via the ``Result.get_xxx()`` methods
+  (i.e. ``get_counts()``, ``get_memory()``, ``get_statevector()``,
+  ``get_unitary()``). The raw data is accessible through ``Result.data()`` (#1404).
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^

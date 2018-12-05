@@ -20,6 +20,7 @@ from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
+from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 
@@ -241,7 +242,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.u2(0.1, 0.2, qr1[3])
         circ.ccx(qr2[0], qr2[1], qr1[0])
 
-        self.dag = DAGCircuit.fromQuantumCircuit(circ)
+        self.dag = circuit_to_dag(circ)
 
     def test_circuit_size(self):
         """Test total number of operations in circuit."""
@@ -287,7 +288,7 @@ class TestDagEquivalence(QiskitTestCase):
         circ1.ch(self.qr1[2], self.qr1[1])
         circ1.u2(0.1, 0.2, self.qr1[3])
         circ1.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
-        self.dag1 = DAGCircuit.fromQuantumCircuit(circ1)
+        self.dag1 = circuit_to_dag(circ1)
 
     def test_dag_eq(self):
         """ DAG equivalence check: True."""
@@ -299,7 +300,7 @@ class TestDagEquivalence(QiskitTestCase):
         circ2.t(self.qr1[2])
         circ2.ch(self.qr1[2], self.qr1[1])
         circ2.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
-        dag2 = DAGCircuit.fromQuantumCircuit(circ2)
+        dag2 = circuit_to_dag(circ2)
 
         self.assertEqual(self.dag1, dag2)
 
@@ -313,7 +314,7 @@ class TestDagEquivalence(QiskitTestCase):
         circ2.t(self.qr1[2])
         circ2.ch(self.qr1[0], self.qr1[1])  # <--- The difference: ch(qr1[2], qr1[1])
         circ2.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
-        dag2 = DAGCircuit.fromQuantumCircuit(circ2)
+        dag2 = circuit_to_dag(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
 
@@ -327,7 +328,7 @@ class TestDagEquivalence(QiskitTestCase):
         circ2.t(self.qr1[2])
         circ2.cx(self.qr1[2], self.qr1[1])  # <--- The difference: ch(qr1[2], qr1[1])
         circ2.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
-        dag2 = DAGCircuit.fromQuantumCircuit(circ2)
+        dag2 = circuit_to_dag(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
 
