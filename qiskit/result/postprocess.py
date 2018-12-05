@@ -42,7 +42,7 @@ def _separate_bitstring(bitstring, creg_sizes):
     """Separate a bitstring according to the registers defined in the result header."""
     substrings = []
     running_index = 0
-    for reg, size in creg_sizes:
+    for reg, size in reversed(creg_sizes):
         substrings.append(bitstring[running_index: running_index + size])
         running_index += size
     return ' '.join(substrings)
@@ -73,8 +73,8 @@ def format_memory(memory, header):
         memory = _hex_to_bin(memory)
     if memory_slots:
         memory = _pad_zeros(memory, memory_slots)
-    if clbit_labels and creg_sizes:
-        memory = _little_endian(memory, clbit_labels, creg_sizes)
+    #if clbit_labels and creg_sizes:
+        #memory = _little_endian(memory, clbit_labels, creg_sizes)
     if creg_sizes:
         memory = _separate_bitstring(memory, creg_sizes)
     return memory

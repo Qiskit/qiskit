@@ -155,9 +155,9 @@ measure r[0] -> d[0];
                 ],
             'header':
                 {
-                    'number_of_clbits': 6,
+                    'memory_slots': 6,
                     'qubit_labels': [['r', 0], ['r', 1], ['r', 2], ['q', 0], ['q', 1], ['q', 2]],
-                    'number_of_qubits': 6, 'clbit_labels': [['d', 3], ['c', 3]]
+                    'n_qubits': 6, 'clbit_labels': [['d', 3], ['c', 3]]
                 }
         }
 

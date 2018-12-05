@@ -21,7 +21,7 @@ from qiskit.qobj import Qobj
 from qiskit.result.postprocess import format_statevector
 from qiskit import compile
 from ..common import QiskitTestCase, Path
-from ..common import requires_cpp_simulator, bin_to_hex_keys
+from ..common import requires_cpp_simulator
 
 
 class TestAerQasmSimulator(QiskitTestCase):
@@ -150,7 +150,7 @@ class TestAerQasmSimulator(QiskitTestCase):
         for name in expected_data:
             # Check counts:
             counts = result.get_counts(name)
-            expected_counts = bin_to_hex_keys(expected_data[name]['counts'])
+            expected_counts = expected_data[name]['counts']
             if expected_data[name].get('deterministic', False):
                 self.assertEqual(counts, expected_counts,
                                  msg=name + ' counts')

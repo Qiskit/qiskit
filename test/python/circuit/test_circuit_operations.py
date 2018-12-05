@@ -16,7 +16,7 @@ from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
 
-from ..common import QiskitTestCase, bin_to_hex_keys, requires_cpp_simulator
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
 class TestCircuitOperations(QiskitTestCase):
@@ -55,7 +55,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
-        target = bin_to_hex_keys({'11': shots})
+        target = {'11': shots}
         self.assertEqual(counts, target)
 
     def test_combine_circuit_fail(self):
@@ -134,7 +134,7 @@ class TestCircuitOperations(QiskitTestCase):
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
-        target = bin_to_hex_keys({'11': shots})
+        target = {'11': shots}
         self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
