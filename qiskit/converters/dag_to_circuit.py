@@ -43,7 +43,12 @@ def dag_to_circuit(dag):
     for node in nx.topological_sort(graph):
         n = graph.nodes[node]
         if n['type'] == 'op':
-            instr_method = getattr(circuit, n['op'].name)
+            if n['op'].name == 'U':
+                name = 'u_base'
+            else:
+                name = n['op'].name
+
+            instr_method = getattr(circuit, name)
             qubits = []
             for qubit in n['op'].qargs:
                 qubits.append(qregs[qubit[0].name][qubit[1]])
