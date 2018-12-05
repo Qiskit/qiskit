@@ -11,7 +11,7 @@ import random
 import string
 import networkx as nx
 
-from qiskit._quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 
 def dag_to_circuit(dag):
