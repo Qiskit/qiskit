@@ -60,7 +60,113 @@ class QasmSimulator(BaseBackend):
         'basis_gates': ['u0', 'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'rzz', 'snapshot', 'wait',
                         'noise', 'save', 'load'],
-        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
+        'gates': [
+            {
+                'name': 'u0',
+                'parameters': ['gamma'],
+                'qasm_def': 'gate u0(gamma) q { U(0,0,0) q; }'
+            },
+            {
+                'name': 'u1',
+                'parameters': ['lambda'],
+                'qasm_def': 'gate u1(lambda) q { U(0,0,lambda) q; }'
+            },
+            {
+                'name': 'u2',
+                'parameters': ['phi', 'lambda'],
+                'qasm_def': 'gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }'
+            },
+            {
+                'name': 'u3',
+                'parameters': ['theta', 'phi', 'lambda'],
+                'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
+            },
+            {
+                'name': 'cx',
+                'parameters': ['c', 't'],
+                'qasm_def': 'gate cx c,t { CX c,t; }'
+            },
+            {
+                'name': 'cz',
+                'parameters': ['a', 'b'],
+                'qasm_def': 'gate cz a,b { h b; cx a,b; h b; }'
+            },
+            {
+                'name': 'id',
+                'parameters': ['a'],
+                'qasm_def': 'gate id a { U(0,0,0) a; }'
+            },
+            {
+                'name': 'x',
+                'parameters': ['a'],
+                'qasm_def': 'gate x a { u3(pi,0,pi) a; }'
+            },
+            {
+                'name': 'y',
+                'parameters': ['a'],
+                'qasm_def': 'gate y a { u3(pi,pi/2,pi/2) a; }'
+            },
+            {
+                'name': 'z',
+                'parameters': ['z'],
+                'qasm_def': 'gate z a { u1(pi) a; }'
+            },
+            {
+                'name': 'h',
+                'parameters': ['a'],
+                'qasm_def': 'gate h a { u2(0,pi) a; }'
+            },
+            {
+                'name': 's',
+                'parameters': ['a'],
+                'qasm_def': 'gate s a { u1(pi/2) a; }'
+            },
+            {
+                'name': 'sdg',
+                'parameters': ['a'],
+                'qasm_def': 'gate sdg a { u1(-pi/2) a; }'
+            },
+            {
+                'name': 't',
+                'parameters': ['a'],
+                'qasm_def': 'gate t a { u1(pi/4) a; }'
+            },
+            {
+                'name': 'tdg',
+                'parameters': ['a'],
+                'qasm_def': 'gate tdg a { u1(-pi/4) a; }'
+            },
+            {
+                'name': 'rzz',
+                'parameters': ['theta', 'a', 'b'],
+                'qasm_def': 'gate rzz(theta) a,b { cx a,b; u1(theta) b; cx a,b; }'
+            },
+            {
+                'name': 'snapshot',
+                'parameters': ['slot'],
+                'qasm_def': 'gate snapshot(slot) q { TODO }'
+            },
+            {
+                'name': 'wait',
+                'parameters': ['t'],
+                'qasm_def': 'gate wait(t) q { TODO }'
+            },
+            {
+                'name': 'noise',
+                'parameters': ['switch'],
+                'qasm_def': 'gate noise(switch) q { TODO }'
+            },
+            {
+                'name': 'save',
+                'parameters': ['slot'],
+                'qasm_def': 'gate save(slot) q { TODO }'
+            },
+            {
+                'name': 'load',
+                'parameters': ['slot'],
+                'qasm_def': 'gate load(slot) q { TODO }'
+            }
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
@@ -133,7 +239,73 @@ class CliffordSimulator(BaseBackend):
         'description': 'A C++ Clifford simulator with approximate noise',
         'basis_gates': ['cx', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'snapshot',
                         'wait', 'noise', 'save', 'load'],
-        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
+        'gates': [
+            {
+                'name': 'cx',
+                'parameters': ['c', 't'],
+                'qasm_def': 'gate cx c,t { CX c,t; }'
+            },
+            {
+                'name': 'id',
+                'parameters': ['a'],
+                'qasm_def': 'gate id a { U(0,0,0) a; }'
+            },
+            {
+                'name': 'x',
+                'parameters': ['a'],
+                'qasm_def': 'gate x a { u3(pi,0,pi) a; }'
+            },
+            {
+                'name': 'y',
+                'parameters': ['a'],
+                'qasm_def': 'gate y a { u3(pi,pi/2,pi/2) a; }'
+            },
+            {
+                'name': 'z',
+                'parameters': ['z'],
+                'qasm_def': 'gate z a { u1(pi) a; }'
+            },
+            {
+                'name': 'h',
+                'parameters': ['a'],
+                'qasm_def': 'gate h a { u2(0,pi) a; }'
+            },
+            {
+                'name': 's',
+                'parameters': ['a'],
+                'qasm_def': 'gate s a { u1(pi/2) a; }'
+            },
+            {
+                'name': 'sdg',
+                'parameters': ['a'],
+                'qasm_def': 'gate sdg a { u1(-pi/2) a; }'
+            },
+            {
+                'name': 'snapshot',
+                'parameters': ['slot'],
+                'qasm_def': 'gate snapshot(slot) q { TODO }'
+            },
+            {
+                'name': 'wait',
+                'parameters': ['t'],
+                'qasm_def': 'gate wait(t) q { TODO }'
+            },
+            {
+                'name': 'noise',
+                'parameters': ['switch'],
+                'qasm_def': 'gate noise(switch) q { TODO }'
+            },
+            {
+                'name': 'save',
+                'parameters': ['slot'],
+                'qasm_def': 'gate save(slot) q { TODO }'
+            },
+            {
+                'name': 'load',
+                'parameters': ['slot'],
+                'qasm_def': 'gate load(slot) q { TODO }'
+            }
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
