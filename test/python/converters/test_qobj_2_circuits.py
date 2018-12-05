@@ -57,6 +57,7 @@ class TestQobjToCircuits(QiskitTestCase):
         self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])
 
     def test_qobj_to_circuit_with_parameters(self):
+        """Check qobj_to_circuit result with a gate that uses parameters."""
         backend = Aer.get_backend('qasm_simulator_py')
         qreg1 = QuantumRegister(2)
         qreg2 = QuantumRegister(3)
