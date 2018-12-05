@@ -14,7 +14,7 @@ Backend for the unroller that creates a DAGCircuit object.
 import logging
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset

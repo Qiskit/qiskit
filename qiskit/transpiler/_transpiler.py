@@ -13,8 +13,8 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit._qiskiterror import QiskitError
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,

@@ -9,8 +9,8 @@
 OPENQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import ClassicalRegister
 from ._unrollererror import UnrollerError
 from ._dagbackend import DAGBackend
 
