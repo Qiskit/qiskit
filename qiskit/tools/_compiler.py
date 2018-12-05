@@ -52,10 +52,21 @@ def compile(circuits, backend,
                       'Please pass an empty PassManager() instance instead',
                       DeprecationWarning)
 
-    backend_memory = getattr(backend.configuration(), 'memory', False)
-    if memory and not backend_memory:
-        raise QiskitError("Backend %s only returns total counts, not single-shot memory." %
-                          backend.name())
+    _config_memory = getattr(backend.configuration(), 'memory', False)
+    if memory and not _config_memory:
+        raise QiskitError("Backend %s only returns total counts, "
+                          "not single-shot memory." % backend.name())
+
+    _config_max_shots = getattr(backend.configuration(), 'shots', 65536)
+    if shots > _config_max_shots:
+        raise QiskitError("max_shots (%d) exceeded for backend %s" % 
+                          (_config_max_shots, backend.name()))
+
+    _config_max_experiments = getattr(backend.configuration(),
+                                      'max_experiments', 65536)
+    if len(circuits) > _config_max_experiments: 
+        raise QiskitError("max_experiments (%d) exceeded for backend %s" % 
+                          (_config_max_experiments, backend.name()))
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                     seed_mapper, pass_manager)

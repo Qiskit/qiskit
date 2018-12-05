@@ -48,6 +48,8 @@ Added
 - Per-shot measurement results are available in simulators and select devices.
   Request them by setting ``memory=True`` in ``compile()``/``execute()``,
   and retrieve them from ``result.get_memory()`` (#1385).
+- Qiskit checks the maximum allowed experiments and shots before creating
+  Qobj for a specific backend (#1430).
 
 Changed
 """""""
