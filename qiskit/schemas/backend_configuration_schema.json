@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/backend_config_schema.json",
-    "description": "QISKit device backend configuration",
+    "description": "Qiskit device backend configuration",
     "version": "1.0.0",
     "definitions": {
       "hamiltonian": {
@@ -29,7 +29,7 @@
           },
         "coreconfig": {
             "type": "object",
-            "required": ["backend_name", "backend_version", "n_qubits", "basis_gates", "gates", "local", "simulator", "conditional"],
+            "required": ["backend_name", "backend_version", "n_qubits", "basis_gates", "gates", "local", "simulator", "conditional", "memory", "max_shots"],
             "properties": {
                 "backend_name": {
                     "type": "string",
@@ -45,15 +45,10 @@
                     "description": "Backend version in the form X.X.X"
                     },
                 "n_qubits": {
-                    "oneOf":[{
                     "type": "integer",
                     "description": "Number of qubits",
                     "minimum": 1,
-                    "default": 1},
-                    {"type": "integer",
-                    "description": "Number of qubits",
-                    "minimum": -1,
-                    "maximum": -1}]
+                    "default": 1
                     },
                 "basis_gates": {
                     "type": "array",
@@ -86,6 +81,21 @@
                     "type": "boolean",
                     "description": "Backend supports conditional operations (true/false)",
                     "default": false
+                    },
+                "memory": {
+                    "type": "boolean",
+                    "description": "Backend supports memory (true/false)",
+                    "default": false
+                    },
+                "max_shots": {
+                    "type": "integer",
+                    "description": "Maximum number of shots supported",
+                    "minimum": 1
+                    },
+                "max_experiments": {
+                    "type": "integer",
+                    "description": "Maximum number of experiments supported",
+                    "minimum": 1
                     },
                 "n_registers": {
                     "type": "integer",

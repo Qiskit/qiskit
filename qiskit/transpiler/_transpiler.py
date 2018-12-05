@@ -7,21 +7,21 @@
 
 """Tools for compiling a batch of quantum circuits."""
 import logging
+import warnings
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
-from qiskit.transpiler._transpilererror import TranspilerError
-from qiskit._qiskiterror import QISKitError
-from qiskit.dagcircuit import DAGCircuit
-from qiskit import _quantumcircuit
+from qiskit._qiskiterror import QiskitError
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
-from qiskit.unrollers import _jsonbackend
-from qiskit.mapper import (Coupling, optimize_1q_gates, coupling_list2dict, swap_mapper,
+from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
-from qiskit._pubsub import Publisher, Subscriber
+from qiskit.converters import circuit_to_dag
+from qiskit.converters import dag_to_circuit
 from ._parallel import parallel_map
 
 
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_layout=None,
-              seed_mapper=None, hpc=None, pass_manager=None):
-    """transpile a list of circuits into a dags.
+              seed_mapper=None, pass_manager=None):
+    """transpile one or more circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
@@ -39,156 +39,72 @@ def transpile(circuits, backend, basis_gates=None, coupling_map=None, initial_la
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
         seed_mapper (int): random seed for the swap_mapper
-        hpc (dict): HPC simulator parameters
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        dags: a list of dags.
-
-    Raises:
-        TranspilerError: in case of bad compile options, e.g. the hpc options.
+        QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
     """
-    if isinstance(circuits, _quantumcircuit.QuantumCircuit):
+    return_form_is_single = False
+    if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
+        return_form_is_single = True
 
     # FIXME: THIS NEEDS TO BE CLEANED UP -- some things to decide for list of circuits:
     # 1. do all circuits have same coupling map?
     # 2. do all circuit have the same basis set?
     # 3. do they all have same registers etc?
-    backend_conf = backend.configuration()
     # Check for valid parameters for the experiments.
-    if hpc is not None and \
-            not all(key in hpc for key in ('multi_shot_optimization', 'omp_num_threads')):
-        raise TranspilerError('Unknown HPC parameter format!')
-    basis_gates = basis_gates or backend_conf['basis_gates']
-    coupling_map = coupling_map or backend_conf['coupling_map']
+    basis_gates = basis_gates or ','.join(backend.configuration().basis_gates)
+    coupling_map = coupling_map or getattr(backend.configuration(),
+                                           'coupling_map', None)
 
-    # step 1: Making the list of dag circuits
-    dags = _circuits_2_dags(circuits)
-
-    # step 2: Transpile all the dags
-
-    # FIXME: Work-around for transpiling multiple circuits with different qreg names.
-    # Make compile take a list of initial_layouts.
-    _initial_layout = initial_layout
-
-    # Pick a good initial layout if coupling_map is not already satisfied
-    # otherwise keep it as q[i]->q[i].
-    # TODO: move this inside mapper pass.
-    initial_layouts = []
-    for dag in dags:
-        if (initial_layout is None and not backend.configuration()['simulator']
-                and not _matches_coupling_map(dag, coupling_map)):
-            _initial_layout = _pick_best_layout(dag, backend)
-        initial_layouts.append(_initial_layout)
-
-    dags = _dags_2_dags(dags, basis_gates=basis_gates, coupling_map=coupling_map,
-                        initial_layouts=initial_layouts, seed_mapper=seed_mapper,
-                        pass_manager=pass_manager)
-
-    # TODO: change it to circuits
-    # TODO: make it parallel
-    return dags
+    circuits = parallel_map(_transpilation, circuits,
+                            task_args=(backend,),
+                            task_kwargs={'basis_gates': basis_gates,
+                                         'coupling_map': coupling_map,
+                                         'initial_layout': initial_layout,
+                                         'seed_mapper': seed_mapper,
+                                         'pass_manager': pass_manager})
+    if return_form_is_single:
+        return circuits[0]
+    return circuits
 
 
-def _circuits_2_dags(circuits):
-    """Convert a list of circuits into a list of dags.
+def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
+                   initial_layout=None, seed_mapper=None,
+                   pass_manager=None):
+    """Perform transpilation of a single circuit.
 
     Args:
-        circuits (list[QuantumCircuit]): circuit to compile
+        circuit (QuantumCircuit): A circuit to transpile.
+        backend (BaseBackend): a backend to compile for
+        basis_gates (str): comma-separated basis gate set to compile to
+        coupling_map (list): coupling map (perhaps custom) to target in mapping
+        initial_layout (list): initial layout of qubits in mapping
+        seed_mapper (int): random seed for the swap_mapper
+        pass_manager (PassManager): a pass_manager for the transpiler stage
 
     Returns:
-        list[DAGCircuit]: the dag representation of the circuits
-        to be used in the transpiler
+        QuantumCircuit: A transpiled circuit.
+
     """
-    dags = parallel_map(DAGCircuit.fromQuantumCircuit, circuits)
-    return dags
+    dag = circuit_to_dag(circuit)
+    if (initial_layout is None and not backend.configuration().simulator
+            and not _matches_coupling_map(dag, coupling_map)):
+        initial_layout = _pick_best_layout(dag, backend)
 
-
-def _dags_2_dags(dags, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                 initial_layouts=None, seed_mapper=None, pass_manager=None):
-    """Transform multiple dags through a sequence of passes.
-
-    Args:
-        dags (list[DAGCircuit]): dag circuits to transform
-        basis_gates (str): a comma separated string for the target basis gates
-        coupling_map (list): A graph of coupling
-        initial_layouts (list[dict]): A mapping of qubit to qubit for each dag
-        seed_mapper (int): random seed_mapper for the swap mapper
-        pass_manager (PassManager): pass manager instance for the transpilation process
-            If None, a default set of passes are run.
-            Otherwise, the passes defined in it will run.
-            If contains no passes in it, no dag transformations occur.
-
-    Returns:
-        list[DAGCircuit]: the dag circuits after going through transpilation
-
-    Raises:
-        TranspilerError: if the format is not valid.
-
-    Events:
-        terra.transpiler.transpile_dag.start: When the transpilation of the dags is about to start
-        terra.transpiler.transpile_dag.done: When one of the dags has finished it's transpilation
-        terra.transpiler.transpile_dag.finish: When all the dags have finished transpiling
-    """
-
-    def _emmit_start(num_dags):
-        """ Emmit a dag transpilation start event
-        Arg:
-            num_dags: Number of dags to be transpiled"""
-        Publisher().publish("terra.transpiler.transpile_dag.start", num_dags)
-    Subscriber().subscribe("terra.transpiler.parallel.start", _emmit_start)
-
-    def _emmit_done(progress):
-        """ Emmit a dag transpilation done event
-        Arg:
-            progress: The dag number that just has finshed transpile"""
-        Publisher().publish("terra.transpiler.transpile_dag.done", progress)
-    Subscriber().subscribe("terra.transpiler.parallel.done", _emmit_done)
-
-    def _emmit_finish():
-        """ Emmit a dag transpilation finish event
-        Arg:
-            progress: The dag number that just has finshed transpile"""
-        Publisher().publish("terra.transpiler.transpile_dag.finish")
-    Subscriber().subscribe("terra.transpiler.parallel.finish", _emmit_finish)
-
-    dags_layouts = list(zip(dags, initial_layouts))
-    final_dags = parallel_map(_transpile_dags_parallel, dags_layouts,
-                              task_kwargs={'basis_gates': basis_gates,
-                                           'coupling_map': coupling_map,
-                                           'seed_mapper': seed_mapper,
-                                           'pass_manager': pass_manager})
-    return final_dags
-
-
-def _transpile_dags_parallel(dag_layout_tuple, basis_gates='u1,u2,u3,cx,id',
-                             coupling_map=None, seed_mapper=None, pass_manager=None):
-    """Helper function for transpiling in parallel (if available).
-
-    Args:
-        dag_layout_tuple (tuple): Tuples of dags and their initial_layouts
-        basis_gates (str): a comma separated string for the target basis gates
-        coupling_map (list): A graph of coupling
-        seed_mapper (int): random seed_mapper for the swap mapper
-        pass_manager (PassManager): pass manager instance for the transpilation process
-            If None, a default set of passes are run.
-            Otherwise, the passes defined in it will run.
-            If contains no passes in it, no dag transformations occur.
-    Returns:
-        DAGCircuit: DAG circuit after going through transpilation.
-    """
-    final_dag, final_layout = transpile_dag(
-        dag_layout_tuple[0],
-        basis_gates=basis_gates,
-        coupling_map=coupling_map,
-        initial_layout=dag_layout_tuple[1],
-        get_layout=True,
-        seed_mapper=seed_mapper,
-        pass_manager=pass_manager)
+    final_dag, final_layout = transpile_dag(dag, basis_gates=basis_gates,
+                                            coupling_map=coupling_map,
+                                            initial_layout=initial_layout,
+                                            get_layout=True, format='dag',
+                                            seed_mapper=seed_mapper,
+                                            pass_manager=pass_manager)
     final_dag.layout = [[k, v]
                         for k, v in final_layout.items()] if final_layout else None
-    return final_dag
+
+    out_circuit = dag_to_circuit(final_dag)
+
+    return out_circuit
 
 
 # pylint: disable=redefined-builtin
@@ -224,8 +140,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 3): ("q", 3)
                               }
         get_layout (bool): flag for returning the final layout after mapping
-        format (str): The target format of the compilation:
-            {'dag', 'json', 'qasm'}
+        format (str): DEPRECATED The target format of the compilation: {'dag', 'json', 'qasm'}
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -235,9 +150,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     Returns:
         DAGCircuit: transformed dag
         DAGCircuit, dict: transformed dag along with the final layout on backend qubits
-
-    Raises:
-        TranspilerError: if the format is not valid.
     """
     # TODO: `basis_gates` will be removed after we have the unroller pass.
     # TODO: `coupling_map`, `initial_layout`, `get_layout`, `seed_mapper` removed after mapper pass.
@@ -265,7 +177,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("pre-mapping properties: %s",
                         dag.properties())
             # Insert swap gates
-            coupling = Coupling(coupling_list2dict(coupling_map))
+            coupling = Coupling(Coupling.coupling_list2dict(coupling_map))
             removed_meas = remove_last_measurements(dag)
             logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
@@ -287,23 +199,14 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("post-mapping properties: %s",
                         dag.properties())
 
-    # choose output format
-    # TODO: do we need all of these formats, or just the dag?
-    if format == 'dag':
-        compiled_circuit = dag
-    elif format == 'json':
-        # FIXME: JsonBackend is wrongly taking an ordered dict as basis, not list
-        dag_unroller = _dagunroller.DagUnroller(
-            dag, _jsonbackend.JsonBackend(dag.basis))
-        compiled_circuit = dag_unroller.execute()
-    elif format == 'qasm':
-        compiled_circuit = dag.qasm()
-    else:
-        raise TranspilerError('unrecognized circuit format')
+    if format != 'dag':
+        warnings.warn("transpiler no longer supports different formats. "
+                      "only dag to dag transformations are supported.",
+                      DeprecationWarning)
 
     if get_layout:
-        return compiled_circuit, final_layout
-    return compiled_circuit
+        return dag, final_layout
+    return dag
 
 
 def _best_subset(backend, n_qubits):
@@ -311,7 +214,7 @@ def _best_subset(backend, n_qubits):
     connectivity.
 
     Parameters:
-        backend (Qiskit.BaseBackend): A QISKit backend instance.
+        backend (BaseBackend): A Qiskit backend instance.
         n_qubits (int): Number of subset qubits to consider.
 
     Returns:
@@ -319,18 +222,18 @@ def _best_subset(backend, n_qubits):
                 connectivity mapping.
 
     Raises:
-        QISKitError: Wrong number of qubits given.
+        QiskitError: Wrong number of qubits given.
     """
     if n_qubits == 1:
         return np.array([0])
     elif n_qubits <= 0:
-        raise QISKitError('Number of qubits <= 0.')
+        raise QiskitError('Number of qubits <= 0.')
 
-    device_qubits = backend.configuration()['n_qubits']
+    device_qubits = backend.configuration().n_qubits
     if n_qubits > device_qubits:
-        raise QISKitError('Number of qubits greater than device.')
+        raise QiskitError('Number of qubits greater than device.')
 
-    cmap = np.asarray(backend.configuration()['coupling_map'])
+    cmap = np.asarray(getattr(backend.configuration(), 'coupling_map', None))
     data = np.ones_like(cmap[:, 0])
     sp_cmap = sp.coo_matrix((data, (cmap[:, 0], cmap[:, 1])),
                             shape=(device_qubits, device_qubits)).tocsr()
@@ -391,14 +294,15 @@ def _pick_best_layout(dag, backend):
 
     Returns:
         dict: A special ordered initial_layout
-
     """
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     best_sub = _best_subset(backend, num_qubits)
     layout = {}
     map_iter = 0
-    for key, value in dag.qregs.items():
-        for i in range(value.size):
-            layout[(key, i)] = ('q', best_sub[map_iter])
+    device_qubits = backend.configuration().n_qubits
+    q = QuantumRegister(device_qubits, 'q')
+    for qreg in dag.qregs.values():
+        for i in range(qreg.size):
+            layout[(qreg.name, i)] = (q, int(best_sub[map_iter]))
             map_iter += 1
     return layout

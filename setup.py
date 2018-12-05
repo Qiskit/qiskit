@@ -120,5 +120,8 @@ setup(
     cmdclass={
         'build': QasmSimulatorCppBuild,
     },
-    distclass=BinaryDistribution
+    distclass=BinaryDistribution,
+    extra_requires={
+        'visualization': ['matplotlib>=2.1']
+    }
 )

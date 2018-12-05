@@ -43,6 +43,8 @@ Added
   QuantumCircuit class. (#1172)
 - New methods in QuantumCircuit for common circuit metrics:
   `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
+- New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state
+  vector or density matrix. (#1359)
 
 Changed
 """""""
@@ -63,6 +65,30 @@ Changed
 - Speed up the Pauli class and extended its operators (#1271 #1166).
 - `IBMQ.save_account()` now takes an `overwrite` option to replace an existing
   account on disk. Default is False (#1295).
+- Backend and Provider methods defined in the specification use model objects
+  rather than dicts, along with validation against schemas (#1249, #1277,
+  #1350). The updated methods include:
+    - ``backend.status()``(#1301).
+    - ``backend.configuration()`` (and ``__init__``) (#1323).
+    - ``backend.properties()``, returning ``None`` for sims (#1331, #1401).
+    - ``qiskit.Result`` (#1360).
+- ``backend.provider()`` is now a method instead of a property (#1312).
+- Remove local backend (Aer) fallback (#1303)
+- The signatures for the plotting functions in 
+  `qiskit.tools.visualization._counts_visualization.py`,
+  `qiskit.tools.visualization._state_visualization.py`, and 
+  `qiskit.tools.visualization.interactive` have been modified to make them 
+  in-line with standard Matplotlib calling conventions (#1359).
+- Remove local backend (Aer) fallback (#1303).
+- DAGCircuits store Instruction and Register objects, instead of name
+  references. The DAGCircuit class methods are updated accordingly (#1210).
+- Different unrollers are deprecated. The only unrolling happens
+  from DAG to DAG (#1210).
+- ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
+  processing is only done internally (#1397).
+- Moved all the circuit modules into a circuit module but for most users it is still 
+  imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
+
 
 Deprecated
 """"""""""
@@ -73,10 +99,6 @@ Deprecated
    should be used. (#1055)
 - The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed in the future. (#1055)
-- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
-  alternative list of basis gates is deprecated and will be removed in the
-  future. Instead users should adjust the basis gates prior to visualizing
-  the circuit. (#1151)
 - The `qiskit.wrapper.load_qasm_string()` and `qiskit.wrapper.load_qasm_file()`
   functions are deprecated and the `QuantumCircuit.from_qasm_str()` and
   `QuantumCircuit.from_qasm_file()` contstructor methods should be used instead
@@ -84,19 +106,14 @@ Deprecated
 - The ``plot_barriers`` and ``reverse_bits`` keys in the ``style`` kwarg dict
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
-
-
-Removed
-"""""""
-
-- ``matplotlib`` is no longer in the package requirements and is now an optional
-  dependency. In order to use any matplotlib based visualizations (which
-  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
-  `qiskit.tools.visualization.plot_state`,
-  `qiskit.tools.visualization.plot_histogram`, and
-  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
-  you manually install and configure matplotlib independently.
-
+- The transpiler methods do not support emitting multiple output `format`
+  anymore (#1319).
+- Several methods of ``qiskit.Result`` have been deprecated (#1360).
+- The functions `plot_state()` and `iplot_state()` have been depreciated.
+  Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
+  called. (#1359)
+- The ``skip_transpiler`` arg has been deprecated from ``tools.compile()`` and
+  ``tools.execute()`` in favor of using the PassManager directly.
 
 Fixed
 """""
@@ -112,16 +129,44 @@ Fixed
   AerJob usage (#1125)
 - Fixed an edge case when connection checks would raise an unhandled exception
   (#1226)
-
+- Fixed a bug where the transpiler moved middle-of-circuit measurements to the
+  end (#1334)
+- The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly (#1359).
+- parallel_map no longer creates a progress bar for a single circuit (#1394).
 
 Removed
 """""""
 
 - Remove register, available_backends (#1131).
 - Remove tools/apps (#1184).
-- Removed the dependency on `IBMQuantumExperience`, as it is now included
-  in `qiskit.backends.IBMQ` (#1198).
-
+- Removed the dependency on ``IBMQuantumExperience``, as it is now included
+  in ``qiskit.backends.IBMQ`` (#1198).
+- ``matplotlib`` is no longer in the package requirements and is now an optional
+  dependency. In order to use any matplotlib based visualizations (which
+  includes the ``qiskit.tools.visualization.circuit_drawer()`` ``mpl`` output,
+  ``qiskit.tools.visualization.plot_state``,
+  ``qiskit.tools.visualization.plot_histogram``, and
+  ``qiskit.tools.visualization.plot_bloch_vector`` you will now need to ensure
+  you manually install and configure matplotlib independently.
+- The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
+  alternative list of basis gates has been removed. Instead users should adjust
+  the basis gates prior to visualizing the circuit. (#1151)
+- ``backend.parameters()`` and ``backend.calibration()`` have been fully
+  deprecated, in favour of ``backend.properties()`` (#1305).
+- The ``qiskit.tools.file_io`` module has been removed. Conversion between
+  ``qiskit.Result`` and json can be achieved using ``.to_dict()`` and
+  ``.from_dict()`` directly (#1360).
+- The ``qiskit.Result`` class method for ``len()`` and indexing have been
+  removed, along with the functions that perform post-processing (#1351).
+- The ``get_snapshot()`` and ``get_snapshots()`` method from the ``Result``
+  class has been removed. Instead you can access the snapshots in a Result
+  using ``Result.data()['snapshots']``.
+- Completed the deprecation of ``job.backend_name()``, ``job.id()``, and the
+  ``backend_name`` parameter in its constructor.
+- The ``qiskit.Result`` class now does post-processing of results returned
+  from backends if they are called via the ``Result.get_xxx()`` methods
+  (i.e. ``get_counts()``, ``get_memory()``, ``get_statevector()``,
+  ``get_unitary()``). The raw data is accessible through ``Result.data()`` (#1404).
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^

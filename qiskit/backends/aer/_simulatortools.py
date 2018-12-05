@@ -18,7 +18,7 @@ from string import ascii_uppercase, ascii_lowercase
 
 import numpy as np
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
 def index1(b, i, k):
@@ -48,7 +48,7 @@ def index2(b1, i1, b2, i2, k):
     and b2 as the i2th bit
     """
     if i1 == i2:
-        raise QISKitError("can't insert two bits to same place")
+        raise QiskitError("can't insert two bits to same place")
 
     if i1 > i2:
         # insert as (i1-1)th bit, will be shifted left 1 by next line
@@ -70,7 +70,7 @@ def single_gate_params(gate, params=None):
     Returns:
         tuple: a tuple of U gate parameters (theta, phi, lam)
     Raises:
-        QISKitError: if the gate name is not valid
+        QiskitError: if the gate name is not valid
     """
     if gate == 'U' or gate == 'u3':
         return params[0], params[1], params[2]
@@ -80,7 +80,7 @@ def single_gate_params(gate, params=None):
         return 0, 0, params[0]
     elif gate == 'id':
         return 0, 0, 0
-    raise QISKitError('Gate is not among the valid types: %s' % gate)
+    raise QiskitError('Gate is not among the valid types: %s' % gate)
 
 
 def single_gate_matrix(gate, params=None):
@@ -120,7 +120,7 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
         str: An indices string for the Numpy.einsum function.
 
     Raises:
-        QISKitError: if the total number of qubits plus the number of
+        QiskitError: if the total number of qubits plus the number of
         contracted indices is greater than 26.
     """
 
@@ -129,7 +129,7 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
     # The rank of the contracted tensor reduces this as we need to use that
     # many characters for the contracted indices
     if len(gate_indices) + number_of_qubits > 26:
-        raise QISKitError("Total number of free indexes limited to 26")
+        raise QiskitError("Total number of free indexes limited to 26")
 
     # Right indices for the N-qubit input and output tensor
     idx_right = ascii_uppercase[:number_of_qubits]

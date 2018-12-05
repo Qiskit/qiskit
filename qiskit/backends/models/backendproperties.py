@@ -7,10 +7,10 @@
 
 """Model and schema for backend configuration."""
 
-from marshmallow.fields import DateTime, List, Nested, Number, String
 from marshmallow.validate import Length, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.fields import DateTime, List, Nested, Number, String, Integer
 
 
 class NduvSchema(BaseSchema):
@@ -27,10 +27,11 @@ class GateSchema(BaseSchema):
     """Schema for Gate."""
 
     # Required properties.
-    qubits = List(Number(), required=True,
+    qubits = List(Integer(), required=True,
                   validate=Length(min=1))
     gate = String(required=True)
-    parameters = Nested(NduvSchema, required=True, many=True)
+    parameters = Nested(NduvSchema, required=True, many=True,
+                        validate=Length(min=1))
 
 
 class BackendPropertiesSchema(BaseSchema):
@@ -41,9 +42,11 @@ class BackendPropertiesSchema(BaseSchema):
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
     last_update_date = DateTime(required=True)
-    qubits = List(Nested(NduvSchema, many=True), required=True,
+    qubits = List(Nested(NduvSchema, many=True,
+                         validate=Length(min=1)), required=True,
                   validate=Length(min=1))
-    gates = Nested(GateSchema, required=True, many=True)
+    gates = Nested(GateSchema, required=True, many=True,
+                   validate=Length(min=1))
     general = Nested(NduvSchema, required=True, many=True)
 
 

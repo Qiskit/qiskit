@@ -10,10 +10,12 @@
 """Tests for verifying the correctness of simulator extension instructions."""
 
 import unittest
+import numpy as np
 import qiskit
 import qiskit.extensions.simulator
 from qiskit import Aer
 from qiskit.quantum_info import state_fidelity
+from qiskit.result.postprocess import format_statevector
 from qiskit import execute
 from ..common import QiskitTestCase, requires_cpp_simulator
 
@@ -53,13 +55,15 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit = qiskit.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
-        circuit.snapshot(3)
+        circuit.snapshot('3')
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[1])
 
         sim = Aer.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
-        snapshot = result.get_snapshot(slot='3')
+        # TODO: rely on Result.get_statevector() postprocessing rather than manual
+        snapshots = result.data(0)['snapshots']['statevector']['3']
+        snapshot = format_statevector(snapshots[0])
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
         fidelity = state_fidelity(snapshot, target)
         self.assertGreater(
