@@ -7,7 +7,7 @@
 
 # pylint: disable=redefined-builtin
 
-"""Tests for the wrapper functionality."""
+"""Tests for the converters."""
 
 import unittest
 
@@ -17,14 +17,13 @@ from qiskit import Aer
 from qiskit import compile
 
 from qiskit.qobj import Qobj
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 
-class TestQobj2Circuits(QiskitTestCase):
-    """Wrapper test case."""
+class TestQobjToCircuits(QiskitTestCase):
+    """Test Qobj to Circuits."""
 
     def setUp(self):
         qr = QuantumRegister(3)
