@@ -23,7 +23,8 @@ from qiskit.qasm import _qasm
 from qiskit._qiskiterror import QiskitError
 from qiskit._quantumregister import QuantumRegister
 from qiskit._classicalregister import ClassicalRegister
-from qiskit.dagcircuit import DAGCircuit
+
+
 
 
 class QuantumCircuit(object):
@@ -81,7 +82,9 @@ class QuantumCircuit(object):
         return str(self.draw(output='text'))
 
     def __eq__(self, other):
-        return DAGCircuit.fromQuantumCircuit(self) == DAGCircuit.fromQuantumCircuit(other)
+        # TODO: removed the DAG from this function
+        from qiskit.converters import circuit_to_dag
+        return circuit_to_dag(self) == circuit_to_dag(other)
 
     @classmethod
     def _increment_instances(cls):
@@ -346,17 +349,21 @@ class QuantumCircuit(object):
 
     def size(self):
         """Return total number of operations in circuit."""
-        dag = DAGCircuit.fromQuantumCircuit(self)
+        # TODO: removed the DAG from this function
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
         return dag.size()
 
     def depth(self):
         """Return circuit depth (i.e. length of critical path)."""
-        dag = DAGCircuit.fromQuantumCircuit(self)
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
         return dag.depth()
 
     def width(self):
         """Return number of qubits in circuit."""
-        dag = DAGCircuit.fromQuantumCircuit(self)
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
         return dag.width()
 
     def count_ops(self):
@@ -365,12 +372,14 @@ class QuantumCircuit(object):
         Returns:
             dict: a breakdown of how many operations of each kind.
         """
-        dag = DAGCircuit.fromQuantumCircuit(self)
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
         return dag.count_ops()
 
     def num_tensor_factors(self):
         """How many non-entangled subcircuits can the circuit be factored to."""
-        dag = DAGCircuit.fromQuantumCircuit(self)
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
         return dag.num_tensor_factors()
 
     @staticmethod
