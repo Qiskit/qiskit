@@ -89,7 +89,6 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = Aer.get_backend('qasm_simulator')
         shots = 1024
-        print(new_circuit.qasm())
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         snapshot_vectors = result.data(0)['snapshots']['statevector']['1']
         snapshot = np.array([v[0] + 1j * v[1] for v in snapshot_vectors[0]], dtype=complex)
