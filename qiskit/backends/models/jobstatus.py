@@ -7,10 +7,10 @@
 
 """Model and schema for job status."""
 
-from marshmallow.fields import String
 from marshmallow.validate import OneOf
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.fields import String
 
 
 class JobStatusSchema(BaseSchema):
