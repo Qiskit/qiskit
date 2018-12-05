@@ -182,8 +182,6 @@ class _SchemaBinder:
         model_cls.schema = self._schema_cls()
 
         # Append the methods to the Model class.
-        model_cls.to_dict = self._to_dict
-        model_cls.from_dict = classmethod(self._from_dict)
         model_cls._validate = self._validate
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
 
@@ -219,27 +217,11 @@ class _SchemaBinder:
         return validation_schema
 
     @staticmethod
-    def _to_dict(instance):
-        """Serialize the model into a Python dict of simple types."""
-        data, errors = instance.schema.dump(instance)
-        if errors:
-            raise ValidationError(errors)
-        return data
-
-    @staticmethod
     def _validate(instance):
         """Validate the internal representation of the instance."""
         errors = instance.schema.validate(instance.to_dict())
         if errors:
             raise ValidationError(errors)
-
-    @staticmethod
-    def _from_dict(decorated_cls, dict_):
-        """Deserialize a dict of simple types into an instance of this class."""
-        data, errors = decorated_cls.schema.load(dict_)
-        if errors:
-            raise ValidationError(errors)
-        return data
 
     @staticmethod
     def _validate_after_init(init_method):
@@ -267,9 +249,9 @@ def bind_schema(schema):
     for validation, along with a class attribute ``shallow_schema`` used for
     validation during instantiation.
 
-    To ease serialization/deserialization to/from simple Python objects,
-    classes are provided with ``to_dict`` and ``from_dict`` instance and class
-    methods respectively.
+    It also allows using the ``to_dict`` and ``from_dict`` in the model class,
+    with perform serialization/deserialization to/from simple Python objects
+    respectively.
 
     The same schema cannot be bound more than once. If you need to reuse a
     schema for a different class, create a new schema subclassing the one you
@@ -323,6 +305,29 @@ class BaseModel(SimpleNamespace):
         of finding out if a model contains a certain key (``key in model``).
         """
         return item in self.__dict__
+
+    def to_dict(self):
+        """Serialize the model into a Python dict of simple types.
+
+        Note that this method requires that the model is bound with
+        ``@bind_schema``.
+        """
+        data, errors = self.schema.dump(self)
+        if errors:
+            raise ValidationError(errors)
+        return data
+
+    @classmethod
+    def from_dict(cls, dict_):
+        """Deserialize a dict of simple types into an instance of this class.
+
+        Note that this method requires that the model is bound with
+        ``@bind_schema``.
+        """
+        data, errors = cls.schema.load(dict_)
+        if errors:
+            raise ValidationError(errors)
+        return data
 
 
 class ObjSchema(BaseSchema):
