@@ -14,7 +14,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import MapperError
 from qiskit.transpiler.passes import DirectionMapper
 from qiskit.mapper import Coupling
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 
@@ -35,7 +35,7 @@ class TestDirectionMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
         coupling = Coupling()
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
         before = deepcopy(dag)
 
         pass_ = DirectionMapper(coupling)
@@ -57,7 +57,7 @@ class TestDirectionMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
         coupling = Coupling({0: [2, 1]})
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         pass_ = DirectionMapper(coupling)
 
@@ -76,7 +76,7 @@ class TestDirectionMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         coupling = Coupling({0: [1]})
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
         before = deepcopy(dag)
 
         pass_ = DirectionMapper(coupling)
@@ -100,7 +100,7 @@ class TestDirectionMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])
         coupling = Coupling({0: [1]})
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
         expected.h(qr[0])
@@ -112,7 +112,7 @@ class TestDirectionMapper(QiskitTestCase):
         pass_ = DirectionMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
 
 if __name__ == '__main__':
