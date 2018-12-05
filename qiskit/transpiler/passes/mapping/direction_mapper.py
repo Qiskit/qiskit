@@ -96,6 +96,6 @@ class DirectionMapper(TransformationPass):
                     cnot['op'].qargs[0], cnot['op'].qargs[1] = target, control
 
             edge_map = current_layout.combine_into_edge_map(self.initial_layout)
-            new_dag.extend_at_the_end(subdag, edge_map)
+            new_dag.compose_back(subdag, edge_map)
 
         return new_dag

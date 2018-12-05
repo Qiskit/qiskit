@@ -555,17 +555,6 @@ class DAGCircuit:
             new_condition = (wire_map.get(bit0, bit0)[0], condition[1])
         return new_condition
 
-    def extend_at_the_end(self, dag, edge_map=None):
-        """Add `dag` at the end of `self`, using `edge_map`.
-        """
-        for qreg in dag.qregs.values():
-            if qreg.name not in self.qregs:
-                self.add_qreg(QuantumRegister(qreg.size, qreg.name))
-        for creg in dag.cregs.values():
-            if creg.name not in self.cregs:
-                self.add_creg(ClassicalRegister(creg.size, creg.name))
-        self.compose_back(dag, edge_map)
-
     def compose_back(self, input_circuit, wire_map=None):
         """Apply the input circuit to the output of this circuit.
 
