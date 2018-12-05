@@ -86,7 +86,7 @@ class UnitarySimulatorPy(BaseBackend):
         ]
     }
 
-    def __init__(self, configuration=None, provider=None, max_qubits=max_qubits):
+    def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
