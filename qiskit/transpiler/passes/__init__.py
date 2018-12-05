@@ -5,8 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Utils for transpiler."""
+"""Module containing transpiler pass."""
 
+from qiskit.transpiler.passes.mapping.check_map import CheckMap
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
-from qiskit.transpiler.passes.mapping.check_map import CheckMap

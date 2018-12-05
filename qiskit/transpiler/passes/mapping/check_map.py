@@ -31,8 +31,11 @@ class CheckMap(AnalysisPass):
 
     def run(self, dag):
         """
-        If `dag` is mapped to coupling_map, the property `is_mapped` is
+        If `dag` is mapped to `coupling_map`, the property `is_mapped` is
         set to True (or to False otherwise).
+        If `dag` is mapped and the direction is correct the property
+        `is_direction_mapped` is set to True (or to False otherwise).
+
         Args:
             dag (DAGCircuit): DAG to map.
         """
