@@ -5,8 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper function for loading all the circuits from a Qobj"""
-from qiskit import _quantumcircuit as qc
+"""Helper function for converting qobj to a list of circuits"""
+from qiskit._quantumcircuit import QuantumCircuit
 
 
 def qobj_to_circuits(qobj):
@@ -23,7 +23,7 @@ def qobj_to_circuits(qobj):
         for x in qobj.experiments:
             if hasattr(x.header, 'compiled_circuit_qasm'):
                 circuits.append(
-                    qc.QuantumCircuit.from_qasm_str(x.header.compiled_circuit_qasm))
+                    QuantumCircuit.from_qasm_str(x.header.compiled_circuit_qasm))
         return circuits
     # TODO(mtreinish): add support for converting a qobj if the qasm isn't
     # embedded in the header

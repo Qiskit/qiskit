@@ -20,10 +20,10 @@ from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
-from qiskit.dagcircuit._dagcircuit import DAGCircuit
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import remove_last_measurements, MapperError
+from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 
@@ -180,7 +180,7 @@ class TestMapper(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        dag = DAGCircuit.fromQuantumCircuit(qc)
+        dag = circuit_to_dag(qc)
         simplified_dag = mapper.optimize_1q_gates(dag)
         num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 2)
@@ -206,7 +206,7 @@ class TestMapper(QiskitTestCase):
         circ.u1(sympy.pi, qr[3])
         circ.u1(0.3 + (-sympy.pi) ** 2, qr[3])
 
-        dag = DAGCircuit.fromQuantumCircuit(circ)
+        dag = circuit_to_dag(circ)
         simplified_dag = mapper.optimize_1q_gates(dag)
 
         params = set()
@@ -328,7 +328,7 @@ class TestMapper(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(
             self._get_resource_path('qasm/move_measurements.qasm'))
 
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        dag_circuit = circuit_to_dag(circ)
         lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
