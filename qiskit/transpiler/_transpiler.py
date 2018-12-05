@@ -13,14 +13,14 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit._qiskiterror import QiskitError
-from qiskit._quantumcircuit import QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit import _quantumcircuit, _quantumregister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
+from qiskit.converters import circuit_to_dag
+from qiskit.converters import dag_to_circuit
 from ._parallel import parallel_map
 
 
@@ -87,7 +87,7 @@ def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
         QuantumCircuit: A transpiled circuit.
 
     """
-    dag = DAGCircuit.fromQuantumCircuit(circuit)
+    dag = circuit_to_dag(circuit)
     if (initial_layout is None and not backend.configuration().simulator
             and not _matches_coupling_map(dag, coupling_map)):
         initial_layout = _pick_best_layout(dag, backend)
@@ -101,7 +101,7 @@ def _transpilation(circuit, backend, basis_gates=None, coupling_map=None,
     final_dag.layout = [[k, v]
                         for k, v in final_layout.items()] if final_layout else None
 
-    out_circuit = QuantumCircuit.fromDAGCircuit(final_dag)
+    out_circuit = dag_to_circuit(final_dag)
 
     return out_circuit
 
