@@ -555,7 +555,7 @@ class DAGCircuit:
             new_condition = (wire_map.get(bit0, bit0)[0], condition[1])
         return new_condition
 
-    def extends_at_the_end(self, dag, edge_map=None):
+    def extend_at_the_end(self, dag, edge_map=None):
         """Add `dag` at the end of `self`, using `edge_map`.
         """
         for qreg in dag.qregs.values():
