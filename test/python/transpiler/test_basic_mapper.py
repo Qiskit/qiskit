@@ -11,7 +11,7 @@ import unittest
 from copy import deepcopy
 from qiskit.transpiler.passes import BasicMapper
 from qiskit.mapper import Coupling
-from qiskit.dagcircuit import DAGCircuit
+from  qiskit.converters import  circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
@@ -37,7 +37,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
 
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
         before = deepcopy(dag)
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
@@ -63,7 +63,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[0], qr[1])
 
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
         before = deepcopy(dag)
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
@@ -92,7 +92,7 @@ class TestBasicMapper(QiskitTestCase):
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[2], qr[0])
@@ -101,7 +101,7 @@ class TestBasicMapper(QiskitTestCase):
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
     def test_keep_layout(self):
         """After a swap, the following gates also change the wires.
@@ -125,7 +125,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         circuit.h(qr[2])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[2], qr[1])
@@ -135,7 +135,7 @@ class TestBasicMapper(QiskitTestCase):
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
     def test_far_swap(self):
         """ A far swap that affects coming CXs.
@@ -164,7 +164,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[3], qr[0])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[2], qr[3])
@@ -175,7 +175,7 @@ class TestBasicMapper(QiskitTestCase):
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
     @unittest.expectedFailure
     # TODO It seems to be a problem in compose_back
@@ -203,7 +203,7 @@ class TestBasicMapper(QiskitTestCase):
 
         circuit = QuantumCircuit(qr0, qr1)
         circuit.cx(qr1[0], qr1[1])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr0, qr1)
         expected.swap(qr1[1], qr0[0])
@@ -212,7 +212,7 @@ class TestBasicMapper(QiskitTestCase):
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(DAGCircuit.fromQuantumCircuit(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
 
 if __name__ == '__main__':
