@@ -42,10 +42,13 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
+
+    max_qubits = int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16))
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator_py',
         'backend_version': '1.0.0',
-        'n_qubits': int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16)),
+        'n_qubits': max_qubits,
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -58,7 +61,7 @@ class UnitarySimulatorPy(BaseBackend):
         'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
-    def __init__(self, configuration=None, provider=None):
+    def __init__(self, configuration=None, provider=None, max_qubits=max_qubits):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
@@ -66,6 +69,7 @@ class UnitarySimulatorPy(BaseBackend):
         # Define attributes inside __init__.
         self._unitary_state = None
         self._number_of_qubits = 0
+        self._max_qubits = max_qubits
 
     def _add_unitary_single(self, gate, qubit):
         """Apply the single-qubit gate.
@@ -180,7 +184,7 @@ class UnitarySimulatorPy(BaseBackend):
             Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = experiment.header.n_qubits
-        if self._number_of_qubits > 24:
+        if self._number_of_qubits > self._max_qubits:
             raise SimulatorError("np.einsum implementation limits unitary_simulator_py" +
                                  " to 24 qubit circuits.")
         result = {
