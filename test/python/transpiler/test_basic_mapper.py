@@ -11,7 +11,7 @@ import unittest
 from copy import deepcopy
 from qiskit.transpiler.passes import BasicMapper
 from qiskit.mapper import Coupling
-from  qiskit.converters import  circuit_to_dag
+from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
