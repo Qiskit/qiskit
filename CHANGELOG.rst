@@ -158,6 +158,8 @@ Removed
 - The ``get_snapshot()`` and ``get_snapshots()`` method from the ``Result``
   class has been removed. Instead you can access the snapshots in a Result
   using ``Result.data()['snapshots']``.
+- Completed the deprecation of ``job.backend_name()``, ``job.id()``, and the
+  ``backend_name`` parameter in its constructor.
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^

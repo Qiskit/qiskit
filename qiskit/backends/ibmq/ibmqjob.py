@@ -12,7 +12,6 @@ IBM Q Experience.
 """
 
 from concurrent import futures
-import warnings
 import time
 import logging
 import pprint
@@ -114,7 +113,7 @@ class IBMQJob(BaseJob):
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, api, is_device, qobj=None,
-                 creation_date=None, api_status=None, **kwargs):
+                 creation_date=None, api_status=None):
         """IBMQJob init function.
 
         We can instantiate jobs from two sources: A QObj, and an already submitted job returned by
@@ -129,8 +128,6 @@ class IBMQJob(BaseJob):
             qobj (Qobj): The Quantum Object. See notes below
             creation_date (str): When the job was run.
             api_status (str): `status` field directly from the API response.
-            kwargs (dict): You can pass `backend_name` to this function although
-                it has been deprecated.
 
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
@@ -138,11 +135,6 @@ class IBMQJob(BaseJob):
             API server for job creation. Passing only a `job_id`will create an instance
             representing an already-created job retrieved from the API server.
         """
-        if 'backend_name' in kwargs:
-            warnings.warn('Passing the parameter `backend_name` is deprecated, '
-                          'pass the `backend` parameter with the instance of '
-                          'the backend running the job.', DeprecationWarning)
-
         super().__init__(backend, job_id)
         self._job_data = None
 
@@ -324,21 +316,6 @@ class IBMQJob(BaseJob):
         """
         return self._creation_date
 
-    # pylint: disable=invalid-name
-    def id(self):
-        """Return backend determined id.
-
-        If the Id is not set because the job is already initializing, this call
-        will block until we have an Id.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.job_id()` instead.
-        """
-        warnings.warn('The method `job.id()` is deprecated, use '
-                      '``job.job_id()`` instead.', DeprecationWarning)
-        return self.job_id()
-
     def job_id(self):
         """Return backend determined id.
 
@@ -347,18 +324,6 @@ class IBMQJob(BaseJob):
         """
         self._wait_for_submission()
         return self._job_id
-
-    def backend_name(self):
-        """
-        Return backend name used for this job.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.backend().name()` instead.
-        """
-        warnings.warn('The use of `job.backend_name()` is deprecated, '
-                      'use `job.backend().name()` instead', DeprecationWarning)
-        return self.backend().name()
 
     def submit(self):
         """Submit job to IBM-Q.
