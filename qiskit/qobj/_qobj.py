@@ -61,7 +61,7 @@ class QobjItem(SimpleNamespace):
         if isinstance(obj, sympy.Basic):
             return float(obj.evalf())
         if isinstance(obj, numpy.ndarray):
-            return obj.tolist()
+            return cls._expand_item(obj.tolist())
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
         return obj
