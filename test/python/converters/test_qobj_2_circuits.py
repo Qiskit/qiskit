@@ -74,6 +74,20 @@ class TestQobjToCircuits(QiskitTestCase):
         self.assertEqual(circuit_to_dag(out_circuit[0]),
                          circuit_to_dag(circuit_b))
 
+    def test_qobj_to_circuit_with_sim_instructions(self):
+        """Check qobj_to_circuit result with asimulator instruction."""
+        backend = Aer.get_backend('qasm_simulator_py')
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        circuit = QuantumCircuit(qr, cr)
+        circuit.ccx(qr[0], qr[1], qr[2])
+        circuit.snapshot(1)
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+        qobj_in = compile(circuit, backend, pass_manager=PassManager())
+        out_circuit = qobj_to_circuits(qobj_in)
+        self.assertEqual(circuit_to_dag(out_circuit[0]), dag)
+
     def test_qobj_to_circuits_with_nothing(self):
         """Verify that qobj_to_circuits returns None without any data."""
         qobj = Qobj('abc123', {}, {}, {})
