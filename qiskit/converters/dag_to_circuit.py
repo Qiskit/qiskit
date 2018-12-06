@@ -7,8 +7,6 @@
 
 """Helper function for converting a dag to a circuit"""
 import collections
-import random
-import string
 import networkx as nx
 
 from qiskit.circuit import QuantumCircuit
