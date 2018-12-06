@@ -6,7 +6,10 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting qobj to a list of circuits"""
-from qiskit.circuit import QuantumCircuit
+
+from qiskit.circuit import classicalregister as cr
+from qiskit.circuit import quantumcircuit as qc
+from qiskit.circuit import quantumregister as qr
 
 
 def qobj_to_circuits(qobj):
@@ -21,10 +24,34 @@ def qobj_to_circuits(qobj):
     if qobj.experiments:
         circuits = []
         for x in qobj.experiments:
-            if hasattr(x.header, 'compiled_circuit_qasm'):
-                circuits.append(
-                    QuantumCircuit.from_qasm_str(x.header.compiled_circuit_qasm))
+            quantum_registers = [
+                qr.QuantumRegister(
+                    i[1], name=i[0]) for i in x.header.qreg_sizes]
+            classical_registers = [
+                cr.ClassicalRegister(
+                    i[1], name=i[0]) for i in x.header.creg_sizes]
+            circuit = qc.QuantumCircuit(*quantum_registers,
+                                        *classical_registers,
+                                        name=x.header.name)
+            qreg_dict = {}
+            creg_dict = {}
+            for reg in quantum_registers:
+                qreg_dict[reg.name] = reg
+            for reg in classical_registers:
+                creg_dict[reg.name] = reg
+            for i in x.instructions:
+                instr_method = getattr(circuit, i.name)
+                qubits = []
+                for qubit in i.qubits:
+                    qubit_label = x.header.qubit_labels[qubit]
+                    qubits.append(
+                        qreg_dict[qubit_label[0]][qubit_label[1]])
+                clbits = []
+                for clbit in i.memory:
+                    clbit_label = x.header.clbit_labels[clbit]
+                    clbits.append(
+                        creg_dict[clbit_label[0]][clbit_label[1]])
+                instr_method(*i.params, *qubits, *clbits)
+            circuits.append(circuit)
         return circuits
-    # TODO(mtreinish): add support for converting a qobj if the qasm isn't
-    # embedded in the header
     return None
