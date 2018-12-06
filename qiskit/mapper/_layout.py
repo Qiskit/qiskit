@@ -168,19 +168,13 @@ class Layout(dict):
             LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
         """
         edge_map = dict()
-<<<<<<< HEAD
 
-=======
->>>>>>> master
         for virtual, physical in self.get_virtual_bits().items():
             if physical not in another_layout:
                 raise LayoutError('The wire_map_from_layouts() method does not support when the'
                                   ' other layout (another_layout) is smaller.')
             edge_map[virtual] = another_layout[physical]
-<<<<<<< HEAD
 
-=======
->>>>>>> master
         return edge_map
 
 
