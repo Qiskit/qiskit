@@ -20,6 +20,7 @@ def _parfunc(x):
     time.sleep(1)
     return x
 
+
 def _build_simple(_):
     qreg = QuantumRegister(2)
     creg = ClassicalRegister(2)
