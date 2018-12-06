@@ -11,11 +11,11 @@
 
 """IBMQ Remote Backend Qobj Tests"""
 
+import logging
 import os
 import unittest
 import functools
 import numpy as np
-import logging
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
@@ -54,7 +54,7 @@ def per_non_blacklisted_backend(*blacklist):
                         tested_backends.append(backend.name())
                         backend_test = test if config.simulator else slow_test(test)
                         backend_test(self, backend, *args, **kwargs)
-            logger.debug("Tested backends: {}".format(','.join(tested_backends)))
+            logger.debug("Tested backends: %", ','.join(tested_backends))
             for qe_token, _ in credentials:
                 IBMQ.disable_accounts(token=qe_token)
         return _wrapper
@@ -91,7 +91,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_restricted_qobj_backend
     def test_one_qubit_operation(self, remote_backend):
@@ -106,7 +106,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_restricted_qobj_backend
     def test_simple_circuit(self, remote_backend):
@@ -129,7 +129,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_restricted_qobj_backend
     def test_readout_order(self, remote_backend):
@@ -153,7 +153,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj_remote).result()
         result_local = self._local_backend.run(qobj_local).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_restricted_qobj_backend
     def test_multi_register(self, remote_backend):
@@ -183,7 +183,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_restricted_qobj_backend
     def test_multi_circuit(self, remote_backend):
@@ -222,9 +222,9 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ1),
-                                   result_local.get_counts(circ1), delta=200)
+                                   result_local.get_counts(circ1), delta=100)
         self.assertDictAlmostEqual(result_remote.get_counts(circ2),
-                                   result_local.get_counts(circ2), delta=200)
+                                   result_local.get_counts(circ2), delta=100)
 
     @per_restricted_qobj_backend
     def test_conditional_operation(self, remote_backend):
@@ -244,7 +244,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_qobj_backend
     def test_ry_circuit(self, remote_backend):
@@ -264,7 +264,7 @@ class TestBackendQobj(JobTestCase):
         result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
-                                   result_local.get_counts(circ), delta=200)
+                                   result_local.get_counts(circ), delta=100)
 
     @per_qobj_backend
     def test_circuit_memory(self, remote_backend):
@@ -289,7 +289,7 @@ class TestBackendQobj(JobTestCase):
         remote_counts_dict = dict(zip(remote_unique, remote_counts))
         local_unique, local_counts = np.unique(result_local.get_memory(), return_counts=True)
         local_counts_dict = dict(zip(local_unique, local_counts))
-        self.assertDictAlmostEqual(remote_counts_dict, local_counts_dict, delta=200)
+        self.assertDictAlmostEqual(remote_counts_dict, local_counts_dict, delta=100)
 
 
 if __name__ == '__main__':
