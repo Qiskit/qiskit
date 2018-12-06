@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting qobj to a list of circuits"""
-from qiskit._quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 
 def qobj_to_circuits(qobj):

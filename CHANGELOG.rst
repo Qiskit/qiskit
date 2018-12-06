@@ -45,6 +45,9 @@ Added
   `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
 - New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state
   vector or density matrix. (#1359)
+- Per-shot measurement results are available in simulators and select devices.
+  Request them by setting ``memory=True`` in ``compile()``/``execute()``,
+  and retrieve them from ``result.get_memory()`` (#1385).
 
 Changed
 """""""
@@ -86,6 +89,9 @@ Changed
   from DAG to DAG (#1210).
 - ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
   processing is only done internally (#1397).
+- Moved all the circuit modules into a circuit module but for most users it is still 
+  imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
+
 
 Deprecated
 """"""""""

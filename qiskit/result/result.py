@@ -10,7 +10,8 @@
 import warnings
 from qiskit import QiskitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
-from .postprocess import format_counts, format_statevector, format_unitary
+from .postprocess import (format_counts, format_statevector,
+                          format_unitary, format_memory)
 from .models import ResultSchema
 
 
@@ -93,6 +94,31 @@ class Result(BaseModel):
             return self._get_experiment(circuit).data.to_dict()
         except (KeyError, TypeError):
             raise QiskitError('No data for circuit "{0}"'.format(circuit))
+
+    def get_memory(self, circuit=None):
+        """Get the sequence of memory states (readouts) for each shot
+        The data from the experiment is a list of format
+        ['00000', '01000', '10100', '10100', '11101', '11100', '00101', ..., '01010']
+
+        Args:
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``data()``.
+
+        Returns:
+            List[str]: the list of each outcome, formatted according to
+                registers in circuit.
+
+        Raises:
+            QiskitError: if there is no memory data for the circuit.
+        """
+        try:
+            header = self._get_experiment(circuit).header.to_dict()
+            memory_list = []
+            for memory in self.data(circuit)['memory']:
+                memory_list.append(format_memory(memory, header))
+            return memory_list
+        except KeyError:
+            raise QiskitError('No memory for circuit "{0}".'.format(circuit))
 
     def get_counts(self, circuit=None):
         """Get the histogram data of an experiment.
