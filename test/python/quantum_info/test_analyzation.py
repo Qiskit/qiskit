@@ -12,7 +12,7 @@ import unittest
 import qiskit
 from qiskit import Aer
 from qiskit.quantum_info.analyzation.average import average_data
-from ..common import QiskitTestCase, bin_to_hex_keys
+from ..common import QiskitTestCase
 
 
 class TestAnalyzation(QiskitTestCase):
@@ -31,11 +31,11 @@ class TestAnalyzation(QiskitTestCase):
         backend = Aer.get_backend('qasm_simulator_py')
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
-        observable = bin_to_hex_keys({"00": 1, "11": 1, "01": -1, "10": -1})
+        observable = {"00": 1, "11": 1, "01": -1, "10": -1}
         mean_zz = average_data(counts=counts, observable=observable)
-        observable = bin_to_hex_keys({"00": 1, "11": -1, "01": 1, "10": -1})
+        observable = {"00": 1, "11": -1, "01": 1, "10": -1}
         mean_zi = average_data(counts, observable)
-        observable = bin_to_hex_keys({"00": 1, "11": -1, "01": -1, "10": 1})
+        observable = {"00": 1, "11": -1, "01": -1, "10": 1}
         mean_iz = average_data(counts, observable)
         self.assertAlmostEqual(mean_zz, 1, places=1)
         self.assertAlmostEqual(mean_zi, 0, places=1)

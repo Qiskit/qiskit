@@ -24,7 +24,7 @@ from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.backends.aer.aerjob import AerJob
 from qiskit.backends.aer._simulatorerror import SimulatorError
-from qiskit.backends.models import BackendConfiguration, BackendProperties
+from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator_py import QasmSimulatorPy
 
@@ -47,30 +47,44 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'max_shots': 65536,
         'description': 'A Python statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
-        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
+        'gates': [
+            {
+                'name': 'u1',
+                'parameters': ['lambda'],
+                'qasm_def': 'gate u1(lambda) q { U(0,0,lambda) q; }'
+            },
+            {
+                'name': 'u2',
+                'parameters': ['phi', 'lambda'],
+                'qasm_def': 'gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }'
+            },
+            {
+                'name': 'u3',
+                'parameters': ['theta', 'phi', 'lambda'],
+                'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
+            },
+            {
+                'name': 'cx',
+                'parameters': ['c', 't'],
+                'qasm_def': 'gate cx c,t { CX c,t; }'
+            },
+            {
+                'name': 'id',
+                'parameters': ['a'],
+                'qasm_def': 'gate id a { U(0,0,0) a; }'
+            },
+            {
+                'name': 'snapshot',
+                'parameters': ['slot'],
+                'qasm_def': 'gate snapshot(slot) q { TODO }'
+            }
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
-
-    def properties(self):
-        """Return backend properties"""
-        properties = {
-            'backend_name': self.name(),
-            'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                         'unit': 'TODO', 'value': 0}]],
-            'gates': [{'qubits': [0], 'gate': 'TODO',
-                       'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                             'unit': 'TODO', 'value': 0}]}],
-            'general': []
-        }
-
-        return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
         """Run qobj asynchronously.

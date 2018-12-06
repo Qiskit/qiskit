@@ -10,12 +10,14 @@
 """Tests for verifying the correctness of simulator extension instructions."""
 
 import unittest
+import numpy as np
 import qiskit
 import qiskit.extensions.simulator
 from qiskit import Aer
 from qiskit.quantum_info import state_fidelity
+from qiskit.result.postprocess import format_statevector
 from qiskit import execute
-from ..common import QiskitTestCase, requires_cpp_simulator, bin_to_hex_keys
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator
@@ -59,9 +61,11 @@ class TestExtensionsSimulator(QiskitTestCase):
 
         sim = Aer.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
-        snapshot = result.data(0)['snapshots']['3']['statevector']
+        # TODO: rely on Result.get_statevector() postprocessing rather than manual
+        snapshots = result.data(0)['snapshots']['statevector']['3']
+        snapshot = format_statevector(snapshots[0])
         target = [0.70710678 + 0.j, 0. + 0.j, 0. + 0.j, 0.70710678 + 0.j]
-        fidelity = state_fidelity(snapshot[0], target)
+        fidelity = state_fidelity(snapshot, target)
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "snapshot has low fidelity{0:.2g}.".format(fidelity))
@@ -87,7 +91,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         shots = 1000
         result = execute(circuit, sim, config=config, shots=shots).result()
         counts = result.get_counts()
-        target = bin_to_hex_keys({'101': shots})
+        target = {'101': shots}
         self.assertEqual(counts, target)
 
 

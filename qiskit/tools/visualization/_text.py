@@ -10,6 +10,7 @@ A module for drawing circuits in ascii art or some other text representation
 """
 
 from shutil import get_terminal_size
+import sys
 
 from ._error import VisualizationError
 
@@ -412,7 +413,9 @@ class TextDrawing():
         return self.single_string()
 
     def _repr_html_(self):
-        return '<pre style="line-height: 15px;">%s</pre>' % self.single_string()
+        return '<pre style="word-wrap: normal;' \
+               'white-space: pre;' \
+               'line-height: 15px;">%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
         qubits = []
@@ -460,7 +463,10 @@ class TextDrawing():
         if line_length is None:
             line_length = self.line_length
         if line_length is None:
-            line_length, _ = get_terminal_size()
+            if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+                line_length = 80
+            else:
+                line_length, _ = get_terminal_size()
 
         noqubits = len(self.qregs)
         layers = self.build_layers()

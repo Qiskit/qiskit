@@ -12,7 +12,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.passes import CheckMap
 from qiskit.mapper import Coupling
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 
@@ -33,7 +33,7 @@ class TestCheckMap(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
         coupling = Coupling()
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
         self.assertTrue(pass_.property_set['is_mapped'])
@@ -54,7 +54,7 @@ class TestCheckMap(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
         coupling = Coupling(couplingdict={0: [1, 2]})
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -62,7 +62,7 @@ class TestCheckMap(QiskitTestCase):
         self.assertTrue(pass_.property_set['is_mapped'])
 
     def test_true_map_in_same_layer(self):
-        """ Two CXs distance 1 to each other, in the same layer
+        """ Two CXs distance_qubits 1 to each other, in the same layer
          qr0:--(+)--
                |
          qr1:---.---
@@ -78,7 +78,7 @@ class TestCheckMap(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[3])
         coupling = Coupling(couplingdict={0: [1], 1: [2], 2: [3]})
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -97,7 +97,7 @@ class TestCheckMap(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         coupling = Coupling(couplingdict={0: [2], 2: [1]})
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
         pass_.run(dag)
