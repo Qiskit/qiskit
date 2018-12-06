@@ -33,6 +33,7 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
 class TestMovedFromMapper(QiskitTestCase):
     """ This tests are moved from test_mapper.py"""
 

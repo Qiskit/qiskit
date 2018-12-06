@@ -106,11 +106,11 @@ class Optimize1qGates(TransformationPass):
                     left_parameters = tuple(map(lambda x: x.evalf(), list(left_parameters)))
                     right_parameters = tuple(map(lambda x: x.evalf(), list(right_parameters)))
                     right_parameters = Optimize1qGates.compose_u3(left_parameters[0],
-                                                  left_parameters[1],
-                                                  left_parameters[2],
-                                                  right_parameters[0],
-                                                  right_parameters[1],
-                                                  right_parameters[2])
+                                                                  left_parameters[1],
+                                                                  left_parameters[2],
+                                                                  right_parameters[0],
+                                                                  right_parameters[1],
+                                                                  right_parameters[2])
                     # Why evalf()? This program:
                     #   OPENQASM 2.0;
                     #   include "qelib1.inc";
@@ -195,8 +195,7 @@ class Optimize1qGates(TransformationPass):
         Return theta, phi, lambda.
         """
         # Careful with the factor of two in yzy_to_zyz
-        thetap, phip, lambdap = Optimize1qGates.yzy_to_zyz((lambda1 + phi2),
-                                           theta1, theta2)
+        thetap, phip, lambdap = Optimize1qGates.yzy_to_zyz((lambda1 + phi2), theta1, theta2)
         (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
         return (theta, phi, lamb)
 
@@ -223,4 +222,3 @@ class Optimize1qGates(TransformationPass):
         if not np.allclose(abs_inner, 1, eps):
             raise MapperError('YZY and ZYZ angles do not give same rotation matrix.')
         return out_angles
-
