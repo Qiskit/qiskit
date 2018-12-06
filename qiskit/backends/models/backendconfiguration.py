@@ -7,10 +7,10 @@
 
 """Model and schema for backend configuration."""
 
-from marshmallow.fields import Boolean, DateTime, Integer, List, Nested, String
 from marshmallow.validate import Equal, Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, String
 
 
 class GateConfigSchema(BaseSchema):
@@ -52,6 +52,7 @@ class BackendConfigurationSchema(BaseSchema):
     max_shots = Integer(required=True, validate=Range(min=1))
 
     # Optional properties.
+    max_experiments = Integer(validate=Range(min=1))
     sample_name = String()
     coupling_map = List(List(Integer(),
                              validate=Length(min=1)),

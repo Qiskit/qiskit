@@ -45,6 +45,9 @@ Added
   `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
 - New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state
   vector or density matrix. (#1359)
+- Per-shot measurement results are available in simulators and select devices.
+  Request them by setting ``memory=True`` in ``compile()``/``execute()``,
+  and retrieve them from ``result.get_memory()`` (#1385).
 
 Changed
 """""""
@@ -66,11 +69,11 @@ Changed
 - `IBMQ.save_account()` now takes an `overwrite` option to replace an existing
   account on disk. Default is False (#1295).
 - Backend and Provider methods defined in the specification use model objects
-  rather than dicts, along with validation against schemas (#1249, #1277). The
-  updated methods include:
+  rather than dicts, along with validation against schemas (#1249, #1277,
+  #1350). The updated methods include:
     - ``backend.status()``(#1301).
     - ``backend.configuration()`` (and ``__init__``) (#1323).
-    - ``backend.properties()`` (#1331).
+    - ``backend.properties()``, returning ``None`` for sims (#1331, #1401).
     - ``qiskit.Result`` (#1360).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
@@ -86,6 +89,9 @@ Changed
   from DAG to DAG (#1210).
 - ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
   processing is only done internally (#1397).
+- Moved all the circuit modules into a circuit module but for most users it is still 
+  imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
+
 
 Deprecated
 """"""""""
@@ -109,6 +115,8 @@ Deprecated
 - The functions `plot_state()` and `iplot_state()` have been depreciated.
   Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
   called. (#1359)
+- The ``skip_transpiler`` arg has been deprecated from ``tools.compile()`` and
+  ``tools.execute()`` in favor of using the PassManager directly.
 
 Fixed
 """""
@@ -126,7 +134,7 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
-- The`number_to_keep` kwarg in `plot_histgram()`now functions correctly (#1359).
+- The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly (#1359).
 - parallel_map no longer creates a progress bar for a single circuit (#1394).
 
 Removed
@@ -134,14 +142,14 @@ Removed
 
 - Remove register, available_backends (#1131).
 - Remove tools/apps (#1184).
-- Removed the dependency on `IBMQuantumExperience`, as it is now included
-  in `qiskit.backends.IBMQ` (#1198).
+- Removed the dependency on ``IBMQuantumExperience``, as it is now included
+  in ``qiskit.backends.IBMQ`` (#1198).
 - ``matplotlib`` is no longer in the package requirements and is now an optional
   dependency. In order to use any matplotlib based visualizations (which
-  includes the `qiskit.tools.visualization.circuit_drawer()` `mpl` output,
-  `qiskit.tools.visualization.plot_state`,
-  `qiskit.tools.visualization.plot_histogram`, and
-  `qiskit.tools.visualization.plot_bloch_vector` you will now need to ensure
+  includes the ``qiskit.tools.visualization.circuit_drawer()`` ``mpl`` output,
+  ``qiskit.tools.visualization.plot_state``,
+  ``qiskit.tools.visualization.plot_histogram``, and
+  ``qiskit.tools.visualization.plot_bloch_vector`` you will now need to ensure
   you manually install and configure matplotlib independently.
 - The ``basis`` kwarg for the ``circuit_drawer()`` function to provide an
   alternative list of basis gates has been removed. Instead users should adjust
@@ -156,6 +164,12 @@ Removed
 - The ``get_snapshot()`` and ``get_snapshots()`` method from the ``Result``
   class has been removed. Instead you can access the snapshots in a Result
   using ``Result.data()['snapshots']``.
+- Completed the deprecation of ``job.backend_name()``, ``job.id()``, and the
+  ``backend_name`` parameter in its constructor.
+- The ``qiskit.Result`` class now does post-processing of results returned
+  from backends if they are called via the ``Result.get_xxx()`` methods
+  (i.e. ``get_counts()``, ``get_memory()``, ``get_statevector()``,
+  ``get_unitary()``). The raw data is accessible through ``Result.data()`` (#1404).
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^

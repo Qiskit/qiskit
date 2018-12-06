@@ -10,14 +10,11 @@ from sys import version_info
 import unittest
 
 import numpy as np
-from qiskit.qasm import Qasm
-from qiskit.unroll import Unroller, DAGBackend, DagUnroller, JsonBackend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
-from qiskit.qobj import Qobj, QobjHeader, QobjConfig, QobjExperiment
 
-from ..common import QiskitTestCase, bin_to_hex_keys
+from ..common import QiskitTestCase
 
 
 class TestAerQasmSimulatorPy(QiskitTestCase):
@@ -26,24 +23,10 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         self.backend = QasmSimulatorPy()
-        backend_basis = self.backend.configuration().basis_gates
         qasm_filename = self._get_resource_path('qasm/example.qasm')
-        qasm_ast = Qasm(filename=qasm_filename).parse()
-        qasm_dag = Unroller(qasm_ast, DAGBackend()).execute()
-        qasm_dag = DagUnroller(qasm_dag, DAGBackend(backend_basis)).expand_gates()
-        qasm_json = DagUnroller(qasm_dag, JsonBackend(qasm_dag.basis)).execute()
-        compiled_circuit = QobjExperiment.from_dict(qasm_json)
-        compiled_circuit.header.name = 'test'
-
-        self.qobj = Qobj(
-            qobj_id='test_sim_single_shot',
-            config=QobjConfig(
-                shots=1024, memory_slots=6,
-                max_credits=3, seed=self.seed
-            ),
-            experiments=[compiled_circuit],
-            header=QobjHeader(backend_name='qasm_simulator_py')
-        )
+        compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+        compiled_circuit.name = 'test'
+        self.qobj = compile(compiled_circuit, backend=self.backend)
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -93,8 +76,8 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         result = self.backend.run(qobj).result()
         counts_if_true = result.get_counts(circuit_if_true)
         counts_if_false = result.get_counts(circuit_if_false)
-        self.assertEqual(counts_if_true, bin_to_hex_keys({'111': 100}))
-        self.assertEqual(counts_if_false, bin_to_hex_keys({'001': 100}))
+        self.assertEqual(counts_if_true, {'111': 100})
+        self.assertEqual(counts_if_false, {'001': 100})
 
     @unittest.skipIf(version_info.minor == 5,
                      "Due to gate ordering issues with Python 3.5 "
@@ -124,14 +107,14 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         results = self.backend.run(qobj).result()
         data = results.get_counts('teleport')
         alice = {
-            '00': data['0x0'] + data['0x4'],
-            '01': data['0x2'] + data['0x6'],
-            '10': data['0x1'] + data['0x5'],
-            '11': data['0x3'] + data['0x7']
+            '00': data['0 0 0'] + data['1 0 0'],
+            '01': data['0 1 0'] + data['1 1 0'],
+            '10': data['0 0 1'] + data['1 0 1'],
+            '11': data['0 1 1'] + data['1 1 1']
         }
         bob = {
-            '0': data['0x0'] + data['0x2'] + data['0x1'] + data['0x3'],
-            '1': data['0x4'] + data['0x6'] + data['0x5'] + data['0x7']
+            '0': data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1'],
+            '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
         }
         self.log.info('test_teleport: circuit:')
         self.log.info('test_teleport: circuit:')
@@ -144,6 +127,27 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         error = abs(alice_ratio - bob_ratio) / alice_ratio
         self.log.info('test_teleport: relative error = %s', error)
         self.assertLess(error, 0.05)
+
+    def test_memory(self):
+        qr = QuantumRegister(4, 'qr')
+        cr0 = ClassicalRegister(2, 'cr0')
+        cr1 = ClassicalRegister(2, 'cr1')
+        circ = QuantumCircuit(qr, cr0, cr1)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.x(qr[3])
+        circ.measure(qr[0], cr0[0])
+        circ.measure(qr[1], cr0[1])
+        circ.measure(qr[2], cr1[0])
+        circ.measure(qr[3], cr1[1])
+
+        shots = 50
+        qobj = compile(circ, backend=self.backend, shots=shots, memory=True)
+        result = self.backend.run(qobj).result()
+        memory = result.get_memory()
+        self.assertEqual(len(memory), shots)
+        for mem in memory:
+            self.assertIn(mem, ['10 00', '10 11'])
 
 
 if __name__ == '__main__':

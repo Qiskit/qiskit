@@ -9,7 +9,7 @@
 
 import PIL
 import numpy as np
-from qiskit import dagcircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.tools.visualization._error import VisualizationError
 
 
@@ -61,7 +61,7 @@ def _get_instructions(circuit, reversebits=False):
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
-    dag = dagcircuit.DAGCircuit.fromQuantumCircuit(circuit, expand_gates=False)
+    dag = circuit_to_dag(circuit, expand_gates=False)
     ops = []
     qregs = []
     cregs = []

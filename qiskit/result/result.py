@@ -8,9 +8,10 @@
 """Model for schema-conformant Results."""
 
 import warnings
-import numpy as np
 from qiskit import QiskitError, QuantumCircuit
 from qiskit.validation.base import BaseModel, bind_schema
+from .postprocess import (format_counts, format_statevector,
+                          format_unitary, format_memory)
 from .models import ResultSchema
 
 
@@ -48,7 +49,7 @@ class Result(BaseModel):
 
         Note this data will be a single classical and quantum register and in a
         format required by the results schema. We recomened that most users use
-        the get_xxx method and the data will be post processed for the data type.
+        the get_xxx method, and the data will be post-processed for the data type.
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
@@ -94,6 +95,31 @@ class Result(BaseModel):
         except (KeyError, TypeError):
             raise QiskitError('No data for circuit "{0}"'.format(circuit))
 
+    def get_memory(self, circuit=None):
+        """Get the sequence of memory states (readouts) for each shot
+        The data from the experiment is a list of format
+        ['00000', '01000', '10100', '10100', '11101', '11100', '00101', ..., '01010']
+
+        Args:
+            circuit (str or QuantumCircuit or int or None): the index of the
+                experiment, as specified by ``data()``.
+
+        Returns:
+            List[str]: the list of each outcome, formatted according to
+                registers in circuit.
+
+        Raises:
+            QiskitError: if there is no memory data for the circuit.
+        """
+        try:
+            header = self._get_experiment(circuit).header.to_dict()
+            memory_list = []
+            for memory in self.data(circuit)['memory']:
+                memory_list.append(format_memory(memory, header))
+            return memory_list
+        except KeyError:
+            raise QiskitError('No memory for circuit "{0}".'.format(circuit))
+
     def get_counts(self, circuit=None):
         """Get the histogram data of an experiment.
 
@@ -103,23 +129,27 @@ class Result(BaseModel):
 
         Returns:
             dict[str:int]: a dictionary with the counts for each qubit, with
-                the keys containing a string in hex format (``0x123``).
+                the keys containing a string in binary format and separated
+                according to the registers in circuit (e.g. ``0100 1110``).
+                The string is little-endian (cr[0] on the right hand side).
 
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
         try:
-            return self._get_experiment(circuit).data.counts.to_dict()
+            return format_counts(self.data(circuit)['counts'],
+                                 self._get_experiment(circuit).header.to_dict())
         except KeyError:
             raise QiskitError('No counts for circuit "{0}"'.format(circuit))
 
-    def get_statevector(self, circuit=None, decimals=8):
+    def get_statevector(self, circuit=None, decimals=None):
         """Get the final statevector of an experiment.
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
-            decimals (int): the number of decimals in the statevector
+            decimals (int): the number of decimals in the statevector.
+                If None, does not round.
 
         Returns:
             list[complex]: list of 2^n_qubits complex amplitudes.
@@ -128,18 +158,19 @@ class Result(BaseModel):
             QiskitError: if there is no statevector for the experiment.
         """
         try:
-            return np.around(self._get_experiment(circuit).data.statevector,
-                             decimals=decimals)
+            return format_statevector(self.data(circuit)['statevector'],
+                                      decimals=decimals)
         except KeyError:
             raise QiskitError('No statevector for circuit "{0}"'.format(circuit))
 
-    def get_unitary(self, circuit=None, decimals=8):
+    def get_unitary(self, circuit=None, decimals=None):
         """Get the final unitary of an experiment.
 
         Args:
             circuit (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
-            decimals (int): the number of decimals in the unitary
+            decimals (int): the number of decimals in the unitary.
+                If None, does not round.
 
         Returns:
             list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
@@ -149,13 +180,13 @@ class Result(BaseModel):
             QiskitError: if there is no unitary for the experiment.
         """
         try:
-            return np.around(self._get_experiment(circuit).data.unitary,
-                             decimals=decimals)
+            return format_unitary(self.data(circuit)['unitary'],
+                                  decimals=decimals)
         except KeyError:
             raise QiskitError('No unitary for circuit "{0}"'.format(circuit))
 
     def _get_experiment(self, key=None):
-        """Return an experiment from a given key.
+        """Return a single experiment result from a given key.
 
         Args:
             key (str or QuantumCircuit or int or None): the index of the
@@ -188,6 +219,7 @@ class Result(BaseModel):
         # Key is a QuantumCircuit or str: retrieve result by name.
         if isinstance(key, QuantumCircuit):
             key = key.name
+
         try:
             # Look into `result[x].header.name` for the names.
             return next(result for result in self.results
