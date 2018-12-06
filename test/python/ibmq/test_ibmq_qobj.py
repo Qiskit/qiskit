@@ -14,12 +14,14 @@
 import os
 import unittest
 import functools
+import numpy as np
+import logging
 from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
 
 from ..common import require_multiple_credentials, JobTestCase, slow_test
-
+logger = logging.getLogger(__name__)
 # Timeout duration
 TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
 BLACKLIST = ('ibmq_4_atlantis',)
@@ -43,12 +45,16 @@ def per_non_blacklisted_backend(*blacklist):
         def _wrapper(self, *args, credentials=[], **kwargs):
             for qe_token, qe_url in credentials:
                 IBMQ.enable_account(qe_token, qe_url)
+
+            tested_backends = []
             for backend in IBMQ.backends():
                 config = backend.configuration()
                 if config.allow_q_object and backend.name() not in blacklist:
-                    with self.subTest(backend=backend):
+                    with self.subTest(backend=backend.name()):
+                        tested_backends.append(backend.name())
                         backend_test = test if config.simulator else slow_test(test)
                         backend_test(self, backend, *args, **kwargs)
+            logger.debug("Tested backends: {}".format(','.join(tested_backends)))
             for qe_token, _ in credentials:
                 IBMQ.disable_accounts(token=qe_token)
         return _wrapper
@@ -107,10 +113,8 @@ class TestBackendQobj(JobTestCase):
         """Test one circuit, one register, in-order readout."""
         config = remote_backend.configuration()
         n_qubits = config.n_qubits
-        if 'n_registers' not in config:
-            self.skipTest('Backend does not have registers.')
-        if n_qubits < 4 or config.n_registers < 4:
-            self.skipTest('Backend does not have enough qubits or registers to run test.')
+        if n_qubits < 4:
+            self.skipTest('Backend does not have enough qubits to run test.')
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
         circ = QuantumCircuit(qr, cr)
@@ -132,10 +136,8 @@ class TestBackendQobj(JobTestCase):
         """Test one circuit, one register, out-of-order readout."""
         config = remote_backend.configuration()
         n_qubits = config.n_qubits
-        if 'n_registers' not in config:
-            self.skipTest('Backend does not have registers.')
-        if n_qubits < 4 or config.n_registers < 4:
-            self.skipTest('Backend does not have enough qubits or registers to run test.')
+        if n_qubits < 4:
+            self.skipTest('Backend does not have enough qubits to run test.')
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
         circ = QuantumCircuit(qr, cr)
@@ -158,10 +160,8 @@ class TestBackendQobj(JobTestCase):
         """Test one circuit, two registers, out-of-order readout."""
         config = remote_backend.configuration()
         n_qubits = config.n_qubits
-        if 'n_registers' not in config:
-            self.skipTest('Backend does not have registers.')
-        if n_qubits < 4 or config.n_registers < 4:
-            self.skipTest('Backend does not have enough qubits or registers to run test.')
+        if n_qubits < 4:
+            self.skipTest('Backend does not have enough qubits to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
         cr1 = ClassicalRegister(3)
@@ -190,10 +190,8 @@ class TestBackendQobj(JobTestCase):
         """Test two circuits, two registers, out-of-order readout."""
         config = remote_backend.configuration()
         n_qubits = config.n_qubits
-        if 'n_registers' not in config:
-            self.skipTest('Backend does not have registers.')
-        if n_qubits < 4 or config.n_registers < 4:
-            self.skipTest('Backend does not have enough qubits or registers to run test.')
+        if n_qubits < 4:
+            self.skipTest('Backend does not have enough qubits to run test.')
         qr1 = QuantumRegister(2)
         qr2 = QuantumRegister(2)
         cr1 = ClassicalRegister(3)
@@ -253,10 +251,8 @@ class TestBackendQobj(JobTestCase):
         """Test Atlantis staging device deterministic ry operation."""
         config = remote_backend.configuration()
         n_qubits = config.n_qubits
-        if 'n_registers' not in config:
-            self.skipTest('Backend does not have registers.')
-        if n_qubits < 3 or config.n_registers < 3:
-            self.skipTest('Backend does not have enough qubits or registers to run test.')
+        if n_qubits < 3:
+            self.skipTest('Backend does not have enough qubits to run test.')
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circ = QuantumCircuit(qr, cr)
@@ -269,6 +265,31 @@ class TestBackendQobj(JobTestCase):
         result_local = self._local_backend.run(qobj).result()
         self.assertDictAlmostEqual(result_remote.get_counts(circ),
                                    result_local.get_counts(circ), delta=200)
+
+    @per_qobj_backend
+    def test_circuit_memory(self, remote_backend):
+        """Run atlantis staging test but request for memory instead of counts if supported."""
+        config = remote_backend.configuration()
+        n_qubits = config.n_qubits
+        if not config.memory:
+            self.skipTest('Backend does not support memory.')
+        if n_qubits < 3:
+            self.skipTest('Backend does not have enough qubits to run test.')
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        circ = QuantumCircuit(qr, cr)
+        circ.ry(pi, qr[0])
+        circ.ry(pi, qr[2])
+        circ.measure(qr, cr)
+
+        qobj = compile(circ, remote_backend, memory=True)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
+        result_local = self._local_backend.run(qobj).result()
+        remote_unique, remote_counts = np.unique(result_remote.get_memory(), return_counts=True)
+        remote_counts_dict = dict(zip(remote_unique, remote_counts))
+        local_unique, local_counts = np.unique(result_local.get_memory(), return_counts=True)
+        local_counts_dict = dict(zip(local_unique, local_counts))
+        self.assertDictAlmostEqual(remote_counts_dict, local_counts_dict, delta=200)
 
 
 if __name__ == '__main__':
