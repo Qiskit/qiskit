@@ -9,7 +9,7 @@
 import os
 import time
 
-from qiskit.transpiler._parallel import parallel_map
+from qiskit.tools.parallel.parallel import parallel_map
 from .common import QiskitTestCase
 
 
