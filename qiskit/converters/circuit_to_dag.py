@@ -9,7 +9,7 @@
 
 import copy
 
-from qiskit import _compositegate
+from qiskit.circuit.compositegate import CompositeGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 
 
@@ -56,8 +56,7 @@ def circuit_to_dag(circuit, expand_gates=True):
         # TODO: generate definitions and nodes for CompositeGates,
         # for now simply drop their instructions into the DAG
         instruction_list = []
-        is_composite = isinstance(main_instruction,
-                                  _compositegate.CompositeGate)
+        is_composite = isinstance(main_instruction, CompositeGate)
         if is_composite and expand_gates:
             instruction_list = main_instruction.instruction_list()
         else:
