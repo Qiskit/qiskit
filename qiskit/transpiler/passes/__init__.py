@@ -10,4 +10,5 @@
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .check_map import CheckMap
+from .optimize_1q_gates import Optimize1qGates
 from .mapping.direction_mapper import DirectionMapper

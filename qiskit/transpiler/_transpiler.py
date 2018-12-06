@@ -17,12 +17,12 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.unrollers import _dagunroller
 from qiskit.unrollers import _dagbackend
-from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
-                           cx_cancellation, direction_mapper,
+from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from ._parallel import parallel_map
+from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
 
 
 logger = logging.getLogger(__name__)
@@ -193,7 +193,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Simplify cx gates
             cx_cancellation(dag)
             # Simplify single qubit gates
-            dag = optimize_1q_gates(dag)
+            dag = Optimize1qGates().run(dag)
             return_last_measurements(dag, removed_meas,
                                      last_layout)
             logger.info("post-mapping properties: %s",
