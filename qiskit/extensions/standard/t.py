@@ -19,28 +19,46 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 
+def _define_decompositions_tgate():
+    """
+    gate t a { u1(pi/4) a; }
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(1, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("u1", 1, 0, 1)
+    rule = [
+        U1Gate(pi/4, q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
+
+def _define_decompositions_tdggate():
+    """
+    gate t a { u1(pi/4) a; }
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(1, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("u1", 1, 0, 1)
+    rule = [
+        U1Gate(-pi/4, q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
 
 class TGate(Gate):
     """T Gate: pi/4 rotation around Z axis."""
 
+    _decompositions = _define_decompositions_tgate()
+
     def __init__(self, qubit, circ=None):
         """Create new T gate."""
         super().__init__("t", [], [qubit], circ)
-
-    def _define_decompositions(self):
-        """
-        gate t a { u1(pi/4) a; }
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
-        rule = [
-            U1Gate(pi/4, q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
@@ -55,6 +73,8 @@ class TGate(Gate):
 
 class TdgGate(Gate):
     """T Gate: -pi/4 rotation around Z axis."""
+
+    _decompositions = _define_decompositions_tdggate()
 
     def __init__(self, qubit, circ=None):
         """Create new Tdg gate."""

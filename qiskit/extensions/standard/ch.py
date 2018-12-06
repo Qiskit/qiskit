@@ -24,53 +24,56 @@ from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 
 
+def _define_decompositions():
+    """
+    gate ch a,b {
+    h b;
+    sdg b;
+    cx a,b;
+    h b;
+    t b;
+    cx a,b;
+    t b;
+    h b;
+    s b;
+    x b;
+    s a;}
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(2, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("x", 1, 0, 0)
+    decomposition.add_basis_element("h", 1, 0, 0)
+    decomposition.add_basis_element("cx", 2, 0, 0)
+    decomposition.add_basis_element("t", 1, 0, 0)
+    decomposition.add_basis_element("s", 1, 0, 0)
+    decomposition.add_basis_element("sdg", 1, 0, 0)
+    rule = [
+        HGate(q[1]),
+        SdgGate(q[1]),
+        CnotGate(q[0], q[1]),
+        HGate(q[1]),
+        TGate(q[1]),
+        CnotGate(q[0], q[1]),
+        TGate(q[1]),
+        HGate(q[1]),
+        SGate(q[1]),
+        XGate(q[1]),
+        SGate(q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
+
 class CHGate(Gate):
     """controlled-H gate."""
+
+    _decompositions = _define_decompositions()
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CH gate."""
         super().__init__("ch", [], [ctl, tgt], circ)
-
-    def _define_decompositions(self):
-        """
-        gate ch a,b {
-        h b;
-        sdg b;
-        cx a,b;
-        h b;
-        t b;
-        cx a,b;
-        t b;
-        h b;
-        s b;
-        x b;
-        s a;}
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("x", 1, 0, 0)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("t", 1, 0, 0)
-        decomposition.add_basis_element("s", 1, 0, 0)
-        decomposition.add_basis_element("sdg", 1, 0, 0)
-        rule = [
-            HGate(q[1]),
-            SdgGate(q[1]),
-            CnotGate(q[0], q[1]),
-            HGate(q[1]),
-            TGate(q[1]),
-            CnotGate(q[0], q[1]),
-            TGate(q[1]),
-            HGate(q[1]),
-            SGate(q[1]),
-            XGate(q[1]),
-            SGate(q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""

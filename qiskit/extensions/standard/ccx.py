@@ -19,52 +19,54 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
 
+def _define_decompositions():
+    """
+    gate ccx a,b,c
+    {
+    h c; cx b,c; tdg c; cx a,c;
+    t c; cx b,c; tdg c; cx a,c;
+    t b; t c; h c; cx a,b;
+    t a; tdg b; cx a,b;}
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(3, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("h", 1, 0, 0)
+    decomposition.add_basis_element("cx", 2, 0, 0)
+    decomposition.add_basis_element("t", 1, 0, 0)
+    decomposition.add_basis_element("tdg", 1, 0, 0)
+    decomposition.add_basis_element("s", 1, 0, 0)
+    decomposition.add_basis_element("sdg", 1, 0, 0)
+    rule = [
+        HGate(q[2]),
+        CnotGate(q[1], q[2]),
+        TdgGate(q[2]),
+        CnotGate(q[0], q[2]),
+        TGate(q[2]),
+        CnotGate(q[1], q[2]),
+        TdgGate(q[2]),
+        CnotGate(q[0], q[2]),
+        TGate(q[1]),
+        TGate(q[2]),
+        HGate(q[2]),
+        CnotGate(q[0], q[1]),
+        TGate(q[0]),
+        TdgGate(q[1]),
+        CnotGate(q[0], q[1])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
 
 class ToffoliGate(Gate):
     """Toffoli gate."""
 
+    _decompositions = _define_decompositions()
+
     def __init__(self, ctl1, ctl2, tgt, circ=None):
         """Create new Toffoli gate."""
         super().__init__("ccx", [], [ctl1, ctl2, tgt], circ)
-
-    def _define_decompositions(self):
-        """
-        gate ccx a,b,c
-        {
-        h c; cx b,c; tdg c; cx a,c;
-        t c; cx b,c; tdg c; cx a,c;
-        t b; t c; h c; cx a,b;
-        t a; tdg b; cx a,b;}
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(3, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("t", 1, 0, 0)
-        decomposition.add_basis_element("tdg", 1, 0, 0)
-        decomposition.add_basis_element("s", 1, 0, 0)
-        decomposition.add_basis_element("sdg", 1, 0, 0)
-        rule = [
-            HGate(q[2]),
-            CnotGate(q[1], q[2]),
-            TdgGate(q[2]),
-            CnotGate(q[0], q[2]),
-            TGate(q[2]),
-            CnotGate(q[1], q[2]),
-            TdgGate(q[2]),
-            CnotGate(q[0], q[2]),
-            TGate(q[1]),
-            TGate(q[2]),
-            HGate(q[2]),
-            CnotGate(q[0], q[1]),
-            TGate(q[0]),
-            TdgGate(q[1]),
-            CnotGate(q[0], q[1])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""

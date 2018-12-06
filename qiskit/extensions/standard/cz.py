@@ -20,30 +20,33 @@ from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 
 
+def _define_decompositions():
+    """
+    gate cz a,b { h b; cx a,b; h b; }
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(2, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("h", 1, 0, 0)
+    decomposition.add_basis_element("cx", 2, 0, 0)
+    rule = [
+        HGate(q[1]),
+        CnotGate(q[0], q[1]),
+        HGate(q[1])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
+
 class CzGate(Gate):
     """controlled-Z gate."""
+
+    _decompositions = _define_decompositions()
 
     def __init__(self, ctl, tgt, circ=None):
         """Create new CZ gate."""
         super().__init__("cz", [], [ctl, tgt], circ)
-
-    def _define_decompositions(self):
-        """
-        gate cz a,b { h b; cx a,b; h b; }
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        rule = [
-            HGate(q[1]),
-            CnotGate(q[0], q[1]),
-            HGate(q[1])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""

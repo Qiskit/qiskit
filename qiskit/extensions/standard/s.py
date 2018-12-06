@@ -19,28 +19,46 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 
+def _define_decompositions_sgate():
+    """
+    gate s a { u1(pi/2) a; }
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(1, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("u1", 1, 0, 1)
+    rule = [
+        U1Gate(pi/2, q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
+
+def _define_decompositions_sdggate():
+    """
+    gate sdg a { u1(-pi/2) a; }
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(1, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("u1", 1, 0, 1)
+    rule = [
+        U1Gate(-pi/2, q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
 
 class SGate(Gate):
     """S=diag(1,i) Clifford phase gate."""
 
+    _decompositions = _define_decompositions_sgate()
+
     def __init__(self, qubit, circ=None):
         """Create new S gate."""
         super().__init__("s", [], [qubit], circ)
-
-    def _define_decompositions(self):
-        """
-        gate s a { u1(pi/2) a; }
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
-        rule = [
-            U1Gate(pi/2, q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
@@ -56,24 +74,11 @@ class SGate(Gate):
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoin phase gate."""
 
+    _decompositions = _define_decompositions_sdggate
+
     def __init__(self, qubit, circ=None):
         """Create new Sdg gate."""
         super().__init__("sdg", [], [qubit], circ)
-
-    def _define_decompositions(self):
-        """
-        gate sdg a { u1(-pi/2) a; }
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
-        rule = [
-            U1Gate(-pi/2, q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""

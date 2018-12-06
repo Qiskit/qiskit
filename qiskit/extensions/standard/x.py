@@ -20,29 +20,31 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u3 import U3Gate
 
 
+def _define_decompositions():
+    """
+        gate x a {
+        u3(pi,0,pi) a;
+        }
+    """
+    decomposition = DAGCircuit()
+    q = QuantumRegister(1, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("u3", 1, 0, 3)
+    rule = [
+        U3Gate(pi, 0, pi, q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
+
 class XGate(Gate):
     """Pauli X (bit-flip) gate."""
+    _decompositions = _define_decompositions()
 
     def __init__(self, qubit, circ=None):
         """Create new X gate."""
         super().__init__("x", [], [qubit], circ)
-
-    def _define_decompositions(self):
-        """
-        gate x a {
-        u3(pi,0,pi) a;
-        }
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("u3", 1, 0, 3)
-        rule = [
-            U3Gate(pi, 0, pi, q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""

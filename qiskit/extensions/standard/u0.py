@@ -19,24 +19,27 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.ubase import UBase
 
 
+def _define_decompositions():
+    decomposition = DAGCircuit()
+    q = QuantumRegister(1, "q")
+    decomposition.add_qreg(q)
+    decomposition.add_basis_element("U", 1, 0, 3)
+    rule = [
+        UBase(0, 0, 0, q[0])
+    ]
+    for inst in rule:
+        decomposition.apply_operation_back(inst)
+    return [decomposition]
+
+
 class U0Gate(Gate):
     """Wait gate."""
+
+    _decompositions = _define_decompositions()
 
     def __init__(self, m, qubit, circ=None):
         """Create new u0 gate."""
         super().__init__("u0", [m], [qubit], circ)
-
-    def _define_decompositions(self):
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        decomposition.add_basis_element("U", 1, 0, 3)
-        rule = [
-            UBase(0, 0, 0, q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
