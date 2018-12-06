@@ -43,6 +43,8 @@ def dag_to_circuit(dag):
                 name = 'u_base'
             elif n['op'].name == 'CX':
                 name = 'cx_base'
+            elif n['op'].name == 'id':
+                name = 'iden'
             else:
                 name = n['op'].name
 
@@ -55,7 +57,11 @@ def dag_to_circuit(dag):
             for clbit in n['cargs']:
                 clbits.append(cregs[clbit[0].name][clbit[1]])
             params = n['op'].param
-            result = instr_method(*params, *qubits, *clbits)
+
+            if name in ['snapshot', 'save', 'noise', 'load']:
+                result = instr_method(params[0])
+            else:
+                result = instr_method(*params, *qubits, *clbits)
             if 'condition' in n and n['condition']:
                 result.c_if(*n['condition'])
     return circuit
