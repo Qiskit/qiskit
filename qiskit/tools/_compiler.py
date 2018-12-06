@@ -59,13 +59,13 @@ def compile(circuits, backend,
 
     _config_max_shots = getattr(backend.configuration(), 'shots', 65536)
     if shots > _config_max_shots:
-        raise QiskitError("max_shots (%d) exceeded for backend %s" % 
+        raise QiskitError("max_shots (%d) exceeded for backend %s" %
                           (_config_max_shots, backend.name()))
 
     _config_max_experiments = getattr(backend.configuration(),
                                       'max_experiments', 65536)
-    if len(circuits) > _config_max_experiments: 
-        raise QiskitError("max_experiments (%d) exceeded for backend %s" % 
+    if len(circuits) > _config_max_experiments:
+        raise QiskitError("max_experiments (%d) exceeded for backend %s" %
                           (_config_max_experiments, backend.name()))
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
