@@ -21,8 +21,8 @@ from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, direction_map
                            remove_last_measurements, return_last_measurements)
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
-from ._parallel import parallel_map
 from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
+from ._parallel import parallel_map
 
 
 logger = logging.getLogger(__name__)

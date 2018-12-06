@@ -27,11 +27,10 @@ from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 
 
 class Optimize1qGates(TransformationPass):
-    def run(self, dag):
-        """Simplify runs of single qubit gates in the QX basis.
+    """Simplify runs of single qubit gates in the QX basis."""
 
-        Return a new circuit that has been optimized.
-        """
+    def run(self, dag):
+        """Return a new circuit that has been optimized."""
         qx_basis = ["u1", "u2", "u3", "cx", "id"]
         dag_unroller = DagUnroller(dag, DAGBackend(qx_basis))
         unrolled = dag_unroller.expand_gates()
@@ -42,19 +41,19 @@ class Optimize1qGates(TransformationPass):
             right_name = "u1"
             right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
             for current_node in run:
-                nd = unrolled.multi_graph.node[current_node]
-                left_name = nd["name"]
-                if (nd["condition"] is not None
-                        or len(nd["qargs"]) != 1
-                        or nd["qargs"][0] != run_qarg
+                node = unrolled.multi_graph.node[current_node]
+                left_name = node["name"]
+                if (node["condition"] is not None
+                        or len(node["qargs"]) != 1
+                        or node["qargs"][0] != run_qarg
                         or left_name not in ["u1", "u2", "u3", "id"]):
                     raise MapperError("internal error")
                 if left_name == "u1":
-                    left_parameters = (N(0), N(0), nd["op"].param[0])
+                    left_parameters = (N(0), N(0), node["op"].param[0])
                 elif left_name == "u2":
-                    left_parameters = (sympy.pi / 2, nd["op"].param[0], nd["op"].param[1])
+                    left_parameters = (sympy.pi / 2, node["op"].param[0], node["op"].param[1])
                 elif left_name == "u3":
-                    left_parameters = tuple(nd["op"].param)
+                    left_parameters = tuple(node["op"].param)
                 else:
                     left_name = "u1"  # replace id with u1
                     left_parameters = (N(0), N(0), N(0))
@@ -200,7 +199,7 @@ class Optimize1qGates(TransformationPass):
         return (theta, phi, lamb)
 
     @staticmethod
-    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
+    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9): # pylint: disable=invalid-name
         """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
         Solve the equation
@@ -213,12 +212,12 @@ class Optimize1qGates(TransformationPass):
 
         Return a solution theta, phi, and lambda.
         """
-        Q = quaternion_from_euler([theta1, xi, theta2], 'yzy')
-        euler = Q.to_zyz()
-        P = quaternion_from_euler(euler, 'zyz')
+        quaternion_yzy = quaternion_from_euler([theta1, xi, theta2], 'yzy')
+        euler = quaternion_yzy.to_zyz()
+        quaternion_zyz = quaternion_from_euler(euler, 'zyz')
         # output order different than rotation order
         out_angles = (euler[1], euler[0], euler[2])
-        abs_inner = abs(P.data.dot(Q.data))
+        abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))
         if not np.allclose(abs_inner, 1, eps):
             raise MapperError('YZY and ZYZ angles do not give same rotation matrix.')
         return out_angles

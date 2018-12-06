@@ -12,13 +12,13 @@ import sympy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.transpiler import MapperError
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 
 class TestOptimize1qGates(QiskitTestCase):
+    """ Test for 1q gate optimizations. """
     def test_optimize_id(self):
         """ qr0:--[id]-- == qr0:------ """
         qr = QuantumRegister(1, 'qr')
