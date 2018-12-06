@@ -34,9 +34,7 @@ def dag_to_circuit(dag):
         creg_tmp = ClassicalRegister(creg.size, name=creg.name)
         cregs[creg.name] = creg_tmp
 
-    random_name = QuantumCircuit.cls_prefix() + \
-        str(''.join(random.choice(string.ascii_lowercase) for i in range(8)))
-    name = dag.name or random_name
+    name = dag.name or None
     circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
 
     graph = dag.multi_graph
