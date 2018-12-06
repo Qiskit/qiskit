@@ -54,7 +54,7 @@ def per_non_blacklisted_backend(*blacklist):
                         tested_backends.append(backend.name())
                         backend_test = test if config.simulator else slow_test(test)
                         backend_test(self, backend, *args, **kwargs)
-            logger.debug("Tested backends: %", ','.join(tested_backends))
+            logger.debug("Tested backends: %s", tested_backends)
             for qe_token, _ in credentials:
                 IBMQ.disable_accounts(token=qe_token)
         return _wrapper
