@@ -15,7 +15,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
                      max_credits=10, qobj_id=None, basis_gates=None, coupling_map=None,
-                     seed=None):
+                     seed=None, memory=False):
     """Convert a list of circuits into a qobj.
 
     Args:
@@ -28,6 +28,7 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
         basis_gates (list[str])): basis gates for the experiment
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         seed (int): random seed for simulators
+        memory (bool): if True, per-shot measurement bitstrings are returned as well
 
     Returns:
         Qobj: the Qobj to be run on the backends
@@ -40,7 +41,8 @@ def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
     qobj_config = deepcopy(config or {})
     qobj_config.update({'shots': shots,
                         'max_credits': max_credits,
-                        'memory_slots': 0})
+                        'memory_slots': 0,
+                        'memory': memory})
 
     qobj = Qobj(qobj_id=qobj_id or str(uuid.uuid4()),
                 config=QobjConfig(**qobj_config),
