@@ -50,15 +50,14 @@ def dag_to_circuit(dag):
 
             instr_method = getattr(circuit, name)
             qubits = []
-            for qubit in n['op'].qargs:
+            for qubit in n['qargs']:
                 qubits.append(qregs[qubit[0].name][qubit[1]])
 
             clbits = []
-            for clbit in n['op'].cargs:
+            for clbit in n['cargs']:
                 clbits.append(cregs[clbit[0].name][clbit[1]])
             params = n['op'].param
             result = instr_method(*params, *qubits, *clbits)
             if 'condition' in n and n['condition']:
                 result.c_if(*n['condition'])
-
     return circuit
