@@ -10,6 +10,7 @@
 """
 Quantum circuit object.
 """
+import os
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
@@ -57,6 +58,8 @@ class QuantumCircuit(object):
         """
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
+            if str(os.getpid()) != os.environ['QISKIT_MAIN_PID']:
+                name += '-{}'.format(os.getpid())
         self._increment_instances()
 
         if not isinstance(name, str):
