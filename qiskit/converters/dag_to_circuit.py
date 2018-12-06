@@ -44,7 +44,7 @@ def dag_to_circuit(dag):
             if n['op'].name == 'U':
                 name = 'u_base'
             elif n['op'].name == 'CX':
-                name = 'cx'
+                name = 'cx_base'
             else:
                 name = n['op'].name
 
