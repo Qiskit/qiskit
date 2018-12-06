@@ -75,6 +75,7 @@ class TestQobjToCircuits(QiskitTestCase):
                          circuit_to_dag(circuit_b))
 
     def test_qobj_to_circuit_with_sim_instructions(self):
+        """Check qobj_to_circuit result with asimulator instruction."""
         backend = Aer.get_backend('qasm_simulator_py')
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
