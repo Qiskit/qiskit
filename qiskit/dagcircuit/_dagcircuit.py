@@ -460,16 +460,16 @@ class DAGCircuit:
         """Check that wiremap neither fragments nor leaves duplicate registers.
 
         1. There are no fragmented registers. A register in keyregs
-        is fragmented if not all of its (qu)bits are renamed by wire_map.
+        is fragmented if not all of its (qu)bits are renamed by edge_map.
         2. There are no duplicate registers. A register is duplicate if
-        it appears in both self and keyregs but not in wire_map.
+        it appears in both self and keyregs but not in edge_map.
 
         Args:
             edge_map (dict): map from (reg,idx) in keyregs to (reg,idx) in valregs
             keyregs (dict): a map from register names to Register objects
             valregs (dict): a map from register names to Register objects
             valreg (bool): if False the method ignores valregs and does not
-                add regs for bits in the wire_map image that don't appear in valregs
+                add regs for bits in the edge_map image that don't appear in valregs
 
         Returns:
             set(Register): the set of regs to add to self
@@ -489,7 +489,7 @@ class DAGCircuit:
         for k, v in reg_frag_chk.items():
             s = set(v.values())
             if len(s) == 2:
-                raise DAGCircuitError("wire_map fragments reg %s" % k)
+                raise DAGCircuitError("edge_map fragments reg %s" % k)
             elif s == set([False]):
                 if k in self.qregs.values() or k in self.cregs.values():
                     raise DAGCircuitError("unmapped duplicate reg %s" % k)
@@ -499,7 +499,7 @@ class DAGCircuit:
             else:
                 if valreg:
                     # If mapping to a register not in valregs, add it.
-                    # (k,0) exists in wire_map because wire_map doesn't
+                    # (k,0) exists in edge_map because edge_map doesn't
                     # fragment k
                     if not edge_map[(k, 0)][0].name in valregs:
                         size = max(map(lambda x: x[1],
