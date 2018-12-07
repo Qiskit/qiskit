@@ -379,7 +379,7 @@ class DAGCircuit:
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
     def apply_operation_front(self, op, qargs=None, cargs=None, condition=None):
-        """Apply an operation to the output of the circuit.
+        """Apply an operation to the input of the circuit.
         TODO: make `qargs` and `cargs` mandatory, when they are dropped from op.
 
         Args:
