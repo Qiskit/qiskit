@@ -17,6 +17,8 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Barrier(Instruction):
     """Barrier instruction."""
 
+    opaque = True
+
     def __init__(self, qubits, circ=None):
         """Create new barrier instruction."""
         super().__init__("barrier", [], list(qubits), [], circ)

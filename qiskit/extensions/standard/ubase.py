@@ -20,6 +20,8 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class UBase(Gate):
     """Element of SU(2)."""
 
+    opaque = True
+
     def __init__(self, theta, phi, lam, qubit, circ=None):
         super().__init__("U", [theta, phi, lam], [qubit], circ)
 

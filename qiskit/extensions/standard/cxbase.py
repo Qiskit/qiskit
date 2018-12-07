@@ -18,6 +18,8 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class CXBase(Gate):
     """Fundamental controlled-NOT gate."""
 
+    opaque = True
+
     def __init__(self, ctl, tgt, circ=None):
         """Create new CX instruction."""
         super().__init__("CX", [], [ctl, tgt], circ)

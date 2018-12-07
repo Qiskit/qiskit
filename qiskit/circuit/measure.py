@@ -20,6 +20,8 @@ from .classicalregister import ClassicalRegister
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
+    opaque = True
+
     def __init__(self, qubit, bit, circuit=None):
         """Create new measurement instruction."""
         super().__init__("measure", [], [qubit], [bit], circuit)

@@ -17,6 +17,8 @@ from .quantumregister import QuantumRegister
 class Reset(Instruction):
     """Qubit reset."""
 
+    opaque = True
+
     def __init__(self, qubit, circ=None):
         """Create new reset instruction."""
         super().__init__("reset", [], [qubit], [], circ)
