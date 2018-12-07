@@ -55,6 +55,3 @@ from . import tools
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
     __version__ = version_file.read().strip()
-
-# Set a env variable that gives the main process ID
-os.environ['QISKIT_MAIN_PID'] = str(os.getpid())
