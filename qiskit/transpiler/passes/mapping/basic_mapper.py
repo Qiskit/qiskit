@@ -99,6 +99,6 @@ class BasicMapper(TransformationPass):
                     new_dag.compose_front(swap_layer, edge_map)
 
             edge_map = current_layout.combine_into_edge_map(self.initial_layout)
-            new_dag.extends_at_the_end(subdag, edge_map)
+            new_dag.extend_back(subdag, edge_map)
 
         return new_dag
