@@ -19,6 +19,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u2 import U2Gate
 
+
 def _define_decompositions():
     """
     gate h a { u2(0,pi) a; }
@@ -33,6 +34,7 @@ def _define_decompositions():
     for inst in rule:
         decomposition.apply_operation_back(inst)
     return [decomposition]
+
 
 class HGate(Gate):
     """Hadamard gate."""

@@ -19,6 +19,7 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
 
+
 def _define_decompositions():
     """
     gate ccx a,b,c

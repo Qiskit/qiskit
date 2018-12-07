@@ -18,6 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
 
+
 def _define_decompositions():
     """
     gate swap a,b { cx a,b; cx b,a; cx a,b; }
@@ -34,7 +35,6 @@ def _define_decompositions():
     for inst in rule:
         decomposition.apply_operation_back(inst)
     return [decomposition]
-
 
 
 class SwapGate(Gate):

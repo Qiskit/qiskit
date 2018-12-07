@@ -20,6 +20,7 @@ from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.cx import CnotGate
 
+
 def _define_decompositions():
     """
     gate cy a,b { sdg b; cx a,b; s b; }

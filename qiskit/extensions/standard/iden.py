@@ -18,6 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.ubase import UBase
 
+
 def _define_decompositions():
     """
         gate iden a{U(0,0,0) a;}

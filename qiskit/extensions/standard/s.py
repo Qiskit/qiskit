@@ -19,6 +19,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 
+
 def _define_decompositions_sgate():
     """
     gate s a { u1(pi/2) a; }

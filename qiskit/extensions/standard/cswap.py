@@ -17,6 +17,7 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
 
+
 def _define_decompositions():
     """
     gate cswap a,b,c
