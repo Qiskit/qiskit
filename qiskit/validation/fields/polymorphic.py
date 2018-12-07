@@ -7,7 +7,7 @@
 
 """Polymorphic fields that represent one of several schemas or types."""
 
-from collections import Iterable
+from collections.abc import Iterable
 from functools import partial
 
 from marshmallow.utils import is_collection
