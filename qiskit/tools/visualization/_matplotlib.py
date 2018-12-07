@@ -363,9 +363,9 @@ class MatplotlibDrawer:
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
-                label = '${}_{{{}}}$'.format(reg.name, reg.index)
+                label = '${}_{{{}}}$'.format(reg.name.name, reg.index)
             else:
-                label = '${}$'.format(reg.name)
+                label = '${}$'.format(reg.name.name)
             pos = -ii
             self._qreg_dict[ii] = {
                 'y': pos,
@@ -384,7 +384,7 @@ class MatplotlibDrawer:
                     self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
-                    label = '${}$'.format(reg.name)
+                    label = '${}$'.format(reg.name.name)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -394,7 +394,7 @@ class MatplotlibDrawer:
                     if not (not nreg or reg.name != nreg.name):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.name.name, reg.index)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
