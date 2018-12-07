@@ -14,7 +14,8 @@ from collections import OrderedDict
 from copy import deepcopy
 import itertools
 import warnings
-
+import sys
+import multiprocessing as mp
 
 from qiskit.qasm import _qasm
 from qiskit._qiskiterror import QiskitError
@@ -57,6 +58,11 @@ class QuantumCircuit(object):
         """
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
+            # pylint: disable=not-callable
+            # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
+            if sys.platform != "win32" and \
+               isinstance(mp.current_process(), mp.context.ForkProcess):
+                name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
