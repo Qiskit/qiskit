@@ -29,18 +29,16 @@ class DirectionMapper(TransformationPass):
         ----.----      --[H]--(+)--[H]--
     """
 
-    def __init__(self, coupling_map, h_gate=None, initial_layout=None):
+    def __init__(self, coupling_map, initial_layout=None):
         """
         Args:
             coupling_map (Coupling): Directed graph represented a coupling map.
-            h_gate (Type):  Default: HGate. The Gate class that defines a Hadamard (H) gate.
             initial_layout (Layout): The initial layout of the DAG.
         """
 
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.h_gate = h_gate if h_gate is not None else HGate
 
     def run(self, dag):
         """
@@ -87,10 +85,10 @@ class DirectionMapper(TransformationPass):
 
                     # Add H gates around
                     subdag.add_basis_element('h', 1, 0, 0)
-                    subdag.apply_operation_back(self.h_gate(target))
-                    subdag.apply_operation_back(self.h_gate(control))
-                    subdag.apply_operation_front(self.h_gate(target))
-                    subdag.apply_operation_front(self.h_gate(control))
+                    subdag.apply_operation_back(HGate(target))
+                    subdag.apply_operation_back(HGate(control))
+                    subdag.apply_operation_front(HGate(target))
+                    subdag.apply_operation_front(HGate(control))
 
                     # Flips the CX
                     cnot['op'].qargs[0], cnot['op'].qargs[1] = target, control
