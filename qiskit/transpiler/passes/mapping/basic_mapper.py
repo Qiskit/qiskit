@@ -28,7 +28,6 @@ class BasicMapper(TransformationPass):
 
     def __init__(self,
                  coupling_map,
-                 swap_gate=None,
                  initial_layout=None):
         """
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
@@ -40,7 +39,7 @@ class BasicMapper(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.swap_gate = swap_gate if swap_gate is not None else SwapGate
+        self.swap_gate = SwapGate
 
     def run(self, dag):
         """
