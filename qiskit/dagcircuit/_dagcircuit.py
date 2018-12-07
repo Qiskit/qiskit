@@ -456,7 +456,7 @@ class DAGCircuit:
                                       % k)
         return union_gates
 
-    def _check_wiremap_registers(self, edge_map, keyregs, valregs, valreg=True):
+    def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
 
         1. There are no fragmented registers. A register in keyregs
@@ -591,13 +591,13 @@ class DAGCircuit:
         if len(set(edge_map.values())) != len(edge_map):
             raise DAGCircuitError("duplicates in wire_map")
 
-        add_qregs = self._check_wiremap_registers(edge_map,
+        add_qregs = self._check_edgemap_registers(edge_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_wiremap_registers(edge_map,
+        add_cregs = self._check_edgemap_registers(edge_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
         for creg in add_cregs:
@@ -659,13 +659,13 @@ class DAGCircuit:
         if len(set(wire_map.values())) != len(wire_map):
             raise DAGCircuitError("duplicates in wire_map")
 
-        add_qregs = self._check_wiremap_registers(wire_map,
+        add_qregs = self._check_edgemap_registers(wire_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_wiremap_registers(wire_map,
+        add_cregs = self._check_edgemap_registers(wire_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
         for creg in add_cregs:
@@ -1009,13 +1009,13 @@ class DAGCircuit:
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self
         proxy_map = {w: (QuantumRegister(1, 'proxy'), 0) for w in wires}
-        add_qregs = self._check_wiremap_registers(proxy_map,
+        add_qregs = self._check_edgemap_registers(proxy_map,
                                                   input_circuit.qregs,
                                                   {}, False)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_wiremap_registers(proxy_map,
+        add_cregs = self._check_edgemap_registers(proxy_map,
                                                   input_circuit.cregs,
                                                   {}, False)
         for creg in add_cregs:
@@ -1108,13 +1108,13 @@ class DAGCircuit:
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self
         proxy_map = {w: QuantumRegister(1, 'proxy') for w in wires}
-        add_qregs = self._check_wiremap_registers(proxy_map,
+        add_qregs = self._check_edgemap_registers(proxy_map,
                                                   input_circuit.qregs,
                                                   {}, False)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_wiremap_registers(proxy_map,
+        add_cregs = self._check_edgemap_registers(proxy_map,
                                                   input_circuit.cregs,
                                                   {}, False)
         for creg in add_cregs:
