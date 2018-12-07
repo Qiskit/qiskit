@@ -26,11 +26,6 @@ Added
 - Added DAG visualizer which requires `Graphivz <https://www.graphviz.org/>`_
   (#1059)
 - Added an ASCII art circuit visualizer (#909)
-- Added a new kwarg `filename` to
-  `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
-  rendered bloch sphere to a file instead of displaying it (#1096)
-- Added a new kwarg `filename` to `plot_state()` to optionally write the
-  rendered plot to a file instead of displaying it (#1096)
 - The QuantumCircuit class now returns an ASCII art visualization when treated
   as a string (#911)
 - The QuantumCircuit class now has a `draw()` method which behaves the same
@@ -65,7 +60,9 @@ Changed
 """""""
 
 - Evolved pass-based transpiler to support advanced functionality (#1060)
-- Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
+- `.retrieve_job()` and `.jobs()` no longer returns results by default,
+  instead the result must be accessed by the `result()` method on the job
+  objects (#1082).
 - Make `backend.status()` dictionary conform with schema.
 - The different output backends for the circuit_drawer() visualizations
   have been moved into separate private modules in
@@ -97,18 +94,19 @@ Changed
 - Remove local backend (Aer) fallback (#1303).
 - DAGCircuits store Instruction and Register objects, instead of name
   references. The DAGCircuit class methods are updated accordingly (#1210).
-- Different unrollers are deprecated. The only unrolling happens
-  from DAG to DAG (#1210).
 - ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
   processing is only done internally (#1397).
 - Moved all the circuit modules into a circuit module but for most users it is still 
   imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
-- Breaking change: ``qiskit.backends.aer`` has been removed in favour of
-  ``qiskit.backends.builtinsimulators`` (Python simulators) and
-  ``qiskit.backends.legacysimulators`` (C++ simulators) (#1484)
-- Breaking change: ``Aer`` in ``qiskit`` root module has been removed. Instead ``Simulators`` will
-  stand for Python simulators and ``LegacySimulators`` for those in C++. (#1484)
-- Breaking change: ``qiskit.backends`` has been renamed to ``qiskit.providers`` (#1531).
+- ``qiskit.backends`` has been renamed to ``qiskit.providers`` (#1531).
+- ``qiskit.backends.aer`` has been removed in favor of
+  ``qiskit.providers.builtinsimulators`` (Python simulators) and
+  ``qiskit.providers.legacysimulators`` (C++ simulators) (#1484)
+- The ``Aer`` provider is now accessible from a new package outside ``qiskit.terra``.
+  The builtin providers are now ``BasicAer`` for Python simulators and
+  ``LegacySimulators`` for those in C++. (#1484)
+- The different unrollers are deprecated. The only unrolling happens
+  from DAG to DAG (#1210).
 
 
 Deprecated
@@ -127,14 +125,14 @@ Deprecated
 - The ``plot_barriers`` and ``reverse_bits`` keys in the ``style`` kwarg dict
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
-- The transpiler methods do not support emitting multiple output `format`
-  anymore (#1319).
+- The ``transpile_dag()`` function ``format`` kwarg for emitting different
+  output formats is deprecated (#1319).
 - Several methods of ``qiskit.Result`` have been deprecated (#1360).
 - The functions `plot_state()` and `iplot_state()` have been depreciated.
   Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
   called. (#1359)
-- The ``skip_transpiler`` arg has been deprecated from ``tools.compile()`` and
-  ``tools.execute()`` in favor of using the PassManager directly.
+- The ``skip_transpiler`` arg has been deprecated from ``compile()`` and
+  ``execute()`` in favor of using the PassManager directly.
 
 Fixed
 """""
@@ -190,6 +188,9 @@ Removed
   from backends if they are called via the ``Result.get_xxx()`` methods
   (i.e. ``get_counts()``, ``get_memory()``, ``get_statevector()``,
   ``get_unitary()``). The raw data is accessible through ``Result.data()`` (#1404).
+- The ``transpile()`` function kwarg ``format`` has been removed and will always
+  return a circuit object. Instead you'll need to manually convert the output
+  with the functions provided in ``qiskit.converters``.
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^
