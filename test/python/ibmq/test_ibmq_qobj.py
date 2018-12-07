@@ -11,7 +11,6 @@
 
 """IBMQ Remote Backend Qobj Tests"""
 
-import logging
 import os
 import unittest
 import functools
@@ -21,23 +20,23 @@ from qiskit import IBMQ, Aer
 from qiskit.qasm import pi
 
 from ..common import require_multiple_credentials, JobTestCase, slow_test
-logger = logging.getLogger(__name__)
 # Timeout duration
 TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
 BLACKLIST = ('ibmq_4_atlantis',)
-ALWAYS_BLACKLISTED = ('ibmqx_hpc_qasm_simulator', 'QC20')
+ALWAYS_BLACKLISTED = ('QC20',)
+STATEVECOR_SIMULATORS = ('ibmq_statevector_simulator',)
 
 
-def per_non_blacklisted_backend(*blacklist):
+def per_non_blacklisted_backend(blacklist=(), backends_list=None):
     """ Test Qobj support on all non-blacklisted backends claiming to support Qobj.
 
     Args:
         blacklist (list): List of backend string names to skip.
-
+        backends_list (None or list): Optional list of backend names to use for tests.
+            If supplied all other backend.names() will be ignored
     Returns:
         func: Decorator.
     """
-    blacklist = blacklist+ALWAYS_BLACKLISTED
 
     def per_qobj_backend_decorator(test):
         @require_multiple_credentials
@@ -49,12 +48,21 @@ def per_non_blacklisted_backend(*blacklist):
             tested_backends = []
             for backend in IBMQ.backends():
                 config = backend.configuration()
-                if config.allow_q_object and backend.name() not in blacklist:
-                    with self.subTest(backend=backend.name()):
-                        tested_backends.append(backend.name())
+                backend_name = backend.name()
+                # Check is specific backends are specified
+                # otherwise passthrough
+                if backends_list is None:
+                    backend_specified = True
+                else:
+                    backend_specified = backend_name in backends_list
+
+                if (config.allow_q_object and backend_name not in blacklist and backend_specified):
+                    with self.subTest(backend=backend_name):
+                        tested_backends.append((backend_name, backend.hub,
+                                                backend.group, backend.project))
                         backend_test = test if config.simulator else slow_test(test)
                         backend_test(self, backend, *args, **kwargs)
-            logger.debug("Tested backends: %s", tested_backends)
+            self.log.info("Test %s backends: %s", backend_test.__name__, tested_backends)
             for qe_token, _ in credentials:
                 IBMQ.disable_accounts(token=qe_token)
         return _wrapper
@@ -62,9 +70,10 @@ def per_non_blacklisted_backend(*blacklist):
 
 
 # pylint: disable=invalid-name
-per_qobj_backend = per_non_blacklisted_backend()
+per_qobj_backend = per_non_blacklisted_backend(blacklist=ALWAYS_BLACKLISTED)
 # pylint: disable=invalid-name
-per_restricted_qobj_backend = per_non_blacklisted_backend(*BLACKLIST)
+per_restricted_qobj_backend = per_non_blacklisted_backend(blacklist=ALWAYS_BLACKLISTED+BLACKLIST)
+per_statevector_backend = per_non_blacklisted_backend(backends_list=STATEVECOR_SIMULATORS)
 
 
 class TestBackendQobj(JobTestCase):
@@ -73,6 +82,7 @@ class TestBackendQobj(JobTestCase):
         # pylint: disable=arguments-differ
         super().setUp()
         self._local_backend = Aer.get_backend('qasm_simulator_py')
+        self._local_statevector_backend = Aer.get_backend('statevector_simulator_py')
 
     @per_qobj_backend
     def test_operational(self, remote_backend):
@@ -291,6 +301,18 @@ class TestBackendQobj(JobTestCase):
         local_counts_dict = dict(zip(local_unique, local_counts))
         self.assertDictAlmostEqual(remote_counts_dict, local_counts_dict, delta=100)
 
+    @per_statevector_backend
+    def test_statevector_backend(self, remote_backend):
+        """Run test on statevector backends."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        circ = QuantumCircuit(qr, cr)
+        circ.ry(pi, qr[0])
+        qobj = compile(circ, remote_backend, shots=1)
+        result_remote = remote_backend.run(qobj).result(timeout=TIMEOUT)
+        result_local = self._local_statevector_backend.run(qobj).result()
+        self.assertDictAlmostEqual(result_remote.get_statevector(circ),
+                                   result_local.get_statevector(circ), delta=100)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
