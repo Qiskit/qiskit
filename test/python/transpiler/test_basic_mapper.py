@@ -82,9 +82,9 @@ class TestBasicMapper(QiskitTestCase):
 
          q0:--X---.---
               |   |
-         q1:--|--(+)--
-              |
-         q2:--X-------
+         q1:--X---|---
+                  |
+         q2:-----(+)--
 
         """
         coupling = Coupling({0: [1, 2]})
@@ -95,8 +95,8 @@ class TestBasicMapper(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.swap(qr[2], qr[0])
-        expected.cx(qr[1], qr[0])
+        expected.swap(qr[1], qr[0])
+        expected.cx(qr[0], qr[2])
 
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
@@ -105,31 +105,31 @@ class TestBasicMapper(QiskitTestCase):
 
     def test_keep_layout(self):
         """After a swap, the following gates also change the wires.
-         qr0:---.--------
+         qr0:---.---[H]--
                 |
          qr1:---|--------
                 |
-         qr2:--(+)--[H]--
+         qr2:--(+)-------
 
          Coupling map: [0]--[1]--[2]
 
-         qr0:------.---------
-                   |
-         qr1:--X--(+)--[H]--
+         qr0:--X-----------
                |
-         qr2:--X-------------
+         qr1:--X---.--[H]--
+                   |
+         qr2:-----(+)------
         """
         coupling = Coupling({1: [0, 2]})
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
-        circuit.h(qr[2])
+        circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.swap(qr[2], qr[1])
-        expected.cx(qr[0], qr[1])
+        expected.swap(qr[0], qr[1])
+        expected.cx(qr[1], qr[2])
         expected.h(qr[1])
 
         pass_ = BasicMapper(coupling)
@@ -149,13 +149,13 @@ class TestBasicMapper(QiskitTestCase):
 
          Coupling map: [0]--[1]--[2]--[3]
 
-         qr0:-------(+)---.--
-                     |    |
-         qr1:-----X--.---(+)-
+         qr0:--X--------------
+               |
+         qr1:--X--X-----------
                   |
-         qr2:--X--|----------
-               |  |
-         qr3:--X--X----------
+         qr2:-----X--(+)---.--
+                      |    |
+         qr3:---------.---(+)-
 
         """
         coupling = Coupling({0: [1], 1: [2], 2: [3]})
@@ -167,10 +167,10 @@ class TestBasicMapper(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.swap(qr[2], qr[3])
-        expected.swap(qr[3], qr[1])
-        expected.cx(qr[0], qr[1])
-        expected.cx(qr[1], qr[0])
+        expected.swap(qr[0], qr[1])
+        expected.swap(qr[1], qr[2])
+        expected.cx(qr[2], qr[3])
+        expected.cx(qr[3], qr[2])
 
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
