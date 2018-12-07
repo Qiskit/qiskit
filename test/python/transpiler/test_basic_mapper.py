@@ -8,7 +8,6 @@
 """Test the Basic Mapper pass"""
 
 import unittest
-from copy import deepcopy
 from qiskit.transpiler.passes import BasicMapper
 from qiskit.mapper import Coupling
 from qiskit.converters import circuit_to_dag
@@ -38,11 +37,10 @@ class TestBasicMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        before = deepcopy(dag)
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(before, after)
+        self.assertEqual(dag, after)
 
     def test_trivial_in_same_layer(self):
         """ No need to have any swap, two CXs distance 1 to each other, in the same layer
@@ -64,11 +62,10 @@ class TestBasicMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = circuit_to_dag(circuit)
-        before = deepcopy(dag)
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
 
-        self.assertEqual(before, after)
+        self.assertEqual(dag, after)
 
     def test_a_single_swap(self):
         """ Adding a swap
