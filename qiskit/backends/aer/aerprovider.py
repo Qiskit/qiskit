@@ -53,7 +53,7 @@ class AerProvider(BaseProvider):
             try:
                 resolved_name = resolve_backend_name(
                     name, backends,
-                    self.deprecated_backend_names(),
+                    self._deprecated_backend_names(),
                     {},
                     self._alternative_py_backend_names()
                 )
@@ -74,7 +74,7 @@ class AerProvider(BaseProvider):
             try:
                 resolved_name = resolve_backend_name(
                     name, backends,
-                    self.deprecated_backend_names(),
+                    self._deprecated_backend_names(),
                     {},
                     self._alternative_py_backend_names()
                 )
@@ -86,7 +86,7 @@ class AerProvider(BaseProvider):
         return filter_backends(backends, filters=filters, **kwargs)
 
     @staticmethod
-    def deprecated_backend_names():
+    def _deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
             'local_qasm_simulator_cpp': 'qasm_simulator',
