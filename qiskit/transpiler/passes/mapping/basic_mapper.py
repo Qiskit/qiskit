@@ -73,7 +73,7 @@ class BasicMapper(TransformationPass):
                     swap_layer = DAGCircuit()
 
                     path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
-                    for swap in range(len(path)-2):
+                    for swap in range(len(path) - 2):
                         connected_wire_1 = path[swap]
                         connected_wire_2 = path[swap + 1]
 
@@ -88,7 +88,8 @@ class BasicMapper(TransformationPass):
 
                         # create the swap operation
                         swap_layer.add_basis_element('swap', 2, 0, 0)
-                        swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2), qargs=[qubit_1, qubit_2])
+                        swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
+                                                        qargs=[qubit_1, qubit_2])
 
                     # update current_layout
                     for swap in range(len(path) - 2):
