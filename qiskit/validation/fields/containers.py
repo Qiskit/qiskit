@@ -7,7 +7,7 @@
 
 """Container fields that represent nested/collections of schemas or types."""
 
-from collections import Iterable
+from collections.abc import Iterable
 
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection

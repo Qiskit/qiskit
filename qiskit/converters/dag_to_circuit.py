@@ -6,12 +6,12 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting a dag to a circuit"""
-from copy import deepcopy
-import random
-import string
+import collections
 import networkx as nx
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
 
 
 def dag_to_circuit(dag):
@@ -23,24 +23,45 @@ def dag_to_circuit(dag):
     Return:
         QuantumCircuit: the circuit representing the input dag.
     """
-    circuit = QuantumCircuit()
-    random_name = QuantumCircuit.cls_prefix() + \
-        str(''.join(random.choice(string.ascii_lowercase) for i in range(8)))
-    circuit.name = dag.name or random_name
+    qregs = collections.OrderedDict()
     for qreg in dag.qregs.values():
-        circuit.add_register(qreg)
+        qreg_tmp = QuantumRegister(qreg.size, name=qreg.name)
+        qregs[qreg.name] = qreg_tmp
+    cregs = collections.OrderedDict()
     for creg in dag.cregs.values():
-        circuit.add_register(creg)
+        creg_tmp = ClassicalRegister(creg.size, name=creg.name)
+        cregs[creg.name] = creg_tmp
+
+    name = dag.name or None
+    circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
+
     graph = dag.multi_graph
     for node in nx.topological_sort(graph):
         n = graph.nodes[node]
         if n['type'] == 'op':
-            op = deepcopy(n['op'])
-            op.qargs = n['qargs']
-            op.cargs = n['cargs']
-            op.circuit = circuit
-            if 'condition' in n and n['condition']:
-                op = op.c_if(*n['condition'])
-            circuit._attach(op)
+            if n['op'].name == 'U':
+                name = 'u_base'
+            elif n['op'].name == 'CX':
+                name = 'cx_base'
+            elif n['op'].name == 'id':
+                name = 'iden'
+            else:
+                name = n['op'].name
 
+            instr_method = getattr(circuit, name)
+            qubits = []
+            for qubit in n['qargs']:
+                qubits.append(qregs[qubit[0].name][qubit[1]])
+
+            clbits = []
+            for clbit in n['cargs']:
+                clbits.append(cregs[clbit[0].name][clbit[1]])
+            params = n['op'].param
+
+            if name in ['snapshot', 'save', 'noise', 'load']:
+                result = instr_method(params[0])
+            else:
+                result = instr_method(*params, *qubits, *clbits)
+            if 'condition' in n and n['condition']:
+                result.c_if(*n['condition'])
     return circuit

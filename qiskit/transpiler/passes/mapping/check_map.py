@@ -31,8 +31,11 @@ class CheckMap(AnalysisPass):
 
     def run(self, dag):
         """
-        If `dag` is mapped to coupling_map, the property `is_mapped` is
+        If `dag` is mapped to `coupling_map`, the property `is_mapped` is
         set to True (or to False otherwise).
+        If `dag` is mapped and the direction is correct the property
+        `is_direction_mapped` is set to True (or to False otherwise).
+
         Args:
             dag (DAGCircuit): DAG to map.
         """
@@ -41,14 +44,19 @@ class CheckMap(AnalysisPass):
             for qreg in dag.qregs.values():
                 self.layout.add_register(qreg)
 
-        self.property_set['is_mapped'] = None
+        self.property_set['is_mapped'] = True
+        self.property_set['is_direction_mapped'] = True
+
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for a_cx in subdag.get_cnot_nodes():
-                physical_q0 = self.layout[a_cx['op'].qargs[0]]
-                physical_q1 = self.layout[a_cx['op'].qargs[1]]
+            for cnot in subdag.get_cnot_nodes():
+                physical_q0 = self.layout[cnot['qargs'][0]]
+                physical_q1 = self.layout[cnot['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     self.property_set['is_mapped'] = False
+                    self.property_set['is_direction_mapped'] = False
                     return
-        self.property_set['is_mapped'] = True
+                else:
+                    if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
+                        self.property_set['is_direction_mapped'] = False
