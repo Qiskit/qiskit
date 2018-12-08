@@ -66,8 +66,8 @@ class IBMQProvider(BaseProvider):
 
         # Special handling of the `name` parameter, to support alias resolution.
         if name:
-            aliases = self.aliased_backend_names()
-            aliases.update(self.deprecated_backend_names())
+            aliases = self._aliased_backend_names()
+            aliases.update(self._deprecated_backend_names())
             name = aliases.get(name, name)
 
         # Aggregate the list of filtered backends.
@@ -79,7 +79,7 @@ class IBMQProvider(BaseProvider):
         return backends
 
     @staticmethod
-    def deprecated_backend_names():
+    def _deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
             'ibmqx_qasm_simulator': 'ibmq_qasm_simulator',
@@ -88,7 +88,7 @@ class IBMQProvider(BaseProvider):
             }
 
     @staticmethod
-    def aliased_backend_names():
+    def _aliased_backend_names():
         """Returns aliased backend names."""
         return {
             'ibmq_5_yorktown': 'ibmqx2',
