@@ -21,7 +21,7 @@ from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from ._parallel import parallel_map
-from .passes import Unroller
+from .passes.mapping.unroller import Unroller
 
 
 logger = logging.getLogger(__name__)

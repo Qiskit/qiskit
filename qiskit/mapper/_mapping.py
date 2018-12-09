@@ -33,7 +33,6 @@ from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.instruction import Instruction
-from qiskit.transpiler.passes import Unroller
 
 logger = logging.getLogger(__name__)
 
@@ -692,8 +691,9 @@ def optimize_1q_gates(circuit):
 
     Return a new circuit that has been optimized.
     """
+    from qiskit.transpiler.passes.mapping.unroller import Unroller
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    unrolled = Unroller(qx_basis).run(dag)
+    unrolled = Unroller(qx_basis).run(circuit)
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:

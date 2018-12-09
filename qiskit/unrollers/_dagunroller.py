@@ -11,8 +11,6 @@ DAG Unroller
 
 import networkx as nx
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
 from ._unrollererror import UnrollerError
 from ._dagbackend import DAGBackend
 
