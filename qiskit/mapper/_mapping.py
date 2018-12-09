@@ -23,8 +23,6 @@ from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit.unrollers._dagunroller import DagUnroller
-from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
@@ -35,6 +33,7 @@ from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.instruction import Instruction
+from qiskit.transpiler.passes import Unroller
 
 logger = logging.getLogger(__name__)
 
@@ -434,8 +433,7 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
 
 
 def swap_mapper(circuit_graph, coupling_graph,
-                initial_layout=None,
-                basis="cx,u1,u2,u3,id", trials=20, seed=None):
+                initial_layout=None, trials=20, seed=None):
     """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
     Args:
@@ -443,7 +441,6 @@ def swap_mapper(circuit_graph, coupling_graph,
         coupling_graph (CouplingGraph): coupling graph to map onto
         initial_layout (dict): dict {(str, int): (str, int)}
             from qubits of circuit_graph to qubits of coupling_graph (optional)
-        basis (str): basis string specifying basis of output DAGCircuit
         trials (int): number of trials.
         seed (int): initial seed.
 
@@ -613,10 +610,6 @@ def swap_mapper(circuit_graph, coupling_graph,
         for i, layer in enumerate(layerlist):
             dagcircuit_output.compose_back(layer["graph"], layout)
 
-    # Parse openqasm_output into DAGCircuit object
-    dag_unrolled = DagUnroller(dagcircuit_output,
-                               DAGBackend(basis.split(",")))
-    dagcircuit_output = dag_unrolled.expand_gates()
     return dagcircuit_output, initial_layout, last_layout
 
 
@@ -700,8 +693,7 @@ def optimize_1q_gates(circuit):
     Return a new circuit that has been optimized.
     """
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    dag_unroller = DagUnroller(circuit, DAGBackend(qx_basis))
-    unrolled = dag_unroller.expand_gates()
+    unrolled = Unroller(qx_basis).run(dag)
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:
