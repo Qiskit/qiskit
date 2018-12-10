@@ -27,10 +27,9 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(['u2'])
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.get_op_nodes()
+        op_nodes = unrolled_dag.get_op_nodes(data=True)
         self.assertEqual(len(op_nodes), 1)
-        op = unrolled_dag.multi_graph.nodes[op_nodes.pop()]["op"]
-        self.assertEqual(op.name, 'u2')
+        self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
 
     def test_unroll_no_basis(self):
         """Test no-basis unrolls all the way to U, CX.
@@ -42,10 +41,10 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller()
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.get_op_nodes()
+        op_nodes = unrolled_dag.get_op_nodes(data=True)
         self.assertEqual(len(op_nodes), 2)
-        while op_nodes:
-            op = unrolled_dag.multi_graph.nodes[op_nodes.pop()]["op"]
+        for node in op_nodes:
+            op = node[1]["op"]
             self.assertIn(op.name, ['U', 'CX'])
 
     def test_unroll_toffoli(self):
@@ -58,10 +57,10 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(['h', 't', 'tdg', 'cx'])
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.get_op_nodes()
+        op_nodes = unrolled_dag.get_op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
-        while op_nodes:
-            op = unrolled_dag.multi_graph.nodes[op_nodes.pop()]['op']
+        for node in op_nodes:
+            op = node[1]["op"]
             self.assertIn(op.name, ['h', 't', 'tdg', 'cx'])
 
     def test_unroll_1q_chain_conditional(self):
