@@ -99,10 +99,6 @@ class DAGBackend(UnrollerBackend):
                                                number_classical=0,
                                                number_parameters=definition["n_args"])
 
-    def define_gate(self, name, gatedata):
-        """Record and pass down the data for this gate."""
-        self.circuit.add_gate_data(name, gatedata)
-
     def version(self, version):
         """Accept the version string.
 
