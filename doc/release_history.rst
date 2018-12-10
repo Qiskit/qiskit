@@ -34,6 +34,14 @@ There is also the introduction of the following new features:
   These can be accessed by setting the ``memory`` kwarg to ``True`` when
   calling ``compile()`` or ``execute()`` and then accessed using the
   ``get_memory()`` method on the ``Result`` object.
+* A qiskit.quantum_info module with revamped Pauli objects and methods for
+  working with quantum states
+* A reworked DAGCircuit class that stores registers and instructions as objects
+  internally
+* More advanced transpiler infrastructure with support for analysis passes,
+  transformation passes, a global property_set for the pass manager, and
+  repeat-until control of passes.
+
 
 Upgrading to 0.7.0
 ^^^^^^^^^^^^^^^^^^
