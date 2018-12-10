@@ -11,6 +11,7 @@ import json
 import logging
 import re
 import time
+from urllib import parse
 
 import requests
 from requests_ntlm import HttpNtlmAuth
@@ -384,6 +385,18 @@ class _Request(object):
         raise ApiError(usr_msg='Failed to get proper ' +
                        'response from backend.')
 
+    def _sanitize_url(self, url):
+        """Strip any tokens or actual paths from url
+
+        Args:
+            url (str): The url to sanitize
+
+        returns:
+           str: The sanitized url
+        """
+        parts = parse.urlparse(url).path.split('/')
+        return '/'.join(parts[-3:])
+
     def _response_good(self, response):
         """check response
 
@@ -396,15 +409,18 @@ class _Request(object):
         Raises:
             ApiError: response isn't formatted properly.
         """
+
+        url = _sanitize_url(respond.url)
+
         if response.status_code != requests.codes.ok:
             logger.warning('Got a %s code response to %s: %s',
                            response.status_code,
-                           response.url,
+                           url,
                            response.text)
             if response.status_code in self.errors_not_retry:
                 raise ApiError(usr_msg='Got a {} code response to {}: {}'.format(
                     response.status_code,
-                    response.url,
+                    url,
                     response.text))
             else:
                 return self._parse_response(response)
@@ -422,7 +438,7 @@ class _Request(object):
             msg = ('JSON not a list or dict: url: {0},'
                    'status: {1}, reason: {2}, text: {3}')
             raise ApiError(
-                usr_msg=msg.format(response.url,
+                usr_msg=msg.format(url,
                                    response.status_code,
                                    response.reason, response.text))
         if ('error' not in self.result or
@@ -430,7 +446,7 @@ class _Request(object):
                  self.result['error']['status'] != 400)):
             return True
 
-        logger.warning("Got a 400 code JSON response to %s", response.url)
+        logger.warning("Got a 400 code JSON response to %s", url)
         return False
 
     def _parse_response(self, response):
