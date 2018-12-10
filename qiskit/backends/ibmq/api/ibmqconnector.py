@@ -15,7 +15,6 @@ import time
 import requests
 from requests_ntlm import HttpNtlmAuth
 
-from qiskit._util import _camel_case_to_snake_case
 
 logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
@@ -35,41 +34,29 @@ def get_job_url(config, hub=None, group=None, project=None):
     return '/Jobs'
 
 
-def get_backend_stats_url(config, backend_type, hub=None):
-    """
-    Util method to get backend stats url
-    """
-    hub = config.get('hub', hub)
-
-    if hub:
-        return '/Network/{}/devices/{}'.format(hub, backend_type)
-    return '/Backends/{}'.format(backend_type)
-
-
 def get_backend_properties_url(config, backend_type, hub=None):
     """
     Util method to get backend properties url
     """
     hub = config.get('hub', hub)
 
-    base_url = get_backend_stats_url(config, backend_type, hub)
     if hub:
-        return '{}/properties'.format(base_url)
-    return '{}/stats'.format(base_url)
+        return '/Network/{}/devices/{}/properties'.format(hub, backend_type)
+    return '/Backends/{}/properties'.format(backend_type)
 
 
-def get_backend_url(config, hub, group, project):
+def get_backends_url(config, hub, group, project):
     """
-    Util method to get backend url
+    Util method to get backends url
     """
     hub = config.get('hub', hub)
     group = config.get('group', group)
     project = config.get('project', project)
 
     if hub and group and project:
-        return '/Network/{}/Groups/{}/Projects/{}/devices'.format(hub, group,
-                                                                  project)
-    return '/Backends'
+        return '/Network/{}/Groups/{}/Projects/{}/devices/v/1'.format(hub, group,
+                                                                      project)
+    return '/Backends/v/1'
 
 
 class _Credentials(object):
@@ -510,7 +497,7 @@ class IBMQConnector(object):
         # Check for new-style backends
         backends = self.available_backends()
         for backend_ in backends:
-            if backend_['backend_name'] == original_backend:
+            if backend_.get('backend_name', '') == original_backend:
                 return original_backend
         # backend unrecognized
         return None
@@ -786,43 +773,12 @@ class IBMQConnector(object):
 
         url = get_backend_properties_url(self.config, backend_type, hub)
 
-        response = self.req.get(url)
-
-        # Check for empty properties (simulators).
-        if not bool(response):
-            return {}
-
-        # Adjust fields according to the specs (BackendProperties).
-        properties = {
-            'backend_name': backend_type,
-            'backend_version': response.get('backend_version', '0.0.0'),
-            'last_update_date': response['lastUpdateDate'],
-            'gates': [],
-            'qubits': [],
-            'general': []
-        }
-
-        # Convert "gates" field..
-        for gate in response['multiQubitGates']:
-            properties['gates'].append({
-                'qubits': gate['qubits'],
-                'gate': gate['type'],
-                'parameters': [{'name': 'gateerr',
-                                'date': gate['gateError']['date'],
-                                'unit': 'us',
-                                'value': gate['gateError']['value']}]})
-
-        # Convert "qubits" field.
-        for qubit in response['qubits']:
-            qubit_edit = [
-                {'name': key,
-                 'date': value['date'],
-                 'unit': value.get('unit', '-'),
-                 'value': value['value']} for key, value in qubit.items()
-                if key not in ('name',)]
-            properties['qubits'].append(qubit_edit)
-
-        return properties
+        ret = self.req.get(url, params="&version=1")
+        if not bool(ret):
+            ret = {}
+        else:
+            ret["backend_name"] = backend_type
+        return ret
 
     def available_backends(self, hub=None, group=None, project=None,
                            access_token=None, user_id=None):
@@ -836,55 +792,13 @@ class IBMQConnector(object):
         if not self.check_credentials():
             raise CredentialsError('credentials invalid')
 
-        url = get_backend_url(self.config, hub, group, project)
+        url = get_backends_url(self.config, hub, group, project)
 
         response = self.req.get(url)
         if (response is not None) and (isinstance(response, dict)):
             return []
 
-        # Pre-process configurations in order to make them schema-conformant.
-        # TODO: this should be removed once devices return the proper format.
-        ret = []
-        for original_config in response:
-            if original_config.get('status', 'off') != 'on':
-                continue
-
-            config = {}
-
-            try:
-                # Convert camelCase to snake_case.
-                for key in original_config.keys():
-                    new_key = _camel_case_to_snake_case(key)
-                    if new_key not in ['id', 'serial_number', 'topology_id',
-                                       'status']:
-                        config[new_key] = original_config[key]
-
-                # Empty and non-schema conformat versions.
-                if not re.match(r'[0-9]+.[0-9]+.[0-9]+', config.get('version', '')):
-                    config['version'] = '0.0.0'
-                # Coupling map for simulators.
-                if config.get('coupling_map', None) == 'all-to-all':
-                    config.pop('coupling_map')
-                # Other fields.
-                config['basis_gates'] = config['basis_gates'].split(',')
-                config['local'] = config.get('local', False)
-                config['memory'] = config.get('memory', config['simulator'])
-                config['max_shots'] = config.get('max_shots', 8192)
-                config['open_pulse'] = config.get('open_pulse', False)
-                config['conditional'] = config.get('conditional', config['simulator'])
-                config['backend_name'] = config.pop('name')
-                config['backend_version'] = config.pop('version')
-                config['gates'] = [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
-
-                # Append to returned list.
-                ret.append(config)
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.warning(
-                    'Could not parse old-style config of backend "%s": %s',
-                    original_config.get('backend_name',
-                                        original_config.get('name', 'unknown')),
-                    str(ex))
-        return ret
+        return response
 
     def api_version(self):
         """
