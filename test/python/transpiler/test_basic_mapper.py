@@ -174,6 +174,46 @@ class TestBasicMapper(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_far_swap_with_gate_the_front(self):
+        """ A far swap that with a gate in the front.
+         qr0:------(+)--
+                    |
+         qr1:-------|---
+                    |
+         qr2:--[H]--|---
+                    |
+         qr3:-------.---
+
+         Coupling map: [0]--[1]--[2]--[3]
+
+         qr0:-----------(+)--
+                         |
+         qr1:---------X--.---
+                      |
+         qr2:-[H]--X--X------
+                   |
+         qr3:------X---------
+
+        """
+        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+
+        qr = QuantumRegister(4, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[2])
+        circuit.cx(qr[3], qr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.h(qr[2])
+        expected.swap(qr[3], qr[2])
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[1], qr[0])
+
+        pass_ = BasicMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     @unittest.expectedFailure
     # TODO It seems to be a problem in compose_back
     def test_swap_between_qregs(self):

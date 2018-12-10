@@ -91,13 +91,13 @@ class BasicMapper(TransformationPass):
                         swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
                                                         qargs=[qubit_1, qubit_2])
 
+                    # layer insertion
+                    edge_map = current_layout.combine_into_edge_map(self.initial_layout)
+                    new_dag.compose_back(swap_layer, edge_map)
+
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
-
-                    # layer insertion
-                    edge_map = current_layout.combine_into_edge_map(self.initial_layout)
-                    new_dag.compose_front(swap_layer, edge_map)
 
             edge_map = current_layout.combine_into_edge_map(self.initial_layout)
             new_dag.extend_back(subdag, edge_map)
