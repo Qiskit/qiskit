@@ -45,7 +45,7 @@ class Unroller(TransformationPass):
             TranspilerError: if no decomposition rule is found for an op
         """
         # Walk through the DAG and expand each non-basis node
-        topological_sorted_list = list(nx.topological_sort(dag.multi_graph))
+        topological_sorted_list = dag.node_nums_in_topological_order()
         for node in topological_sorted_list:
             current_node = dag.multi_graph.node[node]
             if current_node["type"] == "op" and \
