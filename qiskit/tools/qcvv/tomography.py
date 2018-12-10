@@ -263,8 +263,9 @@ SIC_BASIS = tomography_basis(__SIC_BASIS_OPS, prep_fun=__sic_prep_gates)
 ###############################################################################
 
 
-def tomography_set(qubits,
+def tomography_set(meas_qubits,
                    meas_basis='Pauli',
+                   prep_qubits=None,
                    prep_basis=None):
     """
     Generate a dictionary of tomography experiment configurations.
@@ -293,9 +294,11 @@ def tomography_set(qubits,
                  total preparation states).
 
     Args:
-        qubits (list): The qubits being measured.
+        meas_qubits (list): The qubits being measured.
         meas_basis (tomography_basis or str): The qubit measurement basis.
             The default value is 'Pauli'.
+        prep_qubits (list or None): The qubits being prepared. If None then
+            meas_qubits will be used for process tomography experiments.
         prep_basis (tomography_basis or None): The optional qubit preparation
             basis. If no basis is specified state tomography will be performed
             instead of process tomography. A built in basis may be specified by
@@ -320,10 +323,16 @@ def tomography_set(qubits,
     Raises:
         QiskitError: if the Qubits argument is not a list.
     """
-    if not isinstance(qubits, list):
+    if not isinstance(meas_qubits, list):
         raise QiskitError('Qubits argument must be a list')
+    num_of_qubits = len(meas_qubits)
 
-    num_of_qubits = len(qubits)
+    if prep_qubits is None:
+        prep_qubits = meas_qubits
+    if not isinstance(prep_qubits, list):
+        raise QiskitError('prep_qubits argument must be a list')
+    if len(prep_qubits) != len(meas_qubits):
+        raise QiskitError('meas_qubits and prep_qubitsare different length')
 
     if isinstance(meas_basis, str):
         if meas_basis.lower() == 'pauli':
@@ -342,14 +351,14 @@ def tomography_set(qubits,
     if prep_basis is None:
         # State Tomography
         for meas_product in product(meas_basis.keys(), repeat=num_of_qubits):
-            meas = dict(zip(qubits, meas_product))
+            meas = dict(zip(meas_qubits, meas_product))
             circuits.append({'meas': meas})
             # Make label
             label = '_meas_'
             for qubit, op in meas.items():
                 label += '%s(%d)' % (op[0], qubit)
             circuit_labels.append(label)
-        return {'qubits': qubits,
+        return {'qubits': meas_qubits,
                 'circuits': circuits,
                 'circuit_labels': circuit_labels,
                 'meas_basis': meas_basis}
@@ -362,8 +371,8 @@ def tomography_set(qubits,
     for plst_product in product(plst_single, repeat=num_of_qubits):
         for meas_product in product(meas_basis.keys(),
                                     repeat=num_of_qubits):
-            prep = dict(zip(qubits, plst_product))
-            meas = dict(zip(qubits, meas_product))
+            prep = dict(zip(prep_qubits, plst_product))
+            meas = dict(zip(meas_qubits, meas_product))
             circuits.append({'prep': prep, 'meas': meas})
             # Make label
             label = '_prep_'
@@ -373,7 +382,7 @@ def tomography_set(qubits,
             for qubit, op in meas.items():
                 label += '%s(%d)' % (op[0], qubit)
             circuit_labels.append(label)
-    return {'qubits': qubits,
+    return {'qubits': meas_qubits,
             'circuits': circuits,
             'circuit_labels': circuit_labels,
             'prep_basis': prep_basis,
@@ -429,7 +438,8 @@ def state_tomography_set(qubits, meas_basis='Pauli'):
     return tomography_set(qubits, meas_basis=meas_basis)
 
 
-def process_tomography_set(qubits, meas_basis='Pauli', prep_basis='SIC'):
+def process_tomography_set(meas_qubits, meas_basis='Pauli',
+                           prep_qubits=None, prep_basis='SIC'):
     """
     Generate a dictionary of process tomography experiment configurations.
 
@@ -450,9 +460,11 @@ def process_tomography_set(qubits, meas_basis='Pauli', prep_basis='SIC'):
              total preparation states).
 
     Args:
-        qubits (list): The qubits being measured.
+        meas_qubits (list): The qubits being measured.
         meas_basis (tomography_basis or str): The qubit measurement basis.
             The default value is 'Pauli'.
+        prep_qubits (list or None): The qubits being prepared. If None then
+            meas_qubits will be used for process tomography experiments.
         prep_basis (tomography_basis or str): The qubit preparation basis.
             The default value is 'SIC'.
 
@@ -471,7 +483,8 @@ def process_tomography_set(qubits, meas_basis='Pauli', prep_basis='SIC'):
         }
         ```
     """
-    return tomography_set(qubits, meas_basis=meas_basis, prep_basis=prep_basis)
+    return tomography_set(meas_qubits, meas_basis=meas_basis,
+                          prep_qubits=prep_qubits, prep_basis=prep_basis)
 
 
 def tomography_circuit_names(tomo_set, name=''):
