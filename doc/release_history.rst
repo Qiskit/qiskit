@@ -12,14 +12,14 @@ Qiskit Terra 0.7.0
 This release includes several new features and many bug fixes. Including
 the introduction of declared stable interfaces for circuit diagram, histogram,
 bloch vectors, and state visualizations. Additionally, this release includes a
-defined and standarized bit order/endianess throughout all aspects of Qiskit.
+defined and standardized bit order/endianness throughout all aspects of Qiskit.
 These are all declared as stable interfaces in this release which won't having
 breaking changes made moving forward, unless there is appropriate and lengthy
 deprecation periods warning of any coming changes.
 
 There is also the introduction of the following new features:
-* A new ASCII art circuit drawing output
-* A new ciruit drawing interface off of the QuantumCircuit. Now you can
+* A new ASCII art circuit drawing output mode
+* A new ciruit drawing interface off of QuantumCircuit objects. Now you can
   call ``circuit.draw()`` or ``print(circuit)`` and render a drawing of
   the circuit.
 * A visualizer for drawing the DAG representation of a circuit
@@ -49,10 +49,10 @@ Changes to Result objects
 As part of the rewrite of the Results object to be more consistent and a stable
 interface moving forward a few changes have been made to how you access the data
 stored in the result object. First the ``get_data()`` method has been renamed to
-just ``data()``. Accompying that change is a change in the data format returned
-by the function. It is now returning the raw data from the backends instead
-of doing any post-processing. For example, in previous versions you would
-call::
+just ``data()``. Accompanying that change is a change in the data format
+returned by the function. It is now returning the raw data from the backends
+instead of doing any post-processing. For example, in previous versions you
+could call::
 
    result = execute(circuit, backend).result()
    unitary = result.get_data()['unitary']
@@ -75,9 +75,9 @@ you must use the ``get_counts()``, ``get_statevector()``, and ``get_unitary()``
 methods on the result object instead of ``get_data()['counts']``,
 ``get_data()['statevector']``, and ``get_data()['unitary']`` respectively.
 
-Additionally support for ``len()`` and indexing on a ``Result`` object has been
+Additionally, support for ``len()`` and indexing on a ``Result`` object has been
 removed. Instead you should deal with the output from the post processed
-methods on the Result objects directly.
+methods on the Result objects.
 
 Also, the ``get_snapshot()`` and ``get_snapshots()`` methods from the
 ``Result`` class have been removed. Instead you can access the snapshots
@@ -100,7 +100,7 @@ install Qiskit with the visualization requirements::
    pip install qiskit[visualization]
 
 Aside from this there have been changes made to several of the interfaces
-as part of the stablization which may have an impact on existing code.
+as part of the stabilization which may have an impact on existing code.
 The first is the the ``basis`` kwarg in the ``circuit_drawer()`` function
 is no longer accepted. If you were relying on the ``circuit_drawer()`` to
 adjust the basis gates used in drawing a circuit diagram you will have to
@@ -129,7 +129,7 @@ For the other visualization functions, ``plot_histogram()`` and ``plot_state()``
 there are also a few changes to check when upgrading. First is the output
 from these functions has changed, in prior releases these would interactively
 show the output visualization. However that has changed to instead return a
-``matplotlib.Figure`` object. This provides much more flexability and options
+``matplotlib.Figure`` object. This provides much more flexibility and options
 to interact with the visualization prior to saving or showing it. This will
 require adjustment to how these functions are consumed. For example, prior to
 this release when calling::
@@ -155,7 +155,7 @@ Note that this is only for when running outside of Jupyter. No adjustment is
 required inside a Jupyter environment because Jupyter notebooks natively
 understand how to render ``matplotlib.Figure`` objects.
 
-Howver, returning the Figure object provides additional flexability for dealing
+However, returning the Figure object provides additional flexibility for dealing
 with the output. For example instead of just showing the figure you can now
 directly save it to a file by leveraging the ``savefig()`` method. For example::
 
@@ -205,14 +205,15 @@ of the implicit fallback to python based simulators when the C++ simulators
 are not found. Now if you ask for a local C++ based simulator backend, such as
 ``qasm_simulator`` and it can't be found an exception will be raised instead
 of just using the python based version ``qasm_simulator_py`` instead. If you
-do not have the C++ installed on your system and you were relying on this
-fallback you might have to update your backend names used to include the
-``_py`` suffix.
+do not have the C++ simulators installed on your system and you were relying
+on this fallback you might have to update your backend names used to include
+the ``_py`` suffix.
 
-Additionally the previously deprecation functions ``register()`` and
-``available_backends()`` have been removed. Also the deprecated
-``backend.parameters()`` and ``backend.calibration()`` functions have also been
-removed in favor of ``backend.properties()``.
+Additionally the previously deprecation top level functions ``register()`` and
+``available_backends()`` have been removed. Also, the deprecated
+``backend.parameters()`` and ``backend.calibration()`` methods have been
+removed in favor of ``backend.properties()``. You can refer to the 0.6 release
+notes section :ref:`backends` for more details on these changes.
 
 The ``backend.jobs()`` and ``backend.retrieve_jobs()`` calls no longer return
 results from those jobs. Instead you must call the ``result()`` method on the
@@ -226,7 +227,7 @@ As part of an effort to stabilize the compiler interfaces there have been
 several changes to be aware of when leveraging the compiler functions.
 First it is important to note that the ``qiskit.transpiler.transpile()``
 function now takes a QuantumCircuit object (or a list of them) and returns
-a QuantumCircuit object (or list of them). The DAG processing is done
+a QuantumCircuit object (or a list of them). The DAG processing is done
 internally now.
 
 You can also easily switch between circuits, DAGs, and Qobj now using the
@@ -248,10 +249,10 @@ adjust for before the next release to avoid a breaking change.
    the deprecated functions.
 * The current default output of ``circuit_drawer()`` (using latex and falling
    back on python) is deprecated and will be changed to just use the ``text``
-   output by default in the future.
+   output by default in future releases.
 * The `qiskit.wrapper.load_qasm_string()` and `qiskit.wrapper.load_qasm_file()`
   functions are deprecated and the `QuantumCircuit.from_qasm_str()` and
-  `QuantumCircuit.from_qasm_file()` contstructor methods should be used instead.
+  `QuantumCircuit.from_qasm_file()` constructor methods should be used instead.
 * The ``plot_barriers`` and ``reverse_bits`` keys in the ``style`` kwarg dict
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead.
@@ -362,6 +363,8 @@ been expanded, and there are new options that can be used for convenience:
 Additionally, the previous method of having a ``Qconfig.py`` file in the program
 folder and passing the credentials explicitly is still supported.
 
+
+.. _backends:
 
 Working with backends
 """""""""""""""""""""
