@@ -391,7 +391,7 @@ class _Request(object):
         Args:
             url (str): The url to sanitize
 
-        returns:
+        Returns:
            str: The sanitized url
         """
         parts = parse.urlparse(url).path.split('/')
@@ -410,7 +410,7 @@ class _Request(object):
             ApiError: response isn't formatted properly.
         """
 
-        url = _sanitize_url(respond.url)
+        url = self._sanitize_url(response.url)
 
         if response.status_code != requests.codes.ok:
             logger.warning('Got a %s code response to %s: %s',
