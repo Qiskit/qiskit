@@ -26,7 +26,7 @@ class TestBackendNameResolution(QiskitTestCase):
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names.
         """
-        deprecated_names = Aer.deprecated_backend_names()
+        deprecated_names = Aer._deprecated_backend_names()
 
         for oldname, newname in deprecated_names.items():
             if (newname == 'qasm_simulator' or
@@ -48,7 +48,7 @@ class TestBackendNameResolution(QiskitTestCase):
         """Test that display names of devices map the same backends as the
         regular names."""
         IBMQ.enable_account(qe_token, qe_url)
-        aliased_names = IBMQ.aliased_backend_names()
+        aliased_names = IBMQ._aliased_backend_names()
 
         for display_name, backend_name in aliased_names.items():
             with self.subTest(display_name=display_name,
