@@ -23,7 +23,7 @@ from ..common import require_multiple_credentials, JobTestCase, slow_test
 # Timeout duration
 TIMEOUT = int(os.getenv("IBMQ_TESTS_TIMEOUT", 10))
 BLACKLIST = ('ibmq_4_atlantis',)
-ALWAYS_BLACKLISTED = ('QC20',)
+ALWAYS_BLACKLISTED = ('QC20','ibmqx_hpc_qasm_simulator')
 STATEVECOR_SIMULATORS = ('ibmq_statevector_simulator',)
 
 
