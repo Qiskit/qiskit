@@ -381,8 +381,7 @@ class _Request(object):
         Returns:
            str: The sanitized url
         """
-        parts = parse.urlparse(url).path.split('/')
-        return '/'.join(parts[-3:])
+        return parse.urlparse(url).path
 
     def _response_good(self, response):
         """check response
