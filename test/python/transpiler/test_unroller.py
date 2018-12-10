@@ -82,7 +82,7 @@ class TestUnroller(QiskitTestCase):
         circuit.y(qr).c_if(cr, 1)
         circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller()
+        pass_ = Unroller(['u1', 'u2', 'u3'])
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
