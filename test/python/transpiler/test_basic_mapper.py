@@ -175,14 +175,14 @@ class TestBasicMapper(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_far_swap_with_gate_the_front(self):
-        """ A far swap that with a gate in the front.
+        """ A far swap with a gate in the front.
          qr0:------(+)--
                     |
          qr1:-------|---
                     |
-         qr2:--[H]--|---
+         qr2:-------|---
                     |
-         qr3:-------.---
+         qr3:--[H]--.---
 
          Coupling map: [0]--[1]--[2]--[3]
 
@@ -190,24 +190,106 @@ class TestBasicMapper(QiskitTestCase):
                          |
          qr1:---------X--.---
                       |
-         qr2:-[H]--X--X------
+         qr2:------X--X------
                    |
-         qr3:------X---------
+         qr3:-[H]--X---------
 
         """
         coupling = Coupling({0: [1], 1: [2], 2: [3]})
 
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.h(qr[2])
+        circuit.h(qr[3])
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.h(qr[2])
+        expected.h(qr[3])
         expected.swap(qr[3], qr[2])
         expected.swap(qr[2], qr[1])
         expected.cx(qr[1], qr[0])
+
+        pass_ = BasicMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_far_swap_with_gate_the_back(self):
+        """ A far swap with a gate in the back.
+         qr0:--(+)------
+                |
+         qr1:---|-------
+                |
+         qr2:---|-------
+                |
+         qr3:---.--[H]--
+
+         Coupling map: [0]--[1]--[2]--[3]
+
+         qr0:-------(+)------
+                     |
+         qr1:-----X--.--[H]--
+                  |
+         qr2:--X--X----------
+               |
+         qr3:--X-------------
+
+        """
+        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+
+        qr = QuantumRegister(4, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[3], qr[0])
+        circuit.h(qr[3])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[3], qr[2])
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.h(qr[1])
+
+        pass_ = BasicMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_far_swap_with_gate_the_middle(self):
+        """ A far swap with a gate in the middle.
+         qr0:--(+)-------.--
+                |        |
+         qr1:---|--------|--
+                |
+         qr2:---|--------|--
+                |        |
+         qr3:---.--[H]--(+)-
+
+         Coupling map: [0]--[1]--[2]--[3]
+
+         qr0:-------(+)-------.---
+                     |        |
+         qr1:-----X--.--[H]--(+)--
+                  |
+         qr2:--X--X---------------
+               |
+         qr3:--X------------------
+
+        """
+        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+
+        qr = QuantumRegister(4, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[3], qr[0])
+        circuit.h(qr[3])
+        circuit.cx(qr[0], qr[3])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[3], qr[2])
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.h(qr[1])
+        expected.cx(qr[0], qr[1])
 
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
