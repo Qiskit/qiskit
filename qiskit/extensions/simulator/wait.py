@@ -20,8 +20,6 @@ from qiskit.qasm import _node as node
 class WaitGate(Gate):
     """Wait gate."""
 
-    opaque = True
-
     def __init__(self, t, qubit, circ=None):
         """Create new wait gate."""
         super().__init__("wait", [t], [qubit], circ)

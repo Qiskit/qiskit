@@ -18,8 +18,6 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    opaque = True
-
     def __init__(self, slot, qubits, circ):
         """Create new snapshot instruction."""
         super().__init__("snapshot", [slot], list(qubits), [], circ)

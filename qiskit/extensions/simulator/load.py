@@ -18,8 +18,6 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Load(Instruction):
     """Simulator load instruction."""
 
-    opaque = True
-
     def __init__(self, slot, qubits, circ):
         """Create new load instruction."""
         super().__init__("load", [slot], list(qubits), [], circ)

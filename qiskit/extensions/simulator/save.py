@@ -18,8 +18,6 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Save(Instruction):
     """Simulator save instruction."""
 
-    opaque = True
-
     def __init__(self, slot, qubits, circ):
         """Create save save instruction."""
         super().__init__("save", [slot], list(qubits), [], circ)

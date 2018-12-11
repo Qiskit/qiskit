@@ -18,8 +18,6 @@ from qiskit.extensions.standard import header  # pylint: disable=unused-import
 class Noise(Instruction):
     """Simulator noise operation."""
 
-    opaque = True
-
     def __init__(self, switch, qubits, circ):
         """Create new noise instruction."""
         super().__init__("noise", [switch], list(qubits), [], circ)
