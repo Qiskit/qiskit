@@ -23,7 +23,7 @@ import copy
 import itertools
 import networkx as nx
 
-from qiskit import QuantumRegister, ClassicalRegister
+from qiskit import QuantumRegister, ClassicalRegister, Gate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -1196,8 +1196,8 @@ class DAGCircuit:
         Args:
             op (Instruction or None): op nodes to return. if op=None, return
                 all op nodes.
-            data (bool): if True, return a list of tuple (node_id, node_data)
-                if False, return a list of int (node_id)
+            data (bool): Default: False. If True, return a list of tuple
+                (node_id, node_data). If False, return a list of int (node_id)
 
         Returns:
             list: the list of node ids containing the given op.
@@ -1209,6 +1209,24 @@ class DAGCircuit:
                     nodes.append((node_id, node_data))
                 elif type(node_data["op"]) is type(op):
                     nodes.append((node_id, node_data))
+        if not data:
+            nodes = [n[0] for n in nodes]
+        return nodes
+
+    def get_gate_nodes(self, data=False):
+        """Get the list of gate nodes in the dag.
+
+        Args:
+            data (bool): Default: False. If True, return a list of tuple
+                (node_id, node_data). If False, return a list of int (node_id)
+
+        Returns:
+            list: the list of node ids that represent gates.
+        """
+        nodes = []
+        for node_id, node_data in self.get_op_nodes(data=True):
+            if isinstance(node_data['op'], Gate):
+                nodes.append((node_id, node_data))
         if not data:
             nodes = [n[0] for n in nodes]
         return nodes
