@@ -9,12 +9,17 @@
 
 import pkgutil
 
+from qiskit.backends.providers import ProviderPluginManager
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
 from .exceptions import JobError, JobTimeoutError, QiskitBackendNotFoundError
 from .jobstatus import JobStatus
 
+
+ALL_PROVIDERS = ProviderPluginManager().get_providers()
+for prov in ALL_PROVIDERS:
+    globals()[prov] = ALL_PROVIDERS[prov]
 
 # Allow extending this namespace.
 __path__ = pkgutil.extend_path(__path__, __name__)

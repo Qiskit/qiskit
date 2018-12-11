@@ -21,6 +21,7 @@ requirements = [
     "requests-ntlm>=1.1.0",
     "scipy>=0.19,!=0.19.1",
     "sympy>=1.3"
+    "stevedore>=1.30.0"
 ]
 
 
