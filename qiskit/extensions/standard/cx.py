@@ -25,7 +25,6 @@ class CnotGate(Gate):
     def __init__(self, ctl, tgt, circ=None):
         """Create new CNOT gate."""
         super().__init__("cx", [], [ctl, tgt], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -44,7 +43,6 @@ class CnotGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

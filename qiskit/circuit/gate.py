@@ -41,9 +41,11 @@ class Gate(Instruction):
 
     @property
     def decompositions(self):
+        """ Returns a list of possible decompositions. """
         if self._decompositions is None:
             self._define_decompositions()
         return self._decompositions
 
     def _define_decompositions(self):
+        """ Populates self.decompositions with way to decompose this gate"""
         raise NotImplementedError("No decomposition rules defined for ", self.name)

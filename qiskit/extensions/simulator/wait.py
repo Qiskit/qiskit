@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.qasm import _node as node
 
 
-class WaitGate(Gate):
+class WaitGate(Gate): # pylint: disable=abstract-method
     """Wait gate."""
 
     def __init__(self, t, qubit, circ=None):
