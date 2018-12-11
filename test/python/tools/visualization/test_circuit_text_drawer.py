@@ -55,27 +55,28 @@ class TestTextDrawerElement(QiskitTestCase):
 
     def test_text_pager(self):
         """ The pager breaks the circuit when the drawing does not fit in the console."""
-        expected = '\n'.join(["             ┌───┐»",
-                              "q_1: |0>──■──┤ X ├»",
-                              "        ┌─┴─┐└─┬─┘»",
+        expected = '\n'.join(["        ┌───┐     »",
                               "q_0: |0>┤ X ├──■──»",
-                              "        └───┘     »",
+                              "        └─┬─┘┌─┴─┐»",
+                              "q_1: |0>──■──┤ X ├»",
+                              "             └───┘»",
                               " c_0: 0 ══════════»",
                               "                  »",
-                              "«             ┌───┐»",
-                              "«q_1: ─────■──┤ X ├»",
-                              "«     ┌─┐┌─┴─┐└─┬─┘»",
+                              "«     ┌─┐┌───┐     »",
                               "«q_0: ┤M├┤ X ├──■──»",
-                              "«     └╥┘└───┘     »",
+                              "«     └╥┘└─┬─┘┌─┴─┐»",
+                              "«q_1: ─╫───■──┤ X ├»",
+                              "«      ║      └───┘»",
                               "«c_0: ═╩═══════════»",
                               "«                  »",
-                              "«             ┌───┐",
-                              "«q_1: ─────■──┤ X ├",
-                              "«     ┌─┐┌─┴─┐└─┬─┘",
+                              "«     ┌─┐┌───┐     ",
                               "«q_0: ┤M├┤ X ├──■──",
-                              "«     └╥┘└───┘     ",
+                              "«     └╥┘└─┬─┘┌─┴─┐",
+                              "«q_1: ─╫───■──┤ X ├",
+                              "«      ║      └───┘",
                               "«c_0: ═╩═══════════",
                               "«                  "])
+      
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(1, 'c')
         circuit = QuantumCircuit(qr, cr)
@@ -104,27 +105,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_measure_1(self):
         """ The measure operator, using 3-bit-length registers. """
-        expected = '\n'.join(["        ┌─┐      ",
-                              "q_2: |0>┤M├──────",
-                              "        └╥┘┌─┐   ",
-                              "q_1: |0>─╫─┤M├───",
-                              "         ║ └╥┘┌─┐",
-                              "q_0: |0>─╫──╫─┤M├",
-                              "         ║  ║ └╥┘",
-                              " c_2: 0 ═╩══╬══╬═",
-                              "            ║  ║ ",
-                              " c_1: 0 ════╩══╬═",
-                              "               ║ ",
-                              " c_0: 0 ═══════╩═",
-                              "                 "])
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
-        circuit = QuantumCircuit(qr, cr)
-        circuit.measure(qr, cr)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_measure_1_reversebits(self):
-        """ The measure operator, using 3-bit-length registers, with reversebits """
         expected = '\n'.join(["              ┌─┐",
                               "q_0: |0>──────┤M├",
                               "           ┌─┐└╥┘",
@@ -142,37 +122,31 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_measure_1_reversebits(self):
+        """ The measure operator, using 3-bit-length registers, with reversebits """
+        expected = '\n'.join(["        ┌─┐      ",
+                              "q_2: |0>┤M├──────",
+                              "        └╥┘┌─┐   ",
+                              "q_1: |0>─╫─┤M├───",
+                              "         ║ └╥┘┌─┐",
+                              "q_0: |0>─╫──╫─┤M├",
+                              "         ║  ║ └╥┘",
+                              " c_2: 0 ═╩══╬══╬═",
+                              "            ║  ║ ",
+                              " c_1: 0 ════╩══╬═",
+                              "               ║ ",
+                              " c_0: 0 ═══════╩═",
+                              "                 "])        
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
         self.assertEqual(str(_text_circuit_drawer(circuit, reversebits=True)), expected)
 
     def test_text_measure_2(self):
         """ The measure operator, using some registers. """
-        expected = '\n'.join(["         ┌─┐   ",
-                              "q2_1: |0>┤M├───",
-                              "         └╥┘┌─┐",
-                              "q2_0: |0>─╫─┤M├",
-                              "          ║ └╥┘",
-                              "q1_1: |0>─╫──╫─",
-                              "          ║  ║ ",
-                              "q1_0: |0>─╫──╫─",
-                              "          ║  ║ ",
-                              " c2_1: 0 ═╩══╬═",
-                              "             ║ ",
-                              " c2_0: 0 ════╩═",
-                              "               ",
-                              " c1_1: 0 ══════",
-                              "               ",
-                              " c1_0: 0 ══════",
-                              "               "])
-        qr1 = QuantumRegister(2, 'q1')
-        cr1 = ClassicalRegister(2, 'c1')
-        qr2 = QuantumRegister(2, 'q2')
-        cr2 = ClassicalRegister(2, 'c2')
-        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circuit.measure(qr2, cr2)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_measure_2_reversebits(self):
-        """ The measure operator, using some registers, with reversebits """
         expected = '\n'.join(["               ",
                               "q1_0: |0>──────",
                               "               ",
@@ -190,6 +164,35 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "          ║    ",
                               " c2_1: 0 ═╩════",
                               "               "])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        qr2 = QuantumRegister(2, 'q2')
+        cr2 = ClassicalRegister(2, 'c2')
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit.measure(qr2, cr2)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_measure_2_reversebits(self):
+        """ The measure operator, using some registers, with reversebits """
+        expected = '\n'.join(["         ┌─┐   ",
+                              "q2_1: |0>┤M├───",
+                              "         └╥┘┌─┐",
+                              "q2_0: |0>─╫─┤M├",
+                              "          ║ └╥┘",
+                              "q1_1: |0>─╫──╫─",
+                              "          ║  ║ ",
+                              "q1_0: |0>─╫──╫─",
+                              "          ║  ║ ",
+                              " c2_1: 0 ═╩══╬═",
+                              "             ║ ",
+                              " c2_0: 0 ════╩═",
+                              "               ",
+                              " c1_1: 0 ══════",
+                              "               ",
+                              " c1_0: 0 ══════",
+                              "               "])
+
         qr1 = QuantumRegister(2, 'q1')
         cr1 = ClassicalRegister(2, 'c1')
         qr2 = QuantumRegister(2, 'q2')
@@ -201,14 +204,15 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_swap(self):
         """ Swap drawing. """
         expected = '\n'.join(["               ",
-                              "q2_1: |0>─X────",
-                              "          │    ",
-                              "q2_0: |0>─┼──X─",
-                              "          │  │ ",
-                              "q1_1: |0>─X──┼─",
-                              "             │ ",
                               "q1_0: |0>────X─",
+                              "             │ ",
+                              "q1_1: |0>─X──┼─",
+                              "          │  │ ",
+                              "q2_0: |0>─┼──X─",
+                              "          │    ",
+                              "q2_1: |0>─X────",
                               "               "])
+
         qr1 = QuantumRegister(2, 'q1')
         qr2 = QuantumRegister(2, 'q2')
         circuit = QuantumCircuit(qr1, qr2)
@@ -218,14 +222,15 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_swap_reversebits(self):
         """ Swap drawing with reversebits. """
         expected = '\n'.join(["               ",
-                              "q1_0: |0>────X─",
-                              "             │ ",
-                              "q1_1: |0>─X──┼─",
-                              "          │  │ ",
-                              "q2_0: |0>─┼──X─",
-                              "          │    ",
                               "q2_1: |0>─X────",
+                              "          │    ",
+                              "q2_0: |0>─┼──X─",
+                              "          │  │ ",
+                              "q1_1: |0>─X──┼─",
+                              "             │ ",
+                              "q1_0: |0>────X─",
                               "               "])
+
         qr1 = QuantumRegister(2, 'q1')
         qr2 = QuantumRegister(2, 'q2')
         circuit = QuantumCircuit(qr1, qr2)
@@ -235,12 +240,13 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_cswap(self):
         """ CSwap drawing. """
         expected = '\n'.join(["                 ",
-                              "q_2: |0>─X──X──■─",
+                              "q_0: |0>─■──X──X─",
                               "         │  │  │ ",
                               "q_1: |0>─X──■──X─",
                               "         │  │  │ ",
-                              "q_0: |0>─■──X──X─",
+                              "q_2: |0>─X──X──■─",
                               "                 "])
+
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cswap(qr[0], qr[1], qr[2])
@@ -251,12 +257,13 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_cswap_reversebits(self):
         """ CSwap drawing with reversebits. """
         expected = '\n'.join(["                 ",
-                              "q_0: |0>─■──X──X─",
+                              "q_2: |0>─X──X──■─",
                               "         │  │  │ ",
                               "q_1: |0>─X──■──X─",
                               "         │  │  │ ",
-                              "q_2: |0>─X──X──■─",
+                              "q_0: |0>─■──X──X─",
                               "                 "])
+
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cswap(qr[0], qr[1], qr[2])
@@ -266,13 +273,14 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_cu3(self):
         """ cu3 drawing. """
-        expected = '\n'.join(["                                                                ",
-                              "q_2: |0>─────────────────────────────────────────■──────────────",
-                              "        ┌──────────────────────────┐             │              ",
-                              "q_1: |0>┤ U3(1.5708,1.5708,1.5708) ├─────────────┼──────────────",
-                              "        └────────────┬─────────────┘┌────────────┴─────────────┐",
+        expected = '\n'.join(["                                    ┌──────────────────────────┐",
                               "q_0: |0>─────────────■──────────────┤ U3(1.5708,1.5708,1.5708) ├",
-                              "                                    └──────────────────────────┘"])
+                              "        ┌────────────┴─────────────┐└────────────┬─────────────┘",
+                              "q_1: |0>┤ U3(1.5708,1.5708,1.5708) ├─────────────┼──────────────",
+                              "        └──────────────────────────┘             │              ",
+                              "q_2: |0>─────────────────────────────────────────■──────────────",
+                              "                                                                "])
+
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1])
@@ -281,13 +289,14 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_cu3_reversebits(self):
         """ cu3 drawing with reversebits"""
-        expected = '\n'.join(["                                    ┌──────────────────────────┐",
-                              "q_0: |0>─────────────■──────────────┤ U3(1.5708,1.5708,1.5708) ├",
-                              "        ┌────────────┴─────────────┐└────────────┬─────────────┘",
-                              "q_1: |0>┤ U3(1.5708,1.5708,1.5708) ├─────────────┼──────────────",
-                              "        └──────────────────────────┘             │              ",
+        expected = '\n'.join(["                                                                ",
                               "q_2: |0>─────────────────────────────────────────■──────────────",
-                              "                                                                "])
+                              "        ┌──────────────────────────┐             │              ",
+                              "q_1: |0>┤ U3(1.5708,1.5708,1.5708) ├─────────────┼──────────────",
+                              "        └────────────┬─────────────┘┌────────────┴─────────────┐",
+                              "q_0: |0>─────────────■──────────────┤ U3(1.5708,1.5708,1.5708) ├",
+                              "                                    └──────────────────────────┘"])
+
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1])
