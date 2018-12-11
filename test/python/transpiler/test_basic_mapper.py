@@ -259,7 +259,7 @@ class TestBasicMapper(QiskitTestCase):
          qr0:--(+)-------.--
                 |        |
          qr1:---|--------|--
-                |
+                |        |
          qr2:---|--------|--
                 |        |
          qr3:---.--[H]--(+)-
