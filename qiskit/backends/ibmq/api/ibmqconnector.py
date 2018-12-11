@@ -600,7 +600,12 @@ class IBMQConnector(object):
 
         job = self.req.get(url)
 
-        if 'qasms' in job:
+        if 'qObjectResult' in job:
+            # If the job is using Qobj, return the qObjectResult directly,
+            # which should contain a valid Result.
+            return job
+        elif 'qasms' in job:
+            # Fallback for pre-Qobj jobs.
             for qasm in job['qasms']:
                 if ('result' in qasm) and ('data' in qasm['result']):
                     qasm['data'] = qasm['result']['data']
