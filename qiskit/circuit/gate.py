@@ -39,7 +39,6 @@ class Gate(Instruction):
         # pylint: disable=unused-argument
         raise QiskitError("control not implemented")
 
-    @property
     def decompositions(self):
         """ Returns a list of possible decompositions. """
         if self._decompositions is None:
