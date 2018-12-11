@@ -8,7 +8,7 @@
 """
 Instruction collection.
 """
-from qiskit._qiskiterror import QiskitError
+from qiskit.qiskiterror import QiskitError
 from .instruction import Instruction
 
 
