@@ -41,15 +41,15 @@ class SetUp():
 class ExpectedBasicMapper(QiskitTestCase):
     def case_1(self):
         qr = QuantumRegister(4, 'qr')
-        self.expected = QuantumCircuit(qr)
-        self.expected.swap(qr[2], qr[1])
-        self.expected.cx(qr[1], qr[0])
-        self.expected.swap(qr[0], qr[1])
-        self.expected.h(qr[0])
-        self.expected.swap(qr[1], qr[2])
-        self.expected.cx(qr[2], qr[3])
-        self.expected.cx(qr[1], qr[2])
-        self.output_dag = circuit_to_dag(self.expected)
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.swap(qr[0], qr[1])
+        expected.h(qr[0])
+        expected.swap(qr[1], qr[2])
+        expected.cx(qr[2], qr[3])
+        expected.cx(qr[1], qr[2])
+        self.output_dag = circuit_to_dag(expected)
 
 def test_generator(mapperClass):
     def test(self):
