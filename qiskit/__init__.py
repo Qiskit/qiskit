@@ -16,7 +16,7 @@ import pkgutil
 # First, check for required Python and API version
 from . import _util
 
-# qiskit errors operator 
+# qiskit errors operator
 from .qiskiterror import QiskitError, QISKitError
 
 # The main qiskit operators
