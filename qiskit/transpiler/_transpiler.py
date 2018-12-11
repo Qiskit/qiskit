@@ -12,7 +12,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
-from qiskit._qiskiterror import QiskitError
+from qiskit.qiskiterror import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.unrollers import _dagunroller
