@@ -56,7 +56,7 @@ class Unroller(TransformationPass):
                     raise TranspilerError("no decomposition rules defined for ",
                                           current_node["op"].name)
                 # TODO: allow choosing other possible decompositions
-                decomposition_dag = decomposition_rules[0]
+                decomposition_dag = self.run(decomposition_rules[0])
                 condition = current_node["condition"]
                 # the decomposition rule must be amended if used in a
                 # conditional context. delete the op nodes and replay
@@ -84,13 +84,4 @@ class Unroller(TransformationPass):
                 dag.substitute_circuit_one(node,
                                            decomposition_dag,
                                            qwires + cwires)
-
-        # if still not unrolled down to basis plus opaque gates, recurse
-        gate_set = set([dag.multi_graph.nodes[n]["op"].name
-                        for n in dag.get_op_nodes()
-                        if not getattr(dag.multi_graph.nodes[n]["op"],
-                                       'opaque', False)])
-
-        if not gate_set.issubset(self.basis):
-            self.run(dag)
         return dag
