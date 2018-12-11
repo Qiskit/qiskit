@@ -23,7 +23,7 @@ if HAS_MATPLOTLIB:
 
 
 def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
-                   sort='asc', legend=None, bar_labels=True):
+                   sort='asc', legend=None, bar_labels=True, title=None):
     """Plot a histogram of data.
 
     Args:
@@ -38,6 +38,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             The number of entries must match the length of data (if data is a
             list or 1 if it's a dict)
         bar_labels (bool): Label each bar in histogram with probability value.
+        title (str): A string to use for the plot title
 
     Returns:
         matplotlib.Figure: A figure for the rendered histogram.
@@ -126,6 +127,9 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         tick.label.set_fontsize(14)
     ax.set_facecolor('#eeeeee')
     plt.grid(which='major', axis='y', zorder=0, linestyle='--')
+    if title:
+        plt.title(title)
+
     if legend:
         plt.legend()
     if fig:
