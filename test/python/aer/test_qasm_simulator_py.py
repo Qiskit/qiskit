@@ -18,7 +18,7 @@ from ..common import QiskitTestCase
 
 
 class TestAerQasmSimulatorPy(QiskitTestCase):
-    """Test Aer's qasm_simulator_py."""
+    """Test AerPy's qasm_simulator."""
 
     def setUp(self):
         self.seed = 88

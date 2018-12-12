@@ -129,4 +129,4 @@ class AerProvider(BaseProvider):
         return backend_instance
 
     def __str__(self):
-        return 'Aer'
+        return 'StaleAer'

@@ -15,7 +15,7 @@ import numpy as np
 
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import mapper, Aer
+from qiskit import mapper, AerPy
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
@@ -87,7 +87,7 @@ class TestMapper(QiskitTestCase):
 
     def setUp(self):
         self.seed = 42
-        self.backend = Aer.get_backend("qasm_simulator_py")
+        self.backend = AerPy.get_backend("qasm_simulator")
 
     def test_mapper_overoptimization(self):
         """Check mapper overoptimization.

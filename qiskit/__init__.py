@@ -27,7 +27,7 @@ from .tools.compiler import (compile, execute)
 
 # Please note these are global instances, not modules.
 from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
+from qiskit.backends.staleaer import StaleAer  # pylint: disable=invalid-name
 from qiskit.backends.aer_py import AerPy # pylint: disable=invalid-name
 
 

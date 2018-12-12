@@ -8,7 +8,7 @@
 
 """Tests for all aer simulators."""
 
-from qiskit import Aer, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import AerPy, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.qobj import QobjHeader
 
@@ -16,12 +16,12 @@ from ..common import QiskitTestCase
 
 
 class TestAerSimulators(QiskitTestCase):
-    """Tests for all the Aer simulators."""
+    """Tests for all the AerPy simulators."""
 
     def setUp(self):
         super().setUp()
 
-        self.backends = Aer.backends()
+        self.backends = AerPy.backends()
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         self.qc1 = QuantumCircuit(qr, cr, name='circuit0')
@@ -31,7 +31,7 @@ class TestAerSimulators(QiskitTestCase):
         """Test that the qobj headers are passed onto the results."""
         custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
 
-        for backend in Aer.backends():
+        for backend in AerPy.backends():
             with self.subTest(backend=backend):
                 qobj = compile(self.qc1, backend)
 

@@ -13,4 +13,4 @@ from .qasmsimulator import CliffordSimulator, QasmSimulator
 from .statevectorsimulator import StatevectorSimulator
 
 # Global instance to be used as the entry point for convenience.
-Aer = AerProvider()  # pylint: disable=invalid-name
+StaleAer = AerProvider()  # pylint: disable=invalid-name
