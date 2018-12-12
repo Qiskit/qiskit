@@ -58,11 +58,20 @@ class DAGCircuit:
         # Running count of the total number of nodes
         self.node_counter = 0
 
+        # Map of user defined gates to ast nodes defining them
+        self.gates = OrderedDict()
+
         # Map of named operations in this circuit and their signatures.
         # The signature is an integer tuple (nq,nc,np) specifying the
         # number of input qubits, input bits, and real parameters.
         # The definition is external to the circuit object.
         self.basis = OrderedDict()
+        self.add_basis_element(name="U", number_qubits=1,
+                               number_classical=0, number_parameters=3)
+        self.add_basis_element("CX", 2, 0, 0)
+        self.add_basis_element("measure", 1, 1, 0)
+        self.add_basis_element("reset", 1, 0, 0)
+        self.add_basis_element("barrier", -1)
 
         # Directed multigraph whose nodes are inputs, outputs, or operations.
         # Operation nodes have equal in- and out-degrees and carry
@@ -78,9 +87,6 @@ class DAGCircuit:
 
         # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
-
-        # Map of user defined gates to ast nodes defining them
-        self.gates = OrderedDict()
 
         # layout of dag quantum registers on the chip
         # TODO: rethink this. doesn't seem related to concept of DAG,
