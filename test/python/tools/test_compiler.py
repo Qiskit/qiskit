@@ -461,7 +461,7 @@ class TestCompiler(QiskitTestCase):
         bell_result = backend.run(bell_qobj).result()
         ghz_result = backend.run(ghz_qobj).result()
 
-        threshold = 0.04 * shots
+        threshold = 0.05 * shots
         counts_bell = bell_result.get_counts()
         target_bell = {'00000': shots / 2, '00011': shots / 2}
         self.assertDictAlmostEqual(counts_bell, target_bell, threshold)
@@ -486,7 +486,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
-        shots = 1024
+        shots = 2048
         coupling_map = [[0, 1], [1, 2]]
         initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
                           ("qr", 2): ("q", 2)}
@@ -500,7 +500,7 @@ class TestCompiler(QiskitTestCase):
 
         counts = result.get_counts(qc)
         target = {'000': shots / 2, '111': shots / 2}
-        threshold = 0.04 * shots
+        threshold = 0.05 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
     @requires_cpp_simulator
