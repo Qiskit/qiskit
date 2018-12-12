@@ -6,10 +6,10 @@ Programmierschnittstelle
 
 Der *qiskit* Ordner stellt das Python Hauptmodul dar und beinhaltet die
 Objekte für die Programmierschnittstelle
-:py:class:`QuantumProgram <qiskit.QuantumProgram>`,
-:py:class:`QuantumRegister <qiskit.QuantumRegister>`,
-:py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
-und :py:class:`QuantumCircuit <qiskit.QuantumCircuit>`.
+:py:class:`QuantumProgram <qiskit.terra.QuantumProgram>`,
+:py:class:`QuantumRegister <qiskit.terra.QuantumRegister>`,
+:py:class:`ClassicalRegister <qiskit.terra.ClassicalRegister>`,
+und :py:class:`QuantumCircuit <qiskit.terra.QuantumCircuit>`.
 
 Der Anwender erzeugt auf höchster Ebene ein *QuantumProgram* zum Erstellen,
 Übersetzen und Ausführen von Quantum Circuits. Jeder *QuantumCircuit*
@@ -19,13 +19,13 @@ Instruktionen die Circuits zu definieren. Ein *QuantumCircuit* kann dann
 **OpenQASM** Code generieren, der durch andere Komponenten im *qiskit*
 Ordner verarbeitet werden kann.
 
-Der Ordner :py:mod:`Erweiterungen <qiskit.extensions>` erweitert
+Der Ordner :py:mod:`Erweiterungen <qiskit.terra.extensions>` erweitert
 Quantum Circuits bei Bedarf, um andere Menge von Gattern und Algorithmen zu
 unterstützen. Zur Zeit definiert die Erweiterung
-:py:mod:`standard <qiskit.extensions.standard>` typische Quantengatter und es
+:py:mod:`standard <qiskit.terra.extensions.standard>` typische Quantengatter und es
 existieren die beiden zusätzlichen Erweiterungen
-:py:mod:`qasm_simulator_cpp <qiskit.extensions.simulator>` und
-:py:mod:`quantum_initializer <qiskit.extensions.quantum_initializer>`.
+:py:mod:`qasm_simulator_cpp <qiskit.terra.extensions.simulator>` und
+:py:mod:`quantum_initializer <qiskit.terra.extensions.quantum_initializer>`.
 
 Interne Module
 --------------
@@ -33,17 +33,17 @@ Interne Module
 Der *qiskit* Ordner beinhaltet auch interne Module, die noch in Entwicklung
 sind:
 
-- ein :py:mod:`qasm <qiskit.qasm>` Modul zum Parsen von **OpenQASM**
+- ein :py:mod:`qasm <qiskit.terra.qasm>` Modul zum Parsen von **OpenQASM**
   Circuits
-- ein :py:mod:`unroll <qiskit.unroll>` Modul zum Interpretieren und “Ausrollen”
+- ein :py:mod:`unroll <qiskit.terra.unroll>` Modul zum Interpretieren und “Ausrollen”
   **OpenQASM** in eine Menge von Basisgattern (zum Erweitern von Gattern,
   Unterroutinen und Schleifen)
-- ein :py:mod:`dagcircuit <qiskit.dagcircuit>` Modul zum Arbeiten mit
+- ein :py:mod:`dagcircuit <qiskit.terra.dagcircuit>` Modul zum Arbeiten mit
   Cirucits als Graphen
-- ein :py:mod:`mapper <qiskit.mapper>` Modul zum Mappen von Circuits
+- ein :py:mod:`mapper <qiskit.terra.mapper>` Modul zum Mappen von Circuits
   mit jeder-zu-jeder Verbindungen, um auf Geräten mit fixen Verbindungen
   lauffähigen Code zu generieren
-- ein :py:mod:`backends <qiskit.backends>` Modul, das die Quantum Circuit
+- ein :py:mod:`backends <qiskit.terra.backends>` Modul, das die Quantum Circuit
   Simulatoren enthält
 - einen Ordner *tools*, der Methoden für Applikationen, Analyse und
   Visualisierung beinhaltet
@@ -89,7 +89,7 @@ Protokollierung
 
 Das SDK verwendet die `Standard Python "logging" Bibliothek
 <https://docs.python.org/3/library/logging.html>`_ zur Ausgabe von diversen
-Nachrichten mit Hilfe der Familie von "`qiskit.*`" Loggern, und hält sich
+Nachrichten mit Hilfe der Familie von "`qiskit.terra.*`" Loggern, und hält sich
 an die Konventionen von Logging Level:
 
 .. tabularcolumns:: |l|L|
@@ -121,9 +121,9 @@ an die Konventionen von Logging Level:
 
 
 Zur bequemeren Verwendung bietet
-:py:class:`QuantumProgram <qiskit.QuantumProgram>` zwei Methoden an
-(:py:func:`enable_logs() <qiskit.QuantumProgram.enable_logs>` und
-:py:func:`disable_logs() <qiskit.QuantumProgram.disable_logs>`), die den
+:py:class:`QuantumProgram <qiskit.terra.QuantumProgram>` zwei Methoden an
+(:py:func:`enable_logs() <qiskit.terra.QuantumProgram.enable_logs>` und
+:py:func:`disable_logs() <qiskit.terra.QuantumProgram.disable_logs>`), die den
 Handler und den Level vom `qiskit` Logger modifizieren. Das Verwenden dieser
 Methoden kann Konflikte mit den globalen Einstellungen des Logging Setups Ihrer
 Python Umgebung erzeugen. Bitte beachten Sie dies, wenn Sie eine
@@ -139,7 +139,7 @@ Absenden von Nachrichten verwendet werden. Zum Beispiel für das Modul
 
    import logging
 
-   logger = logging.getLogger(__name__)  # logger for "qiskit.some.module"
+   logger = logging.getLogger(__name__)  # logger for "qiskit.terra.some.module"
    ...
    logger.info("This is an info message)
 

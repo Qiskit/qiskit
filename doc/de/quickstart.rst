@@ -2,11 +2,11 @@ Erste Schritte
 ==============
 
 Den Startpunkt zum Schreiben von Code stellt der
-:class:`~qiskit.QuantumCircuit` dar. Bei einem Circuit (oder Score falls
+:class:`~qiskit.terra.QuantumCircuit` dar. Bei einem Circuit (oder Score falls
 Sie bereits Erfahrungen mit der Quantum Experience haben) handelt es sich um
-eine Sammlung von :class:`~qiskit.ClassicalRegister` Objekten,
-:class:`~qiskit.QuantumRegister` Objekten und
-:mod:`gates <qiskit.extensions.standard>`. Durch die
+eine Sammlung von :class:`~qiskit.terra.ClassicalRegister` Objekten,
+:class:`~qiskit.terra.QuantumRegister` Objekten und
+:mod:`gates <qiskit.terra.extensions.standard>`. Durch die
 :ref:`Top-Level Funktion <qiskit_top_level_functions>` können Circuits zu
 einem entfernten Quantum Device oder einen lokalen Simulator Backend gesendet
 und die Resultate zur weiteren Auswerten gesammelt werden.
@@ -46,7 +46,7 @@ enthalten ist, auszuführen, reicht folgender Code:
     print("simulation: ", sim_result)
     print(sim_result.get_counts(qc))
 
-Die :func:`~qiskit.Result.get_counts` Methode gibt ein Dictionary von
+Die :func:`~qiskit.terra.Result.get_counts` Methode gibt ein Dictionary von
 ``state:counts`` Paaren aus.
 
 .. code-block:: python

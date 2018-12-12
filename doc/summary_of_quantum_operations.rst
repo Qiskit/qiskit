@@ -24,8 +24,8 @@ unitrary_simulator - qasm_simulator - statevector_simulator
 
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import available_backends, execute, register, get_backend
-    from qiskit.tools.visualization import circuit_drawer
-    from qiskit.tools.qi.qi import state_fidelity
+    from qiskit.terra.tools.visualization import circuit_drawer
+    from qiskit.terra.tools.qi.qi import state_fidelity
     from qiskit import Aer
     
     backend = Aer.get_backend('unitary_simulator')
@@ -1828,7 +1828,7 @@ arbitrary state for :math:`n` qubits may be specified by a vector of
 
 .. code-block:: text
 
-    <qiskit.extensions.quantum_initializer._initializer.InitializeGate at 0x1198eb940>
+    <qiskit.terra.extensions.quantum_initializer._initializer.InitializeGate at 0x1198eb940>
 
 
 

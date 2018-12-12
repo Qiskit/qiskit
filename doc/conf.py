@@ -19,11 +19,11 @@
 #
 import os
 import sys
-from qiskit import __version__
+from qiskit.terra import __version__
 sys.path.insert(0, os.path.abspath('.'))
 
 # Imported manually, as otherwise it will not be fully imported.
-import qiskit.extensions.simulator
+import qiskit.terra.extensions.simulator
 
 # -- General configuration ------------------------------------------------
 
@@ -249,7 +249,7 @@ texinfo_documents = [
 # Avoid a warning and treat the docstrings of the QasmLexer tokens as verbatim,
 # as PLY uses docstring as a way to define the patterns the token matches.
 def remove_module_docstring(app, what, name, obj, options, lines):
-    if name.startswith('qiskit.qasm._qasmlexer.QasmLexer.t_') and lines:
+    if name.startswith('qiskit.terra.qasm._qasmlexer.QasmLexer.t_') and lines:
         lines[0] = u'Token matching: ``%s``' % lines[0]
 
 

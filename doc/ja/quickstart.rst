@@ -1,7 +1,7 @@
 QISKit入門
 ==========
 
-:py:class:`QuantumProgram <qiskit.QuantumProgram>` オブジェクトがコードを書く際の起点になります。
+:py:class:`QuantumProgram <qiskit.terra.QuantumProgram>` オブジェクトがコードを書く際の起点になります。
 QuantumProgramは量子回路と量子レジスターと古典レジスターで構成されます。
 IBM Q Experienceを使ったことがある人にとって、量子回路はComposerの画面で設計するもののことです。
 QuantumProgramのメソッドは量子回路を実機やシミュレーターのバックエンドに転送し、実行の結果を得て、

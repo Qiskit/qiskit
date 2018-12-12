@@ -347,7 +347,7 @@ queue)
 
 .. code:: ipython3
 
-    from qiskit.backends.ibmq import least_busy
+    from qiskit.terra.backends.ibmq import least_busy
     
     small_devices = IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] <= 5 and
                                                            not x.configuration()['simulator'])
@@ -434,7 +434,7 @@ object
 
 .. code-block:: text
 
-    <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x10e62cfd0>
+    <qiskit.terra.backends.ibmq.ibmqprovider.IBMQProvider at 0x10e62cfd0>
 
 
 
@@ -758,7 +758,7 @@ Let’s make an active example
 
 .. code-block:: text
 
-    <qiskit._instructionset.InstructionSet at 0x10ffb5240>
+    <qiskit.terra._instructionset.InstructionSet at 0x10ffb5240>
 
 
 

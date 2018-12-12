@@ -203,7 +203,7 @@ Manually loading from a ``Qconfig.py`` file can also be done:
     IBMQ.enable_account(Qconfig.APIToken, **Qconfig.config)
 
 
-Please refer to the ``qiskit.IBMQ`` documentation for more information about
+Please refer to the ``qiskit.terra.IBMQ`` documentation for more information about
 using multiple credentials.
 
 

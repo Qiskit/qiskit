@@ -71,7 +71,7 @@ which plots circuit in the form found in many textbooks.
 
 .. code:: ipython3
 
-    from qiskit.tools.visualization import circuit_drawer
+    from qiskit.terra.tools.visualization import circuit_drawer
     
     circuit_drawer(circ)
 
@@ -169,7 +169,7 @@ these results.
 
 .. code:: ipython3
 
-    from qiskit.tools.visualization import plot_state
+    from qiskit.terra.tools.visualization import plot_state
     plot_state(outputstate)
 
 
@@ -299,7 +299,7 @@ which allows you to view the outcomes.
 
 .. code:: ipython3
 
-    from qiskit.tools.visualization import plot_histogram
+    from qiskit.terra.tools.visualization import plot_histogram
     plot_histogram(counts)
 
 
@@ -367,7 +367,7 @@ program (has at least 3 qubits).
 
 .. code:: ipython3
 
-    from qiskit.backends.ibmq import least_busy
+    from qiskit.terra.backends.ibmq import least_busy
     
     large_enough_devices = IBMQ.backends(
         filters=lambda x: x.configuration()['n_qubits'] > 3 and

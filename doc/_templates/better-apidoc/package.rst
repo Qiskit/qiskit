@@ -27,8 +27,8 @@
    {# Do not show the "private" (starting with `_`) modules. This workaround is
    due to the fact that we need the members in private modules parsed and
    generated but not show everything in the package (for example,
-   `qiskit._foo.Bar` is shown as `Bar` in the `qiskit` package page, but
-   `qiskit._foo` should not be linked directly or shown in the `qiskit` package
+   `qiskit.terra._foo.Bar` is shown as `Bar` in the `qiskit` package page, but
+   `qiskit.terra._foo` should not be linked directly or shown in the `qiskit` package
    page).
    See also the :orphaned: at the top, and the --private flag for
    better-apidoc. #}

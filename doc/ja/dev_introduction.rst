@@ -5,10 +5,10 @@
 -------------------------------
 
 *qiskit* ディレクトリがメインのPythonモジュールで
-:py:class:`QuantumProgram <qiskit.QuantumProgram>`,
-:py:class:`QuantumRegister <qiskit.QuantumRegister>`,
-:py:class:`ClassicalRegister <qiskit.ClassicalRegister>`,
-:py:class:`QuantumCircuit <qiskit.QuantumCircuit>` のインターフェースを含みます。
+:py:class:`QuantumProgram <qiskit.terra.QuantumProgram>`,
+:py:class:`QuantumRegister <qiskit.terra.QuantumRegister>`,
+:py:class:`ClassicalRegister <qiskit.terra.ClassicalRegister>`,
+:py:class:`QuantumCircuit <qiskit.terra.QuantumCircuit>` のインターフェースを含みます。
 
 実行手順は次の通りです。ユーザーは *QuantumProgram* （量子プログラム）を作成しそれに
 複数の量子回路の生成、変更、コンパイル、と実行ができます。
@@ -18,21 +18,21 @@
 *QuantumCircuit* は **OpenQASM** コードを出力することができます。
 このコードは *qiskit* ディレクトリの他のコンポーネントに流すことができます。
 
-:py:mod:`extensions <qiskit.extensions>` ディレクトリは他の量子ゲートやアルゴリズムのサポートに必要な
+:py:mod:`extensions <qiskit.terra.extensions>` ディレクトリは他の量子ゲートやアルゴリズムのサポートに必要な
 量子回路の拡張のモジュールを含みます。
-現在は典型的な量子ゲートを定義した :py:mod:`standard <qiskit.extensions.standard>` 拡張が存在します。
+現在は典型的な量子ゲートを定義した :py:mod:`standard <qiskit.terra.extensions.standard>` 拡張が存在します。
 
 内部モジュール
 --------------
 
 以下のディレクトリは開発中の内部モジュールを含みます:
 
-- :py:mod:`qasm <qiskit.qasm>` モジュールは **OpenQASM** ファイルを解析します。
-- :py:mod:`unroll <qiskit.unroll>` モジュールはターゲットのゲートに応じて **OpenQASM** の翻訳と展開(unroll)を行います。
+- :py:mod:`qasm <qiskit.terra.qasm>` モジュールは **OpenQASM** ファイルを解析します。
+- :py:mod:`unroll <qiskit.terra.unroll>` モジュールはターゲットのゲートに応じて **OpenQASM** の翻訳と展開(unroll)を行います。
   (ゲート文のサブルーチンやループの展開も必要に応じて行います)
-- :py:mod:`dagcircuit <qiskit.dagcircuit>` モジュールは量子回路をグラフとして処理します。
-- :py:mod:`mapper <qiskit.mapper>` モジュールは、量子回路をカップリング（直接操作可能な量子ビットのペア）の制限がないバックエンドから制限のある実機で実行するために量子回路の変換を行います。
-- :py:mod:`backends <qiskit.backends>` モジュールは量子回路のシミュレーターを含みます。
+- :py:mod:`dagcircuit <qiskit.terra.dagcircuit>` モジュールは量子回路をグラフとして処理します。
+- :py:mod:`mapper <qiskit.terra.mapper>` モジュールは、量子回路をカップリング（直接操作可能な量子ビットのペア）の制限がないバックエンドから制限のある実機で実行するために量子回路の変換を行います。
+- :py:mod:`backends <qiskit.terra.backends>` モジュールは量子回路のシミュレーターを含みます。
 - *tools* ディレクトリはアプリケーション、分析、可視化のメソッドを含みます。
 
 量子回路は以下の様にコンポーネントの間を流れます。

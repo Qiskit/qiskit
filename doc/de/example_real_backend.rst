@@ -108,12 +108,12 @@ die folgenden Parameter konfiguriert werden:
 - ``multi_shot_optimization``: Boolean (True oder False)
 - ``omp_num_threads``: Integer zwischen 1 und 16.
 
-Die Parameter können für :func:`qiskit.compile` und :func:`qiskit.execute`
+Die Parameter können für :func:`qiskit.terra.compile` und :func:`qiskit.terra.execute`
 über den ``hpc`` Parameter spezifiziert werden. Zum Beispiel:
 
 .. code-block:: python
 
-    qiskit.compile(circuits,
+    qiskit.terra.compile(circuits,
                    backend=backend,
                    shots=shots,
                    seed=88,
