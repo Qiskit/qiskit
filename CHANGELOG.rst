@@ -51,6 +51,9 @@ Added
   Request them by setting ``memory=True`` in ``compile()``/``execute()``,
   and retrieve them from ``result.get_memory()`` (#1385).
 - New Unroller pass in the transpiler for unrolling up to some basis (#1455).
+- Added a ``qiskit.converters`` module for translation between commonly used
+  representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
+  ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
 
 Changed
 """""""
