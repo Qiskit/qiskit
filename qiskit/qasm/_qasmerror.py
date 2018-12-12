@@ -9,7 +9,7 @@
 Exception for errors raised while parsing OPENQASM.
 """
 
-from qiskit._qiskiterror import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 
 class QasmError(QiskitError):

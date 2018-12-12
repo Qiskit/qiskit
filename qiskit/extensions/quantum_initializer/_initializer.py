@@ -13,10 +13,10 @@ import math
 import numpy as np
 import scipy
 
-from qiskit import CompositeGate
-from qiskit import Gate
 from qiskit import QiskitError
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
+from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -24,7 +24,7 @@ from qiskit.extensions.standard.rz import RZGate
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(CompositeGate):
+class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some

@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
-class UBase(Gate):
+class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
     def __init__(self, theta, phi, lam, qubit, circ=None):
