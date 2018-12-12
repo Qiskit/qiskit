@@ -26,7 +26,7 @@ from qiskit.transpiler.passes.mapping.unroller import Unroller
 
 
 class Optimize1qGates(TransformationPass):
-    """Simplify runs of single qubit gates in the QX basis."""
+    """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
 
     # def __init__(self):
     #     super().__init__()
