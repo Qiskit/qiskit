@@ -310,6 +310,7 @@ class AstInterpreter(object):
 
     def _create_dag_op(self, name, param, qargs):
         """
+        Create a DAG node out of a parsed AST op node.
 
         Args:
             name (str): operation name to apply to the dag.
@@ -320,70 +321,63 @@ class AstInterpreter(object):
             QiskitError: if encountering a non-basis opaque gate
         """
         if name == "u0":
-            op = U0Gate(param[0], qargs[0])
+            OpClass = U0Gate
         elif name == "u1":
-            op = U1Gate(param[0], qargs[0])
+            OpClass = U1Gate
         elif name == "u2":
-            op = U2Gate(param[0], param[1], qargs[0])
+            OpClass = U2Gate
         elif name == "u3":
-            op = U3Gate(param[0], param[1], param[2], qargs[0])
+            OpClass = U3Gate
         elif name == "x":
-            op = XGate(qargs[0])
+            OpClass = XGate
         elif name == "y":
-            op = YGate(qargs[0])
+            OpClass = YGate
         elif name == "z":
-            op = ZGate(qargs[0])
+            OpClass = ZGate
         elif name == "t":
-            op = TGate(qargs[0])
+            OpClass = TGate
         elif name == "tdg":
-            op = TdgGate(qargs[0])
+            OpClass = TdgGate
         elif name == "s":
-            op = SGate(qargs[0])
+            OpClass = SGate
         elif name == "sdg":
-            op = SdgGate(qargs[0])
+            OpClass = SdgGate
         elif name == "swap":
-            op = SwapGate(qargs[0], qargs[1])
+            OpClass = SwapGate
         elif name == "rx":
-            op = RXGate(param[0], qargs[0])
+            OpClass = RXGate
         elif name == "ry":
-            op = RYGate(param[0], qargs[0])
+            OpClass = RYGate
         elif name == "rz":
-            op = RZGate(param[0], qargs[0])
+            OpClass = RZGate
         elif name == "rzz":
-            op = RZZGate(param[0], qargs[0], qargs[1])
+            OpClass = RZZGate
         elif name == "id":
-            op = IdGate(qargs[0])
+            OpClass = IdGate
         elif name == "h":
-            op = HGate(qargs[0])
+            OpClass = HGate
         elif name == "cx":
-            op = CnotGate(qargs[0], qargs[1])
+            OpClass = CnotGate
         elif name == "cy":
-            op = CyGate(qargs[0], qargs[1])
+            OpClass = CyGate
         elif name == "cz":
-            op = CzGate(qargs[0], qargs[1])
+            OpClass = CzGate
         elif name == "ch":
-            op = CHGate(qargs[0], qargs[1])
+            OpClass = CHGate
         elif name == "crz":
-            op = CrzGate(param[0], qargs[0], qargs[1])
+            OpClass = CrzGate
         elif name == "cu1":
-            op = Cu1Gate(param[0], qargs[0], qargs[1])
+            OpClass = Cu1Gate
         elif name == "cu3":
-            op = Cu3Gate(param[0], param[1], param[2], qargs[0], qargs[1])
+            OpClass = Cu3Gate
         elif name == "ccx":
-            op = ToffoliGate(qargs[0], qargs[1], qargs[2])
+            OpClass = ToffoliGate
         elif name == "cswap":
-            op = FredkinGate(qargs[0], qargs[1], qargs[2])
+            OpClass = FredkinGate
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 
+        op = OpClass(*param, *qargs)
+
         self.dag.add_basis_element(name, len(qargs), 0, len(param))
-
-        if op.name not in self.dag.basis:
-            if self.dag.gates[op.name]["opaque"]:
-                raise BackendError("opaque gate %s not in basis" % op.name)
-            else:
-                logger.info("ignoring non-basis gate %s. Make sure the gates are "
-                            "first expanded to basis via the DagUnroller.", op.name)
-                return
-
         self.dag.apply_operation_back(op, condition=self.condition)
