@@ -196,6 +196,7 @@ class TestVisualizationUtils(QiskitTestCase):
                                                        [(self.cr1, 0)],
                                                        [],
                                                        [(self.cr1, 1)]])
+
     def test_get_instructions_reversebits(self):
         """ _get_instructions with reversebits=True """
         (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reversebits=True)
