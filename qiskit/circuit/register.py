@@ -12,7 +12,7 @@ import re
 import logging
 import itertools
 
-from qiskit._qiskiterror import QiskitError, QiskitIndexError
+from qiskit.qiskiterror import QiskitError, QiskitIndexError
 
 logger = logging.getLogger(__name__)
 

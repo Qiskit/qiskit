@@ -61,7 +61,7 @@ def _get_instructions(circuit, reversebits=False):
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
-    dag = circuit_to_dag(circuit, expand_gates=False)
+    dag = circuit_to_dag(circuit)
     ops = []
     qregs = []
     cregs = []

@@ -25,7 +25,6 @@ class Cu3Gate(Gate):
     def __init__(self, theta, phi, lam, ctl, tgt, circ=None):
         """Create new cu3 gate."""
         super().__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -58,7 +57,7 @@ class Cu3Gate(Gate):
         phi = self.param[1]
         self.param[1] = -self.param[2]
         self.param[2] = -phi
-        self._define_decompositions()
+        self._decompositions = None
         return self
 
     def reapply(self, circ):
