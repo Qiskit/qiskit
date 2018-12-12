@@ -11,12 +11,12 @@
 
 import unittest
 import numpy as np
-import qiskit
-import qiskit.extensions.simulator
-from qiskit import Aer
-from qiskit.quantum_info import state_fidelity
-from qiskit.result.postprocess import format_statevector
-from qiskit import execute
+import qiskit.terra
+import qiskit.terra.extensions.simulator
+from qiskit.terra import Aer
+from qiskit.terra.quantum_info import state_fidelity
+from qiskit.terra.result.postprocess import format_statevector
+from qiskit.terra import execute
 from ..common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -29,9 +29,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_save_load(self):
         """save |+>|0>, do some stuff, then load"""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(2)
+        cr = qiskit.terra.ClassicalRegister(2)
+        circuit = qiskit.terra.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.save(1)
         circuit.cx(qr[0], qr[1])
@@ -50,9 +50,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(2)
+        cr = qiskit.terra.ClassicalRegister(2)
+        circuit = qiskit.terra.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.snapshot('3')
@@ -72,9 +72,9 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_noise(self):
         """turn on a pauli x noise for qubits 0 and 2"""
-        qr = qiskit.QuantumRegister(3)
-        cr = qiskit.ClassicalRegister(3)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(3)
+        cr = qiskit.terra.ClassicalRegister(3)
+        circuit = qiskit.terra.QuantumCircuit(qr, cr)
         circuit.iden(qr[0])
         circuit.noise(0)
         circuit.iden(qr[1])

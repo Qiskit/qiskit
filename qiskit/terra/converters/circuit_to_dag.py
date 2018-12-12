@@ -9,8 +9,8 @@
 
 import copy
 
-from qiskit.circuit.compositegate import CompositeGate
-from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.terra.circuit.compositegate import CompositeGate
+from qiskit.terra.dagcircuit._dagcircuit import DAGCircuit
 
 
 def circuit_to_dag(circuit):

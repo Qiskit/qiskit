@@ -5,12 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tests for qiskit/_util.py"""
+"""Tests for qiskit/terra/_util.py"""
 import os
 import time
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler._parallel import parallel_map
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra.transpiler._parallel import parallel_map
 from .common import QiskitTestCase
 
 

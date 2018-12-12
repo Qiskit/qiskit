@@ -13,9 +13,9 @@ import unittest
 
 import numpy as np
 
-from qiskit import execute, Aer
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.tools.qcvv import tomography as tomo
+from qiskit.terra import execute, Aer
+from qiskit.terra import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.terra.tools.qcvv import tomography as tomo
 from .common import QiskitTestCase
 
 

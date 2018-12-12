@@ -9,9 +9,9 @@
 
 import unittest
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.qasm import pi
-from qiskit.qiskiterror import QiskitError
+from qiskit.terra import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.terra.qasm import pi
+from qiskit.terra.qiskiterror import QiskitError
 
 from .common import QiskitTestCase
 

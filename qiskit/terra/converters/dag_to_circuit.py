@@ -9,9 +9,9 @@
 import collections
 import networkx as nx
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumRegister
+from qiskit.terra.circuit import QuantumCircuit
+from qiskit.terra.circuit import ClassicalRegister
+from qiskit.terra.circuit import QuantumRegister
 
 
 def dag_to_circuit(dag):

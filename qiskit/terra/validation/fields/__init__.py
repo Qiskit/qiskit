@@ -29,9 +29,9 @@ from datetime import date, datetime
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
 
-from qiskit.validation import ModelTypeValidator
-from qiskit.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
-from qiskit.validation.fields.containers import Nested, List
+from qiskit.terra.validation import ModelTypeValidator
+from qiskit.terra.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
+from qiskit.terra.validation.fields.containers import Nested, List
 
 
 class Complex(ModelTypeValidator):

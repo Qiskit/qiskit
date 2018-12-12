@@ -9,9 +9,9 @@
 
 from sympy import pi
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler.passes import Unroller
-from qiskit.converters import circuit_to_dag
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra.transpiler.passes import Unroller
+from qiskit.terra.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 

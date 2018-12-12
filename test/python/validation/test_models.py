@@ -12,8 +12,8 @@ from test.python.common import QiskitTestCase
 
 from datetime import datetime
 
-from qiskit.validation import fields, ValidationError
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.terra.validation import fields, ValidationError
+from qiskit.terra.validation.base import BaseModel, BaseSchema, bind_schema
 
 
 class DummySchema(BaseSchema):

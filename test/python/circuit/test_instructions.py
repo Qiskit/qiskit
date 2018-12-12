@@ -13,10 +13,10 @@ import os
 import tempfile
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister
-from qiskit.circuit import Instruction
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.terra import QuantumRegister, ClassicalRegister
+from qiskit.terra.circuit import Instruction
+from qiskit.terra.extensions.standard.h import HGate
+from qiskit.terra.extensions.standard.cx import CnotGate
 from ..common import QiskitTestCase
 
 

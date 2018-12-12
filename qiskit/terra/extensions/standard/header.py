@@ -9,8 +9,8 @@
 Standard extension's OPENQASM header and definition update.
 """
 import sympy
-from qiskit.circuit import QuantumCircuit
-from qiskit.qasm import _node as node
+from qiskit.terra.circuit import QuantumCircuit
+from qiskit.terra.qasm import _node as node
 
 
 if not hasattr(QuantumCircuit, '_extension_standard'):

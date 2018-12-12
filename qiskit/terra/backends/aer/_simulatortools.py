@@ -18,7 +18,7 @@ from string import ascii_uppercase, ascii_lowercase
 
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 def index1(b, i, k):

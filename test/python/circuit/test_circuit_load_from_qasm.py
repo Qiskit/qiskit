@@ -8,8 +8,8 @@
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
-from qiskit import QiskitError
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.terra import QiskitError
+from qiskit.terra import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from ..common import QiskitTestCase, Path
 

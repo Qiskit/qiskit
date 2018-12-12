@@ -7,7 +7,7 @@
 
 """Exception for errors raised by visualization module."""
 
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 class VisualizationError(QiskitError):

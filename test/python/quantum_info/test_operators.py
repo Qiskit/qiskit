@@ -12,7 +12,7 @@
 import unittest
 import numpy as np
 from scipy.linalg import expm
-from qiskit.quantum_info import process_fidelity, Pauli
+from qiskit.terra.quantum_info import process_fidelity, Pauli
 
 from ..common import QiskitTestCase
 

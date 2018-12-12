@@ -9,10 +9,10 @@
 
 from marshmallow.validate import Length, OneOf, Regexp, Range
 
-from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
-from qiskit.validation.fields import Complex, ByType
-from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
-from qiskit.validation.validate import PatternProperties
+from qiskit.terra.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
+from qiskit.terra.validation.fields import Complex, ByType
+from qiskit.terra.validation.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
+from qiskit.terra.validation.validate import PatternProperties
 
 
 class ExperimentResultDataSchema(BaseSchema):

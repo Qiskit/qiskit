@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 def _make_np_bool(arr):

@@ -9,8 +9,8 @@
 
 from marshmallow.validate import OneOf
 
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import String
+from qiskit.terra.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.terra.validation.fields import String
 
 
 class JobStatusSchema(BaseSchema):

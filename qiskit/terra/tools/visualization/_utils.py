@@ -9,8 +9,8 @@
 
 import PIL
 import numpy as np
-from qiskit.converters import circuit_to_dag
-from qiskit.tools.visualization._error import VisualizationError
+from qiskit.terra.converters import circuit_to_dag
+from qiskit.terra.tools.visualization._error import VisualizationError
 
 
 def _validate_input_state(quantum_state):

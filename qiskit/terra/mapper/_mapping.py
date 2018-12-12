@@ -19,20 +19,20 @@ import numpy as np
 import sympy
 from sympy import Number as N
 
-from qiskit.qasm import _node as node
-from qiskit.mapper import MapperError
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from qiskit import QuantumRegister
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.swap import SwapGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.circuit.measure import Measure
-from qiskit.circuit.instruction import Instruction
+from qiskit.terra.qasm import _node as node
+from qiskit.terra.mapper import MapperError
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.dagcircuit._dagcircuiterror import DAGCircuitError
+from qiskit.terra.quantum_info.operators.quaternion import quaternion_from_euler
+from qiskit.terra import QuantumRegister
+from qiskit.terra.extensions.standard.h import HGate
+from qiskit.terra.extensions.standard.cx import CnotGate
+from qiskit.terra.extensions.standard.swap import SwapGate
+from qiskit.terra.extensions.standard.u1 import U1Gate
+from qiskit.terra.extensions.standard.u2 import U2Gate
+from qiskit.terra.extensions.standard.u3 import U3Gate
+from qiskit.terra.circuit.measure import Measure
+from qiskit.terra.circuit.instruction import Instruction
 
 logger = logging.getLogger(__name__)
 
@@ -686,7 +686,7 @@ def optimize_1q_gates(circuit):
 
     Return a new circuit that has been optimized.
     """
-    from qiskit.transpiler.passes.mapping.unroller import Unroller
+    from qiskit.terra.transpiler.passes.mapping.unroller import Unroller
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
     unrolled = Unroller(qx_basis).run(circuit)
 

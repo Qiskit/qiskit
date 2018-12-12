@@ -13,13 +13,13 @@ import math
 import numpy as np
 import scipy
 
-from qiskit import QiskitError
-from qiskit import QuantumCircuit
-from qiskit.circuit import CompositeGate
-from qiskit.circuit import Gate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rz import RZGate
+from qiskit.terra import QiskitError
+from qiskit.terra import QuantumCircuit
+from qiskit.terra.circuit import CompositeGate
+from qiskit.terra.circuit import Gate
+from qiskit.terra.extensions.standard.cx import CnotGate
+from qiskit.terra.extensions.standard.ry import RYGate
+from qiskit.terra.extensions.standard.rz import RZGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

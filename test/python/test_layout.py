@@ -9,9 +9,9 @@
 
 import unittest
 
-from qiskit import QuantumRegister
-from qiskit.mapper import Layout
-from qiskit.mapper._layout import LayoutError
+from qiskit.terra import QuantumRegister
+from qiskit.terra.mapper import Layout
+from qiskit.terra.mapper._layout import LayoutError
 from .common import QiskitTestCase
 
 

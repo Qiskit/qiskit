@@ -9,8 +9,8 @@
 
 import unittest
 
-import qiskit
-from qiskit import Aer
+import qiskit.terra
+from qiskit.terra import Aer
 from .common import QiskitTestCase, requires_qe_access
 
 
@@ -18,16 +18,16 @@ class TestQiskitResult(QiskitTestCase):
     """Test qiskit.Result API"""
 
     def setUp(self):
-        qr = qiskit.QuantumRegister(1)
-        cr = qiskit.ClassicalRegister(1)
-        self._qc1 = qiskit.QuantumCircuit(qr, cr, name='qc1')
-        self._qc2 = qiskit.QuantumCircuit(qr, cr, name='qc2')
+        qr = qiskit.terra.QuantumRegister(1)
+        cr = qiskit.terra.ClassicalRegister(1)
+        self._qc1 = qiskit.terra.QuantumCircuit(qr, cr, name='qc1')
+        self._qc2 = qiskit.terra.QuantumCircuit(qr, cr, name='qc2')
         self._qc1.measure(qr[0], cr[0])
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
         self.backend = Aer.get_backend('qasm_simulator_py')
-        self._result1 = qiskit.execute(self._qc1, self.backend).result()
-        self._result2 = qiskit.execute(self._qc2, self.backend).result()
+        self._result1 = qiskit.terra.execute(self._qc1, self.backend).result()
+        self._result2 = qiskit.terra.execute(self._qc2, self.backend).result()
 
     def test_aer_result_fields(self):
         """Test components of a result from a local simulator."""
@@ -39,9 +39,9 @@ class TestQiskitResult(QiskitTestCase):
     @requires_qe_access
     def test_ibmq_result_fields(self, qe_token, qe_url):
         """Test components of a result from a remote simulator."""
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        remote_backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
-        remote_result = qiskit.execute(self._qc1, remote_backend).result()
+        qiskit.terra.IBMQ.enable_account(qe_token, qe_url)
+        remote_backend = qiskit.terra.IBMQ.get_backend(local=False, simulator=True)
+        remote_result = qiskit.terra.execute(self._qc1, remote_backend).result()
         self.assertEqual(remote_result.backend_name, remote_backend.name())
         self.assertIsInstance(remote_result.job_id, str)
         self.assertEqual(remote_result.status, 'COMPLETED')

@@ -8,7 +8,7 @@
 """
 Exception for errors raised by the Coupling object.
 """
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 class CouplingError(QiskitError):

@@ -9,8 +9,8 @@
 
 from marshmallow.validate import Range, Regexp
 
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import Boolean, Integer, String
+from qiskit.terra.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.terra.validation.fields import Boolean, Integer, String
 
 
 class BackendStatusSchema(BaseSchema):

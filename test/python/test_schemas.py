@@ -14,12 +14,12 @@ import os
 
 from marshmallow import ValidationError
 
-from qiskit._schema_validation import (validate_json_against_schema,
+from qiskit.terra._schema_validation import (validate_json_against_schema,
                                        _get_validator)
-from qiskit import __path__ as qiskit_path
-from qiskit.backends.models import (BackendConfiguration, BackendProperties,
+from qiskit.terra import __path__ as qiskit_path
+from qiskit.terra.backends.models import (BackendConfiguration, BackendProperties,
                                     BackendStatus, JobStatus)
-from qiskit.result import Result
+from qiskit.terra.result import Result
 from .common import QiskitTestCase
 
 

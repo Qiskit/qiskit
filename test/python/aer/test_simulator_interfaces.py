@@ -10,11 +10,11 @@
 """Tests for checking qiskit interfaces to simulators."""
 
 import unittest
-import qiskit
-import qiskit.extensions.simulator
-from qiskit.quantum_info import state_fidelity
-from qiskit import execute
-from qiskit import Aer, IBMQ
+import qiskit.terra
+import qiskit.terra.extensions.simulator
+from qiskit.terra.quantum_info import state_fidelity
+from qiskit.terra import execute
+from qiskit.terra import Aer, IBMQ
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
@@ -26,8 +26,8 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_statevector(self):
         """statevector from a bell state"""
-        qr = qiskit.QuantumRegister(2)
-        circuit = qiskit.QuantumCircuit(qr)
+        qr = qiskit.terra.QuantumRegister(2)
+        circuit = qiskit.terra.QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
 
@@ -44,9 +44,9 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_qasm(self):
         """counts from a GHZ state"""
-        qr = qiskit.QuantumRegister(3)
-        cr = qiskit.ClassicalRegister(3)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(3)
+        cr = qiskit.terra.ClassicalRegister(3)
+        circuit = qiskit.terra.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[2])
@@ -63,9 +63,9 @@ class TestCrossSimulation(QiskitTestCase):
 
     def test_qasm_reset_measure(self):
         """counts from a qasm program with measure and reset in the middle"""
-        qr = qiskit.QuantumRegister(3)
-        cr = qiskit.ClassicalRegister(3)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(3)
+        cr = qiskit.terra.ClassicalRegister(3)
+        circuit = qiskit.terra.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.reset(qr[0])

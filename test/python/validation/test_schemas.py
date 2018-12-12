@@ -10,7 +10,7 @@
 
 from test.python.common import QiskitTestCase
 
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.terra.validation.base import BaseModel, BaseSchema, bind_schema
 
 
 class TestSchemas(QiskitTestCase):

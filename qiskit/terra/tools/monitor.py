@@ -11,14 +11,14 @@
 import sys
 import time
 import threading
-from qiskit.qiskiterror import QiskitError
+from qiskit.terra.qiskiterror import QiskitError
 
 _NOTEBOOK_ENV = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     _NOTEBOOK_ENV = True
     from IPython.display import display                              # pylint: disable=import-error
     import ipywidgets as widgets                                     # pylint: disable=import-error
-    from qiskit.tools.jupyter.jupyter_magics import _html_checker    # pylint: disable=C0412
+    from qiskit.terra.tools.jupyter.jupyter_magics import _html_checker    # pylint: disable=C0412
 
 
 def _text_checker(job, interval):

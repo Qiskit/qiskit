@@ -12,8 +12,8 @@
 import unittest
 import ply
 
-from qiskit.qasm import Qasm, QasmError
-from qiskit.qasm._node._node import Node
+from qiskit.terra.qasm import Qasm, QasmError
+from qiskit.terra.qasm._node._node import Node
 
 from .common import QiskitTestCase
 

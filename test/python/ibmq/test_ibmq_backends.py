@@ -8,9 +8,9 @@
 
 """Tests for all IBMQ backends."""
 
-from qiskit import IBMQ, ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
-from qiskit.qobj import QobjHeader
+from qiskit.terra import IBMQ, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.terra import compile  # pylint: disable=redefined-builtin
+from qiskit.terra.qobj import QobjHeader
 
 from ..common import QiskitTestCase, requires_qe_access, slow_test
 

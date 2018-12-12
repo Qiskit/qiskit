@@ -45,7 +45,7 @@ import datetime
 import sys
 import ipywidgets as widgets                # pylint: disable=import-error
 from IPython.display import display         # pylint: disable=import-error
-from qiskit._pubsub import Subscriber
+from qiskit.terra._pubsub import Subscriber
 
 
 class BaseProgressBar(Subscriber):

@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-from qiskit.mapper import Coupling, CouplingError
+from qiskit.terra.mapper import Coupling, CouplingError
 from .common import QiskitTestCase
 
 

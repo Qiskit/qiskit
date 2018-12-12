@@ -19,8 +19,8 @@ import re
 
 import numpy as np
 
-from qiskit.tools.visualization import _error
-from qiskit.tools.visualization import _qcstyle
+from qiskit.terra.tools.visualization import _error
+from qiskit.terra.tools.visualization import _qcstyle
 
 
 class QCircuitImage(object):

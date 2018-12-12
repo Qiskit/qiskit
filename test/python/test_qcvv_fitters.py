@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from qiskit.tools.qcvv import fitters
+from qiskit.terra.tools.qcvv import fitters
 from .common import QiskitTestCase
 
 

@@ -12,9 +12,9 @@ Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import IBMQ, Aer, execute
-from qiskit.backends.ibmq import least_busy
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import IBMQ, Aer, execute
+from qiskit.terra.backends.ibmq import least_busy
 
 
 ###############################################################

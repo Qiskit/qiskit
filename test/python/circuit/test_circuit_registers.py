@@ -13,12 +13,12 @@ import os
 import tempfile
 import unittest
 
-import qiskit.extensions.simulator
-from qiskit import Aer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
+import qiskit.terra.extensions.simulator
+from qiskit.terra import Aer
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import execute
+from qiskit.terra import QiskitError
+from qiskit.terra.quantum_info import state_fidelity
 from ..common import QiskitTestCase
 
 

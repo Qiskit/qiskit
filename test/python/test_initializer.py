@@ -14,12 +14,12 @@ InitializeGate (CompositeGate instance) test.
 import math
 import unittest
 
-from qiskit import QiskitError
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import ClassicalRegister
-from qiskit import execute, Aer
-from qiskit.quantum_info import state_fidelity
+from qiskit.terra import QiskitError
+from qiskit.terra import QuantumCircuit
+from qiskit.terra import QuantumRegister
+from qiskit.terra import ClassicalRegister
+from qiskit.terra import execute, Aer
+from qiskit.terra.quantum_info import state_fidelity
 from .common import QiskitTestCase
 
 

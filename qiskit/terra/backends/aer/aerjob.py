@@ -12,8 +12,8 @@ import logging
 import sys
 import functools
 
-from qiskit.backends import BaseJob, JobStatus, JobError
-from qiskit.qobj import validate_qobj_against_schema
+from qiskit.terra.backends import BaseJob, JobStatus, JobError
+from qiskit.terra.qobj import validate_qobj_against_schema
 
 logger = logging.getLogger(__name__)
 

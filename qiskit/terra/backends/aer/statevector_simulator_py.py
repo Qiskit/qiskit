@@ -21,11 +21,11 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 import logging
 import uuid
 from math import log2
-from qiskit._util import local_hardware_info
-from qiskit.backends.aer.aerjob import AerJob
-from qiskit.backends.aer._simulatorerror import SimulatorError
-from qiskit.backends.models import BackendConfiguration
-from qiskit.qobj import QobjInstruction
+from qiskit.terra._util import local_hardware_info
+from qiskit.terra.backends.aer.aerjob import AerJob
+from qiskit.terra.backends.aer._simulatorerror import SimulatorError
+from qiskit.terra.backends.models import BackendConfiguration
+from qiskit.terra.qobj import QobjInstruction
 from .qasm_simulator_py import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)

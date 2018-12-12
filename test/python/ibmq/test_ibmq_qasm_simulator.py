@@ -10,10 +10,10 @@
 """Test IBMQ online qasm simulator.
 TODO: Must expand tests. Re-evaluate after Aer."""
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.terra import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin
-from qiskit import compile
-from qiskit import IBMQ
+from qiskit.terra import compile
+from qiskit.terra import IBMQ
 from ..common import requires_qe_access, QiskitTestCase
 
 

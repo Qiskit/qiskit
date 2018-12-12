@@ -10,9 +10,9 @@
 
 from test.python.common import QiskitTestCase
 
-from qiskit.validation import fields, ValidationError
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import TryFrom, ByAttribute, ByType
+from qiskit.terra.validation import fields, ValidationError
+from qiskit.terra.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.terra.validation.fields import TryFrom, ByAttribute, ByType
 
 
 class DummySchema(BaseSchema):

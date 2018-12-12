@@ -11,10 +11,10 @@
 
 import unittest
 
-import qiskit.tools
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import Aer
-from qiskit import execute
+import qiskit.terra.tools
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import Aer
+from qiskit.terra import execute
 from ..common import QiskitTestCase
 
 
@@ -30,7 +30,7 @@ class TestJobMonitor(QiskitTestCase):
         qc.measure(qreg, creg)
         backend = Aer.get_backend('qasm_simulator_py')
         job_sim = execute([qc]*10, backend)
-        qiskit.tools.job_monitor(job_sim)
+        qiskit.terra.tools.job_monitor(job_sim)
         self.assertEqual(job_sim.status().name, 'DONE')
 
 

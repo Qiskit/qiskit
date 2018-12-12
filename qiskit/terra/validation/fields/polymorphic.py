@@ -13,7 +13,7 @@ from functools import partial
 from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
-from qiskit.validation import ValidationError, ModelTypeValidator
+from qiskit.terra.validation import ValidationError, ModelTypeValidator
 
 
 class BasePolyField(PolyField, ModelTypeValidator):

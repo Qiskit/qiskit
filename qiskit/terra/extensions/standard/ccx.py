@@ -8,16 +8,16 @@
 """
 Toffoli gate. Controlled-Controlled-X.
 """
-from qiskit.circuit import Gate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
-from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TdgGate
+from qiskit.terra.circuit import Gate
+from qiskit.terra.circuit import QuantumCircuit
+from qiskit.terra.circuit import InstructionSet
+from qiskit.terra.circuit import QuantumRegister
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.terra.extensions.standard.h import HGate
+from qiskit.terra.extensions.standard.cx import CnotGate
+from qiskit.terra.extensions.standard.t import TGate
+from qiskit.terra.extensions.standard.t import TdgGate
 
 
 class ToffoliGate(Gate):

@@ -9,8 +9,8 @@
 from copy import deepcopy
 import uuid
 
-from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.terra.qobj import Qobj, QobjConfig, QobjExperiment, QobjItem, QobjHeader
+from qiskit.terra.circuit.quantumcircuit import QuantumCircuit
 
 
 def circuits_to_qobj(circuits, backend_name, config=None, shots=1024,
@@ -86,8 +86,8 @@ def _circuit_to_experiment(circuit, config=None, basis_gates=None,
     # pylint: disable=unused-argument
     #  TODO: if arguments are really unused, consider changing the signature
     # TODO: removed the DAG from this function
-    from qiskit.converters import circuit_to_dag
-    from qiskit.unroll import DagUnroller, JsonBackend
+    from qiskit.terra.converters import circuit_to_dag
+    from qiskit.terra.unroll import DagUnroller, JsonBackend
     dag = circuit_to_dag(circuit)
     json_circuit = DagUnroller(dag, JsonBackend(dag.basis)).execute()
     # Step 3a: create the Experiment based on json_circuit

@@ -15,13 +15,13 @@ import math
 from io import StringIO
 import numpy as np
 
-from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
-from qiskit.tools.qi.qi import purity, concurrence, qft, chop
-from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
-from qiskit.tools.qi.qi import choi_to_rauli, random_density_matrix
-from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
-from qiskit.tools.qi.qi import __eof_qubit as eof_qubit
-from qiskit import QiskitError
+from qiskit.terra.tools.qi.qi import partial_trace, vectorize, devectorize, outer
+from qiskit.terra.tools.qi.qi import purity, concurrence, qft, chop
+from qiskit.terra.tools.qi.qi import shannon_entropy, entropy, mutual_information
+from qiskit.terra.tools.qi.qi import choi_to_rauli, random_density_matrix
+from qiskit.terra.tools.qi.qi import entanglement_of_formation, is_pos_def
+from qiskit.terra.tools.qi.qi import __eof_qubit as eof_qubit
+from qiskit.terra import QiskitError
 from .common import QiskitTestCase
 
 

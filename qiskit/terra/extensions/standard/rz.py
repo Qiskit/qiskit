@@ -10,13 +10,13 @@
 """
 Rotation around the z-axis.
 """
-from qiskit.circuit import Gate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
-from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
-from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.terra.circuit import Gate
+from qiskit.terra.circuit import QuantumCircuit
+from qiskit.terra.circuit import InstructionSet
+from qiskit.terra.circuit import QuantumRegister
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.terra.extensions.standard.u1 import U1Gate
 
 
 class RZGate(Gate):

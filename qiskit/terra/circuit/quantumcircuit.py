@@ -17,8 +17,8 @@ import warnings
 import sys
 import multiprocessing as mp
 
-from qiskit.qasm import _qasm
-from qiskit.qiskiterror import QiskitError
+from qiskit.terra.qasm import _qasm
+from qiskit.terra.qiskiterror import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -84,7 +84,7 @@ class QuantumCircuit(object):
 
     def __eq__(self, other):
         # TODO: removed the DAG from this function
-        from qiskit.converters import circuit_to_dag
+        from qiskit.terra.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
 
     @classmethod
@@ -339,7 +339,7 @@ class QuantumCircuit(object):
             VisualizationError: when an invalid output method is selected
 
         """
-        from qiskit.tools import visualization
+        from qiskit.terra.tools import visualization
         return visualization.circuit_drawer(self, scale=scale,
                                             filename=filename, style=style,
                                             output=output,
@@ -351,19 +351,19 @@ class QuantumCircuit(object):
     def size(self):
         """Return total number of operations in circuit."""
         # TODO: removed the DAG from this function
-        from qiskit.converters import circuit_to_dag
+        from qiskit.terra.converters import circuit_to_dag
         dag = circuit_to_dag(self)
         return dag.size()
 
     def depth(self):
         """Return circuit depth (i.e. length of critical path)."""
-        from qiskit.converters import circuit_to_dag
+        from qiskit.terra.converters import circuit_to_dag
         dag = circuit_to_dag(self)
         return dag.depth()
 
     def width(self):
         """Return number of qubits in circuit."""
-        from qiskit.converters import circuit_to_dag
+        from qiskit.terra.converters import circuit_to_dag
         dag = circuit_to_dag(self)
         return dag.width()
 
@@ -373,13 +373,13 @@ class QuantumCircuit(object):
         Returns:
             dict: a breakdown of how many operations of each kind.
         """
-        from qiskit.converters import circuit_to_dag
+        from qiskit.terra.converters import circuit_to_dag
         dag = circuit_to_dag(self)
         return dag.count_ops()
 
     def num_tensor_factors(self):
         """How many non-entangled subcircuits can the circuit be factored to."""
-        from qiskit.converters import circuit_to_dag
+        from qiskit.terra.converters import circuit_to_dag
         dag = circuit_to_dag(self)
         return dag.num_tensor_factors()
 
@@ -409,8 +409,8 @@ class QuantumCircuit(object):
 
 
 def _circuit_from_qasm(qasm):
-    from qiskit.converters import ast_to_dag
-    from qiskit.converters import dag_to_circuit
+    from qiskit.terra.converters import ast_to_dag
+    from qiskit.terra.converters import dag_to_circuit
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)

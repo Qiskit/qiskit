@@ -11,8 +11,8 @@
 import json
 import jsonschema
 
-from qiskit import IBMQ, Aer
-from qiskit.backends.aer import AerProvider
+from qiskit.terra import IBMQ, Aer
+from qiskit.terra.backends.aer import AerProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 

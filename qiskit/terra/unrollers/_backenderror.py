@@ -9,7 +9,7 @@
 Exception for errors raised by unroller backends.
 """
 
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 class BackendError(QiskitError):

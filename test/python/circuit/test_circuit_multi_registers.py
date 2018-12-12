@@ -14,11 +14,11 @@ import os
 import tempfile
 import unittest
 
-from qiskit import Aer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
+from qiskit.terra import Aer
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import compile, execute
+from qiskit.terra import QiskitError
+from qiskit.terra.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
 from ..common import QiskitTestCase, requires_cpp_simulator
 
 

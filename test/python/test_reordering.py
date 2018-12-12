@@ -10,10 +10,10 @@
 """Tests for bit reordering fix."""
 
 import unittest
-import qiskit
+import qiskit.terra
 
-from qiskit import compile
-from qiskit.backends.ibmq import least_busy
+from qiskit.terra import compile
+from qiskit.terra.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
@@ -31,9 +31,9 @@ class TestBitReordering(QiskitTestCase):
         if not sim or not real:
             raise unittest.SkipTest('no remote device available')
 
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        circuit = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(2)
+        cr = qiskit.terra.ClassicalRegister(2)
+        circuit = qiskit.terra.QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[1])
         circuit.measure(qr[1], cr[0])
@@ -58,13 +58,13 @@ class TestBitReordering(QiskitTestCase):
         if not sim or not real:
             raise unittest.SkipTest('no remote device available')
 
-        qr0 = qiskit.QuantumRegister(2)
-        qr1 = qiskit.QuantumRegister(2)
-        qr2 = qiskit.QuantumRegister(1)
-        cr0 = qiskit.ClassicalRegister(2)
-        cr1 = qiskit.ClassicalRegister(2)
-        cr2 = qiskit.ClassicalRegister(1)
-        circuit = qiskit.QuantumCircuit(qr0, qr1, qr2, cr0, cr1, cr2)
+        qr0 = qiskit.terra.QuantumRegister(2)
+        qr1 = qiskit.terra.QuantumRegister(2)
+        qr2 = qiskit.terra.QuantumRegister(1)
+        cr0 = qiskit.terra.ClassicalRegister(2)
+        cr1 = qiskit.terra.ClassicalRegister(2)
+        cr2 = qiskit.terra.ClassicalRegister(1)
+        circuit = qiskit.terra.QuantumCircuit(qr0, qr1, qr2, cr0, cr1, cr2)
         circuit.h(qr0[0])
         circuit.cx(qr0[0], qr2[0])
         circuit.x(qr1[1])
@@ -88,10 +88,10 @@ class TestBitReordering(QiskitTestCase):
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
     def _get_backends(self, qe_token, qe_url):
-        sim_backend = qiskit.Aer.get_backend('qasm_simulator_py')
+        sim_backend = qiskit.terra.Aer.get_backend('qasm_simulator_py')
         try:
-            qiskit.IBMQ.enable_account(qe_token, qe_url)
-            real_backends = qiskit.IBMQ.backends(simulator=False)
+            qiskit.terra.IBMQ.enable_account(qe_token, qe_url)
+            real_backends = qiskit.terra.IBMQ.backends(simulator=False)
             real_backend = least_busy(real_backends)
         except Exception:
             real_backend = None

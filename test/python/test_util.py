@@ -5,16 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tests for qiskit/_util.py"""
+"""Tests for qiskit/terra/_util.py"""
 
 from unittest import mock
 
-from qiskit import _util
+from qiskit.terra import _util
 from .common import QiskitTestCase
 
 
 class TestUtil(QiskitTestCase):
-    """Tests for qiskit/_util.py"""
+    """Tests for qiskit/terra/_util.py"""
 
     @mock.patch('platform.system', return_value='Linux')
     @mock.patch('psutil.virtual_memory')

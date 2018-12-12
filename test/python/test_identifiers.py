@@ -11,10 +11,10 @@
 
 import unittest
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import QiskitError
+from qiskit.terra import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.terra import QiskitError
 # pylint: disable=redefined-builtin
-from qiskit import compile, Aer
+from qiskit.terra import compile, Aer
 from .common import QiskitTestCase, requires_cpp_simulator
 
 

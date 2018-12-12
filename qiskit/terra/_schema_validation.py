@@ -12,8 +12,8 @@ import os
 import logging
 import jsonschema
 
-from qiskit import QiskitError
-from qiskit import __path__ as qiskit_path
+from qiskit.terra import QiskitError
+from qiskit.terra import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 

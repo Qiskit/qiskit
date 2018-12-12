@@ -19,14 +19,14 @@ from scipy import linalg as la
 from functools import partial
 
 # import qiskit modules
-from qiskit import mapper
-from qiskit import QiskitError
+from qiskit.terra import mapper
+from qiskit.terra import QiskitError
 
 # import optimization tools
-from qiskit.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization, SPSA_calibration
-from qiskit.tools.apps.optimization import Hamiltonian_from_file, make_Hamiltonian
-from qiskit.tools.apps.optimization import eval_hamiltonian, group_paulis
-from qiskit import get_backend
+from qiskit.terra.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization, SPSA_calibration
+from qiskit.terra.tools.apps.optimization import Hamiltonian_from_file, make_Hamiltonian
+from qiskit.terra.tools.apps.optimization import eval_hamiltonian, group_paulis
+from qiskit.terra import get_backend
 
 
 def cost_function(H, n_qubits, depth, entangler_map, shots, device, theta):

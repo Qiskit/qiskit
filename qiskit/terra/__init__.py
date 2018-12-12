@@ -20,21 +20,21 @@ from . import _util
 from .qiskiterror import QiskitError, QISKitError
 
 # The main qiskit operators
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import QuantumCircuit
+from qiskit.terra.circuit import ClassicalRegister
+from qiskit.terra.circuit import QuantumRegister
+from qiskit.terra.circuit import QuantumCircuit
 from .tools.compiler import (compile, execute)
 
 # Please note these are global instances, not modules.
-from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
+from qiskit.terra.backends.ibmq import IBMQ
+from qiskit.terra.backends.aer import Aer  # pylint: disable=invalid-name
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
-import qiskit.extensions.standard
-import qiskit.extensions.quantum_initializer
-import qiskit.circuit.measure
-import qiskit.circuit.reset
+import qiskit.terra.extensions.standard
+import qiskit.terra.extensions.quantum_initializer
+import qiskit.terra.circuit.measure
+import qiskit.terra.circuit.reset
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code.

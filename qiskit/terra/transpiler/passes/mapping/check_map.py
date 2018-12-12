@@ -9,8 +9,8 @@
 This pass checks if a DAG is mapped to a coupling map.
 """
 
-from qiskit.transpiler._basepasses import AnalysisPass
-from qiskit.mapper import Layout
+from qiskit.terra.transpiler._basepasses import AnalysisPass
+from qiskit.terra.mapper import Layout
 
 
 class CheckMap(AnalysisPass):

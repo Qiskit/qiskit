@@ -5,8 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tests for qiskit/_pubsub.py"""
-from qiskit._pubsub import Publisher, Subscriber
+"""Tests for qiskit/terra/_pubsub.py"""
+from qiskit.terra._pubsub import Publisher, Subscriber
 from .common import QiskitTestCase
 
 

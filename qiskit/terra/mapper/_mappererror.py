@@ -9,7 +9,7 @@
 Exception for errors raised by mapper module.
 """
 
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 class MapperError(QiskitError):

@@ -49,9 +49,9 @@ from re import match
 
 import numpy as np
 
-from qiskit import QuantumCircuit
-from qiskit import QiskitError
-from qiskit.tools.qi.qi import vectorize, devectorize, outer
+from qiskit.terra import QuantumCircuit
+from qiskit.terra import QiskitError
+from qiskit.terra.tools.qi.qi import vectorize, devectorize, outer
 
 logger = logging.getLogger(__name__)
 

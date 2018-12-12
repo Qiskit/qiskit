@@ -13,14 +13,14 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra.backends.aer.qasm_simulator import (QasmSimulator,
                                                 cx_error_matrix,
                                                 x90_error_matrix)
-from qiskit.qobj import Qobj
-from qiskit.result.postprocess import format_statevector
-from qiskit.quantum_info import state_fidelity
-from qiskit import compile
+from qiskit.terra.qobj import Qobj
+from qiskit.terra.result.postprocess import format_statevector
+from qiskit.terra.quantum_info import state_fidelity
+from qiskit.terra import compile
 from ..common import QiskitTestCase, Path
 from ..common import requires_cpp_simulator
 

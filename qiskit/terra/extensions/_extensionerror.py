@@ -8,7 +8,7 @@
 """
 Exception for errors raised by extensions module.
 """
-from qiskit import QiskitError
+from qiskit.terra import QiskitError
 
 
 class ExtensionError(QiskitError):

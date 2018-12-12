@@ -9,11 +9,11 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import MapperError
-from qiskit.transpiler.passes import DirectionMapper
-from qiskit.mapper import Coupling
-from qiskit.converters import circuit_to_dag
+from qiskit.terra import QuantumRegister, QuantumCircuit
+from qiskit.terra.transpiler import MapperError
+from qiskit.terra.transpiler.passes import DirectionMapper
+from qiskit.terra.mapper import Coupling
+from qiskit.terra.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 

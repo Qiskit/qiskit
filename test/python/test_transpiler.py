@@ -9,12 +9,12 @@
 
 """Tests for transpiler functionality"""
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit import compile, Aer
-from qiskit.transpiler import PassManager, transpile_dag, transpile
-from qiskit.tools.compiler import circuits_to_qobj
-from qiskit.transpiler.passes import CXCancellation
-from qiskit.converters import circuit_to_dag
+from qiskit.terra import QuantumRegister, QuantumCircuit
+from qiskit.terra import compile, Aer
+from qiskit.terra.transpiler import PassManager, transpile_dag, transpile
+from qiskit.terra.tools.compiler import circuits_to_qobj
+from qiskit.terra.transpiler.passes import CXCancellation
+from qiskit.terra.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 

@@ -8,7 +8,7 @@
 
 
 """Unroll QASM and different backends."""
-from qiskit.unrollers._backenderror import BackendError
-from qiskit.unrollers._dagunroller import DagUnroller
-from qiskit.unrollers._unrollerbackend import UnrollerBackend
-from qiskit.unrollers._jsonbackend import JsonBackend
+from qiskit.terra.unrollers._backenderror import BackendError
+from qiskit.terra.unrollers._dagunroller import DagUnroller
+from qiskit.terra.unrollers._unrollerbackend import UnrollerBackend
+from qiskit.terra.unrollers._jsonbackend import JsonBackend

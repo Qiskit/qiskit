@@ -8,8 +8,8 @@
 """FixedPoint pass testing"""
 
 import unittest
-from qiskit.transpiler import PropertySet
-from qiskit.transpiler.passes import FixedPoint
+from qiskit.terra.transpiler import PropertySet
+from qiskit.terra.transpiler.passes import FixedPoint
 from ..common import QiskitTestCase
 
 

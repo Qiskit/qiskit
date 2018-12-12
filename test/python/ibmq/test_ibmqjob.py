@@ -19,13 +19,13 @@ from concurrent import futures
 import numpy
 from scipy.stats import chi2_contingency
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import IBMQ
-from qiskit import compile
-from qiskit.backends import JobStatus, JobError
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError, DeprecatedFormatJobError
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
-from qiskit.backends.ibmq import least_busy
+from qiskit.terra import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.terra import IBMQ
+from qiskit.terra import compile
+from qiskit.terra.backends import JobStatus, JobError
+from qiskit.terra.backends.ibmq.ibmqbackend import IBMQBackendError, DeprecatedFormatJobError
+from qiskit.terra.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.terra.backends.ibmq import least_busy
 
 from ..common import requires_qe_access, JobTestCase, slow_test
 

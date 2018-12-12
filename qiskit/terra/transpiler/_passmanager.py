@@ -8,7 +8,7 @@
 
 from functools import partial
 from collections import OrderedDict
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.terra.dagcircuit import DAGCircuit
 from ._propertyset import PropertySet
 from ._basepasses import BasePass
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit

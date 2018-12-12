@@ -20,9 +20,9 @@ To control the passes and we have a pass manager for level 2 user.
 import pprint, time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
-from qiskit import compile, IBMQ, Aer
-from qiskit.backends.ibmq import least_busy
+from qiskit.terra import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit.terra import compile, IBMQ, Aer
+from qiskit.terra.backends.ibmq import least_busy
 
 try:
     IBMQ.load_accounts()

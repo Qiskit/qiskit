@@ -8,9 +8,9 @@
 
 """Tests for all aer simulators."""
 
-from qiskit import Aer, ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
-from qiskit.qobj import QobjHeader
+from qiskit.terra import Aer, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.terra import compile  # pylint: disable=redefined-builtin
+from qiskit.terra.qobj import QobjHeader
 
 from ..common import QiskitTestCase
 

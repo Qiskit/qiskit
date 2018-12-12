@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
 
-from qiskit.validation import ValidationError, ModelTypeValidator
+from qiskit.terra.validation import ValidationError, ModelTypeValidator
 
 
 class Nested(_fields.Nested, ModelTypeValidator):

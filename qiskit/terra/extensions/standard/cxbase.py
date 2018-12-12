@@ -8,11 +8,11 @@
 """
 Fundamental controlled-NOT gate.
 """
-from qiskit.circuit import Gate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.terra.circuit import Gate
+from qiskit.terra.circuit import QuantumCircuit
+from qiskit.terra.circuit import InstructionSet
+from qiskit.terra.circuit import QuantumRegister
+from qiskit.terra.extensions.standard import header  # pylint: disable=unused-import
 
 
 class CXBase(Gate):  # pylint: disable=abstract-method

@@ -9,9 +9,9 @@
 
 import unittest
 
-from qiskit import qasm
-from qiskit.unroll import DagUnroller, JsonBackend
-from qiskit.converters import ast_to_dag
+from qiskit.terra import qasm
+from qiskit.terra.unroll import DagUnroller, JsonBackend
+from qiskit.terra.converters import ast_to_dag
 from .common import QiskitTestCase
 
 

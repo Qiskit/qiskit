@@ -13,7 +13,7 @@ import unittest
 from copy import deepcopy
 import numpy as np
 
-from qiskit.quantum_info import Pauli, pauli_group
+from qiskit.terra.quantum_info import Pauli, pauli_group
 from ..common import QiskitTestCase
 
 

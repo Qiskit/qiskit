@@ -13,7 +13,7 @@ used `pip install`, the examples only work from the root directory.
 """
 
 import math
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute, Aer
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit, execute, Aer
 
 
 ###############################################################

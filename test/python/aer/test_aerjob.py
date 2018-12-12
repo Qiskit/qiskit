@@ -15,11 +15,11 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.backends.aer import QasmSimulator
-from qiskit.backends.aer import QasmSimulatorPy
-from qiskit.backends.aer import StatevectorSimulator
-from qiskit.backends.aer import StatevectorSimulatorPy
-from qiskit.backends.aer import UnitarySimulatorPy
+from qiskit.terra.backends.aer import QasmSimulator
+from qiskit.terra.backends.aer import QasmSimulatorPy
+from qiskit.terra.backends.aer import StatevectorSimulator
+from qiskit.terra.backends.aer import StatevectorSimulatorPy
+from qiskit.terra.backends.aer import UnitarySimulatorPy
 from ..common import QiskitTestCase
 from .._mockutils import new_fake_qobj
 
@@ -98,7 +98,7 @@ def mocked_executor():
 
     import importlib
     import concurrent.futures as futures
-    import qiskit.backends.aer.aerjob as aerjob
+    import qiskit.terra.backends.aer.aerjob as aerjob
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)

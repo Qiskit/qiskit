@@ -20,13 +20,13 @@ import json
 import datetime
 import numpy
 
-from qiskit.qobj import qobj_to_dict
-from qiskit.transpiler import transpile_dag
-from qiskit.backends import BaseJob, JobError, JobTimeoutError
-from qiskit.backends.jobstatus import JobStatus, JOB_FINAL_STATES
-from qiskit.result import Result
-from qiskit.result._utils import result_from_old_style_dict
-from qiskit.qobj import validate_qobj_against_schema
+from qiskit.terra.qobj import qobj_to_dict
+from qiskit.terra.transpiler import transpile_dag
+from qiskit.terra.backends import BaseJob, JobError, JobTimeoutError
+from qiskit.terra.backends.jobstatus import JobStatus, JOB_FINAL_STATES
+from qiskit.terra.result import Result
+from qiskit.terra.result._utils import result_from_old_style_dict
+from qiskit.terra.qobj import validate_qobj_against_schema
 
 from .api import ApiError
 

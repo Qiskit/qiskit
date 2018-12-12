@@ -8,7 +8,7 @@
 """Transpiler PropertySet testing"""
 
 import unittest
-from qiskit.transpiler import PropertySet
+from qiskit.terra.transpiler import PropertySet
 from ..common import QiskitTestCase
 
 

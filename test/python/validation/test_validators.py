@@ -11,9 +11,9 @@ from test.python.common import QiskitTestCase
 
 from marshmallow.validate import Regexp
 
-from qiskit.validation import fields, ValidationError
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
-from qiskit.validation.validate import PatternProperties
+from qiskit.terra.validation import fields, ValidationError
+from qiskit.terra.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
+from qiskit.terra.validation.validate import PatternProperties
 
 
 class HistogramSchema(BaseSchema):

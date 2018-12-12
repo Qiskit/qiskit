@@ -9,8 +9,8 @@
 
 from marshmallow.validate import Length, Regexp
 
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import DateTime, List, Nested, Number, String, Integer
+from qiskit.terra.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.terra.validation.fields import DateTime, List, Nested, Number, String, Integer
 
 
 class NduvSchema(BaseSchema):

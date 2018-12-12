@@ -8,10 +8,10 @@
 """Test the Basic Mapper pass"""
 
 import unittest
-from qiskit.transpiler.passes import BasicMapper
-from qiskit.mapper import Coupling
-from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.terra.transpiler.passes import BasicMapper
+from qiskit.terra.mapper import Coupling
+from qiskit.terra.converters import circuit_to_dag
+from qiskit.terra import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 

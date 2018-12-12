@@ -7,8 +7,8 @@
 
 """Backends Filtering Test."""
 
-from qiskit import IBMQ
-from qiskit.backends.ibmq import least_busy
+from qiskit.terra import IBMQ
+from qiskit.terra.backends.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase
 
 

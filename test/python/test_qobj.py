@@ -12,13 +12,13 @@ import uuid
 import unittest
 import copy
 import jsonschema
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, Aer
-from qiskit._schema_validation import SchemaValidationError
-from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
-from qiskit.qobj import QobjHeader, validate_qobj_against_schema
-from qiskit.backends.aer import aerjob
-from qiskit.backends.ibmq import ibmqjob
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import compile, Aer
+from qiskit.terra._schema_validation import SchemaValidationError
+from qiskit.terra.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
+from qiskit.terra.qobj import QobjHeader, validate_qobj_against_schema
+from qiskit.terra.backends.aer import aerjob
+from qiskit.terra.backends.ibmq import ibmqjob
 from ._mockutils import FakeBackend
 from .common import QiskitTestCase
 

@@ -15,7 +15,7 @@ import warnings
 from functools import reduce
 import numpy as np
 from scipy import linalg
-from qiskit.quantum_info import pauli_group, Pauli
+from qiskit.terra.quantum_info import pauli_group, Pauli
 from ._matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
@@ -24,9 +24,9 @@ if HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import proj3d
-    from qiskit.tools.visualization._error import VisualizationError
-    from qiskit.tools.visualization._bloch import Bloch
-    from qiskit.tools.visualization._utils import _validate_input_state
+    from qiskit.terra.tools.visualization._error import VisualizationError
+    from qiskit.terra.tools.visualization._bloch import Bloch
+    from qiskit.terra.tools.visualization._utils import _validate_input_state
 
 if HAS_MATPLOTLIB:
     class Arrow3D(FancyArrowPatch):

@@ -25,11 +25,11 @@ import warnings
 
 from PIL import Image
 
-from qiskit.tools.visualization import _error
-from qiskit.tools.visualization import _latex
-from qiskit.tools.visualization import _text
-from qiskit.tools.visualization import _utils
-from qiskit.tools.visualization import _matplotlib
+from qiskit.terra.tools.visualization import _error
+from qiskit.terra.tools.visualization import _latex
+from qiskit.terra.tools.visualization import _text
+from qiskit.terra.tools.visualization import _utils
+from qiskit.terra.tools.visualization import _matplotlib
 
 logger = logging.getLogger(__name__)
 

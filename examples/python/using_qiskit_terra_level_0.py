@@ -19,9 +19,9 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
-from qiskit import execute, IBMQ, Aer
-from qiskit.backends.ibmq import least_busy
+from qiskit.terra import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit.terra import execute, IBMQ, Aer
+from qiskit.terra.backends.ibmq import least_busy
 
 
 try:

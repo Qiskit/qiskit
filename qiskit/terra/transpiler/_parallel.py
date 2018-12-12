@@ -46,9 +46,9 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit.qiskiterror import QiskitError
-from qiskit._util import local_hardware_info
-from qiskit._pubsub import Publisher
+from qiskit.terra.qiskiterror import QiskitError
+from qiskit.terra._util import local_hardware_info
+from qiskit.terra._pubsub import Publisher
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']

@@ -16,7 +16,7 @@ as making a pass manager and telling it to start with CXCancellation.
 """
 
 # choose a remote device
-from qiskit import IBMQ, qobj_to_circuits
+from qiskit.terra import IBMQ, qobj_to_circuits
 
 try:
     IBMQ.load_accounts()
@@ -29,7 +29,7 @@ except:
 backend_device = IBMQ.get_backend('ibmqx4')
 
 # 0. build circuit
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
 q = QuantumRegister(2)
 c = ClassicalRegister(2)
 circ = QuantumCircuit(q, c)
@@ -43,13 +43,13 @@ circ.measure(q, c)
 print(circ.qasm())
 
 # 1. standard compile -- standard qiskit passes, when no PassManager given
-from qiskit import transpiler
+from qiskit.terra import transpiler
 dags = transpiler.transpile(circ, backend_device)
 [compiled_standard] = dags
 print(compiled_standard.qasm())
 
 # 2. custom compile -- customize PassManager to run specific circuit transformations
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.terra.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
 pm.add_passes(CXCancellation())
 dags = transpiler.transpile(circ, backend_device, pass_manager=pm)

@@ -15,10 +15,10 @@ import os
 import time
 import unittest
 from unittest.util import safe_repr
-from qiskit import __path__ as qiskit_path
-from qiskit.backends import JobStatus
-from qiskit.backends.aer import QasmSimulator
-from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
+from qiskit.terra import __path__ as qiskit_path
+from qiskit.terra.backends import JobStatus
+from qiskit.terra.backends.aer import QasmSimulator
+from qiskit.terra.backends.ibmq.credentials import discover_credentials, Credentials
 
 from .http_recorder import http_recorder
 from ._test_options import get_test_options
@@ -30,15 +30,15 @@ __unittest = True  # pylint: disable=invalid-name
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
-    # Main SDK path:    qiskit/
+    # Main SDK path:    qiskit/terra
     SDK = qiskit_path[0]
-    # test.python path: qiskit/test/python/
+    # test.python path: qiskit/terra/test/python/
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
-    EXAMPLES = os.path.join(SDK, '..', 'examples')
-    # Schemas path:     qiskit/schemas
+    EXAMPLES = os.path.join(SDK, '..', '..', 'examples')
+    # Schemas path:     qiskit/terra/schemas
     SCHEMAS = os.path.join(SDK, 'schemas')
-    # VCR cassettes path: qiskit/test/cassettes/
+    # VCR cassettes path: qiskit/terra/test/cassettes/
     CASSETTES = os.path.join(TEST, '..', 'cassettes')
 
 
@@ -76,8 +76,8 @@ class QiskitTestCase(unittest.TestCase):
     def tearDown(self):
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
-        from qiskit.backends.ibmq import IBMQ
-        from qiskit.backends.aer import Aer
+        from qiskit.terra.backends.ibmq import IBMQ
+        from qiskit.terra.backends.aer import Aer
 
         IBMQ._accounts.clear()
         Aer._backends = Aer._verify_aer_backends()

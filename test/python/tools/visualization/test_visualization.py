@@ -12,8 +12,8 @@ import random
 import unittest
 from inspect import signature
 
-import qiskit
-from qiskit.tools.visualization import _utils, circuit_drawer
+import qiskit.terra
+from qiskit.terra.tools.visualization import _utils, circuit_drawer
 from ...common import QiskitTestCase
 
 
@@ -33,8 +33,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
         Returns:
             QuantumCircuit: constructed circuit
         """
-        qr = qiskit.QuantumRegister(width, "q")
-        qc = qiskit.QuantumCircuit(qr)
+        qr = qiskit.terra.QuantumRegister(width, "q")
+        qc = qiskit.terra.QuantumCircuit(qr)
 
         one_q_ops = "iden,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"
         two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
@@ -57,7 +57,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
                     operation = random.choice(three_q_ops.split(','))
                 # every gate is defined as a method of the QuantumCircuit class
                 # the code below is so we can call a gate by its name
-                gate = getattr(qiskit.QuantumCircuit, operation)
+                gate = getattr(qiskit.terra.QuantumCircuit, operation)
                 op_args = list(signature(gate).parameters.keys())
                 num_angles = len(op_args) - num_operands - 1  # -1 for the 'self' arg
                 angles = [random.uniform(0, 3.14) for x in range(num_angles)]
@@ -124,9 +124,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_teleport(self):
         """Test draw teleport circuit."""
         filename = self._get_resource_path('test_teleport.tex')
-        qr = qiskit.QuantumRegister(3, 'q')
-        cr = qiskit.ClassicalRegister(3, 'c')
-        qc = qiskit.QuantumCircuit(qr, cr)
+        qr = qiskit.terra.QuantumRegister(3, 'q')
+        cr = qiskit.terra.ClassicalRegister(3, 'c')
+        qc = qiskit.terra.QuantumCircuit(qr, cr)
         # Prepare an initial state
         qc.u3(0.3, 0.2, 0.1, qr[0])
         # Prepare a Bell pair
@@ -153,16 +153,16 @@ class TestLatexSourceGenerator(QiskitTestCase):
 
 class TestVisualizationUtils(QiskitTestCase):
     """ Tests for visualizer utilities.
-    Since the utilities in qiskit/tools/visualization/_utils.py are used by several visualizers
+    Since the utilities in qiskit/terra/tools/visualization/_utils.py are used by several visualizers
     the need to be check if the interface or their result changes."""
 
     def setUp(self):
-        self.qr1 = qiskit.QuantumRegister(2, 'qr1')
-        self.qr2 = qiskit.QuantumRegister(2, 'qr2')
-        self.cr1 = qiskit.ClassicalRegister(2, 'cr1')
-        self.cr2 = qiskit.ClassicalRegister(2, 'cr2')
+        self.qr1 = qiskit.terra.QuantumRegister(2, 'qr1')
+        self.qr2 = qiskit.terra.QuantumRegister(2, 'qr2')
+        self.cr1 = qiskit.terra.ClassicalRegister(2, 'cr1')
+        self.cr2 = qiskit.terra.ClassicalRegister(2, 'cr2')
 
-        self.circuit = qiskit.QuantumCircuit(self.qr1, self.qr2, self.cr1, self.cr2)
+        self.circuit = qiskit.terra.QuantumCircuit(self.qr1, self.qr2, self.cr1, self.cr2)
         self.circuit.cx(self.qr2[0], self.qr2[1])
         self.circuit.measure(self.qr2[0], self.cr2[0])
         self.circuit.cx(self.qr2[1], self.qr2[0])

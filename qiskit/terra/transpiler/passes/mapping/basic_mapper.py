@@ -15,10 +15,10 @@ compatible.
 
 from copy import copy
 
-from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
-from qiskit.extensions.standard import SwapGate
+from qiskit.terra.transpiler._basepasses import TransformationPass
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.mapper import Layout
+from qiskit.terra.extensions.standard import SwapGate
 
 
 class BasicMapper(TransformationPass):

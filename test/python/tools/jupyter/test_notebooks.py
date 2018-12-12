@@ -29,7 +29,7 @@ class TestJupyter(QiskitTestCase):
     def setUp(self):
         self.filename = self._get_resource_path(
             'notebooks/test_pbar_status.ipynb')
-        self.execution_path = os.path.join(Path.SDK.value, '..')
+        self.execution_path = os.path.join(Path.SDK.value, '..', '..')
 
     def _execute_notebook(self, filename):
         # Create the preprocessor.
@@ -40,7 +40,7 @@ class TestJupyter(QiskitTestCase):
         with open(filename) as file_:
             notebook = nbformat.read(file_, as_version=4)
 
-        # Run the notebook into the folder containing the `qiskit/` module.
+        # Run the notebook into the folder containing the `qiskit/terra` module.
         execute_preprocessor.preprocess(
             notebook, {'metadata': {'path': self.execution_path}})
 

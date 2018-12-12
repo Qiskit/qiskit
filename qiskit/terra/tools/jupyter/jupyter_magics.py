@@ -13,7 +13,7 @@ from IPython.display import display                              # pylint: disab
 from IPython.core import magic_arguments                         # pylint: disable=import-error
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
-import qiskit
+import qiskit.terra
 from .progressbar import HTMLProgressBar, TextProgressBar
 
 
@@ -91,11 +91,11 @@ class StatusMagic(Magics):
 
                 if iter_var:
                     for item in self.shell.user_ns[var]:
-                        if isinstance(item, qiskit.backends.basejob.BaseJob):
+                        if isinstance(item, qiskit.terra.backends.basejob.BaseJob):
                             jobs.append(item)
                 else:
                     if isinstance(self.shell.user_ns[var],
-                                  qiskit.backends.basejob.BaseJob):
+                                  qiskit.terra.backends.basejob.BaseJob):
                         jobs.append(self.shell.user_ns[var])
 
         # Must have one job class
@@ -153,6 +153,6 @@ class ProgressBarMagic(Magics):
         elif args.type == 'text':
             TextProgressBar()
         else:
-            raise qiskit.QiskitError('Invalid progress bar type.')
+            raise qiskit.terra.QiskitError('Invalid progress bar type.')
 
         self.shell.ex(cell)

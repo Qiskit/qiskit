@@ -9,9 +9,9 @@
 """Main Qiskit visualization methods."""
 
 import sys
-from qiskit._util import _has_connection
-from qiskit.tools.visualization._counts_visualization import plot_histogram
-from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
+from qiskit.terra._util import _has_connection
+from qiskit.terra.tools.visualization._counts_visualization import plot_histogram
+from qiskit.terra.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_bloch_vector,
                                                              plot_bloch_multivector,
                                                              plot_state_city,
@@ -27,7 +27,7 @@ from ._matplotlib import HAS_MATPLOTLIB
 
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     if _has_connection('qvisualization.mybluemix.net', 443):
-        from qiskit.tools.visualization.interactive import (iplot_state,
+        from qiskit.terra.tools.visualization.interactive import (iplot_state,
                                                             iplot_bloch_multivector,
                                                             iplot_state_city,
                                                             iplot_state_qsphere,

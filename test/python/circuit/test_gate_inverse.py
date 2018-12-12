@@ -13,7 +13,7 @@ import os
 import tempfile
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 

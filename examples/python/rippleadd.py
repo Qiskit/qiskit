@@ -12,8 +12,8 @@ Note: if you have only cloned the Qiskit repository but not
 used `pip install`, the examples only work from the root directory.
 """
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import  compile, Aer
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import  compile, Aer
 
 ###############################################################
 # Set the backend name and coupling map.

@@ -11,9 +11,9 @@
 import unittest
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit import compile
-from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
+from qiskit.terra import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.terra import compile
+from qiskit.terra.backends.aer.unitary_simulator_py import UnitarySimulatorPy
 from ..common import QiskitTestCase
 
 

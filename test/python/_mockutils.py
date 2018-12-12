@@ -19,14 +19,14 @@ import logging
 from concurrent import futures
 import time
 
-from qiskit.result import Result
-from qiskit.backends import BaseBackend
-from qiskit.backends import BaseJob
-from qiskit.backends.models import BackendProperties
-from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
-from qiskit.qobj import QobjExperiment, QobjExperimentHeader
-from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.baseprovider import BaseProvider
+from qiskit.terra.result import Result
+from qiskit.terra.backends import BaseBackend
+from qiskit.terra.backends import BaseJob
+from qiskit.terra.backends.models import BackendProperties
+from qiskit.terra.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
+from qiskit.terra.qobj import QobjExperiment, QobjExperimentHeader
+from qiskit.terra.backends.jobstatus import JobStatus
+from qiskit.terra.backends.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
 

@@ -13,10 +13,10 @@
 
 import os
 import unittest
-from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
+from qiskit.terra import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
-from qiskit import IBMQ, Aer
-from qiskit.qasm import pi
+from qiskit.terra import IBMQ, Aer
+from qiskit.terra.qasm import pi
 from ..common import requires_qe_access, JobTestCase, slow_test
 
 

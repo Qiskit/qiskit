@@ -11,14 +11,14 @@
 
 import unittest
 
-from qiskit.converters import qobj_to_circuits
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import Aer
-from qiskit import compile
+from qiskit.terra.converters import qobj_to_circuits
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import Aer
+from qiskit.terra import compile
 
-from qiskit.qobj import Qobj
-from qiskit.transpiler import PassManager
-from qiskit.converters import circuit_to_dag
+from qiskit.terra.qobj import Qobj
+from qiskit.terra.transpiler import PassManager
+from qiskit.terra.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 

@@ -25,9 +25,9 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.tools.visualization import _error
-from qiskit.tools.visualization import _qcstyle
-from qiskit.tools.visualization import _utils
+from qiskit.terra.tools.visualization import _error
+from qiskit.terra.tools.visualization import _qcstyle
+from qiskit.terra.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)

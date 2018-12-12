@@ -9,9 +9,9 @@
 
 import unittest
 
-import qiskit
-from qiskit import Aer
-from qiskit.quantum_info.analyzation.average import average_data
+import qiskit.terra
+from qiskit.terra import Aer
+from qiskit.terra.quantum_info.analyzation.average import average_data
 from ..common import QiskitTestCase
 
 
@@ -20,16 +20,16 @@ class TestAnalyzation(QiskitTestCase):
 
     def test_average_data(self):
         """Test average_data."""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qr, cr, name="qc")
+        qr = qiskit.terra.QuantumRegister(2)
+        cr = qiskit.terra.ClassicalRegister(2)
+        qc = qiskit.terra.QuantumCircuit(qr, cr, name="qc")
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
         backend = Aer.get_backend('qasm_simulator_py')
-        result = qiskit.execute(qc, backend, shots=shots).result()
+        result = qiskit.terra.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
         mean_zz = average_data(counts=counts, observable=observable)

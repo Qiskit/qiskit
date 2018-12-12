@@ -13,17 +13,17 @@ import unittest
 import sympy
 import numpy as np
 
-from qiskit import compile, execute
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import mapper, Aer
-from qiskit.backends.models import BackendConfiguration
-from qiskit.backends.models.backendconfiguration import GateConfig
-from qiskit.qobj import Qobj
-from qiskit.transpiler._transpiler import transpile_dag
-from qiskit.mapper._compiling import two_qubit_kak
-from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper._mapping import remove_last_measurements, MapperError
-from qiskit.converters import circuit_to_dag
+from qiskit.terra import compile, execute
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import mapper, Aer
+from qiskit.terra.backends.models import BackendConfiguration
+from qiskit.terra.backends.models.backendconfiguration import GateConfig
+from qiskit.terra.qobj import Qobj
+from qiskit.terra.transpiler._transpiler import transpile_dag
+from qiskit.terra.mapper._compiling import two_qubit_kak
+from qiskit.terra.tools.qi.qi import random_unitary_matrix
+from qiskit.terra.mapper._mapping import remove_last_measurements, MapperError
+from qiskit.terra.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 

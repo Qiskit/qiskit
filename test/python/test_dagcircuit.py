@@ -9,18 +9,18 @@
 
 import unittest
 
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Measure
-from qiskit.circuit import Reset
-from qiskit.circuit import Gate, Instruction
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.x import XGate
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit.converters import circuit_to_dag
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.circuit import QuantumRegister
+from qiskit.terra.circuit import ClassicalRegister
+from qiskit.terra.circuit import QuantumCircuit
+from qiskit.terra.circuit import Measure
+from qiskit.terra.circuit import Reset
+from qiskit.terra.circuit import Gate, Instruction
+from qiskit.terra.extensions.standard.h import HGate
+from qiskit.terra.extensions.standard.cx import CnotGate
+from qiskit.terra.extensions.standard.x import XGate
+from qiskit.terra.dagcircuit._dagcircuiterror import DAGCircuitError
+from qiskit.terra.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 

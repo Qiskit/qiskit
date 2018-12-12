@@ -11,11 +11,11 @@ compatible to the directed coupling map.
 """
 from copy import copy
 
-from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler import MapperError
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
-from qiskit.extensions.standard import HGate
+from qiskit.terra.transpiler._basepasses import TransformationPass
+from qiskit.terra.transpiler import MapperError
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.mapper import Layout
+from qiskit.terra.extensions.standard import HGate
 
 
 class DirectionMapper(TransformationPass):

@@ -12,9 +12,9 @@ from collections import OrderedDict
 
 from marshmallow import ValidationError
 
-from qiskit.backends import BaseProvider
-from qiskit.backends.models import BackendConfiguration
-from qiskit.backends.providerutils import filter_backends
+from qiskit.terra.backends import BaseProvider
+from qiskit.terra.backends.models import BackendConfiguration
+from qiskit.terra.backends.providerutils import filter_backends
 
 from .api import IBMQConnector
 from .ibmqbackend import IBMQBackend

@@ -30,11 +30,11 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
-from qiskit.result import Result
-from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
+from qiskit.terra._util import local_hardware_info
+from qiskit.terra.backends.models import BackendConfiguration
+from qiskit.terra.result import Result
+from qiskit.terra.backends import BaseBackend
+from qiskit.terra.backends.aer.aerjob import AerJob
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix, index2
 

@@ -15,9 +15,9 @@ import logging
 import uuid
 from math import log2
 from numpy import array
-from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
-from qiskit.qobj import QobjInstruction
+from qiskit.terra._util import local_hardware_info
+from qiskit.terra.backends.models import BackendConfiguration
+from qiskit.terra.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
 from ._simulatorerror import SimulatorError
 from .aerjob import AerJob

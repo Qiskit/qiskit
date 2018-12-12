@@ -10,9 +10,9 @@
 import copy
 import networkx as nx
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister
-from qiskit.transpiler._transpilererror import TranspilerError
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.terra.circuit import QuantumRegister, ClassicalRegister
+from qiskit.terra.transpiler._transpilererror import TranspilerError
+from qiskit.terra.transpiler._basepasses import TransformationPass
 
 
 class Unroller(TransformationPass):

@@ -17,13 +17,13 @@ import argparse
 import time
 
 # import qiskit modules
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import QiskitError, execute
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import QiskitError, execute
 
 # import tomography libary and other useful tools
-import qiskit.tools.qcvv.tomography as tomo
-from qiskit.tools.qi.qi import state_fidelity, purity
-from qiskit.tools.qi.qi import outer, random_unitary_matrix
+import qiskit.terra.tools.qcvv.tomography as tomo
+from qiskit.terra.tools.qi.qi import state_fidelity, purity
+from qiskit.terra.tools.qi.qi import outer, random_unitary_matrix
 
 
 # circuit that outputs the target state

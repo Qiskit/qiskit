@@ -7,13 +7,13 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
-import qiskit.extensions.simulator  # pylint: disable=unused-import
-from qiskit import Aer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
-from qiskit.result.postprocess import format_statevector
+import qiskit.terra.extensions.simulator  # pylint: disable=unused-import
+from qiskit.terra import Aer
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import execute
+from qiskit.terra import QiskitError
+from qiskit.terra.quantum_info import state_fidelity
+from qiskit.terra.result.postprocess import format_statevector
 
 from ..common import QiskitTestCase, requires_cpp_simulator
 

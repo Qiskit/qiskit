@@ -11,9 +11,9 @@
 
 import unittest
 
-from qiskit.converters import ast_to_dag, circuit_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import qasm
+from qiskit.terra.converters import ast_to_dag, circuit_to_dag
+from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.terra import qasm
 
 from ..common import QiskitTestCase
 

@@ -11,12 +11,12 @@
 
 import unittest.mock
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile_dag, TranspilerAccessError, TranspilerError, \
+from qiskit.terra import QuantumRegister, QuantumCircuit
+from qiskit.terra.dagcircuit import DAGCircuit
+from qiskit.terra.transpiler import PassManager, transpile_dag, TranspilerAccessError, TranspilerError, \
     FlowController
-from qiskit.transpiler._passmanager import DoWhileController, ConditionalController
-from qiskit.converters import circuit_to_dag
+from qiskit.terra.transpiler._passmanager import DoWhileController, ConditionalController
+from qiskit.terra.converters import circuit_to_dag
 from ._dummy_passes import PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
     PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, \
     PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point_property
