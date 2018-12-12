@@ -226,7 +226,7 @@ class TestMapper(QiskitTestCase):
         qobj = compile(qc, backend=backend)
         cx_qubits = [x.qubits
                      for x in qobj.experiments[0].instructions
-                     if x.name == "cx"]
+                     if x.name == "CX"]
 
         self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4],
                                              [9, 8], [12, 11], [13, 4]])
