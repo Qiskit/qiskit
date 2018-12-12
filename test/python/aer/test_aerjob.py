@@ -21,7 +21,7 @@ from qiskit.backends.aer import StatevectorSimulator
 from qiskit.backends.aer import StatevectorSimulatorPy
 from qiskit.backends.aer import UnitarySimulatorPy
 from ..common import QiskitTestCase
-from .._mockutils import new_fake_qobj
+from .._mockutils import new_fake_qobj, FakeBackend
 
 
 class TestAerJob(QiskitTestCase):
@@ -82,12 +82,6 @@ class TestAerJob(QiskitTestCase):
             call_count, 1,
             'Callable object has been called more than once ({})'.format(
                 call_count))
-
-
-class FakeBackend():
-
-    def __init__(self):
-        self.name = 'test-backend'
 
 
 @contextmanager

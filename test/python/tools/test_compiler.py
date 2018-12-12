@@ -17,44 +17,12 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile
 from qiskit import compile
 from qiskit.result import Result
-from qiskit.backends.models import BackendConfiguration
-from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit import execute
 from qiskit.qiskiterror import QiskitError
 from qiskit.backends.ibmq import least_busy
+from .._mockutils import FakeBackend
 from ..common import QiskitTestCase
 from ..common import requires_qe_access, requires_cpp_simulator
-
-
-class FakeBackend(object):
-    """A fake backend.
-    """
-
-    def name(self):
-        """ name of fake backend"""
-        return 'qiskit_is_cool'
-
-    def configuration(self):
-        """Return a make up configuration for a fake device."""
-        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
-                    [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
-                    [15, 2], [15, 14]]
-        return BackendConfiguration(
-            backend_name='fake',
-            backend_version='0.0.0',
-            n_qubits=16,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-            simulator=False,
-            local=True,
-            conditional=False,
-            open_pulse=False,
-            memory=False,
-            max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=qx5_cmap,
-        )
-
 
 class TestCompiler(QiskitTestCase):
     """Qiskit Compiler Tests."""
