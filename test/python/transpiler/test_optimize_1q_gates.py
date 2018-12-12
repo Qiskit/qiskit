@@ -12,9 +12,11 @@ import sympy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
+from .._mockutils import FakeBackend
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -34,6 +36,25 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+class TestOptimize1qGatesTranspiler(QiskitTestCase):
+    """ Test for 1q gate optimizations as part of the transpiler, with a PassManager """
+
+    def test_optimize_h_gates(self):
+        """ Transpile: qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(0,sympy.pi, qr[0])
+
+        passmanager = PassManager()
+        passmanager.add_passes(Optimize1qGates())
+        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
+
+        self.assertEqual(expected, result)
 
 class TestMovedFromMapper(QiskitTestCase):
     """ This tests are moved from test_mapper.py"""
@@ -63,24 +84,6 @@ class TestMovedFromMapper(QiskitTestCase):
         simplified_dag = Optimize1qGates().run(dag)
         num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 2)
-
-    def test_optimize_h_gates(self):
-        """ qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
-
-        qr = QuantumRegister(1)
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-
-        dag = circuit_to_dag(circuit)
-        expected = QuantumCircuit(qr)
-        expected.u2(0, sympy.pi, qr[0])
-
-        pass_ = Optimize1qGates()
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1q_gates_symbolic(self):
         """optimizes single qubit gate sequences with symbolic params.
