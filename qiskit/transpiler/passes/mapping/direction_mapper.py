@@ -38,7 +38,7 @@ class DirectionMapper(TransformationPass):
 
         super().__init__()
         self.coupling_map = coupling_map
-        self.initial_layout = initial_layout
+        self.layout = initial_layout
 
     def run(self, dag):
         """
@@ -50,15 +50,14 @@ class DirectionMapper(TransformationPass):
         """
         new_dag = DAGCircuit()
 
-        if self.initial_layout is None:
+        if self.layout is None:
             # create a one-to-one layout
-            self.initial_layout = Layout()
+            self.layout = Layout()
             wire_no = 0
             for qreg in dag.qregs.values():
                 for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = wire_no
+                    self.layout[(qreg, index)] = wire_no
                     wire_no += 1
-        current_layout = copy(self.initial_layout)
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
@@ -68,8 +67,8 @@ class DirectionMapper(TransformationPass):
                 control = cnot['op'].qargs[0]
                 target = cnot['op'].qargs[1]
 
-                physical_q0 = current_layout[control]
-                physical_q1 = current_layout[target]
+                physical_q0 = self.layout[control]
+                physical_q1 = self.layout[target]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     raise MapperError('The circuit requires a connectiontion between the phsycial '
                                       'qubits %s and %s' % (physical_q0, physical_q1))
@@ -93,7 +92,6 @@ class DirectionMapper(TransformationPass):
                     # Flips the CX
                     cnot['op'].qargs[0], cnot['op'].qargs[1] = target, control
 
-            edge_map = current_layout.combine_into_edge_map(self.initial_layout)
-            new_dag.compose_back(subdag, edge_map)
+            new_dag.extend_back(subdag)
 
         return new_dag

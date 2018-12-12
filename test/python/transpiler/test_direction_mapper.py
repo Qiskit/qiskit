@@ -121,9 +121,9 @@ class TestDirectionMapper(QiskitTestCase):
 
          Coupling map: [0] -> [1]
 
-         qr0:-[H]-(+)-[H]-----
-                   |
-         qr1:-[H]--.--[H]-[m]-
+         qr0:-[H]-(+)-[H]-[m]-
+                   |       |
+         qr1:-[H]--.--[H]--|--
                            |
          cr0:--------------.--
         """
@@ -136,13 +136,13 @@ class TestDirectionMapper(QiskitTestCase):
         coupling = Coupling({0: [1]})
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, cr)
         expected.h(qr[0])
         expected.h(qr[1])
         expected.cx(qr[0], qr[1])
         expected.h(qr[0])
         expected.h(qr[1])
-        circuit.measure(qr[1], cr[0])
+        expected.measure(qr[0], cr[0])
 
         pass_ = DirectionMapper(coupling)
         after = pass_.run(dag)
