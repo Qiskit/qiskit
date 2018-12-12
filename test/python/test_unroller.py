@@ -7,51 +7,16 @@
 
 """Test Qiskit Unroller class."""
 
-from sys import version_info
 import unittest
 
-from qiskit import qasm, QuantumCircuit
-from qiskit.unroll import Unroller, DagUnroller, DAGBackend, JsonBackend
-from qiskit.converters import circuit_to_dag
+from qiskit import qasm
+from qiskit.unroll import DagUnroller, JsonBackend
+from qiskit.converters import ast_to_dag
 from .common import QiskitTestCase
 
 
 class UnrollerTest(QiskitTestCase):
     """Test the Unroller."""
-
-    def setUp(self):
-        self.seed = 42
-
-    @unittest.skipIf(version_info.minor == 5, "Python 3.5 dictionaries don't preserve \
-                                               insertion order, so we need to skip this \
-                                               test, until fixed")
-    def test_from_ast_to_dag(self):
-        """Test Unroller.execute()"""
-        ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
-        dag_circuit = Unroller(ast, DAGBackend()).execute()
-        expected_result = """\
-OPENQASM 2.0;
-include "qelib1.inc";
-qreg q[3];
-qreg r[3];
-creg c[3];
-creg d[3];
-h q[0];
-h q[1];
-h q[2];
-cx q[0],r[0];
-cx q[1],r[1];
-cx q[2],r[2];
-barrier q[0],q[1],q[2];
-measure q[0] -> c[0];
-measure q[1] -> c[1];
-measure q[2] -> c[2];
-measure r[0] -> d[0];
-measure r[1] -> d[1];
-measure r[2] -> d[2];
-"""
-        expected_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(expected_result))
-        self.assertEqual(dag_circuit, expected_dag)
 
     # We need to change the way we create clbit_labels and qubit_labels in order to
     # enable this test, as they are lists but the order is not important so comparing
@@ -60,7 +25,7 @@ measure r[2] -> d[2];
     def test_dag_to_json(self):
         """Test DagUnroller with JSON backend."""
         ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
-        dag_circuit = Unroller(ast, DAGBackend()).execute()
+        dag_circuit = ast_to_dag(ast)
         dag_unroller = DagUnroller(dag_circuit, JsonBackend())
         json_circuit = dag_unroller.execute()
         expected_result = {
