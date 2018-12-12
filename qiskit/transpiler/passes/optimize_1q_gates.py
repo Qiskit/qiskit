@@ -24,6 +24,7 @@ from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.mapping.unroller import Unroller
 
+
 class Optimize1qGates(TransformationPass):
     """Simplify runs of single qubit gates in the QX basis."""
 
