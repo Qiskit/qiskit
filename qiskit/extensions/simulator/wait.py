@@ -17,7 +17,7 @@ from qiskit.circuit import InstructionSet
 from qiskit.qasm import _node as node
 
 
-class WaitGate(Gate):
+class WaitGate(Gate):  # pylint: disable=abstract-method
     """Wait gate."""
 
     def __init__(self, t, qubit, circ=None):
@@ -46,7 +46,6 @@ def wait(self, t, q):
 
 # Add to QuantumCircuit class
 QuantumCircuit.wait = wait
-
 
 # idle for time t (identity)
 QuantumCircuit.definitions["wait"] = {

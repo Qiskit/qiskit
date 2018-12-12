@@ -13,14 +13,11 @@ from qiskit.circuit.compositegate import CompositeGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 
 
-def circuit_to_dag(circuit, expand_gates=True):
+def circuit_to_dag(circuit):
     """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
     Args:
         circuit (QuantumCircuit): the input circuit.
-        expand_gates (bool): if ``False``, none of the gates are expanded,
-            i.e. the gates that are defined in the circuit are included in
-            the DAG basis.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
@@ -57,7 +54,7 @@ def circuit_to_dag(circuit, expand_gates=True):
         # for now simply drop their instructions into the DAG
         instruction_list = []
         is_composite = isinstance(main_instruction, CompositeGate)
-        if is_composite and expand_gates:
+        if is_composite:
             instruction_list = main_instruction.instruction_list()
         else:
             instruction_list.append(main_instruction)

@@ -15,14 +15,13 @@ import scipy.sparse.csgraph as cs
 from qiskit.qiskiterror import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.unrollers import _dagunroller
-from qiskit.unrollers import _dagbackend
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
                            cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from ._parallel import parallel_map
+from .passes.mapping.unroller import Unroller
 
 
 logger = logging.getLogger(__name__)
@@ -169,9 +168,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
         basis = basis_gates.split(',') if basis_gates else []
-        dag_unroller = _dagunroller.DagUnroller(
-            dag, _dagbackend.DAGBackend(basis))
-        dag = dag_unroller.expand_gates()
+        dag = Unroller(basis).run(dag)
         # if a coupling map is given compile to the map
         if coupling_map:
             logger.info("pre-mapping properties: %s",
@@ -185,9 +182,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
-            dag_unroller = _dagunroller.DagUnroller(
-                dag, _dagbackend.DAGBackend(basis))
-            dag = dag_unroller.expand_gates()
+            dag = Unroller(basis).run(dag)
             # Change cx directions
             dag = direction_mapper(dag, coupling)
             # Simplify cx gates

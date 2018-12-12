@@ -12,7 +12,7 @@ from qiskit.qiskiterror import QiskitError
 from .gate import Gate
 
 
-class CompositeGate(Gate):
+class CompositeGate(Gate):  # pylint: disable=abstract-method
     """Composite gate, a sequence of unitary gates."""
 
     def __init__(self, name, param, qargs, circuit=None, inverse_name=None):

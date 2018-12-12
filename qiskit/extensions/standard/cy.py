@@ -27,7 +27,6 @@ class CyGate(Gate):
     def __init__(self, ctl, tgt, circ=None):
         """Create new CY gate."""
         super().__init__("cy", [], [ctl, tgt], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -50,7 +49,6 @@ class CyGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

@@ -25,7 +25,6 @@ class U3Gate(Gate):
     def __init__(self, theta, phi, lam, qubit, circ=None):
         """Create new two-pulse single qubit gate."""
         super().__init__("u3", [theta, phi, lam], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -48,7 +47,7 @@ class U3Gate(Gate):
         phi = self.param[1]
         self.param[1] = -self.param[2]
         self.param[2] = -phi
-        self._define_decompositions()
+        self._decompositions = None
         return self
 
     def reapply(self, circ):
