@@ -180,6 +180,7 @@ def new_fake_qobj():
         )]
     )
 
+
 class FakeBackend(object):
     """A fake backend.
     """

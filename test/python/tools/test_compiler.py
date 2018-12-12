@@ -24,6 +24,7 @@ from .._mockutils import FakeBackend
 from ..common import QiskitTestCase
 from ..common import requires_qe_access, requires_cpp_simulator
 
+
 class TestCompiler(QiskitTestCase):
     """Qiskit Compiler Tests."""
 
@@ -410,7 +411,7 @@ class TestCompiler(QiskitTestCase):
         # Create a GHZ state
         ghz.h(qr[0])
         for i in range(4):
-            ghz.cx(qr[i], qr[i+1])
+            ghz.cx(qr[i], qr[i + 1])
         # Insert a barrier before measurement
         ghz.barrier()
         # Measure all of the qubits in the standard basis
@@ -488,21 +489,21 @@ class TestCompiler(QiskitTestCase):
         n = 3  # make this at least 3
         qr0 = QuantumRegister(n)
         qr1 = QuantumRegister(n)
-        ans = ClassicalRegister(2*n)
+        ans = ClassicalRegister(2 * n)
         qc = QuantumCircuit(qr0, qr1, ans)
         # Set the first bit of qr0
         qc.x(qr0[0])
         # Swap the set bit
-        qc.swap(qr0[0], qr0[n-1])
-        qc.swap(qr0[n-1], qr1[n-1])
-        qc.swap(qr1[n-1], qr0[1])
+        qc.swap(qr0[0], qr0[n - 1])
+        qc.swap(qr0[n - 1], qr1[n - 1])
+        qc.swap(qr1[n - 1], qr0[1])
         qc.swap(qr0[1], qr1[1])
         # Insert a barrier before measurement
         qc.barrier()
         # Measure all of the qubits in the standard basis
         for j in range(n):
             qc.measure(qr0[j], ans[j])
-            qc.measure(qr1[j], ans[j+n])
+            qc.measure(qr1[j], ans[j + n])
         # First version: no mapping
         result = execute(qc, backend=backend,
                          coupling_map=None, shots=1024,

@@ -36,6 +36,7 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
 class TestOptimize1qGatesTranspiler(QiskitTestCase):
     """ Test for 1q gate optimizations as part of the transpiler, with a PassManager """
 
@@ -48,13 +49,14 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
         circuit.h(qr[0])
 
         expected = QuantumCircuit(qr)
-        expected.u2(0,sympy.pi, qr[0])
+        expected.u2(0, sympy.pi, qr[0])
 
         passmanager = PassManager()
         passmanager.add_passes(Optimize1qGates())
         result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
 
         self.assertEqual(expected, result)
+
 
 class TestMovedFromMapper(QiskitTestCase):
     """ This tests are moved from test_mapper.py"""
