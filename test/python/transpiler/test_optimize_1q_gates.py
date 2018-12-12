@@ -19,6 +19,7 @@ from ..common import QiskitTestCase
 
 class TestOptimize1qGates(QiskitTestCase):
     """ Test for 1q gate optimizations. """
+
     def test_optimize_id(self):
         """ qr0:--[id]-- == qr0:------ """
         qr = QuantumRegister(1, 'qr')
@@ -117,6 +118,7 @@ class TestMovedFromMapper(QiskitTestCase):
                            0.3 + sympy.pi + sympy.pi ** 2}
 
         self.assertEqual(params, expected_params)
+
 
 if __name__ == '__main__':
     unittest.main()
