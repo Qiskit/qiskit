@@ -25,7 +25,6 @@ class RYGate(Gate):
     def __init__(self, theta, qubit, circ=None):
         """Create new ry single qubit gate."""
         super().__init__("ry", [theta], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -48,7 +47,7 @@ class RYGate(Gate):
         ry(theta)^dagger = ry(-theta)
         """
         self.param[0] = -self.param[0]
-        self._define_decompositions()
+        self._decompositions = None
         return self
 
     def reapply(self, circ):

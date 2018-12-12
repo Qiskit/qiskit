@@ -50,6 +50,7 @@ Added
 - Per-shot measurement results are available in simulators and select devices.
   Request them by setting ``memory=True`` in ``compile()``/``execute()``,
   and retrieve them from ``result.get_memory()`` (#1385).
+- New Unroller pass in the transpiler for unrolling up to some basis (#1455).
 
 Changed
 """""""

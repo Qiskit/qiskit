@@ -26,6 +26,7 @@ class Gate(Instruction):
         self._is_multi_qubit = False
         self._qubit_coupling = [qarg[1] for qarg in qargs]
         self._is_multi_qubit = (len(qargs) > 1)
+        self._decompositions = None
 
         super().__init__(name, param, qargs, [], circuit)
 
@@ -37,3 +38,13 @@ class Gate(Instruction):
         """Add controls to this gate."""
         # pylint: disable=unused-argument
         raise QiskitError("control not implemented")
+
+    def decompositions(self):
+        """ Returns a list of possible decompositions. """
+        if self._decompositions is None:
+            self._define_decompositions()
+        return self._decompositions
+
+    def _define_decompositions(self):
+        """ Populates self.decompositions with way to decompose this gate"""
+        raise NotImplementedError("No decomposition rules defined for ", self.name)

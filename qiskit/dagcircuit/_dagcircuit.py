@@ -24,6 +24,7 @@ import itertools
 import networkx as nx
 
 from qiskit import QuantumRegister, ClassicalRegister
+from qiskit.circuit import Gate
 from ._dagcircuiterror import DAGCircuitError
 
 
@@ -1186,28 +1187,49 @@ class DAGCircuit:
 
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
-    def get_op_nodes(self, op=None):
-        """Get the set of "op" node ids with the given op.
+    def get_op_nodes(self, op=None, data=False):
+        """Get the list of "op" nodes in the dag.
 
         Note: this method returns all nodes of a given op type (e.g. HGate),
         and does not look at the gate operands. Because in the future, the
         operands won't even be part of the gate.
 
         Args:
-            op (Instruction or None): op nodes to return.
+            op (Instruction or None): op nodes to return. if op=None, return
+                all op nodes.
+            data (bool): Default: False. If True, return a list of tuple
+                (node_id, node_data). If False, return a list of int (node_id)
 
         Returns:
-            set(int): the set of node ids containing the given op.
-                if op=None, return all "op" nodes.
+            list: the list of node ids containing the given op.
         """
-        nodes = set()
-        for node_id, data in self.multi_graph.nodes(data=True):
-            if data["type"] == "op":
+        nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data["type"] == "op":
                 if op is None:
-                    nodes.add(node_id)
-                elif type(data["op"]) is type(op):
-                    nodes.add(node_id)
+                    nodes.append((node_id, node_data))
+                elif type(node_data["op"]) is type(op):
+                    nodes.append((node_id, node_data))
+        if not data:
+            nodes = [n[0] for n in nodes]
+        return nodes
 
+    def get_gate_nodes(self, data=False):
+        """Get the list of gate nodes in the dag.
+
+        Args:
+            data (bool): Default: False. If True, return a list of tuple
+                (node_id, node_data). If False, return a list of int (node_id)
+
+        Returns:
+            list: the list of node ids that represent gates.
+        """
+        nodes = []
+        for node_id, node_data in self.get_op_nodes(data=True):
+            if isinstance(node_data['op'], Gate):
+                nodes.append((node_id, node_data))
+        if not data:
+            nodes = [n[0] for n in nodes]
         return nodes
 
     def get_named_nodes(self, name):
