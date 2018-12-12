@@ -361,8 +361,6 @@ class TestCompiler(QiskitTestCase):
             circuits = None
         self.assertIsInstance(circuits, QuantumCircuit)
 
-    @unittest.skip("Temporary skipping")
-    # skipping temporarily due to mapping wire fragment bug.
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """

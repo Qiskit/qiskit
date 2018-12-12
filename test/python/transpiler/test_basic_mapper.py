@@ -296,23 +296,23 @@ class TestBasicMapper(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    @unittest.expectedFailure
-    # TODO It seems to be a problem in compose_back
     def test_swap_between_qregs(self):
         """ Adding a swap affecting different qregs
-         qr0_0:-------
+        virtual  physical
+         qr0_0:    [0] -------
 
-         qr1_0:--(+)--
-                  |
-         qr1_1:---.---
+         qr1_0:    [1] --(+)--
+                          |
+         qr1_1:    [2] ---.---
 
          Coupling map: [1]--[0]--[2]
 
-         qr0_0:--X--.---
-                 |  |
-         qr1_0:--|-(+)--
-                 |
-         qr1_1:--X------
+        virtual  physical
+         qr0_0:    [0] --X-(+)--
+                         |  |
+         qr1_0:    [1] --X--|---
+                            |
+         qr1_1:    [2] -----.---
 
         """
         coupling = Coupling({0: [1, 2]})
@@ -325,8 +325,8 @@ class TestBasicMapper(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr0, qr1)
-        expected.swap(qr1[1], qr0[0])
-        expected.cx(qr1[1], qr0[0])
+        expected.swap(qr1[0], qr0[0])
+        expected.cx(qr0[0], qr1[1])
 
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)
