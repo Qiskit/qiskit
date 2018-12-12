@@ -46,5 +46,5 @@ class Gate(Instruction):
             if not hasattr(self, '_define_decompositions'):
                 raise NotImplementedError(
                     "No decomposition rules defined for ", self.name)
-            self._define_decompositions() # pylint: disable: no-member
+            self._define_decompositions()  # pylint: disable=no-member
         return self._decompositions
