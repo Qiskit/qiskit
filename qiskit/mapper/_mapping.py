@@ -183,9 +183,6 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
     logger.debug("layer_permutation: gates = %s", pprint.pformat(gates))
 
-    # Find layout maximum index
-    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
-
     # Can we already apply the gates?
     dist = sum([coupling.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
     logger.debug("layer_permutation: dist = %s", dist)
@@ -240,7 +237,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Identity wire-map for composing the circuits
         q = QuantumRegister(coupling.size(), 'q')
-        identity_wire_map = {(q, j): (q, j) for j in range(layout_max_index)}
+        identity_wire_map = {(q, j): (q, j) for j in range(coupling.size())}
 
         while d < 2 * n + 1:
             # Set of available qubits
@@ -402,12 +399,11 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     Return DAGCircuit object to append to the output DAGCircuit.
     """
     layout = best_layout
-    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
     dagcircuit_output = DAGCircuit()
     dagcircuit_output.add_qreg(QuantumRegister(coupling_graph.size(), "q"))
     # Identity wire-map for composing the circuits
     q = QuantumRegister(coupling_graph.size(), 'q')
-    identity_wire_map = {(q, j): (q, j) for j in range(layout_max_index)}
+    identity_wire_map = {(q, j): (q, j) for j in range(coupling_graph.size())}
 
     # If this is the first layer with multi-qubit gates,
     # output all layers up to this point and ignore any
@@ -493,7 +489,6 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()
-    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
     # Construct an empty DAGCircuit with one qreg "q"
     # and the same set of cregs as the input circuit
@@ -508,7 +503,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     # we are building
     identity_wire_map = {}
     q = QuantumRegister(coupling_graph.size(), 'q')
-    for j in range(layout_max_index):
+    for j in range(coupling_graph.size()):
         identity_wire_map[(q, j)] = (q, j)
     for creg in circuit_graph.cregs.values():
         for j in range(creg.size):
