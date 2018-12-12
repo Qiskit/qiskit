@@ -187,6 +187,8 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             dag = direction_mapper(dag, coupling)
             # Simplify cx gates
             cx_cancellation(dag)
+            # Unroll to the basis
+            dag = Unroller().run(dag)
             # Simplify single qubit gates
             dag = Optimize1qGates().run(dag)
             return_last_measurements(dag, removed_meas,

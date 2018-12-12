@@ -63,6 +63,24 @@ class TestMovedFromMapper(QiskitTestCase):
         num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 2)
 
+    def test_optimize_H_gates(self):
+        """ qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
+
+        qr = QuantumRegister(1)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+
+        dag = circuit_to_dag(circuit)
+        expected = QuantumCircuit(qr)
+        expected.u2(0, sympy.pi, qr[0])
+
+        pass_ = Optimize1qGates()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     def test_optimize_1q_gates_symbolic(self):
         """optimizes single qubit gate sequences with symbolic params.
 
@@ -99,7 +117,6 @@ class TestMovedFromMapper(QiskitTestCase):
                            0.3 + sympy.pi + sympy.pi ** 2}
 
         self.assertEqual(params, expected_params)
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,13 +28,12 @@ from qiskit.transpiler.passes.mapping.unroller import Unroller
 class Optimize1qGates(TransformationPass):
     """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
 
-    # def __init__(self):
-    #     super().__init__()
-    #     self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
+    def __init__(self):
+        super().__init__()
+        self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        dag = Unroller(["u1", "u2", "u3", "cx", "id"]).run(dag)  # TODO Move as require
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
             run_qarg = dag.multi_graph.node[run[0]]["qargs"][0]
