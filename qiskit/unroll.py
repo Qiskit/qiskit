@@ -11,5 +11,4 @@
 from qiskit.unrollers._backenderror import BackendError
 from qiskit.unrollers._dagunroller import DagUnroller
 from qiskit.unrollers._unrollerbackend import UnrollerBackend
-from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.unrollers._jsonbackend import JsonBackend

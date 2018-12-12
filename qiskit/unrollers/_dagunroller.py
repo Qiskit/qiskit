@@ -12,7 +12,6 @@ DAG Unroller
 import networkx as nx
 
 from ._unrollererror import UnrollerError
-from ._dagbackend import DAGBackend
 
 
 class DagUnroller(object):
@@ -75,8 +74,7 @@ class DagUnroller(object):
                 # extensions to provide their own Qobj instructions.
                 # Extensions should not be hardcoded in the DAGUnroller.
                 extra_fields = None
-                if current_node["op"].name == "snapshot" and \
-                        not isinstance(self.backend, DAGBackend):
+                if current_node["op"].name == "snapshot":
                     extra_fields = {'type': 'MISSING', 'label': 'MISSING',
                                     'texparams': []}
 

@@ -101,8 +101,8 @@ class AstInterpreter(object):
             reg = self.dag.cregs[node.name]
         else:
             raise QiskitError("expected qreg or creg name:",
-                                "line=%s" % node.line,
-                                "file=%s" % node.file)
+                              "line=%s" % node.line,
+                              "file=%s" % node.file)
 
         if node.type == "indexed_id":
             # An indexed bit or qubit
@@ -117,8 +117,8 @@ class AstInterpreter(object):
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
                 raise QiskitError("expected local bit name:",
-                                    "line=%s" % node.line,
-                                    "file=%s" % node.file)
+                                  "line=%s" % node.line,
+                                  "file=%s" % node.file)
         return None
 
     def _process_custom_unitary(self, node):
@@ -150,7 +150,7 @@ class AstInterpreter(object):
                 self.bit_stack.pop()
         else:
             raise QiskitError("internal error undefined gate:",
-                                "line=%s" % node.line, "file=%s" % node.file)
+                              "line=%s" % node.line, "file=%s" % node.file)
 
     def _process_gate(self, node, opaque=False):
         """Process a gate node.
@@ -182,7 +182,6 @@ class AstInterpreter(object):
             raise QiskitError("internal error: qreg size mismatch",
                               "line=%s" % node.line, "file=%s" % node.file)
         maxidx = max([len(id0), len(id1)])
-        self.dag.add_basis_element("CX", 2, 0, 0)
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
                 self.dag.apply_operation_back(CXBase(id0[idx], id1[idx]), self.condition)
@@ -258,7 +257,6 @@ class AstInterpreter(object):
         elif node.type == "universal_unitary":
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
-            self.dag.add_basis_element("U", 1, 0, 3)
             for element in qid:
                 self.dag.apply_operation_back(UBase(*args, element), self.condition)
 
@@ -283,7 +281,7 @@ class AstInterpreter(object):
         elif node.type == "barrier":
             ids = self._process_node(node.children[0])
             qubits = []
-            for qubit in qubitlists:
+            for qubit in ids:
                 for j, _ in enumerate(qubit):
                     qubits.append(qubit[j])
             self.dag.apply_operation_back(Barrier(qubits))
@@ -321,63 +319,63 @@ class AstInterpreter(object):
             QiskitError: if encountering a non-basis opaque gate
         """
         if name == "u0":
-            OpClass = U0Gate
+            op_class = U0Gate
         elif name == "u1":
-            OpClass = U1Gate
+            op_class = U1Gate
         elif name == "u2":
-            OpClass = U2Gate
+            op_class = U2Gate
         elif name == "u3":
-            OpClass = U3Gate
+            op_class = U3Gate
         elif name == "x":
-            OpClass = XGate
+            op_class = XGate
         elif name == "y":
-            OpClass = YGate
+            op_class = YGate
         elif name == "z":
-            OpClass = ZGate
+            op_class = ZGate
         elif name == "t":
-            OpClass = TGate
+            op_class = TGate
         elif name == "tdg":
-            OpClass = TdgGate
+            op_class = TdgGate
         elif name == "s":
-            OpClass = SGate
+            op_class = SGate
         elif name == "sdg":
-            OpClass = SdgGate
+            op_class = SdgGate
         elif name == "swap":
-            OpClass = SwapGate
+            op_class = SwapGate
         elif name == "rx":
-            OpClass = RXGate
+            op_class = RXGate
         elif name == "ry":
-            OpClass = RYGate
+            op_class = RYGate
         elif name == "rz":
-            OpClass = RZGate
+            op_class = RZGate
         elif name == "rzz":
-            OpClass = RZZGate
+            op_class = RZZGate
         elif name == "id":
-            OpClass = IdGate
+            op_class = IdGate
         elif name == "h":
-            OpClass = HGate
+            op_class = HGate
         elif name == "cx":
-            OpClass = CnotGate
+            op_class = CnotGate
         elif name == "cy":
-            OpClass = CyGate
+            op_class = CyGate
         elif name == "cz":
-            OpClass = CzGate
+            op_class = CzGate
         elif name == "ch":
-            OpClass = CHGate
+            op_class = CHGate
         elif name == "crz":
-            OpClass = CrzGate
+            op_class = CrzGate
         elif name == "cu1":
-            OpClass = Cu1Gate
+            op_class = Cu1Gate
         elif name == "cu3":
-            OpClass = Cu3Gate
+            op_class = Cu3Gate
         elif name == "ccx":
-            OpClass = ToffoliGate
+            op_class = ToffoliGate
         elif name == "cswap":
-            OpClass = FredkinGate
+            op_class = FredkinGate
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 
-        op = OpClass(*param, *qargs)
+        op = op_class(*param, *qargs)
 
         self.dag.add_basis_element(name, len(qargs), 0, len(param))
         self.dag.apply_operation_back(op, condition=self.condition)
