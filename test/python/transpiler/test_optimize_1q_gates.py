@@ -64,7 +64,7 @@ class TestMovedFromMapper(QiskitTestCase):
         num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 2)
 
-    def test_optimize_H_gates(self):
+    def test_optimize_h_gates(self):
         """ qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
 
         qr = QuantumRegister(1)
