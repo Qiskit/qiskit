@@ -34,9 +34,9 @@ from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
-from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix, index2
+from qiskit.backends.aer_py.aerpyjob import AerPyJob
+from qiskit.backends.aer_py.aerpyerror import AerPyError
+from qiskit.backends.aer_py._simulatortools import single_gate_matrix, index2
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator_py',
+        'backend_name': 'qasm_simulator',
         'backend_version': '2.0.0',
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/Qiskit/qiskit-terra',
@@ -286,7 +286,7 @@ class QasmSimulatorPy(BaseBackend):
                 "time_taken": simulation time of this single experiment
                 }
         Raises:
-            SimulatorError: if an error occurred.
+            AerPyError: if an error occurred.
         """
         self._number_of_qubits = experiment.config.n_qubits
         self._number_of_cbits = experiment.config.memory_slots
@@ -352,7 +352,7 @@ class QasmSimulatorPy(BaseBackend):
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise SimulatorError(err_msg.format(backend,
+                    raise AerPyError(err_msg.format(backend,
                                                         operation.name))
             # Turn classical_state (int) into bit string and pad zero for unused cbits
             outcome = bin(self._classical_state)[2:]

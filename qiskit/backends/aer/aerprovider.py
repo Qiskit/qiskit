@@ -16,21 +16,15 @@ from qiskit.backends import BaseProvider
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
 
-from .qasm_simulator import CliffordSimulator, QasmSimulator
-from .qasm_simulator_py import QasmSimulatorPy
-from .statevector_simulator import StatevectorSimulator
-from .statevector_simulator_py import StatevectorSimulatorPy
-from .unitary_simulator_py import UnitarySimulatorPy
+from .qasmsimulator import CliffordSimulator, QasmSimulator
+from .statevectorsimulator import StatevectorSimulator
 
 
 logger = logging.getLogger(__name__)
 
 AER_STANDARD_BACKENDS = [
     QasmSimulator,
-    QasmSimulatorPy,
     StatevectorSimulator,
-    StatevectorSimulatorPy,
-    UnitarySimulatorPy,
     CliffordSimulator,
 ]
 
@@ -54,9 +48,7 @@ class AerProvider(BaseProvider):
                 resolved_name = resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
-                    {},
-                    self._alternative_py_backend_names()
-                )
+                    {}, {})
                 name = resolved_name
             except LookupError:
                 raise QiskitBackendNotFoundError(
@@ -75,9 +67,7 @@ class AerProvider(BaseProvider):
                 resolved_name = resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
-                    {},
-                    self._alternative_py_backend_names()
-                )
+                    {},{})
                 backends = [backend for backend in backends if
                             backend.name() == resolved_name]
             except LookupError:
@@ -90,15 +80,10 @@ class AerProvider(BaseProvider):
         """Returns deprecated backend names."""
         return {
             'local_qasm_simulator_cpp': 'qasm_simulator',
-            'local_qasm_simulator_py': 'qasm_simulator_py',
             'local_statevector_simulator_cpp': 'statevector_simulator',
-            'local_statevector_simulator_py': 'statevector_simulator_py',
-            'local_unitary_simulator_py': 'unitary_simulator_py',
             'local_qiskit_simulator': 'qasm_simulator',
             'local_qasm_simulator': 'qasm_simulator',
             'local_statevector_simulator': 'statevector_simulator',
-            'local_unitary_simulator': 'unitary_simulator_py',
-            'unitary_simulator': 'unitary_simulator_py'
             }
 
     def _verify_aer_backends(self):
@@ -145,11 +130,3 @@ class AerProvider(BaseProvider):
 
     def __str__(self):
         return 'Aer'
-
-    @staticmethod
-    def _alternative_py_backend_names():
-        """Return Python alternatives to C++ simulators."""
-        return {
-            'qasm_simulator': 'qasm_simulator_py',
-            'statevector_simulator': 'statevector_simulator_py'
-        }

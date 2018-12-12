@@ -27,10 +27,10 @@ import numpy as np
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
+from qiskit.backends.aer_py.aerpyjob import AerPyJob
 from qiskit.result import Result
-from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix, einsum_matmul_index
+from qiskit.backends.aer_py.aerpyerror import AerPyError
+from qiskit.backends.aer_py._simulatortools import single_gate_matrix, einsum_matmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class UnitarySimulatorPy(BaseBackend):
     max_qubits = int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16))
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'unitary_simulator_py',
+        'backend_name': 'unitary_simulator',
         'backend_version': '1.0.0',
         'n_qubits': max_qubits,
         'url': 'https://github.com/Qiskit/qiskit-terra',
@@ -204,13 +204,13 @@ class UnitarySimulatorPy(BaseBackend):
                 }
 
         Raises:
-            SimulatorError: if the number of qubits in the circuit is greater than 24.
+            AerPyError: if the number of qubits in the circuit is greater than 24.
             Note that the practical qubit limit is much lower than 24.
         """
         self._number_of_qubits = experiment.header.n_qubits
         if self._number_of_qubits > self.max_qubits:
-            raise SimulatorError("np.einsum implementation limits unitary_simulator_py" +
-                                 " to 24 qubit circuits.")
+            raise AerPyError("np.einsum implementation limits unitary_simulator_py" +
+                             " to 24 qubit circuits.")
         result = {
             'data': {},
             'name': experiment.header.name,
@@ -267,6 +267,6 @@ class UnitarySimulatorPy(BaseBackend):
                 experiment.config.shots = 1
             for operation in experiment.instructions:
                 if operation.name in ['measure', 'reset']:
-                    raise SimulatorError(
+                    raise AerPyError(
                         "In circuit {}: unitary simulator does not support "
                         "measure or reset.".format(experiment.header.name))

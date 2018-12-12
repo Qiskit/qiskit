@@ -37,7 +37,7 @@ def requires_submit(func):
     return _wrapper
 
 
-class AerJob(BaseJob):
+class AerPyJob(BaseJob):
     """Aer Job class.
 
     Attributes:

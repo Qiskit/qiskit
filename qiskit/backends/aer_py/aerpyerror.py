@@ -6,13 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by simulators.
+Exception for errors raised by Aer py simulators.
 """
 
 from qiskit import QiskitError
 
 
-class SimulatorError(QiskitError):
+class AerPyError(QiskitError):
     """Base class for errors raised by simulators."""
 
     def __init__(self, *message):
