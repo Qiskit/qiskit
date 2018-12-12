@@ -13,7 +13,8 @@ import unittest
 import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, SchemaValidationError, Aer
+from qiskit import compile, Aer
+from qiskit._schema_validation import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.backends.aer import aerjob

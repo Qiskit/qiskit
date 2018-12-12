@@ -13,10 +13,10 @@ import math
 import numpy as np
 import scipy
 
-from qiskit import CompositeGate
-from qiskit import Gate
 from qiskit import QiskitError
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
+from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate

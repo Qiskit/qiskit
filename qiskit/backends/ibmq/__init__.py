@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Backends provided by IBM Quantum Experience."""
-from qiskit._qiskiterror import QiskitError
+from qiskit.qiskiterror import QiskitError
 from .ibmqprovider import IBMQProvider
 from .ibmqbackend import IBMQBackend
 from .ibmqjob import IBMQJob

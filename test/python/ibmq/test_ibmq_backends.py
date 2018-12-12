@@ -52,7 +52,7 @@ class TestIBMQBackends(QiskitTestCase):
     @slow_test
     @requires_qe_access
     def test_qobj_headers_in_result_devices(self, qe_token, qe_url):
-        """Test that the qobj headers are passed onto the results for sims."""
+        """Test that the qobj headers are passed onto the results for devices."""
         IBMQ.enable_account(qe_token, qe_url)
         backends = IBMQ.backends(simulator=False)
 
