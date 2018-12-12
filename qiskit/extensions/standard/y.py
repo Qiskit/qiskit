@@ -26,7 +26,6 @@ class YGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Y gate."""
         super().__init__("y", [], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -42,7 +41,6 @@ class YGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circuit):

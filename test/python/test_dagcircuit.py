@@ -15,7 +15,7 @@ from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
@@ -129,19 +129,20 @@ class TestDagOperations(QiskitTestCase):
         """The method dag.get_op_nodes() returns all op nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Reset(self.qubit0))
 
         op_nodes = self.dag.get_op_nodes()
-        self.assertEqual(len(op_nodes), 2)
+        self.assertEqual(len(op_nodes), 3)
 
-        op_node_1 = op_nodes.pop()
-        op_node_2 = op_nodes.pop()
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
+        for node in op_nodes:
+            self.assertIsInstance(self.dag.multi_graph.nodes[node]["op"], Instruction)
 
     def test_get_op_nodes_particular(self):
-        """The method dag.get_op_nodes(op=AGate) returns all the AGAte nodes"""
+        """The method dag.get_gates_nodes(op=AGate) returns all the AGate nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(HGate(self.qubit1))
+        self.dag.apply_operation_back(Reset(self.qubit0))
+
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
 
         op_nodes = self.dag.get_op_nodes(op=HGate(self.qubit0))
@@ -149,8 +150,23 @@ class TestDagOperations(QiskitTestCase):
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
+
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], HGate)
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
+
+    def test_get_gates_nodes(self):
+        """The method dag.get_gate_nodes() returns all gate nodes"""
+        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Reset(self.qubit0))
+
+        op_nodes = self.dag.get_gate_nodes()
+        self.assertEqual(len(op_nodes), 2)
+
+        op_node_1 = op_nodes.pop()
+        op_node_2 = op_nodes.pop()
+        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
+        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""

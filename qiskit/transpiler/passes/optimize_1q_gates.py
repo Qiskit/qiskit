@@ -16,32 +16,30 @@ import sympy
 from sympy import Number as N
 
 from qiskit.mapper import MapperError
-from qiskit.unrollers._dagunroller import DagUnroller
-from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-
+from qiskit.transpiler.passes.mapping.unroller import Unroller
 
 class Optimize1qGates(TransformationPass):
     """Simplify runs of single qubit gates in the QX basis."""
 
+    def __init__(self):
+        super().__init__()
+        self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
+
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        qx_basis = ["u1", "u2", "u3", "cx", "id"]
-        dag_unroller = DagUnroller(dag, DAGBackend(qx_basis))
-        unrolled = dag_unroller.expand_gates()
-
-        runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
+        runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
-            run_qarg = unrolled.multi_graph.node[run[0]]["qargs"][0]
+            run_qarg = dag.multi_graph.node[run[0]]["qargs"][0]
             right_name = "u1"
             right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
             for current_node in run:
-                node = unrolled.multi_graph.node[current_node]
+                node = dag.multi_graph.node[current_node]
                 left_name = node["name"]
                 if (node["condition"] is not None
                         or len(node["qargs"]) != 1
@@ -170,16 +168,16 @@ class Optimize1qGates(TransformationPass):
             if right_name == "u3":
                 new_op = U3Gate(*right_parameters, run_qarg)
 
-            nx.set_node_attributes(unrolled.multi_graph, name='name',
+            nx.set_node_attributes(dag.multi_graph, name='name',
                                    values={run[0]: right_name})
-            nx.set_node_attributes(unrolled.multi_graph, name='op',
+            nx.set_node_attributes(dag.multi_graph, name='op',
                                    values={run[0]: new_op})
             # Delete the other nodes in the run
             for current_node in run[1:]:
-                unrolled._remove_op_node(current_node)
+                dag._remove_op_node(current_node)
             if right_name == "nop":
-                unrolled._remove_op_node(run[0])
-        return unrolled
+                dag._remove_op_node(run[0])
+        return dag
 
     @staticmethod
     def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):

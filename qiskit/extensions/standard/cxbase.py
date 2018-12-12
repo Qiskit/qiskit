@@ -15,7 +15,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
-class CXBase(Gate):
+class CXBase(Gate):  # pylint: disable=abstract-method
     """Fundamental controlled-NOT gate."""
 
     def __init__(self, ctl, tgt, circ=None):

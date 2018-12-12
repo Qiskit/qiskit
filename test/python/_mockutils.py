@@ -19,7 +19,7 @@ import logging
 from concurrent import futures
 import time
 
-from qiskit import Result
+from qiskit.result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends import BaseJob
 from qiskit.backends.models import BackendProperties

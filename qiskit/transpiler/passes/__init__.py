@@ -13,3 +13,4 @@ from .optimize_1q_gates import Optimize1qGates
 from .mapping.check_map import CheckMap
 from .mapping.basic_mapper import BasicMapper
 from .mapping.direction_mapper import DirectionMapper
+from .mapping.unroller import Unroller

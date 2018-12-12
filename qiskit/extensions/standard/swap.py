@@ -25,7 +25,6 @@ class SwapGate(Gate):
     def __init__(self, ctl, tgt, circ=None):
         """Create new SWAP gate."""
         super().__init__("swap", [], [ctl, tgt], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -46,7 +45,6 @@ class SwapGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

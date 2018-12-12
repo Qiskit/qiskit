@@ -10,14 +10,14 @@
 """
 Aer's qasm_simulator single qubit wait gate.
 """
-from qiskit import Gate
 from qiskit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit.circuit import Gate
 from qiskit.circuit import InstructionSet
-from qiskit.circuit import QuantumRegister
 from qiskit.qasm import _node as node
 
 
-class WaitGate(Gate):
+class WaitGate(Gate):  # pylint: disable=abstract-method
     """Wait gate."""
 
     def __init__(self, t, qubit, circ=None):
@@ -46,7 +46,6 @@ def wait(self, t, q):
 
 # Add to QuantumCircuit class
 QuantumCircuit.wait = wait
-
 
 # idle for time t (identity)
 QuantumCircuit.definitions["wait"] = {
