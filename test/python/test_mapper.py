@@ -318,8 +318,6 @@ class TestMapper(QiskitTestCase):
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
-    @unittest.skip("Temporary skipping")
-    # skipping temporarily due to mapping wire fragment bug.
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.
         """
