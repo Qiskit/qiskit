@@ -93,9 +93,8 @@ setup(
     name="qiskit-terra",
     version="0.7.0",
     description="Software for developing quantum computing programs",
-    long_description="""Qiskit is a software development kit for writing
-        quantum computing experiments, programs, and applications. Works with
-        Python 3.5 and 3.6""",
+    long_description="""Terra provides the foundations for Qiskit. It allows the user to write
+        quantum circuits easily, and takes care of the constraints of real hardware.""",
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
     author_email="qiskit@us.ibm.com",
@@ -113,7 +112,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
-    packages=list(
+    packages=['qiskit'] + list(
         map(lambda p: 'qiskit.{}'.format(p), find_packages(where='qiskit', exclude=['test*']))
     ),
     install_requires=requirements,
