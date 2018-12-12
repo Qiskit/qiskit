@@ -1,10 +1,10 @@
-include qiskit/qasm/libs/*.inc
+include qiskit/terra/qasm/libs/*.inc
 recursive-include src/qasm-simulator-cpp *
-include qiskit/backends/aer/qasm_simulator_cpp
-include qiskit/backends/aer/qasm_simulator_cpp.exe
-include qiskit/backends/aer/*.dll
-include qiskit/schemas/*json
-include qiskit/VERSION.txt
+include qiskit/terra/backends/aer/qasm_simulator_cpp
+include qiskit/terra/backends/aer/qasm_simulator_cpp.exe
+include qiskit/terra/backends/aer/*.dll
+include qiskit/terra/schemas/*json
+include qiskit/terra/VERSION.txt
 include CMakeLists.txt
 include cmake/*.cmake
 include setup.py.in

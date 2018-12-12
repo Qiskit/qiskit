@@ -423,7 +423,7 @@ can be installed using Pip.
 
 .. code:: sh
 
-    $ pip install qiskit
+    $ pip install qiskit-terra
 
 If you found out that the release version doesn't fit your needs, and you are
 thinking about extending the functionality of Qiskit Terra, you are more likely to

@@ -43,7 +43,7 @@ $ python
 ```
 
 ```python
->>> from qiskit import *
+>>> from qiskit.terra import *
 >>> q = QuantumRegister(2)
 >>> c = ClassicalRegister(2)
 >>> qc = QuantumCircuit(q, c)
@@ -80,7 +80,7 @@ your IBM Q account:
 3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
 
    ```python
-   >>> from qiskit import IBMQ
+   >>> from qiskit.terra import IBMQ
    >>> IBMQ.save_account('MY_API_TOKEN')
     ```
 
@@ -92,14 +92,14 @@ Once they are stored, at any point in the future you can load and use them
 in your program simply via:
 
 ```python
->>> from qiskit import IBMQ
+>>> from qiskit.terra import IBMQ
 >>> IBMQ.load_accounts()
 ```
 
 For those who do not want to save there credentials to disk please use
 
 ```python
->>> from qiskit import IBMQ
+>>> from qiskit.terra import IBMQ
 >>> IBMQ.enable_account('MY_API_TOKEN')
 ``` 
 

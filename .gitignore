@@ -2,7 +2,7 @@
 Qconfig.py
 
 # ply outputs
-qiskit/qasm/parser.out
+qiskit/terra/qasm/parser.out
 
 # editor files
 .vscode/
@@ -122,7 +122,7 @@ doc/_build/*
 
 doc/**/_autodoc
 
-qiskit/bin/*
+qiskit/terra/bin/*
 
 test/python/test_save.json
 
@@ -131,8 +131,8 @@ test/python/*.tex
 out/*
 
 # CMake generates this file on the fly
-qiskit/backends/local/qasm_simulator_cpp
-qiskit/backends/aer/qasm_simulator_cpp
+qiskit/terra/backends/local/qasm_simulator_cpp
+qiskit/terra/backends/aer/qasm_simulator_cpp
 
 src/qasm-simulator-cpp/test/qubit_vector_tests
 

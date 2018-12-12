@@ -311,7 +311,7 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 generated-members=self.circuit.*,qcs.h,qc1.h,qc2.cx,qc.h,self.u1,self.cx,self.ccx,trial_circuit,requests.codes.ok
 # self.circuit.*: false positives when self.circuit == QuantumCircuit, as it
 # provides a "__getitem__" dynamic method and gate definition is dynamic.
-# For qiskit.extensions.standard, self.foo is also needed.
+# For qiskit.terra.extensions.standard, self.foo is also needed.
 
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that

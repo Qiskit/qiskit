@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
-file(STRINGS "qiskit/VERSION.txt" VERSION_NUM)
+file(STRINGS "qiskit/terra/VERSION.txt" VERSION_NUM)
 project (Qiskit VERSION ${VERSION_NUM} LANGUAGES CXX)
 
 # Verbose!!
