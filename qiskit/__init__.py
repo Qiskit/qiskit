@@ -23,7 +23,7 @@ from .qiskiterror import QiskitError, QISKitError
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
-from .tools._compiler import (compile, execute)
+from .tools.compiler import (compile, execute)
 
 # Please note these are global instances, not modules.
 from qiskit.backends.ibmq import IBMQ
