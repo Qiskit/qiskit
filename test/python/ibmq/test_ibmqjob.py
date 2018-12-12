@@ -23,7 +23,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import IBMQ
 from qiskit import compile
 from qiskit.backends import JobStatus, JobError
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError, DeprecatedFormatJobError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq import least_busy
 
@@ -258,7 +258,12 @@ class TestIBMQJob(JobTestCase):
 
         qobj = compile(self._qc, backend)
         job = backend.run(qobj)
-        rjob = backend.retrieve_job(job.job_id())
+
+        try:
+            rjob = backend.retrieve_job(job.job_id())
+        except DeprecatedFormatJobError as err:
+            self.skipTest(err.message)
+
         self.assertTrue(job.job_id() == rjob.job_id())
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
@@ -277,6 +282,7 @@ class TestIBMQJob(JobTestCase):
         backend = least_busy(backends)
 
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
+
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.result().status)
