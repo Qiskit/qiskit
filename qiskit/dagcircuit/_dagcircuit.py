@@ -573,7 +573,7 @@ class DAGCircuit:
         for creg in dag.cregs.values():
             if creg.name not in self.cregs:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
-            edge_map.update([(cbit,cbit) for cbit in creg if cbit not in edge_map])
+            edge_map.update([(cbit, cbit) for cbit in creg if cbit not in edge_map])
 
         self.compose_back(dag, edge_map)
 
