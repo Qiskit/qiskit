@@ -19,8 +19,8 @@ from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
-from ._simulatorerror import SimulatorError
-from .aerjob import AerJob
+from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
+from qiskit.backends.builtinsimulators.aerjob import AerJob
 
 logger = logging.getLogger(__name__)
 

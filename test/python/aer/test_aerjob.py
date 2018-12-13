@@ -15,9 +15,9 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.backends.builtinsimulators import QasmSimulator
+from qiskit.backends.legacysimulators import QasmSimulator
+from qiskit.backends.legacysimulators import StatevectorSimulator
 from qiskit.backends.builtinsimulators import QasmSimulatorPy
-from qiskit.backends.builtinsimulators import StatevectorSimulator
 from qiskit.backends.builtinsimulators import StatevectorSimulatorPy
 from qiskit.backends.builtinsimulators import UnitarySimulatorPy
 from ..common import QiskitTestCase

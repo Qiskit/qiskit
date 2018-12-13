@@ -10,7 +10,7 @@
 aliases."""
 
 from qiskit import IBMQ, Simulators
-from qiskit.backends.builtinsimulators import QasmSimulator
+from qiskit.backends.legacysimulators import QasmSimulator
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,

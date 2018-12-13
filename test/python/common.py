@@ -17,7 +17,7 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
-from qiskit.backends.builtinsimulators import QasmSimulator
+from qiskit.backends.legacysimulators import QasmSimulator
 from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
 
 from .http_recorder import http_recorder

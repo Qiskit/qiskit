@@ -27,7 +27,8 @@ from .tools.compiler import (compile, execute)
 
 # Please note these are global instances, not modules.
 from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.builtinsimulators import Simulators  # pylint: disable=invalid-name
+from qiskit.backends.builtinsimulators import Simulators
+from qiskit.backends.legacysimulators import LegacySimulators
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.

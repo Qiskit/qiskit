@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-from qiskit import Simulators
+from qiskit import Simulators, LegacySimulators
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit import QiskitError
@@ -50,13 +50,13 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
 
-        backend_sim = Simulators.get_backend('qasm_simulator')
+        backend_sim = LegacySimulators.get_backend('qasm_simulator')
         result = backend_sim.run(qobj_qc).result()
         counts_py = result.get_counts(qc)
 
         target = {'01 10': 1024}
 
-        backend_sim = Simulators.get_backend('statevector_simulator')
+        backend_sim = LegacySimulators.get_backend('statevector_simulator')
         result = backend_sim.run(qobj_circ).result()
         state = result.get_statevector(circ)
 

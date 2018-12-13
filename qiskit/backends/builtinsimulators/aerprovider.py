@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Provider for builtinsimulators backends."""
+"""Provider for builtin simulators backends."""
 
 from collections import OrderedDict
 import logging
@@ -16,9 +16,7 @@ from qiskit.backends import BaseProvider
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
 
-from .qasm_simulator import CliffordSimulator, QasmSimulator
 from .qasm_simulator_py import QasmSimulatorPy
-from .statevector_simulator import StatevectorSimulator
 from .statevector_simulator_py import StatevectorSimulatorPy
 from .unitary_simulator_py import UnitarySimulatorPy
 
@@ -26,22 +24,19 @@ from .unitary_simulator_py import UnitarySimulatorPy
 logger = logging.getLogger(__name__)
 
 AER_STANDARD_BACKENDS = [
-    QasmSimulator,
     QasmSimulatorPy,
-    StatevectorSimulator,
     StatevectorSimulatorPy,
-    UnitarySimulatorPy,
-    CliffordSimulator,
+    UnitarySimulatorPy
 ]
 
 
 class AerProvider(BaseProvider):
-    """Provider for builtinsimulators backends."""
+    """Provider for builtin simulators backends."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
-        # Populate the list of builtinsimulators backends.
+        # Populate the list of builtin simulators backends.
         self._backends = self._verify_aer_backends()
 
     def get_backend(self, name=None, **kwargs):
@@ -103,12 +98,12 @@ class AerProvider(BaseProvider):
 
     def _verify_aer_backends(self):
         """
-        Return the builtinsimulators backends in `AER_STANDARD_BACKENDS` that are
+        Return the builtin simulators backends in `AER_STANDARD_BACKENDS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
         Returns:
-            dict[str:BaseBackend]: a dict of builtinsimulators backend instances for
+            dict[str:BaseBackend]: a dict of builtin simulators backend instances for
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
@@ -119,7 +114,7 @@ class AerProvider(BaseProvider):
                 ret[backend_name] = backend_instance
             except QiskitError as err:
                 # Ignore backends that could not be initialized.
-                logger.info('builtinsimulators backend %s is not available: %s',
+                logger.info('builtin simulators backend %s is not available: %s',
                             backend_cls, str(err))
         return ret
 
