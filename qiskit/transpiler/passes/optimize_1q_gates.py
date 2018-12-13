@@ -7,7 +7,8 @@
 
 
 """
-Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate.
+Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining them into
+a single gate.
 """
 
 import networkx as nx
