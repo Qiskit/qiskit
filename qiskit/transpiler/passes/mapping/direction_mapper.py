@@ -45,8 +45,12 @@ class DirectionMapper(TransformationPass):
         Flips the cx nodes to match the directed coupling map.
         Args:
             dag (DAGCircuit): DAG to map.
+        Returns:
+            DAGCircuit: The rearranged dag for the coupling map
+
         Raises:
-            TranspilerError: If the `dag` cannot be mapped just by flipping the cx nodes.
+            MapperError: If the circuit cannot be mapped just by flipping the
+                         cx nodes.
         """
         new_dag = DAGCircuit()
 
