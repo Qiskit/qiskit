@@ -80,7 +80,7 @@ class QiskitTestCase(unittest.TestCase):
         from qiskit.backends.builtinsimulators import Simulators
 
         IBMQ._accounts.clear()
-        Simulators._backends = Simulators._verify_aer_backends()
+        Simulators._backends = Simulators._verify_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):

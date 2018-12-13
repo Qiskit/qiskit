@@ -5,29 +5,32 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+"""Provider for C++ simulator backends coming from the built-in Aer in versions prior to 0.7"""
+
 import logging
 from collections import OrderedDict
 
 from qiskit import QiskitError
-from qiskit.backends.builtinsimulators import AerProvider
-from .qasm_simulator import  QasmSimulator, CliffordSimulator
+from qiskit.backends.builtinsimulators import SimulatorsProvider
+
+from .qasm_simulator import QasmSimulator, CliffordSimulator
 from .statevector_simulator import StatevectorSimulator
 
 logger = logging.getLogger(__name__)
 
-AER_STANDARD_BACKENDS = [
+LEGACY_SIMULATORS = [
     QasmSimulator,
     StatevectorSimulator,
     CliffordSimulator
 ]
 
 
-class LegacyProvider(AerProvider):
+class LegacyProvider(SimulatorsProvider):
     """Provider for legacy simulators backends."""
 
-    def _verify_aer_backends(self):
+    def _verify_backends(self):
         """
-        Return the legacy simulators backends in `AER_STANDARD_BACKENDS` that are
+        Return the legacy simulators backends in `LEGACY_SIMULATORS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
@@ -36,7 +39,7 @@ class LegacyProvider(AerProvider):
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
-        for backend_cls in AER_STANDARD_BACKENDS:
+        for backend_cls in LEGACY_SIMULATORS:
             try:
                 backend_instance = self._get_backend_instance(backend_cls)
                 backend_name = backend_instance.name()
@@ -57,3 +60,6 @@ class LegacyProvider(AerProvider):
             'local_qasm_simulator': 'qasm_simulator',
             'local_statevector_simulator': 'statevector_simulator'
         }
+
+    def __str__(self):
+        return 'LegacySimulators'

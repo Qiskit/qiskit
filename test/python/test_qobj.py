@@ -17,7 +17,7 @@ from qiskit import compile, Simulators
 from qiskit._schema_validation import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
-from qiskit.backends.builtinsimulators import aerjob
+from qiskit.backends.builtinsimulators import simulatorsjob
 from qiskit.backends.ibmq import ibmqjob
 from ._mockutils import FakeBackend
 from .common import QiskitTestCase
@@ -103,7 +103,7 @@ class TestQobj(QiskitTestCase):
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = aerjob.AerJob(backend, job_id, _nop, self.bad_qobj)
+            job = simulatorsjob.SimulatorsJob(backend, job_id, _nop, self.bad_qobj)
             job.submit()
 
     def test_ibmqobj_raises_error_when_sending_bad_qobj(self):

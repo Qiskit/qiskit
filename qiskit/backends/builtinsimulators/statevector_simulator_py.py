@@ -22,7 +22,7 @@ import logging
 import uuid
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.backends.builtinsimulators.aerjob import AerJob
+from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
 from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
@@ -93,12 +93,12 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             qobj (dict): job description
 
         Returns:
-            AerJob: derived from BaseJob
+            SimulatorsJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job.submit()
+        return job
 
     def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""

@@ -15,12 +15,13 @@ import logging
 import uuid
 from math import log2
 from numpy import array
+
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
+from qiskit.backends.builtinsimulators import SimulatorsJob, SimulatorError
+
 from .qasm_simulator import QasmSimulator
-from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
-from qiskit.backends.builtinsimulators.aerjob import AerJob
 
 logger = logging.getLogger(__name__)
 
@@ -145,9 +146,9 @@ class StatevectorSimulator(QasmSimulator):
     def run(self, qobj):
         """Run a qobj on the backend."""
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job.submit()
+        return job
 
     def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""

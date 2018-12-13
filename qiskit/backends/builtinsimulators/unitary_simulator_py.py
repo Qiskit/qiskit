@@ -14,7 +14,7 @@ the simulator. It is exponential in the number of qubits.
 
     UnitarySimulator().run(qobj)
 
-Where the input is a Qobj object and the output is a AerJob object, which can
+Where the input is a Qobj object and the output is a SimulatorsJob object, which can
 later be queried for the Result object. The result will contain a 'unitary'
 data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
@@ -27,7 +27,7 @@ import numpy as np
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends import BaseBackend
-from qiskit.backends.builtinsimulators.aerjob import AerJob
+from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.result import Result
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix, einsum_matmul_index
@@ -143,12 +143,12 @@ class UnitarySimulatorPy(BaseBackend):
             qobj (dict): job description
 
         Returns:
-            AerJob: derived from BaseJob
+            SimulatorsJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job.submit()
+        return job
 
     def _run_job(self, job_id, qobj):
         """Run experiments in qobj.

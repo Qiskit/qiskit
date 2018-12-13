@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# Copyright 2017, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Provider for builtin simulators backends."""
+"""Provider for built-in simulator backends."""
 
 from collections import OrderedDict
 import logging
@@ -23,21 +23,21 @@ from .unitary_simulator_py import UnitarySimulatorPy
 
 logger = logging.getLogger(__name__)
 
-AER_STANDARD_BACKENDS = [
+SIMULATORS = [
     QasmSimulatorPy,
     StatevectorSimulatorPy,
     UnitarySimulatorPy
 ]
 
 
-class AerProvider(BaseProvider):
+class SimulatorsProvider(BaseProvider):
     """Provider for builtin simulators backends."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
         # Populate the list of builtin simulators backends.
-        self._backends = self._verify_aer_backends()
+        self._backends = self._verify_backends()
 
     def get_backend(self, name=None, **kwargs):
         backends = self._backends.values()
@@ -91,9 +91,9 @@ class AerProvider(BaseProvider):
             'unitary_simulator': 'unitary_simulator_py'
             }
 
-    def _verify_aer_backends(self):
+    def _verify_backends(self):
         """
-        Return the builtin simulators backends in `AER_STANDARD_BACKENDS` that are
+        Return the builtin simulators backends in `BACKENDS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
@@ -102,7 +102,7 @@ class AerProvider(BaseProvider):
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
-        for backend_cls in AER_STANDARD_BACKENDS:
+        for backend_cls in SIMULATORS:
             try:
                 backend_instance = self._get_backend_instance(backend_cls)
                 backend_name = backend_instance.name()
@@ -134,7 +134,7 @@ class AerProvider(BaseProvider):
         return backend_instance
 
     def __str__(self):
-        return 'Aer'
+        return 'Simulators'
 
     @staticmethod
     def _alternative_py_backend_names():

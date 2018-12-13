@@ -12,7 +12,7 @@ import json
 import jsonschema
 
 from qiskit import IBMQ, Simulators
-from qiskit.backends.builtinsimulators import AerProvider
+from qiskit.backends.builtinsimulators import SimulatorsProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 
@@ -24,7 +24,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct some should exists.
         """
-        aer_provider = AerProvider()
+        aer_provider = SimulatorsProvider()
         local = aer_provider.backends()
         self.assertTrue(len(local) > 0)
 

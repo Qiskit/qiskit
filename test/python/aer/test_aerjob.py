@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-"""AerJob creation and test suite."""
+"""SimulatorsJob creation and test suite."""
 
 import uuid
 from contextlib import contextmanager
@@ -24,8 +24,8 @@ from ..common import QiskitTestCase
 from .._mockutils import new_fake_qobj
 
 
-class TestAerJob(QiskitTestCase):
-    """Test how backends create AerJob objects and the AerJob class."""
+class TestSimulatorsJob(QiskitTestCase):
+    """Test how backends create SimulatorsJob objects and the SimulatorsJob class."""
 
     _backends = [
         QasmSimulator,
@@ -98,7 +98,7 @@ def mocked_executor():
 
     import importlib
     import concurrent.futures as futures
-    import qiskit.backends.builtinsimulators.aerjob as aerjob
+    import qiskit.backends.builtinsimulators.simulatorsjob as aerjob
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)
@@ -106,7 +106,7 @@ def mocked_executor():
     with patch.object(futures, 'ProcessPoolExecutor', **mock_options),\
             patch.object(futures, 'ThreadPoolExecutor', **mock_options):
         importlib.reload(aerjob)
-        yield aerjob.AerJob, executor
+        yield aerjob.SimulatorsJob, executor
 
 
 @contextmanager
