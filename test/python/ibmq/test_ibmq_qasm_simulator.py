@@ -7,8 +7,7 @@
 
 # pylint: disable=missing-docstring,broad-except
 
-"""Test IBMQ online qasm simulator.
-TODO: Must expand tests. Re-evaluate after Aer."""
+"""Test IBMQ online qasm simulator."""
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin

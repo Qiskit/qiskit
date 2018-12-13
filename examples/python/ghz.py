@@ -45,7 +45,7 @@ except:
              For now, there's only access to local simulator backends...""")
 
 # First version: simulator
-sim_backend = Aer.get_backend('qasm_simulator')
+sim_backend = AerPy.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
 print('Qasm simulator')

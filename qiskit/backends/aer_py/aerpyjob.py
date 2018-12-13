@@ -38,7 +38,7 @@ def requires_submit(func):
 
 
 class AerPyJob(BaseJob):
-    """Aer Job class.
+    """Python Aer Job class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
