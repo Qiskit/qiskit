@@ -28,7 +28,7 @@ def iplot_state_hinton(rho, figsize=None):
 
         Args:
             rho (array): Density matrix
-            figsize (tuple): Figure size in inches.
+            figsize (tuple): Figure size in pixels.
     """
 
     # HTML

@@ -26,7 +26,6 @@ class ToffoliGate(Gate):
     def __init__(self, ctl1, ctl2, tgt, circ=None):
         """Create new Toffoli gate."""
         super().__init__("ccx", [], [ctl1, ctl2, tgt], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -69,7 +68,6 @@ class ToffoliGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

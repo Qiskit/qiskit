@@ -26,7 +26,6 @@ class SGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new S gate."""
         super().__init__("s", [], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -51,7 +50,6 @@ class SGate(Gate):
         """Invert this gate."""
         inv = SdgGate(self.qargs[0])
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
-        self._define_decompositions()
         return inv
 
 
@@ -61,7 +59,6 @@ class SdgGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Sdg gate."""
         super().__init__("sdg", [], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -86,7 +83,6 @@ class SdgGate(Gate):
         """Invert this gate."""
         inv = SGate(self.qargs[0])
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
-        self._define_decompositions()
         return inv
 
 

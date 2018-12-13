@@ -60,7 +60,7 @@ def iplot_histogram(data, figsize=None, number_to_keep=None,
         Args:
             data (list or dict):  This is either a list of dicts or a single
                 dict containing the values to represent (ex. {'001' : 130})
-            figsize (tuple): Tuple giving figure width and height.
+            figsize (tuple): Figure size in pixels.
             number_to_keep (int): The number of terms to plot and
                 rest is made into a single bar called other values
             sort (string): Could be 'asc' or 'desc'

@@ -25,7 +25,6 @@ class IdGate(Gate):
     def __init__(self, qubit, circ=None):
         """Create new Identity gate."""
         super().__init__("id", [], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -41,7 +40,6 @@ class IdGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):
