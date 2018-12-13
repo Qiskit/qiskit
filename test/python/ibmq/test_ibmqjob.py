@@ -23,10 +23,9 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import IBMQ
 from qiskit import compile
 from qiskit.backends import JobStatus, JobError
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError, DeprecatedFormatJobError
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from qiskit.backends.ibmq import least_busy
-
+from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
+from qiskit.backends.ibmq.ibmqjob import IBMQJob
 from ..common import requires_qe_access, JobTestCase, slow_test
 
 
@@ -259,11 +258,7 @@ class TestIBMQJob(JobTestCase):
         qobj = compile(self._qc, backend)
         job = backend.run(qobj)
 
-        try:
-            rjob = backend.retrieve_job(job.job_id())
-        except DeprecatedFormatJobError as err:
-            self.skipTest(err.message)
-
+        rjob = backend.retrieve_job(job.job_id())
         self.assertTrue(job.job_id() == rjob.job_id())
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
 
