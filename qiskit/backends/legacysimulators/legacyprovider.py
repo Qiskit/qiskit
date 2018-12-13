@@ -46,3 +46,14 @@ class LegacyProvider(AerProvider):
                 logger.info('legacy simulator %s is not available: %s',
                             backend_cls, str(err))
         return ret
+
+    @staticmethod
+    def _deprecated_backend_names():
+        """Returns deprecated backend names."""
+        return {
+            'local_qasm_simulator_cpp': 'qasm_simulator',
+            'local_statevector_simulator_cpp': 'statevector_simulator',
+            'local_qiskit_simulator': 'qasm_simulator',
+            'local_qasm_simulator': 'qasm_simulator',
+            'local_statevector_simulator': 'statevector_simulator'
+        }

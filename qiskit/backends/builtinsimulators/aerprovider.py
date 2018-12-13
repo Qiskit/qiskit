@@ -84,14 +84,9 @@ class AerProvider(BaseProvider):
     def _deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
-            'local_qasm_simulator_cpp': 'qasm_simulator',
             'local_qasm_simulator_py': 'qasm_simulator_py',
-            'local_statevector_simulator_cpp': 'statevector_simulator',
             'local_statevector_simulator_py': 'statevector_simulator_py',
             'local_unitary_simulator_py': 'unitary_simulator_py',
-            'local_qiskit_simulator': 'qasm_simulator',
-            'local_qasm_simulator': 'qasm_simulator',
-            'local_statevector_simulator': 'statevector_simulator',
             'local_unitary_simulator': 'unitary_simulator_py',
             'unitary_simulator': 'unitary_simulator_py'
             }

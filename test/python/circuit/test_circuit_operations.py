@@ -8,7 +8,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 import qiskit.extensions.simulator  # pylint: disable=unused-import
-from qiskit import Simulators
+from qiskit import Simulators, LegacySimulators
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
@@ -87,7 +87,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.snapshot(slot='1')
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = Simulators.get_backend('qasm_simulator')
+        backend = LegacySimulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         snapshot_vectors = result.data(0)['snapshots']['statevector']['1']
