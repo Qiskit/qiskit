@@ -7,11 +7,9 @@
 
 """Pass for unrolling a circuit to a given basis."""
 
-import copy
 import networkx as nx
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister
-from qiskit.transpiler._transpilererror import TranspilerError
 from qiskit.transpiler._basepasses import TransformationPass
 
 
@@ -41,9 +39,6 @@ class Unroller(TransformationPass):
 
         Returns:
             DAGCircuit: output unrolled dag
-
-        Raises:
-            TranspilerError: if no decomposition rule is found for an op
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.get_gate_nodes():
@@ -76,12 +71,8 @@ class Unroller(TransformationPass):
 
             # the wires for substitute_circuit_one are expected as qargs first,
             # then cargs, then conditions
-            qwires = [w for w in decomposition_dag.wires
-                      if isinstance(w[0], QuantumRegister)]
-            cwires = [w for w in decomposition_dag.wires
-                      if isinstance(w[0], ClassicalRegister)]
+            qwires = [w for w in decomposition_dag.wires if isinstance(w[0], QuantumRegister)]
+            cwires = [w for w in decomposition_dag.wires if isinstance(w[0], ClassicalRegister)]
 
-            dag.substitute_circuit_one(node,
-                                       decomposition_dag,
-                                       qwires + cwires)
+            dag.substitute_circuit_one(node, decomposition_dag, qwires + cwires)
         return dag
