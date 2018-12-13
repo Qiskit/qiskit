@@ -23,7 +23,6 @@ from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
 from ._parallel import parallel_map
 from .passes.mapping.unroller import Unroller
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -188,7 +187,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Simplify cx gates
             cx_cancellation(dag)
             # Unroll to the basis
-            dag = Unroller().run(dag)
+            dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
             # Simplify single qubit gates
             dag = Optimize1qGates().run(dag)
             return_last_measurements(dag, removed_meas,
