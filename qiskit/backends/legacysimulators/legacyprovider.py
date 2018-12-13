@@ -8,6 +8,7 @@
 """Provider for C++ simulator backends coming from the built-in Aer in versions prior to 0.7"""
 
 import logging
+import warnings
 from collections import OrderedDict
 
 from qiskit import QiskitError
@@ -27,6 +28,13 @@ LEGACY_SIMULATORS = [
 
 class LegacyProvider(SimulatorsProvider):
     """Provider for legacy simulators backends."""
+
+    def get_backend(self, name=None, **kwargs):
+        warnings.warn('C++ simulators in the `LegacyProvider` are deprecated. Install '
+                      '`qiskit-aer` and import `Aer` from `qiskit` if you want make the most '
+                      'of performance. The `LegacyProvider` will be removed after 0.7',
+                      DeprecationWarning)
+        return super().get_backend(name=name, **kwargs)
 
     def _verify_backends(self):
         """
