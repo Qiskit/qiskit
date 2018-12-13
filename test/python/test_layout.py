@@ -7,6 +7,7 @@
 
 """ Tests the layout object"""
 
+import copy
 import unittest
 
 from qiskit import QuantumRegister
@@ -172,6 +173,24 @@ class LayoutTest(QiskitTestCase):
 
         with self.assertRaises(LayoutError):
             _ = layout.combine_into_edge_map(another_layout)
+
+    def test_copy(self):
+        """Test copy methods return equivalent layouts."""
+        layout = Layout()
+        layout.add((self.qr, 0))
+        layout.add((self.qr, 1))
+
+        layout_dict_copy = layout.copy()
+        self.assertTrue(isinstance(layout_dict_copy, Layout))
+        self.assertDictEqual(layout, layout_dict_copy)
+
+        layout_copy_copy = copy.copy(layout)
+        self.assertTrue(isinstance(layout_copy_copy, Layout))
+        self.assertDictEqual(layout, layout_copy_copy)
+
+        layout_copy_deepcopy = copy.deepcopy(layout)
+        self.assertTrue(isinstance(layout_copy_deepcopy, Layout))
+        self.assertDictEqual(layout, layout_copy_deepcopy)
 
 
 if __name__ == '__main__':
