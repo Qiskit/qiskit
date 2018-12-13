@@ -113,19 +113,19 @@ class TestDirectionMapper(QiskitTestCase):
 
     def test_flip_with_measure(self):
         """
-         qr0:----.--[m]-
-                 |   |
-         qr1:---(+)--|--
-                     |
-         cr0:--------.--
+         qr0: -(+)-[m]-
+                |   |
+         qr1: --.---|--
+                    |
+         cr0: ------.--
 
          Coupling map: [0] -> [1]
 
-         qr0:-[H]-(+)-[H]-[m]-
-                   |       |
-         qr1:-[H]--.--[H]--|--
-                           |
-         cr0:--------------.--
+         qr0: -[H]--.--[H]-[m]-
+                    |       |
+         qr1: -[H]-(+)-[H]--|--
+                            |
+         cr0: --------------.--
         """
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
