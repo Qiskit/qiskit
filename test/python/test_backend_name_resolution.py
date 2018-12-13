@@ -72,6 +72,7 @@ class TestBackendNameResolution(QiskitTestCase):
         """Test backends() return an empty list if name is unknown."""
         self.assertEqual(AerPy.backends("bad_name"), [])
 
+    @requires_cpp_simulator
     def test_deprecated_cpp_simulator_return_no_backend(self):
         """Test backends("local_qasm_simulator_cpp") does not return C++
         simulator if it is not installed"""
