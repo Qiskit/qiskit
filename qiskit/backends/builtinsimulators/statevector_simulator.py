@@ -26,7 +26,7 @@ from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
 from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
-from .qasm_simulator_py import QasmSimulatorPy
+from .qasm_simulator import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'statevector_simulator_py',
+        'backend_name': 'statevector_simulator',
         'backend_version': '1.0.0',
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/Qiskit/qiskit-terra',

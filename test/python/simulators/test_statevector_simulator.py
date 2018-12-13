@@ -16,7 +16,7 @@ from ..common import QiskitTestCase, requires_cpp_simulator
 
 @requires_cpp_simulator
 class StatevectorSimulatorTest(QiskitTestCase):
-    """Test Aer's C++ statevector simulator."""
+    """Test legacy C++ statevector simulator."""
 
     def setUp(self):
         qr = QuantumRegister(2)

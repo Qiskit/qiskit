@@ -31,8 +31,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.cr_name = cr.name
         self.circuits = [qc]
 
-    def test_aer_qasm_simulator_py(self):
-        backend = Simulators.get_backend('qasm_simulator_py')
+    def test_builtin_qasm_simulator_py(self):
+        backend = Simulators.get_backend('qasm_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
@@ -42,7 +42,7 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_aer_clifford_simulator(self):
+    def test_builtin_clifford_simulator(self):
         backend = LegacySimulators.get_backend('clifford_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
@@ -53,7 +53,7 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_aer_qasm_simulator(self):
+    def test_builtin_qasm_simulator(self):
         backend = LegacySimulators.get_backend('qasm_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
@@ -63,8 +63,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
         self.assertIn(self.cr_name, c_qasm)
 
-    def test_aer_unitary_simulator_py(self):
-        backend = Simulators.get_backend('unitary_simulator_py')
+    def test_builtin_unitary_simulator_py(self):
+        backend = Simulators.get_backend('unitary_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm

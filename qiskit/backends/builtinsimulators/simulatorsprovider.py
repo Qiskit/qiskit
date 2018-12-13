@@ -16,9 +16,9 @@ from qiskit.backends import BaseProvider
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from qiskit.backends.providerutils import resolve_backend_name, filter_backends
 
-from .qasm_simulator_py import QasmSimulatorPy
-from .statevector_simulator_py import StatevectorSimulatorPy
-from .unitary_simulator_py import UnitarySimulatorPy
+from .qasm_simulator import QasmSimulatorPy
+from .statevector_simulator import StatevectorSimulatorPy
+from .unitary_simulator import UnitarySimulatorPy
 
 
 logger = logging.getLogger(__name__)
@@ -84,11 +84,14 @@ class SimulatorsProvider(BaseProvider):
     def _deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
-            'local_qasm_simulator_py': 'qasm_simulator_py',
-            'local_statevector_simulator_py': 'statevector_simulator_py',
-            'local_unitary_simulator_py': 'unitary_simulator_py',
-            'local_unitary_simulator': 'unitary_simulator_py',
-            'unitary_simulator': 'unitary_simulator_py'
+            'qasm_simulator_py': 'qasm_simulator',
+            'statevector_simulator_py': 'statevector_simulator',
+            'unitary_simulator_py': 'unitary_simulator',
+            'local_qasm_simulator_py': 'qasm_simulator',
+            'local_statevector_simulator_py': 'statevector_simulator',
+            'local_unitary_simulator_py': 'unitary_simulator',
+            'local_unitary_simulator': 'unitary_simulator',
+            'unitary_simulator': 'unitary_simulator'
             }
 
     def _verify_backends(self):

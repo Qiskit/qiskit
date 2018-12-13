@@ -28,7 +28,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = Simulators.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}

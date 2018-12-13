@@ -96,8 +96,9 @@ class TestQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
 
-    def test_aerjob_raises_error_when_sending_bad_qobj(self):
-        """Test aerjob is denied resource request access when given an invalid Qobj instance."""
+    def test_simjob_raises_error_when_sending_bad_qobj(self):
+        """Test SimulatorJob is denied resource request access when given an invalid Qobj instance.
+        """
         job_id = str(uuid.uuid4())
         backend = FakeBackend()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
@@ -131,7 +132,7 @@ class TestQobj(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         shots = 1024
-        backend = Simulators.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
         qobj1.experiments[0].config.shots = 50

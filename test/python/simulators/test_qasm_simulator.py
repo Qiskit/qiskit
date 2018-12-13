@@ -25,9 +25,9 @@ from ..common import QiskitTestCase, Path
 from ..common import requires_cpp_simulator
 
 
-class TestAerQasmSimulator(QiskitTestCase):
+class TestLegacyQasmSimulator(QiskitTestCase):
     """
-    Test job_processor module.
+    Test legacy C++ QASM simulator.
     """
 
     @requires_cpp_simulator

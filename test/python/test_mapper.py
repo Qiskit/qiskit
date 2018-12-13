@@ -87,7 +87,7 @@ class TestMapper(QiskitTestCase):
 
     def setUp(self):
         self.seed = 42
-        self.backend = Simulators.get_backend("qasm_simulator_py")
+        self.backend = Simulators.get_backend("qasm_simulator")
 
     def test_mapper_overoptimization(self):
         """Check mapper overoptimization.

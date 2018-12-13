@@ -9,9 +9,9 @@
 
 from .simulatorsprovider import SimulatorsProvider
 from .simulatorsjob import SimulatorsJob
-from .qasm_simulator_py import QasmSimulatorPy
-from .statevector_simulator_py import StatevectorSimulatorPy
-from .unitary_simulator_py import UnitarySimulatorPy
+from .qasm_simulator import QasmSimulatorPy
+from .statevector_simulator import StatevectorSimulatorPy
+from .unitary_simulator import UnitarySimulatorPy
 from ._simulatorerror import SimulatorError
 
 # Global instance to be used as the entry point for convenience.

@@ -84,7 +84,7 @@ class TestBackendNameResolution(QiskitTestCase):
             self.assertEqual(len(backends), 0)
 
 
-class TestAerBackendNames(QiskitTestCase):
+class TestSimulatorBackendNames(QiskitTestCase):
     """
     Test deprecated names from providers.
     """

@@ -45,7 +45,7 @@ class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator_py',
+        'backend_name': 'qasm_simulator',
         'backend_version': '2.0.0',
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/Qiskit/qiskit-terra',

@@ -46,10 +46,10 @@ class TestSimulatorsJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
-        with mocked_executor() as (AerJob, executor):
+        with mocked_executor() as (SimulatorJob, executor):
             for index in range(taskcount):
-                aer_job = AerJob(backend, job_id, target_tasks[index], new_fake_qobj())
-                aer_job.submit()
+                job = SimulatorJob(backend, job_id, target_tasks[index], new_fake_qobj())
+                job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
         for index in range(taskcount):
@@ -66,8 +66,8 @@ class TestSimulatorsJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeBackend()
         # pylint: disable=invalid-name,redefined-outer-name
-        with mocked_executor() as (AerJob, executor):
-            job = AerJob(backend, job_id, lambda: None, new_fake_qobj())
+        with mocked_executor() as (SimulatorsJob, executor):
+            job = SimulatorsJob(backend, job_id, lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
 
@@ -98,15 +98,15 @@ def mocked_executor():
 
     import importlib
     import concurrent.futures as futures
-    import qiskit.backends.builtinsimulators.simulatorsjob as aerjob
+    import qiskit.backends.builtinsimulators.simulatorsjob as simulatorsjob
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)
     mock_options = {'return_value': executor, 'autospec': True}
     with patch.object(futures, 'ProcessPoolExecutor', **mock_options),\
             patch.object(futures, 'ThreadPoolExecutor', **mock_options):
-        importlib.reload(aerjob)
-        yield aerjob.SimulatorsJob, executor
+        importlib.reload(simulatorsjob)
+        yield simulatorsjob.SimulatorsJob, executor
 
 
 @contextmanager
