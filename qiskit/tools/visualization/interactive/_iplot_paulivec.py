@@ -43,7 +43,7 @@ def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
 
         Args:
             rho (array): State vector or density matrix.
-            figsize (tuple): Figure size in inches.
+            figsize (tuple): Figure size in pixels.
             slider (bool): activate slider
             show_legend (bool): show legend of graph content
     """
