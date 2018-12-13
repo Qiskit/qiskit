@@ -27,7 +27,7 @@ def iplot_state_city(rho, figsize=None):
 
         Args:
             rho (array): State vector or density matrix.
-            figsize (tuple): The figure size in inches.
+            figsize (tuple): The figure size in pixels.
     """
 
     # HTML

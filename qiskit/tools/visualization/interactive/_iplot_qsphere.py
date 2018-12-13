@@ -36,7 +36,7 @@ def iplot_state_qsphere(rho, figsize=None):
 
         Args:
             rho (array): State vector or density matrix.
-            figsize (tuple): Figure size in inches.
+            figsize (tuple): Figure size in pixels.
     """
 
     # HTML
