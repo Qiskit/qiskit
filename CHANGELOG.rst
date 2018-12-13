@@ -54,6 +54,7 @@ Added
 - Added a ``qiskit.converters`` module for translation between commonly used
   representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
+- Added lookahead mapper as new transpiler pass (#1140).
 
 Changed
 """""""
