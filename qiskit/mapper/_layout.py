@@ -73,6 +73,10 @@ class Layout(dict):
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
 
+    # Override dict's built-in copy method which would return a dict instead of a Layout.
+    def copy(self):
+        return type(self)(self)
+
     def add(self, virtual_bit, physical_bit=None):
         """
         Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
