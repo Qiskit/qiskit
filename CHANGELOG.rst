@@ -97,7 +97,7 @@ Changed
   processing is only done internally (#1397).
 - Moved all the circuit modules into a circuit module but for most users it is still 
   imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
-
+- Breaking change: everything moved from `qiskit` to `qiskit.terra`. (#1477)
 
 Deprecated
 """"""""""
