@@ -34,7 +34,7 @@ from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
+from qiskit.backends.builtinsimulators.aerjob import AerJob
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix, index2
 

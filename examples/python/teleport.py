@@ -13,13 +13,13 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, Aer
+from qiskit import compile, Simulators
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-backend = Aer.get_backend("qasm_simulator")
+backend = Simulators.get_backend("qasm_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.

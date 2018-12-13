@@ -9,8 +9,8 @@
 """Test backend name resolution for functionality, via groups, deprecations and
 aliases."""
 
-from qiskit import IBMQ, Aer
-from qiskit.backends.aer import QasmSimulator
+from qiskit import IBMQ, Simulators
+from qiskit.backends.builtinsimulators import QasmSimulator
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,
@@ -26,7 +26,7 @@ class TestBackendNameResolution(QiskitTestCase):
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names.
         """
-        deprecated_names = Aer._deprecated_backend_names()
+        deprecated_names = Simulators._deprecated_backend_names()
 
         for oldname, newname in deprecated_names.items():
             if (newname == 'qasm_simulator' or
@@ -36,12 +36,12 @@ class TestBackendNameResolution(QiskitTestCase):
             with self.subTest(oldname=oldname, newname=newname):
                 try:
                     resolved_newname = _get_first_available_backend(newname)
-                    real_backend = Aer.get_backend(resolved_newname)
+                    real_backend = Simulators.get_backend(resolved_newname)
                 except QiskitBackendNotFoundError:
                     # The real name of the backend might not exist
                     pass
                 else:
-                    self.assertEqual(Aer.backends(oldname)[0], real_backend)
+                    self.assertEqual(Simulators.backends(oldname)[0], real_backend)
 
     @requires_qe_access
     def test_aliases(self, qe_token, qe_url):
@@ -65,17 +65,17 @@ class TestBackendNameResolution(QiskitTestCase):
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(QiskitBackendNotFoundError, Aer.get_backend, 'bad_name')
+        self.assertRaises(QiskitBackendNotFoundError, Simulators.get_backend, 'bad_name')
 
     def test_aliases_return_empty_list(self):
         """Test backends() return an empty list if name is unknown."""
-        self.assertEqual(Aer.backends("bad_name"), [])
+        self.assertEqual(Simulators.backends("bad_name"), [])
 
     def test_deprecated_cpp_simulator_return_no_backend(self):
         """Test backends("local_qasm_simulator_cpp") does not return C++
         simulator if it is not installed"""
         name = "local_qasm_simulator_cpp"
-        backends = Aer.backends(name)
+        backends = Simulators.backends(name)
         if is_cpp_simulator_available():
             self.assertEqual(len(backends), 1)
             self.assertIsInstance(backends[0] if backends else None, QasmSimulator)
@@ -89,9 +89,9 @@ class TestAerBackendNames(QiskitTestCase):
     """
     @requires_cpp_simulator
     def test_aer_deprecated(self):
-        """test deprecated aer backends are resolved correctly"""
+        """test deprecated builtinsimulators backends are resolved correctly"""
         old_name = 'local_qiskit_simulator'
-        new_backend = Aer.get_backend(old_name)
+        new_backend = Simulators.get_backend(old_name)
         self.assertIsInstance(new_backend, QasmSimulator)
 
 
@@ -102,7 +102,7 @@ def _get_first_available_backend(backend_names):
 
     for backend_name in backend_names:
         try:
-            return Aer.get_backend(backend_name).name()
+            return Simulators.get_backend(backend_name).name()
         except QiskitBackendNotFoundError:
             pass
 

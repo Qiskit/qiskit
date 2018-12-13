@@ -12,7 +12,7 @@ import unittest
 import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
+from qiskit.backends.builtinsimulators.qasm_simulator_py import QasmSimulatorPy
 
 from ..common import QiskitTestCase
 

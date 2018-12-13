@@ -13,12 +13,12 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
+from qiskit.backends.builtinsimulators.unitary_simulator_py import UnitarySimulatorPy
 from ..common import QiskitTestCase
 
 
 class AerUnitarySimulatorPyTest(QiskitTestCase):
-    """Test aer unitary simulator."""
+    """Test builtinsimulators unitary simulator."""
 
     def setUp(self):
         self.seed = 88

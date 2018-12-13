@@ -22,8 +22,8 @@ import logging
 import uuid
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.backends.aer.aerjob import AerJob
-from qiskit.backends.aer._simulatorerror import SimulatorError
+from qiskit.backends.builtinsimulators.aerjob import AerJob
+from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
 from qiskit.backends.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator_py import QasmSimulatorPy

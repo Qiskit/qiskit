@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Provider for aer backends."""
+"""Provider for builtinsimulators backends."""
 
 from collections import OrderedDict
 import logging
@@ -36,12 +36,12 @@ AER_STANDARD_BACKENDS = [
 
 
 class AerProvider(BaseProvider):
-    """Provider for aer backends."""
+    """Provider for builtinsimulators backends."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
-        # Populate the list of aer backends.
+        # Populate the list of builtinsimulators backends.
         self._backends = self._verify_aer_backends()
 
     def get_backend(self, name=None, **kwargs):
@@ -103,12 +103,12 @@ class AerProvider(BaseProvider):
 
     def _verify_aer_backends(self):
         """
-        Return the aer backends in `AER_STANDARD_BACKENDS` that are
+        Return the builtinsimulators backends in `AER_STANDARD_BACKENDS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
         Returns:
-            dict[str:BaseBackend]: a dict of aer backend instances for
+            dict[str:BaseBackend]: a dict of builtinsimulators backend instances for
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
@@ -119,7 +119,7 @@ class AerProvider(BaseProvider):
                 ret[backend_name] = backend_instance
             except QiskitError as err:
                 # Ignore backends that could not be initialized.
-                logger.info('aer backend %s is not available: %s',
+                logger.info('builtinsimulators backend %s is not available: %s',
                             backend_cls, str(err))
         return ret
 

@@ -14,7 +14,7 @@ used `pip install`, the examples only work from the root directory.
 
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, Aer, IBMQ
+from qiskit import execute, Simulators, IBMQ
 from qiskit.backends.ibmq import least_busy
 
 
@@ -78,7 +78,7 @@ except:
              For now, there's only access to local simulator backends...""")
 
 print('Qasm simulator')
-sim_backend = Aer.get_backend('qasm_simulator')
+sim_backend = Simulators.get_backend('qasm_simulator')
 job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
 print(result)
