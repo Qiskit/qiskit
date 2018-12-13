@@ -76,7 +76,7 @@ def _get_instructions(circuit, reversebits=False):
     for creg in dag.cregs.values():
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
-    if not reversebits:
+    if reversebits:
         qregs.reverse()
         cregs.reverse()
 
