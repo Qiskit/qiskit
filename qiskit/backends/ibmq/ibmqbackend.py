@@ -15,7 +15,7 @@ import warnings
 from marshmallow import ValidationError
 
 from qiskit import QiskitError
-from qiskit.backends import BaseBackend, JobStatus, JobError
+from qiskit.backends import BaseBackend, JobStatus
 from qiskit.backends.models import BackendStatus, BackendProperties
 
 from .api import ApiError
@@ -162,10 +162,10 @@ class IBMQBackend(BaseBackend):
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
             if job_class is IBMQJobPreQobj:
-                warnings.warn('The result of job {} is in an old and no longer supported format, '
-                              'please resend the job with Qiskit 0.7'.format(job_info.get('id')),
+                warnings.warn('The result of job {} is in a no longer supported format. '
+                              'These jobs will stop working after Qiskit 0.7. Save the results '
+                              'or send the job with Qiskit 0.7+'.format(job_info.get('id')),
                               DeprecationWarning)
-                continue
 
             is_device = not bool(self.configuration().simulator)
             job = job_class(self, job_info.get('id'), self._api, is_device,
@@ -185,7 +185,6 @@ class IBMQBackend(BaseBackend):
 
         Raises:
             IBMQBackendError: if retrieval failed
-            DeprecatedFormatJobError: if the job retrieved has a format pre 0.7
         """
         try:
             job_info = self._api.get_status_job(job_id)
@@ -197,9 +196,10 @@ class IBMQBackend(BaseBackend):
                                    .format(job_id, str(ex)))
         job_class = _job_class_from_job_response(job_info)
         if job_class is IBMQJobPreQobj:
-            raise DeprecatedFormatJobError('The result of job {} is in an old and no '
-                                           'longer supported format, please resend the '
-                                           'job with Qiskit 0.7'.format(job_id))
+            warnings.warn('The result of job {} is in a no longer supported format. '
+                          'These jobs will stop working after Qiskit 0.7. Save the results '
+                          'or send the job with Qiskit 0.7+'.format(job_id),
+                          DeprecationWarning)
 
         is_device = not bool(self.configuration().simulator)
         job = job_class(self, job_info.get('id'), self._api, is_device,
@@ -223,11 +223,6 @@ class IBMQBackendError(QiskitError):
 
 class IBMQBackendValueError(IBMQBackendError, ValueError):
     """Value errors thrown within IBMQBackend """
-    pass
-
-
-class DeprecatedFormatJobError(JobError):
-    """Retrieving responses pre-qobj is no longer supported."""
     pass
 
 
