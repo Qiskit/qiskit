@@ -25,7 +25,7 @@ def iplot_state(quantum_state, method='city', figsize=None):
         quantum_state (ndarray): statevector or density matrix
                                  representation of a quantum state.
         method (str): Plotting method to use.
-        figsize (tuple): Figure size in inches.
+        figsize (tuple): Figure size in pixels.
 
     Raises:
         VisualizationError: if the input is not a statevector or density
