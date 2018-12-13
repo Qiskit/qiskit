@@ -23,7 +23,8 @@ from qiskit.terra import mapper
 from qiskit.terra import QiskitError
 
 # import optimization tools
-from qiskit.terra.tools.apps.optimization import trial_circuit_ryrz, SPSA_optimization, SPSA_calibration
+from qiskit.terra.tools.apps.optimization import (trial_circuit_ryrz, SPSA_optimization,
+                                                  SPSA_calibration)
 from qiskit.terra.tools.apps.optimization import Hamiltonian_from_file, make_Hamiltonian
 from qiskit.terra.tools.apps.optimization import eval_hamiltonian, group_paulis
 from qiskit.terra import get_backend

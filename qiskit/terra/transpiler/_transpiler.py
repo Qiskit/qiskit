@@ -16,8 +16,8 @@ from qiskit.terra.qiskiterror import QiskitError
 from qiskit.terra.circuit import QuantumCircuit
 from qiskit.terra.circuit import QuantumRegister
 from qiskit.terra.mapper import (Coupling, optimize_1q_gates, swap_mapper,
-                           cx_cancellation, direction_mapper,
-                           remove_last_measurements, return_last_measurements)
+                                 cx_cancellation, direction_mapper,
+                                 remove_last_measurements, return_last_measurements)
 from qiskit.terra.converters import circuit_to_dag
 from qiskit.terra.converters import dag_to_circuit
 from ._parallel import parallel_map

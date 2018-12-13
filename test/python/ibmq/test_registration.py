@@ -43,7 +43,7 @@ class TestIBMQAccounts(QiskitTestCase):
         """Test enabling one account."""
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.terra.IBMQ.enable_account('QISKITRC_TOKEN', url='someurl',
-                                       proxies=PROXIES)
+                                             proxies=PROXIES)
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
@@ -59,9 +59,9 @@ class TestIBMQAccounts(QiskitTestCase):
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.terra.IBMQ.enable_account('QISKITRC_TOKEN')
             qiskit.terra.IBMQ.enable_account('QISKITRC_TOKEN',
-                                       url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+                                             url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             qiskit.terra.IBMQ.enable_account('QISKITRC_TOKEN',
-                                       url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
+                                             url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
 
             # Compare the session accounts with the ones stored in file.
             loaded_accounts = read_credentials_from_qiskitrc()
@@ -78,8 +78,7 @@ class TestIBMQAccounts(QiskitTestCase):
     def test_save_account(self):
         """Test saving one account."""
         with custom_qiskitrc(), mock_ibmq_provider():
-            qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN', url=QE_URL,
-                                     proxies=PROXIES)
+            qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN', url=QE_URL, proxies=PROXIES)
 
             # Compare the session accounts with the ones stored in file.
             stored_accounts = read_credentials_from_qiskitrc()
@@ -90,9 +89,9 @@ class TestIBMQAccounts(QiskitTestCase):
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN')
             qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN',
-                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+                                           url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN',
-                                     url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
+                                           url=IBMQ_TEMPLATE.format('a', 'b', 'X'))
 
             # Compare the session accounts with the ones stored in file.
             stored_accounts = read_credentials_from_qiskitrc()
@@ -134,7 +133,7 @@ class TestIBMQAccounts(QiskitTestCase):
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.terra.IBMQ.enable_account('QISKITRC_TOKEN')
             qiskit.terra.IBMQ.enable_account('QISKITRC_TOKEN',
-                                       url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+                                             url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             qiskit.terra.IBMQ.disable_accounts()
             self.assertEqual(len(qiskit.terra.IBMQ._accounts), 0)
 
@@ -143,7 +142,7 @@ class TestIBMQAccounts(QiskitTestCase):
         with custom_qiskitrc(), mock_ibmq_provider():
             qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN')
             qiskit.terra.IBMQ.save_account('QISKITRC_TOKEN',
-                                     url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
+                                           url=IBMQ_TEMPLATE.format('a', 'b', 'c'))
             self.assertEqual(len(read_credentials_from_qiskitrc()), 2)
             qiskit.terra.IBMQ.delete_accounts()
             self.assertEqual(len(qiskit.terra.IBMQ._accounts), 0)

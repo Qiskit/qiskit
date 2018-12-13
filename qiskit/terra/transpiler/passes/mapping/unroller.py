@@ -7,11 +7,9 @@
 
 """Pass for unrolling a circuit to a given basis."""
 
-import copy
 import networkx as nx
 
 from qiskit.terra.circuit import QuantumRegister, ClassicalRegister
-from qiskit.terra.transpiler._transpilererror import TranspilerError
 from qiskit.terra.transpiler._basepasses import TransformationPass
 
 
@@ -41,9 +39,6 @@ class Unroller(TransformationPass):
 
         Returns:
             DAGCircuit: output unrolled dag
-
-        Raises:
-            TranspilerError: if no decomposition rule is found for an op
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.get_gate_nodes():

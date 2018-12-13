@@ -15,8 +15,8 @@ from numpy.linalg import norm
 
 from qiskit.terra import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.terra.backends.aer.qasm_simulator import (QasmSimulator,
-                                                cx_error_matrix,
-                                                x90_error_matrix)
+                                                      cx_error_matrix,
+                                                      x90_error_matrix)
 from qiskit.terra.qobj import Qobj
 from qiskit.terra.result.postprocess import format_statevector
 from qiskit.terra.quantum_info import state_fidelity

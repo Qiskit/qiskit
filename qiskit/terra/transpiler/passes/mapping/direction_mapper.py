@@ -46,7 +46,9 @@ class DirectionMapper(TransformationPass):
         Args:
             dag (DAGCircuit): DAG to map.
         Raises:
-            TranspilerError: If the `dag` cannot be mapped just by flipping the cx nodes.
+            MapperError: If the `dag` cannot be mapped just by flipping the cx nodes.
+        Return:
+            DagCircuit: a new `dag` with the CNOTs gates in the proper directions.
         """
         new_dag = DAGCircuit()
 

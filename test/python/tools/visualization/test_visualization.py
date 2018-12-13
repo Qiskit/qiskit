@@ -153,8 +153,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
 
 class TestVisualizationUtils(QiskitTestCase):
     """ Tests for visualizer utilities.
-    Since the utilities in qiskit/terra/tools/visualization/_utils.py are used by several visualizers
-    the need to be check if the interface or their result changes."""
+    Since the utilities in qiskit/terra/tools/visualization/_utils.py are used by several
+    visualizers the need to be check if the interface or their result changes."""
 
     def setUp(self):
         self.qr1 = qiskit.terra.QuantumRegister(2, 'qr1')

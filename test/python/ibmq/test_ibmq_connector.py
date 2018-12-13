@@ -11,7 +11,7 @@ import re
 import unittest
 
 from qiskit.terra.backends.ibmq.api import (ApiError, BadBackendError,
-                                      IBMQConnector, RegisterSizeError)
+                                            IBMQConnector, RegisterSizeError)
 from ..common import QiskitTestCase, requires_qe_access
 
 
