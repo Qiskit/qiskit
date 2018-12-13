@@ -106,7 +106,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
-        job = execute(qc, AerPy.get_backend('statevector_simulator_py'))
+        job = execute(qc, AerPy.get_backend('statevector_simulator'))
         result = job.result()
         statevector = result.get_statevector()
         fidelity = state_fidelity(statevector, desired_vector)

@@ -15,11 +15,11 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.backends.aer import QasmSimulator
-from qiskit.backends.aer import QasmSimulatorPy
-from qiskit.backends.aer import StatevectorSimulator
-from qiskit.backends.aer import StatevectorSimulatorPy
-from qiskit.backends.aer import UnitarySimulatorPy
+from qiskit.backends.staleaer import QasmSimulator
+from qiskit.backends.aer_py import QasmSimulatorPy
+from qiskit.backends.staleaer import StatevectorSimulator
+from qiskit.backends.aer_py import StatevectorSimulatorPy
+from qiskit.backends.aer_py import UnitarySimulatorPy
 from ..common import QiskitTestCase
 from .._mockutils import new_fake_qobj
 
@@ -98,15 +98,15 @@ def mocked_executor():
 
     import importlib
     import concurrent.futures as futures
-    import qiskit.backends.aer.aerjob as aerjob
+    import qiskit.backends.aer_py.aerpyjob as aerpyjob
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)
     mock_options = {'return_value': executor, 'autospec': True}
     with patch.object(futures, 'ProcessPoolExecutor', **mock_options),\
             patch.object(futures, 'ThreadPoolExecutor', **mock_options):
-        importlib.reload(aerjob)
-        yield aerjob.AerJob, executor
+        importlib.reload(aerpyjob)
+        yield aerpyjob.AerPyJob, executor
 
 
 @contextmanager

@@ -93,12 +93,12 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             qobj (dict): job description
 
         Returns:
-            AerJob: derived from BaseJob
+            AerPyJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        aer_py_job = AerPyJob(self, job_id, self._run_job, qobj)
+        aer_py_job.submit()
+        return aer_py_job
 
     def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""

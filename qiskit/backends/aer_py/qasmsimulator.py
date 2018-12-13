@@ -17,7 +17,7 @@ The simulator is run using
 .. code-block:: python
     QasmSimulatorPy().run(qobj)
 
-Where the input is a Qobj object and the output is a AerJob object, which can
+Where the input is a Qobj object and the output is a AerPyJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -220,10 +220,10 @@ class QasmSimulatorPy(BaseBackend):
             qobj (Qobj): payload of the experiment
 
         Returns:
-            AerJob: derived from BaseJob
+            AerPyJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job = AerPyJob(self, job_id, self._run_job, qobj)
         aer_job.submit()
         return aer_job
 

@@ -13,7 +13,7 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
+from qiskit.backends.aer_py.unitarysimulator import UnitarySimulatorPy
 from ..common import QiskitTestCase
 
 

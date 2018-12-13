@@ -17,7 +17,7 @@ from qiskit import compile, AerPy
 from qiskit._schema_validation import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
-from qiskit.backends.aer import aerjob
+from qiskit.backends.aer_py import aerpyjob
 from qiskit.backends.ibmq import ibmqjob
 from ._mockutils import FakeBackend
 from .common import QiskitTestCase
@@ -96,14 +96,14 @@ class TestQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
 
-    def test_aerjob_raises_error_when_sending_bad_qobj(self):
-        """Test aerjob is denied resource request access when given an invalid Qobj instance."""
+    def test_aerpyjob_raises_error_when_sending_bad_qobj(self):
+        """Test aerpyjob is denied resource request access when given an invalid Qobj instance."""
         job_id = str(uuid.uuid4())
         backend = FakeBackend()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = aerjob.AerJob(backend, job_id, _nop, self.bad_qobj)
+            job = aerpyjob.AerPyJob(backend, job_id, _nop, self.bad_qobj)
             job.submit()
 
     def test_ibmqobj_raises_error_when_sending_bad_qobj(self):

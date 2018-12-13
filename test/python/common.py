@@ -17,7 +17,7 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
-from qiskit.backends.aer_py import QasmSimulatorPy
+from qiskit.backends.staleaer import QasmSimulator
 from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
 
 from .http_recorder import http_recorder
@@ -80,7 +80,7 @@ class QiskitTestCase(unittest.TestCase):
         from qiskit.backends.aer_py import AerPy
 
         IBMQ._accounts.clear()
-        AerPy._backends = AerPy._verify_aer_backends()
+        AerPy._backends = AerPy._verify_aer_py_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):

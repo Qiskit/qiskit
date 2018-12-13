@@ -50,7 +50,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_qc).result()
         counts = result.get_counts(qc)
 
-        backend_sim = StaleAer.get_backend('qasm_simulator')
+        backend_sim = AerPy.get_backend('qasm_simulator')
         result = backend_sim.run(qobj_qc).result()
         counts_py = result.get_counts(qc)
 
@@ -60,11 +60,11 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_circ).result()
         state = result.get_statevector(circ)
 
-        backend_sim = StaleAer.get_backend('statevector_simulator_py')
+        backend_sim = AerPy.get_backend('statevector_simulator')
         result = backend_sim.run(qobj_circ).result()
         state_py = result.get_statevector(circ)
 
-        backend_sim = StaleAer.get_backend('unitary_simulator_py')
+        backend_sim = AerPy.get_backend('unitary_simulator')
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
