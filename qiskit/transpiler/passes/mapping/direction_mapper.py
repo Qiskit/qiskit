@@ -9,7 +9,6 @@
 A direction mapper rearrenges the direction of the cx nodes to make the circuit
 compatible to the directed coupling map.
 """
-from copy import copy
 
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler import MapperError
