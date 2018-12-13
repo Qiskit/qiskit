@@ -352,8 +352,7 @@ class QasmSimulatorPy(BaseBackend):
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise AerPyError(err_msg.format(backend,
-                                                        operation.name))
+                    raise AerPyError(err_msg.format(backend, operation.name))
             # Turn classical_state (int) into bit string and pad zero for unused cbits
             outcome = bin(self._classical_state)[2:]
             # Return a compact hexadecimal

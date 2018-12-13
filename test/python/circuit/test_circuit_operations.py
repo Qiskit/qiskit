@@ -169,9 +169,9 @@ class TestCircuitOperations(QiskitTestCase):
         backend = StaleAer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
-
-        snapshot_vectors = result.data(0)['snapshots']['1']['statevector']
-        fidelity = state_fidelity(snapshot_vectors[0], desired_vector)
+        snapshots = result.data(0)['snapshots']['statevector']['1']
+        snapshot_vectors = format_statevector(snapshots[0])
+        fidelity = state_fidelity(snapshot_vectors, desired_vector)
         self.assertGreater(fidelity, 0.99)
 
         counts = result.get_counts()

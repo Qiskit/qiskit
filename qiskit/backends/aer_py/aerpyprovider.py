@@ -85,6 +85,7 @@ class AerPyProvider(BaseProvider):
         return {
             'local_qasm_simulator_py': 'qasm_simulator',
             'local_statevector_simulator_py': 'statevector_simulator',
+            'local_qiskit_simulator': 'qasm_simulator',
             'local_unitary_simulator_py': 'unitary_simulator',
             'local_unitary_simulator': 'unitary_simulator',
             }

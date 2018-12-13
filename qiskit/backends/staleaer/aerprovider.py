@@ -67,7 +67,7 @@ class AerProvider(BaseProvider):
                 resolved_name = resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
-                    {},{})
+                    {}, {})
                 backends = [backend for backend in backends if
                             backend.name() == resolved_name]
             except LookupError:

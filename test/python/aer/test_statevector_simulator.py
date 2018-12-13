@@ -26,7 +26,8 @@ class StatevectorSimulatorTest(QiskitTestCase):
 
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
-        result = execute(self.q_circuit, backend=StaleAer.get_backend('statevector_simulator')).result()
+        backend = StaleAer.get_backend('statevector_simulator')
+        result = execute(self.q_circuit, backend=backend).result()
         self.assertEqual(result.success, True)
         actual = result.get_statevector(self.q_circuit)
 
