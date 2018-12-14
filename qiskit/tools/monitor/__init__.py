@@ -10,5 +10,5 @@
 """A module for monitoring jobs, backends, etc.
 """
 
-from job_monitor import job_monitor
-from backend_overview import backend_overview
+from .job_monitor import job_monitor
+from .backend_overview import backend_overview
