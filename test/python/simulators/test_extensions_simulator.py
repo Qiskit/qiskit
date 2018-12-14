@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 import qiskit
 import qiskit.extensions.simulator
-from qiskit import Aer
+from qiskit import Simulators, LegacySimulators
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
 from qiskit import execute
@@ -22,7 +22,7 @@ from ..common import QiskitTestCase, requires_cpp_simulator
 
 @requires_cpp_simulator
 class TestExtensionsSimulator(QiskitTestCase):
-    """Test instruction extensions for aer simulators:
+    """Test instruction extensions for builtinsimulators simulators:
     save, load, noise, snapshot, wait
     """
     _desired_fidelity = 0.99
@@ -39,7 +39,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit.h(qr[1])
         circuit.load(1)
 
-        sim = Aer.get_backend('statevector_simulator')
+        sim = LegacySimulators.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
         statevector = result.get_statevector()
         target = [0.70710678 + 0.j, 0.70710678 + 0.j, 0. + 0.j, 0. + 0.j]
@@ -59,7 +59,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[1])
 
-        sim = Aer.get_backend('statevector_simulator')
+        sim = LegacySimulators.get_backend('statevector_simulator')
         result = execute(circuit, sim).result()
         # TODO: rely on Result.get_statevector() postprocessing rather than manual
         snapshots = result.data(0)['snapshots']['statevector']['3']
@@ -87,7 +87,7 @@ class TestExtensionsSimulator(QiskitTestCase):
                 'id': {'p_pauli': [1.0, 0.0, 0.0]}
             }
         }
-        sim = Aer.get_backend('qasm_simulator')
+        sim = LegacySimulators.get_backend('qasm_simulator')
         shots = 1000
         result = execute(circuit, sim, config=config, shots=shots).result()
         counts = result.get_counts()

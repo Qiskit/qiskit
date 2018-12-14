@@ -17,7 +17,7 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
-from qiskit.backends.aer import QasmSimulator
+from qiskit.backends.legacysimulators import QasmSimulator
 from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
 
 from .http_recorder import http_recorder
@@ -77,10 +77,10 @@ class QiskitTestCase(unittest.TestCase):
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
         from qiskit.backends.ibmq import IBMQ
-        from qiskit.backends.aer import Aer
+        from qiskit.backends.builtinsimulators import Simulators
 
         IBMQ._accounts.clear()
-        Aer._backends = Aer._verify_aer_backends()
+        Simulators._backends = Simulators._verify_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):

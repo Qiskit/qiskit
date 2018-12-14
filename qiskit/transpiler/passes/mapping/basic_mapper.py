@@ -33,7 +33,6 @@ class BasicMapper(TransformationPass):
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
         Args:
             coupling_map (Coupling): Directed graph represented a coupling map.
-            swap_gate (Type):  Default: SwapGate. The Gate class that defines a swap gate.
             initial_layout (Layout): initial layout of qubits in mapping
         """
         super().__init__()
