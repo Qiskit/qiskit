@@ -13,7 +13,7 @@ import unittest
 import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, Simulators
+from qiskit import compile, BasicAer
 from qiskit._schema_validation import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
@@ -132,7 +132,7 @@ class TestQobj(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         shots = 1024
-        backend = Simulators.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend('qasm_simulator')
         config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
         qobj1 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
         qobj1.experiments[0].config.shots = 50
