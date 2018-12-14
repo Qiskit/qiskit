@@ -11,21 +11,21 @@
 import json
 import jsonschema
 
-from qiskit import IBMQ, Aer
-from qiskit.backends.aer import AerProvider
+from qiskit import IBMQ, Simulators
+from qiskit.backends.builtinsimulators import SimulatorsProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 
 class TestBackends(QiskitTestCase):
     """Qiskit Backends (Object) Tests."""
 
-    def test_aer_backends_exist(self):
+    def test_builtin_simulators_backends_exist(self):
         """Test if there are local backends.
 
         If all correct some should exists.
         """
-        aer_provider = AerProvider()
-        local = aer_provider.backends()
+        builtin_simulators = SimulatorsProvider()
+        local = builtin_simulators.backends()
         self.assertTrue(len(local) > 0)
 
     @requires_qe_access
@@ -63,10 +63,10 @@ class TestBackends(QiskitTestCase):
 
         If all correct should return a name the same as input.
         """
-        backend = Aer.backends(name='qasm_simulator_py')[0]
-        self.assertEqual(backend.name(), 'qasm_simulator_py')
+        backend = Simulators.backends(name='qasm_simulator')[0]
+        self.assertEqual(backend.name(), 'qasm_simulator')
 
-    def test_aer_backend_status(self):
+    def test_builtin_simulators_backend_status(self):
         """Test backend_status.
 
         If all correct should pass the validation.
@@ -76,7 +76,7 @@ class TestBackends(QiskitTestCase):
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        for backend in Aer.backends():
+        for backend in Simulators.backends():
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
@@ -96,7 +96,7 @@ class TestBackends(QiskitTestCase):
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
-    def test_aer_backend_configuration(self):
+    def test_builtin_simulators_backend_configuration(self):
         """Test backend configuration.
 
         If all correct should pass the validation.
@@ -106,8 +106,8 @@ class TestBackends(QiskitTestCase):
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        aer_backends = Aer.backends()
-        for backend in aer_backends:
+        builtin_simulators = Simulators.backends()
+        for backend in builtin_simulators:
             configuration = backend.configuration()
             jsonschema.validate(configuration.to_dict(), schema)
 
@@ -128,13 +128,13 @@ class TestBackends(QiskitTestCase):
             configuration = backend.configuration()
             jsonschema.validate(configuration.to_dict(), schema)
 
-    def test_aer_backend_properties(self):
+    def test_builtin_simulators_backend_properties(self):
         """Test backend properties.
 
         If all correct should pass the validation.
         """
-        aer_backends = Aer.backends()
-        for backend in aer_backends:
+        simulators = Simulators.backends()
+        for backend in simulators:
             properties = backend.properties()
             self.assertEqual(properties, None)
 

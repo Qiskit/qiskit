@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""This module implements the job class used for AerBackend objects."""
+"""This module implements the job class used by simulator backends."""
 
 from concurrent import futures
 import logging
@@ -37,8 +37,8 @@ def requires_submit(func):
     return _wrapper
 
 
-class AerJob(BaseJob):
-    """Aer Job class.
+class SimulatorsJob(BaseJob):
+    """SimulatorsJob class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs

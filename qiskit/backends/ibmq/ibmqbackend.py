@@ -10,6 +10,7 @@
 This module is used for connecting to the Quantum Experience.
 """
 import logging
+import warnings
 
 from marshmallow import ValidationError
 
@@ -160,6 +161,12 @@ class IBMQBackend(BaseBackend):
         job_list = []
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
+            if job_class is IBMQJobPreQobj:
+                warnings.warn('The result of job {} is in a no longer supported format. '
+                              'These jobs will stop working after Qiskit 0.7. Save the results '
+                              'or send the job with Qiskit 0.7+'.format(job_info.get('id')),
+                              DeprecationWarning)
+
             is_device = not bool(self.configuration().simulator)
             job = job_class(self, job_info.get('id'), self._api, is_device,
                             creation_date=job_info.get('creationDate'),
@@ -188,6 +195,12 @@ class IBMQBackend(BaseBackend):
             raise IBMQBackendError('Failed to get job "{}":{}'
                                    .format(job_id, str(ex)))
         job_class = _job_class_from_job_response(job_info)
+        if job_class is IBMQJobPreQobj:
+            warnings.warn('The result of job {} is in a no longer supported format. '
+                          'These jobs will stop working after Qiskit 0.7. Save the results '
+                          'or send the job with Qiskit 0.7+'.format(job_id),
+                          DeprecationWarning)
+
         is_device = not bool(self.configuration().simulator)
         job = job_class(self, job_info.get('id'), self._api, is_device,
                         creation_date=job_info.get('creationDate'),
@@ -209,7 +222,7 @@ class IBMQBackendError(QiskitError):
 
 
 class IBMQBackendValueError(IBMQBackendError, ValueError):
-    """ Value errors thrown within IBMQBackend """
+    """Value errors thrown within IBMQBackend """
     pass
 
 

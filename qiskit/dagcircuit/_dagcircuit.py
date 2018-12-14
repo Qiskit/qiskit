@@ -489,7 +489,7 @@ class DAGCircuit:
         add_regs = set()
         reg_frag_chk = {}
         for v in keyregs.values():
-            reg_frag_chk[v] = {j: False for j in range(len(keyregs))}
+            reg_frag_chk[v] = {j: False for j in range(len(v))}
         for k in edge_map.keys():
             if k[0].name in keyregs:
                 reg_frag_chk[k[0]][k[1]] = True
@@ -564,13 +564,16 @@ class DAGCircuit:
     def extend_back(self, dag, edge_map=None):
         """Add `dag` at the end of `self`, using `edge_map`.
         """
+        edge_map = edge_map or {}
         for qreg in dag.qregs.values():
             if qreg.name not in self.qregs:
                 self.add_qreg(QuantumRegister(qreg.size, qreg.name))
+            edge_map.update([(qbit, qbit) for qbit in qreg if qbit not in edge_map])
 
         for creg in dag.cregs.values():
             if creg.name not in self.cregs:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
+            edge_map.update([(cbit, cbit) for cbit in creg if cbit not in edge_map])
 
         self.compose_back(dag, edge_map)
 

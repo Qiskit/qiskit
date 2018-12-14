@@ -22,14 +22,14 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual("", str(coupling))
 
     def test_coupling_str(self):
-        coupling_dict = {0: [1, 2], 1: [2]}
-        coupling = Coupling(coupling_dict)
+        coupling_list = [(0, 1), (0, 2), (1, 2)]
+        coupling = Coupling(couplinglist=coupling_list)
         expected = ("[(0, 1), (0, 2), (1, 2)]")
         self.assertEqual(expected, str(coupling))
 
     def test_coupling_distance(self):
-        coupling_dict = {0: [1, 2], 1: [2]}
-        coupling = Coupling(coupling_dict)
+        coupling_list = [(0, 1), (0, 2), (1, 2)]
+        coupling = Coupling(couplinglist=coupling_list)
         self.assertTrue(coupling.is_connected())
         physical_qubits = coupling.physical_qubits
         result = coupling.distance(physical_qubits[0], physical_qubits[1])
@@ -59,3 +59,18 @@ class CouplingTest(QiskitTestCase):
         graph.add_physical_qubit(0)
         graph.add_physical_qubit(1)
         self.assertRaises(CouplingError, graph.distance, 0, 1)
+
+    def test_raises_when_init_with_both_dict_and_list(self):
+        self.assertRaises(CouplingError, Coupling,
+                          couplingdict={0: [1]}, couplinglist=[[0, 1]])
+
+    def test_init_with_couplinglist(self):
+        coupling_list = [[0, 1], [1, 2]]
+        coupling = Coupling(couplinglist=coupling_list)
+
+        qubits_expected = [0, 1, 2]
+        edges_expected = [(0, 1), (1, 2)]
+
+        self.assertEqual(coupling.physical_qubits, qubits_expected)
+        self.assertEqual(coupling.get_edges(), edges_expected)
+        self.assertEqual(2, coupling.distance(0, 2))
