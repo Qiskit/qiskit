@@ -7,8 +7,8 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
-import qiskit.extensions.simulator  # pylint: disable=unused-import
-from qiskit import Simulators, LegacySimulators
+
+from qiskit import Simulators
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError

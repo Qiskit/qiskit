@@ -265,23 +265,34 @@ class QasmSimulatorPy(BaseBackend):
             raise SimulatorError('initial statevector is incorrect length: ' +
                                  '{} != {}'.format(length, required_dim))
 
-    def _set_options(self, backend_options=None):
+    def _set_options(self, qobj_config=None, backend_options=None):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
         self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
         self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        if backend_options is None:
+            backend_options = {}
+
+        # Check for custom initial statevector in backend_options first,
+        # then config second
+        if 'initial_statevector' in backend_options:
+            self._initial_statevector = np.array(backend_options['initial_statevector'],
+                                                 dtype=complex)
+        elif hasattr(qobj_config, 'initial_statevector'):
+            self._initial_statevector = np.array(qobj_config.initial_statevector,
+                                                 dtype=complex)
+        if self._initial_statevector is not None:
+            # Check the initial statevector is normalized
+            norm = np.linalg.norm(self._initial_statevector)
+            if round(norm, 12) != 1:
+                raise SimulatorError('initial statevector is not normalized: ' +
+                                     'norm {} != 1'.format(norm))
+        # Check for custom chop threshold
         # Replace with custom options
-        if backend_options is not None:
-            if 'chop_threshold' in backend_options:
-                self._chop_threshold = backend_options['chop_threshold']
-            if 'initial_statevector' in backend_options:
-                self._initial_statevector = np.array(backend_options['initial_statevector'],
-                                                     dtype=complex)
-                # Check the initial statevector is normalized
-                norm = np.linalg.norm(self._initial_statevector)
-                if round(norm, 12) != 1:
-                    raise SimulatorError('initial statevector is not normalized: ' +
-                                         'norm {} != 1'.format(norm))
+        if 'chop_threshold' in backend_options:
+            self._chop_threshold = backend_options['chop_threshold']
+        elif hasattr(qobj_config, 'chop_threshold'):
+            self._chop_threshold = qobj_config.chop_threshold
 
     def _initialize_statevector(self):
         """Set the initial statevector for simulation"""
@@ -363,7 +374,8 @@ class QasmSimulatorPy(BaseBackend):
                 "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
             }
         """
-        self._set_options(backend_options)
+        self._set_options(qobj_config=qobj.config,
+                          backend_options=backend_options)
         job_id = str(uuid.uuid4())
         job = SimulatorsJob(self, job_id, self._run_job, qobj)
         job.submit()

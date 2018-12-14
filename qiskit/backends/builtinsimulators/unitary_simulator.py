@@ -153,24 +153,41 @@ class UnitarySimulatorPy(BaseBackend):
             raise SimulatorError('initial unitary is incorrect shape: ' +
                                  '{} != 2 ** {}'.format(shape, required_shape))
 
-    def _set_options(self, backend_options=None):
+    def _set_options(self, qobj_config=None, backend_options=None):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
         self._initial_unitary = self.DEFAULT_OPTIONS["initial_unitary"]
         self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        if backend_options is None:
+            backend_options = {}
+
+        # Check for custom initial statevector in backend_options first,
+        # then config second
+        if 'initial_unitary' in backend_options:
+            self._initial_unitary = np.array(backend_options['initial_unitary'],
+                                             dtype=complex)
+        elif hasattr(qobj_config, 'initial_unitary'):
+            self._initial_unitary = np.array(qobj_config.initial_unitary,
+                                             dtype=complex)
+        if self._initial_unitary is not None:
+            # Check the initial unitary is actually unitary
+            shape = np.shape(self._initial_unitary)
+            if len(shape) != 2 or shape[0] != shape[1]:
+                raise SimulatorError("initial unitary is not a square matrix")
+            iden = np.eye(len(self._initial_unitary))
+            u_dagger_u = np.dot(self._initial_unitary.T.conj(),
+                                self._initial_unitary)
+            norm = np.linalg.norm(u_dagger_u - iden)
+            if round(norm, 10) != 0:
+                raise SimulatorError("initial unitary is not unitary")
+            # Check the initial statevector is normalized
+
+        # Check for custom chop threshold
         # Replace with custom options
-        if backend_options is not None:
-            unitary = backend_options.get('initial_unitary')
-            if unitary is not None:
-                unitary = np.array(unitary, dtype=complex)
-                self._initial_unitary = unitary
-                # Check the initial unitary is actually unitary
-                shape = np.shape(unitary)
-                if len(shape) != 2 or shape[0] != shape[1]:
-                    raise SimulatorError("initial unitary is not a square matrix")
-                norm = np.linalg.norm(np.dot(unitary.T.conj(), unitary) - np.eye(len(unitary)))
-                if round(norm, 12) != 0:
-                    raise SimulatorError("initial unitary is not unitary")
+        if 'chop_threshold' in backend_options:
+            self._chop_threshold = backend_options['chop_threshold']
+        elif hasattr(qobj_config, 'chop_threshold'):
+            self._chop_threshold = qobj_config.chop_threshold
 
     def _initialize_unitary(self):
         """Set the initial unitary for simulation"""
@@ -227,7 +244,8 @@ class UnitarySimulatorPy(BaseBackend):
                 "chop_threshold": 1e-15
             }
         """
-        self._set_options(backend_options)
+        self._set_options(qobj_config=qobj.config,
+                          backend_options=backend_options)
         job_id = str(uuid.uuid4())
         job = SimulatorsJob(self, job_id, self._run_job, qobj)
         job.submit()
