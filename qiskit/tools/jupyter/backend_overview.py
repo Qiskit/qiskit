@@ -15,7 +15,7 @@ from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disab
 from IPython.core import magic_arguments                         # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import matplotlib.pyplot as plt
-from qiskit.backends.ibmq import IBMQ
+from qiskit.tools.monitor.backend_overview import get_unique_backends
 from qiskit.tools.visualization._gate_map import plot_gate_map
 
 
@@ -109,19 +109,6 @@ class GridBox_with_thread(widgets.GridBox):  # pylint: disable=invalid-name
         self.close()
 
 
-def get_unique_backends():
-    """Gets the unique backends that are loaded
-    """
-    backends = IBMQ.backends()
-    unique_hardware_backends = []
-    unique_names = []
-    for back in backends:
-        if back.name() not in unique_names and not back.configuration().simulator:
-            unique_hardware_backends.append(back)
-            unique_names.append(back.name())
-    return unique_hardware_backends
-
-
 def backend_widget(backend):
     """Creates a backend widget.
     """
@@ -208,7 +195,6 @@ def update_backend_info(self, interval=60):
 
             idx = list(range(len(self._backends)))
             pending = [s.pending_jobs for s in stati]
-
             _, least_idx = zip(*sorted(zip(pending, idx)))
 
             # Make sure least pending is operational
