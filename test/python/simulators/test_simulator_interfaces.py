@@ -14,13 +14,13 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit import execute
-from qiskit import Aer, IBMQ
+from qiskit import Simulators, IBMQ, LegacySimulators
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator
 class TestCrossSimulation(QiskitTestCase):
-    """Test output consistency across simulators (from Aer & IBMQ)
+    """Test output consistency across simulators (from built-in and legacy simulators & IBMQ)
     """
     _desired_fidelity = 0.99
 
@@ -31,8 +31,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
 
-        sim_cpp = Aer.get_backend('statevector_simulator')
-        sim_py = Aer.get_backend('statevector_simulator_py')
+        sim_cpp = LegacySimulators.get_backend('statevector_simulator')
+        sim_py = Simulators.get_backend('statevector_simulator')
         result_cpp = execute(circuit, sim_cpp).result()
         result_py = execute(circuit, sim_py).result()
         statevector_cpp = result_cpp.get_statevector()
@@ -52,8 +52,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        sim_cpp = Aer.get_backend('qasm_simulator')
-        sim_py = Aer.get_backend('qasm_simulator_py')
+        sim_cpp = LegacySimulators.get_backend('qasm_simulator')
+        sim_py = Simulators.get_backend('qasm_simulator')
         shots = 2000
         result_cpp = execute(circuit, sim_cpp, shots=shots).result()
         result_py = execute(circuit, sim_py, shots=shots).result()
@@ -75,8 +75,8 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[2])
         circuit.measure(qr[2], cr[2])
 
-        sim_cpp = Aer.get_backend('qasm_simulator')
-        sim_py = Aer.get_backend('qasm_simulator_py')
+        sim_cpp = LegacySimulators.get_backend('qasm_simulator')
+        sim_py = Simulators.get_backend('qasm_simulator')
         shots = 1000
         result_cpp = execute(circuit, sim_cpp, shots=shots, seed=1).result()
         result_py = execute(circuit, sim_py, shots=shots, seed=1).result()

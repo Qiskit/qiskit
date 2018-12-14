@@ -12,13 +12,13 @@ import unittest
 import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
+from qiskit.backends.builtinsimulators.qasm_simulator import QasmSimulatorPy
 
 from ..common import QiskitTestCase
 
 
-class TestAerQasmSimulatorPy(QiskitTestCase):
-    """Test Aer's qasm_simulator_py."""
+class TestBuiltinQasmSimulatorPy(QiskitTestCase):
+    """Test the built-in qasm_simulator."""
 
     def setUp(self):
         self.seed = 88

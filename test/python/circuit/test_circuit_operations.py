@@ -8,7 +8,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 import qiskit.extensions.simulator  # pylint: disable=unused-import
-from qiskit import Aer
+from qiskit import Simulators, LegacySimulators
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
@@ -32,7 +32,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -50,7 +50,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -87,7 +87,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.snapshot(slot='1')
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator')
+        backend = LegacySimulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         snapshot_vectors = result.data(0)['snapshots']['statevector']['1']
@@ -111,7 +111,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -129,7 +129,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -166,7 +166,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.snapshot(slot='1')
         qc2.measure(qr, cr)
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
 
