@@ -64,7 +64,7 @@ class BasicMapper(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            cxs = subdag.get_cnot_nodes()[0]
+            cxs = subdag.get_cnot_nodes()
             if cxs:
                 a_cx = cxs[0]
                 physical_q0 = current_layout[a_cx['qargs'][0]]
