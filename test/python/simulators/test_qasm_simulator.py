@@ -14,9 +14,9 @@ import numpy as np
 from numpy.linalg import norm
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.backends.aer.qasm_simulator import (QasmSimulator,
-                                                cx_error_matrix,
-                                                x90_error_matrix)
+from qiskit.backends.legacysimulators.qasm_simulator import (QasmSimulator,
+                                                             cx_error_matrix,
+                                                             x90_error_matrix)
 from qiskit.qobj import Qobj
 from qiskit.result.postprocess import format_statevector
 from qiskit.quantum_info import state_fidelity
@@ -25,9 +25,9 @@ from ..common import QiskitTestCase, Path
 from ..common import requires_cpp_simulator
 
 
-class TestAerQasmSimulator(QiskitTestCase):
+class TestLegacyQasmSimulator(QiskitTestCase):
     """
-    Test job_processor module.
+    Test legacy C++ QASM simulator.
     """
 
     @requires_cpp_simulator

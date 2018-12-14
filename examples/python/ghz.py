@@ -13,7 +13,7 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import IBMQ, Aer, execute
+from qiskit import IBMQ, Simulators, execute
 from qiskit.backends.ibmq import least_busy
 
 
@@ -45,7 +45,7 @@ except:
              For now, there's only access to local simulator backends...""")
 
 # First version: simulator
-sim_backend = Aer.get_backend('qasm_simulator')
+sim_backend = Simulators.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
 print('Qasm simulator')
