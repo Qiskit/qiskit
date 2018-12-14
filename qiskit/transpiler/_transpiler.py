@@ -21,7 +21,6 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from .passes.mapping.unroller import Unroller
-from ._parallel import parallel_map
 from ._transpilererror import TranspilerError
 
 logger = logging.getLogger(__name__)
