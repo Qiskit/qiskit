@@ -64,7 +64,9 @@ class BasicMapper(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for a_cx in subdag.get_cnot_nodes():
+            cxs = subdag.get_cnot_nodes()[0]
+            if cxs:
+                a_cx = cxs[0]
                 physical_q0 = current_layout[a_cx['qargs'][0]]
                 physical_q1 = current_layout[a_cx['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
