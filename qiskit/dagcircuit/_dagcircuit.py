@@ -1412,11 +1412,28 @@ class DAGCircuit:
         cur_layer = [node for node in self.input_map.values()]
         yield cur_layer
         next_layer = []
+        delayed_measures = []
+        outputs = []
         while cur_layer:
             for node in cur_layer:
                 # Count multiedges with multiplicity.
                 for successor in self.multi_graph.successors(node):
+
+                    # Delay the outputs to the end
+                    if successor in self.output_map.values():
+                        outputs.append(successor)
+                        continue
+
+                    # If a measure does not have successors, save it for the last layer
+                    # (before outputs)
+                    if self.multi_graph.nodes[successor]['name'] == 'measure' and \
+                            all([after_measure in self.output_map.values() for after_measure in
+                                 self.multi_graph.successors(successor)]):
+                        delayed_measures.append(successor)
+                        continue
+
                     multiplicity = self.multi_graph.number_of_edges(node, successor)
+
                     if successor in predecessor_count:
                         predecessor_count[successor] -= multiplicity
                     else:
@@ -1427,9 +1444,14 @@ class DAGCircuit:
                         next_layer.append(successor)
                         del predecessor_count[successor]
 
-            yield next_layer
+            if next_layer:
+                yield next_layer
             cur_layer = next_layer
             next_layer = []
+
+        if delayed_measures:
+            yield delayed_measures
+        yield outputs
 
     def collect_runs(self, namelist):
         """Return a set of runs of "op" nodes with the given names.

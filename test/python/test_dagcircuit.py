@@ -242,6 +242,41 @@ class TestDagLayers(QiskitTestCase):
             ['measure', 'measure']
         ], name_layers)
 
+    def test_layers_measures_at_the_end(self):
+        """ The layers() method returns measurments at the end."""
+        qreg = QuantumRegister(2, 'qr')
+        creg = ClassicalRegister(2, 'cr')
+        qubit0 = qreg[0]
+        qubit1 = qreg[1]
+        clbit0 = creg[0]
+        clbit1 = creg[1]
+        dag = DAGCircuit()
+        dag.add_basis_element('h', 1, 0, 0)
+        dag.add_basis_element('measure', 1, 1, 0)
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(qubit1))
+        dag.apply_operation_back(Measure(qubit0, clbit0))
+        dag.apply_operation_back(HGate(qubit1))
+        dag.apply_operation_back(Measure(qubit1, clbit1))
+        dag.apply_operation_back(HGate(qubit1))
+
+        layers = list(dag.layers())
+        self.assertEqual(5, len(layers))
+
+        name_layers = [
+            [node[1]["op"].name
+             for node in layer["graph"].multi_graph.nodes(data=True)
+             if node[1]["type"] == "op"] for layer in layers]
+
+        self.assertEqual([
+            ['h'],
+            ['h'],
+            ['measure'],
+            ['h'],
+            ['measure']
+        ], name_layers)
+
 
 class TestCircuitProperties(QiskitTestCase):
     """DAGCircuit properties test."""
