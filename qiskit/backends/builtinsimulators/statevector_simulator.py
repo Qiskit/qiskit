@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name
+# pylint: disable=arguments-differ
 
 """Contains a (slow) python statevector simulator.
 
@@ -18,14 +19,12 @@ The input is a qobj dictionary and the output is a Result object.
 
 The input qobj to this simulator has no shots, no measures, no reset, no noise.
 """
+
 import logging
-import uuid
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
 from qiskit.backends.models import BackendConfiguration
-from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -34,16 +33,18 @@ logger = logging.getLogger(__name__)
 class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
+    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
-        'conditional': False,
+        'conditional': True,
         'open_pulse': False,
-        'memory': False,
+        'memory': True,
         'max_shots': 65536,
         'description': 'A Python statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
@@ -81,53 +82,45 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         ]
     }
 
+    # Override base class value to return the final state vector
+    SHOW_FINAL_STATE = True
+
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
-    def run(self, qobj):
+    def run(self, qobj, backend_options=None):
         """Run qobj asynchronously.
 
         Args:
-            qobj (dict): job description
+            qobj (Qobj): payload of the experiment
+            backend_options (dict): backend options
 
         Returns:
             SimulatorsJob: derived from BaseJob
-        """
-        job_id = str(uuid.uuid4())
-        job = SimulatorsJob(self, job_id, self._run_job, qobj)
-        job.submit()
-        return job
 
-    def _run_job(self, job_id, qobj):
-        """Run a Qobj on the backend."""
-        self._validate(qobj)
-        final_state_key = 32767  # Internal key for final state snapshot
-        # Add final snapshots to circuits
-        for experiment in qobj.experiments:
-            experiment.instructions.append(
-                QobjInstruction(name='snapshot', params=[final_state_key],
-                                label='MISSING', type='MISSING')
-            )
-        result = super()._run_job(job_id, qobj)
-        # Remove added snapshot from qobj
-        for experiment in qobj.experiments:
-            del experiment.instructions[-1]
-        # Extract final state snapshot and move to 'statevector' data field
-        for experiment_result in result.results:
-            snapshots = experiment_result.data.snapshots.to_dict()
-            if str(final_state_key) in snapshots:
-                final_state_key = str(final_state_key)
-            # Pop off final snapshot added above
-            final_state = snapshots.pop(final_state_key, None)
-            final_state = final_state['statevector'][0]
-            # Add final state to results data
-            experiment_result.data.statevector = final_state
-            # Remove snapshot dict if empty
-            if snapshots == {}:
-                delattr(experiment_result.data, 'snapshots')
-        return result
+        Additional Information:
+            backend_options: Is a dict of options for the backend. It may contain
+                * "initial_statevector": vector_like
+                * "chop_threshold": double
+
+            The "initial_statevector" option specifies a custom initial
+            initial statevector for the simulator to be used instead of the all
+            zero state. This size of this vector must be correct for the number
+            of qubits in all experiments in the qobj.
+
+            The "chop_threshold" option specifies a trunctation value for
+            setting small values to zero in the output statevector. The default
+            value is 1e-15.
+
+            Example:
+            backend_options = {
+                "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
+                "chop_threshold": 1e-15
+            }
+        """
+        return super().run(qobj, backend_options=backend_options)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -136,17 +129,20 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         1. No shots
         2. No measurements in the middle
         """
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise SimulatorError('Number of qubits {} '.format(n_qubits) +
+                                 'is greater than maximum ({}) '.format(max_qubits) +
+                                 'for "{}".'.format(self.name()))
         if qobj.config.shots != 1:
-            logger.info("statevector simulator only supports 1 shot. "
-                        "Setting shots=1.")
+            logger.info('"%s" only supports 1 shot. Setting shots=1.',
+                        self.name())
             qobj.config.shots = 1
         for experiment in qobj.experiments:
+            name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info("statevector simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s.", experiment.name)
+                logger.info('"{}" only supports 1 shot. ' +
+                            'Setting shots=1 for circuit "{}".',
+                            self.name(), name)
                 experiment.config.shots = 1
-            for op in experiment.instructions:
-                if op.name in ['measure', 'reset']:
-                    raise SimulatorError(
-                        "In circuit {}: statevector simulator does not support "
-                        "measure or reset.".format(experiment.header.name))
