@@ -15,4 +15,4 @@ from .unitary_simulator import UnitarySimulatorPy
 from ._simulatorerror import SimulatorError
 
 # Global instance to be used as the entry point for convenience.
-BasicSimulators = SimulatorsProvider()  # pylint: disable=invalid-name
+BasicAer = SimulatorsProvider()  # pylint: disable=invalid-name
