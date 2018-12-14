@@ -90,12 +90,11 @@ class BinaryDistribution(Distribution):
 
 
 setup(
-    name="qiskit",
+    name="qiskit-terra",
     version="0.7.0",
     description="Software for developing quantum computing programs",
-    long_description="""Qiskit is a software development kit for writing
-        quantum computing experiments, programs, and applications. Works with
-        Python 3.5 and 3.6""",
+    long_description="""Terra provides the foundations for Qiskit. It allows the user to write 
+        quantum circuits easily, and takes care of the constraints of real hardware.""",
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
     author_email="qiskit@us.ibm.com",
@@ -122,6 +121,7 @@ setup(
     },
     distclass=BinaryDistribution,
     extra_requires={
-        'visualization': ['matplotlib>=2.1']
+        'visualization': ['matplotlib>=2.1'],
+        'native-simulators': ['qiskit-aer>=0.1']
     }
 )
