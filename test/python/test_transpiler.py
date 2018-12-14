@@ -10,7 +10,7 @@
 """Tests for transpiler functionality"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit import compile, Simulators
+from qiskit import compile, BasicAer
 from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.tools.compiler import circuits_to_qobj
 from qiskit.transpiler.passes import CXCancellation, LookaheadMapper
@@ -64,7 +64,7 @@ class TestTranspiler(QiskitTestCase):
         coupling_map = [[1, 0]]
         basis_gates = 'u1,u2,u3,cx,id'
 
-        backend = Simulators.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend('qasm_simulator')
         circuit2 = transpile(circuit, backend, coupling_map=coupling_map, basis_gates=basis_gates,
                              pass_manager=None)
 
