@@ -550,8 +550,8 @@ def _reorder_bits(job_data):
                                    for b in compact_key])
 
             # insert spaces to signify different classical registers
-            cregs = circ['header'].get('clbit_labels',
-                                       circ['header'].get('creg_sizes'))
+            cregs = circ['header'].get('creg_sizes',
+                                       circ['header'].get('clbit_labels'))
             if sum([creg[1] for creg in cregs]) != num_clbits:
                 raise JobError("creg sizes don't add up in result header.")
             creg_begin_pos = []
