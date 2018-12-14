@@ -69,5 +69,6 @@ class TestJupyter(QiskitTestCase):
                                qe_token=qe_token,
                                qe_url=qe_url)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
