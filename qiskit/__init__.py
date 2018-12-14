@@ -23,17 +23,6 @@ from .qiskiterror import QiskitError, QISKitError
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Gate
-from qiskit.circuit import CompositeGate
-from qiskit.circuit import Instruction
-from qiskit.circuit import InstructionSet
-from qiskit.circuit import Reset
-from qiskit.circuit import Measure
-
-from ._schema_validation import (validate_json_against_schema,
-                                 SchemaValidationError)
-from .result import Result
-from .tools.events._pubsub import Publisher, Subscriber
 from .tools.compiler import (compile, execute)
 
 # The qiskit.extensions.x imports needs to be placed here due to the
