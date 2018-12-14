@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=arguments-differ
+
 """Contains a Python simulator that returns the unitary of the circuit.
 
 It simulates a unitary of a quantum circuit that has been compiled to run on
@@ -30,7 +32,9 @@ from qiskit.backends import BaseBackend
 from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.result import Result
 from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix, einsum_matmul_index
+from ._simulatortools import single_gate_matrix
+from ._simulatortools import cx_gate_matrix
+from ._simulatortools import einsum_matmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +46,12 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
-    max_qubits = int(log2(sqrt(local_hardware_info()['memory'] * (1024**3))/16))
+    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': max_qubits,
+        'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -86,41 +90,44 @@ class UnitarySimulatorPy(BaseBackend):
         ]
     }
 
+    DEFAULT_OPTIONS = {
+        "initial_unitary": None,
+        "chop_threshold": 1e-15
+    }
+
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Define attributes inside __init__.
-        self._unitary_state = None
+        self._unitary = None
         self._number_of_qubits = 0
+        self._initial_unitary = None
+        self._chop_threshold = 1e-15
 
     def _add_unitary_single(self, gate, qubit):
-        """Apply the single-qubit gate.
+        """Apply an arbitrary 1-qubit unitary matrix.
 
-        gate is the single-qubit gate.
-        qubit is the qubit to apply it on counts from 0 and order
-            is q_{n-1} ... otimes q_1 otimes q_0.
-        number_of_qubits is the number of qubits in the system.
+        Args:
+            gate (matrix_like): a single qubit gate matrix
+            qubit (int): the qubit to apply gate to
         """
         # Convert to complex rank-2 tensor
         gate_tensor = np.array(gate, dtype=complex)
         # Compute einsum index string for 1-qubit matrix multiplication
         indexes = einsum_matmul_index([qubit], self._number_of_qubits)
         # Apply matrix multiplication
-        self._unitary_state = np.einsum(indexes,
-                                        gate_tensor,
-                                        self._unitary_state,
-                                        dtype=complex,
-                                        casting='no')
+        self._unitary = np.einsum(indexes, gate_tensor, self._unitary,
+                                  dtype=complex, casting='no')
 
     def _add_unitary_two(self, gate, qubit0, qubit1):
-        """Apply the two-qubit gate.
+        """Apply a two-qubit unitary matrix.
 
-        gate is the two-qubit gate
-        qubit0 is the first qubit (control) counts from 0
-        qubit1 is the second qubit (target)
-        returns a complex numpy array
+        Args:
+            gate (matrix_like): a the two-qubit gate matrix
+            qubit0 (int): gate qubit-0
+            qubit1 (int): gate qubit-1
         """
 
         # Convert to complex rank-4 tensor
@@ -130,21 +137,115 @@ class UnitarySimulatorPy(BaseBackend):
         indexes = einsum_matmul_index([qubit0, qubit1], self._number_of_qubits)
 
         # Apply matrix multiplication
-        self._unitary_state = np.einsum(indexes,
-                                        gate_tensor,
-                                        self._unitary_state,
-                                        dtype=complex,
-                                        casting='no')
+        self._unitary = np.einsum(indexes, gate_tensor, self._unitary,
+                                  dtype=complex, casting='no')
 
-    def run(self, qobj):
+    def _validate_initial_unitary(self):
+        """Validate an initial unitary matrix"""
+        # If initial unitary isn't set we don't need to validate
+        if self._initial_unitary is None:
+            return
+        # Check unitary is correct length for number of qubits
+        shape = np.shape(self._initial_unitary)
+        required_shape = (2 ** self._number_of_qubits,
+                          2 ** self._number_of_qubits)
+        if shape != required_shape:
+            raise SimulatorError('initial unitary is incorrect shape: ' +
+                                 '{} != 2 ** {}'.format(shape, required_shape))
+
+    def _set_options(self, qobj_config=None, backend_options=None):
+        """Set the backend options for all experiments in a qobj"""
+        # Reset default options
+        self._initial_unitary = self.DEFAULT_OPTIONS["initial_unitary"]
+        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        if backend_options is None:
+            backend_options = {}
+
+        # Check for custom initial statevector in backend_options first,
+        # then config second
+        if 'initial_unitary' in backend_options:
+            self._initial_unitary = np.array(backend_options['initial_unitary'],
+                                             dtype=complex)
+        elif hasattr(qobj_config, 'initial_unitary'):
+            self._initial_unitary = np.array(qobj_config.initial_unitary,
+                                             dtype=complex)
+        if self._initial_unitary is not None:
+            # Check the initial unitary is actually unitary
+            shape = np.shape(self._initial_unitary)
+            if len(shape) != 2 or shape[0] != shape[1]:
+                raise SimulatorError("initial unitary is not a square matrix")
+            iden = np.eye(len(self._initial_unitary))
+            u_dagger_u = np.dot(self._initial_unitary.T.conj(),
+                                self._initial_unitary)
+            norm = np.linalg.norm(u_dagger_u - iden)
+            if round(norm, 10) != 0:
+                raise SimulatorError("initial unitary is not unitary")
+            # Check the initial statevector is normalized
+
+        # Check for custom chop threshold
+        # Replace with custom options
+        if 'chop_threshold' in backend_options:
+            self._chop_threshold = backend_options['chop_threshold']
+        elif hasattr(qobj_config, 'chop_threshold'):
+            self._chop_threshold = qobj_config.chop_threshold
+
+    def _initialize_unitary(self):
+        """Set the initial unitary for simulation"""
+        self._validate_initial_unitary()
+        if self._initial_unitary is None:
+            # Set to identity matrix
+            self._unitary = np.eye(2 ** self._number_of_qubits,
+                                   dtype=complex)
+        else:
+            self._unitary = self._initial_unitary.copy()
+        # Reshape to rank-N tensor
+        self._unitary = np.reshape(self._unitary,
+                                   self._number_of_qubits * [2, 2])
+
+    def _get_unitary(self):
+        """Return the current unitary in JSON Result spec format"""
+        unitary = np.reshape(self._unitary, 2 * [2 ** self._number_of_qubits])
+        # Expand complex numbers
+        unitary = np.stack((unitary.real, unitary.imag), axis=-1)
+        # Truncate small values
+        unitary[abs(unitary) < self._chop_threshold] = 0.0
+        return unitary
+
+    def run(self, qobj, backend_options=None):
         """Run qobj asynchronously.
 
         Args:
-            qobj (dict): job description
+            qobj (Qobj): payload of the experiment
+            backend_options (dict): backend options
 
         Returns:
             SimulatorsJob: derived from BaseJob
+
+        Additional Information:
+            backend_options: Is a dict of options for the backend. It may contain
+                * "initial_unitary": matrix_like
+                * "chop_threshold": double
+
+            The "initial_unitary" option specifies a custom initial unitary
+            matrix for the simulator to be used instead of the identity
+            matrix. This size of this matrix must be correct for the number
+            of qubits inall experiments in the qobj.
+
+            The "chop_threshold" option specifies a trunctation value for
+            setting small values to zero in the output unitary. The default
+            value is 1e-15.
+
+            Example:
+            backend_options = {
+                "initial_unitary": np.array([[1, 0, 0, 0],
+                                             [0, 0, 0, 1],
+                                             [0, 0, 1, 0],
+                                             [0, 1, 0, 0]])
+                "chop_threshold": 1e-15
+            }
         """
+        self._set_options(qobj_config=qobj.config,
+                          backend_options=backend_options)
         job_id = str(uuid.uuid4())
         job = SimulatorsJob(self, job_id, self._run_job, qobj)
         job.submit()
@@ -193,10 +294,8 @@ class UnitarySimulatorPy(BaseBackend):
                 "shots": number of shots used in the simulation
                 "data":
                     {
-                    "unitary": [[0.2, 0.6, j+0.1, 0.2j],
-                                [0, 0.9+j, 0.5, 0.7],
-                                [-j, -0.1, -3.14, 0],
-                                [0, 0, 0.5j, j-0.5]]
+                    "unitary": [[[0.0, 0.0], [1.0, 0.0]],
+                                [[1.0, 0.0], [0.0, 0.0]]]
                     },
                 "status": status string for the simulation
                 "success": boolean
@@ -207,22 +306,15 @@ class UnitarySimulatorPy(BaseBackend):
             SimulatorError: if the number of qubits in the circuit is greater than 24.
             Note that the practical qubit limit is much lower than 24.
         """
+        start = time.time()
         self._number_of_qubits = experiment.header.n_qubits
-        if self._number_of_qubits > self.max_qubits:
-            raise SimulatorError("np.einsum implementation limits unitary_simulator" +
-                                 " to 24 qubit circuits.")
-        result = {
-            'data': {},
-            'name': experiment.header.name,
-            'header': experiment.header.as_dict()
-        }
 
-        # Initialize unitary as rank 2*N tensor
-        self._unitary_state = np.reshape(np.eye(2 ** self._number_of_qubits,
-                                                dtype=complex),
-                                         self._number_of_qubits * [2, 2])
+        # Validate the dimension of initial unitary if set
+        self._validate_initial_unitary()
+        self._initialize_unitary()
 
         for operation in experiment.instructions:
+            # Check if single  gate
             if operation.name in ('U', 'u1', 'u2', 'u3'):
                 params = getattr(operation, 'params', None)
                 qubit = operation.qubits[0]
@@ -230,25 +322,29 @@ class UnitarySimulatorPy(BaseBackend):
                 self._add_unitary_single(gate, qubit)
             elif operation.name in ('id', 'u0'):
                 pass
+            # Check if CX gate
             elif operation.name in ('CX', 'cx'):
                 qubit0 = operation.qubits[0]
                 qubit1 = operation.qubits[1]
-                gate = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                                 [0, 1, 0, 0]])
+                gate = cx_gate_matrix()
                 self._add_unitary_two(gate, qubit0, qubit1)
+            # Check if barrier
             elif operation.name == 'barrier':
                 pass
             else:
-                result['status'] = 'ERROR'
-                return result
-        # Reshape unitary rank-2n tensor back to a matrix
-        tmp = np.reshape(self._unitary_state, 2 * [2 ** self._number_of_qubits])
-        # Convert complex numbers to pair of (real, imag)
-        result['data']['unitary'] = np.stack((tmp.real, tmp.imag), axis=-1)
-        result['status'] = 'DONE'
-        result['success'] = True
-        result['shots'] = 1
-        return result
+                backend = self.name()
+                err_msg = '{0} encountered unrecognized operation "{1}"'
+                raise SimulatorError(err_msg.format(backend, operation.name))
+        # Add final state to data
+        data = {'unitary': self._get_unitary()}
+        end = time.time()
+        return {'name': experiment.header.name,
+                'shots': 1,
+                'data': data,
+                'status': 'DONE',
+                'success': True,
+                'time_taken': (end - start),
+                'header': experiment.header.as_dict()}
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -256,17 +352,25 @@ class UnitarySimulatorPy(BaseBackend):
         1. No shots
         2. No measurements in the middle
         """
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise SimulatorError('Number of qubits {} '.format(n_qubits) +
+                                 'is greater than maximum ({}) '.format(max_qubits) +
+                                 'for "{}".'.format(self.name()))
         if qobj.config.shots != 1:
-            logger.info("unitary simulator only supports 1 shot. "
-                        "Setting shots=1.")
+            logger.info('"%s" only supports 1 shot. Setting shots=1.',
+                        self.name())
             qobj.config.shots = 1
         for experiment in qobj.experiments:
+            name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info("unitary simulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s.", experiment.name)
+                logger.info('"%s" only supports 1 shot. ' +
+                            'Setting shots=1 for circuit "%s".',
+                            self.name(), name)
                 experiment.config.shots = 1
             for operation in experiment.instructions:
                 if operation.name in ['measure', 'reset']:
-                    raise SimulatorError(
-                        "In circuit {}: unitary simulator does not support "
-                        "measure or reset.".format(experiment.header.name))
+                    raise SimulatorError('Unsupported "%s" instruction "%s" ' +
+                                         'in circuit "%s" ', self.name(),
+                                         operation.name, name)

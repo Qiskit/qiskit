@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name
+# pylint: disable=arguments-differ
 
 """Contains a (slow) python simulator.
 
@@ -21,7 +22,7 @@ Where the input is a Qobj object and the output is a SimulatorsJob object, which
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
-import random
+
 import uuid
 import time
 import logging
@@ -36,7 +37,9 @@ from qiskit.result import Result
 from qiskit.backends import BaseBackend
 from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from ._simulatorerror import SimulatorError
-from ._simulatortools import single_gate_matrix, index2
+from ._simulatortools import single_gate_matrix
+from ._simulatortools import cx_gate_matrix
+from ._simulatortools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +47,12 @@ logger = logging.getLogger(__name__)
 class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
+    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': '2.0.0',
-        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
+        'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -56,7 +61,7 @@ class QasmSimulatorPy(BaseBackend):
         'memory': True,
         'max_shots': 65536,
         'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
         'gates': [
             {
                 'name': 'u1',
@@ -82,146 +87,295 @@ class QasmSimulatorPy(BaseBackend):
                 'name': 'id',
                 'parameters': ['a'],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
-            },
-            {
-                'name': 'snapshot',
-                'parameters': ['slot'],
-                'qasm_def': 'gate snapshot(slot) q { TODO }'
             }
         ]
     }
+
+    DEFAULT_OPTIONS = {
+        "initial_statevector": None,
+        "chop_threshold": 1e-15
+    }
+
+    # Class level variable to return the final state at the end of simulation
+    # This should be set to True for the statevector simulator
+    SHOW_FINAL_STATE = False
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
                                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
-        self._local_random = random.Random()
-
         # Define attributes in __init__.
+        self._local_random = np.random.RandomState()
         self._classical_state = 0
         self._statevector = 0
-        self._snapshots = {}
         self._number_of_cbits = 0
         self._number_of_qubits = 0
         self._shots = 0
         self._memory = False
+        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
+        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
         self._qobj_config = None
+        # TEMP
+        self._sample_measure = False
 
-    def _add_qasm_single(self, gate, qubit):
-        """Apply an arbitrary 1-qubit operator to a qubit.
+    def _add_unitary_single(self, gate, qubit):
+        """Apply an arbitrary 1-qubit unitary matrix.
 
-        Gate is the single qubit applied.
-        qubit is the qubit the gate is applied to.
+        Args:
+            gate (matrix_like): a single qubit gate matrix
+            qubit (int): the qubit to apply gate to
         """
-        psi = self._statevector
-        bit = 1 << qubit
-        for k1 in range(0, 1 << self._number_of_qubits, 1 << (qubit+1)):
-            for k2 in range(0, 1 << qubit, 1):
-                k = k1 | k2
-                cache0 = psi[k]
-                cache1 = psi[k | bit]
-                psi[k] = gate[0, 0] * cache0 + gate[0, 1] * cache1
-                psi[k | bit] = gate[1, 0] * cache0 + gate[1, 1] * cache1
+        # Compute einsum index string for 1-qubit matrix multiplication
+        indexes = einsum_vecmul_index([qubit], self._number_of_qubits)
+        # Convert to complex rank-2 tensor
+        gate_tensor = np.array(gate, dtype=complex)
+        # Apply matrix multiplication
+        self._statevector = np.einsum(indexes, gate_tensor,
+                                      self._statevector,
+                                      dtype=complex,
+                                      casting='no')
 
-    def _add_qasm_cx(self, q0, q1):
-        """Optimized ideal CX on two qubits.
+    def _add_unitary_two(self, gate, qubit0, qubit1):
+        """Apply a two-qubit unitary matrix.
 
-        q0 is the first qubit (control) counts from 0.
-        q1 is the second qubit (target).
+        Args:
+            gate (matrix_like): a the two-qubit gate matrix
+            qubit0 (int): gate qubit-0
+            qubit1 (int): gate qubit-1
         """
-        psi = self._statevector
-        for k in range(0, 1 << (self._number_of_qubits - 2)):
-            # first bit is control, second is target
-            ind1 = index2(1, q0, 0, q1, k)
-            # swap target if control is 1
-            ind3 = index2(1, q0, 1, q1, k)
-            cache0 = psi[ind1]
-            cache1 = psi[ind3]
-            psi[ind3] = cache0
-            psi[ind1] = cache1
+        # Compute einsum index string for 1-qubit matrix multiplication
+        indexes = einsum_vecmul_index([qubit0, qubit1], self._number_of_qubits)
+        # Convert to complex rank-4 tensor
+        gate_tensor = np.reshape(np.array(gate, dtype=complex), 4 * [2])
+        # Apply matrix multiplication
+        self._statevector = np.einsum(indexes, gate_tensor,
+                                      self._statevector,
+                                      dtype=complex,
+                                      casting='no')
 
-    def _add_qasm_decision(self, qubit):
-        """Apply the decision of measurement/reset qubit gate.
+    def _get_measure_outcome(self, qubit):
+        """Simulate the outcome of measurement of a qubit.
 
-        qubit is the qubit that is measured/reset
+        Args:
+            qubit (int): the qubit to measure
+
+        Return:
+            tuple: pair (outcome, probability) where outcome is '0' or '1' and
+            probability is the probability of the returned outcome.
         """
-        probability_zero = 0
-        random_number = self._local_random.random()
-        for ii in range(1 << self._number_of_qubits):
-            if ii & (1 << qubit) == 0:
-                probability_zero += np.abs(self._statevector[ii])**2
-        if random_number <= probability_zero:
-            outcome = '0'
-            norm = np.sqrt(probability_zero)
-        else:
-            outcome = '1'
-            norm = np.sqrt(1-probability_zero)
-        return (outcome, norm)
+        # Axis for numpy.sum to compute probabilities
+        axis = list(range(self._number_of_qubits))
+        axis.remove(self._number_of_qubits - 1 - qubit)
+        probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
+        # Compute einsum index string for 1-qubit matrix multiplication
+        random_number = self._local_random.rand()
+        if random_number < probabilities[0]:
+            return '0', probabilities[0]
+        # Else outcome was '1'
+        return '1', probabilities[1]
+
+    def _add_sample_measure(self, measure_params, num_samples):
+        """Generate memory samples from current statevector.
+
+        Args:
+            measure_params (list): List of (qubit, clbit) values for
+                                   measure instructions to sample.
+            num_samples (int): The number of memory samples to generate.
+
+        Returns:
+            list: A list of memory values in hex format.
+        """
+        # Get unique qubits that are actually measured
+        measured_qubits = list(set([qubit for qubit, clbit in measure_params]))
+        num_measured = len(measured_qubits)
+        # Axis for numpy.sum to compute probabilities
+        axis = list(range(self._number_of_qubits))
+        for qubit in reversed(measured_qubits):
+            # Remove from largest qubit to smallest so list position is correct
+            # with respect to position from end of the list
+            axis.remove(self._number_of_qubits - 1 - qubit)
+        probabilities = np.reshape(np.sum(np.abs(self._statevector) ** 2,
+                                          axis=tuple(axis)),
+                                   2 ** num_measured)
+        # Generate samples on measured qubits
+        samples = self._local_random.choice(range(2 ** num_measured),
+                                            num_samples, p=probabilities)
+        # Convert to bit-strings
+        memory = []
+        for sample in samples:
+            classical_state = self._classical_state
+            for qubit, cbit in measure_params:
+                qubit_outcome = int((sample & (1 << qubit)) >> qubit)
+                bit = 1 << cbit
+                classical_state = (classical_state & (~bit)) | (qubit_outcome << cbit)
+            value = bin(classical_state)[2:]
+            memory.append(hex(int(value, 2)))
+        return memory
 
     def _add_qasm_measure(self, qubit, cbit):
-        """Apply the measurement qubit gate.
+        """Apply a measure instruction to a qubit.
 
-        qubit is the qubit measured.
-        cbit is the classical bit the measurement is assigned to.
+        Args:
+            qubit (int): qubit is the qubit measured.
+            cbit (int): is the classical bit to store outcome in.
         """
-        outcome, norm = self._add_qasm_decision(qubit)
-        for ii in range(1 << self._number_of_qubits):
-            # update quantum state
-            if (ii >> qubit) & 1 == int(outcome):
-                self._statevector[ii] = self._statevector[ii]/norm
-            else:
-                self._statevector[ii] = 0
+        # get measure outcome
+        outcome, probability = self._get_measure_outcome(qubit)
         # update classical state
         bit = 1 << cbit
         self._classical_state = (self._classical_state & (~bit)) | (int(outcome) << cbit)
+        # update quantum state
+        if outcome == '0':
+            update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
+        else:
+            update_diag = [[0, 0], [0, 1 / np.sqrt(probability)]]
+        # update classical state
+        self._add_unitary_single(update_diag, qubit)
 
     def _add_qasm_reset(self, qubit):
-        """Apply the reset to the qubit.
-
-        This is done by doing a measurement and if 0 do nothing and
-        if 1 flip the qubit.
-
-        qubit is the qubit that is reset.
-        """
-        # TODO: slow, refactor later
-        outcome, norm = self._add_qasm_decision(qubit)
-        temp = np.copy(self._statevector)
-        self._statevector.fill(0.0)
-        # measurement
-        for ii in range(1 << self._number_of_qubits):
-            if (ii >> qubit) & 1 == int(outcome):
-                temp[ii] = temp[ii]/norm
-            else:
-                temp[ii] = 0
-        # reset
-        if outcome == '1':
-            for ii in range(1 << self._number_of_qubits):
-                iip = (~ (1 << qubit)) & ii  # bit number qubit set to zero
-                self._statevector[iip] += temp[ii]
-        else:
-            self._statevector = temp
-
-    def _add_qasm_snapshot(self, slot):
-        """Snapshot instruction to record simulator's internal representation
-        of quantum statevector.
+        """Apply a reset instruction to a qubit.
 
         Args:
-            slot (string): a label to identify the recorded snapshot.
-        """
-        self._snapshots.setdefault(str(slot),
-                                   {}).setdefault("statevector",
-                                                  []).append(np.copy(self._statevector))
+            qubit (int): the qubit being rest
 
-    def run(self, qobj):
+        This is done by doing a simulating a measurement
+        outcome and projecting onto the outcome state while
+        renormalizing.
+        """
+        # get measure outcome
+        outcome, probability = self._get_measure_outcome(qubit)
+        # update quantum state
+        if outcome == '0':
+            update = [[1 / np.sqrt(probability), 0], [0, 0]]
+            self._add_unitary_single(update, qubit)
+        else:
+            update = [[0, 1 / np.sqrt(probability)], [0, 0]]
+            self._add_unitary_single(update, qubit)
+
+    def _validate_initial_statevector(self):
+        """Validate an initial statevector"""
+        # If initial statevector isn't set we don't need to validate
+        if self._initial_statevector is None:
+            return
+        # Check statevector is correct length for number of qubits
+        length = len(self._initial_statevector)
+        required_dim = 2 ** self._number_of_qubits
+        if length != required_dim:
+            raise SimulatorError('initial statevector is incorrect length: ' +
+                                 '{} != {}'.format(length, required_dim))
+
+    def _set_options(self, qobj_config=None, backend_options=None):
+        """Set the backend options for all experiments in a qobj"""
+        # Reset default options
+        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
+        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        if backend_options is None:
+            backend_options = {}
+
+        # Check for custom initial statevector in backend_options first,
+        # then config second
+        if 'initial_statevector' in backend_options:
+            self._initial_statevector = np.array(backend_options['initial_statevector'],
+                                                 dtype=complex)
+        elif hasattr(qobj_config, 'initial_statevector'):
+            self._initial_statevector = np.array(qobj_config.initial_statevector,
+                                                 dtype=complex)
+        if self._initial_statevector is not None:
+            # Check the initial statevector is normalized
+            norm = np.linalg.norm(self._initial_statevector)
+            if round(norm, 12) != 1:
+                raise SimulatorError('initial statevector is not normalized: ' +
+                                     'norm {} != 1'.format(norm))
+        # Check for custom chop threshold
+        # Replace with custom options
+        if 'chop_threshold' in backend_options:
+            self._chop_threshold = backend_options['chop_threshold']
+        elif hasattr(qobj_config, 'chop_threshold'):
+            self._chop_threshold = qobj_config.chop_threshold
+
+    def _initialize_statevector(self):
+        """Set the initial statevector for simulation"""
+        if self._initial_statevector is None:
+            # Set to default state of all qubits in |0>
+            self._statevector = np.zeros(2 ** self._number_of_qubits,
+                                         dtype=complex)
+            self._statevector[0] = 1
+        else:
+            self._statevector = self._initial_statevector.copy()
+        # Reshape to rank-N tensor
+        self._statevector = np.reshape(self._statevector,
+                                       self._number_of_qubits * [2])
+
+    def _get_statevector(self):
+        """Return the current statevector in JSON Result spec format"""
+        vec = np.reshape(self._statevector, 2 ** self._number_of_qubits)
+        # Expand complex numbers
+        vec = np.stack([vec.real, vec.imag], axis=1)
+        # Truncate small values
+        vec[abs(vec) < self._chop_threshold] = 0.0
+        return vec
+
+    def _validate_measure_sampling(self, experiment):
+        """Determine if measure sampling is allowed for an experiment
+
+        Args:
+            experiment (QobjExperiment): a qobj experiment.
+        """
+
+        # Check for config flag
+        if hasattr(experiment.config, 'allows_measure_sampling'):
+            self._sample_measure = experiment.config.allows_measure_sampling
+        # If flag isn't found do a simple test to see if a circuit contains
+        # no reset instructions, and no gates instructions after
+        # the first measure.
+        else:
+            measure_flag = False
+            for instruction in experiment.instructions:
+                # If circuit contains reset operations we cannot sample
+                if instruction.name == "reset":
+                    self._sample_measure = False
+                    return
+                # If circuit contains a measure option then we can
+                # sample only if all following operations are measures
+                if measure_flag:
+                    # If we find a non-measure instruction
+                    # we cannot do measure sampling
+                    if instruction.name not in ["measure", "barrier", "id", "u0"]:
+                        self._sample_measure = False
+                        return
+                elif instruction.name == "measure":
+                    measure_flag = True
+            # If we made it to the end of the circuit without returning
+            # measure sampling is allowed
+            self._sample_measure = True
+
+    def run(self, qobj, backend_options=None):
         """Run qobj asynchronously.
 
         Args:
             qobj (Qobj): payload of the experiment
+            backend_options (dict): backend options
 
         Returns:
             SimulatorsJob: derived from BaseJob
+
+        Additional Information:
+            backend_options: Is a dict of options for the backend. It may contain
+                * "initial_statevector": vector_like
+
+            The "initial_statevector" option specifies a custom initial
+            initial statevector for the simulator to be used instead of the all
+            zero state. This size of this vector must be correct for the number
+            of qubits in all experiments in the qobj.
+
+            Example:
+            backend_options = {
+                "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
+            }
         """
+        self._set_options(qobj_config=qobj.config,
+                          backend_options=backend_options)
         job_id = str(uuid.uuid4())
         job = SimulatorsJob(self, job_id, self._run_job, qobj)
         job.submit()
@@ -243,7 +397,6 @@ class QasmSimulatorPy(BaseBackend):
         self._memory = qobj.config.memory
         self._qobj_config = qobj.config
         start = time.time()
-
         for experiment in qobj.experiments:
             result_list.append(self.run_experiment(experiment))
         end = time.time()
@@ -274,12 +427,8 @@ class QasmSimulatorPy(BaseBackend):
                 "shots": number of shots used in the simulation
                 "data":
                     {
+                    "counts": {'0x9: 5, ...},
                     "memory": ['0x9', '0xF', '0x1D', ..., '0x9']
-                    "snapshots":
-                            {
-                            '1': [0.7, 0, 0, 0.7],
-                            '2': [0.5, 0.5, 0.5, 0.5]
-                            }
                     },
                 "status": status string for the simulation
                 "success": boolean
@@ -288,27 +437,41 @@ class QasmSimulatorPy(BaseBackend):
         Raises:
             SimulatorError: if an error occurred.
         """
+        start = time.time()
         self._number_of_qubits = experiment.config.n_qubits
         self._number_of_cbits = experiment.config.memory_slots
         self._statevector = 0
         self._classical_state = 0
-        self._snapshots = {}
-
+        self._sample_measure = False
+        # Validate the dimension of initial statevector if set
+        self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
-        if hasattr(experiment, 'config') and hasattr(experiment.config, 'seed'):
+        if hasattr(experiment.config, 'seed'):
             seed = experiment.config.seed
         elif hasattr(self._qobj_config, 'seed'):
             seed = self._qobj_config.seed
         else:
-            seed = random.getrandbits(32)
+            # For compatibility on Windows force dyte to be int32
+            # and set the maximum value to be (2 ** 31) - 1
+            seed = np.random.randint(2147483647, dtype='int32')
         self._local_random.seed(seed)
-        outcomes = []
+        # Check if measure sampling is supported for current circuit
+        self._validate_measure_sampling(experiment)
 
-        start = time.time()
-        for _ in range(self._shots):
-            self._statevector = np.zeros(1 << self._number_of_qubits,
-                                         dtype=complex)
-            self._statevector[0] = 1
+        # List of final counts for all shots
+        memory = []
+        # Check if we can sample measurements, if so we only perform 1 shot
+        # and sample all outcomes from the final state vector
+        if self._sample_measure:
+            shots = 1
+            # Store (qubit, cbit) pairs for all measure ops in circuit to
+            # be sampled
+            measure_sample_ops = []
+        else:
+            shots = self._shots
+        for _ in range(shots):
+            self._initialize_statevector()
+            # Initialize classical memory to all 0
             self._classical_state = 0
             for operation in experiment.instructions:
                 if getattr(operation, 'conditional', None):
@@ -325,19 +488,15 @@ class QasmSimulatorPy(BaseBackend):
                     params = getattr(operation, 'params', None)
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)
-                    self._add_qasm_single(gate, qubit)
+                    self._add_unitary_single(gate, qubit)
                 # Check if CX gate
                 elif operation.name in ('id', 'u0'):
                     pass
                 elif operation.name in ('CX', 'cx'):
                     qubit0 = operation.qubits[0]
                     qubit1 = operation.qubits[1]
-                    self._add_qasm_cx(qubit0, qubit1)
-                # Check if measure
-                elif operation.name == 'measure':
-                    qubit = operation.qubits[0]
-                    cbit = operation.memory[0]
-                    self._add_qasm_measure(qubit, cbit)
+                    gate = cx_gate_matrix()
+                    self._add_unitary_two(gate, qubit0, qubit1)
                 # Check if reset
                 elif operation.name == 'reset':
                     qubit = operation.qubits[0]
@@ -345,27 +504,45 @@ class QasmSimulatorPy(BaseBackend):
                 # Check if barrier
                 elif operation.name == 'barrier':
                     pass
-                # Check if snapshot command
-                elif operation.name == 'snapshot':
-                    params = operation.params
-                    self._add_qasm_snapshot(params[0])
+                # Check if measure
+                elif operation.name == 'measure':
+                    qubit = operation.qubits[0]
+                    cbit = operation.memory[0]
+                    if self._sample_measure:
+                        # If sampling measurements record the qubit and cbit
+                        # for this measurement for later sampling
+                        measure_sample_ops.append((qubit, cbit))
+                    else:
+                        # If not sampling perform measurement as normal
+                        self._add_qasm_measure(qubit, cbit)
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise SimulatorError(err_msg.format(backend,
-                                                        operation.name))
-            # Turn classical_state (int) into bit string and pad zero for unused cbits
-            outcome = bin(self._classical_state)[2:]
-            # Return a compact hexadecimal
-            outcomes.append(hex(int(outcome, 2)))
+                    raise SimulatorError(err_msg.format(backend, operation.name))
 
-        data = {
-            'counts': dict(Counter(outcomes)),
-            'snapshots': self._snapshots
-        }
+            # Add final creg data to memory list
+            if self._number_of_cbits > 0:
+                if self._sample_measure:
+                    # If sampling we generate all shot samples from the final statevector
+                    memory = self._add_sample_measure(measure_sample_ops, self._shots)
+                else:
+                    # Turn classical_state (int) into bit string and pad zero for unused cbits
+                    outcome = bin(self._classical_state)[2:]
+                    memory.append(hex(int(outcome, 2)))
+
+        # Add data
+        data = {'counts': dict(Counter(memory))}
+        # Optionally add memory list
         if self._memory:
-            data['memory'] = outcomes
-
+            data['memory'] = memory
+        # Optionally add final statevector
+        if self.SHOW_FINAL_STATE:
+            data['statevector'] = self._get_statevector()
+            # Remove empty counts and memory for statevector simulator
+            if not data['counts']:
+                data.pop('counts')
+            if 'memory' in data and not data['memory']:
+                data.pop('memory')
         end = time.time()
         return {'name': experiment.header.name,
                 'seed': seed,
@@ -373,13 +550,22 @@ class QasmSimulatorPy(BaseBackend):
                 'data': data,
                 'status': 'DONE',
                 'success': True,
-                'time_taken': (end-start),
+                'time_taken': (end - start),
                 'header': experiment.header.as_dict()}
 
     def _validate(self, qobj):
+        """Semantic validations of the qobj which cannot be done via schemas."""
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise SimulatorError('Number of qubits {} '.format(n_qubits) +
+                                 'is greater than maximum ({}) '.format(max_qubits) +
+                                 'for "{}".'.format(self.name()))
         for experiment in qobj.experiments:
-            if 'measure' not in [op.name for
-                                 op in experiment.instructions]:
-                logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.",
-                               experiment.header.name)
+            name = experiment.header.name
+            if experiment.config.memory_slots == 0:
+                logger.warning('No classical registers in circuit "%s", ' +
+                               'counts will be empty.', name)
+            elif 'measure' not in [op.name for op in experiment.instructions]:
+                logger.warning('No measurements in circuit "%s", ' +
+                               'classical register will remain all zeros.', name)
