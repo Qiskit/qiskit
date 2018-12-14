@@ -98,6 +98,11 @@ Changed
   processing is only done internally (#1397).
 - Moved all the circuit modules into a circuit module but for most users it is still 
   imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
+- Breaking change: ``qiskit.backends.aer`` has been removed in favour of
+  ``qiskit.backends.builtinsimulators`` (Python simulators) and
+  ``qiskit.backends.legacysimulators`` (C++ simulators) (#1484)
+- Breaking change: ``Aer`` in ``qiskit`` root module has been removed. Instead ``Simulators`` will
+  stand for Python simulators and ``LegacySimulators`` for those in C++. (#1484)
 
 
 Deprecated
