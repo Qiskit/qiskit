@@ -376,7 +376,7 @@ class TestDagSubstitute(QiskitTestCase):
         self.dag.apply_operation_back(XGate(self.qubit1))
 
     def test_substitute_circuit_one_middle(self):
-        """The method substitute_circuit_one() replaces a in-the-middle node with a DAG."""
+        """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
         cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop()
 
         flipped_cx_circuit = DAGCircuit()
@@ -390,17 +390,16 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(HGate(v[0]))
         flipped_cx_circuit.apply_operation_back(HGate(v[1]))
 
-        self.dag.substitute_circuit_one(cx_node, input_circuit=flipped_cx_circuit,
-                                        wires=[v[0], v[1]])
+        self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()['h'], 5)
 
     def test_substitute_circuit_one_front(self):
-        """The method substitute_circuit_one() replaces a leaf-in-the-front node with a DAG."""
+        """The method substitute_node_with_dag() replaces a leaf-in-the-front node with a DAG."""
         pass
 
     def test_substitute_circuit_one_back(self):
-        """The method substitute_circuit_one() replaces a leaf-in-the-back node with a DAG."""
+        """The method substitute_node_with_dag() replaces a leaf-in-the-back node with a DAG."""
         pass
 
 
