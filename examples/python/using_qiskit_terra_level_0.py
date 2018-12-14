@@ -20,7 +20,7 @@ import time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
-from qiskit import execute, IBMQ, Simulators
+from qiskit import execute, IBMQ, BasicSimulators
 from qiskit.backends.ibmq import least_busy
 
 
@@ -49,10 +49,10 @@ try:
 
     # setting up the backend
     print("(AER Backends)")
-    print(Simulators.backends())
+    print(BasicSimulators.backends())
 
     # running the job
-    job_sim = execute([qc1, qc2], Simulators.get_backend('qasm_simulator'))
+    job_sim = execute([qc1, qc2], BasicSimulators.get_backend('qasm_simulator'))
     sim_result = job_sim.result()
 
     # Show the results

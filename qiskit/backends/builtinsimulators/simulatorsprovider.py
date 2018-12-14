@@ -137,7 +137,7 @@ class SimulatorsProvider(BaseProvider):
         return backend_instance
 
     def __str__(self):
-        return 'Simulators'
+        return 'BasicSimulators'
 
     @staticmethod
     def _alternative_py_backend_names():
