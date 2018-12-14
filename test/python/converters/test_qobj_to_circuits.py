@@ -13,7 +13,7 @@ import unittest
 
 from qiskit.converters import qobj_to_circuits
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import Aer
+from qiskit import Simulators
 from qiskit import compile
 
 from qiskit.qobj import Qobj
@@ -35,14 +35,14 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         qobj_in = compile(self.circuit, backend, pass_manager=PassManager())
         out_circuit = qobj_to_circuits(qobj_in)
         self.assertEqual(circuit_to_dag(out_circuit[0]), self.dag)
 
     def test_qobj_to_circuits_multiple(self):
         """Check that qobj_to_circuits's result with multiple circuits"""
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         qreg1 = QuantumRegister(2)
         qreg2 = QuantumRegister(3)
         creg1 = ClassicalRegister(2)
@@ -58,7 +58,7 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuit_with_parameters(self):
         """Check qobj_to_circuit result with a gate that uses parameters."""
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         qreg1 = QuantumRegister(2)
         qreg2 = QuantumRegister(3)
         creg1 = ClassicalRegister(2)
@@ -76,7 +76,7 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuit_with_sim_instructions(self):
         """Check qobj_to_circuit result with asimulator instruction."""
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
@@ -95,7 +95,7 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuits_single_no_qasm(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         qobj_in = compile(self.circuit, backend, pass_manager=PassManager())
         for i in qobj_in.experiments:
             del i.header.compiled_circuit_qasm
@@ -104,7 +104,7 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuits_multiple_no_qasm(self):
         """Check that qobj_to_circuits's result with multiple circuits"""
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = Simulators.get_backend('qasm_simulator')
         qreg1 = QuantumRegister(2)
         qreg2 = QuantumRegister(3)
         creg1 = ClassicalRegister(2)

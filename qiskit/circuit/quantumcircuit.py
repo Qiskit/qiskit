@@ -18,7 +18,7 @@ import sys
 import multiprocessing as mp
 
 from qiskit.qasm import _qasm
-from qiskit._qiskiterror import QiskitError
+from qiskit.qiskiterror import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -409,9 +409,8 @@ class QuantumCircuit(object):
 
 
 def _circuit_from_qasm(qasm):
-    from qiskit.unroll import Unroller
-    from qiskit.unroll import DAGBackend
+    from qiskit.converters import ast_to_dag
     from qiskit.converters import dag_to_circuit
     ast = qasm.parse()
-    dag = Unroller(ast, DAGBackend()).execute()
+    dag = ast_to_dag(ast)
     return dag_to_circuit(dag)

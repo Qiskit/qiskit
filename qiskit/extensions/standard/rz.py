@@ -25,7 +25,6 @@ class RZGate(Gate):
     def __init__(self, phi, qubit, circ=None):
         """Create new rz single qubit gate."""
         super().__init__("rz", [phi], [qubit], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -48,7 +47,7 @@ class RZGate(Gate):
         rz(phi)^dagger = rz(-phi)
         """
         self.param[0] = -self.param[0]
-        self._define_decompositions()
+        self._decompositions = None
         return self
 
     def reapply(self, circ):

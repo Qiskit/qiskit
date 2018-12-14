@@ -15,7 +15,7 @@ import numpy as np
 
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import mapper, Aer
+from qiskit import mapper, Simulators
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
@@ -87,7 +87,7 @@ class TestMapper(QiskitTestCase):
 
     def setUp(self):
         self.seed = 42
-        self.backend = Aer.get_backend("qasm_simulator_py")
+        self.backend = Simulators.get_backend("qasm_simulator")
 
     def test_mapper_overoptimization(self):
         """Check mapper overoptimization.
@@ -318,8 +318,6 @@ class TestMapper(QiskitTestCase):
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
-    @unittest.skip("Temporary skipping")
-    # skipping temporarily due to mapping wire fragment bug.
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.
         """

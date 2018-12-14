@@ -11,7 +11,7 @@
 
 import unittest
 import numpy as np
-from qiskit import execute, QuantumRegister, QuantumCircuit, Aer
+from qiskit import execute, QuantumRegister, QuantumCircuit, Simulators
 
 from qiskit.quantum_info import basis_state, random_state
 from qiskit.quantum_info import state_fidelity
@@ -74,7 +74,7 @@ class TestStates(QiskitTestCase):
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
-        backend = Aer.get_backend('statevector_simulator_py')
+        backend = Simulators.get_backend('statevector_simulator')
         qc_state = execute(qc, backend).result().get_statevector(qc)
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
@@ -94,7 +94,7 @@ class TestStates(QiskitTestCase):
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
-        backend = Aer.get_backend('statevector_simulator_py')
+        backend = Simulators.get_backend('statevector_simulator')
         qc_state = execute(qc, backend).result().get_statevector(qc)
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 

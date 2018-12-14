@@ -24,12 +24,11 @@ Instructions are identified by the following fields, and are serialized as such 
 
     cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
 
-    _decompositions: List of decomposition rule(s), in the form of mini DAG(s).
 """
 import sympy
 
 from qiskit.qasm._node import _node
-from qiskit._qiskiterror import QiskitError
+from qiskit.qiskiterror import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -75,7 +74,6 @@ class Instruction(object):
                                   "{1}".format(type(single_param), name))
         self.qargs = qargs
         self.cargs = cargs
-        self._decompositions = []
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 

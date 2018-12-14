@@ -23,8 +23,6 @@ from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit.unrollers._dagunroller import DagUnroller
-from qiskit.unrollers._dagbackend import DAGBackend
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
@@ -185,9 +183,6 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
     logger.debug("layer_permutation: gates = %s", pprint.pformat(gates))
 
-    # Find layout maximum index
-    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
-
     # Can we already apply the gates?
     dist = sum([coupling.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
     logger.debug("layer_permutation: dist = %s", dist)
@@ -242,7 +237,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
 
         # Identity wire-map for composing the circuits
         q = QuantumRegister(coupling.size(), 'q')
-        identity_wire_map = {(q, j): (q, j) for j in range(layout_max_index)}
+        identity_wire_map = {(q, j): (q, j) for j in range(coupling.size())}
 
         while d < 2 * n + 1:
             # Set of available qubits
@@ -404,12 +399,11 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     Return DAGCircuit object to append to the output DAGCircuit.
     """
     layout = best_layout
-    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
     dagcircuit_output = DAGCircuit()
     dagcircuit_output.add_qreg(QuantumRegister(coupling_graph.size(), "q"))
     # Identity wire-map for composing the circuits
     q = QuantumRegister(coupling_graph.size(), 'q')
-    identity_wire_map = {(q, j): (q, j) for j in range(layout_max_index)}
+    identity_wire_map = {(q, j): (q, j) for j in range(coupling_graph.size())}
 
     # If this is the first layer with multi-qubit gates,
     # output all layers up to this point and ignore any
@@ -434,8 +428,7 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
 
 
 def swap_mapper(circuit_graph, coupling_graph,
-                initial_layout=None,
-                basis="cx,u1,u2,u3,id", trials=20, seed=None):
+                initial_layout=None, trials=20, seed=None):
     """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
     Args:
@@ -443,7 +436,6 @@ def swap_mapper(circuit_graph, coupling_graph,
         coupling_graph (CouplingGraph): coupling graph to map onto
         initial_layout (dict): dict {(str, int): (str, int)}
             from qubits of circuit_graph to qubits of coupling_graph (optional)
-        basis (str): basis string specifying basis of output DAGCircuit
         trials (int): number of trials.
         seed (int): initial seed.
 
@@ -497,7 +489,6 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()
-    layout_max_index = max(map(lambda x: x[1] + 1, layout.values()))
 
     # Construct an empty DAGCircuit with one qreg "q"
     # and the same set of cregs as the input circuit
@@ -512,7 +503,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     # we are building
     identity_wire_map = {}
     q = QuantumRegister(coupling_graph.size(), 'q')
-    for j in range(layout_max_index):
+    for j in range(coupling_graph.size()):
         identity_wire_map[(q, j)] = (q, j)
     for creg in circuit_graph.cregs.values():
         for j in range(creg.size):
@@ -613,10 +604,6 @@ def swap_mapper(circuit_graph, coupling_graph,
         for i, layer in enumerate(layerlist):
             dagcircuit_output.compose_back(layer["graph"], layout)
 
-    # Parse openqasm_output into DAGCircuit object
-    dag_unrolled = DagUnroller(dagcircuit_output,
-                               DAGBackend(basis.split(",")))
-    dagcircuit_output = dag_unrolled.expand_gates()
     return dagcircuit_output, initial_layout, last_layout
 
 
@@ -699,9 +686,9 @@ def optimize_1q_gates(circuit):
 
     Return a new circuit that has been optimized.
     """
+    from qiskit.transpiler.passes.mapping.unroller import Unroller
     qx_basis = ["u1", "u2", "u3", "cx", "id"]
-    dag_unroller = DagUnroller(circuit, DAGBackend(qx_basis))
-    unrolled = dag_unroller.expand_gates()
+    unrolled = Unroller(qx_basis).run(circuit)
 
     runs = unrolled.collect_runs(["u1", "u2", "u3", "id"])
     for run in runs:

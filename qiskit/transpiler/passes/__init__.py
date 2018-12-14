@@ -12,3 +12,5 @@ from .fixed_point import FixedPoint
 from .mapping.check_map import CheckMap
 from .mapping.basic_mapper import BasicMapper
 from .mapping.direction_mapper import DirectionMapper
+from .mapping.unroller import Unroller
+from .mapping.lookahead_mapper import LookaheadMapper

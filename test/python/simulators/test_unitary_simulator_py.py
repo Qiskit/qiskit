@@ -13,12 +13,12 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.unitary_simulator_py import UnitarySimulatorPy
+from qiskit.backends.builtinsimulators.unitary_simulator import UnitarySimulatorPy
 from ..common import QiskitTestCase
 
 
-class AerUnitarySimulatorPyTest(QiskitTestCase):
-    """Test aer unitary simulator."""
+class BuiltinUnitarySimulatorPyTest(QiskitTestCase):
+    """Test built-in unitary simulator."""
 
     def setUp(self):
         self.seed = 88
@@ -46,7 +46,7 @@ class AerUnitarySimulatorPyTest(QiskitTestCase):
                                     expected,
                                     rtol=1e-3))
 
-    def test_aer_unitary_simulator_py(self):
+    def test_builtin_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
         qobj = compile(circuits, backend=self.backend)

@@ -24,7 +24,6 @@ class FredkinGate(Gate):
     def __init__(self, ctl, tgt1, tgt2, circ=None):
         """Create new Fredkin gate."""
         super().__init__("cswap", [], [ctl, tgt1, tgt2], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -50,7 +49,6 @@ class FredkinGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self._define_decompositions()
         return self  # self-inverse
 
     def reapply(self, circ):

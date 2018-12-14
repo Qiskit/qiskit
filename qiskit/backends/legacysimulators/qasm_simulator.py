@@ -23,7 +23,7 @@ import numpy as np
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
+from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
@@ -192,9 +192,9 @@ class QasmSimulator(BaseBackend):
     def run(self, qobj):
         """Run a qobj on the backend."""
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job.submit()
+        return job
 
     def _run_job(self, job_id, qobj):
         """Run a Qobj on the backend."""
@@ -335,12 +335,12 @@ class CliffordSimulator(BaseBackend):
             qobj (dict): job description
 
         Returns:
-            AerJob: derived from BaseJob
+            SimulatorsJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job.submit()
+        return job
 
     def _run_job(self, job_id, qobj):
         qobj_dict = qobj.as_dict()

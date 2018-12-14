@@ -61,7 +61,7 @@ def _get_instructions(circuit, reversebits=False):
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
-    dag = circuit_to_dag(circuit, expand_gates=False)
+    dag = circuit_to_dag(circuit)
     ops = []
     qregs = []
     cregs = []
@@ -76,7 +76,7 @@ def _get_instructions(circuit, reversebits=False):
     for creg in dag.cregs.values():
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
-    if not reversebits:
+    if reversebits:
         qregs.reverse()
         cregs.reverse()
 

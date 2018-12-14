@@ -16,6 +16,7 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
+import warnings
 import networkx as nx
 from ._couplingerror import CouplingError
 
@@ -68,19 +69,34 @@ class Coupling:
                 couplingdict[pair[0]] = [pair[1]]
         return couplingdict
 
-    def __init__(self, couplingdict=None):
+    def __init__(self, couplingdict=None, couplinglist=None):
         """
-        Create coupling graph.
+        Create coupling graph. By default, the generated coupling has no nodes.
 
-        By default, the coupling graph has no nodes. The optional couplingdict
-        specifies the graph as an adjacency list. For example,
-        couplingdict = {0: [1, 2], 1: [2]}.
+        Args:
+            couplinglist (list or None): An initial coupling graph, specified as
+                an adjacency list, e.g. [[0,1], [0,2], [1,2]].
+            couplingdict (dict or None): DEPRECATED An initial coupling graph
+                specified as an adjacency dict, e.g. {0: [1, 2], 1: [2]}.
+        Raises:
+            CouplingError: If both couplinglist and couplingdict are supplied.
         """
+        if couplingdict is not None and couplinglist is not None:
+            raise CouplingError('Cannot specify both couplingdict and couplinglist')
+
+        if couplingdict is not None:
+            warnings.warn('Initializing a coupling object through a couplingdict is deprecated. '
+                          'Use a couplinglist instead.', DeprecationWarning)
+
         self.graph = nx.DiGraph()
-        if isinstance(couplingdict, dict):
+        if couplingdict is not None:
             for origin, destinations in couplingdict.items():
                 for destination in destinations:
                     self.add_edge(origin, destination)
+
+        if couplinglist is not None:
+            for source, target in couplinglist:
+                self.add_edge(source, target)
 
     def size(self):
         """Return the number of physical qubits in this graph."""

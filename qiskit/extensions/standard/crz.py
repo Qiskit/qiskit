@@ -24,7 +24,6 @@ class CrzGate(Gate):
     def __init__(self, theta, ctl, tgt, circ=None):
         """Create new crz gate."""
         super().__init__("crz", [theta], [ctl, tgt], circ)
-        self._define_decompositions()
 
     def _define_decompositions(self):
         """
@@ -51,7 +50,7 @@ class CrzGate(Gate):
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
-        self._define_decompositions()
+        self._decompositions = None
         return self
 
     def reapply(self, circ):
