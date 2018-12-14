@@ -11,7 +11,7 @@
 import json
 import jsonschema
 
-from qiskit import IBMQ, Simulators
+from qiskit import IBMQ, BasicAer
 from qiskit.backends.builtinsimulators import SimulatorsProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
@@ -63,7 +63,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should return a name the same as input.
         """
-        backend = Simulators.backends(name='qasm_simulator')[0]
+        backend = BasicAer.backends(name='qasm_simulator')[0]
         self.assertEqual(backend.name(), 'qasm_simulator')
 
     def test_builtin_simulators_backend_status(self):
@@ -76,7 +76,7 @@ class TestBackends(QiskitTestCase):
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        for backend in Simulators.backends():
+        for backend in BasicAer.backends():
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
@@ -106,7 +106,7 @@ class TestBackends(QiskitTestCase):
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        builtin_simulators = Simulators.backends()
+        builtin_simulators = BasicAer.backends()
         for backend in builtin_simulators:
             configuration = backend.configuration()
             jsonschema.validate(configuration.to_dict(), schema)
@@ -133,7 +133,7 @@ class TestBackends(QiskitTestCase):
 
         If all correct should pass the validation.
         """
-        simulators = Simulators.backends()
+        simulators = BasicAer.backends()
         for backend in simulators:
             properties = backend.properties()
             self.assertEqual(properties, None)

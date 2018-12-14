@@ -14,7 +14,7 @@ import unittest
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import QiskitError
 # pylint: disable=redefined-builtin
-from qiskit import compile, LegacySimulators, Simulators
+from qiskit import compile, LegacySimulators, BasicAer
 from .common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -32,7 +32,7 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.circuits = [qc]
 
     def test_builtin_qasm_simulator_py(self):
-        backend = Simulators.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend('qasm_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
@@ -64,7 +64,7 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     def test_builtin_unitary_simulator_py(self):
-        backend = Simulators.get_backend('unitary_simulator')
+        backend = BasicAer.get_backend('unitary_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm

@@ -77,10 +77,10 @@ class QiskitTestCase(unittest.TestCase):
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
         from qiskit.backends.ibmq import IBMQ
-        from qiskit.backends.builtinsimulators import Simulators
+        from qiskit.backends.builtinsimulators import BasicAer
 
         IBMQ._accounts.clear()
-        Simulators._backends = Simulators._verify_backends()
+        BasicAer._backends = BasicAer._verify_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
