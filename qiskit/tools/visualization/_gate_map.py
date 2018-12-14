@@ -87,6 +87,8 @@ def plot_gate_map(backend, figsize=None,
                                  [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
                                  [3, 0], [3, 1], [3, 2], [3, 3], [3, 4]]
 
+    mpl_data['ibmq_poughkeepsie'] = mpl_data['ibmq_20_tokyo']
+
     mpl_data['ibmq_16_melbourne'] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
                                      [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
                                      [1, 4], [1, 3], [1, 2], [1, 1]]

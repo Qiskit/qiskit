@@ -23,8 +23,6 @@ from qiskit.qiskiterror import QISKitError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.visualization._gate_map import plot_gate_map
 
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 @magics_class
 class BackendMonitor(Magics):

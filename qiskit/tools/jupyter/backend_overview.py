@@ -52,7 +52,7 @@ class BackendOverview(Magics):
         # Sort backends by operational or not
         oper_ord_backends = []
         for n, back in enumerate(unique_hardware_backends):
-            if back.status()['operational']:
+            if back.status().operational:
                 oper_ord_backends = [build_back_widgets[n]] + oper_ord_backends
                 _backends = [back] + _backends
             else:
@@ -116,7 +116,7 @@ def get_unique_backends():
     unique_hardware_backends = []
     unique_names = []
     for back in backends:
-        if back.name() not in unique_names and not back.configuration()['simulator']:
+        if back.name() not in unique_names and not back.configuration().simulator:
             unique_hardware_backends.append(back)
             unique_names.append(back.name())
     return unique_hardware_backends
@@ -125,8 +125,8 @@ def get_unique_backends():
 def backend_widget(backend):
     """Creates a backend widget.
     """
-    config = backend.configuration()
-    props = backend.properties()
+    config = backend.configuration().to_dict()
+    props = backend.properties().to_dict()
 
     name = widgets.HTML(value="<h4>{name}</h4>".format(name=backend.name()),
                         layout=widgets.Layout())
@@ -160,15 +160,13 @@ def backend_widget(backend):
     least_busy = widgets.HTML(value="<h5></h5>",
                               layout=widgets.Layout(justify_content='center'))
 
-    t1_units = props['qubits'][0]['T1']['unit']
-    avg_t1 = round(sum([q['T1']['value']
-                        for q in props['qubits']])/n_qubits, 1)
+    t1_units = props['qubits'][0][0]['unit']
+    avg_t1 = round(sum([q[0]['value'] for q in props['qubits']])/n_qubits, 1)
     t1_widget = widgets.HTML(value="<h5>{t1} {units}</h5>".format(t1=avg_t1, units=t1_units),
                              layout=widgets.Layout())
 
-    t2_units = props['qubits'][0]['T2']['unit']
-    avg_t2 = round(sum([q['T2']['value']
-                        for q in props['qubits']])/n_qubits, 1)
+    t2_units = props['qubits'][0][1]['unit']
+    avg_t2 = round(sum([q[1]['value'] for q in props['qubits']])/n_qubits, 1)
     t2_widget = widgets.HTML(value="<h5>{t2} {units}</h5>".format(t2=avg_t2, units=t2_units),
                              layout=widgets.Layout())
 
@@ -209,13 +207,13 @@ def update_backend_info(self, interval=60):
                         _head, "<h5>")
 
             idx = list(range(len(self._backends)))
-            pending = [s['pending_jobs'] for s in stati]
+            pending = [s.pending_jobs for s in stati]
 
             _, least_idx = zip(*sorted(zip(pending, idx)))
 
             # Make sure least pending is operational
             for ind in least_idx:
-                if stati[ind]['operational']:
+                if stati[ind].operational:
                     least_pending_idx = ind
                     break
 
@@ -228,7 +226,7 @@ def update_backend_info(self, interval=60):
                 self.children[var].children[3].children[1].value = pending[var]
                 self.children[var].children[3].children[1].max = max(
                     self.children[var].children[3].children[1].max, pending[var]+10)
-                if stati[var]['operational']:
+                if stati[var].operational:
                     self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
                     self.children[var].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
