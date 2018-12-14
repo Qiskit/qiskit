@@ -7,9 +7,6 @@
 
 """Pass for unrolling a circuit to a given basis."""
 
-import networkx as nx
-
-from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.transpiler._basepasses import TransformationPass
 
 

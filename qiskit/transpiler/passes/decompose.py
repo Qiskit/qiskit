@@ -7,9 +7,6 @@
 
 """Pass for decompose a gate in a circuit."""
 
-import networkx as nx
-
-from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.transpiler._basepasses import TransformationPass
 
 
@@ -30,6 +27,8 @@ class Decompose(TransformationPass):
         """Expand a given gate into its decomposition.
         Args:
             dag(DAGCircuit): input dag
+        Returns:
+            DAGCircuit: output dag where gate was expanded.
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.get_op_nodes(self.gate):
