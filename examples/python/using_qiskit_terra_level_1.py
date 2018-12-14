@@ -21,7 +21,7 @@ import pprint, time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
-from qiskit import compile, IBMQ, Aer
+from qiskit import compile, IBMQ, Simulators
 from qiskit.backends.ibmq import least_busy
 
 try:
@@ -49,9 +49,9 @@ try:
 
     # Setting up the backend
     print("(Aer Backends)")
-    for backend in Aer.backends():
+    for backend in Simulators.backends():
         print(backend.status())
-    my_backend = Aer.get_backend('local_qasm_simulator')
+    my_backend = Simulators.get_backend('local_qasm_simulator')
     print("(QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration())
     print("(QASM Simulator properties) ")

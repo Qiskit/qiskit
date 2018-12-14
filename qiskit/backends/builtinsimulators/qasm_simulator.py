@@ -17,7 +17,7 @@ The simulator is run using
 .. code-block:: python
     QasmSimulatorPy().run(qobj)
 
-Where the input is a Qobj object and the output is a AerJob object, which can
+Where the input is a Qobj object and the output is a SimulatorsJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -34,7 +34,7 @@ from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
+from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix, index2
 
@@ -45,7 +45,7 @@ class QasmSimulatorPy(BaseBackend):
     """Python implementation of a qasm simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator_py',
+        'backend_name': 'qasm_simulator',
         'backend_version': '2.0.0',
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024**3)/16)),
         'url': 'https://github.com/Qiskit/qiskit-terra',
@@ -220,12 +220,12 @@ class QasmSimulatorPy(BaseBackend):
             qobj (Qobj): payload of the experiment
 
         Returns:
-            AerJob: derived from BaseJob
+            SimulatorsJob: derived from BaseJob
         """
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
+        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job.submit()
+        return job
 
     def _run_job(self, job_id, qobj):
         """Run experiments in qobj
