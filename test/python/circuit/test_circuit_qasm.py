@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 import qiskit.extensions.simulator
-from qiskit import Simulators
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError

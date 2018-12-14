@@ -13,7 +13,7 @@ import unittest
 
 import numpy as np
 
-from qiskit import execute, Simulators
+from qiskit import execute, BasicAer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.qcvv import tomography as tomo
 from .common import QiskitTestCase
@@ -119,7 +119,7 @@ class TestTomography(QiskitTestCase):
 def _tomography_test_data(circuit, qr, cr, tomoset, shots):
     tomo_circs = tomo.create_tomography_circuits(circuit, qr, cr, tomoset)
     result = execute(tomo_circs,
-                     Simulators.get_backend('qasm_simulator'),
+                     BasicAer.get_backend('qasm_simulator'),
                      shots=shots,
                      seed=42).result()
     data = tomo.tomography_data(result, circuit.name, tomoset)

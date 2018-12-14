@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 import qiskit
 import qiskit.extensions.simulator
-from qiskit import Simulators, LegacySimulators
+from qiskit import BasicAer, LegacySimulators
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
 from qiskit import execute

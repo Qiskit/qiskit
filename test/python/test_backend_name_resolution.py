@@ -9,7 +9,7 @@
 """Test backend name resolution for functionality, via groups, deprecations and
 aliases."""
 
-from qiskit import IBMQ, Simulators, LegacySimulators
+from qiskit import IBMQ, BasicAer, LegacySimulators
 from qiskit.backends.legacysimulators import QasmSimulator
 from qiskit.backends.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
@@ -26,7 +26,7 @@ class TestBackendNameResolution(QiskitTestCase):
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names.
         """
-        for provider in (Simulators, LegacySimulators):
+        for provider in (BasicAer, LegacySimulators):
             deprecated_names = provider._deprecated_backend_names()
 
             for oldname, newname in deprecated_names.items():
@@ -66,11 +66,11 @@ class TestBackendNameResolution(QiskitTestCase):
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(QiskitBackendNotFoundError, Simulators.get_backend, 'bad_name')
+        self.assertRaises(QiskitBackendNotFoundError, BasicAer.get_backend, 'bad_name')
 
     def test_aliases_return_empty_list(self):
         """Test backends() return an empty list if name is unknown."""
-        self.assertEqual(Simulators.backends("bad_name"), [])
+        self.assertEqual(BasicAer.backends("bad_name"), [])
 
     def test_deprecated_cpp_simulator_return_no_backend(self):
         """Test backends("local_qasm_simulator_cpp") does not return C++
