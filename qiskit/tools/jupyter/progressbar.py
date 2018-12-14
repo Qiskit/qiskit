@@ -43,7 +43,7 @@
 import time
 import ipywidgets as widgets                # pylint: disable=import-error
 from IPython.display import display         # pylint: disable=import-error
-from qiskit.tools.parallel.progressbar import BaseProgressBar
+from qiskit.tools.events.progressbar import BaseProgressBar
 
 
 class HTMLProgressBar(BaseProgressBar):

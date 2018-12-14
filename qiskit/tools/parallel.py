@@ -48,7 +48,10 @@ import platform
 from multiprocessing import Pool
 from qiskit._qiskiterror import QiskitError
 from qiskit._util import local_hardware_info
-from qiskit._pubsub import Publisher
+from qiskit.tools.events._pubsub import Publisher
+
+# Set parallel flag
+os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']

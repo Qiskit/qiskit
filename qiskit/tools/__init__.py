@@ -16,6 +16,6 @@ refer to the documentation of each component and use them separately.
 """
 
 from ._compiler import (compile, execute)
-from ._monitor import job_monitor
-from .parallel.parallel import parallel_map
-from .parallel.progressbar import TextProgressBar
+from .monitor.job_monitor import job_monitor
+from .parallel import parallel_map
+from .events.progressbar import TextProgressBar
