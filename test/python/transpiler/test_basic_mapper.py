@@ -11,7 +11,7 @@ import unittest
 from qiskit.transpiler.passes import BasicMapper
 from qiskit.mapper import Coupling
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from ..common import QiskitTestCase
 
 
@@ -327,6 +327,66 @@ class TestBasicMapper(QiskitTestCase):
         expected = QuantumCircuit(qr0, qr1)
         expected.swap(qr1[0], qr0[0])
         expected.cx(qr0[0], qr1[1])
+
+        pass_ = BasicMapper(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_swap_handle_measures(self):
+        """ Adding a swap affecting different qregs
+         q_0: --.-----(+)-m-------
+                |      |  |
+         q_1: -(+)-(+)-|--|-m-----
+                    |  |  | |
+         q_2: ------|--|--|-|-m---
+                    |  |  | | |
+         q_3: -[H]--.--.--|-|-|-m-
+                          | | | |
+         c_0: ------------.-|-|-|-
+         c_1: --------------.-|-|-
+         c_2: ----------------.-|-
+         c_3: ------------------.-
+
+         Coupling map: [0]--[1]--[2]--[3]
+
+         q_0: --.--------(+)-m-----
+                |         |  |
+         q_1: -(+)--(+)-X-.--|---m-
+                     |  |    |   |
+         q_2: -----X-.--X----|-m-|-
+                   |         | | |
+         q_3: -[H]-X----m----|-|-|-
+                        |    | | |
+         c_0: ----------|----.-|-|-
+         c_1: ----------|------.-|-
+         c_2: ----------.--------|-
+         c_3: -------------------.-
+        """
+
+        coupling = Coupling(couplinglist=[[0, 1], [1, 2], [2, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[3])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[3], qr[1])
+        circuit.cx(qr[3], qr[0])
+        circuit.measure(qr, cr)
+
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.cx(qr[0], qr[1])
+        expected.h(qr[3])
+        expected.swap(qr[3], qr[2])
+        expected.cx(qr[2], qr[1])
+        expected.measure(qr[3], cr[2])
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[2], cr[1])
+        expected.measure(qr[1], cr[3])
 
         pass_ = BasicMapper(coupling)
         after = pass_.run(dag)

@@ -1378,7 +1378,9 @@ class DAGCircuit:
         A serial layer is a circuit with one gate. The layers have the
         same structure as in layers().
         """
-        for n in self.node_nums_in_topological_order():
+
+        topological_order = [node for layer in self.multigraph_layers() for node in layer]
+        for n in topological_order:
             nxt_nd = self.multi_graph.node[n]
             if nxt_nd["type"] == "op":
                 new_layer = DAGCircuit()
@@ -1450,8 +1452,8 @@ class DAGCircuit:
             next_layer = []
 
         if delayed_measures:
-            yield delayed_measures
-        yield outputs
+            yield list(set(delayed_measures))
+        yield list(set(outputs))
 
     def collect_runs(self, namelist):
         """Return a set of runs of "op" nodes with the given names.

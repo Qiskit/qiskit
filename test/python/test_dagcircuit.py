@@ -243,7 +243,7 @@ class TestDagLayers(QiskitTestCase):
         ], name_layers)
 
     def test_layers_measures_at_the_end(self):
-        """ The layers() method returns measurments at the end."""
+        """ The layers() method returns measurements at the end."""
         qreg = QuantumRegister(2, 'qr')
         creg = ClassicalRegister(2, 'cr')
         qubit0 = qreg[0]
