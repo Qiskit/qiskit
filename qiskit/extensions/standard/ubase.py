@@ -10,14 +10,14 @@
 """
 Element of SU(2).
 """
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
-class UBase(Gate):
+class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
     def __init__(self, theta, phi, lam, qubit, circ=None):

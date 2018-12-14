@@ -19,8 +19,8 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import execute, IBMQ, Aer
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit import execute, IBMQ, Simulators
 from qiskit.backends.ibmq import least_busy
 
 
@@ -49,10 +49,10 @@ try:
 
     # setting up the backend
     print("(AER Backends)")
-    print(Aer.backends())
+    print(Simulators.backends())
 
     # running the job
-    job_sim = execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
+    job_sim = execute([qc1, qc2], Simulators.get_backend('qasm_simulator'))
     sim_result = job_sim.result()
 
     # Show the results
@@ -89,5 +89,5 @@ try:
         print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

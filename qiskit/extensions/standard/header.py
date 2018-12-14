@@ -9,7 +9,7 @@
 Standard extension's OPENQASM header and definition update.
 """
 import sympy
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import _node as node
 
 

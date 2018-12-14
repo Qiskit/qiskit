@@ -17,11 +17,15 @@ import unittest
 from unittest.util import safe_repr
 from qiskit import __path__ as qiskit_path
 from qiskit.backends import JobStatus
-from qiskit.backends.aer import QasmSimulator
+from qiskit.backends.legacysimulators import QasmSimulator
 from qiskit.backends.ibmq.credentials import discover_credentials, Credentials
 
 from .http_recorder import http_recorder
 from ._test_options import get_test_options
+
+
+# Allows shorter stack trace for .assertDictAlmostEqual
+__unittest = True  # pylint: disable=invalid-name
 
 
 class Path(Enum):
@@ -43,7 +47,6 @@ class QiskitTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(QiskitTestCase, cls).setUpClass()
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
         # Determines if the TestCase is using IBMQ credentials.
@@ -74,11 +77,10 @@ class QiskitTestCase(unittest.TestCase):
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
         from qiskit.backends.ibmq import IBMQ
-        from qiskit.backends.aer import Aer
+        from qiskit.backends.builtinsimulators import Simulators
 
         IBMQ._accounts.clear()
-        Aer._backends = Aer._verify_aer_backends()
-        super(QiskitTestCase, self).tearDown()
+        Simulators._backends = Simulators._verify_backends()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):

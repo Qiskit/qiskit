@@ -4,8 +4,8 @@ Example used in the README. In this example a Bell state is made.
 """
 
 # Import the Qiskit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import execute, IBMQ, Aer
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit import execute, IBMQ, Simulators
 from qiskit.backends.ibmq import least_busy
 
 # Authenticate for access to remote backends
@@ -33,8 +33,8 @@ try:
     qc.measure(q, c)
 
     # See a list of available local simulators
-    print("Aer backends: ", Aer.backends())
-    backend_sim = Aer.get_backend('qasm_simulator')
+    print("Aer backends: ", Simulators.backends())
+    backend_sim = Simulators.get_backend('qasm_simulator')
 
     # Compile and run the Quantum circuit on a simulator backend
     job_sim = execute(qc, backend_sim)
@@ -63,5 +63,5 @@ try:
     except:
         print("All devices are currently unavailable.")
 
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

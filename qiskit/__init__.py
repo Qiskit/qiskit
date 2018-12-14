@@ -16,36 +16,34 @@ import pkgutil
 # First, check for required Python and API version
 from . import _util
 
-from ._qiskiterror import QISKitError
-from ._classicalregister import ClassicalRegister
-from ._quantumregister import QuantumRegister
-from ._quantumcircuit import QuantumCircuit
-from ._gate import Gate
-from ._compositegate import CompositeGate
-from ._instruction import Instruction
-from ._instructionset import InstructionSet
-from ._reset import Reset
-from ._measure import Measure
-from ._schema_validation import (validate_json_against_schema,
-                                 SchemaValidationError)
-from .result import Result
-from ._pubsub import Publisher, Subscriber
+# qiskit errors operator
+from .qiskiterror import QiskitError, QISKitError
+
+# The main qiskit operators
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumCircuit
+from .tools.compiler import (compile, execute)
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
 import qiskit.extensions.standard
 import qiskit.extensions.quantum_initializer
+import qiskit.circuit.measure
+import qiskit.circuit.reset
+
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code AND *before*
+# importing the package you want to allow extensions for (in this case `backends`).
+__path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
 from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
+from qiskit.backends.builtinsimulators import Simulators
+from qiskit.backends.legacysimulators import LegacySimulators
 
-# Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports or any non-import code.
-__path__ = pkgutil.extend_path(__path__, __name__)
-
-from .wrapper._wrapper import (load_qasm_string, load_qasm_file, qobj_to_circuits)
-from .tools._compiler import (compile, execute)
+# TODO: Remove
+from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
 
 # Import the wrapper, to make it available when doing "import qiskit".
 from . import wrapper

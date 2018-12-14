@@ -12,9 +12,9 @@ import pkgutil
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
+from .exceptions import JobError, JobTimeoutError, QiskitBackendNotFoundError
 from .jobstatus import JobStatus
-from .joberror import JobError
-from .jobtimeouterror import JobTimeoutError
+
 
 # Allow extending this namespace.
 __path__ = pkgutil.extend_path(__path__, __name__)

@@ -23,10 +23,9 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import IBMQ
 from qiskit import compile
 from qiskit.backends import JobStatus, JobError
+from qiskit.backends.ibmq import least_busy
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
 from qiskit.backends.ibmq.ibmqjob import IBMQJob
-from qiskit.backends.ibmq import least_busy
-
 from ..common import requires_qe_access, JobTestCase, slow_test
 
 
@@ -53,11 +52,10 @@ class TestIBMQJob(JobTestCase):
         shots = qobj.config.shots
         job = backend.run(qobj)
         result = job.result()
-        counts_qx1 = result.get_counts(result.get_names()[0])
-        counts_qx2 = result.get_counts('hadamard')
+        counts_qx1 = result.get_counts(0)
+        counts_qx2 = result.get_counts(1)
         counts_ex1 = {'00': shots/2, '11': shots/2}
-        counts_ex2 = {'00': shots/4, '11': shots/4, '10': shots/4,
-                      '01': shots/4}
+        counts_ex2 = {'00': shots/4, '11': shots/4, '10': shots/4, '01': shots/4}
         states1 = counts_qx1.keys() | counts_ex1.keys()
         states2 = counts_qx2.keys() | counts_ex2.keys()
         # contingency table
@@ -93,7 +91,7 @@ class TestIBMQJob(JobTestCase):
             time.sleep(4)
         self.log.info(job.status)
         result = job.result()
-        counts_qx = result.get_counts(result.get_names()[0])
+        counts_qx = result.get_counts(0)
         counts_ex = {'00': shots/2, '11': shots/2}
         states = counts_qx.keys() | counts_ex.keys()
         # contingency table
@@ -150,7 +148,7 @@ class TestIBMQJob(JobTestCase):
         self.log.info('got back all job results')
         # Ensure all jobs have finished.
         self.assertTrue(all([job.status() is JobStatus.DONE for job in job_array]))
-        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+        self.assertTrue(all([result.success for result in result_array]))
 
         # Ensure job ids are unique.
         job_ids = [job.job_id() for job in job_array]
@@ -198,7 +196,7 @@ class TestIBMQJob(JobTestCase):
 
         # Ensure all jobs have finished.
         self.assertTrue(all([job.status() is JobStatus.DONE for job in job_array]))
-        self.assertTrue(all([result.get_status() == 'COMPLETED' for result in result_array]))
+        self.assertTrue(all([result.success for result in result_array]))
 
         # Ensure job ids are unique.
         job_ids = [job.job_id() for job in job_array]
@@ -259,6 +257,7 @@ class TestIBMQJob(JobTestCase):
 
         qobj = compile(self._qc, backend)
         job = backend.run(qobj)
+
         rjob = backend.retrieve_job(job.job_id())
         self.assertTrue(job.job_id() == rjob.job_id())
         self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
@@ -278,6 +277,7 @@ class TestIBMQJob(JobTestCase):
         backend = least_busy(backends)
 
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
+
         self.log.info('found %s matching jobs', len(job_list))
         for i, job in enumerate(job_list):
             self.log.info('match #%d: %s', i, job.result().status)
@@ -300,13 +300,8 @@ class TestIBMQJob(JobTestCase):
         for i, job in enumerate(job_list):
             self.log.info('match #%d', i)
             result = job.result()
-            self.assertTrue(any(cresult.data['counts']['00'] < 500
-                                for cresult in result.results.values()))
-            for circuit_name in result.get_names():
-                self.log.info('\tcircuit_name: %s', circuit_name)
-                if circuit_name:
-                    counts = result.get_counts(circuit_name)
-                    self.log.info('\t%s', str(counts))
+            self.assertTrue(any(cresult.data.counts.to_dict()['0x0'] < 500
+                                for cresult in result.results))
 
     @requires_qe_access
     def test_get_jobs_filter_date(self, qe_token, qe_url):

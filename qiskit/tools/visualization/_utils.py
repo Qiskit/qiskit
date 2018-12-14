@@ -8,6 +8,33 @@
 """Common visualization utilities."""
 
 import PIL
+import numpy as np
+from qiskit.converters import circuit_to_dag
+from qiskit.tools.visualization._error import VisualizationError
+
+
+def _validate_input_state(quantum_state):
+    """Validates the input to state visualization functions.
+
+    Args:
+        quantum_state (ndarray): Input state / density matrix.
+    Returns:
+        rho: A 2d numpy array for the density matrix.
+    Raises:
+        VisualizationError: Invalid input.
+    """
+    rho = np.asarray(quantum_state)
+    if rho.ndim == 1:
+        rho = np.outer(rho, np.conj(rho))
+    # Check the shape of the input is a square matrix
+    shape = np.shape(rho)
+    if len(shape) != 2 or shape[0] != shape[1]:
+        raise VisualizationError("Input is not a valid quantum state.")
+    # Check state is an n-qubit state
+    num = int(np.log2(rho.shape[0]))
+    if 2 ** num != rho.shape[0]:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    return rho
 
 
 def _trim(image):
@@ -21,18 +48,20 @@ def _trim(image):
     return image
 
 
-def _get_instructions(dag, reversebits=False):
+def _get_instructions(circuit, reversebits=False):
     """
-    Given a dag, return a tuple (qregs, cregs, ops) where
-    qregs and cregs are the name of the quantum and classical
-    registers in order (based on reversebits) and ops is a list
+    Given a circuit, return a tuple (qregs, cregs, ops) where
+    qregs and cregs are the quantum and classical registers
+    in order (based on reversebits) and ops is a list
     of DAG nodes which type is "operation".
     Args:
-        dag (DAGCircuit): From where the information is extracted.
-        reversebits (bool): If true the order of the bits in the registers is reversed.
+        circuit (QuantumCircuit): From where the information is extracted.
+        reversebits (bool): If true the order of the bits in the registers is
+            reversed.
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
+    dag = circuit_to_dag(circuit)
     ops = []
     qregs = []
     cregs = []
@@ -42,12 +71,12 @@ def _get_instructions(dag, reversebits=False):
             ops.append(node)
 
     for qreg in dag.qregs.values():
-        qregs += [(qreg.name, bitno) for bitno in range(qreg.size)]
+        qregs += [(qreg, bitno) for bitno in range(qreg.size)]
 
     for creg in dag.cregs.values():
-        cregs += [(creg.name, bitno) for bitno in range(creg.size)]
+        cregs += [(creg, bitno) for bitno in range(creg.size)]
 
-    if not reversebits:
+    if reversebits:
         qregs.reverse()
         cregs.reverse()
 

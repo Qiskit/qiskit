@@ -8,16 +8,16 @@
 """
 Barrier instruction.
 """
-from qiskit import Instruction
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
+from qiskit.circuit import Instruction
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, qubits, circ):
+    def __init__(self, qubits, circ=None):
         """Create new barrier instruction."""
         super().__init__("barrier", [], list(qubits), [], circ)
 

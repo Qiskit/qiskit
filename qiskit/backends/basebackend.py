@@ -10,11 +10,10 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
-import warnings
 from abc import ABC, abstractmethod
 
-from qiskit._qiskiterror import QISKitError
 import qiskit
+from .models import BackendStatus
 
 
 class BaseBackend(ABC):
@@ -29,17 +28,15 @@ class BaseBackend(ABC):
         not available.
 
         Args:
-            configuration (dict): configuration dictionary
+            configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
 
         Raises:
             FileNotFoundError if backend executable is not available.
-            QISKitError: if there is no name in the configuration
+            QiskitError: if there is no name in the configuration
         """
-        if 'name' not in configuration:
-            raise QISKitError('backend does not have a name.')
         self._configuration = configuration
-        self.provider = provider
+        self._provider = provider
 
     @abstractmethod
     def run(self, qobj):
@@ -47,38 +44,49 @@ class BaseBackend(ABC):
         pass
 
     def configuration(self):
-        """Return backend configuration"""
+        """Return the backend configuration.
+
+        Returns:
+            BackendConfiguration: the configuration for the backend.
+        """
         return self._configuration
 
-    def calibration(self):
-        """Return backend calibration"""
-        warnings.warn("Backends will no longer return a calibration dictionary,"
-                      "use backend.properties() instead.", DeprecationWarning)
-        return {}
-
-    def parameters(self):
-        """Return backend parameters"""
-        warnings.warn("Backends will no longer return a parameters dictionary, "
-                      "use backend.properties() instead.", DeprecationWarning)
-        return {}
-
     def properties(self):
-        """Return backend properties"""
-        return {}
+        """Return backend properties.
+
+        Returns:
+            BackendProperties: the configuration for the backend. If the backend
+            does not support properties, it returns ``None``.
+        """
+        return None
+
+    def provider(self):
+        """Return the backend Provider.
+
+        Returns:
+            BaseProvider: the Provider responsible for the backend.
+        """
+        return self._provider
 
     def status(self):
-        """Return backend status"""
-        return {'backend_name': self.name(),
-                #  Backend version in the form X.X.X
-                'backend_version': qiskit.__version__,
-                #  Backend operational and accepting jobs (true/false)
-                'operational': True,
-                'pending_jobs': 0,
-                'status_msg': ''}
+        """Return backend status.
+
+        Returns:
+            BackendStatus: the status of the backend.
+        """
+        return BackendStatus(backend_name=self.name(),
+                             backend_version=qiskit.__version__,
+                             operational=True,
+                             pending_jobs=0,
+                             status_msg='')
 
     def name(self):
-        """Return backend name"""
-        return self._configuration['name']
+        """Return backend name.
+
+        Returns:
+            str: the name of the backend.
+        """
+        return self._configuration.backend_name
 
     def __str__(self):
         return self.name()
@@ -94,4 +102,4 @@ class BaseBackend(ABC):
         """
         return "<{}('{}') from {}()>".format(self.__class__.__name__,
                                              self.name(),
-                                             self.provider)
+                                             self._provider)

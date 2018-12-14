@@ -16,7 +16,7 @@ from IPython.core import magic_arguments                         # pylint: disab
 import ipywidgets as widgets                                     # pylint: disable=import-error
 import matplotlib.pyplot as plt
 from qiskit.backends.ibmq import IBMQ
-from qiskit.tools.visualization._coupling_map import plot_coupling_map
+from qiskit.tools.visualization._gate_map import plot_gate_map
 
 
 @magics_class
@@ -144,9 +144,9 @@ def backend_widget(backend):
                                                 margin='0px 0px 0px 0px'))
 
     with cmap:
-        _cmap_fig = plot_coupling_map(backend,
-                                      plot_directed=False,
-                                      label_qubits=False)
+        _cmap_fig = plot_gate_map(backend,
+                                  plot_directed=False,
+                                  label_qubits=False)
         if _cmap_fig is not None:
             display(_cmap_fig)
             # Prevents plot from showing up twice.

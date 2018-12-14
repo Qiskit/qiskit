@@ -8,27 +8,27 @@
     "success": true,
     "header": {"description": "T1 with cals"},
     "results": [
-        {"header": {"exp_descrip": "Ground state calibration"},
+        {"header": {"name": "Ground state calibration"},
         "shots": 1024,
         "seed": 88,
         "status": "DONE",
         "success": true,
         "meas_return": "avg",
         "data": {
-            "memory": [[[0,0],[0.75,0],[1.0,0],[1.5,0],[1.5,0],[1.5,0]]]
+            "memory": [[0,0],[0.75,0],[1.0,0],[1.5,0],[1.5,0],[1.5,0]]
         }
         },
-        {"header": {"exp_descrip": "Excited state calibration"},
+        {"header": {"name": "Excited state calibration"},
         "shots": 1024,
         "seed": 88,
         "status": "DONE",
         "success": true,
         "meas_return": "avg",
         "data": {
-            "memory": [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]]
+            "memory": [[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]
         }
         },
-        {"header": {"exp_descrip": "T1", "t1_time": 0},
+        {"header": {"name": "T1", "t1_time": 0},
         "shots": [1020,1024],
         "seed": 88,
         "status": "DONE",
@@ -41,6 +41,6 @@
                         [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]],
                         [[[0,0],[0.0,0.75],[0.0,1.0],[0,1.5],[0,1.5],[0,1.5]]]]
         }
-        }         
+        }
     ]
 }

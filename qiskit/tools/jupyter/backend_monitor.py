@@ -19,10 +19,9 @@ import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.patches import Circle
 from qiskit.backends.ibmq import IBMQ
-from qiskit._qiskiterror import QISKitError
+from qiskit.qiskiterror import QISKitError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
-from qiskit.tools.visualization._coupling_map import plot_coupling_map
-
+from qiskit.tools.visualization._gate_map import plot_gate_map
 
 @magics_class
 class BackendMonitor(Magics):
@@ -38,13 +37,13 @@ class BackendMonitor(Magics):
         title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
         title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
         title_html = "<h1 {style}>{name}</h1>".format(
-            style=title_style, name=backend.configuration()['name'])
+            style=title_style, name=backend.name())
 
         details = [config_tab(backend)]
 
         tab_contents = ['Configuration']
 
-        if not backend.configuration()['simulator']:
+        if not backend.configuration().simulator:
             tab_contents.extend(['Qubit Properties', 'Gates',
                                  'Error Map', 'Job History'])
             details.extend([qubits_tab(backend), gates_tab(backend),
@@ -73,16 +72,18 @@ def config_tab(backend):
     Returns:
         grid: A GridBox widget.
     """
-    status = backend.status()
-    config = backend.configuration()
+    status = backend.status().to_dict()
+    config = backend.configuration().to_dict()
 
     config_dict = {**status, **config}
 
     upper_list = ['n_qubits', 'operational',
-                  'pending_jobs', 'basis_gates', 'local', 'simulator']
+                  'status_msg', 'pending_jobs',
+                  'basis_gates', 'local', 'simulator']
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
-
+    # Remove gates because they are in a different tab
+    lower_list.remove('gates')
     upper_str = "<table>"
     upper_str += """<style>
 table {
@@ -117,7 +118,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
                               width='auto', max_height='300px',
                               align_items='center'))
     with image_widget:
-        gate_map = plot_coupling_map(backend)
+        gate_map = plot_gate_map(backend)
         display(gate_map)
     plt.close(gate_map)
 
@@ -150,12 +151,13 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     grid = widgets.GridBox(children=[upper_table, image_widget, lower_table],
                            layout=widgets.Layout(
                                grid_template_rows='auto auto',
-                               grid_template_columns='20% 25% 25% 25%',
+                               grid_template_columns='25% 25% 25% 25%',
                                grid_template_areas='''
                                "left right right right"
                                "bottom bottom bottom bottom"
                                ''',
-                               grid_gap='0px 0px', max_height='625px'))
+                               grid_gap='0px 0px', max_height='625px',
+                               min_height='625px'))
 
     return grid
 
@@ -169,7 +171,7 @@ def qubits_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    props = backend.properties()
+    props = backend.properties().to_dict()
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
     header_html = header_html.format(key='last_update_date',
@@ -192,43 +194,42 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 </style>"""
 
     qubit_html += "<tr><th></th><th>Frequency</th><th>T1</th><th>T2</th>"
-    qubit_html += "<th>Gate time</th><th>Gate error</th><th>Readout error</th><th>Buffer</th></tr>"
+    qubit_html += "<th>U1 gate error</th><th>U2 gate error</th><th>U3 gate error</th>"
+    qubit_html += "<th>Readout error</th></tr>"
     qubit_footer = "</table>"
 
     for qub in range(len(props['qubits'])):
-        qubit = props['qubits'][qub]
-        name = qubit['name']
+        name = 'Q%s' % qub
+        qubit_data = props['qubits'][qub]
+        gate_data = props['gates'][3*qub:3*qub+3]
+        t1_info = qubit_data[0]
+        t2_info = qubit_data[1]
+        freq_info = qubit_data[2]
+        readout_info = qubit_data[3]
 
-        qubit_freq = qubit['frequency']['unit'] if 'unit' in qubit['frequency'].keys(
-        ) else qubit['frequency']['units']
-        freq = str(round(qubit['frequency']['value'], 5))+' '+qubit_freq
-        T1 = str(round(qubit['T1']['value'],  # pylint: disable=invalid-name
-                       5))+' ' + qubit['T1']['unit']
-        T2 = str(round(qubit['T2']['value'],  # pylint: disable=invalid-name
-                       5))+' ' + qubit['T2']['unit']
+        freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
+        T1 = str(round(t1_info['value'],  # pylint: disable=invalid-name
+                       5))+' ' + t1_info['unit']
+        T2 = str(round(t2_info['value'],  # pylint: disable=invalid-name
+                       5))+' ' + t2_info['unit']
+        # pylint: disable=invalid-name
+        U1 = str(round(gate_data[0]['parameters'][0]['value'], 5))
+        # pylint: disable=invalid-name
+        U2 = str(round(gate_data[1]['parameters'][0]['value'], 5))
+        # pylint: disable=invalid-name
+        U3 = str(round(gate_data[2]['parameters'][0]['value'], 5))
 
-        if 'gateTime' in qubit.keys():
-            gate_time = str(
-                round(qubit['gateTime']['value'], 5))+' '+qubit['gateTime']['unit']
-        else:
-            gate_time = ''
-        gate_error = round(qubit['gateError']['value'], 5)
-        readout_error = round(qubit['readoutError']['value'], 5)
-        if 'buffer' in qubit.keys():
-            buffer = str(
-                round(qubit['buffer']['value'], 5))+' '+qubit['buffer']['unit']
-        else:
-            buffer = ''
+        readout_error = round(readout_info['value'], 5)
         qubit_html += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td>"
         qubit_html += "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
-        qubit_html = qubit_html % (name, freq, T1, T2, gate_time,
-                                   gate_error, readout_error, buffer)
+        qubit_html = qubit_html % (name, freq, T1, T2, U1, U2, U3, readout_error)
     qubit_html += qubit_footer
 
     qubit_widget = widgets.HTML(value=qubit_html)
 
     out = widgets.VBox([update_date_widget,
-                        qubit_widget], layout=widgets.Layout(max_height='625px'))
+                        qubit_widget], layout=widgets.Layout(max_height='625px',
+                                                             min_height='625px'))
 
     return out
 
@@ -242,7 +243,10 @@ def gates_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    props = backend.properties()
+    config = backend.configuration().to_dict()
+    props = backend.properties().to_dict()
+
+    multi_qubit_gates = props['gates'][3*config['n_qubits']:]
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
     header_html = header_html.format(key='last_update_date',
@@ -270,16 +274,16 @@ tr:nth-child(even) {background-color: #f6f6f6;};
     gate_footer = "</table>"
 
     # Split gates into two columns
-    left_num = math.ceil(len(props['multi_qubit_gates'])/3)
-    mid_num = math.ceil((len(props['multi_qubit_gates'])-left_num)/2)
+    left_num = math.ceil(len(multi_qubit_gates)/3)
+    mid_num = math.ceil((len(multi_qubit_gates)-left_num)/2)
 
     left_table = gate_html
 
     for qub in range(left_num):
-        gate = props['multi_qubit_gates'][qub]
+        gate = multi_qubit_gates[qub]
         name = gate['name']
-        ttype = gate['type']
-        error = round(gate['gateError']['value'], 5)
+        ttype = gate['gate']
+        error = round(gate['parameters'][0]['value'], 5)
 
         left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         left_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -289,10 +293,10 @@ tr:nth-child(even) {background-color: #f6f6f6;};
     middle_table = gate_html
 
     for qub in range(left_num, left_num+mid_num):
-        gate = props['multi_qubit_gates'][qub]
+        gate = multi_qubit_gates[qub]
         name = gate['name']
-        ttype = gate['type']
-        error = round(gate['gateError']['value'], 5)
+        ttype = gate['gate']
+        error = round(gate['parameters'][0]['value'], 5)
 
         middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         middle_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -301,11 +305,11 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     right_table = gate_html
 
-    for qub in range(left_num+mid_num, len(props['multi_qubit_gates'])):
-        gate = props['multi_qubit_gates'][qub]
+    for qub in range(left_num+mid_num, len(multi_qubit_gates)):
+        gate = multi_qubit_gates[qub]
         name = gate['name']
-        ttype = gate['type']
-        error = round(gate['gateError']['value'], 5)
+        ttype = gate['gate']
+        error = round(gate['parameters'][0]['value'], 5)
 
         right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         right_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -334,7 +338,8 @@ tr:nth-child(even) {background-color: #f6f6f6;};
                                                    "left middle right"
                                                    ''',
                                grid_gap='0px 0px',
-                               max_height='625px'))
+                               max_height='625px',
+                               min_height='625px'))
 
     return grid
 
@@ -348,19 +353,21 @@ def detailed_map(backend):
     Returns:
         GridBox: Widget holding noise map images.
     """
-    props = backend.properties()
-    single_gate_errors = [q['gateError']['value'] for q in props['qubits']]
+    props = backend.properties().to_dict()
+    config = backend.configuration().to_dict()
+    single_gate_errors = [q['parameters'][0]['value']
+                          for q in props['gates'][2:3*config['n_qubits']:3]]
     single_norm = matplotlib.colors.Normalize(
         vmin=min(single_gate_errors), vmax=max(single_gate_errors))
     q_colors = [cm.viridis(single_norm(err)) for err in single_gate_errors]
 
-    cmap = backend.configuration()['coupling_map']
+    cmap = config['coupling_map']
 
     cx_errors = []
     for line in cmap:
-        for item in props['multi_qubit_gates']:
+        for item in props['gates'][3*config['n_qubits']:]:
             if item['qubits'] == line:
-                cx_errors.append(item['gateError']['value'])
+                cx_errors.append(item['parameters'][0]['value'])
                 break
         else:
             continue
@@ -379,11 +386,12 @@ def detailed_map(backend):
     cx_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='right',
                                                      align_items='center'))
 
+    tick_locator = mpl.ticker.MaxNLocator(nbins=5)
     with cmap_widget:
-        noise_map = plot_coupling_map(backend, qubit_color=q_colors,
-                                      line_color=line_colors,
-                                      qubit_size=32,
-                                      plot_directed=True)
+        noise_map = plot_gate_map(backend, qubit_color=q_colors,
+                                  line_color=line_colors,
+                                  qubit_size=32,
+                                  plot_directed=True)
         width, height = noise_map.get_size_inches()
 
         noise_map.set_size_inches(1.5*width, 1.5*height)
@@ -394,19 +402,23 @@ def detailed_map(backend):
     with single_widget:
         cbl_fig = plt.figure(figsize=(3, 1))
         ax1 = cbl_fig.add_axes([0.05, 0.80, 0.9, 0.15])
-        mpl.colorbar.ColorbarBase(ax1, cmap=cm.viridis,
-                                  norm=single_norm,
-                                  orientation='horizontal')
-        ax1.set_title('Single-qubit error rate')
+        single_cb = mpl.colorbar.ColorbarBase(ax1, cmap=cm.viridis,
+                                              norm=single_norm,
+                                              orientation='horizontal')
+        single_cb.locator = tick_locator
+        single_cb.update_ticks()
+        ax1.set_title('Single-qubit U3 error rate')
         display(cbl_fig)
         plt.close(cbl_fig)
 
     with cx_widget:
         cx_fig = plt.figure(figsize=(3, 1))
         ax2 = cx_fig.add_axes([0.05, 0.80, 0.9, 0.15])
-        mpl.colorbar.ColorbarBase(ax2, cmap=cm.viridis,
-                                  norm=cx_norm,
-                                  orientation='horizontal')
+        cx_cb = mpl.colorbar.ColorbarBase(ax2, cmap=cm.viridis,
+                                          norm=cx_norm,
+                                          orientation='horizontal')
+        cx_cb.locator = tick_locator
+        cx_cb.update_ticks()
         ax2.set_title('CNOT error rate')
         display(cx_fig)
         plt.close(cx_fig)
@@ -420,7 +432,8 @@ def detailed_map(backend):
                                                 "left . right"
                                                 ''',
                                   grid_gap='0px 0px',
-                                  max_height='625px'))
+                                  max_height='625px',
+                                  min_height='625px'))
     return out_box
 
 
@@ -445,7 +458,8 @@ def job_history(backend):
                                                 align_items='center',
                                                 min_height='400px'))
 
-    tabs = widgets.Tab(layout=widgets.Layout(max_height='625px'))
+    tabs = widgets.Tab(layout=widgets.Layout(max_height='620px',
+                                             min_height='620px'))
     tabs.children = [year, month, week]
     tabs.set_title(0, 'Year')
     tabs.set_title(1, 'Month')

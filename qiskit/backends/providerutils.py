@@ -29,9 +29,9 @@ def filter_backends(backends, filters=None, **kwargs):
         list[BaseBackend]: a list of backend instances matching the
             conditions.
     """
-    def _match_all(dict_, criteria):
-        """Return True if all items in criteria matches items in dict_."""
-        return all(dict_.get(key_) == value_ for
+    def _match_all(obj, criteria):
+        """Return True if all items in criteria matches items in obj."""
+        return all(getattr(obj, key_, None) == value_ for
                    key_, value_ in criteria.items())
 
     # Inspect the backends to decide which filters belong to
@@ -62,9 +62,8 @@ def filter_backends(backends, filters=None, **kwargs):
     return backends
 
 
-def resolve_backend_name(name, backends, grouped, deprecated, aliased):
-    """Resolve backend name from a possible short group name, a deprecated name,
-    or an alias.
+def resolve_backend_name(name, backends, deprecated, aliased, alternatives):
+    """Resolve backend name from a deprecated name or an alias.
 
     A group will be resolved in order of member priorities, depending on
     availability.
@@ -72,39 +71,38 @@ def resolve_backend_name(name, backends, grouped, deprecated, aliased):
     Args:
         name (str): name of backend to resolve
         backends (list[BaseBackend]): list of available backends.
-        grouped (dict[str: list[str]]): dict of grouped names.
         deprecated (dict[str: str]): dict of deprecated names.
         aliased (dict[str: list[str]]): dict of aliased names.
+        alternatives (dict[str: str]): dict of alternative backends.
 
     Returns:
         str: resolved name (name of an available backend)
 
     Raises:
         LookupError: if name cannot be resolved through regular available
-            names, nor groups, nor deprecated, nor alias names.
+            names, nor deprecated, nor alias names.
     """
-    resolved_name = ""
     available = [backend.name() for backend in backends]
 
-    if name in available:
-        resolved_name = name
-    elif name in grouped:
-        resolved_name = grouped[name]
-    elif name in deprecated:
-        resolved_name = deprecated[name]
-    elif name in aliased:
-        resolved_name = aliased[name]
-
-    # if a list of candidates, prune unavailable names, then return the best
+    resolved_name = deprecated.get(name, aliased.get(name, name))
     if isinstance(resolved_name, list):
-        available_members = [b for b in resolved_name if b in available]
-        if available_members:
-            resolved_name = available_members[0]
+        resolved_name = next((b for b in resolved_name if b in available), "")
 
-    if not resolved_name:
-        raise LookupError('backend "{}" not found.'.format(name))
+    if resolved_name not in available:
+        if resolved_name in alternatives:
+            logger.warning("The '%s' backend is not installed in your system. "
+                           "Consider using a slower backend alternative: '%s'",
+                           name,
+                           alternatives[resolved_name])
+        else:
+            logger.warning("The '%s' backend is not installed in your system. "
+                           "Consider using one of these slower alternatives: \n%s",
+                           name,
+                           '\n'.join(["- '{}'".format(b) for b in available]))
+
+        raise LookupError("backend '{}' not found.".format(name))
 
     if name in deprecated:
-        logger.warning('WARNING: %s is deprecated. Use %s.', name, resolved_name)
+        logger.warning("WARNING: '%s' is deprecated. Use '%s'.", name, resolved_name)
 
     return resolved_name

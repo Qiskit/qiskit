@@ -10,12 +10,6 @@
 """Test IBMQ online qasm simulator.
 TODO: Must expand tests. Re-evaluate after Aer."""
 
-import logging
-import unittest
-
-import fixtures
-import testtools
-
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 # pylint: disable=redefined-builtin
 from qiskit import compile
@@ -23,26 +17,8 @@ from qiskit import IBMQ
 from ..common import requires_qe_access, QiskitTestCase
 
 
-LOG = logging.getLogger(__name__)
-
-
-class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
+class TestIbmqQasmSimulator(QiskitTestCase):
     """Test IBM Q Qasm Simulator."""
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestIbmqQasmSimulator, cls).setUpClass()
-        cls.orig_method = unittest.SkipTest
-        unittest.SkipTest = testtools.TestCase.skipException
-
-    @classmethod
-    def tearDownClass(cls):
-        unittest.SkipTest = cls.orig_method
-        super(TestIbmqQasmSimulator, cls).tearDownClass()
-
-    def setUp(self):
-        super(TestIbmqQasmSimulator, self).setUp()
-        self.useFixture(fixtures.LoggerFixture())
 
     @requires_qe_access
     def test_execute_one_circuit_simulator_online(self, qe_token, qe_url):
@@ -55,7 +31,7 @@ class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
 
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
+        qc = QuantumCircuit(qr, cr, name='qc')
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         qobj = compile(qc, backend=backend, seed=73846087)
@@ -78,8 +54,8 @@ class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
 
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
-        qcr1 = QuantumCircuit(qr, cr)
-        qcr2 = QuantumCircuit(qr, cr)
+        qcr1 = QuantumCircuit(qr, cr, name='qc1')
+        qcr2 = QuantumCircuit(qr, cr, name='qc2')
         qcr1.h(qr)
         qcr2.h(qr[0])
         qcr2.cx(qr[0], qr[1])
@@ -113,8 +89,8 @@ class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
         cr1 = ClassicalRegister(2)
         qr2 = QuantumRegister(2)
         cr2 = ClassicalRegister(2)
-        qcr1 = QuantumCircuit(qr1, qr2, cr1, cr2)
-        qcr2 = QuantumCircuit(qr1, qr2, cr1, cr2)
+        qcr1 = QuantumCircuit(qr1, qr2, cr1, cr2, name="circuit1")
+        qcr2 = QuantumCircuit(qr1, qr2, cr1, cr2, name="circuit2")
         qcr1.x(qr1[0])
         qcr2.x(qr2[1])
         qcr1.measure(qr1[0], cr1[0])
@@ -127,12 +103,6 @@ class TestIbmqQasmSimulator(QiskitTestCase, testtools.TestCase):
         qcr2.measure(qr2[1], cr2[1])
         shots = 1024
         qobj = compile([qcr1, qcr2], backend, seed=8458, shots=shots, seed_mapper=88434)
-        qobj_exp = qobj.experiments[0]
-        LOG.warning(qobj_exp.header.qubit_labels)
-        LOG.warning(qobj_exp.header.compiled_circuit_qasm)
-        LOG.warning(qobj_exp.header.clbit_labels)
-        for i in qobj_exp.instructions:
-            LOG.warning(i)
         job = backend.run(qobj)
         result = job.result()
         result1 = result.get_counts(qcr1)

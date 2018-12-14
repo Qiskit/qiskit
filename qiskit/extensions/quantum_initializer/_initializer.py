@@ -13,10 +13,10 @@ import math
 import numpy as np
 import scipy
 
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
+from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -24,7 +24,7 @@ from qiskit.extensions.standard.rz import RZGate
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(CompositeGate):
+class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -52,19 +52,19 @@ class InitializeGate(CompositeGate):
 
         # Check if param is a power of 2
         if num_qubits == 0 or not num_qubits.is_integer():
-            raise QISKitError("Desired vector not a positive power of 2.")
+            raise QiskitError("Desired vector not a positive power of 2.")
 
         self.num_qubits = int(num_qubits)
 
         # Check if number of desired qubits agrees with available qubits
         if len(qargs) != self.num_qubits:
-            raise QISKitError("Number of complex amplitudes do not correspond "
+            raise QiskitError("Number of complex amplitudes do not correspond "
                               "to the number of qubits.")
 
         # Check if probabilities (amplitudes squared) sum to 1
         if not math.isclose(sum(np.absolute(param) ** 2), 1.0,
                             abs_tol=_EPS):
-            raise QISKitError("Sum of amplitudes-squared does not equal one.")
+            raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
         super().__init__("init", param, qargs, circ)
 
@@ -251,7 +251,7 @@ class InitializeGate(CompositeGate):
 
 # ###############################################################
 # Add needed functionality to other classes (it feels
-# weird following the QISKit convention of adding functionality to other
+# weird following the Qiskit convention of adding functionality to other
 # classes like this ;),
 #  TODO: multiple inheritance might be better?)
 
