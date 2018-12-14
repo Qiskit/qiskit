@@ -23,6 +23,9 @@ from qiskit.qiskiterror import QISKitError
 from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.visualization._gate_map import plot_gate_map
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 @magics_class
 class BackendMonitor(Magics):
     """A class of status magic functions.
@@ -49,7 +52,7 @@ class BackendMonitor(Magics):
             details.extend([qubits_tab(backend), gates_tab(backend),
                             detailed_map(backend), job_history(backend)])
 
-        tabs = widgets.Tab()
+        tabs = widgets.Tab(layout=widgets.Layout(overflow_y='scroll'))
         tabs.children = details
         for i in range(len(details)):
             tabs.set_title(i, tab_contents[i])
@@ -58,7 +61,9 @@ class BackendMonitor(Magics):
                                     layout=widgets.Layout(margin='0px 0px 0px 0px'))
 
         backend_monitor = widgets.VBox([title_widget, tabs],
-                                       layout=widgets.Layout(border='4px solid #000000'))
+                                       layout=widgets.Layout(border='4px solid #000000',
+                                                             max_height='650px', min_height='650px',
+                                                             overflow_y='hidden'))
 
         display(backend_monitor)
 
@@ -156,8 +161,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
                                "left right right right"
                                "bottom bottom bottom bottom"
                                ''',
-                               grid_gap='0px 0px', max_height='625px',
-                               min_height='625px'))
+                               grid_gap='0px 0px'))
 
     return grid
 
@@ -228,8 +232,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     qubit_widget = widgets.HTML(value=qubit_html)
 
     out = widgets.VBox([update_date_widget,
-                        qubit_widget], layout=widgets.Layout(max_height='625px',
-                                                             min_height='625px'))
+                        qubit_widget])
 
     return out
 
@@ -317,14 +320,11 @@ tr:nth-child(even) {background-color: #f6f6f6;};
     right_table += gate_footer
 
     left_table_widget = widgets.HTML(value=left_table,
-                                     layout=widgets.Layout(grid_area='left',
-                                                           max_height='600px'))
+                                     layout=widgets.Layout(grid_area='left'))
     middle_table_widget = widgets.HTML(value=middle_table,
-                                       layout=widgets.Layout(grid_area='middle',
-                                                             max_height='600px'))
+                                       layout=widgets.Layout(grid_area='middle'))
     right_table_widget = widgets.HTML(value=right_table,
-                                      layout=widgets.Layout(grid_area='right',
-                                                            max_height='600px'))
+                                      layout=widgets.Layout(grid_area='right'))
 
     grid = widgets.GridBox(children=[update_date_widget,
                                      left_table_widget,
@@ -337,9 +337,7 @@ tr:nth-child(even) {background-color: #f6f6f6;};
                                                    "top top top"
                                                    "left middle right"
                                                    ''',
-                               grid_gap='0px 0px',
-                               max_height='625px',
-                               min_height='625px'))
+                               grid_gap='0px 0px'))
 
     return grid
 
@@ -390,11 +388,11 @@ def detailed_map(backend):
     with cmap_widget:
         noise_map = plot_gate_map(backend, qubit_color=q_colors,
                                   line_color=line_colors,
-                                  qubit_size=32,
+                                  qubit_size=28,
                                   plot_directed=True)
         width, height = noise_map.get_size_inches()
 
-        noise_map.set_size_inches(1.5*width, 1.5*height)
+        noise_map.set_size_inches(1.25*width, 1.25*height)
 
         display(noise_map)
         plt.close(noise_map)
@@ -431,9 +429,7 @@ def detailed_map(backend):
                                                 "top top top"
                                                 "left . right"
                                                 ''',
-                                  grid_gap='0px 0px',
-                                  max_height='625px',
-                                  min_height='625px'))
+                                  grid_gap='0px 0px'))
     return out_box
 
 
@@ -458,8 +454,7 @@ def job_history(backend):
                                                 align_items='center',
                                                 min_height='400px'))
 
-    tabs = widgets.Tab(layout=widgets.Layout(max_height='620px',
-                                             min_height='620px'))
+    tabs = widgets.Tab(layout=widgets.Layout(max_height='620px'))
     tabs.children = [year, month, week]
     tabs.set_title(0, 'Year')
     tabs.set_title(1, 'Month')
