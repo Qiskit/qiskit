@@ -87,11 +87,10 @@ def backend_overview():
             str_list[7] += (' '*(max_len-len(str_list[7]))+offset)
             str_list[7] += 'Avg. T2:      %s' % round(sum([q[1]['value']
                                                            for q in props['qubits']])/n_qubits, 1)
-            count +=1
+            count += 1
             if count == num_backends:
                 break
             max_len = max([len(s) for s in str_list])
 
         print("\n".join(str_list))
         print('\n'*2)
-
