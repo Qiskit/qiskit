@@ -11,7 +11,7 @@ compatible with the coupling_map.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler import MapperError
+from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import HGate
@@ -49,8 +49,8 @@ class CXDirection(TransformationPass):
             DAGCircuit: The rearranged dag for the coupling map
 
         Raises:
-            MapperError: If the circuit cannot be mapped just by flipping the
-                         cx nodes.
+            TranspilerError: If the circuit cannot be mapped just by flipping the
+                cx nodes.
         """
         new_dag = DAGCircuit()
 
@@ -73,8 +73,8 @@ class CXDirection(TransformationPass):
                 physical_q0 = self.layout[control]
                 physical_q1 = self.layout[target]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    raise MapperError('The circuit requires a connectiontion between the phsycial '
-                                      'qubits %s and %s' % (physical_q0, physical_q1))
+                    raise TranspilerError('The circuit requires a connection between physical '
+                                          'qubits %s and %s' % (physical_q0, physical_q1))
 
                 if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
                     # A flip needs to be done
