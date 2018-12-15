@@ -1249,26 +1249,21 @@ class DAGCircuit:
             nodes = [n[0] for n in nodes]
         return nodes
 
-    def get_named_nodes(self, name):
-        """Get the set of "op" node ids with the given name."""
-        if name not in self.basis:
-            raise DAGCircuitError("%s is not in the list of basis operations"
-                                  % name)
+    def get_named_nodes(self, *names):
+        """Get the set of "op" nodes with the given name."""
+        named_nodes = []
+        for node_id, data in self.multi_graph.nodes(data=True):
+            if node_data['op'].name in names:
+                nodes.append(self.multi_graph.node[node_id])
+        return named_nodes
 
-        # We need to instantiate the full list now because the underlying multi_graph
-        # may change when users iterate over the named nodes.
-        return {node_id for node_id, data in self.multi_graph.nodes(data=True)
-                if data["type"] == "op" and data["op"].name == name}
-
-    def get_cnot_nodes(self):
-        """Get the set of Cnot."""
-        cx_names = ['cx', 'CX']
-        cxs_nodes = []
-        for cx_name in cx_names:
-            if cx_name in self.basis:
-                for cx_id in self.get_named_nodes(cx_name):
-                    cxs_nodes.append(self.multi_graph.node[cx_id])
-        return cxs_nodes
+    def get_2q_nodes(self):
+        """Get the set of 2-qubit nodes."""
+        two_q_nodes = []
+        for node_id, data in self.multi_graph.nodes(data=True):
+            if len(data["qargs"] == 2):
+                two_q_nodes.append(self.multi_graph.node[node_id])
+        return two_q_nodes
 
     def successors(self, node):
         """Returns the successors of a node."""

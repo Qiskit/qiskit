@@ -7,6 +7,8 @@
 
 """
 This pass checks if a DAG is mapped to a coupling map.
+
+It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
 from qiskit.transpiler._basepasses import AnalysisPass
@@ -50,9 +52,9 @@ class CheckMap(AnalysisPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for cnot in subdag.get_cnot_nodes():
-                physical_q0 = self.layout[cnot['qargs'][0]]
-                physical_q1 = self.layout[cnot['qargs'][1]]
+            for gate in subdag.get_2q_nodes():
+                physical_q0 = self.layout[gate['qargs'][0]]
+                physical_q1 = self.layout[gate['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     self.property_set['is_mapped'] = False
                     self.property_set['is_direction_mapped'] = False
