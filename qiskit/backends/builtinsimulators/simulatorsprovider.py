@@ -135,4 +135,4 @@ class SimulatorsProvider(BaseProvider):
         return backend_instance
 
     def __str__(self):
-        return 'Simulators'
+        return 'BasicAer'

@@ -88,7 +88,7 @@ class TestBitReordering(QiskitTestCase):
         self.assertDictAlmostEqual(counts_real, counts_sim, threshold)
 
     def _get_backends(self, qe_token, qe_url):
-        sim_backend = qiskit.Simulators.get_backend('qasm_simulator')
+        sim_backend = qiskit.BasicAer.get_backend('qasm_simulator')
         try:
             qiskit.IBMQ.enable_account(qe_token, qe_url)
             real_backends = qiskit.IBMQ.backends(simulator=False)

@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-from qiskit import Simulators, LegacySimulators
+from qiskit import BasicAer, LegacySimulators
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit import QiskitError
@@ -43,7 +43,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ + meas
 
-        backend_sim = Simulators.get_backend('qasm_simulator')
+        backend_sim = BasicAer.get_backend('qasm_simulator')
         qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
@@ -60,11 +60,11 @@ class TestCircuitMultiRegs(QiskitTestCase):
         result = backend_sim.run(qobj_circ).result()
         state = result.get_statevector(circ)
 
-        backend_sim = Simulators.get_backend('statevector_simulator')
+        backend_sim = BasicAer.get_backend('statevector_simulator')
         result = backend_sim.run(qobj_circ).result()
         state_py = result.get_statevector(circ)
 
-        backend_sim = Simulators.get_backend('unitary_simulator')
+        backend_sim = BasicAer.get_backend('unitary_simulator')
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
@@ -98,15 +98,15 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc2 = circ2 + meas2
 
-        backend_sim = Simulators.get_backend('statevector_simulator')
+        backend_sim = BasicAer.get_backend('statevector_simulator')
         result = execute(circ2, backend_sim).result()
         state = result.get_statevector(circ2)
 
-        backend_sim = Simulators.get_backend('qasm_simulator')
+        backend_sim = BasicAer.get_backend('qasm_simulator')
         result = execute(qc2, backend_sim).result()
         counts = result.get_counts(qc2)
 
-        backend_sim = Simulators.get_backend('unitary_simulator')
+        backend_sim = BasicAer.get_backend('unitary_simulator')
         result = execute(circ2, backend_sim).result()
         unitary = result.get_unitary(circ2)
 
