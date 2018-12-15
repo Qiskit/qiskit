@@ -34,3 +34,6 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
                                                             iplot_state_hinton,
                                                             iplot_histogram,
                                                             iplot_state_paulivec)
+
+if HAS_MATPLOTLIB:
+    from ._gate_map import plot_gate_map
