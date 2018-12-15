@@ -49,8 +49,7 @@ class SimulatorsProvider(BaseProvider):
                 resolved_name = resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
-                    {},
-                    self._alternative_py_backend_names()
+                    {}
                 )
                 name = resolved_name
             except LookupError:
@@ -70,8 +69,7 @@ class SimulatorsProvider(BaseProvider):
                 resolved_name = resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
-                    {},
-                    self._alternative_py_backend_names()
+                    {}
                 )
                 backends = [backend for backend in backends if
                             backend.name() == resolved_name]
@@ -138,11 +136,3 @@ class SimulatorsProvider(BaseProvider):
 
     def __str__(self):
         return 'BasicAer'
-
-    @staticmethod
-    def _alternative_py_backend_names():
-        """Return Python alternatives to C++ simulators."""
-        return {
-            'qasm_simulator': 'qasm_simulator_py',
-            'statevector_simulator': 'statevector_simulator_py'
-        }
