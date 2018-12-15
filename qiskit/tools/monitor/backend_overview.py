@@ -46,9 +46,10 @@ def backend_monitor(backend):
     if not isinstance(backend, IBMQBackend):
         raise QISKitError('Input variable is not of type IBMQBackend.')
     config = backend.configuration().to_dict()
-    props = backend.properties().to_dict()
     status = backend.status().to_dict()
     config_dict = {**status, **config}
+    if not config['simulator']:
+        props = backend.properties().to_dict()
 
     print(backend.name())
     print('='*len(backend.name()))
@@ -65,6 +66,10 @@ def backend_monitor(backend):
     lower_list.remove('gates')
     for item in upper_list+lower_list:
         print(offset+item+':', config_dict[item])
+
+    # Stop here if simulator
+    if config['simulator']:
+        return
 
     print()
     qubit_header = 'Qubits [Name / Freq / T1 / T2 / U1 err / U2 err / U3 err / Readout err]'

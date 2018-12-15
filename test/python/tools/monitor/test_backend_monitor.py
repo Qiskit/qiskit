@@ -24,11 +24,12 @@ class TestBackendOverview(QiskitTestCase):
         backend_overview()
 
     def test_backend_monitor(self, qe_token, qe_url):
-        """Test backend_overview"""
+        """Test backend_monitor"""
         IBMQ.enable_account(qe_token, qe_url)
         for back in IBMQ.backends():
             if not back.configuration().simulator:
                 backend = back
+                break
         backend_monitor(backend)
 
 

@@ -120,10 +120,12 @@ tr:nth-child(even) {background-color: #f6f6f6;}
                               padding='10px 10px 10px 10px',
                               width='auto', max_height='300px',
                               align_items='center'))
-    with image_widget:
-        gate_map = plot_gate_map(backend)
-        display(gate_map)
-    plt.close(gate_map)
+
+    if not config['simulator']:
+        with image_widget:
+            gate_map = plot_gate_map(backend)
+            display(gate_map)
+        plt.close(gate_map)
 
     lower_str = "<table>"
     lower_str += """<style>
