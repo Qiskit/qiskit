@@ -62,7 +62,7 @@ def filter_backends(backends, filters=None, **kwargs):
     return backends
 
 
-def resolve_backend_name(name, backends, deprecated, aliased, alternatives):
+def resolve_backend_name(name, backends, deprecated, aliased):
     """Resolve backend name from a deprecated name or an alias.
 
     A group will be resolved in order of member priorities, depending on
@@ -73,7 +73,6 @@ def resolve_backend_name(name, backends, deprecated, aliased, alternatives):
         backends (list[BaseBackend]): list of available backends.
         deprecated (dict[str: str]): dict of deprecated names.
         aliased (dict[str: list[str]]): dict of aliased names.
-        alternatives (dict[str: str]): dict of alternative backends.
 
     Returns:
         str: resolved name (name of an available backend)
@@ -89,17 +88,6 @@ def resolve_backend_name(name, backends, deprecated, aliased, alternatives):
         resolved_name = next((b for b in resolved_name if b in available), "")
 
     if resolved_name not in available:
-        if resolved_name in alternatives:
-            logger.warning("The '%s' backend is not installed in your system. "
-                           "Consider using a slower backend alternative: '%s'",
-                           name,
-                           alternatives[resolved_name])
-        else:
-            logger.warning("The '%s' backend is not installed in your system. "
-                           "Consider using one of these slower alternatives: \n%s",
-                           name,
-                           '\n'.join(["- '{}'".format(b) for b in available]))
-
         raise LookupError("backend '{}' not found.".format(name))
 
     if name in deprecated:
