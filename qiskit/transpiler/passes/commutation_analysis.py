@@ -31,6 +31,10 @@ class CommutationAnalysis(AnalysisPass):
                 return np.array([[0.0, -1.0j],[1.0j,0.0]], dtype = np.complex)
             if name == 'cx': 
                 return np.array([[1.0,0.0,0.0, 0.0],[0.0,1.0,0.0, 0.0],[0.0,0.0,0.0, 1.0],[0.0,0.0,1.0, 0.0]], dtype = np.complex)
+            if name == 'cz': 
+                return np.array([[1.0,0.0,0.0, 0.0],[0.0,1.0,0.0, 0.0],[0.0,0.0,1.0, 0.0],[0.0,0.0,0.0, -1.0]], dtype = np.complex)
+            if name == 'cy': 
+                return np.array([[1.0,0.0,0.0, 0.0],[0.0,1.0,0.0, 0.0],[0.0,0.0,0.0, 1.0j],[0.0,0.0, -1.0j, 0.0]], dtype = np.complex)
             if name == 'z':
                 return np.array([[1.0, 0.0],[0.0,-1.0]], dtype = np.complex)
             if name == 't':
@@ -41,6 +45,18 @@ class CommutationAnalysis(AnalysisPass):
                 return np.array([[1.0, 0.0],[0.0,-np.exp(1j*np.pi/2.0)]], dtype = np.complex)
             if name == 'tdag':
                 return np.array([[1.0, 0.0],[0.0,-np.exp(1j*np.pi/4.0)]], dtype = np.complex)
+            if name == 'rz' or name == 'u1':
+                return np.array([[np.exp(-1j * para[0] / 2), 0],[0, np.exp(1j * para[0] / 2)]], dtype = np.complex)
+            if name == 'rx':
+                return np.array([[np.cos(para[0]/2), -1j * np.sin(para[0] / 2)], [-1j * np.sin(para[0] / 2), np.cos(para[0] / 2)]], dtype = np.complex)
+            if name == 'ry':
+                return np.array([[np.cos(para[0] / 2), - np.sin(para[0] / 2)], [np.sin(para[0] / 2), np.cos(para[0] / 2)]], dtype = np.complex)
+            if name == 'u2':
+                return 1./np.sqrt(2) * np.array([[1, -np.exp(1j*para[1])],[np.exp(1j*para[0]), np.exp(1j * (para[0] + para[1]))]], dtype = np.complex)
+            if name == 'u3':
+                return 1./np.sqrt(2) * np.array([[np.cos(para[0] /2.), -np.exp(1j*para[2])*np.sin(para[0] /2.)],[np.exp(1j*para[1])* np.sin(para[0] /2.), np.cos(para[0] /2.) * np.exp(1j * (para[2] + para[1]))]], dtype = np.complex)
+
+            return None
 
             """ # Doesn't consider directly implemented gates now. If enabled, then parameter 'para' would be passed for the rotation angles
             
@@ -71,8 +87,11 @@ class CommutationAnalysis(AnalysisPass):
             nargs1 = len(node1["qargs"])
             nargs2 = len(node2["qargs"])
 
-            unitary_1 = _GateMasterDef(name = node1["name"])
-            unitary_2 = _GateMasterDef(name = node2["name"])
+            unitary_1 = _GateMasterDef(name = node1["name"], para = node1["op"].param)
+            unitary_2 = _GateMasterDef(name = node2["name"], para = node2["op"].param)
+
+            if unitary_1 is None or unitary_2 is None:
+                return None
 
             if nargs1 == nargs2 == 1:
                 return  np.matmul(unitary_1, unitary_2) 
@@ -116,7 +135,10 @@ class CommutationAnalysis(AnalysisPass):
             if len(set(node1["qargs"]) | set(node2["qargs"])) == len(set(node1["qargs"])) + len(set(node2["qargs"])):
                 return True
             
-            return np.array_equal(_simple_product(node1, node2), _simple_product(node2, node1))
+            if _simple_product(node1, node2) is not None:
+                return np.array_equal(_simple_product(node1, node2), _simple_product(node2, node1))
+            else:
+                return False
         
         def commute(node1, node2):
 
