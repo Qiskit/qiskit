@@ -13,7 +13,7 @@ from copy import copy
 from logging import getLogger
 from pprint import pformat
 from sys import maxsize
-import np
+import numpy as np
 
 from qiskit.circuit import QuantumRegister
 from qiskit.transpiler._basepasses import TransformationPass
