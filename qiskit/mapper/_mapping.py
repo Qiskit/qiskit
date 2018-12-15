@@ -373,9 +373,9 @@ def direction_mapper(circuit_graph, coupling_graph):
                          cxedge[1][0], cxedge[1][1])
             continue
         elif (cxedge[1], cxedge[0]) in cg_edges:
-            circuit_graph.substitute_circuit_one(cx_node,
-                                                 flipped_cx_circuit,
-                                                 wires=[qr_fcx[0], qr_fcx[1]])
+            circuit_graph.substitute_node_with_dag(cx_node,
+                                                   flipped_cx_circuit,
+                                                   wires=[qr_fcx[0], qr_fcx[1]])
             logger.debug("cx %s[%d], %s[%d] -FLIP",
                          cxedge[0][0], cxedge[0][1],
                          cxedge[1][0], cxedge[1][1])

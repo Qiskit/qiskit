@@ -43,6 +43,8 @@ Added
   QuantumCircuit class. (#1172)
 - New methods in QuantumCircuit for common circuit metrics:
   `size()`, `depth()`, `width()`, `count_ops()`, `num_tensor_factors()` (#1285)
+- Added `backend_monitor` and `backend_overview` Jupyter magics,
+  as well as `plot_coupling_map` (#1231)
 - Added a `Layout` object (#1313)
 - Added a BasicMapper pass (#1270)
 - New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state

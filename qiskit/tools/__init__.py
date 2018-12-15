@@ -16,4 +16,4 @@ refer to the documentation of each component and use them separately.
 """
 
 from .compiler import (compile, execute)
-from .monitor import job_monitor
+from .monitor.job_monitor import job_monitor
