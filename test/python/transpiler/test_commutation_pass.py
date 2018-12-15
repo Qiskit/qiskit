@@ -41,7 +41,6 @@ class TestCommutationPass(QiskitTestCase):
         circuit.y(qr[0])
         circuit.t(qr[0])
         circuit.s(qr[0])
-        circuit.sdag(qr[0])
         circuit.rz(0.5, qr[0])
         circuit.u1(0.5, qr[0])
         circuit.u2(0.5, 0.6, qr[0])
@@ -51,6 +50,10 @@ class TestCommutationPass(QiskitTestCase):
         circuit.cz(qr[0], qr[1])
         dag = DAGCircuit.fromQuantumCircuit(circuit)
     
+        self.pass_.run(dag)
+        self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[5],[6], [7],[8,9,10,11],[12],[13],[14],[15],[16],[2]])
+        self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3],[14],[15],[16],[4]])
+
     def test_non_commutative_circuit(self):
         """ A simple circuit that no gates commute
         qr0:---[H]---
