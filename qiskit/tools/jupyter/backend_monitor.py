@@ -45,7 +45,7 @@ class BackendMonitor(Magics):
         tab_contents = ['Configuration']
 
         if not backend.configuration().simulator:
-            tab_contents.extend(['Qubit Properties', 'Gates',
+            tab_contents.extend(['Qubit Properties', 'Multi-Qubit Gates',
                                  'Error Map', 'Job History'])
             details.extend([qubits_tab(backend), gates_tab(backend),
                             detailed_map(backend), job_history(backend)])

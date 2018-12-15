@@ -11,7 +11,7 @@
 
 import unittest
 from qiskit.backends.ibmq import IBMQ
-from qiskit.tools.monitor import backend_overview
+from qiskit.tools.monitor import backend_overview, backend_monitor
 from ...common import QiskitTestCase, requires_qe_access
 
 
@@ -22,6 +22,14 @@ class TestBackendOverview(QiskitTestCase):
         """Test backend_overview"""
         IBMQ.enable_account(qe_token, qe_url)
         backend_overview()
+
+    def test_backend_monitor(self, qe_token, qe_url):
+        """Test backend_overview"""
+        IBMQ.enable_account(qe_token, qe_url)
+        for back in IBMQ.backends():
+            if not back.configuration().simulator:
+                backend = back
+        backend_monitor(backend)
 
 
 if __name__ == '__main__':
