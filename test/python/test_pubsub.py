@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Tests for qiskit/_pubsub.py"""
-from qiskit._pubsub import Publisher, Subscriber
+from qiskit.tools.events._pubsub import Publisher, Subscriber
 from .common import QiskitTestCase
 
 
