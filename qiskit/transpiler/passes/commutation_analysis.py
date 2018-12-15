@@ -46,15 +46,17 @@ class CommutationAnalysis(AnalysisPass):
             if name == 'tdag':
                 return np.array([[1.0, 0.0],[0.0,-np.exp(1j*np.pi/4.0)]], dtype = np.complex)
             if name == 'rz' or name == 'u1':
-                return np.array([[np.exp(-1j * para[0] / 2), 0],[0, np.exp(1j * para[0] / 2)]], dtype = np.complex)
+                print("I am in rz or u1")
+                print(type(para[0]))
+                return np.array([[np.exp(-1j * float(para[0]) / 2), 0],[0, np.exp(1j * float(para[0]) / 2)]], dtype = np.complex)
             if name == 'rx':
-                return np.array([[np.cos(para[0]/2), -1j * np.sin(para[0] / 2)], [-1j * np.sin(para[0] / 2), np.cos(para[0] / 2)]], dtype = np.complex)
+                return np.array([[np.cos(float(para[0])/2), -1j * np.sin(float(para[0]) / 2)], [-1j * np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]], dtype = np.complex)
             if name == 'ry':
-                return np.array([[np.cos(para[0] / 2), - np.sin(para[0] / 2)], [np.sin(para[0] / 2), np.cos(para[0] / 2)]], dtype = np.complex)
+                return np.array([[np.cos(float(para[0]) / 2), - np.sin(float(para[0]) / 2)], [np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]], dtype = np.complex)
             if name == 'u2':
-                return 1./np.sqrt(2) * np.array([[1, -np.exp(1j*para[1])],[np.exp(1j*para[0]), np.exp(1j * (para[0] + para[1]))]], dtype = np.complex)
+                return 1./np.sqrt(2) * np.array([[1, -np.exp(1j*float(para[1]))],[np.exp(1j*float(para[0])), np.exp(1j * (float(para[0]) + float(para[1])))]], dtype = np.complex)
             if name == 'u3':
-                return 1./np.sqrt(2) * np.array([[np.cos(para[0] /2.), -np.exp(1j*para[2])*np.sin(para[0] /2.)],[np.exp(1j*para[1])* np.sin(para[0] /2.), np.cos(para[0] /2.) * np.exp(1j * (para[2] + para[1]))]], dtype = np.complex)
+                return 1./np.sqrt(2) * np.array([[np.cos(float(para[0]) /2.), -np.exp(1j*float(para[2]))*np.sin(float(para[0]) /2.)],[np.exp(1j*float(para[1]))* np.sin(float(para[0]) /2.), np.cos(float(para[0]) /2.) * np.exp(1j * (float(para[2]) + float(para[1])))]], dtype = np.complex)
 
             return None
 

@@ -24,8 +24,6 @@ class TestCommutationPass(QiskitTestCase):
         self.pset = self.pass_.property_set = PropertySet()
     
     def test_commutation_set_property_is_created(self):
-        """ The property set does not have a property called "fixed_point" and it is created after
-        the  first run of the pass. """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
@@ -34,6 +32,24 @@ class TestCommutationPass(QiskitTestCase):
         self.assertIsNone(self.pset['commutation_set'])
         self.pass_.run(dag)
         self.assertIsNotNone(self.pset['commutation_set'])
+    
+    def test_all_gates(self):
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.x(qr[0])
+        circuit.y(qr[0])
+        circuit.t(qr[0])
+        circuit.s(qr[0])
+        circuit.sdag(qr[0])
+        circuit.rz(0.5, qr[0])
+        circuit.u1(0.5, qr[0])
+        circuit.u2(0.5, 0.6, qr[0])
+        circuit.u3(0.5, 0.6, 0.7, qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cy(qr[0], qr[1])
+        circuit.cz(qr[0], qr[1])
+        dag = DAGCircuit.fromQuantumCircuit(circuit)
     
     def test_non_commutative_circuit(self):
         """ A simple circuit that no gates commute
