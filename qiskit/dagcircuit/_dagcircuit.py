@@ -304,7 +304,7 @@ class DAGCircuit:
         # Check for each wire
         for wire in args:
             if wire not in amap:
-                raise DAGCircuitError("(qu)bit %s not found" % (wire,))
+                raise DAGCircuitError("(qu)bit %s[%d] not found" % (wire[0].name, wire[1]))
 
     def _bits_in_condition(self, cond):
         """Return a list of bits in the given condition.
@@ -624,10 +624,10 @@ class DAGCircuit:
                 m_wire = edge_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
-                    raise DAGCircuitError("wire (%s,%d) not in self" % (m_wire[0].name, m_wire[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
 
                 if nd["wire"] not in input_circuit.wires:
-                    raise DAGCircuitError("inconsistent wire type for (%s,%d) in input_circuit"
+                    raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
                                           % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "out":
@@ -692,11 +692,11 @@ class DAGCircuit:
                 m_name = wire_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
-                    raise DAGCircuitError("wire (%s,%d) not in self" % (m_name[0].name, m_name[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (m_name[0].name, m_name[1]))
 
                 if nd["wire"] not in input_circuit.wires:
                     raise DAGCircuitError(
-                        "inconsistent wire for (%s,%d) in input_circuit"
+                        "inconsistent wire for %s[%d] in input_circuit"
                         % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "in":
@@ -957,11 +957,8 @@ class DAGCircuit:
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
                 if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
-                    raise DAGCircuitError(
-
-                        "too many predecessors for (%s,%d) output node" % (w[0], w[1])
-                    )
-
+                    raise DAGCircuitError("too many predecessors for %s[%d] "
+                                          "output node" % (w[0], w[1]))
         return full_pred_map, full_succ_map
 
     @staticmethod
