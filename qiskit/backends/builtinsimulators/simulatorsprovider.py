@@ -89,7 +89,6 @@ class SimulatorsProvider(BaseProvider):
             'local_statevector_simulator_py': 'statevector_simulator',
             'local_unitary_simulator_py': 'unitary_simulator',
             'local_unitary_simulator': 'unitary_simulator',
-            'unitary_simulator': 'unitary_simulator'
             }
 
     def _verify_backends(self):
