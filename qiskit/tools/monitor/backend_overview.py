@@ -9,13 +9,18 @@
 """
 
 import math
+from qiskit.qiskiterror import QISKitError
 from qiskit.backends.ibmq import IBMQ
+
 
 def get_unique_backends():
     """Gets the unique backends that are available.
 
     Returns:
         list: Unique available backends.
+
+    Raises:
+        QISKitError: No backends available.
     """
     backends = IBMQ.backends()
     unique_hardware_backends = []
@@ -24,6 +29,8 @@ def get_unique_backends():
         if back.name() not in unique_names and not back.configuration().simulator:
             unique_hardware_backends.append(back)
             unique_names.append(back.name())
+    if not unique_hardware_backends:
+        raise QISKitError('No backends available.')
     return unique_hardware_backends
 
 
@@ -59,7 +66,7 @@ def backend_overview():
         max_len = 0
         str_list = ['']*8
         for idx in range(3):
-            offset = ' '* 10 if idx else ''
+            offset = ' ' * 10 if idx else ''
             config = _backends[count].configuration().to_dict()
             props = _backends[count].properties().to_dict()
             n_qubits = config['n_qubits']
@@ -76,7 +83,7 @@ def backend_overview():
             str_list[3] += 'Pending Jobs: %s' % stati[idx].pending_jobs
 
             str_list[4] += (' '*(max_len-len(str_list[4]))+offset)
-            str_list[4] += 'Least busy:   %s' % (True if idx == least_pending_idx else False)
+            str_list[4] += 'Least busy:   %s' % (True if count == least_pending_idx else False)
 
             str_list[5] += (' '*(max_len-len(str_list[5]))+offset)
             str_list[5] += 'Operational:  %s' % stati[idx].operational

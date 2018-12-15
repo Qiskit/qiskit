@@ -10,16 +10,17 @@
 """Tests for the wrapper functionality."""
 
 import unittest
+from qiskit.backends.ibmq import IBMQ
 from qiskit.tools.monitor import backend_overview
 from ...common import QiskitTestCase, requires_qe_access
-
 
 
 class TestBackendOverview(QiskitTestCase):
     """Tools test case."""
     @requires_qe_access
-    def test_backend_overview(self):
+    def test_backend_overview(self, qe_token, qe_url):
         """Test backend_overview"""
+        IBMQ.enable_account(qe_token, qe_url)
         backend_overview()
 
 
