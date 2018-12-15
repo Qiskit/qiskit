@@ -25,15 +25,20 @@ LEGACY_SIMULATORS = [
     CliffordSimulator
 ]
 
+DEPRECATION_MSG = """Simulators in the LegacySimulators provider are deprecated. If you want
+ maximum compatibility, you can use those in the Simulators provider. If you want to make the most
+ of performance, consider installing the Qiskit Aer element and user the Aer provider."""
+
 
 class LegacyProvider(SimulatorsProvider):
     """Provider for legacy simulators backends."""
 
+    def backends(self, name=None, filters=None, **kwargs):
+        warnings.warn(DEPRECATION_MSG, DeprecationWarning)
+        return super().backends(name=name, filter=filters, **kwargs)
+
     def get_backend(self, name=None, **kwargs):
-        warnings.warn('C++ simulators in the `LegacyProvider` are deprecated. Install '
-                      '`qiskit-aer` and import `Aer` from `qiskit` if you want make the most '
-                      'of performance. The `LegacyProvider` will be removed after 0.7',
-                      DeprecationWarning)
+        warnings.warn(DEPRECATION_MSG, DeprecationWarning)
         return super().get_backend(name=name, **kwargs)
 
     def _verify_backends(self):
