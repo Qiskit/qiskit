@@ -514,7 +514,6 @@ def swap_mapper(circuit_graph, coupling_graph,
 
     # Iterate over layers
     for i, layer in enumerate(layerlist):
-
         # Attempt to find a permutation for this layer
         success_flag, best_circ, best_d, best_layout, trivial_flag \
             = layer_permutation(layer["partition"], layout,
@@ -835,55 +834,3 @@ def optimize_1q_gates(circuit):
         if right_name == "nop":
             unrolled._remove_op_node(run[0])
     return unrolled
-
-
-def remove_last_measurements(dag_circuit, perform_remove=True):
-    """Removes all measurements that occur as the last operation
-    on a given qubit for a DAG circuit.  Measurements that are followed by
-    additional gates are untouched.
-
-    This operation is done in-place on the input DAG circuit if perform_pop=True.
-
-    Parameters:
-        dag_circuit (DAGCircuit): DAG circuit.
-        perform_remove (bool): Whether to perform removal, or just return node list.
-
-    Returns:
-        list: List of all measurement node indices (int) that were removed.
-    """
-    removed_meas = []
-    try:
-        meas_nodes = dag_circuit.get_named_nodes('measure')
-    except DAGCircuitError:
-        return removed_meas
-
-    for idx in meas_nodes:
-        _, succ_map = dag_circuit._make_pred_succ_maps(idx)
-        if len(succ_map) == 2 and all([dag_circuit.multi_graph.node[n]["type"] == "out"
-                                       for n in succ_map.values()]):
-            # All succesors of the measurement are outputs, one for qubit and one for cbit
-            # (As opposed to more gates being applied), and it is safe to remove the
-            # measurement node and add it back after the swap mapper is done.
-            removed_meas.append(dag_circuit.multi_graph.node[idx])
-            if perform_remove:
-                dag_circuit._remove_op_node(idx)
-    return removed_meas
-
-
-def return_last_measurements(dag_circuit, removed_meas, final_layout):
-    """Returns the measurements to a quantum circuit, removed by
-    `remove_last_measurements` after the swap mapper is finished.
-
-    This operation is done in-place on the input DAG circuit.
-
-    Parameters:
-        dag_circuit (DAGCircuit): DAG circuit.
-        removed_meas (list[int]): List of measurements previously removed.
-        final_layout (dict): Qubit layout after swap mapping.
-    """
-    if any(removed_meas) and 'measure' not in dag_circuit.basis.keys():
-        dag_circuit.add_basis_element("measure", 1, 1, 0)
-    for meas in removed_meas:
-        new_q = final_layout[meas['qargs'][0]]
-        new_c = meas['cargs'][0]
-        dag_circuit.apply_operation_back(Measure(new_q, new_c))

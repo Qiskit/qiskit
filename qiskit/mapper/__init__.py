@@ -13,5 +13,4 @@ from ._couplingerror import CouplingError
 from ._layout import Layout
 from ._mappererror import MapperError
 from ._mapping import (swap_mapper, direction_mapper, cx_cancellation,
-                       optimize_1q_gates, remove_last_measurements,
-                       return_last_measurements)
+                       optimize_1q_gates)

@@ -16,8 +16,7 @@ from qiskit.qiskiterror import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
-                           cx_cancellation, direction_mapper,
-                           remove_last_measurements, return_last_measurements)
+                           cx_cancellation, direction_mapper)
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from ._parallel import parallel_map
@@ -175,8 +174,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                         dag.properties())
             # Insert swap gates
             coupling = Coupling(couplinglist=coupling_map)
-            removed_meas = remove_last_measurements(dag)
-            logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
             dag, final_layout, last_layout = swap_mapper(
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
@@ -189,8 +186,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             cx_cancellation(dag)
             # Simplify single qubit gates
             dag = optimize_1q_gates(dag)
-            return_last_measurements(dag, removed_meas,
-                                     last_layout)
             logger.info("post-mapping properties: %s",
                         dag.properties())
 

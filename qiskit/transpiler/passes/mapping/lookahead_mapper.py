@@ -46,7 +46,7 @@ from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.mapper import Layout, remove_last_measurements, return_last_measurements, MapperError
+from qiskit.mapper import Layout, MapperError
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -80,9 +80,6 @@ class LookaheadMapper(TransformationPass):
 
         """
 
-        # Preserve fix for https://github.com/Qiskit/qiskit-terra/issues/674
-        removed_measures = remove_last_measurements(dag)
-
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
@@ -114,8 +111,6 @@ class LookaheadMapper(TransformationPass):
 
         for gate in mapped_gates:
             mapped_dag.apply_operation_back(**gate)
-
-        return_last_measurements(mapped_dag, removed_measures, layout)
 
         return mapped_dag
 
