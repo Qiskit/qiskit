@@ -1,6 +1,6 @@
 from qiskit import *
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.visualization import *
+from qiskit.converters import circuit_to_dag
 
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutationAnalysis, CommutationTransformation
@@ -21,15 +21,14 @@ circuit.cx(qr[2], qr[1])
 circuit.cx(qr[4], qr[3])
 circuit.cx(qr[2], qr[3]) 
 
-qdag = DAGCircuit.fromQuantumCircuit(circuit)
-plot_circuit(circuit)
+dag = circuit_to_dag(circuit)
+circuit.draw(interactive=True, output='latex')
 
-dag_drawer(qdag)
+dag_drawer(dag)
 
 pm = PassManager()
 
-pm.add_passes(CommutationAnalysis())
-pm.add_passes(CommutationTransformation())
+pm.append([CommutationAnalysis(), CommutationTransformation()])
 
-qdag = transpile_dag(qdag, pass_manager=pm)
-dag_drawer(qdag)
+dag = transpile_dag(dag, pass_manager=pm)
+dag_drawer(dag)
