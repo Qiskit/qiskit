@@ -52,7 +52,7 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
         expected.u2(0, sympy.pi, qr[0])
 
         passmanager = PassManager()
-        passmanager.add_passes(Optimize1qGates())
+        passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
 
         self.assertEqual(expected, result)
