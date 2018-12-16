@@ -14,6 +14,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutationTransformation
+from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 class TestCommutationPass(QiskitTestCase):
@@ -27,7 +28,7 @@ class TestCommutationPass(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.assertIsNone(self.pset['commutation_set'])
         self.pass_.run(dag)
@@ -48,7 +49,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cy(qr[0], qr[1])
         circuit.cz(qr[0], qr[1])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
     
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[5],[6], [7],[8,9,10,11],[12],[13],[14],[15],[16],[2]])
@@ -65,7 +66,7 @@ class TestCommutationPass(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7],[2]])
@@ -86,7 +87,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[2])
         circuit.cx(qr[1], qr[2])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7],[2]])
@@ -108,7 +109,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[2])
         circuit.cx(qr[2], qr[1])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7],[2]])
@@ -132,7 +133,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.z(qr[0])
         circuit.h(qr[2])
         circuit.cx(qr[2], qr[1])
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7, 8],[2]])
@@ -160,7 +161,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.z(qr[0])
         circuit.cx(qr[1], qr[2])
 
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7, 9, 11, 13],[2]])
@@ -182,7 +183,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.cx(qr[0], qr[1])
 
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[13, 23],[2]])
@@ -205,7 +206,7 @@ class TestCommutationPass(QiskitTestCase):
         circuit.cx(qr[2], qr[1])
         circuit.cx(qr[4], qr[3])
         circuit.cx(qr[2], qr[3]) 
-        dag = DAGCircuit.fromQuantumCircuit(circuit)
+        dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[11, 15, 17],[2]])

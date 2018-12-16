@@ -5,7 +5,6 @@ from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler.passes.commutation_analysis import CommutationAnalysis
 from qiskit.transpiler import AnalysisPass
 import numpy as np
-import networkx as nx
 
 class CommutationTransformation(TransformationPass):
     def __init__(self):
@@ -19,24 +18,23 @@ class CommutationTransformation(TransformationPass):
 
         """
         Construct a new DAG that is commutativity aware. The new DAG is:
-        - not friendly to simple scheduling(conflicts might arise), but leave more room for optimization. 
+        - not friendly to simple scheduling (conflicts might arise),
+        but leave more room for optimization.
         - The depth() method will not be accurate before the final scheduling anymore.
         - Preserves the gate count but not edge count in the MultiDiGraph
 
         Args:
             dag (DAGCircuit): the directed acyclic graph
-        Return: 
+        Return:
             DAGCircuit: Transformed DAG.
         """
-        
+
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
-
-            for c_set_ind, c_set in enumerate(self.property_set['commutation_set'][wire_name]):
-
+            wire_commutation_set = self.property_set['commutation_set'][wire_name]
+            for c_set_ind, c_set in enumerate(wire_commutation_set):
                 if dag.multi_graph.node[c_set[0]]['type'] == 'out':
                     continue
-                
                 for node1 in c_set:
                     for node2 in c_set:
                         if node1 != node2:
@@ -47,16 +45,16 @@ class CommutationTransformation(TransformationPass):
 
                             while dag.multi_graph.has_edge(node1, node2):
                                 dag.multi_graph.remove_edge(node1, node2)
-                            
+
                             if wire_to_save != '':
                                 dag.multi_graph.add_edge(node1, node2, name = wire_to_save)
-                        
-                    for next_node in self.property_set['commutation_set'][wire_name][c_set_ind + 1]:
+
+                    for next_node in wire_commutation_set[c_set_ind + 1]:
 
                         nd = dag.multi_graph.node[node1]
                         next_nd = dag.multi_graph.node[next_node]
 
-                        edge_on_wire = False 
+                        edge_on_wire = False
                         for temp_edge in dag.multi_graph.edges([node1], data = True):
                             if temp_edge[1] == next_node and temp_edge[2]['name'] == wire_name:
                                 edge_on_wire = True
@@ -64,4 +62,4 @@ class CommutationTransformation(TransformationPass):
                         if not edge_on_wire:
                             dag.multi_graph.add_edge(node1, next_node, name = wire_name)
 
-        return dag 
+        return dag
