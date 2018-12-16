@@ -41,7 +41,11 @@
 """Progress bars module"""
 
 import time
-import ipywidgets as widgets                # pylint: disable=import-error
+try:
+    import ipywidgets as widgets           # pylint: disable=import-error
+except ImportError:
+    raise ImportError('These functions  need ipywidgets. '
+                      'Run "pip install ipywidgets" before.')
 from IPython.display import display         # pylint: disable=import-error
 from qiskit.tools.events.progressbar import BaseProgressBar
 
