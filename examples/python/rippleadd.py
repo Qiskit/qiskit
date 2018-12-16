@@ -79,15 +79,12 @@ qc.measure(cout[0], ans[n])
 qobj = compile(qc, backend=backend, coupling_map=None, shots=1024)
 job = backend.run(qobj)
 result = job.result()
-print(result)
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
 qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024)
 job = backend.run(qobj)
 result = job.result()
-
-print(result)
 print(result.get_counts(qc))
 
 # Both versions should give the same distribution
