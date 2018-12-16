@@ -16,7 +16,7 @@ from ..common import QiskitTestCase, requires_qe_access, slow_test
 
 
 class TestIBMQBackends(QiskitTestCase):
-    """Tests for all the Aer simulators."""
+    """Tests for all the IBMQ backends."""
 
     def setUp(self):
         super().setUp()

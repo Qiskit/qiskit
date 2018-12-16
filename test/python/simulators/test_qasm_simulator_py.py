@@ -12,13 +12,13 @@ import unittest
 import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.backends.aer.qasm_simulator_py import QasmSimulatorPy
+from qiskit.backends.builtinsimulators.qasm_simulator import QasmSimulatorPy
 
 from ..common import QiskitTestCase
 
 
-class TestAerQasmSimulatorPy(QiskitTestCase):
-    """Test Aer's qasm_simulator_py."""
+class TestBuiltinQasmSimulatorPy(QiskitTestCase):
+    """Test the built-in qasm_simulator."""
 
     def setUp(self):
         self.seed = 88
@@ -86,7 +86,7 @@ class TestAerQasmSimulatorPy(QiskitTestCase):
         """test teleportation as in tutorials"""
         self.log.info('test_teleport')
         pi = np.pi
-        shots = 1000
+        shots = 2000
         qr = QuantumRegister(3, 'qr')
         cr0 = ClassicalRegister(1, 'cr0')
         cr1 = ClassicalRegister(1, 'cr1')

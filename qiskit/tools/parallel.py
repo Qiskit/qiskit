@@ -48,7 +48,10 @@ import platform
 from multiprocessing import Pool
 from qiskit.qiskiterror import QiskitError
 from qiskit._util import local_hardware_info
-from qiskit._pubsub import Publisher
+from qiskit.tools.events._pubsub import Publisher
+
+# Set parallel flag
+os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
@@ -82,19 +85,19 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         QiskitError: If user interrupts via keyboard.
 
     Events:
-        terra.transpiler.parallel.start: The collection of parallel tasks are about to start.
-        terra.transpiler.parallel.update: One of the parallel task has finished.
-        terra.transpiler.parallel.finish: All the parallel tasks have finished.
+        terra.parallel.start: The collection of parallel tasks are about to start.
+        terra.parallel.update: One of the parallel task has finished.
+        terra.parallel.finish: All the parallel tasks have finished.
     """
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
 
-    Publisher().publish("terra.transpiler.parallel.start", len(values))
+    Publisher().publish("terra.parallel.start", len(values))
     nfinished = [0]
 
     def _callback(_):
         nfinished[0] += 1
-        Publisher().publish("terra.transpiler.parallel.done", nfinished[0])
+        Publisher().publish("terra.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
     if platform.system() != 'Windows' and num_processes > 1 \
@@ -116,10 +119,10 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         except KeyboardInterrupt:
             pool.terminate()
             pool.join()
-            Publisher().publish("terra.parallel.parallel.finish")
+            Publisher().publish("terra.parallel.finish")
             raise QiskitError('Keyboard interrupt in parallel_map.')
 
-        Publisher().publish("terra.transpiler.parallel.finish")
+        Publisher().publish("terra.parallel.finish")
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
         return [ar.get() for ar in async_res]
 
@@ -130,5 +133,5 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
         result = task(value, *task_args, **task_kwargs)
         results.append(result)
         _callback(0)
-    Publisher().publish("terra.transpiler.parallel.finish")
+    Publisher().publish("terra.parallel.finish")
     return results
