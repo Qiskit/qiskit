@@ -12,3 +12,4 @@ ipywidgets
 stestr>=2.0.0
 sphinx_materialdesign_theme
 matplotlib>=2.1
+nxpd>=0.2
