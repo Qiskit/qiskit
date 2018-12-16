@@ -22,7 +22,6 @@ from sympy import Number as N
 from qiskit.qasm import _node as node
 from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
@@ -31,7 +30,6 @@ from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.circuit.measure import Measure
 from qiskit.circuit.instruction import Instruction
 
 logger = logging.getLogger(__name__)
