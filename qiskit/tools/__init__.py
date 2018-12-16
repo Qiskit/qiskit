@@ -17,5 +17,3 @@ refer to the documentation of each component and use them separately.
 
 from .parallel import parallel_map
 from .compiler import (compile, execute)
-from .monitor.job_monitor import job_monitor
-from .events.progressbar import TextProgressBar
