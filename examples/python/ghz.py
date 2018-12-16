@@ -54,7 +54,7 @@ print(result.get_counts(qc))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+                                             filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()
