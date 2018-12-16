@@ -11,7 +11,7 @@ import unittest
 from qiskit.transpiler.passes import StochasticMapper
 from qiskit.mapper import Coupling
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 
@@ -302,6 +302,93 @@ class TestStochasticMapper(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_overoptimization_case(self):
+        """Check mapper overoptimization.
+
+        The mapper should not change the semantics of the input.
+        An overoptimization introduced issue #81:
+        https://github.com/Qiskit/qiskit-terra/issues/81
+        """
+        coupling = Coupling({0: [2], 1: [2], 2: [3]})
+        '''
+                                    ┌───┐     ┌─┐                
+q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
+                               ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
+q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
+        ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
+q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
+        └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║ 
+q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
+             └───┘└───┘└╥┘                     ║            ║  ║ 
+ c_0: 0 ════════════════╬══════════════════════╩════════════╬══╬═
+                        ║                                   ║  ║ 
+ c_1: 0 ════════════════╬═══════════════════════════════════╬══╩═
+                        ║                                   ║    
+ c_2: 0 ════════════════╬═══════════════════════════════════╩════
+                        ║                                        
+ c_3: 0 ════════════════╩════════════════════════════════════════
+        '''
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[0])
+        circuit.y(qr[1])
+        circuit.z(qr[2])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[2], qr[3])
+        circuit.s(qr[1])
+        circuit.t(qr[2])
+        circuit.h(qr[3])
+        circuit.cx(qr[1], qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[2], cr[2])
+        circuit.measure(qr[3], cr[3])
+        dag = circuit_to_dag(circuit)
+        '''                                                         
+                               ┌───┐   ┌───┐        ┌─┐                
+q_0: |0>───────────────────────┤ X ├─X─┤ T ├──────X─┤M├────────────────
+                          ┌───┐└───┘ │ └───┘┌───┐ │ └╥┘┌───┐        ┌─┐
+q_1: |0>──────────────────┤ Y ├──────┼──────┤ X ├─┼──╫─┤ S ├──■─────┤M├
+        ┌───┐             └───┘      │      └─┬─┘ │  ║ └───┘┌─┴─┐┌─┐└╥┘
+q_2: |0>┤ Z ├──■─────────────────────X────────■───X──╫──────┤ X ├┤M├─╫─
+        └───┘┌─┴─┐┌───┐┌─┐                           ║      └───┘└╥┘ ║ 
+q_3: |0>─────┤ X ├┤ H ├┤M├───────────────────────────╫────────────╫──╫─
+             └───┘└───┘└╥┘                           ║            ║  ║ 
+ c_0: 0 ════════════════╬════════════════════════════╩════════════╬══╬═
+                        ║                                         ║  ║ 
+ c_1: 0 ════════════════╬═════════════════════════════════════════╬══╩═
+                        ║                                         ║    
+ c_2: 0 ════════════════╬═════════════════════════════════════════╩════
+                        ║                                              
+ c_3: 0 ════════════════╩══════════════════════════════════════════════
+        '''
+        expected = QuantumCircuit(qr, cr)
+        expected.x(qr[0])
+        expected.y(qr[1])
+        expected.z(qr[2])
+        expected.cx(qr[2], qr[3])
+        expected.h(qr[3])
+        expected.measure(qr[3], cr[3])
+        expected.swap(qr[0], qr[2])
+        expected.cx(qr[2], qr[1])
+        expected.s(qr[1])
+        expected.t(qr[0])
+        expected.swap(qr[0], qr[2])
+        expected.cx(qr[1], qr[2])
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[1])
+        expected.measure(qr[2], cr[2])
+        expected_dag = circuit_to_dag(expected)
+
+        pass_ = StochasticMapper(coupling, None, 20, 13)
+        after = pass_.run(dag)
+        self.assertEqual(expected_dag, after)
+
+
+# TODO: Port over the other mapper tests
+
 
 if __name__ == '__main__':
     unittest.main()
