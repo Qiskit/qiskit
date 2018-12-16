@@ -12,7 +12,11 @@ import threading
 from IPython.display import display                              # pylint: disable=import-error
 from IPython.core import magic_arguments                         # pylint: disable=import-error
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
-import ipywidgets as widgets                                     # pylint: disable=import-error
+try:
+    import ipywidgets as widgets           # pylint: disable=import-error
+except ImportError:
+    raise ImportError('These functions  need ipywidgets. '
+                      'Run "pip install ipywidgets" before.')
 import qiskit
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
