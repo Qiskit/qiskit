@@ -15,6 +15,11 @@ is also recommended for interacting with
 For this reason we recommend installing `Anaconda 3 <https://www.anaconda.com/download/>`__
 python distribution, which already comes with all these dependencies pre-installed.
 
+Windows users also need to install VC++ runtime components. We recommend one of the following links.
+
+- `Microsoft Visual C++ Redistributable for Visual Studio 2017 <https://go.microsoft.com/fwlink/?LinkId=746572>`__
+- `Microsoft Visual C++ Redistributable for Visual Studio 2015 <https://www.microsoft.com/en-US/download/details.aspx?id=48145>`__
+
 
 Installation
 -------------
