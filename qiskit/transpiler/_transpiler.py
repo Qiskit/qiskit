@@ -14,12 +14,12 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.mapper import (Coupling, optimize_1q_gates, swap_mapper,
-                           cx_cancellation, direction_mapper,
+from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, direction_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
+from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
 from .passes.mapping.unroller import Unroller
 from ._transpilererror import TranspilerError
 
@@ -193,8 +193,10 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             dag = direction_mapper(dag, coupling)
             # Simplify cx gates
             cx_cancellation(dag)
+            # Unroll to the basis
+            dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
             # Simplify single qubit gates
-            dag = optimize_1q_gates(dag)
+            dag = Optimize1qGates().run(dag)
             return_last_measurements(dag, removed_meas,
                                      last_layout)
             logger.info("post-mapping properties: %s",
