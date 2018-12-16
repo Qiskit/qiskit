@@ -53,7 +53,7 @@ class PassManager():
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
         if passes is not None:
-            self.add_passes(passes)
+            self.append(passes)
 
     def _join_options(self, passset_options):
         """ Set the options of each passset, based on precedence rules:
