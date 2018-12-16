@@ -23,6 +23,7 @@ import pprint, time
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import compile, IBMQ, BasicAer
 from qiskit.backends.ibmq import least_busy
+from qiskit.tools.monitor import job_monitor
 
 try:
     IBMQ.load_accounts()
@@ -51,7 +52,7 @@ try:
     print("(Aer Backends)")
     for backend in BasicAer.backends():
         print(backend.status())
-    my_backend = BasicAer.get_backend('local_qasm_simulator')
+    my_backend = BasicAer.get_backend('qasm_simulator')
     print("(QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration())
     print("(QASM Simulator properties) ")
@@ -81,7 +82,6 @@ try:
     sim_result=sim_job.result()
 
     # Show the results
-    print("simulation: ", sim_result)
     print(sim_result.get_counts(qc1))
     print(sim_result.get_counts(qc2))
 
@@ -91,19 +91,10 @@ try:
         # Running the job.
         exp_job = least_busy_device.run(qobj)
 
-        lapse = 0
-        interval = 10
-        while exp_job.status().name != 'DONE':
-            print('Status @ {} seconds'.format(interval * lapse))
-            print(exp_job.status())
-            time.sleep(interval)
-            lapse += 1
-        print(exp_job.status())
-
+        job_monitor(exp_job)
         exp_result = exp_job.result()
 
         # Show the results
-        print("experiment: ", exp_result)
         print(exp_result.get_counts(qc1))
         print(exp_result.get_counts(qc2))
     except:

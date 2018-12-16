@@ -41,7 +41,6 @@ try:
     result_sim = job_sim.result()
 
     # Show the results
-    print("simulation: ", result_sim)
     print(result_sim.get_counts(qc))
 
     # see a list of available remote backends
@@ -58,7 +57,6 @@ try:
         result_exp = job_exp.result()
 
         # Show the results
-        print("experiment: ", result_exp)
         print(result_exp.get_counts(qc))
     except:
         print("All devices are currently unavailable.")
