@@ -16,8 +16,12 @@ from qiskit.qiskiterror import QiskitError
 _NOTEBOOK_ENV = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     _NOTEBOOK_ENV = True
-    from IPython.display import display                              # pylint: disable=import-error
-    import ipywidgets as widgets                                     # pylint: disable=import-error
+    from IPython.display import display    # pylint: disable=import-error
+    try:
+        import ipywidgets as widgets           # pylint: disable=import-error
+    except ImportError:
+        raise ImportError('These functions  need ipywidgets. '
+                          'Run "pip install ipywidgets" before.')
     from qiskit.tools.jupyter.jupyter_magics import _html_checker    # pylint: disable=C0412
 
 
