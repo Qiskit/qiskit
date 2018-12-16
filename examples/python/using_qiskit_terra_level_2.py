@@ -51,7 +51,7 @@ print(compiled_standard.qasm())
 # 2. custom compile -- customize PassManager to run specific circuit transformations
 from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
-pm.add_passes(CXCancellation())
+pm.append(CXCancellation())
 dags = transpiler.transpile(circ, backend_device, pass_manager=pm)
 [compiled_custom] = dags
 print(compiled_custom.qasm())
