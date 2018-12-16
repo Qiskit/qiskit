@@ -18,11 +18,16 @@ from ._transpilererror import TranspilerError
 class PassManager():
     """ A PassManager schedules the passes """
 
-    def __init__(self, ignore_requires=None, ignore_preserves=None, max_iteration=None):
+    def __init__(self, passes=None,
+                 ignore_requires=None,
+                 ignore_preserves=None,
+                 max_iteration=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
+            passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
+                None.
             ignore_requires (bool): The schedule ignores the requires field in the passes. The
                 default setting in the pass is False.
             ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
@@ -47,6 +52,8 @@ class PassManager():
         self.passmanager_options = {'ignore_requires': ignore_requires,
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
+        if passes is not None:
+            self.append(passes)
 
     def _join_options(self, passset_options):
         """ Set the options of each passset, based on precedence rules:
