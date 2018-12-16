@@ -43,7 +43,7 @@
 import time
 import datetime
 import sys
-from qiskit._pubsub import Subscriber
+from qiskit.tools.events._pubsub import Subscriber
 
 
 class BaseProgressBar(Subscriber):
@@ -119,20 +119,20 @@ class TextProgressBar(BaseProgressBar):
         def _initialize_progress_bar(num_tasks):
             """ """
             self.start(num_tasks)
-        self.subscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
+        self.subscribe("terra.parallel.start", _initialize_progress_bar)
 
         def _update_progress_bar(progress):
             """ """
             self.update(progress)
-        self.subscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
+        self.subscribe("terra.parallel.done", _update_progress_bar)
 
         def _finish_progress_bar():
             """ """
-            self.unsubscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
-            self.unsubscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
-            self.unsubscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+            self.unsubscribe("terra.parallel.start", _initialize_progress_bar)
+            self.unsubscribe("terra.parallel.done", _update_progress_bar)
+            self.unsubscribe("terra.parallel.finish", _finish_progress_bar)
             self.finished()
-        self.subscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+        self.subscribe("terra.parallel.finish", _finish_progress_bar)
 
     def start(self, iterations):
         self.touched = True
