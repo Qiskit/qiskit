@@ -13,7 +13,11 @@ Visualization function for DAG circuit representation.
 
 import sys
 import copy
-import nxpd
+try:
+    import nxpd
+except ImportError:
+    raise ImportError("dag_drawer requires nxpd and Graphviz. "
+                      "Run 'pip install nxpd', and install Graphviz.")
 from ._error import VisualizationError
 
 
