@@ -58,6 +58,7 @@ Added
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
 - Added LookaheadSwap as new transpiler mapper pass (#1140).
 - Added a ``.qobj()`` method for IBMQ and local simulator Jobs (#1532).
+- Added CommutationAnalysis and CommutationTransformation as new transpiler pass (#1500).
 
 Changed
 """""""
