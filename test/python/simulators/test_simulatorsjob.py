@@ -21,7 +21,7 @@ from qiskit.backends.builtinsimulators import QasmSimulatorPy
 from qiskit.backends.builtinsimulators import StatevectorSimulatorPy
 from qiskit.backends.builtinsimulators import UnitarySimulatorPy
 from ..common import QiskitTestCase
-from .._mockutils import new_fake_qobj
+from .._mockutils import new_fake_qobj, FakeBackend
 
 
 class TestSimulatorsJob(QiskitTestCase):
@@ -82,12 +82,6 @@ class TestSimulatorsJob(QiskitTestCase):
             call_count, 1,
             'Callable object has been called more than once ({})'.format(
                 call_count))
-
-
-class FakeBackend():
-
-    def __init__(self):
-        self.name = 'test-backend'
 
 
 @contextmanager

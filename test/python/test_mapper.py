@@ -10,12 +10,10 @@
 # pylint: disable=redefined-builtin
 
 import unittest
-import sympy
-import numpy as np
 
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import mapper, BasicAer
+from qiskit import BasicAer
 from qiskit.backends.models import BackendConfiguration
 from qiskit.backends.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
@@ -158,69 +156,6 @@ class TestMapper(QiskitTestCase):
         target = {'0001': shots / 2, '0101': shots / 2}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_optimize_1q_gates_collapse_identity(self):
-        """test optimize_1q_gates removes u1(2*pi) rotations.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/159
-        """
-        qr = QuantumRegister(2, 'qr')
-        cr = ClassicalRegister(2, 'cr')
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0])
-        qc.cx(qr[1], qr[0])
-        qc.u1(2 * sympy.pi, qr[0])  # TODO: this identity should be removed (but is not)
-        qc.cx(qr[1], qr[0])
-        qc.u1(sympy.pi / 2, qr[0])  # these three should combine
-        qc.u1(sympy.pi, qr[0])  # to identity then
-        qc.u1(sympy.pi / 2, qr[0])  # optimized away.
-        qc.cx(qr[1], qr[0])
-        qc.u1(np.pi, qr[1])  # this doesn't become precisely 0, so should
-        qc.u1(np.pi, qr[1])  # combine but stay, until an approximate optimizer.
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
-
-        dag = circuit_to_dag(qc)
-        simplified_dag = mapper.optimize_1q_gates(dag)
-        num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
-        self.assertEqual(num_u1_gates_remaining, 2)
-
-    def test_optimize_1q_gates_symbolic(self):
-        """optimizes single qubit gate sequences with symbolic params.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/172
-        """
-        qr = QuantumRegister(4)
-        cr = ClassicalRegister(4)
-        circ = QuantumCircuit(qr, cr)
-        # unary
-        circ.u1(-sympy.pi, qr[0])
-        circ.u1(-sympy.pi / 2, qr[0])
-        # binary
-        circ.u1(0.2 * sympy.pi + 0.3 * sympy.pi, qr[1])
-        circ.u1(1.3 - 0.3, qr[1])
-        circ.u1(0.1 * sympy.pi / 2, qr[1])
-        # extern
-        circ.u1(sympy.sin(0.2 + 0.3 - sympy.pi), qr[2])
-        # power
-        circ.u1(sympy.pi, qr[3])
-        circ.u1(0.3 + (-sympy.pi) ** 2, qr[3])
-
-        dag = circuit_to_dag(circ)
-        simplified_dag = mapper.optimize_1q_gates(dag)
-
-        params = set()
-        for n in simplified_dag.multi_graph.nodes:
-            node = simplified_dag.multi_graph.node[n]
-            if node['name'] == 'u1':
-                params.add(node['op'].param[0])
-
-        expected_params = {-3 * sympy.pi / 2,
-                           1.0 + 0.55 * sympy.pi,
-                           sympy.N(-0.479425538604203),
-                           0.3 + sympy.pi + sympy.pi ** 2}
-
-        self.assertEqual(params, expected_params)
 
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
