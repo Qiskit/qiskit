@@ -54,7 +54,7 @@ class TestDirectionMapper(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
-        coupling = Coupling({0: [2, 1]})
+        coupling = Coupling([(0, 1), (0, 2)])
         dag = circuit_to_dag(circuit)
 
         pass_ = DirectionMapper(coupling)
@@ -73,7 +73,7 @@ class TestDirectionMapper(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = Coupling({0: [1]})
+        coupling = Coupling([(0, 1)])
         dag = circuit_to_dag(circuit)
 
         pass_ = DirectionMapper(coupling)
@@ -96,7 +96,7 @@ class TestDirectionMapper(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])
-        coupling = Coupling({0: [1]})
+        coupling = Coupling([(0, 1)])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
@@ -133,7 +133,7 @@ class TestDirectionMapper(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[1], qr[0])
         circuit.measure(qr[0], cr[0])
-        coupling = Coupling({0: [1]})
+        coupling = Coupling([(0, 1)])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
