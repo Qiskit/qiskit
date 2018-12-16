@@ -74,5 +74,4 @@ qobj_exp.header.compiled_circuit_qasm = ""
 job = backend.run(qobj)
 result = job.result()
 print(result.get_counts(qc))
-print(result.data(0))
 # Both versions should give the same distribution
