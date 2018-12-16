@@ -56,6 +56,26 @@ class SchedulerTestCase(QiskitTestCase):
         self.assertEqual([record.message for record in cm.records], expected)
 
 
+class TestPassManagerInit(SchedulerTestCase):
+    """ The pass manager sets things at init time."""
+
+    def test_passes(self):
+        """ A single chain of passes, with Requests and Preserves, at __init__ time"""
+        dag = circuit_to_dag(QuantumCircuit(QuantumRegister(1)))
+        passmanager = PassManager(passes=[
+            PassC_TP_RA_PA(),  # Request: PassA / Preserves: PassA
+            PassB_TP_RA_PA(),  # Request: PassA / Preserves: PassA
+            PassD_TP_NR_NP(argument1=[1, 2]),  # Requires: {}/ Preserves: {}
+            PassB_TP_RA_PA()])
+        self.assertScheduler(dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                'run transformation pass PassC_TP_RA_PA',
+                                                'run transformation pass PassB_TP_RA_PA',
+                                                'run transformation pass PassD_TP_NR_NP',
+                                                'argument [1, 2]',
+                                                'run transformation pass PassA_TP_NR_NP',
+                                                'run transformation pass PassB_TP_RA_PA'])
+
+
 class TestUseCases(SchedulerTestCase):
     """ The pass manager schedules passes in, sometimes, tricky ways. These tests combine passes in
      many ways, and checks that passes are ran in the right order. """
