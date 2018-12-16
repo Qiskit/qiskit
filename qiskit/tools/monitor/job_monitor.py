@@ -16,7 +16,6 @@ from qiskit.qiskiterror import QiskitError
 _NOTEBOOK_ENV = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     _NOTEBOOK_ENV = True
-    
     from IPython.display import display    # pylint: disable=import-error
     try:
         import ipywidgets as widgets           # pylint: disable=import-error
