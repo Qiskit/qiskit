@@ -7,8 +7,8 @@
 
 """A module for visualizing device coupling maps"""
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt  # pylint: disable=import-error
+import matplotlib.patches as mpatches  # pylint: disable=import-error
 from qiskit.qiskiterror import QISKitError
 
 
