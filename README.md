@@ -27,6 +27,9 @@ addition, [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.ht
 for interacting with the tutorials.
 For this reason we recommend installing the [Anaconda 3](https://www.continuum.io/downloads)
 python distribution, as it comes with all of these dependencies pre-installed.
+Windows users also need to install VC++ runtime components. We recommend one of the following links.
+- [Microsoft Visual C++ Redistributable for Visual Studio 2017](https://go.microsoft.com/fwlink/?LinkId=746572)
+- [Microsoft Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-US/download/details.aspx?id=48145)
 
 See [installing](doc/install.rst) Qiskit for detailed instructions, how to build from source and using environments. 
 
