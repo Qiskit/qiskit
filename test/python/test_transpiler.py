@@ -93,7 +93,7 @@ class TestTranspiler(QiskitTestCase):
         dag_circuit = circuit_to_dag(circuit)
 
         pass_manager = PassManager()
-        pass_manager.add_passes(CXCancellation())
+        pass_manager.append(CXCancellation())
         dag_circuit = transpile_dag(dag_circuit, pass_manager=pass_manager)
         resources_after = dag_circuit.count_ops()
 
@@ -116,13 +116,13 @@ class TestTranspiler(QiskitTestCase):
         coupling_map = Coupling(couplinglist=[(0, 1), (0, 2)])
 
         pass_manager = PassManager()
-        pass_manager.add_passes(LookaheadMapper(coupling_map))
+        pass_manager.append(LookaheadMapper(coupling_map))
         mapped_dag = transpile_dag(original_dag, pass_manager=pass_manager)
 
         self.assertEqual(original_dag, mapped_dag)
 
         second_pass_manager = PassManager()
-        second_pass_manager.add_passes(LookaheadMapper(coupling_map))
+        second_pass_manager.append(LookaheadMapper(coupling_map))
         remapped_dag = transpile_dag(mapped_dag, pass_manager=second_pass_manager)
 
         self.assertEqual(mapped_dag, remapped_dag)
@@ -142,7 +142,7 @@ class TestTranspiler(QiskitTestCase):
         coupling_map = Coupling(couplinglist=[(0, 1), (1, 2)])
 
         pass_manager = PassManager()
-        pass_manager.add_passes([LookaheadMapper(coupling_map)])
+        pass_manager.append([LookaheadMapper(coupling_map)])
         mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
 
         self.assertEqual(mapped_dag.count_ops().get('swap', 0),
@@ -170,7 +170,7 @@ class TestTranspiler(QiskitTestCase):
         coupling_map = Coupling(couplinglist=[(0, 1), (1, 2)])
 
         pass_manager = PassManager()
-        pass_manager.add_passes([LookaheadMapper(coupling_map)])
+        pass_manager.append([LookaheadMapper(coupling_map)])
         mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
 
         self.assertEqual(mapped_dag.count_ops().get('swap', 0),

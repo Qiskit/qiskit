@@ -31,7 +31,7 @@ class PassManager():
                 max_iteration is reached.
         """
         # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.add_passes().
+        # Populated via PassManager.append().
         self.working_list = []
 
         # global property set is the context of the circuit held by the pass manager
@@ -50,7 +50,7 @@ class PassManager():
 
     def _join_options(self, passset_options):
         """ Set the options of each passset, based on precedence rules:
-        passset options (set via ``PassManager.add_passes()``) override
+        passset options (set via ``PassManager.append()``) override
         passmanager options (set via ``PassManager.__init__()``), which override Default.
         .
         """
@@ -62,8 +62,8 @@ class PassManager():
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
         return {**default, **passmanager_level, **passset_level}
 
-    def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-                   **flow_controller_conditions):
+    def append(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
+               **flow_controller_conditions):
         """
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
