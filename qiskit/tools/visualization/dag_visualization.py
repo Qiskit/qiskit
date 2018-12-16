@@ -15,9 +15,10 @@ import sys
 import copy
 try:
     import nxpd
+    import pydot # pylint: disable=unused-import
 except ImportError:
-    raise ImportError("dag_drawer requires nxpd and Graphviz. "
-                      "Run 'pip install nxpd', and install Graphviz.")
+    raise ImportError("dag_drawer requires nxpd, pydot, and Graphviz. "
+                      "Run 'pip install nxpd pydot graphviz'")
 from ._error import VisualizationError
 
 
