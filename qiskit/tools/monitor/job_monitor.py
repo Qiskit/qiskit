@@ -20,7 +20,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         import ipywidgets as widgets           # pylint: disable=import-error
     except ImportError:
-        raise ImportError('The class needs ipywidgets. '
+        raise ImportError('These functions  need ipywidgets. '
                           'Run "pip install ipywidgets" before.')
     from qiskit.tools.jupyter.jupyter_magics import _html_checker    # pylint: disable=C0412
 
