@@ -49,14 +49,12 @@ sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
 print('Qasm simulator')
-print(result)
 print(result.get_counts(qc))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+                                             filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()
-print(result)
 print(result.get_counts(qc))
