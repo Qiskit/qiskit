@@ -13,7 +13,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PropertySet
-from qiskit.transpiler.passes import CommutationAnalysis, CommutationTransformation
+from qiskit.transpiler.passes import CommutationAnalysis
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
@@ -56,7 +56,7 @@ class TestCommutationPass(QiskitTestCase):
         self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3],[14],[15],[16],[4]])
 
     def test_non_commutative_circuit(self):
-        """ A simple circuit that no gates commute
+        """A simple circuit where no gates commute
         qr0:---[H]---
 
         qr1:---[H]---
@@ -69,18 +69,18 @@ class TestCommutationPass(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
-        self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7],[2]])
-        self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3],[8],[4]])
-        self.assertEqual(self.pset["commutation_set"]["qr[2]"], [[5],[9],[6]])
+        self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1], [7], [2]])
+        self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3], [8], [4]])
+        self.assertEqual(self.pset["commutation_set"]["qr[2]"], [[5], [9], [6]])
          
     def test_non_commutative_circuit_2(self):
 
-        """ A simple circuit that no gates commute
-        qr0:---[Ctrl]---
-
-        qr1:---[NOT]---[Ctrl]---
-
-        qr2:---[H]------[NOT]----
+        """A simple circuit where no gates commute
+        qr0:----.-------------
+                |
+        qr1:---(+)------.-----
+                        |
+        qr2:---[H]-----(+)----
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
@@ -90,18 +90,18 @@ class TestCommutationPass(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
-        self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1],[7],[2]])
-        self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3],[7],[9],[4]])
-        self.assertEqual(self.pset["commutation_set"]["qr[2]"], [[5],[8],[9],[6]])
+        self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1], [7], [2]])
+        self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3], [7], [9], [4]])
+        self.assertEqual(self.pset["commutation_set"]["qr[2]"], [[5], [8], [9], [6]])
 
     def test_commutative_circuit(self):
 
-        """ A simple circuit that two CNOTs commute
-        qr0:---[Ctrl]---
-
-        qr1:---[NOT]----[NOT]---
-
-        qr2:---[H]------[Ctrl]----
+        """ A simple circuit where two CNOTs commute
+        qr0:----.------------
+                |
+        qr1:---(+)-----(+)---
+                        |
+        qr2:---[H]------.----
         """
 
         qr = QuantumRegister(3, 'qr')
