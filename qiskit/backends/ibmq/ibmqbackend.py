@@ -159,19 +159,24 @@ class IBMQBackend(BaseBackend):
         job_info_list = self._api.get_status_jobs(limit=limit, skip=skip,
                                                   filter=api_filter)
         job_list = []
+        old_format_jobs = []
         for job_info in job_info_list:
             job_class = _job_class_from_job_response(job_info)
             if job_class is IBMQJobPreQobj:
-                warnings.warn('The result of job {} is in a no longer supported format. '
-                              'These jobs will stop working after Qiskit 0.7. Save the results '
-                              'or send the job with Qiskit 0.7+'.format(job_info.get('id')),
-                              DeprecationWarning)
+                old_format_jobs.append(job_info.get('id'))
 
             is_device = not bool(self.configuration().simulator)
             job = job_class(self, job_info.get('id'), self._api, is_device,
                             creation_date=job_info.get('creationDate'),
                             api_status=job_info.get('status'))
             job_list.append(job)
+
+        if old_format_jobs:
+            job_ids = '\n - '.join(old_format_jobs)
+            warnings.warn('Some jobs ({}) are in a no-longer supported format. These jobs will '
+                          'stop working after Qiskit 0.7. Save the results or send the job with '
+                          'Qiskit 0.7+. Old jobs:\n - {}'.format(len(old_format_jobs), job_ids),
+                          DeprecationWarning)
         return job_list
 
     def retrieve_job(self, job_id):
