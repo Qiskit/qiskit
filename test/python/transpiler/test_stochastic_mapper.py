@@ -9,7 +9,7 @@
 
 import unittest
 from qiskit.transpiler.passes import StochasticMapper
-from qiskit.mapper import Coupling
+from qiskit.mapper import Coupling, Layout
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from ..common import QiskitTestCase
@@ -431,9 +431,9 @@ class TestStochasticMapper(QiskitTestCase):
         expected.measure(qr[1], cr[2])
         expected.measure(qr[2], cr[1])
 
-        layout = {("qa", 0): ("q", 0),
-                  ("qa", 1): ("q", 1),
-                  ("qb", 0): ("q", 2)}
+        layout = Layout({(QuantumRegister(2, 'qa'), 0): 0,
+                         (QuantumRegister(2, 'qa'), 1): 1,
+                         (QuantumRegister(1, 'qb'), 0): 2})
 
         pass_ = StochasticMapper(coupling, layout, 20, 13)
         after = pass_.run(dag)

@@ -67,7 +67,11 @@ class StochasticMapper(TransformationPass):
         Returns:
             DAGCircuit: A mapped DAG.
         """
-        removed_meas = remove_last_measurements(dag)
+        # TODO: when I left the measurements in, the mapper failed
+        #       one of the tests by measuring a qubit before the
+        #       gates were all applied. troubling. why is this
+        #       failing now?
+        removed_meas = remove_dlast_measurements(dag)
         logger.info("measurements moved: %s", removed_meas)
         logger.info("initial layout: %s", self.initial_layout)
         new_dag, final_layout, last_layout = self._mapper(
@@ -306,21 +310,20 @@ class StochasticMapper(TransformationPass):
         Args:
             circuit_graph (DAGCircuit): input DAG circuit
             coupling_graph (CouplingGraph): coupling graph to map onto
-            initial_layout (dict): dict {(str, int): (str, int)}
-                from qubits of circuit_graph to qubits of
-                coupling_graph (optional)
+            initial_layout (Layout): layout from qubits of circuit_graph
+                to physical qubit indices (optional)
             trials (int): number of trials.
             seed (int): initial seed.
 
         Returns:
             DAGCircuit: object containing a circuit equivalent to
                 circuit_graph that respects couplings in coupling_graph
-                and a layout dict mapping qubits of circuit_graph into
+            Layout: a layout object mapping qubits of circuit_graph into
                 qubits of coupling_graph. The layout may differ from the
                 initial_layout if the first layer of gates cannot be
-                executed on the initial_layout.
-                Finally, returned is the final layer qubit permutation
-                that is needed to add measurements back in.
+                executed on the initial_layout, since it is more efficient
+                to modify the layout in this case, instead of swapping
+            Dict: a final-layer qubit permutation is returned
 
         Raises:
             TranspilerError: if there was any error during the mapping
@@ -335,13 +338,16 @@ class StochasticMapper(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
+        # Save reference to Layout object before changing it
+        # TODO: use Layout object everywhere and delete this line
+        saved_layout_object = initial_layout
         if initial_layout is not None:
-            # update initial_layout from a user given
-            # dict{(regname,idx): (regname,idx)}
-            # to an expected dict{(reg,idx): (reg,idx)}
+            # Update initial_layout from a user, given as a layout object,
+            # to the internal dict{(reg,idx): (reg,idx)} for this method
+            # TODO: don't convert - use the Layout object everywhere
             device_register = QuantumRegister(coupling_graph.size(), 'q')
-            initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1]) for k, v in
-                              initial_layout.items()}
+            initial_layout = {k: (device_register, v) for k, v in
+                              saved_layout_object.get_virtual_bits().items()}
             # Check the input layout
             circ_qubits = circuit_graph.get_qubits()
             coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire)
