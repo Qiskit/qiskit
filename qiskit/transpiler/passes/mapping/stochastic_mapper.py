@@ -9,10 +9,9 @@
 A pass implementing the default Qiskit stochastic mapper.
 """
 
-from copy import copy
 from logging import getLogger
 from pprint import pformat
-from sys import maxsize
+from math import inf
 import numpy as np
 
 from qiskit.circuit import QuantumRegister
@@ -140,7 +139,7 @@ class StochasticMapper(TransformationPass):
 
         # Begin loop over trials of randomized algorithm
         n = coupling.size()
-        best_d = maxsize  # initialize best depth
+        best_d = inf  # initialize best depth
         best_circ = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
         for trial in range(trials):
