@@ -15,8 +15,8 @@ import warnings
 from marshmallow import ValidationError
 
 from qiskit import QiskitError
-from qiskit.backends import BaseBackend, JobStatus
-from qiskit.backends.models import BackendStatus, BackendProperties
+from qiskit.providers import BaseBackend, JobStatus
+from qiskit.providers.models import BackendStatus, BackendProperties
 
 from .api import ApiError
 from .ibmqjob import IBMQJob, IBMQJobPreQobj

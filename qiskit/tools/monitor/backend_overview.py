@@ -10,8 +10,8 @@
 
 import math
 from qiskit.qiskiterror import QISKitError
-from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
+from qiskit.providers.ibmq import IBMQ
+from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 
 
 def get_unique_backends():

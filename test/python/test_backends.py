@@ -12,7 +12,7 @@ import json
 import jsonschema
 
 from qiskit import IBMQ, BasicAer
-from qiskit.backends.builtinsimulators import SimulatorsProvider
+from qiskit.providers.builtinsimulators import SimulatorsProvider
 from .common import Path, QiskitTestCase, requires_qe_access
 
 

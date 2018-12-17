@@ -18,12 +18,12 @@ from unittest.mock import patch
 
 import qiskit
 from qiskit import QiskitError
-from qiskit.backends.ibmq.credentials import (
+from qiskit.providers.ibmq.credentials import (
     _configrc, _qconfig, discover_credentials, store_credentials, Credentials,
     read_credentials_from_qiskitrc)
-from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
-from qiskit.backends.ibmq.ibmqprovider import QE_URL
-from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
+from qiskit.providers.ibmq.credentials._environ import VARIABLES_MAP
+from qiskit.providers.ibmq.ibmqprovider import QE_URL
+from qiskit.providers.ibmq.ibmqsingleprovider import IBMQSingleProvider
 from ..common import QiskitTestCase
 
 

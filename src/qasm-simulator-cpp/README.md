@@ -147,7 +147,7 @@ cat input.json | ./qasm_simulator_cpp -
 
 ### Running in Python
 
-The simulator may be called from Python 3 by importing `qiskit/backends/_qasm_simulator_cpp.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
+The simulator may be called from Python 3 by importing `qiskit/providers/legacysumulators/qasm_simulator.py` module. Execution is handled by calling the compiled simulator as a Python subprocess.
 
 ```python
 # Set the path and file for the simulator executable
