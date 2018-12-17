@@ -415,6 +415,7 @@ q_3: |0>─────┤ X ├┤ H ├┤M├──────────�
         after = pass_.run(dag)
         self.assertEqual(circuit_to_dag(circ), after)
 
+
 # TODO: Port over the other mapper tests
 
 
