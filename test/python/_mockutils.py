@@ -20,14 +20,14 @@ from concurrent import futures
 import time
 
 from qiskit.result import Result
-from qiskit.backends import BaseBackend
-from qiskit.backends import BaseJob
-from qiskit.backends.models import BackendProperties, BackendConfiguration
-from qiskit.backends.models.backendconfiguration import GateConfig
+from qiskit.providers import BaseBackend
+from qiskit.providers import BaseJob
+from qiskit.providers.models import BackendProperties, BackendConfiguration
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
-from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.baseprovider import BaseProvider
+from qiskit.providers.jobstatus import JobStatus
+from qiskit.providers.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
 
