@@ -945,7 +945,7 @@ class QCircuitImage(object):
                             for j in range(start, span + 1):
                                 is_occupied[j] = True
                             break
-                    self._latex[start][columns] += "\qw \\barrier{" + str(
+                    self._latex[start][columns] = "\\qw \\barrier{" + str(
                         span) + "}"
             else:
                 raise _error.VisualizationError("bad node data")
