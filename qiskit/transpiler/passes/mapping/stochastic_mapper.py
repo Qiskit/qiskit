@@ -324,18 +324,17 @@ class StochasticMapper(TransformationPass):
 
         Returns:
             DAGCircuit: object containing a circuit equivalent to
-            circuit_graph that respects couplings in coupling_graph
-            and
-            a layout dict mapping qubits of circuit_graph into qubits
-            of coupling_graph. The layout may differ from the initial_layout
-            if the first layer of gates cannot be executed on the
-            initial_layout.
-            Finally, returned is the final layer qubit permutation
-            that is needed to add measurements back in.
+                circuit_graph that respects couplings in coupling_graph
+                and a layout dict mapping qubits of circuit_graph into
+                qubits of coupling_graph. The layout may differ from the
+                initial_layout if the first layer of gates cannot be
+                executed on the initial_layout.
+                Finally, returned is the final layer qubit permutation
+                that is needed to add measurements back in.
 
         Raises:
-            TranspilerError: if there was any error during the 
-            mapping or with the parameters.
+            TranspilerError: if there was any error during the mapping
+                or with the parameters.
         """
         if circuit_graph.width() > coupling_graph.size():
             raise TranspilerError("Not enough qubits in CouplingGraph")
