@@ -17,6 +17,11 @@ import numpy as np
 
 
 class CommutationTransformation(TransformationPass):
+    """
+    A transformation pass to change DAG edges depending on previously discovered
+    commutation relations.
+    """
+
     def __init__(self):
         super().__init__()
         self.requires.append(CommutationAnalysis())
@@ -25,7 +30,6 @@ class CommutationTransformation(TransformationPass):
         self.node_order = {}
 
     def run(self, dag):
-
         """
         Construct a new DAG that is commutativity aware. The new DAG is:
         - not friendly to simple scheduling (conflicts might arise),
@@ -35,6 +39,7 @@ class CommutationTransformation(TransformationPass):
 
         Args:
             dag (DAGCircuit): the directed acyclic graph
+
         Return:
             DAGCircuit: Transformed DAG.
         """
@@ -49,7 +54,7 @@ class CommutationTransformation(TransformationPass):
                     for node2 in c_set:
                         if node1 != node2:
                             wire_to_save = ''
-                            for edge in dag.multi_graph.edges([node1], data = True):
+                            for edge in dag.multi_graph.edges([node1], data=True):
                                 if edge[2]['name'] != wire_name and edge[1] == node2:
                                     wire_to_save = edge[2]['name']
 
@@ -57,7 +62,7 @@ class CommutationTransformation(TransformationPass):
                                 dag.multi_graph.remove_edge(node1, node2)
 
                             if wire_to_save != '':
-                                dag.multi_graph.add_edge(node1, node2, name = wire_to_save)
+                                dag.multi_graph.add_edge(node1, node2, name=wire_to_save)
 
                     for next_node in wire_commutation_set[c_set_ind + 1]:
 
@@ -65,11 +70,11 @@ class CommutationTransformation(TransformationPass):
                         next_nd = dag.multi_graph.node[next_node]
 
                         edge_on_wire = False
-                        for temp_edge in dag.multi_graph.edges([node1], data = True):
+                        for temp_edge in dag.multi_graph.edges([node1], data=True):
                             if temp_edge[1] == next_node and temp_edge[2]['name'] == wire_name:
                                 edge_on_wire = True
 
                         if not edge_on_wire:
-                            dag.multi_graph.add_edge(node1, next_node, name = wire_name)
+                            dag.multi_graph.add_edge(node1, next_node, name=wire_name)
 
         return dag
