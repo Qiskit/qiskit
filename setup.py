@@ -122,6 +122,6 @@ setup(
     distclass=BinaryDistribution,
     extra_requires={
         'visualization': ['matplotlib>=2.1'],
-        'native-simulators': ['qiskit-aer>=0.1']
+        'full-featured-simulators': ['qiskit-aer>=0.1']
     }
 )
