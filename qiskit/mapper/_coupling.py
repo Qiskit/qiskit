@@ -21,7 +21,7 @@ import networkx as nx
 from ._couplingerror import CouplingError
 
 
-class Coupling:
+class CouplingMap:
     """
     Directed graph specifying fixed coupling.
 

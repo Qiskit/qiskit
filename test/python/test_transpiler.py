@@ -15,7 +15,7 @@ from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.tools.compiler import circuits_to_qobj
 from qiskit.transpiler.passes import CXCancellation, LookaheadMapper
 from qiskit.converters import circuit_to_dag
-from qiskit.mapper import Coupling
+from qiskit.mapper import CouplingMap
 
 from .common import QiskitTestCase
 
@@ -113,7 +113,7 @@ class TestTranspiler(QiskitTestCase):
         original_dag = circuit_to_dag(circuit)
 
         # Create coupling map which contains all two-qubit gates in the circuit.
-        coupling_map = Coupling(couplinglist=[(0, 1), (0, 2)])
+        coupling_map = CouplingMap(couplinglist=[(0, 1), (0, 2)])
 
         pass_manager = PassManager()
         pass_manager.append(LookaheadMapper(coupling_map))
@@ -139,7 +139,7 @@ class TestTranspiler(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
         dag_circuit = circuit_to_dag(circuit)
 
-        coupling_map = Coupling(couplinglist=[(0, 1), (1, 2)])
+        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
 
         pass_manager = PassManager()
         pass_manager.append([LookaheadMapper(coupling_map)])
@@ -167,7 +167,7 @@ class TestTranspiler(QiskitTestCase):
 
         dag_circuit = circuit_to_dag(circuit)
 
-        coupling_map = Coupling(couplinglist=[(0, 1), (1, 2)])
+        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
 
         pass_manager = PassManager()
         pass_manager.append([LookaheadMapper(coupling_map)])
