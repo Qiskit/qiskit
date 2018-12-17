@@ -71,7 +71,7 @@ class StochasticMapper(TransformationPass):
         #       one of the tests by measuring a qubit before the
         #       gates were all applied. troubling. why is this
         #       failing now?
-        removed_meas = remove_dlast_measurements(dag)
+        removed_meas = remove_last_measurements(dag)
         logger.info("measurements moved: %s", removed_meas)
         logger.info("initial layout: %s", self.initial_layout)
         new_dag, final_layout, last_layout = self._mapper(
