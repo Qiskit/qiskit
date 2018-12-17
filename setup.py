@@ -119,7 +119,8 @@ setup(
     },
     distclass=BinaryDistribution,
     extra_requires={
-        'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.4.2'],
+        'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
+                          'pydot'],
         'native-simulators': ['qiskit-aer>=0.1']
     }
 )
