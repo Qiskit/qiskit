@@ -12,7 +12,7 @@ import logging
 import sys
 import functools
 
-from qiskit.backends import BaseJob, JobStatus, JobError
+from qiskit.providers import BaseJob, JobStatus, JobError
 from qiskit.qobj import validate_qobj_against_schema
 
 logger = logging.getLogger(__name__)

@@ -13,6 +13,6 @@ from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .mapping.check_map import CheckMap
 from .mapping.basic_mapper import BasicMapper
-from .mapping.direction_mapper import DirectionMapper
+from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
 from .mapping.lookahead_mapper import LookaheadMapper

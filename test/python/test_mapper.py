@@ -14,8 +14,8 @@ import unittest
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
-from qiskit.backends.models import BackendConfiguration
-from qiskit.backends.models.backendconfiguration import GateConfig
+from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.mapper._compiling import two_qubit_kak

@@ -27,9 +27,9 @@ import time
 from math import log2, sqrt
 import numpy as np
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
-from qiskit.backends import BaseBackend
-from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
+from qiskit.providers.models import BackendConfiguration
+from qiskit.providers import BaseBackend
+from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.result import Result
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
