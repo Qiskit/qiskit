@@ -135,7 +135,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         plt.title(title)
 
     if legend:
-        plt.legend()
+        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
+                  borderaxespad=0, frameon=True, fontsize=12)
     if fig:
         plt.close(fig)
     return fig
