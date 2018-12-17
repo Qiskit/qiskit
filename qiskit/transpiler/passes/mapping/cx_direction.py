@@ -17,7 +17,7 @@ from qiskit.mapper import Layout
 from qiskit.extensions.standard import HGate
 
 
-class DirectionSelection(TransformationPass):
+class CXDirection(TransformationPass):
     """
      Rearranges the direction of the cx nodes to make the circuit
      compatible with the directed coupling map.
