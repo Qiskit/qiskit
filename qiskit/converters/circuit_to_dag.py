@@ -70,6 +70,7 @@ def circuit_to_dag(circuit):
                 control = (instruction.control[0], instruction.control[1])
 
             def duplicate_instruction(inst):
+                """Create a fresh instruction from an input instruction."""
                 if inst.name == 'barrier':
                     params = [inst.qargs]
                 elif inst.name in simulator_instructions.keys():
