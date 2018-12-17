@@ -167,10 +167,6 @@ class StochasticMapper(TransformationPass):
             circ.add_qreg(QuantumRegister(coupling.size(), "q"))
             circ.add_basis_element("swap", 2)
 
-            # Identity wire-map for composing the circuits
-            q = QuantumRegister(coupling.size(), 'q')
-            identity_wire_map = {(q, j): (q, j) for j in range(coupling.size())}
-
             while depth_step < 2 * n + 1:
                 # Set of available qubits
                 qubit_set = set(qubit_subset)
@@ -231,7 +227,7 @@ class StochasticMapper(TransformationPass):
                 # Otherwise we need to consider a deeper swap circuit
                 if dist == len(gates):
                     logger.debug("layer_permutation: all can be applied now")
-                    trial_circ.compose_back(circ, identity_wire_map)
+                    trial_circ.extend_back(circ)
                     break
 
                 # Increment the depth
@@ -282,8 +278,6 @@ class StochasticMapper(TransformationPass):
         dagcircuit_output.add_qreg(QuantumRegister(coupling_graph.size(), "q"))
         # Identity wire-map for composing the circuits
         q = QuantumRegister(coupling_graph.size(), 'q')
-        identity_wire_map = {(q, j): (q, j)
-                             for j in range(coupling_graph.size())}
 
         # If this is the first layer with multi-qubit gates,
         # output all layers up to this point and ignore any
@@ -299,7 +293,7 @@ class StochasticMapper(TransformationPass):
             if best_d > 0:
                 logger.debug("layer_update: swaps in this layer, "
                              "depth %d", best_d)
-                dagcircuit_output.compose_back(best_circ, identity_wire_map)
+                dagcircuit_output.extend_back(best_circ)
             else:
                 logger.debug("layer_update: no swaps in this layer")
             # Output this layer
@@ -384,16 +378,6 @@ class StochasticMapper(TransformationPass):
         for creg in circuit_graph.cregs.values():
             dagcircuit_output.add_creg(creg)
 
-        # Make a trivial wire mapping between the subcircuits
-        # returned by _layer_update and the circuit we are building
-        identity_wire_map = {}
-        q = QuantumRegister(coupling_graph.size(), 'q')
-        for j in range(coupling_graph.size()):
-            identity_wire_map[(q, j)] = (q, j)
-        for creg in circuit_graph.cregs.values():
-            for j in range(creg.size):
-                identity_wire_map[(creg, j)] = (creg, j)
-
         first_layer = True  # True until first layer is output
         logger.debug("initial_layout = %s", layout)
 
@@ -449,15 +433,14 @@ class StochasticMapper(TransformationPass):
                     # for each inner iteration
                     layout = best_layout
                     # Update the DAG
-                    dagcircuit_output.compose_back(
+                    dagcircuit_output.extend_back(
                         self._layer_update(j,
                                            first_layer,
                                            best_layout,
                                            best_d,
                                            best_circ,
                                            serial_layerlist,
-                                           coupling_graph),
-                        identity_wire_map)
+                                           coupling_graph))
                     # Update initial layout
                     if first_layer:
                         initial_layout = layout
@@ -468,15 +451,14 @@ class StochasticMapper(TransformationPass):
                 layout = best_layout
 
                 # Update the DAG
-                dagcircuit_output.compose_back(
+                dagcircuit_output.extend_back(
                     self._layer_update(i,
                                        first_layer,
                                        best_layout,
                                        best_d,
                                        best_circ,
                                        layerlist,
-                                       coupling_graph),
-                    identity_wire_map)
+                                       coupling_graph))
                 # Update initial layout
                 if first_layer:
                     initial_layout = layout
