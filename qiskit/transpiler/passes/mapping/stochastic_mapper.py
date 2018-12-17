@@ -18,7 +18,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import (remove_last_measurements, return_last_measurements)
 
@@ -150,7 +149,7 @@ class StochasticMapper(TransformationPass):
             trial_circ.add_qreg(QuantumRegister(coupling.size(), "q"))
 
             # Compute randomized distance
-            xi = {}
+            xi = {}  # pylint: disable=invalid-name
             for i in coupling.physical_qubits:
                 xi[(QuantumRegister(coupling.size(), 'q'), i)] = {}
             for i in coupling.physical_qubits:
@@ -162,7 +161,7 @@ class StochasticMapper(TransformationPass):
                     xi[j][i] = xi[i][j]
 
             # Loop over depths d up to a max depth of 2n+1
-            d = 1
+            depth_step = 1
             # Circuit for this swap slice
             circ = DAGCircuit()
             circ.add_qreg(QuantumRegister(coupling.size(), "q"))
@@ -172,7 +171,7 @@ class StochasticMapper(TransformationPass):
             q = QuantumRegister(coupling.size(), 'q')
             identity_wire_map = {(q, j): (q, j) for j in range(coupling.size())}
 
-            while d < 2 * n + 1:
+            while depth_step < 2 * n + 1:
                 # Set of available qubits
                 qubit_set = set(qubit_subset)
                 # While there are still qubits available
@@ -184,17 +183,17 @@ class StochasticMapper(TransformationPass):
                     progress_made = False
 
                     # Loop over edges of coupling graph
-                    for e in coupling.get_edges():
-                        e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
+                    for edge in coupling.get_edges():
+                        edge = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in edge]
                         # Are the qubits available?
-                        if e[0] in qubit_set and e[1] in qubit_set:
+                        if edge[0] in qubit_set and edge[1] in qubit_set:
                             # Try this edge to reduce the cost
                             new_layout = trial_layout.copy()
-                            new_layout[rev_trial_layout[e[0]]] = e[1]
-                            new_layout[rev_trial_layout[e[1]]] = e[0]
+                            new_layout[rev_trial_layout[edge[0]]] = edge[1]
+                            new_layout[rev_trial_layout[edge[1]]] = edge[0]
                             rev_new_layout = rev_trial_layout.copy()
-                            rev_new_layout[e[0]] = rev_trial_layout[e[1]]
-                            rev_new_layout[e[1]] = rev_trial_layout[e[0]]
+                            rev_new_layout[edge[0]] = rev_trial_layout[edge[1]]
+                            rev_new_layout[edge[1]] = rev_trial_layout[edge[0]]
 
                             # Compute the objective function
                             new_cost = sum([xi[new_layout[g[0]]][new_layout[g[1]]] for g in gates])
@@ -206,7 +205,7 @@ class StochasticMapper(TransformationPass):
                                 min_cost = new_cost
                                 opt_layout = new_layout
                                 rev_opt_layout = rev_new_layout
-                                opt_edge = e
+                                opt_edge = edge
 
                     # Were there any good choices?
                     if progress_made:
@@ -236,8 +235,8 @@ class StochasticMapper(TransformationPass):
                     break
 
                 # Increment the depth
-                d += 1
-                logger.debug("layer_permutation: increment depth to %s", d)
+                depth_step += 1
+                logger.debug("layer_permutation: increment depth to %s", depth_step)
 
             # Either we have succeeded at some depth d < dmax or failed
             dist = sum([coupling.distance(trial_layout[g[0]][1],
@@ -245,11 +244,11 @@ class StochasticMapper(TransformationPass):
                         for g in gates])
             logger.debug("layer_permutation: dist = %s", dist)
             if dist == len(gates):
-                if d < best_d:
-                    logger.debug("layer_permutation: got circuit with depth %s", d)
+                if depth_step < best_d:
+                    logger.debug("layer_permutation: got circuit with depth %s", depth_step)
                     best_circ = trial_circ
                     best_layout = trial_layout
-                best_d = min(best_d, d)
+                best_d = min(best_d, depth_step)
 
             # Break out of trial loop if we found a depth 1 circuit
             # since we can't improve it further
