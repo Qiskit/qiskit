@@ -6,7 +6,7 @@ Example used in the README. In this example a Bell state is made.
 # Import the Qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import execute, IBMQ, BasicAer
-from qiskit.backends.ibmq import least_busy
+from qiskit.providers.ibmq import least_busy
 
 # Authenticate for access to remote backends
 try:

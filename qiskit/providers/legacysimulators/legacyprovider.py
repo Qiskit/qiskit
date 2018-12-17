@@ -12,7 +12,7 @@ import warnings
 from collections import OrderedDict
 
 from qiskit import QiskitError
-from qiskit.backends.builtinsimulators import SimulatorsProvider
+from qiskit.providers.builtinsimulators import SimulatorsProvider
 
 from .qasm_simulator import QasmSimulator, CliffordSimulator
 from .statevector_simulator import StatevectorSimulator
