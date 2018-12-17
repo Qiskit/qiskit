@@ -13,10 +13,10 @@
 import unittest
 import time
 from contextlib import suppress
-from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob, API_FINAL_STATES
-from qiskit.backends.ibmq.api import ApiError
-from qiskit.backends import JobError, JobTimeoutError
+from qiskit.providers.jobstatus import JobStatus
+from qiskit.providers.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob, API_FINAL_STATES
+from qiskit.providers.ibmq.api import ApiError
+from qiskit.providers import JobError, JobTimeoutError
 from ..common import JobTestCase
 from .._mockutils import new_fake_qobj, FakeBackend
 

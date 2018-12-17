@@ -5,20 +5,20 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Test the Direction Mapper pass"""
+"""Test the CX Direction  pass"""
 
 import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import MapperError
-from qiskit.transpiler.passes import DirectionMapper
+from qiskit.transpiler.passes import CXDirection
 from qiskit.mapper import Coupling
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
 
-class TestDirectionMapper(QiskitTestCase):
-    """ Tests the DirectionMapper pass."""
+class TestCXDirection(QiskitTestCase):
+    """ Tests the CXDirection pass."""
 
     def test_no_cnots(self):
         """ Trivial map in a circuit without entanglement
@@ -36,7 +36,7 @@ class TestDirectionMapper(QiskitTestCase):
         coupling = Coupling()
         dag = circuit_to_dag(circuit)
 
-        pass_ = DirectionMapper(coupling)
+        pass_ = CXDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -57,7 +57,7 @@ class TestDirectionMapper(QiskitTestCase):
         coupling = Coupling({0: [2, 1]})
         dag = circuit_to_dag(circuit)
 
-        pass_ = DirectionMapper(coupling)
+        pass_ = CXDirection(coupling)
 
         with self.assertRaises(MapperError):
             pass_.run(dag)
@@ -76,7 +76,7 @@ class TestDirectionMapper(QiskitTestCase):
         coupling = Coupling({0: [1]})
         dag = circuit_to_dag(circuit)
 
-        pass_ = DirectionMapper(coupling)
+        pass_ = CXDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -106,7 +106,7 @@ class TestDirectionMapper(QiskitTestCase):
         expected.h(qr[0])
         expected.h(qr[1])
 
-        pass_ = DirectionMapper(coupling)
+        pass_ = CXDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -144,7 +144,7 @@ class TestDirectionMapper(QiskitTestCase):
         expected.h(qr[1])
         expected.measure(qr[0], cr[0])
 
-        pass_ = DirectionMapper(coupling)
+        pass_ = CXDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)

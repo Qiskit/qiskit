@@ -14,9 +14,9 @@ import numpy as np
 from numpy.linalg import norm
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.backends.legacysimulators.qasm_simulator import (QasmSimulator,
-                                                             cx_error_matrix,
-                                                             x90_error_matrix)
+from qiskit.providers.legacysimulators.qasm_simulator import (QasmSimulator,
+                                                              cx_error_matrix,
+                                                              x90_error_matrix)
 from qiskit.qobj import Qobj
 from qiskit.result.postprocess import format_statevector
 from qiskit.quantum_info import state_fidelity

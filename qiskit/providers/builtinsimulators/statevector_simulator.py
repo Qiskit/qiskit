@@ -23,8 +23,8 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 import logging
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.backends.builtinsimulators._simulatorerror import SimulatorError
-from qiskit.backends.models import BackendConfiguration
+from qiskit.providers.builtinsimulators._simulatorerror import SimulatorError
+from qiskit.providers.models import BackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
