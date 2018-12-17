@@ -97,171 +97,154 @@ class CommutationAnalysis(AnalysisPass):
         #    print(wire_name)
         #    for group in self.property_set['commutation_set'][wire_name]:
         #        print(group)
+def _get_node_order(node):
+    """Get order of edges on a wire"""
+    return self.node_order[node]
 
-    def _get_node_order(node):
-        """Get order of edges on a wire"""
-        return self.node_order[node]
+def _GateMasterDef(name = '', para = None):
+    if name == 'h':
+        return 1. / np.sqrt(2) * np.array([[1.0, 1.0],
+                                           [1.0, -1.0]], dtype=np.complex)
+    if name == 'x':
+        return np.array([[0.0, 1.0],
+                         [1.0,0.0]], dtype=np.complex)
+    if name == 'y':
+        return np.array([[0.0, -1.0j],
+                         [1.0j, 0.0]], dtype=np.complex)
+    if name == 'cx':
+        return np.array([[1.0, 0.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 1.0],
+                         [0.0, 0.0, 1.0, 0.0]], dtype=np.complex)
+    if name == 'cz':
+        return np.array([[1.0, 0.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0, 0.0],
+                         [0.0, 0.0, 1.0, 0.0],
+                         [0.0, 0.0, 0.0, -1.0]], dtype=np.complex)
+    if name == 'cy':
+        return np.array([[1.0, 0.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 1.0j],
+                         [0.0, 0.0, -1.0j, 0.0]], dtype=np.complex)
+    if name == 'z':
+        return np.array([[1.0, 0.0],
+                         [0.0,-1.0]], dtype=np.complex)
+    if name == 't':
+        return np.array([[1.0, 0.0],
+                         [0.0,np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
+    if name == 's':
+        return np.array([[1.0, 0.0],
+                         [0.0, np.exp(1j * np.pi / 2.0)]], dtype=np.complex)
+    if name == 'sdag':
+        return np.array([[1.0, 0.0],
+                         [0.0, -np.exp(1j * np.pi / 2.0)]], dtype=np.complex)
+    if name == 'tdag':
+        return np.array([[1.0, 0.0],
+                         [0.0, -np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
+    if name == 'rz' or name == 'u1':
+        return np.array([[np.exp(-1j * float(para[0]) / 2), 0],
+                         [0, np.exp(1j * float(para[0]) / 2)]], dtype=np.complex)
+    if name == 'rx':
+        return np.array([[np.cos(float(para[0]) / 2), -1j * np.sin(float(para[0]) / 2)],
+                         [-1j * np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
+                        dtype=np.complex)
+    if name == 'ry':
+        return np.array([[np.cos(float(para[0]) / 2), - np.sin(float(para[0]) / 2)],
+                         [np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
+                        dtype=np.complex)
+    if name == 'u2':
+        return 1. / np.sqrt(2) * np.array(
+                [[1, -np.exp(1j * float(para[1]))],
+                 [np.exp(1j * float(para[0])), np.exp(1j * (float(para[0]) + float(para[1])))]],
+                dtype=np.complex)
+    if name == 'u3':
+        return 1./np.sqrt(2) * np.array(
+                [[np.cos(float(para[0]) / 2.),
+                  -np.exp(1j * float(para[2])) * np.sin(float(para[0]) / 2.)],
+                 [np.exp(1j * float(para[1])) * np.sin(float(para[0]) / 2.),
+                  np.cos(float(para[0]) / 2.) * np.exp(1j * (float(para[2]) + float(para[1])))]],
+                dtype=np.complex)
 
-    def _GateMasterDef(name = '', para = None):
-        if name == 'h':
-            return 1. / np.sqrt(2) * np.array([[1.0, 1.0],
-                                               [1.0, -1.0]], dtype=np.complex)
-        if name == 'x':
-            return np.array([[0.0, 1.0],
-                             [1.0,0.0]], dtype=np.complex)
-        if name == 'y':
-            return np.array([[0.0, -1.0j],
-                             [1.0j, 0.0]], dtype=np.complex)
-        if name == 'cx':
-            return np.array([[1.0, 0.0, 0.0, 0.0],
-                             [0.0, 1.0, 0.0, 0.0],
-                             [0.0, 0.0, 0.0, 1.0],
-                             [0.0, 0.0, 1.0, 0.0]], dtype=np.complex)
-        if name == 'cz':
-            return np.array([[1.0, 0.0, 0.0, 0.0],
-                             [0.0, 1.0, 0.0, 0.0],
-                             [0.0, 0.0, 1.0, 0.0],
-                             [0.0, 0.0, 0.0, -1.0]], dtype=np.complex)
-        if name == 'cy':
-            return np.array([[1.0, 0.0, 0.0, 0.0],
-                             [0.0, 1.0, 0.0, 0.0],
-                             [0.0, 0.0, 0.0, 1.0j],
-                             [0.0, 0.0, -1.0j, 0.0]], dtype=np.complex)
-        if name == 'z':
-            return np.array([[1.0, 0.0],
-                             [0.0,-1.0]], dtype=np.complex)
-        if name == 't':
-            return np.array([[1.0, 0.0],
-                             [0.0,np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
-        if name == 's':
-            return np.array([[1.0, 0.0],
-                             [0.0, np.exp(1j * np.pi / 2.0)]], dtype=np.complex)
-        if name == 'sdag':
-            return np.array([[1.0, 0.0],
-                             [0.0, -np.exp(1j * np.pi / 2.0)]], dtype=np.complex)
-        if name == 'tdag':
-            return np.array([[1.0, 0.0],
-                             [0.0, -np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
-        if name == 'rz' or name == 'u1':
-            return np.array([[np.exp(-1j * float(para[0]) / 2), 0],
-                             [0, np.exp(1j * float(para[0]) / 2)]], dtype=np.complex)
-        if name == 'rx':
-            return np.array([[np.cos(float(para[0]) / 2), -1j * np.sin(float(para[0]) / 2)],
-                             [-1j * np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
-                            dtype=np.complex)
-        if name == 'ry':
-            return np.array([[np.cos(float(para[0]) / 2), - np.sin(float(para[0]) / 2)],
-                             [np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
-                            dtype=np.complex)
-        if name == 'u2':
-            return 1. / np.sqrt(2) * np.array(
-                    [[1, -np.exp(1j * float(para[1]))],
-                     [np.exp(1j * float(para[0])), np.exp(1j * (float(para[0]) + float(para[1])))]],
-                    dtype=np.complex)
-        if name == 'u3':
-            return 1./np.sqrt(2) * np.array(
-                    [[np.cos(float(para[0]) / 2.),
-                      -np.exp(1j * float(para[2])) * np.sin(float(para[0]) / 2.)],
-                     [np.exp(1j * float(para[1])) * np.sin(float(para[0]) / 2.),
-                      np.cos(float(para[0]) / 2.) * np.exp(1j * (float(para[2]) + float(para[1])))]],
-                    dtype=np.complex)
+    if name == 'P0':
+        return np.array([[1.0, 0.0], [0.0,0.0]], dtype = np.complex) 
 
-        return None
+    if name == 'P1':
+        return np.array([[0.0, 0.0], [0.0,1.0]], dtype = np.complex)
 
-        # Doesn't consider directly implemented gates now.
-        # If enabled, then parameter 'para' would be passed for the rotation angles
-        # Example implementation of directly implemented gates:
-        # if name == 'u1':
-        #     rtevl = np.array([[1.0, 0.0],
-        #                       [0.0, np.exp(1.0j * np.pi)/8.0]], dtype=np.complex)
-        #     rtevl[1,1] = np.exp(1j * float(para[0]))
-        #     return rtevl
-        # if name == 'cz':
-        #     return np.array([[1.0, 0.0, 0.0, 0.0],
-        #                      [0.0, 1.0, 0.0, 0.0],
-        #                      [0.0, 0.0, 1.0, 0.0],
-        #                      [0.0, 0.0, 0.0, -1.0]], dtype=np.complex)
-        #
+    if name == 'Id':
+        return np.identity(2)
 
-    def _swap_2_unitary_tensor(node):
-        """Change the 2-qubit unitary representation from qubit_A tensor qubit_B
-        to qubit_B tensor qubit_A"""
 
-        temp_matrix = np.copy(_GateMasterDef(name=node["name"]))
-        temp_matrix[[1,2]] = temp_matrix[[2,1]]
-        temp_matrix[:, [1,2]] = temp_matrix[:, [2,1]]
+    return None
 
-        return temp_matrix
+def _calc_product(node1, node2):
+    
+    wire_num = len(set(node1["qargs"] + node2["qargs"]))
+    wires = sorted(list(map(lambda x: "{0}[{1}]".format(str(x[0].name), str(x[1])), list(set(node1["qargs"] + node2["qargs"])))))
+    final_U = np.identity(2 ** wire_num, dtype = np.complex)
+    
+    for node in [node1, node2]:
 
-    def _simple_product(node1, node2):
-        """The product of the two input unitaries (of 1 or 2 qubits)"""
+        qstate_list = [np.identity(2)] * wire_num
 
-        q1_list = node1["qargs"]
-        q2_list = node2["qargs"]
+        if node['name'] == 'cx' or node['name'] == 'cy' or node['name'] == 'cz':
+        
+                qstate_list_ext = [np.identity(2)] * wire_num
 
-        nargs1 = len(node1["qargs"])
-        nargs2 = len(node2["qargs"])
+                node_ctrl = "{0}[{1}]".format(str(node["qargs"][0][0].name), str(node["qargs"][0][1]))
+                node_tgt = "{0}[{1}]".format(str(node["qargs"][1][0].name), str(node["qargs"][1][1]))
+                ctrl = wires.index(node_ctrl)
+                tgt = wires.index(node_tgt)
 
-        unitary_1 = _GateMasterDef(name=node1["name"], para=node1["op"].param)
-        unitary_2 = _GateMasterDef(name=node2["name"], para=node2["op"].param)
+                qstate_list[ctrl] = _GateMasterDef(name = 'P0')
+                qstate_list[tgt] = _GateMasterDef(name = 'Id')
+                qstate_list_ext[ctrl] = _GateMasterDef(name = 'P1')
+                if node['name'] == 'cx':
+                    qstate_list_ext[tgt] = _GateMasterDef(name = 'x')
+                if node['name'] == 'cy':
+                    qstate_list_ext[tgt] = _GateMasterDef(name = 'y')
+                if node['name'] == 'cz':
+                    qstate_list_ext[tgt] = _GateMasterDef(name = 'z')
 
-        if unitary_1 is None or unitary_2 is None:
-            return None
+                rt_list = [qstate_list] + [qstate_list_ext]
 
-        if nargs1 == nargs2 == 1:
-            return  np.matmul(unitary_1, unitary_2)
-
-        if  nargs1 == nargs2 == 2:
-            if q1_list[0] == q2_list[0] and q1_list[1] == q2_list[1]:
-
-                return np.matmul(unitary_1,unitary_2)
-
-            elif q1_list[0] == q2_list[1] and q1_list[1] == q2_list[0]:
-                return np.matmul(unitary_1, _swap_2_unitary_tensor(node2))
-
-            elif q1_list[0] == q2_list[1]:
-                return np.matmul(np.kron(unitary_1, np.identity(2)),
-                                 np.kron(np.identity(2), unitary_2))
-
-            elif q1_list[1] == q2_list[0]:
-                return np.matmul(np.kron(np.identity(2), unitary_1),
-                                 np.kron(unitary_2, np.identity(2)))
-
-            elif q1_list[0] == q2_list[0]:
-                return np.matmul(np.kron(_swap_2_unitary_tensor(node1), np.identity(2)),
-                                 np.kron(np.identity(2), unitary_2))
-
-            elif q1_list[1] == q2_list[1]:
-                return np.matmul(np.kron(np.identity(2), _swap_2_unitary_tensor(node1)),
-                                 np.kron(unitary_2, np.identity(2),))
-
-        if nargs1 == 2 and q1_list[0] == q2_list[0]:
-            return np.matmul(unitary_1,np.kron(unitary_2, np.identity(2)))
-
-        if nargs1 == 2 and q1_list[1] == q2_list[0]:
-            return np.matmul(unitary_1,np.kron(np.identity(2), unitary_2))
-
-        if nargs2 == 2 and q1_list[0] == q2_list[0]:
-            return np.matmul(np.kron(unitary_1, np.identity(2)), unitary_2)
-
-        if nargs2 == 2 and q1_list[0] == q2_list[1]:
-            return np.matmul(np.kron(np.identity(2), unitary_1), unitary_2)
-
-    @staticmethod
-    def _matrix_commute(node1, node2):
-        # Good for composite gates or any future
-        # user-defined gate of equal or less than 2 qubits.
-        if set(node1["qargs"]) & set(node2["qargs"]) == set():
-            return True
-
-        if _simple_product(node1, node2) is not None:
-            return np.array_equal(_simple_product(node1, node2),
-                                  _simple_product(node2, node1))
         else:
-            return False
 
-    @staticmethod
-    def _commute(node1, node2):
-        if node1["type"] != "op" or node2["type"] != "op":
-            return False
-        return _matrix_commute(node1, node2)
+            mat = _GateMasterDef(name = node['name'])
+            node_num = "{0}[{1}]".format(str(node["qargs"][0][0].name), str(node["qargs"][0][1]))
+            qstate_list[wires.index(node_num)] = mat
+
+            rt_list = [qstate_list]
+
+        crt = np.zeros([2 ** wire_num, 2 ** wire_num])
+
+        for state in rt_list:
+            crt = crt + _kron_list(state)
+
+        final_U = np.dot(crt, final_U)  
+        
+    return final_U 
+
+def _kron_list(args):
+    ret = args[0]
+    for item in args[1:]:
+        ret = np.kron(ret, item)
+    return ret
+
+def _matrix_commute(node1, node2):
+    # Good for composite gates or any future
+    # user-defined gate of equal or less than 2 qubits.
+    
+    if set(node1["qargs"]) & set(node2["qargs"]) == set():
+        return True
+
+    if _calc_product(node1, node2) is not None:
+        return np.array_equal(_calc_product(node1, node2),
+                              _calc_product(node2, node1))
+    else:
+        return False
+
+def _commute(node1, node2):
+    if node1["type"] != "op" or node2["type"] != "op":
+        return False
+    return _matrix_commute(node1, node2)
