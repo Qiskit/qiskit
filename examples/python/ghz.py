@@ -14,7 +14,7 @@ used `pip install`, the examples only work from the root directory.
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import IBMQ, BasicAer, execute
-from qiskit.backends.ibmq import least_busy
+from qiskit.providers.ibmq import least_busy
 
 
 ###############################################################
