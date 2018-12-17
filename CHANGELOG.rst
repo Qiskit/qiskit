@@ -105,6 +105,7 @@ Changed
   ``qiskit.backends.legacysimulators`` (C++ simulators) (#1484)
 - Breaking change: ``Aer`` in ``qiskit`` root module has been removed. Instead ``Simulators`` will
   stand for Python simulators and ``LegacySimulators`` for those in C++. (#1484)
+- Breaking change: ``qiskit.backends`` has been renamed to ``qiskit.providers`` (#1531).
 
 
 Deprecated

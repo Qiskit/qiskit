@@ -17,9 +17,9 @@ from math import log2
 from numpy import array
 
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
+from qiskit.providers.models import BackendConfiguration
 from qiskit.qobj import QobjInstruction
-from qiskit.backends.builtinsimulators import SimulatorsJob, SimulatorError
+from qiskit.providers.builtinsimulators import SimulatorsJob, SimulatorError
 
 from .qasm_simulator import QasmSimulator
 

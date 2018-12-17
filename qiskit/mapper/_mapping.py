@@ -318,7 +318,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     return True, best_circ, best_d, best_layout, False
 
 
-def direction_mapper(circuit_graph, coupling_graph):
+def cx_direction(circuit_graph, coupling_graph):
     """Change the direction of CNOT gates to conform to CouplingGraph.
 
     circuit_graph = input DAGCircuit

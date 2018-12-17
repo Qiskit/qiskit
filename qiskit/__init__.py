@@ -38,13 +38,13 @@ import qiskit.circuit.reset
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
-from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.builtinsimulators import BasicAer
-from qiskit.backends.legacysimulators import LegacySimulators
+from qiskit.providers.ibmq import IBMQ
+from qiskit.providers.builtinsimulators import BasicAer
+from qiskit.providers.legacysimulators import LegacySimulators
 
 # Try to import the Aer provider if th Aer element is installed.
 try:
-    from qiskit.backends.aer import Aer
+    from qiskit.providers.aer import Aer
 except ImportError:
     pass
 
