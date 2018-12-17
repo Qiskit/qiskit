@@ -89,8 +89,9 @@ class CouplingMap:
                 couplinglist = couplingdict
                 couplingdict = None
             else:
-                warnings.warn('Initializing a coupling object through a couplingdict is deprecated.'
-                          ' Use a couplinglist instead.', DeprecationWarning, stacklevel=2)
+                warnings.warn('Initializing a coupling object through a couplingdict is '
+                              'deprecated. Use a couplinglist instead.', DeprecationWarning,
+                              stacklevel=2)
 
         self.graph = nx.DiGraph()
         if couplingdict is not None:
