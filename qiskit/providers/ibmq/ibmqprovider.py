@@ -10,7 +10,7 @@
 import warnings
 from collections import OrderedDict
 
-from qiskit.backends import BaseProvider
+from qiskit.providers import BaseProvider
 
 from .credentials._configrc import remove_credentials
 from .credentials import (Credentials,
