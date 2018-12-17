@@ -349,9 +349,8 @@ class StochasticMapper(TransformationPass):
             # dict{(regname,idx): (regname,idx)}
             # to an expected dict{(reg,idx): (reg,idx)}
             device_register = QuantumRegister(coupling_graph.size(), 'q')
-            initial_layout = {(circuit_graph.qregs[k[0]], k[1]):
-                                  (device_register, v[1])
-                              for k, v in initial_layout.items()}
+            initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1]) for k, v in
+                              initial_layout.items()}
             # Check the input layout
             circ_qubits = circuit_graph.get_qubits()
             coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire)
@@ -420,12 +419,12 @@ class StochasticMapper(TransformationPass):
                 # Go through each gate in the layer
                 for j, serial_layer in enumerate(serial_layerlist):
 
-                    success_flag, best_circ, best_d, \
-                    best_layout, trivial_flag \
-                        = self._layer_permutation(serial_layer["partition"],
-                                                  layout, qubit_subset,
-                                                  coupling_graph,
-                                                  trials, seed)
+                    success_flag, best_circ, best_d, best_layout, trivial_flag = \
+                        self._layer_permutation(
+                            serial_layer["partition"],
+                            layout, qubit_subset,
+                            coupling_graph,
+                            trials, seed)
                     logger.debug("mapper: layer %d, sublayer %d", i, j)
                     logger.debug("mapper: success_flag=%s,best_d=%s,"
                                  "trivial_flag=%s",
