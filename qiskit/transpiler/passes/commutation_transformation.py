@@ -1,10 +1,20 @@
-""" Pass for constructing commutativity aware DAGCircuit from basic DAGCircuit. The generated DAGCircuit is not ready for simple scheduling.
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""Pass for constructing commutativity aware DAGCircuit from basic DAGCircuit.
+The generated DAGCircuit is more relaxed about operation dependencies,
+but is not ready for simple scheduling.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler.passes.commutation_analysis import CommutationAnalysis
+from qiskit.transpiler.passes import CommutationAnalysis
 from qiskit.transpiler import AnalysisPass
 import numpy as np
+
 
 class CommutationTransformation(TransformationPass):
     def __init__(self):

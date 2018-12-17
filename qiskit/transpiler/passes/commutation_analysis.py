@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
 """
 Pass for detecting commutativity in a circuit.
 
@@ -9,9 +16,11 @@ This pass also provides useful methods to determine if two gates
 can commute in the circuit.
 """
 
-from qiskit.transpiler import AnalysisPass
 import numpy as np
 from collections import defaultdict
+
+from qiskit.transpiler._basepasses import AnalysisPass
+
 
 class CommutationAnalysis(AnalysisPass):
     def __init__(self, max_depth=100):
@@ -72,7 +81,7 @@ class CommutationAnalysis(AnalysisPass):
                 return np.array([[np.exp(-1j * float(para[0]) / 2), 0],
                                  [0, np.exp(1j * float(para[0]) / 2)]], dtype=np.complex)
             if name == 'rx':
-                return np.array([[np.cos(float(para[0])/2), -1j * np.sin(float(para[0]) / 2)],
+                return np.array([[np.cos(float(para[0]) / 2), -1j * np.sin(float(para[0]) / 2)],
                                  [-1j * np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
                                 dtype=np.complex)
             if name == 'ry':
@@ -86,7 +95,7 @@ class CommutationAnalysis(AnalysisPass):
                         dtype=np.complex)
             if name == 'u3':
                 return 1./np.sqrt(2) * np.array(
-                        [[np.cos(float(para[0]) /2.),
+                        [[np.cos(float(para[0]) / 2.),
                           -np.exp(1j * float(para[2])) * np.sin(float(para[0]) / 2.)],
                          [np.exp(1j * float(para[1])) * np.sin(float(para[0]) / 2.),
                           np.cos(float(para[0]) / 2.) * np.exp(1j * (float(para[2]) + float(para[1])))]],
