@@ -22,10 +22,10 @@ from scipy.stats import chi2_contingency
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import IBMQ
 from qiskit import compile
-from qiskit.backends import JobStatus, JobError
-from qiskit.backends.ibmq import least_busy
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.providers import JobStatus, JobError
+from qiskit.providers.ibmq import least_busy
+from qiskit.providers.ibmq.ibmqbackend import IBMQBackendError
+from qiskit.providers.ibmq.ibmqjob import IBMQJob
 from ..common import requires_qe_access, JobTestCase, slow_test
 
 

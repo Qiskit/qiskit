@@ -10,8 +10,8 @@
 aliases."""
 
 from qiskit import IBMQ, BasicAer, LegacySimulators
-from qiskit.backends.legacysimulators import QasmSimulator
-from qiskit.backends.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.legacysimulators import QasmSimulator
+from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,
                      requires_cpp_simulator,

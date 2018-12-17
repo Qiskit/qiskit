@@ -10,7 +10,7 @@
 """Tests for the wrapper functionality."""
 
 import unittest
-from qiskit.backends.ibmq import IBMQ
+from qiskit.providers.ibmq import IBMQ
 from qiskit.tools.monitor import backend_overview, backend_monitor
 from ...common import QiskitTestCase, requires_qe_access
 

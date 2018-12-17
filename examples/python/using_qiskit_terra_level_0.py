@@ -21,7 +21,7 @@ import time
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
 from qiskit import execute, IBMQ, BasicAer
-from qiskit.backends.ibmq import least_busy
+from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
 
