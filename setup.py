@@ -121,6 +121,6 @@ setup(
     extra_requires={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
                           'pydot'],
-        'native-simulators': ['qiskit-aer>=0.1']
+        'full-featured-simulators': ['qiskit-aer>=0.1']
     }
 )
