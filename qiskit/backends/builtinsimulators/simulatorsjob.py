@@ -124,3 +124,11 @@ class SimulatorsJob(BaseJob):
     def backend(self):
         """Return the instance of the backend used for this job."""
         return self._backend
+
+    def qobj(self):
+        """Return the Qobj submitted for this job.
+
+        Returns:
+            Qobj: the Qobj submitted for this job.
+        """
+        return self._qobj
