@@ -6,8 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-A direction mapper rearrenges the direction of the cx nodes to make the circuit
-compatible to the directed coupling map.
+The CX direction rearrenges the direction of the cx nodes to make the circuit
+compatible with the coupling_map.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
