@@ -276,8 +276,6 @@ class StochasticMapper(TransformationPass):
         layout = best_layout
         dagcircuit_output = DAGCircuit()
         dagcircuit_output.add_qreg(QuantumRegister(coupling_graph.size(), "q"))
-        # Identity wire-map for composing the circuits
-        q = QuantumRegister(coupling_graph.size(), 'q')
 
         # If this is the first layer with multi-qubit gates,
         # output all layers up to this point and ignore any
