@@ -411,8 +411,34 @@ class TestStochasticMapper(QiskitTestCase):
         after = pass_.run(dag)
         self.assertEqual(circuit_to_dag(circ), after)
 
+    def test_map_with_layout(self):
+        """Test using an initial layout."""
+        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+        qra = QuantumRegister(2, 'qa')
+        qrb = QuantumRegister(1, 'qb')
+        cr = ClassicalRegister(3, 'r')
+        circ = QuantumCircuit(qra, qrb, cr)
+        circ.cx(qra[0], qrb[0])
+        circ.measure(qra[0], cr[0])
+        circ.measure(qra[1], cr[1])
+        circ.measure(qrb[0], cr[2])
+        dag = circuit_to_dag(circ)
 
-# TODO: Port over the other mapper tests
+        qr = QuantumRegister(3, 'q')
+        expected = QuantumCircuit(qr, cr)
+        expected.cx(qr[0], qr[1])
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[2])
+        expected.measure(qr[2], cr[1])
+
+        layout = {("qa", 0): ("q", 0),
+                  ("qa", 1): ("q", 1),
+                  ("qb", 0): ("q", 2)}
+
+        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
 
 
 if __name__ == '__main__':
