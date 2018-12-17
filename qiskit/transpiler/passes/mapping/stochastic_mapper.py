@@ -75,8 +75,7 @@ class StochasticMapper(TransformationPass):
             dag, self.coupling_map, self.initial_layout,
             trials=self.trials, seed=self.seed)
         logger.info("final layout: %s", final_layout)
-        return_last_measurements(new_dag, removed_meas,
-                                 last_layout)
+        return_last_measurements(new_dag, removed_meas, last_layout)
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
@@ -179,14 +178,14 @@ class StochasticMapper(TransformationPass):
                 # While there are still qubits available
                 while qubit_set:
                     # Compute the objective function
-                    min_cost = sum([xi[trial_layout[g[0]]][trial_layout[g[1]]]
-                                    for g in gates])
+                    min_cost = sum([xi[trial_layout[g[0]]][trial_layout[g[1]]] for g in gates])
+
                     # Try to decrease objective function
                     progress_made = False
+
                     # Loop over edges of coupling graph
                     for e in coupling.get_edges():
-                        e = [(QuantumRegister(coupling.size(), 'q'), edge)
-                             for edge in e]
+                        e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
                         # Are the qubits available?
                         if e[0] in qubit_set and e[1] in qubit_set:
                             # Try this edge to reduce the cost
@@ -196,9 +195,9 @@ class StochasticMapper(TransformationPass):
                             rev_new_layout = rev_trial_layout.copy()
                             rev_new_layout[e[0]] = rev_trial_layout[e[1]]
                             rev_new_layout[e[1]] = rev_trial_layout[e[0]]
+
                             # Compute the objective function
-                            new_cost = sum([xi[new_layout[g[0]]][new_layout[g[1]]]
-                                            for g in gates])
+                            new_cost = sum([xi[new_layout[g[0]]][new_layout[g[1]]] for g in gates])
                             # Record progress if we succceed
                             if new_cost < min_cost:
                                 logger.debug("layer_permutation: progress! "
