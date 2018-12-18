@@ -21,7 +21,7 @@ import networkx as nx
 from ._couplingerror import CouplingError
 
 
-class Coupling:
+class CouplingMap:
     """
     Directed graph specifying fixed coupling.
 
@@ -85,8 +85,13 @@ class Coupling:
             raise CouplingError('Cannot specify both couplingdict and couplinglist')
 
         if couplingdict is not None:
-            warnings.warn('Initializing a coupling object through a couplingdict is deprecated. '
-                          'Use a couplinglist instead.', DeprecationWarning)
+            if isinstance(couplingdict, list):
+                couplinglist = couplingdict
+                couplingdict = None
+            else:
+                warnings.warn('Initializing a coupling object through a couplingdict is '
+                              'deprecated. Use a couplinglist instead.', DeprecationWarning,
+                              stacklevel=2)
 
         self.graph = nx.DiGraph()
         if couplingdict is not None:
@@ -165,7 +170,7 @@ class Coupling:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
         """
         try:
-            return nx.shortest_path(self.graph.to_undirected(), source=physical_qubit1,
+            return nx.shortest_path(self.graph.to_undirected(as_view=True), source=physical_qubit1,
                                     target=physical_qubit2)
         except nx.exception.NetworkXNoPath:
             raise CouplingError(

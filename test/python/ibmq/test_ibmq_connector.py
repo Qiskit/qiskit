@@ -10,8 +10,8 @@
 import re
 import unittest
 
-from qiskit.backends.ibmq.api import (ApiError, BadBackendError,
-                                      IBMQConnector, RegisterSizeError)
+from qiskit.providers.ibmq.api import (ApiError, BadBackendError,
+                                       IBMQConnector, RegisterSizeError)
 from ..common import QiskitTestCase, requires_qe_access
 
 
