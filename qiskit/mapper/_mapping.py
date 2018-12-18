@@ -22,8 +22,6 @@ from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
 from qiskit import QuantumRegister
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.circuit.measure import Measure
 
