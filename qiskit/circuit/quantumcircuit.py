@@ -313,9 +313,9 @@ class QuantumCircuit(object):
             scale (float): scale of image to draw (shrink if < 1)
             filename (str): file path to save image to
             style (dict or str): dictionary of style or file name of style
-                                 file. You can refer to the
-                                 :ref:`Style Dict Doc <style-dict-doc>` for
-                                 more information on the contents.
+                file. You can refer to the
+                :ref:`Style Dict Doc <style-dict-doc>` for more information
+                on the contents.
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are `text`, `latex`, `latex_source`,
                 `mpl`.
@@ -327,17 +327,19 @@ class QuantumCircuit(object):
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                 circuit. Defaults to True.
+
         Returns:
-            PIL.Image: (output `latex`) an in-memory representation of the
-                image of the circuit diagram.
-            matplotlib.figure: (output `mpl`) a matplotlib figure object for
-                the circuit diagram.
-            String: (output `latex_source`). The LaTeX source code.
-            TextDrawing: (output `text`). A drawing that can be printed as
-                ascii art
+            PIL.Image or matplotlib.figure or str or TextDrawing:
+                * PIL.Image: (output `latex`) an in-memory representation of the
+                  image of the circuit diagram.
+                * matplotlib.figure: (output `mpl`) a matplotlib figure object
+                  for the circuit diagram.
+                * str: (output `latex_source`). The LaTeX source code.
+                * TextDrawing: (output `text`). A drawing that can be printed as
+                  ascii art
+
         Raises:
             VisualizationError: when an invalid output method is selected
-
         """
         from qiskit.tools import visualization
         return visualization.circuit_drawer(self, scale=scale,

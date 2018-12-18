@@ -78,13 +78,16 @@ class PassManager():
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
-                control flow plugins. Default:
-                do_while (callable property_set -> boolean): The passes repeat until the
-                   callable returns False.
-                   Default: lambda x: False # i.e. passes run once
-                condition (callable property_set -> boolean): The passes run only if the
-                   callable returns True.
-                   Default: lambda x: True # i.e. passes run
+            control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
+
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
@@ -215,11 +218,12 @@ class FlowController():
     def controller_factory(cls, passes, options, **partial_controller):
         """
         Constructs a flow controller based on the partially evaluated controller arguments.
+
         Args:
             passes (list[BasePass]): passes to add to the flow controller.
             options (dict): PassManager options.
             **partial_controller (dict): Partially evaluated controller arguments in the form
-                                         {name:partial}
+                `{name:partial}`
 
         Raises:
             TranspilerError: When partial_controller is not well-formed.

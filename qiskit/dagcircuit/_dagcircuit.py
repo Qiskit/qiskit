@@ -1275,6 +1275,19 @@ class DAGCircuit:
                     cxs_nodes.append(self.multi_graph.node[cx_id])
         return cxs_nodes
 
+    def successors(self, node):
+        """Returns the successors of a node."""
+        return self.multi_graph.successors(node)
+
+    def quantum_successors(self, node):
+        """Returns the successors of a node that are connected by a quantum edge"""
+        successors = []
+        for successor in self.successors(node):
+            if isinstance(self.multi_graph.get_edge_data(node, successor, key=0)['wire'][0],
+                          QuantumRegister):
+                successors.append(successor)
+        return successors
+
     def _remove_op_node(self, n):
         """Remove an operation node n.
 

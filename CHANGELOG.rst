@@ -152,6 +152,8 @@ Fixed
   end (#1334)
 - The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly (#1359).
 - parallel_map no longer creates a progress bar for a single circuit (#1394).
+- The `timeout` parameter is now passed into the inner ``_wait_for_submission``
+  function in ``IBMQJob`` from ``_wait_for_result`` (#1542).
 
 Removed
 """""""
