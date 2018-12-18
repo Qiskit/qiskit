@@ -14,7 +14,8 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, direction_mapper,
+from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, cx_direction,
+
                            remove_last_measurements, return_last_measurements)
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
@@ -190,7 +191,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Expand swaps
             dag = Unroller(basis).run(dag)
             # Change cx directions
-            dag = direction_mapper(dag, coupling)
+            dag = cx_direction(dag, coupling)
             # Simplify cx gates
             cx_cancellation(dag)
             # Unroll to the basis

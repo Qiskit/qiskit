@@ -12,9 +12,9 @@ from collections import OrderedDict
 import logging
 
 from qiskit.qiskiterror import QiskitError
-from qiskit.backends import BaseProvider
-from qiskit.backends.exceptions import QiskitBackendNotFoundError
-from qiskit.backends.providerutils import resolve_backend_name, filter_backends
+from qiskit.providers import BaseProvider
+from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.providerutils import resolve_backend_name, filter_backends
 
 from .qasm_simulator import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulatorPy

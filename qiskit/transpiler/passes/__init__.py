@@ -14,6 +14,6 @@ from .decompose import Decompose
 from .add_barrier_before_measuremets import AddBarrierBeforeMeasuremets
 from .mapping.check_map import CheckMap
 from .mapping.basic_mapper import BasicMapper
-from .mapping.direction_mapper import DirectionMapper
+from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
 from .mapping.lookahead_mapper import LookaheadMapper
