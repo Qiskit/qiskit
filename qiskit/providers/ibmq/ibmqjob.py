@@ -204,7 +204,7 @@ class IBMQJob(BaseJob):
         return self._result_from_job_response(job_response)
 
     def _wait_for_result(self, timeout=None, wait=5):
-        self._wait_for_submission()
+        self._wait_for_submission(timeout)
 
         try:
             job_response = self._wait_for_job(timeout=timeout, wait=wait)
