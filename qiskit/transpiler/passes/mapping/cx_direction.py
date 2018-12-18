@@ -31,7 +31,7 @@ class CXDirection(TransformationPass):
     def __init__(self, coupling_map, initial_layout=None):
         """
         Args:
-            coupling_map (Coupling): Directed graph represented a coupling map.
+            coupling_map (CouplingMap): Directed graph represented a coupling map.
             initial_layout (Layout): The initial layout of the DAG.
         """
 

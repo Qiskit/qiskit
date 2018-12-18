@@ -11,7 +11,7 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.passes import CheckMap
-from qiskit.mapper import Coupling
+from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
@@ -27,12 +27,12 @@ class TestCheckMap(QiskitTestCase):
 
          qr2:---[H]---
 
-         Coupling map: None
+         CouplingMap map: None
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
-        coupling = Coupling()
+        coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -47,14 +47,14 @@ class TestCheckMap(QiskitTestCase):
                         |
          qr2:-----------.--
 
-         Coupling map: [1]<-[0]->[2]
+         CouplingMap map: [1]<-[0]->[2]
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
-        coupling = Coupling(couplingdict={0: [1, 2]})
+        coupling = CouplingMap([(0, 1), (0, 2)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -73,13 +73,13 @@ class TestCheckMap(QiskitTestCase):
                 |
          qr3:---.---
 
-         Coupling map: [0]->[1]->[2]->[3]
+         CouplingMap map: [0]->[1]->[2]->[3]
         """
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[3])
-        coupling = Coupling(couplingdict={0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -94,12 +94,12 @@ class TestCheckMap(QiskitTestCase):
                 |
          qr1:---.---
 
-         Coupling map: [0]->[2]->[1]
+         CouplingMap map: [0]->[2]->[1]
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = Coupling(couplingdict={0: [2], 2: [1]})
+        coupling = CouplingMap([(0, 2), (2, 1)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -116,14 +116,14 @@ class TestCheckMap(QiskitTestCase):
                         |
          qr2:----------(+)-
 
-         Coupling map: [1]<-[0]->[2]
+         CouplingMap map: [1]<-[0]->[2]
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[2], qr[0])
-        coupling = Coupling(couplingdict={0: [1, 2]})
+        coupling = CouplingMap([(0, 1), (0, 2)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -142,13 +142,13 @@ class TestCheckMap(QiskitTestCase):
                 |
          qr3:--(+)--
 
-         Coupling map: [0]->[1]->[2]->[3]
+         CouplingMap map: [0]->[1]->[2]->[3]
         """
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[3], qr[2])
-        coupling = Coupling(couplingdict={0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
