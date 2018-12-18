@@ -136,7 +136,7 @@ jobs:
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
-      script: make style VERBOSE="" && make lint VERBOSE=""
+      script: make style VERBOSE="" && make lint VERBOSE="" && make doc_lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test

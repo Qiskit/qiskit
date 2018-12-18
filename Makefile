@@ -21,6 +21,9 @@ lint:
 style:
 	pycodestyle --max-line-length=100 qiskit test
 
+doc_lint:
+	doc8 doc CHANGELOG.rst
+
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
