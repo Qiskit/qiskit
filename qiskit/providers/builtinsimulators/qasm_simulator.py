@@ -32,10 +32,10 @@ from collections import Counter
 import numpy as np
 
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
+from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
-from qiskit.backends import BaseBackend
-from qiskit.backends.builtinsimulators.simulatorsjob import SimulatorsJob
+from qiskit.providers import BaseBackend
+from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
 from ._simulatorerror import SimulatorError
 from ._simulatortools import single_gate_matrix
 from ._simulatortools import cx_gate_matrix

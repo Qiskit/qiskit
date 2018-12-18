@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by the Coupling object.
+Exception for errors raised by the CouplingMap object.
 """
 from qiskit import QiskitError
 

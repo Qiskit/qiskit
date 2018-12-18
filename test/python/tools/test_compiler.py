@@ -19,7 +19,7 @@ from qiskit import compile
 from qiskit.result import Result
 from qiskit import execute
 from qiskit.qiskiterror import QiskitError
-from qiskit.backends.ibmq import least_busy
+from qiskit.providers.ibmq import least_busy
 from .._mockutils import FakeBackend
 from ..common import QiskitTestCase
 from ..common import requires_qe_access, requires_cpp_simulator

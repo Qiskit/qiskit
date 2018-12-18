@@ -14,7 +14,7 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, direction_mapper,
+from qiskit.mapper import (CouplingMap, swap_mapper, cx_cancellation, cx_direction,
                            remove_last_measurements, return_last_measurements)
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
@@ -98,14 +98,12 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
             and not _matches_coupling_map(dag, coupling_map)):
         initial_layout = _pick_best_layout(dag, backend)
 
-    final_dag, final_layout = transpile_dag(dag, basis_gates=basis_gates,
-                                            coupling_map=coupling_map,
-                                            initial_layout=initial_layout,
-                                            get_layout=True, format='dag',
-                                            seed_mapper=seed_mapper,
-                                            pass_manager=pass_manager)
-    final_dag.layout = [[k, v]
-                        for k, v in final_layout.items()] if final_layout else None
+    final_dag = transpile_dag(dag, basis_gates=basis_gates,
+                              coupling_map=coupling_map,
+                              initial_layout=initial_layout,
+                              format='dag',
+                              seed_mapper=seed_mapper,
+                              pass_manager=pass_manager)
 
     out_circuit = dag_to_circuit(final_dag)
 
@@ -114,8 +112,8 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
 
 # pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                  initial_layout=None, get_layout=False,
-                  format='dag', seed_mapper=None, pass_manager=None):
+                  initial_layout=None, format='dag', seed_mapper=None,
+                  pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
@@ -144,7 +142,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
-        get_layout (bool): flag for returning the final layout after mapping
         format (str): DEPRECATED The target format of the compilation: {'dag', 'json', 'qasm'}
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
@@ -157,7 +154,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         DAGCircuit, dict: transformed dag along with the final layout on backend qubits
     """
     # TODO: `basis_gates` will be removed after we have the unroller pass.
-    # TODO: `coupling_map`, `initial_layout`, `get_layout`, `seed_mapper` removed after mapper pass.
+    # TODO: `coupling_map`, `initial_layout`, `seed_mapper` removed after mapper pass.
 
     # TODO: move this to the mapper pass
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
@@ -180,7 +177,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("pre-mapping properties: %s",
                         dag.properties())
             # Insert swap gates
-            coupling = Coupling(couplinglist=coupling_map)
+            coupling = CouplingMap(couplinglist=coupling_map)
             removed_meas = remove_last_measurements(dag)
             logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
@@ -190,7 +187,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Expand swaps
             dag = Unroller(basis).run(dag)
             # Change cx directions
-            dag = direction_mapper(dag, coupling)
+            dag = cx_direction(dag, coupling)
             # Simplify cx gates
             cx_cancellation(dag)
             # Unroll to the basis
@@ -207,8 +204,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                       "only dag to dag transformations are supported.",
                       DeprecationWarning)
 
-    if get_layout:
-        return dag, final_layout
     return dag
 
 
