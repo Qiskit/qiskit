@@ -259,8 +259,12 @@ class TestIBMQJob(JobTestCase):
         job = backend.run(qobj)
 
         rjob = backend.retrieve_job(job.job_id())
-        self.assertTrue(job.job_id() == rjob.job_id())
-        self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
+        self.assertEqual(job.job_id(), rjob.job_id())
+        self.assertEqual(job.result().get_counts(), rjob.result().get_counts())
+        if getattr(backend.configuration(), 'allow_q_object'):
+            self.assertEqual(job.qobj().as_dict(), qobj.as_dict())
+        else:
+            self.assertEqual(job.qobj(), None)
 
     @requires_qe_access
     def test_retrieve_job_error(self, qe_token, qe_url):

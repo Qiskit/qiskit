@@ -11,6 +11,7 @@ This module is used for creating asynchronous job objects for the
 IBM Q Experience.
 """
 
+import warnings
 from concurrent import futures
 import time
 import logging
@@ -20,7 +21,7 @@ import json
 import datetime
 import numpy
 
-from qiskit.qobj import qobj_to_dict
+from qiskit.qobj import qobj_to_dict, Qobj
 from qiskit.transpiler import transpile_dag
 from qiskit.providers import BaseJob, JobError, JobTimeoutError
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
@@ -208,6 +209,8 @@ class IBMQJob(BaseJob):
 
         try:
             job_response = self._wait_for_job(timeout=timeout, wait=wait)
+            if not self._qobj_payload:
+                self._qobj_payload = job_response.get('qObject', {})
         except ApiError as api_err:
             raise JobError(str(api_err))
 
@@ -420,6 +423,21 @@ class IBMQJob(BaseJob):
                 self._api_error_msg = str(submit_info['error'])
                 raise JobError(str(submit_info['error']))
 
+    def qobj(self):
+        """Return the Qobj submitted for this job.
+
+        Note that this method might involve querying the API for results if the
+        Job has been created in a previous Qiskit session.
+
+        Returns:
+            Qobj: the Qobj submitted for this job.
+        """
+        if not self._qobj_payload:
+            # Populate self._qobj_payload by retrieving the results.
+            self._wait_for_result()
+
+        return Qobj(**self._qobj_payload)
+
 
 class IBMQJobPreQobj(IBMQJob):
     """
@@ -504,6 +522,11 @@ class IBMQJobPreQobj(IBMQJob):
             ret['header'] = header
 
         return result_from_old_style_dict(ret)
+
+    def qobj(self):
+        """Return the Qobj submitted for this job."""
+        warnings.warn('This job has not been submitted using Qobj.')
+        return None
 
 
 def _reorder_bits(job_data):
