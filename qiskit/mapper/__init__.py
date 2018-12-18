@@ -12,5 +12,5 @@ from ._coupling import CouplingMap
 from ._couplingerror import CouplingError
 from ._layout import Layout
 from ._mappererror import MapperError
-from ._mapping import (swap_mapper, cx_direction, cx_cancellation,
+from ._mapping import (swap_mapper,
                        remove_last_measurements, return_last_measurements)
