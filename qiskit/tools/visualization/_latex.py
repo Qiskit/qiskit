@@ -413,8 +413,28 @@ class QCircuitImage(object):
                     columns += 1
                     is_occupied = [False] * self.img_width
                     is_occupied[pos_1] = True
-            elif op['name'] == "barrier":
-                pass
+            elif op['name'] in ["barrier", 'snapshot', 'load', 'save',
+                                'noise']:
+                if self.plot_barriers:
+                    qarglist = op['qargs']
+                    indexes = [self._get_qubit_index(x) for x in qarglist]
+                    start_bit = self.qubit_list[min(indexes)]
+                    if aliases is not None:
+                        qarglist = map(lambda x: aliases[x], qarglist)
+                    start = self.img_regs[start_bit]
+                    span = len(op['qargs']) - 1
+                    for i in range(start, span + 1):
+                        if is_occupied[i] is False:
+                            is_occupied[i] = True
+                        else:
+                            columns += 1
+                            is_occupied = [False] * self.img_width
+                            for j in range(start, span + 1):
+                                is_occupied[j] = True
+                            break
+                    # update current column width
+                    if columns not in max_column_width:
+                        max_column_width[columns] = 0
             else:
                 raise _error.VisualizationError("bad node data")
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -916,7 +936,16 @@ class QCircuitImage(object):
                         qarglist = map(lambda x: aliases[x], qarglist)
                     start = self.img_regs[start_bit]
                     span = len(op['qargs']) - 1
-                    self._latex[start][columns] += " \\barrier{" + str(
+                    for i in range(start, span + 1):
+                        if is_occupied[i] is False:
+                            is_occupied[i] = True
+                        else:
+                            columns += 1
+                            is_occupied = [False] * self.img_width
+                            for j in range(start, span + 1):
+                                is_occupied[j] = True
+                            break
+                    self._latex[start][columns] = "\\qw \\barrier{" + str(
                         span) + "}"
             else:
                 raise _error.VisualizationError("bad node data")

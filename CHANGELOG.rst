@@ -57,6 +57,7 @@ Added
   representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
 - Added lookahead mapper as new transpiler pass (#1140).
+- Added a ``.qobj()`` method for IBMQ and local simulator Jobs (#1532).
 
 Changed
 """""""
@@ -105,6 +106,7 @@ Changed
   ``qiskit.backends.legacysimulators`` (C++ simulators) (#1484)
 - Breaking change: ``Aer`` in ``qiskit`` root module has been removed. Instead ``Simulators`` will
   stand for Python simulators and ``LegacySimulators`` for those in C++. (#1484)
+- Breaking change: ``qiskit.backends`` has been renamed to ``qiskit.providers`` (#1531).
 
 
 Deprecated

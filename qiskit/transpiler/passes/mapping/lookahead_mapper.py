@@ -59,7 +59,7 @@ class LookaheadMapper(TransformationPass):
         """Initialize a LookaheadMapper instance.
 
         Arguments:
-            coupling_map (Coupling): Coupling of the target backend.
+            coupling_map (CouplingMap): CouplingMap of the target backend.
         """
 
         super().__init__()
@@ -127,7 +127,7 @@ def _search_forward_n_swaps(layout, gates, coupling_map,
     Arguments:
         layout (Layout): Map from virtual qubit index to physical qubit index.
         gates (list): Gates to be mapped.
-        coupling_map (Coupling): Coupling of the target backend.
+        coupling_map (CouplingMap): CouplingMap of the target backend.
         depth (int): Number of SWAP layers to search before choosing a result.
         width (int): Number of SWAPs to consider at each layer.
     Returns:
@@ -184,7 +184,7 @@ def _map_free_gates(layout, gates, coupling_map):
     Args:
         layout (Layout): Map from virtual qubit index to physical qubit index.
         gates (list): Gates to be mapped.
-        coupling_map (Coupling): Coupling for target device topology.
+        coupling_map (CouplingMap): CouplingMap for target device topology.
 
     Returns:
         tuple:

@@ -22,10 +22,10 @@ from scipy.stats import chi2_contingency
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import IBMQ
 from qiskit import compile
-from qiskit.backends import JobStatus, JobError
-from qiskit.backends.ibmq import least_busy
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackendError
-from qiskit.backends.ibmq.ibmqjob import IBMQJob
+from qiskit.providers import JobStatus, JobError
+from qiskit.providers.ibmq import least_busy
+from qiskit.providers.ibmq.ibmqbackend import IBMQBackendError
+from qiskit.providers.ibmq.ibmqjob import IBMQJob
 from ..common import requires_qe_access, JobTestCase, slow_test
 
 
@@ -259,8 +259,12 @@ class TestIBMQJob(JobTestCase):
         job = backend.run(qobj)
 
         rjob = backend.retrieve_job(job.job_id())
-        self.assertTrue(job.job_id() == rjob.job_id())
-        self.assertTrue(job.result().get_counts() == rjob.result().get_counts())
+        self.assertEqual(job.job_id(), rjob.job_id())
+        self.assertEqual(job.result().get_counts(), rjob.result().get_counts())
+        if getattr(backend.configuration(), 'allow_q_object'):
+            self.assertEqual(job.qobj().as_dict(), qobj.as_dict())
+        else:
+            self.assertEqual(job.qobj(), None)
 
     @requires_qe_access
     def test_retrieve_job_error(self, qe_token, qe_url):

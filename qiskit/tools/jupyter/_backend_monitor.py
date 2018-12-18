@@ -18,9 +18,9 @@ import matplotlib.colors                                # pylint: disable=import
 import matplotlib as mpl                                # pylint: disable=import-error
 from matplotlib import cm                               # pylint: disable=import-error
 from matplotlib.patches import Circle                   # pylint: disable=import-error
-from qiskit.backends.ibmq import IBMQ
+from qiskit.providers.ibmq import IBMQ
 from qiskit.qiskiterror import QISKitError
-from qiskit.backends.ibmq.ibmqbackend import IBMQBackend
+from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.visualization._gate_map import plot_gate_map
 
 

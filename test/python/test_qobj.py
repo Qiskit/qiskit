@@ -14,11 +14,11 @@ import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
-from qiskit._schema_validation import SchemaValidationError
+from qiskit.qobj._schema_validation import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
-from qiskit.backends.builtinsimulators import simulatorsjob
-from qiskit.backends.ibmq import ibmqjob
+from qiskit.providers.builtinsimulators import simulatorsjob
+from qiskit.providers.ibmq import ibmqjob
 from ._mockutils import FakeBackend
 from .common import QiskitTestCase
 

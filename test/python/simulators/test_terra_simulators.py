@@ -45,3 +45,13 @@ class TestTerraSimulators(QiskitTestCase):
                     self.assertEqual(result.header.to_dict(), custom_qobj_header)
                     self.assertEqual(result.results[0].header.some_field,
                                      'extra info')
+
+    def test_job_qobj(self):
+        """Test job.qobj()."""
+        for provider in (BasicAer, LegacySimulators):
+            for backend in provider.backends():
+                with self.subTest(provider=provider, backend=backend):
+                    qobj = compile(self.qc1, backend)
+
+                    job = backend.run(qobj)
+                    self.assertEqual(job.qobj(), qobj)
