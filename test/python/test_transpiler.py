@@ -49,7 +49,7 @@ class TestTranspiler(QiskitTestCase):
         """Test passing the default (None) pass manager to the transpiler.
 
         It should perform the default qiskit flow:
-        unroll, swap_mapper, direction_mapper, cx cancellation, optimize_1q_gates
+        unroll, swap_mapper, cx_direction, cx_cancellation, optimize_1q_gates
         and should be equivalent to using tools.compile
         """
         qr = QuantumRegister(2, 'qr')
