@@ -19,10 +19,8 @@ from qiskit.mapper import (CouplingMap, swap_mapper,
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
-from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
-from .passes.mapping.unroller import Unroller
-from .passes.mapping.cx_direction import CXDirection
-from .passes.cx_cancellation import CXCancellation
+from qiskit.extensions.standard import SwapGate
+from .passes import Unroller, CXDirection, CXCancellation, Decompose, Optimize1qGates
 from ._transpilererror import TranspilerError
 
 logger = logging.getLogger(__name__)
@@ -191,7 +189,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
-            dag = Unroller(basis).run(dag)
+            dag = Decompose(SwapGate).run(dag)
             # Change cx directions
             dag = CXDirection(coupling).run(dag)
             # Simplify cx gates
