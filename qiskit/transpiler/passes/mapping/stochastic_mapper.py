@@ -20,7 +20,7 @@ from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import (remove_last_measurements, return_last_measurements)
-from qiskit.mapper import Coupling, Layout
+from qiskit.mapper import CouplingMap, Layout
 
 logger = getLogger(__name__)
 
@@ -61,7 +61,7 @@ class StochasticMapper(TransformationPass):
         If these are not satisfied, the behavior is undefined.
 
         Args:
-            coupling_map (Coupling): Directed graph representing a coupling
+            coupling_map (CouplingMap): Directed graph representing a coupling
                 map.
             initial_layout (Layout): initial layout of qubits in mapping
             trials (int): maximum number of iterations to attempt
@@ -118,7 +118,7 @@ class StochasticMapper(TransformationPass):
         qubit_subset (list): The qubit_subset is the set of qubits in
             the coupling graph that we have chosen to map into, as tuples
             (Register, index).
-        coupling (Coupling): Directed graph representing a coupling map.
+        coupling (CouplingMap): Directed graph representing a coupling map.
             This coupling map should be one that was provided to the
             stochastic mapper.
         trials (int): Number of attempts the randomized algorithm makes.
@@ -341,13 +341,13 @@ class StochasticMapper(TransformationPass):
 
     def _mapper(self, circuit_graph, coupling_graph,
                 trials=20, seed=None):
-        """Map a DAGCircuit onto a CouplingGraph using swap gates.
+        """Map a DAGCircuit onto a CouplingMap using swap gates.
 
         Use self.initial_layout for the initial layout.
 
         Args:
             circuit_graph (DAGCircuit): input DAG circuit
-            coupling_graph (Coupling): coupling graph to map onto
+            coupling_graph (CouplingMap): coupling graph to map onto
             trials (int): number of trials.
             seed (int): initial seed.
 
@@ -386,7 +386,7 @@ class StochasticMapper(TransformationPass):
             coupling_graph = coupling_graph.subgraph(
                 self.initial_layout.get_physical_bits().keys())
             if coupling_graph.size() < len(self.initial_layout):
-                raise TranspilerError("Coupling graph too small for default layout")
+                raise TranspilerError("Coupling map too small for default layout")
             self.input_layout = self.initial_layout.copy()
 
         # Find swap circuit to preceed to each layer of input circuit

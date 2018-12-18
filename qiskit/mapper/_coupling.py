@@ -144,11 +144,11 @@ class CouplingMap:
         self.graph.add_edge(src, dst)
 
     def subgraph(self, nodelist):
-        """Return a Coupling object for a subgraph of self.
+        """Return a CouplingMap object for a subgraph of self.
 
         nodelist (list): list of integer node labels
         """
-        subcoupling = Coupling()
+        subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
         for node in nodelist:
             if node not in subcoupling.physical_qubits:

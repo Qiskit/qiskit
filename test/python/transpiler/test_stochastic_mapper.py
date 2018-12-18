@@ -9,7 +9,7 @@
 
 import unittest
 from qiskit.transpiler.passes import StochasticMapper
-from qiskit.mapper import Coupling, Layout
+from qiskit.mapper import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from ..common import QiskitTestCase
@@ -29,7 +29,7 @@ class TestStochasticMapper(QiskitTestCase):
         The mapper will adjust the initial layout so that
         all of the gates can be done without swaps.
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
         qr = QuantumRegister(2, 'q')
         ar = QuantumRegister(1, 'a')
@@ -56,7 +56,7 @@ class TestStochasticMapper(QiskitTestCase):
         Test two registers + measurements using a layout.
         The layout makes all gates nearest neighbor.
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
         qr = QuantumRegister(2, 'q')
         ar = QuantumRegister(1, 'a')
@@ -85,7 +85,7 @@ class TestStochasticMapper(QiskitTestCase):
         become nearest neighbor. The pass has the layout
         in pass_.initial_layout.
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
         qr = QuantumRegister(2, 'q')
         ar = QuantumRegister(1, 'a')
@@ -116,7 +116,7 @@ class TestStochasticMapper(QiskitTestCase):
 
          Coupling map: [1]--[0]--[2]
         """
-        coupling = Coupling(couplinglist=[[0, 1], [0, 2]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [0, 2]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -142,7 +142,7 @@ class TestStochasticMapper(QiskitTestCase):
 
          Coupling map: [0]--[1]--[2]--[3]
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2], [2, 3]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -170,7 +170,7 @@ class TestStochasticMapper(QiskitTestCase):
 
          Coupling map: [1]--[0]--[2]
         """
-        coupling = Coupling(couplinglist=[[0, 1], [0, 2]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [0, 2]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -199,7 +199,7 @@ class TestStochasticMapper(QiskitTestCase):
 
          qr2:--------------
         """
-        coupling = Coupling(couplinglist=[[1, 0], [1, 2]])
+        coupling = CouplingMap(couplinglist=[[1, 0], [1, 2]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -237,7 +237,7 @@ class TestStochasticMapper(QiskitTestCase):
 
          qr3:-----------
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2], [2, 3]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -277,7 +277,7 @@ class TestStochasticMapper(QiskitTestCase):
          qr3:-[H]--X---------
 
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2], [2, 3]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -319,7 +319,7 @@ class TestStochasticMapper(QiskitTestCase):
          qr3:------------
 
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2], [2, 3]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -359,7 +359,7 @@ class TestStochasticMapper(QiskitTestCase):
          qr3:---------------------
 
         """
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2], [2, 3]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -385,7 +385,7 @@ class TestStochasticMapper(QiskitTestCase):
         An overoptimization introduced issue #81:
         https://github.com/Qiskit/qiskit-terra/issues/81
         """
-        coupling = Coupling(couplinglist=[[0, 2], [1, 2], [2, 3]])
+        coupling = CouplingMap(couplinglist=[[0, 2], [1, 2], [2, 3]])
         #                                     ┌───┐     ┌─┐
         # q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
         #                                ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
@@ -462,10 +462,10 @@ class TestStochasticMapper(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        coupling = Coupling(couplinglist=[[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                                          [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
-                                          [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
-                                          [15, 0], [15, 0], [15, 2], [15, 14]])
+        coupling = CouplingMap(couplinglist=[[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                                             [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
+                                             [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+                                             [15, 0], [15, 0], [15, 2], [15, 14]])
         qr = QuantumRegister(16, 'q')
         cr = ClassicalRegister(16, 'c')
         circ = QuantumCircuit(qr, cr)
@@ -488,7 +488,7 @@ class TestStochasticMapper(QiskitTestCase):
 
     def test_map_with_layout(self):
         """Test using an initial layout."""
-        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
         qra = QuantumRegister(2, 'qa')
         qrb = QuantumRegister(1, 'qb')
         cr = ClassicalRegister(3, 'r')
