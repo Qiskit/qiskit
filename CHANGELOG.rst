@@ -20,6 +20,10 @@ The format is based on `Keep a Changelog`_.
 ^^^^^^^^^^^^^
 
 
+`0.7.0`_ - 2018-12-18
+^^^^^^^^^^^^^^^^^^^^^
+
+
 Added
 """""
 
