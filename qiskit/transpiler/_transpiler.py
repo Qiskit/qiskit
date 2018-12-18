@@ -92,6 +92,9 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
     Raises:
         TranspilerError: if args are not complete for transpiler to function.
     """
+    if pass_manager and not pass_manager.working_list:
+        return circuit
+
     dag = circuit_to_dag(circuit)
     if not backend and not initial_layout:
         raise TranspilerError('initial layout not supplied, and cannot '
@@ -100,14 +103,12 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
             and not _matches_coupling_map(dag, coupling_map)):
         initial_layout = _pick_best_layout(dag, backend)
 
-    final_dag, final_layout = transpile_dag(dag, basis_gates=basis_gates,
-                                            coupling_map=coupling_map,
-                                            initial_layout=initial_layout,
-                                            get_layout=True, format='dag',
-                                            seed_mapper=seed_mapper,
-                                            pass_manager=pass_manager)
-    final_dag.layout = [[k, v]
-                        for k, v in final_layout.items()] if final_layout else None
+    final_dag = transpile_dag(dag, basis_gates=basis_gates,
+                              coupling_map=coupling_map,
+                              initial_layout=initial_layout,
+                              format='dag',
+                              seed_mapper=seed_mapper,
+                              pass_manager=pass_manager)
 
     out_circuit = dag_to_circuit(final_dag)
 
@@ -116,8 +117,8 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
 
 # pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                  initial_layout=None, get_layout=False,
-                  format='dag', seed_mapper=None, pass_manager=None):
+                  initial_layout=None, format='dag', seed_mapper=None,
+                  pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
@@ -146,7 +147,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
-        get_layout (bool): flag for returning the final layout after mapping
         format (str): DEPRECATED The target format of the compilation: {'dag', 'json', 'qasm'}
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
@@ -159,7 +159,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         DAGCircuit, dict: transformed dag along with the final layout on backend qubits
     """
     # TODO: `basis_gates` will be removed after we have the unroller pass.
-    # TODO: `coupling_map`, `initial_layout`, `get_layout`, `seed_mapper` removed after mapper pass.
+    # TODO: `coupling_map`, `initial_layout`, `seed_mapper` removed after mapper pass.
 
     # TODO: move this to the mapper pass
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
@@ -211,8 +211,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                       "only dag to dag transformations are supported.",
                       DeprecationWarning)
 
-    if get_layout:
-        return dag, final_layout
     return dag
 
 
