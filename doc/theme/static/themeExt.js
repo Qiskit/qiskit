@@ -18,9 +18,14 @@ $(function() {
             const $linkWrapper = $('<span class="link-wrapper"></span>');
             const $link = $li.children('a').addClass('ibm-type-b-tight');
             const $div = $('<div class="item"></div>');
-            const text = $link[0].text.split('.');
-            if(text.length > 2) {
-                $link[0].text = text[text.length - 1];
+            text = '';
+            if($link[0].text.indexOf('qiskit.') !== -1){
+                  text = $link[0].text.split('.');
+                  if (text.length > 1) {
+                      $link[0].text = text[text.length - 1];
+                  }
+            } else {
+                  text = $link[0].text;
             }
             const isCurrent = $li.hasClass('current');
             const isActive = $li.hasClass('current') && $link.hasClass('mdl-color-text--primary')

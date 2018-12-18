@@ -18,6 +18,7 @@ class Or(Validator):
     any of those validators pass.
 
     Examples:
+
         wheels = Integer(validate=Or(Equal(4), Equal(2)))
     """
 
@@ -47,12 +48,14 @@ class PatternProperties(Validator):
     conform to any of the specified validators in the mapping, and its value
     has the specified type.
 
-    Examples:
+    Examples::
+
         counts = Nested(
             SomeSchema,
             validate=PatternProperties(
                 {Regexp('^0x([0-9A-Fa-f])+$'): Integer(),
                  Regexp('OTHER_THING'): String()})
+
     """
 
     def __init__(self, pattern_properties):
