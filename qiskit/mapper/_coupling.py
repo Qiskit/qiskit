@@ -170,7 +170,7 @@ class CouplingMap:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
         """
         try:
-            return nx.shortest_path(self.graph.to_undirected(), source=physical_qubit1,
+            return nx.shortest_path(self.graph.to_undirected(as_view=True), source=physical_qubit1,
                                     target=physical_qubit2)
         except nx.exception.NetworkXNoPath:
             raise CouplingError(
