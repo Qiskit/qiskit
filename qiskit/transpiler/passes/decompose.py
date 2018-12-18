@@ -18,13 +18,14 @@ class Decompose(TransformationPass):
     def __init__(self, gate=None):
         """
         Args:
-            gate (Gate): Gate to decompose.
+            gate (qiskit.circuit.gate.Gate): Gate to decompose.
         """
         super().__init__()
         self.gate = gate
 
     def run(self, dag):
         """Expand a given gate into its decomposition.
+
         Args:
             dag(DAGCircuit): input dag
         Returns:
