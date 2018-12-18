@@ -1212,12 +1212,8 @@ class DAGCircuit:
     def get_op_nodes(self, op=None, data=False):
         """Get the list of "op" nodes in the dag.
 
-        Note: this method returns all nodes of a given op type (e.g. HGate),
-        and does not look at the gate operands. Because in the future, the
-        operands won't even be part of the gate.
-
         Args:
-            op (Instruction or None): op nodes to return. if op=None, return
+            op (Type): Instruction subclass op nodes to return. if op=None, return
                 all op nodes.
             data (bool): Default: False. If True, return a list of tuple
                 (node_id, node_data). If False, return a list of int (node_id)
@@ -1228,9 +1224,7 @@ class DAGCircuit:
         nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data["type"] == "op":
-                if op is None:
-                    nodes.append((node_id, node_data))
-                elif type(node_data["op"]) is type(op):
+                if op is None or isinstance(node_data["op"], op):
                     nodes.append((node_id, node_data))
         if not data:
             nodes = [n[0] for n in nodes]
