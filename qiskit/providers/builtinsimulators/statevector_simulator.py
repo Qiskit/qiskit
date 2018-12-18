@@ -100,7 +100,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         Returns:
             SimulatorsJob: derived from BaseJob
 
-        Additional Information:
+        Additional Information::
+
             backend_options: Is a dict of options for the backend. It may contain
                 * "initial_statevector": vector_like
                 * "chop_threshold": double
@@ -114,11 +115,12 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             setting small values to zero in the output statevector. The default
             value is 1e-15.
 
-            Example:
-            backend_options = {
-                "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
-                "chop_threshold": 1e-15
-            }
+            Example::
+
+                backend_options = {
+                    "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
+                    "chop_threshold": 1e-15
+                }
         """
         return super().run(qobj, backend_options=backend_options)
 
