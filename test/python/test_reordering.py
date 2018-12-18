@@ -13,7 +13,7 @@ import unittest
 import qiskit
 
 from qiskit import compile
-from qiskit.backends.ibmq import least_busy
+from qiskit.providers.ibmq import least_busy
 from .common import requires_qe_access, QiskitTestCase, slow_test
 
 
