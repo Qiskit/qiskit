@@ -91,13 +91,13 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         pvalues = values / sum(values)
         numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
-        width = 0.35  # the width of the bars
+        width = 1/(len(data)+1)  # the width of the bars
         rects = []
         for idx, val in enumerate(pvalues):
             label = None
             if not idx and legend:
                 label = legend[item]
-            rects.append(ax.bar(idx+(labels_dict[labels[idx]]-1)*width, val, width, label=label,
+            rects.append(ax.bar(idx+item*width, val, width, label=label,
                                 color=color[item % len(color)],
                                 zorder=2))
         # add some text for labels, title, and axes ticks
@@ -113,6 +113,10 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                     if height >= 1e-3:
                         ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
                                 '%.3f' % float(height),
+                                ha='center', va='bottom', zorder=3)
+                    else:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '0',
                                 ha='center', va='bottom', zorder=3)
 
     if sort == 'desc':
@@ -131,7 +135,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         plt.title(title)
 
     if legend:
-        plt.legend()
+        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
+                  borderaxespad=0, frameon=True, fontsize=12)
     if fig:
         plt.close(fig)
     return fig
