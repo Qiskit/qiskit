@@ -88,12 +88,6 @@ class DAGCircuit:
         # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
 
-        # layout of dag quantum registers on the chip
-        # TODO: rethink this. doesn't seem related to concept of DAG,
-        # but if we want to be able to generate qobj
-        # directly from a dag, we need it.
-        self.layout = []
-
     def get_qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]

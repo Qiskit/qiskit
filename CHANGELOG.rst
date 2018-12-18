@@ -57,6 +57,7 @@ Added
   representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
 - Added lookahead mapper as new transpiler pass (#1140).
+- Added a ``.qobj()`` method for IBMQ and local simulator Jobs (#1532).
 
 Changed
 """""""
