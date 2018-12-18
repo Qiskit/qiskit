@@ -40,11 +40,14 @@ class Measure(Instruction):
 
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
-     Args:
+
+    Args:
         qubit (QuantumRegister|tuple): quantum register
         cbit (ClassicalRegister|tuple): classical register
+
     Returns:
         qiskit.Instruction: the attached measure instruction.
+
     Raises:
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.

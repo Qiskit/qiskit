@@ -16,6 +16,7 @@ to run on the simulator. It is exponential in the number of qubits.
 The simulator is run using
 
 .. code-block:: python
+
     QasmSimulatorPy().run(qobj)
 
 Where the input is a Qobj object and the output is a SimulatorsJob object, which can
@@ -369,10 +370,11 @@ class QasmSimulatorPy(BaseBackend):
             zero state. This size of this vector must be correct for the number
             of qubits in all experiments in the qobj.
 
-            Example:
-            backend_options = {
-                "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
-            }
+            Example::
+
+                backend_options = {
+                    "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
+                }
         """
         self._set_options(qobj_config=qobj.config,
                           backend_options=backend_options)
