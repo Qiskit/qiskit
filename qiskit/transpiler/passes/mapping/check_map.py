@@ -22,7 +22,7 @@ class CheckMap(AnalysisPass):
         """
         Checks if a DAGCircuit is mapped to `coupling_map`.
         Args:
-            coupling_map (Coupling): Directed graph represented a coupling map.
+            coupling_map (CouplingMap): Directed graph represented a coupling map.
             initial_layout (Layout): The initial layout of the DAG to analyze.
         """
         super().__init__()
