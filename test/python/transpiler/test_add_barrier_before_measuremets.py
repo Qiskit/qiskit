@@ -13,16 +13,15 @@ from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from ..common import QiskitTestCase
 
-
 class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
     """ Tests the BarrierBeforeFinalMeasurements pass."""
 
     def test_single_measure(self):
         """ A single measurement at the end
-                             |
-         q0:--[m]--     q0:--|-[m]---
-               |    ->       |  |
-         c1:---.---     c1:-----.---
+                           |
+         q:--[m]--     q:--|-[m]---
+              |    ->      |  |
+         c:---.---     c:-----.---
         """
         qr = QuantumRegister(1, 'q')
         cr = ClassicalRegister(1, 'c')
@@ -41,9 +40,9 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
 
     def test_ignore_single_measure(self):
         """ Ignore single measurement because is not at the end
-         q0:--[m]-[H]-      q0:--[m]-[H]-
-               |        ->        |
-         c1:---.------      c1:---.------
+         q:--[m]-[H]-      q:--[m]-[H]-
+              |        ->       |
+         c:---.------      c:---.------
         """
         qr = QuantumRegister(1, 'q')
         cr = ClassicalRegister(1, 'c')
@@ -67,7 +66,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
                                                  |
          q0:--[m]--[H]--[m]--     q0:--[m]--[H]--|-[m]---
                |         |    ->        |        |  |
-         c1:---.---------.---     c1:---.-----------.---
+          c:---.---------.---      c:---.-----------.---
         """
         qr = QuantumRegister(1, 'q')
         cr = ClassicalRegister(1, 'c')
@@ -85,6 +84,72 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_two_qregs(self):
+        """ Two measurements in different qregs to different cregs
+                                           |
+         q0:--[H]--[m]------     q0:--[H]--|--[m]------
+                    |                      |   |
+         q1:--------|--[m]--  -> q1:-------|---|--[m]--
+                    |   |                  |   |   |
+         c0:--------.---|---      c0:------|---.---|---
+         c1:------------.---      c0:------|-------.---
+                                           |
+        """
+        qr0 = QuantumRegister(1, 'q0')
+        qr1 = QuantumRegister(1, 'q1')
+        cr0 = ClassicalRegister(1, 'c0')
+        cr1 = ClassicalRegister(1, 'c1')
+
+        circuit = QuantumCircuit(qr0, qr1, cr0, cr1)
+        circuit.h(qr0)
+        circuit.measure(qr0, cr0)
+        circuit.measure(qr1, cr1)
+
+        expected = QuantumCircuit(qr0, qr1, cr0, cr1)
+        expected.h(qr0)
+        expected.barrier(qr0, qr1)
+        expected.measure(qr0, cr0)
+        expected.measure(qr1, cr1)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+        from qiskit.tools.visualization.dag_visualization import dag_drawer
+        dag_drawer(result)
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_two_qregs_to_a_single_creg(self):
+        """ Two measurements in different qregs to the same creg
+                                           |
+         q0:--[H]--[m]------     q0:--[H]--|--[m]------
+                    |                      |   |
+         q1:--------|--[m]--  -> q1:-------|---|--[m]--
+                    |   |                  |   |   |
+         c0:--------.---.---      c0:------|---.---.---
+                                           |
+        """
+        qr0 = QuantumRegister(1, 'q0')
+        qr1 = QuantumRegister(1, 'q1')
+        cr0 = ClassicalRegister(1, 'c0')
+
+        circuit = QuantumCircuit(qr0, qr1, cr0)
+        circuit.h(qr0)
+        circuit.measure(qr0, cr0)
+        circuit.measure(qr1, cr0)
+
+        expected = QuantumCircuit(qr0, qr1, cr0)
+        expected.h(qr0)
+        expected.barrier(qr0, qr1)
+        expected.measure(qr0, cr0)
+        expected.measure(qr1, cr0)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+        from qiskit.tools.visualization.dag_visualization import dag_drawer
+        dag_drawer(result)
 
         self.assertEqual(result, circuit_to_dag(expected))
 
