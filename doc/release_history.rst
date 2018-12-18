@@ -97,15 +97,15 @@ Changes to visualization
 """"""""""""""""""""""""
 
 The biggest change made to visualization in the 0.7 release is the removal of
-Matplotlib from the project requirements. This was done to simplify the
-requirements and configuration required for installing Qiskit. If you plan to
-use any visualizations that depend on Matplotlib, which includes the ``mpl``
-output for the circuit drawer, and any of the plot* functions in the
-``qiskit.tools.visualization`` module you must manually ensure that matplotlib
-is installed. You can also leverage the optional requirements to Qiskit to
-install Qiskit with the visualization requirements::
+Matplotlib and other visualization dependencies from the project requirements.
+This was done to simplify the requirements and configuration required for
+installing Qiskit. If you plan to use any visualizations (including all the
+jupyter magics) except for the ``text``, ``latex``, and ``latex_source``
+output for the circuit drawer you'll you must manually ensure that
+the visualization dependencies are installed. You can leverage the optional
+requirements to the Qiskit-Terra package to do this::
 
-   pip install qiskit[visualization]
+   pip install qiskit-terra[visualization]
 
 Aside from this there have been changes made to several of the interfaces
 as part of the stabilization which may have an impact on existing code.
@@ -208,14 +208,17 @@ Changes to Backends
 """""""""""""""""""
 
 With the improvements made in the 0.7 release there are a few things related
-to backends to keep in mind when upgrading. The biggest change is the removal
-of the implicit fallback to python based simulators when the C++ simulators
-are not found. Now if you ask for a local C++ based simulator backend, such as
-``qasm_simulator`` and it can't be found an exception will be raised instead
-of just using the python based version ``qasm_simulator_py`` instead. If you
-do not have the C++ simulators installed on your system and you were relying
-on this fallback you might have to update your backend names used to include
-the ``_py`` suffix.
+to backends to keep in mind when upgrading. The biggest change is the
+restructuring of the provider instances in the root  ``qiskit``` namespace.
+The ``Aer`` provider is not installed by default and requires the installation
+of the ``qiskit-aer`` package. This package contains the new high performance
+fully featured simulator. If you installed via ``pip install qiskit`` you'll
+already have this installed. The python simulators are now available under
+``qiskit.BasicAer`` and the old C++ simulators are available with
+``qiskit.LegacySimulators``. This also means that the implicit fallback to
+python based simulators when the C++ simulators are not found doesn't exist
+anymore. If you ask for a local C++ based simulator backend,and it can't be found an exception will be raised instead of just using the python simulator
+instead.
 
 Additionally the previously deprecation top level functions ``register()`` and
 ``available_backends()`` have been removed. Also, the deprecated
