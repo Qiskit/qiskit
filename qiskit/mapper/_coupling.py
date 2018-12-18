@@ -163,6 +163,23 @@ class CouplingMap:
             self._compute_distance_matrix()
         return self._dist_matrix[physical_qubit1][physical_qubit2]
 
+    def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
+        """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
+        Args:
+            physical_qubit1 (int): A physical qubit
+            physical_qubit2 (int): Another physical qubit
+        Returns:
+            List: The shortest undirected path
+        Raises:
+            CouplingError: When there is no path between physical_qubit1, physical_qubit2.
+        """
+        try:
+            return nx.shortest_path(self.graph.to_undirected(as_view=True), source=physical_qubit1,
+                                    target=physical_qubit2)
+        except nx.exception.NetworkXNoPath:
+            raise CouplingError(
+                "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
