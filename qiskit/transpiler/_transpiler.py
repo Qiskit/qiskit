@@ -90,6 +90,9 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
     Raises:
         TranspilerError: if args are not complete for transpiler to function.
     """
+    if pass_manager and not pass_manager.working_list:
+        return circuit
+
     dag = circuit_to_dag(circuit)
     if not backend and not initial_layout:
         raise TranspilerError('initial layout not supplied, and cannot '
