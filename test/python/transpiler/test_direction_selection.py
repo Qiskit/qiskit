@@ -11,8 +11,8 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import MapperError
+from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import CXDirection
-from qiskit.mapper import Coupling
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
 
@@ -28,12 +28,12 @@ class TestCXDirection(QiskitTestCase):
 
          qr2:---[H]---
 
-         Coupling map: None
+         CouplingMap map: None
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
-        coupling = Coupling()
+        coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
 
         pass_ = CXDirection(coupling)
@@ -49,12 +49,12 @@ class TestCXDirection(QiskitTestCase):
                  |
          qr2:----.----
 
-         Coupling map: [2] <- [0] -> [1]
+         CouplingMap map: [2] <- [0] -> [1]
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
-        coupling = Coupling({0: [2, 1]})
+        coupling = CouplingMap([(0, 1), (0, 2)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CXDirection(coupling)
@@ -68,12 +68,12 @@ class TestCXDirection(QiskitTestCase):
                  |
          qr1:----.----
 
-         Coupling map: [0] -> [1]
+         CouplingMap map: [0] -> [1]
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = Coupling({0: [1]})
+        coupling = CouplingMap([(0, 1)])
         dag = circuit_to_dag(circuit)
 
         pass_ = CXDirection(coupling)
@@ -87,7 +87,7 @@ class TestCXDirection(QiskitTestCase):
                  |
          qr1:---(+)---
 
-         Coupling map: [0] -> [1]
+         CouplingMap map: [0] -> [1]
 
          qr0:-[H]-(+)-[H]--
                    |
@@ -96,7 +96,7 @@ class TestCXDirection(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])
-        coupling = Coupling({0: [1]})
+        coupling = CouplingMap([(0, 1)])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
@@ -119,7 +119,7 @@ class TestCXDirection(QiskitTestCase):
                     |
          cr0: ------.--
 
-         Coupling map: [0] -> [1]
+         CouplingMap map: [0] -> [1]
 
          qr0: -[H]--.--[H]-[m]-
                     |       |
@@ -133,7 +133,7 @@ class TestCXDirection(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[1], qr[0])
         circuit.measure(qr[0], cr[0])
-        coupling = Coupling({0: [1]})
+        coupling = CouplingMap([(0, 1)])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)

@@ -14,8 +14,7 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.mapper import (Coupling, swap_mapper, cx_cancellation, cx_direction,
-
+from qiskit.mapper import (CouplingMap, swap_mapper, cx_cancellation, cx_direction,
                            remove_last_measurements, return_last_measurements)
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
@@ -181,7 +180,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("pre-mapping properties: %s",
                         dag.properties())
             # Insert swap gates
-            coupling = Coupling(couplinglist=coupling_map)
+            coupling = CouplingMap(couplinglist=coupling_map)
             removed_meas = remove_last_measurements(dag)
             logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
