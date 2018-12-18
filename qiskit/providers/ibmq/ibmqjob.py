@@ -93,11 +93,10 @@ class IBMQJob(BaseJob):
         except JobError as ex:
             print("Something wrong happened!: {}".format(ex))
 
-
     Both methods can raise if something ath the API level happens that prevent
     Qiskit from determining the status of the job.
 
-    .. NOTE::
+    Note:
         When querying the API for getting the status, two kinds of errors are
         possible. The most severe is the one preventing Qiskit from getting a
         response from the backend. This can be caused by a network failure or a
@@ -133,7 +132,7 @@ class IBMQJob(BaseJob):
         Notes:
             It is mandatory to pass either ``qobj`` or ``job_id``. Passing a ``qobj``
             will ignore ``job_id`` and will create an instance to be submitted to the
-            API server for job creation. Passing only a `job_id`will create an instance
+            API server for job creation. Passing only a `job_id` will create an instance
             representing an already-created job retrieved from the API server.
         """
         super().__init__(backend, job_id)
@@ -250,7 +249,7 @@ class IBMQJob(BaseJob):
         """Query the API to update the status.
 
         Returns:
-            JobStatus: The status of the job, once updated.
+            qiskit.providers.JobStatus: The status of the job, once updated.
 
         Raises:
             JobError: if there was an exception in the future being executed
@@ -440,9 +439,7 @@ class IBMQJob(BaseJob):
 
 
 class IBMQJobPreQobj(IBMQJob):
-    """
-    Subclass of IBMQJob for handling pre-qobj jobs.
-    """
+    """Subclass of IBMQJob for handling pre-qobj jobs."""
 
     def _submit_callback(self):
         """Submit old style qasms job to IBM-Q. Can remove when all devices
