@@ -57,6 +57,8 @@ class CouplingMap:
         self.graph = nx.DiGraph()
         # a dict of dicts from node pairs to distances
         self._dist_matrix = None
+        # a sorted list of physical qubits (integers) in this coupling map
+        self._qubit_list = None
 
         if couplingdict is not None:
             for origin, destinations in couplingdict.items():
@@ -81,8 +83,7 @@ class CouplingMap:
         return [edge for edge in self.graph.edges()]
 
     def add_physical_qubit(self, physical_qubit):
-        """
-        Add a physical qubit to the coupling graph as a node.
+        """Add a physical qubit to the coupling graph as a node.
 
         physical_qubit (int): An integer representing a physical qubit.
 
@@ -96,6 +97,7 @@ class CouplingMap:
                 "The physical qubit %s is already in the coupling graph" % physical_qubit)
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
+        self._qubit_list = None  # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -113,8 +115,10 @@ class CouplingMap:
 
     @property
     def physical_qubits(self):
-        """ Returns a sorted list of physical_qubits """
-        return sorted([pqubit for pqubit in self.graph.nodes])
+        """Returns a sorted list of physical_qubits"""
+        if self._qubit_list is None:
+            self._qubit_list = sorted([pqubit for pqubit in self.graph.nodes])
+        return self._qubit_list
 
     def is_connected(self):
         """
@@ -140,6 +144,7 @@ class CouplingMap:
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
+
         Args:
             physical_qubit1 (int): A physical qubit
             physical_qubit2 (int): Another physical qubit
