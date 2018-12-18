@@ -13,6 +13,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from ..common import QiskitTestCase
 
+
 class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
     """ Tests the BarrierBeforeFinalMeasurements pass."""
 
@@ -146,6 +147,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+
 class TestAddBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
     """ Tests the BarrierBeforeFinalMeasurements pass when there is a barrier already"""
 
@@ -171,6 +173,36 @@ class TestAddBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_remove_barrier_in_different_qregs(self):
+        """ Two measurements in different qregs to the same creg
+                                     |
+         q0:--|--[m]------     q0:---|--[m]------
+                  |                  |   |
+         q1:--|---|--[m]--  -> q1:---|---|--[m]--
+                  |   |              |   |   |
+         c0:------.---.---     c0:-------.---.---
+        """
+        qr0 = QuantumRegister(1, 'q0')
+        qr1 = QuantumRegister(1, 'q1')
+        cr0 = ClassicalRegister(1, 'c0')
+
+        circuit = QuantumCircuit(qr0, qr1, cr0)
+        circuit.barrier(qr0)
+        circuit.barrier(qr1)
+        circuit.measure(qr0, cr0)
+        circuit.measure(qr1, cr0)
+
+        expected = QuantumCircuit(qr0, qr1, cr0)
+        expected.barrier(qr0, qr1)
+        expected.measure(qr0, cr0)
+        expected.measure(qr1, cr0)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
 
 if __name__ == '__main__':
     unittest.main()
