@@ -624,7 +624,7 @@ class DAGCircuit:
                 m_wire = edge_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
-                    raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
+                     raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
 
                 if nd["wire"] not in input_circuit.wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
@@ -1252,16 +1252,16 @@ class DAGCircuit:
     def get_named_nodes(self, *names):
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
-        for node_id, data in self.multi_graph.nodes(data=True):
-            if node_data['op'].name in names:
-                nodes.append(self.multi_graph.node[node_id])
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and node_data['op'].name in names:
+                named_nodes.append(node_id)
         return named_nodes
 
     def get_2q_nodes(self):
         """Get the set of 2-qubit nodes."""
         two_q_nodes = []
-        for node_id, data in self.multi_graph.nodes(data=True):
-            if len(data["qargs"] == 2):
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
 
