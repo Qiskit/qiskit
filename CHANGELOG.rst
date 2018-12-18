@@ -46,7 +46,7 @@ Added
 - Added `backend_monitor` and `backend_overview` Jupyter magics,
   as well as `plot_coupling_map` (#1231)
 - Added a `Layout` object (#1313)
-- Added a BasicMapper pass (#1270)
+- Added BasicSwap as new transpiler mapper pass (#1270)
 - New `plot_bloch_multivector()` to plot Bloch vectors from a tensored state
   vector or density matrix. (#1359)
 - Per-shot measurement results are available in simulators and select devices.
@@ -56,7 +56,7 @@ Added
 - Added a ``qiskit.converters`` module for translation between commonly used
   representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
-- Added lookahead mapper as new transpiler pass (#1140).
+- Added LookaheadSwap as new transpiler mapper pass (#1140).
 - Added a ``.qobj()`` method for IBMQ and local simulator Jobs (#1532).
 
 Changed
