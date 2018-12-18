@@ -29,7 +29,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
 
      Args:
         choices (dict or iterable): iterable or dict containing the schema
-            instances and the information needed for performing disambiguation.
+        instances and the information needed for performing disambiguation.
         many (bool): whether the field is a collection of objects.
         metadata (dict): the same keyword arguments that ``PolyField`` receives.
     """
