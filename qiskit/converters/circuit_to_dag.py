@@ -7,7 +7,6 @@
 
 """Helper function for converting a circuit to a dag"""
 
-import copy
 
 from qiskit.circuit.compositegate import CompositeGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
@@ -22,8 +21,6 @@ def circuit_to_dag(circuit):
     Return:
         DAGCircuit: the DAG representing the input circuit.
     """
-    circuit = copy.deepcopy(circuit)
-
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
     for register in circuit.qregs:
@@ -72,7 +69,19 @@ def circuit_to_dag(circuit):
             else:
                 control = (instruction.control[0], instruction.control[1])
 
-            dagcircuit.apply_operation_back(instruction, instruction.qargs,
-                                            instruction.cargs, control)
+            def duplicate_instruction(inst):
+                """Create a fresh instruction from an input instruction."""
+                if inst.name == 'barrier':
+                    params = [inst.qargs]
+                elif inst.name in simulator_instructions.keys():
+                    params = inst.param + [inst.qargs] + [inst.circuit]
+                else:
+                    params = inst.param + inst.qargs + inst.cargs
+                new_inst = inst.__class__(*params)
+                return new_inst
+
+            inst = duplicate_instruction(instruction)
+            dagcircuit.apply_operation_back(inst, inst.qargs,
+                                            inst.cargs, control)
 
     return dagcircuit

@@ -9,7 +9,7 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicMapper
-from qiskit.mapper import Coupling
+from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
@@ -26,9 +26,9 @@ class TestBasicMapper(QiskitTestCase):
                        |
          q2:-----------.--
 
-         Coupling map: [1]--[0]--[2]
+         CouplingMap map: [1]--[0]--[2]
         """
-        coupling = Coupling({0: [1, 2]})
+        coupling = CouplingMap([[0, 1], [0, 2]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -52,9 +52,9 @@ class TestBasicMapper(QiskitTestCase):
                |
          q3:---.---
 
-         Coupling map: [0]--[1]--[2]--[3]
+         CouplingMap map: [0]--[1]--[2]--[3]
         """
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -75,7 +75,7 @@ class TestBasicMapper(QiskitTestCase):
                |
          q2:---.---
 
-         Coupling map: [1]--[0]--[2]
+         CouplingMap map: [1]--[0]--[2]
 
          q0:--X---.---
               |   |
@@ -84,7 +84,7 @@ class TestBasicMapper(QiskitTestCase):
          q2:-----(+)--
 
         """
-        coupling = Coupling({0: [1, 2]})
+        coupling = CouplingMap([[0, 1], [0, 2]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -108,7 +108,7 @@ class TestBasicMapper(QiskitTestCase):
                 |
          qr2:--(+)-------
 
-         Coupling map: [0]--[1]--[2]
+         CouplingMap map: [0]--[1]--[2]
 
          qr0:--X-----------
                |
@@ -116,7 +116,7 @@ class TestBasicMapper(QiskitTestCase):
                    |
          qr2:-----(+)------
         """
-        coupling = Coupling({1: [0, 2]})
+        coupling = CouplingMap([[1, 0], [1, 2]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -144,7 +144,7 @@ class TestBasicMapper(QiskitTestCase):
                 |    |
          qr3:---.---(+)-
 
-         Coupling map: [0]--[1]--[2]--[3]
+         CouplingMap map: [0]--[1]--[2]--[3]
 
          qr0:--X--------------
                |
@@ -155,7 +155,7 @@ class TestBasicMapper(QiskitTestCase):
          qr3:---------.---(+)-
 
         """
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
@@ -184,7 +184,7 @@ class TestBasicMapper(QiskitTestCase):
                     |
          qr3:--[H]--.---
 
-         Coupling map: [0]--[1]--[2]--[3]
+         CouplingMap map: [0]--[1]--[2]--[3]
 
          qr0:-----------(+)--
                          |
@@ -195,7 +195,7 @@ class TestBasicMapper(QiskitTestCase):
          qr3:-[H]--X---------
 
         """
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
@@ -224,7 +224,7 @@ class TestBasicMapper(QiskitTestCase):
                 |
          qr3:---.--[H]--
 
-         Coupling map: [0]--[1]--[2]--[3]
+         CouplingMap map: [0]--[1]--[2]--[3]
 
          qr0:-------(+)------
                      |
@@ -235,7 +235,7 @@ class TestBasicMapper(QiskitTestCase):
          qr3:--X-------------
 
         """
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
@@ -264,7 +264,7 @@ class TestBasicMapper(QiskitTestCase):
                 |        |
          qr3:---.--[H]--(+)-
 
-         Coupling map: [0]--[1]--[2]--[3]
+         CouplingMap map: [0]--[1]--[2]--[3]
 
          qr0:-------(+)-------.---
                      |        |
@@ -275,7 +275,7 @@ class TestBasicMapper(QiskitTestCase):
          qr3:--X------------------
 
         """
-        coupling = Coupling({0: [1], 1: [2], 2: [3]})
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
@@ -305,7 +305,7 @@ class TestBasicMapper(QiskitTestCase):
                           |
          qr1_1:    [2] ---.---
 
-         Coupling map: [1]--[0]--[2]
+         CouplingMap map: [1]--[0]--[2]
 
         virtual  physical
          qr0_0:    [0] --X-(+)--
@@ -315,7 +315,7 @@ class TestBasicMapper(QiskitTestCase):
          qr1_1:    [2] -----.---
 
         """
-        coupling = Coupling({0: [1, 2]})
+        coupling = CouplingMap([[0, 1], [0, 2]])
 
         qr0 = QuantumRegister(1, 'qr0')
         qr1 = QuantumRegister(2, 'qr1')
