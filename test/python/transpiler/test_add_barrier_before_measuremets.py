@@ -12,7 +12,7 @@ from qiskit.transpiler.passes import AddBarrierBeforeMeasuremets
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from ..common import QiskitTestCase
-from qiskit.tools.visualization.dag_visualization import dag_drawer
+
 
 class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
     """ Tests the AddBarrierBeforeMeasuremets pass."""
@@ -60,6 +60,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -18,9 +18,6 @@ from qiskit.dagcircuit import DAGCircuit
 class AddBarrierBeforeMeasuremets(TransformationPass):
     """Adds a barrier before measurements."""
 
-    def __init__(self):
-        super().__init__()
-
     def run(self, dag):
         """Return a circuit with a barrier before last measurments."""
         last_measures = []
@@ -34,7 +31,7 @@ class AddBarrierBeforeMeasuremets(TransformationPass):
             # create a laywer with the barrier and the measurements in last_measures operation
             dag.add_basis_element('barrier', len(last_measures), 0, 0)
             barried_layer = DAGCircuit()
-            last_measures_nodes = [dag.multi_graph.node[node]for node in last_measures]
+            last_measures_nodes = [dag.multi_graph.node[node] for node in last_measures]
             last_measures_qubits = [node['qargs'][0] for node in last_measures_nodes]
 
             # Add registers from the original dag.
