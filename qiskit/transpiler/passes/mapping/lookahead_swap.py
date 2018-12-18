@@ -52,11 +52,11 @@ SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
 
 
-class LookaheadMapper(TransformationPass):
+class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs."""
 
     def __init__(self, coupling_map):
-        """Initialize a LookaheadMapper instance.
+        """Initialize a LookaheadSwap instance.
 
         Arguments:
             coupling_map (CouplingMap): CouplingMap of the target backend.
