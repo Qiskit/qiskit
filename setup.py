@@ -19,17 +19,15 @@ requirements = [
     "jsonschema>=2.6,<2.7",
     "marshmallow>=2.16.3,<3",
     "marshmallow_polyfield>=3.2,<4",
-    "matplotlib>=2.1",
     "networkx>=2.2",
     "numpy>=1.13",
+    "pillow>=4.2.1",
     "ply>=3.10",
+    "psutil>=5",
     "requests>=2.19",
     "requests-ntlm>=1.1.0",
     "scipy>=0.19,!=0.19.1",
-    "sympy>=1.0",
-    "pillow>=4.2.1",
-    "psutil>=5",
-    "nxpd>=0.2"
+    "sympy>=1.3"
 ]
 
 
@@ -121,7 +119,8 @@ setup(
     },
     distclass=BinaryDistribution,
     extra_requires={
-        'visualization': ['matplotlib>=2.1'],
+        'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
+                          'pydot'],
         'full-featured-simulators': ['qiskit-aer>=0.1']
     }
 )
