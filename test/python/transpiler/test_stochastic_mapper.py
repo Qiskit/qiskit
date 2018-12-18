@@ -23,9 +23,92 @@ class TestStochasticMapper(QiskitTestCase):
     may depend on it.
     """
 
+    def test_multiple_registers_with_layout_adjust(self):
+        """
+        Test two registers + measurements using a layout.
+        The mapper will adjust the initial layout so that
+        all of the gates can be done without swaps.
+        """
+        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+
+        qr = QuantumRegister(2, 'q')
+        ar = QuantumRegister(1, 'a')
+        cr = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr, ar, cr)
+        circ.cx(qr[0], ar[0])
+        circ.cx(qr[1], ar[0])
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(ar[0], cr[2])
+        dag = circuit_to_dag(circ)
+
+        layout = Layout([(QuantumRegister(2, 'q'), 0),
+                         (QuantumRegister(2, 'q'), 1),
+                         (QuantumRegister(1, 'a'), 0)])
+
+        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        after = pass_.run(dag)
+
+        self.assertEqual(dag, after)
+
+    def test_multiple_registers_with_good_layout(self):
+        """
+        Test two registers + measurements using a layout.
+        The layout makes all gates nearest neighbor.
+        """
+        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+
+        qr = QuantumRegister(2, 'q')
+        ar = QuantumRegister(1, 'a')
+        cr = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr, ar, cr)
+        circ.cx(qr[0], ar[0])
+        circ.cx(qr[1], ar[0])
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(ar[0], cr[2])
+        dag = circuit_to_dag(circ)
+
+        layout = Layout([(QuantumRegister(2, 'q'), 0),
+                         (QuantumRegister(1, 'a'), 0),
+                         (QuantumRegister(2, 'q'), 1)])
+
+        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        after = pass_.run(dag)
+
+        self.assertEqual(dag, after)
+
+    def test_multiple_registers_with_default_layout(self):
+        """
+        Test two registers + measurements using no layout.
+        The default layout will be adjusted to all gates
+        become nearest neighbor. The pass has the layout
+        in pass_.initial_layout.
+        """
+        coupling = Coupling(couplinglist=[[0, 1], [1, 2]])
+
+        qr = QuantumRegister(2, 'q')
+        ar = QuantumRegister(1, 'a')
+        cr = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr, ar, cr)
+        circ.cx(qr[0], ar[0])
+        circ.cx(qr[1], ar[0])
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(ar[0], cr[2])
+        dag = circuit_to_dag(circ)
+
+        layout = None
+
+        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        after = pass_.run(dag)
+
+        self.assertEqual(dag, after)
+
+
     def test_trivial_case(self):
         """
-         q0:--(+)-[U]-(+)-
+         q0:--(+)-[H]-(+)-
                |       |
          q1:---.-------|--
                        |
@@ -77,7 +160,8 @@ class TestStochasticMapper(QiskitTestCase):
         from the basic mapper tests. In this case, the
         stochastic mapper handles a single
         layer by qubit label permutations so as not to
-        introduce additional swap gates.
+        introduce additional swap gates. The new
+        initial layout is found in pass_.initial_layout.
          q0:-------
 
          q1:--(+)--
@@ -85,13 +169,6 @@ class TestStochasticMapper(QiskitTestCase):
          q2:---.---
 
          Coupling map: [1]--[0]--[2]
-
-         q0:-(+)--
-              |
-         q1:--.---
-
-         q2:------
-
         """
         coupling = Coupling(couplinglist=[[0, 1], [0, 2]])
 
@@ -100,13 +177,11 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[1], qr[0])
 
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
     def test_permute_wires_2(self):
         """

@@ -138,6 +138,18 @@ class Coupling:
             self.add_physical_qubit(dst)
         self.graph.add_edge(src, dst)
 
+    def subgraph(self, nodelist):
+        """Return a Coupling object for a subgraph of self.
+
+        nodelist (list): list of integer node labels
+        """
+        subcoupling = Coupling()
+        subcoupling.graph = self.graph.subgraph(nodelist)
+        for node in nodelist:
+            if node not in subcoupling.physical_qubits:
+                subcoupling.add_physical_qubit(node)
+        return subcoupling
+
     @property
     def physical_qubits(self):
         """ Returns a sorted list of physical_qubits """
