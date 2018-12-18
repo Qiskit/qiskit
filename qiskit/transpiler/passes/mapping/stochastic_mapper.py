@@ -87,17 +87,9 @@ class StochasticMapper(TransformationPass):
         Returns:
             DAGCircuit: A mapped DAG.
         """
-        # TODO: when I left the measurements in, the mapper failed
-        #       one of the tests by measuring a qubit before the
-        #       gates were all applied. why is this failing now?
-        #removed_meas = remove_last_measurements(dag)
-        #logger.info("measurements moved: %s", removed_meas)
-        #logger.info("initial layout: %s", self.initial_layout)
         new_dag, final_layout, last_edgemap = self._mapper(
             dag, self.coupling_map,
             trials=self.trials, seed=self.seed)
-        #logger.info("final layout: %s", final_layout)
-        #return_last_measurements(new_dag, removed_meas, last_edgemap)
         self.property_set["layout"] = self.initial_layout
         return new_dag
 
