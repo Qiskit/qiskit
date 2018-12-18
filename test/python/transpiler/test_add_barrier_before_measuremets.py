@@ -12,16 +12,17 @@ from qiskit.transpiler.passes import AddBarrierBeforeMeasuremets
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from ..common import QiskitTestCase
-
+from qiskit.tools.visualization.dag_visualization import dag_drawer
 
 class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
     """ Tests the AddBarrierBeforeMeasuremets pass."""
 
     def test_single_measure(self):
         """ A single measurement at the end
+                             |
          q0:--[m]--     q0:--|-[m]---
                |    ->       |  |
-         c1:---.---     c1:--|--.---
+         c1:---.---     c1:-----.---
         """
         qr = QuantumRegister(1, 'q')
         cr = ClassicalRegister(1, 'c')
@@ -32,6 +33,28 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.barrier(qr)
         expected.measure(qr, cr)
+
+        pass_ = AddBarrierBeforeMeasuremets()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_ignore_single_measure(self):
+        """ Ignore single measurement because is not at the end
+         q0:--[m]-[H]-      q0:--[m]-[H]-
+               |        ->        |
+         c1:---.------      c1:---.------
+        """
+        qr = QuantumRegister(1, 'q')
+        cr = ClassicalRegister(1, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.h(qr[0])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr, cr)
+        expected.h(qr[0])
 
         pass_ = AddBarrierBeforeMeasuremets()
         result = pass_.run(circuit_to_dag(circuit))
