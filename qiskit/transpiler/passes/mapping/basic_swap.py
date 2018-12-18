@@ -21,7 +21,7 @@ from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
 
 
-class BasicMapper(TransformationPass):
+class BasicSwap(TransformationPass):
     """
     Maps (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
     """
@@ -42,7 +42,7 @@ class BasicMapper(TransformationPass):
 
     def run(self, dag):
         """
-        Runs the BasicMapper pass on `dag`.
+        Runs the BasicSwap pass on `dag`.
         Args:
             dag (DAGCircuit): DAG to map.
 

@@ -112,7 +112,7 @@ The pass manager developer can avoid one or more passes by making them condition
 ```
 pm.append(LayoutMapper(coupling_map))
 pm.append(CheckIfMapped(coupling_map))
-pm.append(BasicMapper(coupling_map),
+pm.append(BasicSwap(coupling_map),
               condition=lambda property_set: not property_set['is_mapped'])
 ``` 
 

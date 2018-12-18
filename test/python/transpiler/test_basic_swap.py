@@ -5,18 +5,18 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Test the Basic Mapper pass"""
+"""Test the BasicSwap pass"""
 
 import unittest
-from qiskit.transpiler.passes import BasicMapper
+from qiskit.transpiler.passes import BasicSwap
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 
-class TestBasicMapper(QiskitTestCase):
-    """ Tests the BasicMapper pass."""
+class TestBasicSwap(QiskitTestCase):
+    """ Tests the BasicSwap pass."""
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
@@ -37,7 +37,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -62,7 +62,7 @@ class TestBasicMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -95,7 +95,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.swap(qr[1], qr[0])
         expected.cx(qr[0], qr[2])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -129,7 +129,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.cx(qr[1], qr[2])
         expected.h(qr[1])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -169,7 +169,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.cx(qr[2], qr[3])
         expected.cx(qr[3], qr[2])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -209,7 +209,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.swap(qr[2], qr[1])
         expected.cx(qr[1], qr[0])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -249,7 +249,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.cx(qr[1], qr[0])
         expected.h(qr[1])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -291,7 +291,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.h(qr[1])
         expected.cx(qr[0], qr[1])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -328,7 +328,7 @@ class TestBasicMapper(QiskitTestCase):
         expected.swap(qr1[0], qr0[0])
         expected.cx(qr0[0], qr1[1])
 
-        pass_ = BasicMapper(coupling)
+        pass_ = BasicSwap(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
