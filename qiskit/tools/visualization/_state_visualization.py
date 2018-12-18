@@ -265,7 +265,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     verts = [list(zip(x, y, z))]
 
     fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
-    for idx in range(len(zpos)):
+    for idx in range(len(zpos)):  # pylint: disable=consider-using-enumerate
         if dzr[idx] > 0:
             zorder = 2
         else:
@@ -283,7 +283,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
     ax2 = fig.add_subplot(1, 2, 2, projection='3d')
     fc2 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzi, color[1])
-    for idx in range(len(zpos)):
+    for idx in range(len(zpos)):  # pylint: disable=consider-using-enumerate
         if dzi[idx] > 0:
             zorder = 2
         else:
