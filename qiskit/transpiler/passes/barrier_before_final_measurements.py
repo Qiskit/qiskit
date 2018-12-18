@@ -15,7 +15,7 @@ from qiskit.transpiler import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 
-class AddBarrierBeforeMeasuremets(TransformationPass):
+class BarrierBeforeFinalMeasurements(TransformationPass):
     """Adds a barrier before measurements."""
 
     def run(self, dag):

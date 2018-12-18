@@ -8,14 +8,14 @@
 """Test the Add Barrier Before Measurments pass"""
 
 import unittest
-from qiskit.transpiler.passes import AddBarrierBeforeMeasuremets
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from ..common import QiskitTestCase
 
 
 class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
-    """ Tests the AddBarrierBeforeMeasuremets pass."""
+    """ Tests the BarrierBeforeFinalMeasurements pass."""
 
     def test_single_measure(self):
         """ A single measurement at the end
@@ -34,7 +34,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
         expected.barrier(qr)
         expected.measure(qr, cr)
 
-        pass_ = AddBarrierBeforeMeasuremets()
+        pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
@@ -56,7 +56,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
         expected.measure(qr, cr)
         expected.h(qr[0])
 
-        pass_ = AddBarrierBeforeMeasuremets()
+        pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
