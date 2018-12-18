@@ -7,7 +7,7 @@
 
 
 """
-This pass adds a barrier before the measurements.
+This pass adds a barrier before the final measurements.
 """
 
 from qiskit.extensions.standard.barrier import Barrier
@@ -16,7 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 
 
 class BarrierBeforeFinalMeasurements(TransformationPass):
-    """Adds a barrier before measurements."""
+    """Adds a barrier before final measurements."""
 
     def run(self, dag):
         """Return a circuit with a barrier before last measurments."""

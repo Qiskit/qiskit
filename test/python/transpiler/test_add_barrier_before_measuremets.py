@@ -62,5 +62,31 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
 
+    def test_single_measure_mix(self):
+        """ Two measurements, but only one is at the end
+                                                 |
+         q0:--[m]--[H]--[m]--     q0:--[m]--[H]--|-[m]---
+               |         |    ->        |        |  |
+         c1:---.---------.---     c1:---.-----------.---
+        """
+        qr = QuantumRegister(1, 'q')
+        cr = ClassicalRegister(1, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.h(qr)
+        circuit.measure(qr, cr)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr, cr)
+        expected.h(qr)
+        expected.barrier(qr)
+        expected.measure(qr, cr)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
 if __name__ == '__main__':
     unittest.main()
