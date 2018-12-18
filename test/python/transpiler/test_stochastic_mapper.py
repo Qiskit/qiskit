@@ -177,7 +177,6 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
 
@@ -192,12 +191,6 @@ class TestStochasticMapper(QiskitTestCase):
          qr2:--(+)-------
 
          Coupling map: [0]--[1]--[2]
-
-         qr0:---.--[H]--
-                |
-         qr1:--(+)------
-
-         qr2:--------------
         """
         coupling = CouplingMap(couplinglist=[[1, 0], [1, 2]])
 
@@ -207,14 +200,10 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[0], qr[1])
-        expected.h(qr[0])
-
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
     def test_permute_wires_3(self):
         """
@@ -227,15 +216,6 @@ class TestStochasticMapper(QiskitTestCase):
          qr3:---.---(+)-
 
          Coupling map: [0]--[1]--[2]--[3]
-         For this seed,  we get the (1,2) edge.
-
-         qr0:-----------
-
-         qr1:---.---(+)-
-                |    |
-         qr2:--(+)---.--
-
-         qr3:-----------
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
@@ -245,19 +225,15 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[1], qr[2])
-        expected.cx(qr[2], qr[1])
-
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
     def test_permute_wires_4(self):
         """No qubit label permutation occurs if the first
-        layer has only single-qubit gates. This is suboptimal but is
-        the current behavior.
+        layer has only single-qubit gates. This is suboptimal
+        but seems to be the current behavior.
          qr0:------(+)--
                     |
          qr1:-------|---
@@ -297,7 +273,9 @@ class TestStochasticMapper(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_permute_wires_5(self):
-        """
+        """This is the same case as permute_wires_4
+        except the single qubit gate is after the two-qubit
+        gate, so the layout is adjusted.
          qr0:--(+)------
                 |
          qr1:---|-------
@@ -307,17 +285,6 @@ class TestStochasticMapper(QiskitTestCase):
          qr3:---.--[H]--
 
          Coupling map: [0]--[1]--[2]--[3]
-         For this seed, the mapper permutes these labels
-         onto the (1,2) edge.
-
-         qr0:------------
-
-         qr1:---(+)------
-                 |
-         qr2:----.--[H]--
-
-         qr3:------------
-
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
@@ -327,14 +294,10 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.h(qr[3])
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[2], qr[1])
-        expected.h(qr[2])
-
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
     def test_permute_wires_6(self):
         """
@@ -347,17 +310,6 @@ class TestStochasticMapper(QiskitTestCase):
          qr3:---.--[H]--(+)-
 
          Coupling map: [0]--[1]--[2]--[3]
-         For this seed, the mapper permutes these labels
-         onto the (1,2) edge.
-
-         qr0:---------------------
-
-         qr1:-------(+)-------.---
-                     |        |
-         qr2:--------.--[H]--(+)--
-
-         qr3:---------------------
-
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [2, 3]])
 
@@ -368,15 +320,10 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[2], qr[1])
-        expected.h(qr[2])
-        expected.cx(qr[1], qr[2])
-
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
     def test_overoptimization_case(self):
         """Check mapper overoptimization.
@@ -386,22 +333,6 @@ class TestStochasticMapper(QiskitTestCase):
         https://github.com/Qiskit/qiskit-terra/issues/81
         """
         coupling = CouplingMap(couplinglist=[[0, 2], [1, 2], [2, 3]])
-        #                                     ┌───┐     ┌─┐
-        # q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
-        #                                ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
-        # q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
-        #         ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
-        # q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
-        #         └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║
-        # q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
-        #              └───┘└───┘└╥┘                     ║            ║  ║
-        #  c_0: 0 ════════════════╬══════════════════════╩════════════╬══╬═
-        #                         ║                                   ║  ║
-        #  c_1: 0 ════════════════╬═══════════════════════════════════╬══╩═
-        #                         ║                                   ║
-        #  c_2: 0 ════════════════╬═══════════════════════════════════╩════
-        #                         ║
-        #  c_3: 0 ════════════════╩════════════════════════════════════════
         qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(4, 'c')
         circuit = QuantumCircuit(qr, cr)
@@ -419,22 +350,23 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.measure(qr[2], cr[2])
         circuit.measure(qr[3], cr[3])
         dag = circuit_to_dag(circuit)
-        #                                ┌───┐   ┌───┐        ┌─┐
-        # q_0: |0>───────────────────────┤ X ├─X─┤ T ├──────X─┤M├────────────────
-        #                           ┌───┐└───┘ │ └───┘┌───┐ │ └╥┘┌───┐        ┌─┐
-        # q_1: |0>──────────────────┤ Y ├──────┼──────┤ X ├─┼──╫─┤ S ├──■─────┤M├
-        #         ┌───┐             └───┘      │      └─┬─┘ │  ║ └───┘┌─┴─┐┌─┐└╥┘
-        # q_2: |0>┤ Z ├──■─────────────────────X────────■───X──╫──────┤ X ├┤M├─╫─
-        #         └───┘┌─┴─┐┌───┐┌─┐                           ║      └───┘└╥┘ ║
-        # q_3: |0>─────┤ X ├┤ H ├┤M├───────────────────────────╫────────────╫──╫─
-        #              └───┘└───┘└╥┘                           ║            ║  ║
-        #  c_0: 0 ════════════════╬════════════════════════════╩════════════╬══╬═
-        #                         ║                                         ║  ║
-        #  c_1: 0 ════════════════╬═════════════════════════════════════════╬══╩═
-        #                         ║                                         ║
-        #  c_2: 0 ════════════════╬═════════════════════════════════════════╩════
-        #                         ║
-        #  c_3: 0 ════════════════╩══════════════════════════════════════════════
+        #                                    ┌───┐     ┌─┐                
+        #q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
+        #                               ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
+        #q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
+        #        ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
+        #q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
+        #        └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║ 
+        #q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
+        #             └───┘└───┘└╥┘                     ║            ║  ║ 
+        # c_0: 0 ════════════════╬══════════════════════╩════════════╬══╬═
+        #                        ║                                   ║  ║ 
+        # c_1: 0 ════════════════╬═══════════════════════════════════╬══╩═
+        #                        ║                                   ║    
+        # c_2: 0 ════════════════╬═══════════════════════════════════╩════
+        #                        ║                                        
+        # c_3: 0 ════════════════╩════════════════════════════════════════
+        #
         expected = QuantumCircuit(qr, cr)
         expected.x(qr[0])
         expected.y(qr[1])
@@ -442,17 +374,37 @@ class TestStochasticMapper(QiskitTestCase):
         expected.cx(qr[2], qr[3])
         expected.h(qr[3])
         expected.measure(qr[3], cr[3])
-        expected.swap(qr[0], qr[2])
-        expected.cx(qr[2], qr[1])
-        expected.s(qr[1])
-        expected.t(qr[0])
-        expected.swap(qr[0], qr[2])
-        expected.cx(qr[1], qr[2])
+        expected.swap(qr[1], qr[2])
+        expected.cx(qr[0], qr[2])
         expected.measure(qr[0], cr[0])
-        expected.measure(qr[1], cr[1])
-        expected.measure(qr[2], cr[2])
+        expected.s(qr[2])
+        expected.t(qr[1])
+        expected.cx(qr[2], qr[1])
+        expected.measure(qr[2], cr[1])
+        expected.measure(qr[1], cr[2])
         expected_dag = circuit_to_dag(expected)
-
+        #                                       ┌───┐                     ┌─┐
+        #q_0: |0>───────────────────────────────┤ X ├──■──────────────────┤M├
+        #                          ┌───┐   ┌───┐└───┘  │       ┌───┐┌─┐   └╥┘
+        #q_1: |0>──────────────────┤ Y ├─X─┤ T ├───────┼───────┤ X ├┤M├────╫─
+        #        ┌───┐             └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║ 
+        #q_2: |0>┤ Z ├──■────────────────X───────────┤ X ├┤ S ├──■───╫─┤M├─╫─
+        #        └───┘┌─┴─┐┌───┐┌─┐                  └───┘└───┘      ║ └╥┘ ║ 
+        #q_3: |0>─────┤ X ├┤ H ├┤M├──────────────────────────────────╫──╫──╫─
+        #             └───┘└───┘└╥┘                                  ║  ║  ║ 
+        # c_0: 0 ════════════════╬═══════════════════════════════════╬══╬══╩═
+        #                        ║                                   ║  ║    
+        # c_1: 0 ════════════════╬═══════════════════════════════════╬══╩════
+        #                        ║                                   ║       
+        # c_2: 0 ════════════════╬═══════════════════════════════════╩═══════
+        #                        ║                                           
+        # c_3: 0 ════════════════╩═══════════════════════════════════════════
+        #
+        # Layout --
+        #  (QuantumRegister(4, 'q'), 0): 0,
+        #  (QuantumRegister(4, 'q'), 1): 2,
+        #  (QuantumRegister(4, 'q'), 2): 1,
+        #  (QuantumRegister(4, 'q'), 3): 3}
         pass_ = StochasticMapper(coupling, None, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(expected_dag, after)
@@ -499,13 +451,6 @@ class TestStochasticMapper(QiskitTestCase):
         circ.measure(qrb[0], cr[2])
         dag = circuit_to_dag(circ)
 
-        qr = QuantumRegister(3, 'q')
-        expected = QuantumCircuit(qr, cr)
-        expected.cx(qr[0], qr[1])
-        expected.measure(qr[0], cr[0])
-        expected.measure(qr[1], cr[2])
-        expected.measure(qr[2], cr[1])
-
         layout = Layout({(QuantumRegister(2, 'qa'), 0): 0,
                          (QuantumRegister(2, 'qa'), 1): 1,
                          (QuantumRegister(1, 'qb'), 0): 2})
@@ -513,7 +458,7 @@ class TestStochasticMapper(QiskitTestCase):
         pass_ = StochasticMapper(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
 
 if __name__ == '__main__':
