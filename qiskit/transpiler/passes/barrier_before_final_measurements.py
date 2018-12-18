@@ -27,30 +27,40 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             if is_last_measurement:
                 last_measures.append(measure)
 
-        if last_measures:
-            # create a laywer with the barrier and the measurements in last_measures operation
-            dag.add_basis_element('barrier', len(last_measures), 0, 0)
-            barried_layer = DAGCircuit()
-            last_measures_nodes = [dag.multi_graph.node[node] for node in last_measures]
-            last_measures_qubits = [node['qargs'][0] for node in last_measures_nodes]
+        if not last_measures:
+            return dag
 
-            # Add registers from the original dag.
-            for qreg in dag.qregs.values():
-                barried_layer.add_qreg(qreg)
-            for creg in dag.cregs.values():
-                barried_layer.add_creg(creg)
+        # create a laywer with the barrier and the measurements in last_measures operation
+        dag.add_basis_element('barrier', len(last_measures), 0, 0)
+        barried_layer = DAGCircuit()
+        last_measures_nodes = [dag.multi_graph.node[node] for node in last_measures]
+        last_measures_qubits = [node['qargs'][0] for node in last_measures_nodes]
 
-            # Add the barrier operation
-            barried_layer.apply_operation_back(Barrier(qubits=last_measures_qubits))
+        # Add registers from the original dag.
+        for qreg in dag.qregs.values():
+            barried_layer.add_qreg(qreg)
+        for creg in dag.cregs.values():
+            barried_layer.add_creg(creg)
 
-            # Add the measurements to the behind the barrier
-            for last_measures_node in last_measures_nodes:
-                barried_layer.apply_operation_back(last_measures_node['op'])
+        # Add the barrier operation
+        barried_layer.apply_operation_back(Barrier(qubits=last_measures_qubits))
 
-            # Remove the measurments from the original dag
-            for last_measure in last_measures:
-                dag._remove_op_node(last_measure)
+        # Add the measurements to the behind the barrier
+        for last_measures_node in last_measures_nodes:
+            barried_layer.apply_operation_back(last_measures_node['op'])
 
-            # Extend the original dag with the barried layer
-            dag.extend_back(barried_layer)
+        # Remove barriers in front the measurements in the original dag
+        for last_measure in last_measures:
+            for predecesor in dag.multi_graph.predecessors(last_measure):
+                if dag.multi_graph.nodes[predecesor]['type'] == 'op' and \
+                        isinstance(dag.multi_graph.nodes[predecesor]['op'], Barrier):
+                    dag._remove_op_node(predecesor)
+
+        # Remove the measurements from the original dag
+        for last_measure in last_measures:
+            dag._remove_op_node(last_measure)
+
+        # Extend the original dag with the barried layer
+        dag.extend_back(barried_layer)
+
         return dag

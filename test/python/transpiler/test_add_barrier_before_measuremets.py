@@ -60,7 +60,6 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
-
     def test_single_measure_mix(self):
         """ Two measurements, but only one is at the end
                                                  |
@@ -94,9 +93,8 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
                     |                      |   |
          q1:--------|--[m]--  -> q1:-------|---|--[m]--
                     |   |                  |   |   |
-         c0:--------.---|---      c0:------|---.---|---
-         c1:------------.---      c0:------|-------.---
-                                           |
+         c0:--------.---|---      c0:----------.---|---
+         c1:------------.---      c0:--------------.---
         """
         qr0 = QuantumRegister(1, 'q0')
         qr1 = QuantumRegister(1, 'q1')
@@ -116,8 +114,6 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
-        from qiskit.tools.visualization.dag_visualization import dag_drawer
-        dag_drawer(result)
 
         self.assertEqual(result, circuit_to_dag(expected))
 
@@ -128,8 +124,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
                     |                      |   |
          q1:--------|--[m]--  -> q1:-------|---|--[m]--
                     |   |                  |   |   |
-         c0:--------.---.---      c0:------|---.---.---
-                                           |
+         c0:--------.---.---      c0:----------.---.---
         """
         qr0 = QuantumRegister(1, 'q0')
         qr1 = QuantumRegister(1, 'q1')
@@ -148,8 +143,32 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
-        from qiskit.tools.visualization.dag_visualization import dag_drawer
-        dag_drawer(result)
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+class TestAddBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
+    """ Tests the BarrierBeforeFinalMeasurements pass when there is a barrier already"""
+
+    def test_handle_redundancy(self):
+        """ The pass is idempotent
+             |                |
+         q:--|-[m]--      q:--|-[m]---
+             |  |     ->      |  |
+         c:-----.---      c:-----.---
+        """
+        qr = QuantumRegister(1, 'q')
+        cr = ClassicalRegister(1, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier(qr)
+        expected.measure(qr, cr)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
 
