@@ -9,11 +9,11 @@ Release notes
 Qiskit Terra 0.7.0
 ==================
 
-This release includes several new features and many bug fixes. Including
-the introduction of declared stable interfaces for circuit diagram, histogram,
-bloch vectors, and state visualizations. Additionally, this release includes a
+This release includes several new features and many bug fixes. With this
+release the interfaces for circuit diagram, histogram, bloch vectors,
+and state visualizations are declared stable. Additionally, this release includes a
 defined and standardized bit order/endianness throughout all aspects of Qiskit.
-These are all declared as stable interfaces in this release which won't having
+These are all declared as stable interfaces in this release which won't have
 breaking changes made moving forward, unless there is appropriate and lengthy
 deprecation periods warning of any coming changes.
 
@@ -35,10 +35,13 @@ There is also the introduction of the following new features:
   These can be accessed by setting the ``memory`` kwarg to ``True`` when
   calling ``compile()`` or ``execute()`` and then accessed using the
   ``get_memory()`` method on the ``Result`` object.
-* A qiskit.quantum_info module with revamped Pauli objects and methods for
-  working with quantum states
-* A reworked DAGCircuit class that stores registers and instructions as
-  objects internally
+* A ``qiskit.quantum_info`` module with revamped Pauli objects and methods for
+  working with quantum states.
+* New transpile passes for circuit analysis and transformation:
+  CommutationAnalysis, CommutationTransformation, CXCancellation, Decompose,
+  Unroll, Optimize1QGates, CheckMap, CXDirection, BarrierBeforeFinalMeasurements
+* New alternative swap mapper passes in the transpiler:
+  BasicSwap, LookaheadSwap, StochasticSwap
 * More advanced transpiler infrastructure with support for analysis passes,
   transformation passes, a global property_set for the pass manager, and
   repeat-until control of passes.

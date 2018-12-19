@@ -20,7 +20,7 @@ The format is based on `Keep a Changelog`_.
 ^^^^^^^^^^^^^
 
 
-`0.7.0`_ - 2018-12-18
+`0.7.0`_ - 2018-12-19
 ^^^^^^^^^^^^^^^^^^^^^
 
 
@@ -50,15 +50,24 @@ Added
 - Per-shot measurement results are available in simulators and select devices.
   Request them by setting ``memory=True`` in ``compile()``/``execute()``,
   and retrieve them from ``result.get_memory()`` (#1385).
-- New Unroller pass in the transpiler for unrolling up to some basis (#1455).
 - Added a ``qiskit.converters`` module for translation between commonly used
   representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
+- PassManager can schedule passes at __init__ time (#1510).
 - Added a ``.qobj()`` method for IBMQ and local simulator Jobs (#1532).
-- Added CommutationAnalysis and CommutationTransformation as new transpiler pass (#1500).
-- Added BasicSwap as new transpiler mapper pass (#1270).
-- Added LookaheadSwap as new transpiler mapper pass (#1140).
-- Added StochasticSwap as new transpiler mapper pass (#1520).
+- New Decompose pass for decomposing a gate according to a rule (#1487).
+- New Unroller pass in the transpiler for unrolling up to some basis (#1455).
+- New BarrierBeforeFinalMeasurements pass for preventing final
+  measure reorder (#1538).
+- New CommutationAnalysis and CommutationTransformation transpiler
+  passes for modifying a DAG based on gate commutativity relations (#1500).
+- New transpiler mapper pass: BasicSwap (#1270).
+- New transpiler mapper pass: LookaheadSwap (#1140).
+- New transpiler mapper pass: StochasticSwap (#1520).
+- New CXDirection pass for fixing the direction of cx gates (#1410).
+- New CheckMap pass for checking if circuit meets mapping requirements (#1433).
+- New Optimize1QGate pass for combining chains of 1q rotations (#1442).
+
 
 Changed
 """""""
