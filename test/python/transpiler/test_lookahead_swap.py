@@ -11,7 +11,7 @@ import unittest
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile_dag
 from ..common import QiskitTestCase
 
@@ -95,6 +95,71 @@ class TestLookaheadSwap(QiskitTestCase):
 
         self.assertEqual(mapped_dag.count_ops().get('swap', 0),
                          dag_circuit.count_ops().get('swap', 0) + 1)
+
+    def test_lookahead_swap_maps_measurements(self):
+        """Verify measurement nodes are updated to map correct cregs to re-mapped qregs.
+
+        Create a circuit with measures on q0 and q2, following a swap between q0 and q2.
+        Since that swap is not in the coupling, one of the two will be required to move.
+        Verify that the mapped measure corresponds to one of the two possible layouts following
+        the swap.
+
+        """
+
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.cx(qr[0], qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[2], cr[1])
+
+        dag_circuit = circuit_to_dag(circuit)
+
+        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+
+        pass_manager = PassManager()
+        pass_manager.append([LookaheadSwap(coupling_map)])
+        mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
+
+        mapped_measure_qargs = set(mapped_dag.multi_graph.nodes(data=True)[op]['qargs'][0]
+                                   for op in mapped_dag.get_named_nodes('measure'))
+
+        self.assertIn(mapped_measure_qargs,
+                      [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
+                       set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2)))])
+
+    def test_lookahead_swap_maps_barriers(self):
+        """Verify barrier nodes are updated to re-mapped qregs.
+
+        Create a circuit with a barrier on q0 and q2, following a swap between q0 and q2.
+        Since that swap is not in the coupling, one of the two will be required to move.
+        Verify that the mapped barrier corresponds to one of the two possible layouts following
+        the swap.
+
+        """
+
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.cx(qr[0], qr[2])
+        circuit.barrier(qr[0], qr[2])
+
+        dag_circuit = circuit_to_dag(circuit)
+
+        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+
+        pass_manager = PassManager()
+        pass_manager.append([LookaheadSwap(coupling_map)])
+        mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
+
+        mapped_barrier_qargs = [set(mapped_dag.multi_graph.nodes(data=True)[op]['qargs'])
+                                for op in mapped_dag.get_named_nodes('barrier')][0]
+
+        self.assertIn(mapped_barrier_qargs,
+                      [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
+                       set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2)))])
 
 
 if __name__ == '__main__':
