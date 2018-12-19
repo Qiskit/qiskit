@@ -15,8 +15,7 @@ import unittest
 from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.tools.visualization import HAS_MATPLOTLIB, latex_circuit_drawer, \
-    matplotlib_circuit_drawer, circuit_drawer
+from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 from ...common import QiskitTestCase
 
 
@@ -82,7 +81,7 @@ class TestVisualizationImplementation(QiskitTestCase):
     def test_latex_drawer(self):
         filename = self._get_resource_path('current_latex.png')
         qc = self.sample_circuit()
-        latex_circuit_drawer(qc, filename=filename)
+        circuit_drawer(qc, filename=filename, output='latex')
         self.assertImagesAreEqual(filename, self.latex_reference)
         os.remove(filename)
 
@@ -93,7 +92,7 @@ class TestVisualizationImplementation(QiskitTestCase):
     def test_matplotlib_drawer(self):
         filename = self._get_resource_path('current_matplot.png')
         qc = self.sample_circuit()
-        matplotlib_circuit_drawer(qc, filename=filename)
+        circuit_drawer(qc, filename=filename, output='mpl')
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
