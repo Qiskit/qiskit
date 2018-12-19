@@ -36,7 +36,7 @@ public:
   /**
    * Relaxation data members
    */
-  double rate = 0.;                            // relxation rate
+  double rate = 0.;                            // relaxation rate
   std::discrete_distribution<> populations{1}; // equilibrium populations
 
   /**
@@ -153,23 +153,23 @@ public:
   ReadoutError(){};
 
   /***
-   * Constructor: sets the readout assignment probablities from a vector of
+   * Constructor: sets the readout assignment probabilities from a vector of
    * discrete_distributions for each measurement outcome.
    * @param probs: vector of discrete_distributions
    ***/
   ReadoutError(const std::vector<std::discrete_distribution<>> &probs);
 
   /***
-   * Constructor: sets the readout assignment probablities to be of the form
+   * Constructor: sets the readout assignment probabilities to be of the form
    *  P(0|0) = 1-p1, P(1|0) = p1 for a 0 measurement outcome
    *  P(0|1) = p1, P(1|1) = 1-p1 for a 1 measurement outcome
-   * @param p1: assignement error probability
+   * @param p1: assignment error probability
    ***/
   explicit ReadoutError(double p1);
 
   /***
-   * Constructor: sets the readout assignment probablities from a vector of
-   * probabilty vectors for each measurement outcome. If any probability
+   * Constructor: sets the readout assignment probabilities from a vector of
+   * probability vectors for each measurement outcome. If any probability
    * vector is not correctly normalized it will be rescaled when converted to
    * a discrete_distribution.
    * @param probs: vector of probability vectors
@@ -244,7 +244,7 @@ public:
    * Verify that the set noise parameters are valid for the simulation by
    * checking that all probabilities are non-negative, the length of pauli
    *error
-   * probabiltity vectors are the correct for the size of the gate, and the
+   * probability vectors are the correct for the size of the gate, and the
    * coherent error matrices are the correct dimension for the subsystem size
    * @param dim: dimension of each subsystem (typically 2 for a qubit)
    * @returns: true if noise parameters are valid

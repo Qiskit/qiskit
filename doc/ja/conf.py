@@ -14,6 +14,7 @@ from conf import *
 language = 'ja'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '_autodoc/modules.rst']
 
-html_theme_path = ['../']
+templates_path = ['../_templates']
+html_static_path = ['../theme/static/']
 html_logo = '../theme/static/qiskit-logo-white-no-margin.gif'
 html_favicon = '../theme/static/favicon.ico'

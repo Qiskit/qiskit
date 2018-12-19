@@ -12,8 +12,9 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import QISKitError
-from qiskit import wrapper, Aer
+from qiskit import QiskitError
+# pylint: disable=redefined-builtin
+from qiskit import compile, LegacySimulators, BasicAer
 from .common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -30,9 +31,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.cr_name = cr.name
         self.circuits = [qc]
 
-    def test_aer_qasm_simulator_py(self):
-        backend = Aer.get_backend('qasm_simulator_py')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_builtin_qasm_simulator_py(self):
+        backend = BasicAer.get_backend('qasm_simulator')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -41,9 +42,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_aer_clifford_simulator(self):
-        backend = Aer.get_backend('clifford_simulator')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_builtin_clifford_simulator(self):
+        backend = LegacySimulators.get_backend('clifford_simulator')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -52,9 +53,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_aer_qasm_simulator(self):
-        backend = Aer.get_backend('qasm_simulator')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_builtin_qasm_simulator(self):
+        backend = LegacySimulators.get_backend('qasm_simulator')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -62,9 +63,9 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
         self.assertIn(self.cr_name, c_qasm)
 
-    def test_aer_unitary_simulator(self):
-        backend = Aer.get_backend('unitary_simulator')
-        qobj = wrapper.compile(self.circuits, backend=backend)
+    def test_builtin_unitary_simulator_py(self):
+        backend = BasicAer.get_backend('unitary_simulator')
+        qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
         c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
@@ -132,23 +133,23 @@ class TestInvalidIds(QiskitTestCase):
         """QuantumCircuit() with invalid type name."""
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
-        self.assertRaises(QISKitError, QuantumCircuit, qr, cr, name=1)
+        self.assertRaises(QiskitError, QuantumCircuit, qr, cr, name=1)
 
     def test_invalid_type_qr_name(self):
         """QuantumRegister() with an invalid type name."""
-        self.assertRaises(QISKitError, QuantumRegister, size=3, name=1)
+        self.assertRaises(QiskitError, QuantumRegister, size=3, name=1)
 
     def test_invalid_type_cr_name(self):
         """ClassicalRegister() with an invalid type name."""
-        self.assertRaises(QISKitError, ClassicalRegister, size=3, name=1)
+        self.assertRaises(QiskitError, ClassicalRegister, size=3, name=1)
 
     def test_invalid_qasmname_qr(self):
         """QuantumRegister() with invalid name."""
-        self.assertRaises(QISKitError, QuantumRegister, size=3, name='Qr')
+        self.assertRaises(QiskitError, QuantumRegister, size=3, name='Qr')
 
     def test_invalid_qasmname_cr(self):
         """ClassicalRegister() with invalid name."""
-        self.assertRaises(QISKitError, ClassicalRegister, size=3, name='Cr')
+        self.assertRaises(QiskitError, ClassicalRegister, size=3, name='Cr')
 
 
 if __name__ == '__main__':

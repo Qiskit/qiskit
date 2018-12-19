@@ -140,7 +140,7 @@ inline std::vector<uint_t> string_to_bignum(std::string val) {
     // Binary string
     return string_to_bignum(val.substr(2, val.size() - 2), 64, 2);
   else if (type == "0x" || type == "0X")
-    // Hexidecimal string
+    // Hexadecimal string
     return string_to_bignum(val.substr(2, val.size() - 2), 16, 16);
   else {
     // Decimal string

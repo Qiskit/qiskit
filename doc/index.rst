@@ -1,36 +1,34 @@
-.. Qiskit documentation master file, created by
+.. Qiskit Terra documentation master file, created by
    sphinx-quickstart on Tue Jul 25 18:13:28 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-==========================
 Qiskit Terra Documentation
-==========================
-
-Qiskit (Quantum Information Science Kit) Terra is a Python based set of 
-tools for composing quantum programs at the level of circuits and pulses, 
-optimizing them for the constraints of a particular physical quantum processor, 
-and managing the batched execution of experiments on remote-access backends.
+##########################
 
 
 Table of Contents
-=================
+*****************
 
 .. toctree::
    :maxdepth: 2
 
-   install
-   Getting started <quickstart>
-   Qiskit overview <qiskit>
-   Developer documentation <dev_introduction>
-   Software reference <_autodoc/qiskit>
-   Release history <releases>
+   Overview <overview>
+   Installation and Setup <install>
+   Getting Started with Qiskit Terra <getting_started_with_qiskit_terra>
+   The IBM Q Provider <the_ibmq_provider>
+   Summary of Quantum Operations <summary_of_quantum_operations>
+   Contributing to Terra <CONTRIBUTING>
+   Release history <release_history>
+   Terra SDK Reference <_autodoc/qiskit>
+
 
 Python Modules
-==============
+**************
+
 
 Main Modules
-------------
+============
 
 .. autosummary::
    :nosignatures:
@@ -40,10 +38,8 @@ Main Modules
 :ref:`modindex`
 
 
-Authors (alphabetical)
-======================
+Authors 
+*******
 
-Luciano Bello, Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta,
-Juan Gomez, Paco Martin, Ali Javadi-Abhari, Diego Moreda, Jesus Perez,
-Erick Winston and Chris Wood,
-along with `many contributors <https://github.com/Qiskit/qiskit-terra/graphs/contributors>`_.
+Qiskit Terra would not be possible without the `many contributors <https://github.com/Qiskit/qiskit-terra/graphs/contributors>`_ 
+from our community.

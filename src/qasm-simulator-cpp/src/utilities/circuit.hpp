@@ -91,6 +91,7 @@ public:
   uint_t shots = 1;      // number of simulation shots
   bool opt_meas = false; // true if all measurements at end
   json_t config;         // local config
+  json_t header;         // circuit header
   QubitNoise noise;      // Noise parameters
   /**
    * Default Constructor
@@ -142,7 +143,7 @@ private:
   bool set_gateid(operation &op, std::string name, const gateset_t &gs);
 
   /**
-   *  Return true if tail of circuit operaitons are all measurements
+   *  Return true if tail of circuit operations are all measurements
    */
   bool check_opt_meas();
 };
@@ -159,60 +160,8 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
   std::clog << "DEBUG (json): parsing circuit object" << std::endl;
 #endif
   // Parse header
-  const json_t &header = circuit["compiled_circuit"]["header"];
-
-  JSON::get_value(nqubits, "number_of_qubits", header);
-  JSON::get_value(nclbits, "number_of_clbits", header);
-  qubit_labels = parse_reglist(header.at("qubit_labels"));
-  clbit_labels = parse_reglist(header.at("clbit_labels"));
-
-  // Store qubit registers like clbit ([[q1, sz1], [q2, sz2]])
-  for (auto reg : qubit_labels) {
-    if (qubit_sizes.empty() == false && reg.first == qubit_sizes.back().first) {
-      qubit_sizes.back().second++;
-    } else
-      qubit_sizes.push_back({reg.first, 1});
-  }
-
-  // Check qubit labels
-  if (nqubits != qubit_labels.size()) {
-    throw std::runtime_error(
-        std::string("number_qubits does not match qubit_labels"));
-  }
-#ifdef DEBUG
-  std::clog << "DEBUG (json): qubit_labels = " << qubit_labels << std::endl;
-#endif
-
-  // Check clbit labels
-  uint_t count = 0;
-  for (const auto &reg : clbit_labels)
-    count += reg.second;
-  if (count != nclbits) {
-    throw std::runtime_error(
-        std::string("number_clbits does not match clbit_labels"));
-  }
-  if (nqubits != qubit_labels.size()) {
-    throw std::runtime_error(
-        std::string("number_qubits does not match qubit_labels"));
-  }
-#ifdef DEBUG
-  std::stringstream ss;
-  ss << "DEBUG (json): clbit_labels = " << clbit_labels;
-  std::clog << ss << std::endl;
-  std::clog << "DEBUG (json): parsing operations" << std::endl;
-#endif
-
-  // parse operations
-  const json_t &ops = circuit["compiled_circuit"]["operations"];
-  if (ops.empty())
-    throw std::runtime_error(std::string("operations list is empty"));
-  for (auto it = ops.begin(); it != ops.end(); ++it)
-    operations.push_back(parse_op(*it, gs));
-  opt_meas = check_opt_meas(); // check measurement optimization
-
-  // Load optional values
-  JSON::get_value(name, "name", circuit); // look for circuit name
-
+  JSON::get_value(header, "header", circuit);
+  JSON::get_value(name, "name", header);
   // Parse Config
   config = qobjconf; // copy qobj level config
   if (JSON::check_key("config", circuit)) {
@@ -221,11 +170,22 @@ void Circuit::parse(const json_t &circuit, const json_t &qobjconf,
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
-
-  // load config
+  // legacy
+  JSON::get_value(nqubits, "number_of_qubits", header);
+  JSON::get_value(nclbits, "number_of_clbits", header);
+  // Load config
+  JSON::get_value(nqubits, "n_qubits", config);
+  JSON::get_value(nclbits, "memory_slots", config);
   JSON::get_value(shots, "shots", config);
   JSON::get_value(rng_seed, "seed", config);
   JSON::get_value(noise, "noise_params", config);
+  // parse operations
+  const json_t &ops = circuit["instructions"];
+  if (ops.empty())
+    throw std::runtime_error(std::string("instructions list is empty"));
+  for (auto it = ops.begin(); it != ops.end(); ++it)
+    operations.push_back(parse_op(*it, gs));
+  opt_meas = check_opt_meas(); // check measurement optimization
   // Verify noise
   if (noise.verify(2) == false) {
     std::string msg = "invalid noise parameters";
@@ -276,7 +236,7 @@ operation Circuit::parse_op(const json_t &node, const gateset_t &gs) {
     JSON::get_value(op.params, "params", node);
   }
   JSON::get_value(op.qubits, "qubits", node);
-  JSON::get_value(op.clbits, "clbits", node);
+  JSON::get_value(op.clbits, "memory", node);
 
   // Check op
   for (auto q : op.qubits)
