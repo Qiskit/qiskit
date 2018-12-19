@@ -1,6 +1,7 @@
 
+*********
 Changelog
----------
+*********
 
 All notable changes to this project will be documented in this file.
 
@@ -17,15 +18,15 @@ The format is based on `Keep a Changelog`_.
 
 
 `UNRELEASED`_
-^^^^^^^^^^^^^
+=============
 
 
 `0.7.0`_ - 2018-12-19
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Added
-"""""
+-----
 
 - Added DAG visualizer which requires `Graphivz <https://www.graphviz.org/>`_
   (#1059)
@@ -70,7 +71,7 @@ Added
 
 
 Changed
-"""""""
+-------
 
 - Evolved pass-based transpiler to support advanced functionality (#1060)
 - `.retrieve_job()` and `.jobs()` no longer returns results by default,
@@ -126,7 +127,7 @@ Changed
 
 
 Deprecated
-""""""""""
+----------
 
 - ``plot_circuit()``, ``latex_circuit_drawer()``, ``generate_latex_source()``,
    and ``matplotlib_circuit_drawer()`` from qiskit.tools.visualization are
@@ -151,7 +152,7 @@ Deprecated
   ``execute()`` in favor of using the PassManager directly.
 
 Fixed
-"""""
+-----
 
 - Fixed a variety of typos throughout sources (#1139)
 - Fixed horizontal spacing when drawing barriers before CCNOT gates in latex
@@ -166,14 +167,14 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
-- The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly
+- The `number_to_keep` kwarg in ``plot_histgram()`` now functions correctly
   (#1359).
 - parallel_map no longer creates a progress bar for a single circuit (#1394).
 - The `timeout` parameter is now passed into the inner ``_wait_for_submission``
   function in ``IBMQJob`` from ``_wait_for_result`` (#1542).
 
 Removed
-"""""""
+-------
 
 - Remove register, available_backends (#1131).
 - Remove tools/apps (#1184).
@@ -212,11 +213,11 @@ Removed
   output with the functions provided in ``qiskit.converters``.
 
 `0.6.0`_ - 2018-10-04
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Added
-"""""
+-----
 
 - Added `SchemaValidationError` to be thrown when schema validation fails
   (#881)
@@ -241,7 +242,7 @@ Added
 
 
 Changed
-"""""""
+-------
 
 - Schema tests in `tests/schemas/test_schemas.py` replaced with proper
   unit test (#834).
@@ -268,7 +269,7 @@ Changed
 
 
 Deprecated
-""""""""""
+----------
 
 - The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
   deprecated. A field of the same name should be used in the ``option``
@@ -278,13 +279,13 @@ Deprecated
 
 
 Removed
-"""""""
+-------
 
 - Removed the QuantumProgram class. (#724)
 
 
 Fixed
-"""""
+-----
 
 - Fixed ``get_ran_qasm`` methods on ``Result`` instances (#688).
 - Fixed ``probabilities_ket`` computation in C++ simulator (#580).
@@ -304,21 +305,21 @@ Fixed
 
 
 `0.5.7`_ - 2018-07-19
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - Add new backend names support, with aliasing for the old ones.
 
 
 `0.5.6`_ - 2018-07-06
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - Rename repository to ``qiskit-terra`` (#606).
 - Update Bloch sphere to QuTiP version (#618).
@@ -326,24 +327,24 @@ Changed
 
 
 Removed
-"""""""
+-------
 
 - Remove OpenQuantumCompiler (#610).
 
 
 Fixed
-"""""
+-----
 
 - Fixed broken process error and simulator slowdown on Windows (#613).
 - Fixed yzy_to_zyz bugs (#520, #607) by moving to quaternions (#626).
 
 
 `0.5.5`_ - 2018-07-02
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Added
-"""""
+-----
 
 - Retrieve IBM Q jobs from server (#563, #585).
 - Add German introductory documentation (``doc/de``) (#592).
@@ -357,7 +358,7 @@ Added
 
 
 Changed
-"""""""
+-------
 
 - Remove backend filtering in individual providers, keep only in wrapper
   (#575).
@@ -370,7 +371,7 @@ Changed
 
 
 Removed
-"""""""
+-------
 
 - Remove Clifford simulator from default available_backends, until its stable
   release (#555).
@@ -379,7 +380,7 @@ Removed
 
 
 Fixed
-"""""
+-----
 
 - Fix issue with unintended inversion of initializer gates (#573).
 - Fix issue with skip_transpiler causing some gates to be ignored silently
@@ -387,18 +388,18 @@ Fixed
 
 
 `0.5.4`_ - 2018-06-11
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Added
-"""""
+-----
 
 - Performance improvements:
     - remove deepcopies from dagcircuit, and extra check on qasm() (#523).
 
 
 Changed
-"""""""
+-------
 
 - Rename repository to ``qiskit-core`` (#530).
 - Repository improvements: new changelog format (#535), updated issue templates
@@ -409,13 +410,13 @@ Changed
 
 
 Removed
-"""""""
+-------
 
 - Remove Sympy simulators for moving to new repository (#514)
 
 
 Fixed
-"""""
+-----
 
 - Fix erroneous density matrix and probabilities in C++ simulator (#518)
 - Fix hardcoded backend mapping tests (#521)
@@ -428,54 +429,54 @@ Fixed
 
 
 `0.5.3`_ - 2018-05-29
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Added
-"""""
+-----
 
 - load_qasm_file / load_qasm_string methods
 
 
 Changed
-"""""""
+-------
 
 - Dependencies version bumped
 
 
 Fixed
-"""""
+-----
 
 - Crash in the cpp simulator for some linux platforms
 - Fixed some minor bugs
 
 
 `0.5.2`_ - 2018-05-21
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - Adding Result.get_unitary()
 
 
 Deprecated
-""""""""""
+----------
 
 - Deprecating ``ibmqx_hpc_qasm_simulator`` and ``ibmqx_qasm_simulator`` in
   favor of ``ibmq_qasm_simulator``.
 
 
 Fixed
-"""""
+-----
 
 - Fixing a Mapper issue.
 - Fixing Windows 7 builds.
 
 
 `0.5.1`_ - 2018-05-15
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 - There are no code changes.
 
@@ -488,11 +489,11 @@ Fixed
 
 
 `0.5.0`_ - 2018-05-11
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Improvements
-""""""""""""
+------------
 
 - Introduce providers and rework backends (#376).
     - Split backends into ``local`` and ``ibmq``.
@@ -548,7 +549,7 @@ Improvements
 
 
 Fixed
-"""""
+-----
 
 - Fix coherent error bug in ``local_qasm_simulator_cpp`` (#318)
 - Fix the order and format of result bits obtained from device backends (#430)
@@ -560,7 +561,7 @@ Fixed
 
 
 Deprecated
-""""""""""
+----------
 
 - Some methods of ``QuantumProgram`` are soon to be deprecated. Please use the
   top-level functions instead.
@@ -576,48 +577,48 @@ Deprecated
 
 
 `0.4.15`_ - 2018-05-07
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 
 Fixed
-"""""
+-----
 
 - Fixed an issue with legacy code that was affecting Developers Challenge.
 
 
 `0.4.14`_ - 2018-04-18
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 
 Fixed
-"""""
+-----
 
 - Fixed an issue about handling Basis Gates parameters on backend
   configurations.
 
 
 `0.4.13`_ - 2018-04-16
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 
 Changed
-"""""""
+-------
 
 - OpenQuantumCompiler.dag2json() restored for backward compatibility.
 
 
 Fixed
-"""""
+-----
 
 - Fixes an issue regarding barrier gate misuse in some circumstances.
 
 
 `0.4.12`_ - 2018-03-11
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 
 Changed
-"""""""
+-------
 
 - Improved circuit visualization.
 - Improvements in infrastructure code, mostly tests and build system.
@@ -625,53 +626,53 @@ Changed
 
 
 Fixed
-"""""
+-----
 
 - A bunch of minor bugs have been fixed.
 
 
 `0.4.11`_ - 2018-03-13
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 
 Added
-"""""
+-----
 
 - More testing :)
 
 
 Changed
-"""""""
+-------
 
 - Stabilizing code related to external dependencies.
 
 
 Fixed
-"""""
+-----
 
 - Fixed bug in circuit drawing where some gates in the standard library
   were not plotting correctly.
 
 
 `0.4.10`_ - 2018-03-06
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 
 Added
-"""""
+-----
 
 - Chinese translation of README.
 
 
 Changed
-"""""""
+-------
 
 - Changes related with infrastructure (linter, tests, automation)
   enhancement.
 
 
 Fixed
-"""""
+-----
 
 - Fix installation issue when simulator cannot be built.
 - Fix bug with auto-generated CNOT coherent error matrix in C++ simulator.
@@ -679,11 +680,11 @@ Fixed
 
 
 `0.4.9`_ - 2018-02-12
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - CMake integration.
 - QASM improvements.
@@ -691,46 +692,46 @@ Changed
 
 
 Fixed
-"""""
+-----
 
 - Some minor C++ Simulator bug-fixes.
 
 
 `0.4.8`_ - 2018-01-29
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Fixed
-"""""
+-----
 
 - Fix parsing U_error matrix in C++ Simulator python helper class.
 - Fix display of code-blocks on ``.rst`` pages.
 
 
 `0.4.7`_ - 2018-01-26
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - Changes some naming conventions for ``amp_error`` noise parameters to
   ``calibration_error``.
 
 
 Fixed
-"""""
+-----
 
 - Fixes several bugs with noise implementations in the simulator.
 - Fixes many spelling mistakes in simulator README.
 
 
 `0.4.6`_ - 2018-01-22
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - We have upgraded some of out external dependencies to:
 
@@ -744,48 +745,48 @@ Changed
 
 
 `0.4.4`_ - 2018-01-09
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Changed
-"""""""
+-------
 
 - Update dependencies to more recent versions.
 
 
 Fixed
-"""""
+-----
 
 - Fix bug with process tomography reversing qubit preparation order.
 
 
 `0.4.3`_ - 2018-01-08
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Removed
-"""""""
+-------
 
 - Static compilation has been removed because it seems to be failing while
   installing Qiskit via pip on Mac.
 
 
 `0.4.2`_ - 2018-01-08
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Fixed
-"""""
+-----
 
 - Minor bug fixing related to pip installation process.
 
 
 `0.4.0`_ - 2018-01-08
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 
 Added
-"""""
+-----
 
 - Job handling improvements.
     - Allow asynchronous job submission.
@@ -849,14 +850,14 @@ Added
 
 
 Changed
-"""""""
+-------
 
 - The standard extension for creating U base gates has been modified to be
   consistent with the rest of the gate APIs (see #203).
 
 
 Removed
-"""""""
+-------
 
 - The ``silent`` parameter has been removed from a number of ``QuantumProgram``
   methods. The same behaviour can be achieved now by using the
@@ -865,7 +866,7 @@ Removed
 
 
 Fixed
-"""""
+-----
 
 - Fix basis gates (#76).
 - Enable QASM parser to work in multiuser environments.
