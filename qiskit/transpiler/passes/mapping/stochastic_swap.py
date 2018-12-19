@@ -267,7 +267,8 @@ class StochasticSwap(TransformationPass):
             logger.debug("layer_permutation: final distance for this trial = %s", dist)
             if dist == len(gates):
                 if depth_step < best_depth:
-                    logger.debug("layer_permutation: got circuit with improved depth %s", depth_step)
+                    logger.debug("layer_permutation: got circuit with improved depth %s",
+                                 depth_step)
                     best_circuit = trial_circuit
                     best_layout = trial_layout
                     best_depth = min(best_depth, depth_step)
