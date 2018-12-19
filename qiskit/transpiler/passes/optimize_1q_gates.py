@@ -26,7 +26,7 @@ from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.mapping.unroller import Unroller
 
 
-_CHOP_THRESHOLD = 0
+_CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
