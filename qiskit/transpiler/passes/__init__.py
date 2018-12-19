@@ -13,6 +13,7 @@ from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
+from .mapping.stochastic_swap import StochasticSwap
 from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
 from .mapping.basic_swap import BasicSwap
