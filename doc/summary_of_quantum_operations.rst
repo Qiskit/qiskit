@@ -10,7 +10,7 @@ Multi-qubit quantum gates - Measurements - Reset - Conditionals - State
 initialization
 
 We will also show you how to use the three different simulators: -
-unitrary_simulator - qasm_simulator - statevector_simulator
+unitary_simulator - qasm_simulator - statevector_simulator
 
 .. code:: ipython3
 
@@ -22,13 +22,12 @@ unitrary_simulator - qasm_simulator - statevector_simulator
 
 .. code:: ipython3
 
-    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-    from qiskit import available_backends, execute, register, get_backend
+    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, execute
     from qiskit.tools.visualization import circuit_drawer
-    from qiskit.tools.qi.qi import state_fidelity
-    from qiskit import Aer
+    from qiskit.quantum_info import state_fidelity
+    from qiskit import BasicAer
     
-    backend = Aer.get_backend('unitary_simulator')
+    backend = BasicAer.get_backend('unitary_simulator')
 
 Single Qubit Quantum states
 ---------------------------
@@ -106,7 +105,7 @@ Single-Qubit Gates
 ------------------
 
 The single-qubit gates available are: - u gates - Identity gate - Pauli
-gates - Cliffords gates - :math:`C3` gates - Standard rotation gates
+gates - Clifford gates - :math:`C3` gates - Standard rotation gates
 
 We have provided a backend: ``unitary_simulator`` to allow you to
 calculate the unitary matrices.
@@ -130,26 +129,30 @@ gate
 
     qc = QuantumCircuit(q)
     qc.u3(pi/2,pi/2,pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_9_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌──────────────────────────┐
+    q0_0: |0>┤ U3(1.5708,1.5708,1.5708) ├
+             └──────────────────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 0.707+0.j   , -0.   -0.707j],
+    array([[ 0.707+0.j   ,  0.   -0.707j],
            [ 0.   +0.707j, -0.707+0.j   ]])
 
 
@@ -172,26 +175,30 @@ This is a useful gate as it allows us to create superpositions
 
     qc = QuantumCircuit(q)
     qc.u2(pi/2,pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_12_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───────────────────┐
+    q0_0: |0>┤ U2(1.5708,1.5708) ├
+             └───────────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 0.707+0.j   , -0.   -0.707j],
+    array([[ 0.707+0.j   ,  0.   -0.707j],
            [ 0.   +0.707j, -0.707+0.j   ]])
 
 
@@ -213,24 +220,28 @@ which is a useful as it allows us to apply a quantum phase.
 
     qc = QuantumCircuit(q)
     qc.u1(pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_15_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌────────────┐
+    q0_0: |0>┤ U1(1.5708) ├
+             └────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j],
            [0.+0.j, 0.+1.j]])
@@ -256,24 +267,28 @@ a period of time equal to fractions of the single qubit gate time)
 
     qc = QuantumCircuit(q)
     qc.u0(pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_18_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌────────────┐
+    q0_0: |0>┤ U0(1.5708) ├
+             └────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j],
            [0.+0.j, 1.+0.j]])
@@ -289,24 +304,28 @@ The identity gate is :math:`Id = u0(1)`.
 
     qc = QuantumCircuit(q)
     qc.iden(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_21_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌────┐
+    q0_0: |0>┤ Id ├
+             └────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j],
            [0.+0.j, 1.+0.j]])
@@ -334,27 +353,31 @@ The bit-flip gate :math:`X` is defined as:
 
     qc = QuantumCircuit(q)
     qc.x(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_24_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐
+    q0_0: |0>┤ X ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 0.+0.j,  1.-0.j],
-           [ 1.+0.j, -0.+0.j]])
+    array([[0.+0.j, 1.+0.j],
+           [1.+0.j, 0.+0.j]])
 
 
 
@@ -376,27 +399,31 @@ The :math:`Y` gate is defined as:
 
     qc = QuantumCircuit(q)
     qc.y(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_27_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐
+    q0_0: |0>┤ Y ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 0.+0.j, -0.-1.j],
-           [ 0.+1.j, -0.+0.j]])
+    array([[0.+0.j, 0.-1.j],
+           [0.+1.j, 0.+0.j]])
 
 
 
@@ -418,24 +445,28 @@ The phase flip gate :math:`Z` is defined as:
 
     qc = QuantumCircuit(q)
     qc.z(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_30_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐
+    q0_0: |0>┤ Z ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[ 1.+0.j,  0.+0.j],
            [ 0.+0.j, -1.+0.j]])
@@ -462,26 +493,30 @@ Hadamard gate
 
     qc = QuantumCircuit(q)
     qc.h(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_33_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐
+    q0_0: |0>┤ H ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 0.707+0.j,  0.707-0.j],
+    array([[ 0.707+0.j,  0.707+0.j],
            [ 0.707+0.j, -0.707+0.j]])
 
 
@@ -502,24 +537,28 @@ Hadamard gate
 
     qc = QuantumCircuit(q)
     qc.s(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_36_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐
+    q0_0: |0>┤ S ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j],
            [0.+0.j, 0.+1.j]])
@@ -542,24 +581,28 @@ Hadamard gate
 
     qc = QuantumCircuit(q)
     qc.sdg(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_39_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌─────┐
+    q0_0: |0>┤ Sdg ├
+             └─────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j],
            [0.+0.j, 0.-1.j]])
@@ -585,24 +628,28 @@ Hadamard gate
 
     qc = QuantumCircuit(q)
     qc.t(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_42_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐
+    q0_0: |0>┤ T ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.   +0.j   , 0.   +0.j   ],
            [0.   +0.j   , 0.707+0.707j]])
@@ -627,24 +674,28 @@ They can be added as below.
 
     qc = QuantumCircuit(q)
     qc.tdg(q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_45_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌─────┐
+    q0_0: |0>┤ Tdg ├
+             └─────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.   +0.j   , 0.   +0.j   ],
            [0.   +0.j   , 0.707-0.707j]])
@@ -675,27 +726,31 @@ Rotation around X-axis
 
     qc = QuantumCircuit(q)
     qc.rx(pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_48_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌────────────┐
+    q0_0: |0>┤ Rx(1.5708) ├
+             └────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 0.707+0.j   , -0.   -0.707j],
-           [ 0.   -0.707j,  0.707+0.j   ]])
+    array([[0.707+0.j   , 0.   -0.707j],
+           [0.   -0.707j, 0.707+0.j   ]])
 
 
 
@@ -715,24 +770,28 @@ Rotation around Y-axis
 
     qc = QuantumCircuit(q)
     qc.ry(pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_51_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌────────────┐
+    q0_0: |0>┤ Ry(1.5708) ├
+             └────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[ 0.707+0.j, -0.707+0.j],
            [ 0.707+0.j,  0.707+0.j]])
@@ -758,24 +817,28 @@ phase :math:`e^{-i \phi/2}`.
 
     qc = QuantumCircuit(q)
     qc.rz(pi/2,q)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_54_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌────────────┐
+    q0_0: |0>┤ Rz(1.5708) ├
+             └────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j],
            [0.+0.j, 0.+1.j]])
@@ -1042,24 +1105,30 @@ this gate is equivalent to the following matrix:
 
     qc = QuantumCircuit(q)
     qc.cx(q[0],q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_61_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">              
+    q1_0: |0>──■──
+             ┌─┴─┐
+    q1_1: |0>┤ X ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
            [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j],
@@ -1102,24 +1171,30 @@ or when the LSB is the control
 
     qc = QuantumCircuit(q)
     qc.cy(q[0],q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_64_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">              
+    q1_0: |0>──■──
+             ┌─┴─┐
+    q1_1: |0>┤ Y ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
            [0.+0.j, 0.+0.j, 0.+0.j, 0.-1.j],
@@ -1150,29 +1225,35 @@ whether the MSB or LSB is the control qubit:
 
     qc = QuantumCircuit(q)
     qc.cz(q[0],q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_67_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">            
+    q1_0: |0>─■─
+              │ 
+    q1_1: |0>─■─
+                </pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 1.-0.j,  0.+0.j,  0.+0.j,  0.+0.j],
-           [ 0.+0.j,  1.-0.j,  0.+0.j, -0.-0.j],
-           [ 0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j],
-           [ 0.+0.j, -0.+0.j,  0.+0.j, -1.+0.j]])
+    array([[ 1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j],
+           [ 0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j],
+           [ 0.+0.j,  0.+0.j,  1.+0.j,  0.+0.j],
+           [ 0.+0.j,  0.+0.j,  0.+0.j, -1.+0.j]])
 
 
 
@@ -1197,29 +1278,35 @@ Apply :math:`H` gate to the target qubit if the control qubit is
 
     qc = QuantumCircuit(q)
     qc.ch(q[0],q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_70_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">              
+    q1_0: |0>──■──
+             ┌─┴─┐
+    q1_1: |0>┤ H ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary']/(0.707+0.707j), 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 1.   -0.j,  0.   +0.j, -0.   +0.j,  0.   +0.j],
-           [ 0.   +0.j,  0.707-0.j,  0.   +0.j,  0.707-0.j],
-           [ 0.   -0.j,  0.   +0.j,  1.   -0.j,  0.   +0.j],
-           [ 0.   +0.j,  0.707-0.j,  0.   +0.j, -0.707+0.j]])
+    array([[ 0.707+0.707j,  0.   +0.j   ,  0.   +0.j   ,  0.   +0.j   ],
+           [ 0.   +0.j   ,  0.5  +0.5j  ,  0.   +0.j   ,  0.5  +0.5j  ],
+           [ 0.   +0.j   ,  0.   +0.j   ,  0.707+0.707j,  0.   +0.j   ],
+           [ 0.   +0.j   ,  0.5  +0.5j  ,  0.   +0.j   , -0.5  -0.5j  ]])
 
 
 
@@ -1247,24 +1334,30 @@ Perform rotation around Z-axis on the target qubit if the control qubit
 
     qc = QuantumCircuit(q)
     qc.crz(pi/2,q[0],q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_73_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">                       
+    q1_0: |0>──────■───────
+             ┌─────┴──────┐
+    q1_1: |0>┤ Rz(1.5708) ├
+             └────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.   +0.j   , 0.   +0.j   , 0.   +0.j   , 0.   +0.j   ],
            [0.   +0.j   , 0.707-0.707j, 0.   +0.j   , 0.   +0.j   ],
@@ -1295,26 +1388,30 @@ the control qubit.
 
     qc = QuantumCircuit(q)
     qc.cu1(pi/2,q[0], q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_76_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">                  
+    q1_0: |0>─■───────
+              │1.5708 
+    q1_1: |0>─■───────
+                      </pre>
 
 
-
-I THINK SHOULD BE CALLED :math:`C_\mathrm{PHASE}(\lambda)`
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
            [0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
@@ -1344,24 +1441,30 @@ control qubit (here LSB) is :math:`|1\rangle`.
 
     qc = QuantumCircuit(q)
     qc.cu3(pi/2, pi/2, pi/2, q[0], q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_80_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">                                     
+    q1_0: |0>─────────────■──────────────
+             ┌────────────┴─────────────┐
+    q1_1: |0>┤ U3(1.5708,1.5708,1.5708) ├
+             └──────────────────────────┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[ 1.   +0.j   ,  0.   +0.j   ,  0.   +0.j   ,  0.   +0.j   ],
            [ 0.   +0.j   ,  0.   -0.707j,  0.   +0.j   , -0.707+0.j   ],
@@ -1369,9 +1472,6 @@ control qubit (here LSB) is :math:`|1\rangle`.
            [ 0.   +0.j   ,  0.707+0.j   ,  0.   +0.j   ,  0.   +0.707j]])
 
 
-
-NOTE I NEED TO FIX THIS AND DECIDE ON CONVENTION - I ACTUALLY THINK WE
-WANT A FOUR PARAMETER GATE AND JUST CALL IT CU AND TO REMOVE THIS GATE.
 
 SWAP gate
 ~~~~~~~~~
@@ -1398,24 +1498,30 @@ which gives a matrix representation of the form
 
     qc = QuantumCircuit(q)
     qc.swap(q[0], q[1])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_84_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">            
+    q1_0: |0>─X─
+              │ 
+    q1_1: |0>─X─
+                </pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
            [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j],
@@ -1474,41 +1580,41 @@ In matrix form, the Toffoli gate is
 
     qc = QuantumCircuit(q)
     qc.ccx(q[0], q[1], q[2])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_89_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">              
+    q2_0: |0>──■──
+               │  
+    q2_1: |0>──■──
+             ┌─┴─┐
+    q2_2: |0>┤ X ├
+             └───┘</pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 1.-0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             1.-0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-            -0.+0.j]])
+    array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
 
 
 
@@ -1543,41 +1649,41 @@ In matrix form, the Fredkin gate is
 
     qc = QuantumCircuit(q)
     qc.cswap(q[0], q[1], q[2])
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_92_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">            
+    q2_0: |0>─■─
+              │ 
+    q2_1: |0>─X─
+              │ 
+    q2_2: |0>─X─
+                </pre>
 
 
 
 .. code:: ipython3
 
     job = execute(qc, backend)
-    np.round(job.result().get_data(qc)['unitary'], 3)
+    job.result().get_unitary(qc, decimals=3)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([[ 1.-0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,  0.+0.j, -0.+0.j,  0.+0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  1.-0.j,
-             0.+0.j],
-           [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,
-             1.-0.j]])
+    array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j]])
 
 
 
@@ -1605,25 +1711,31 @@ basis state and the quantum computer prepared in a superposition state.
 
     qc = QuantumCircuit(q, c)
     qc.measure(q, c)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_97_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌─┐
+    q3_0: |0>┤M├
+             └╥┘
+     c0_0: 0 ═╩═
+                </pre>
 
 
 
 .. code:: ipython3
 
-    backend = Aer.get_backend('qasm_simulator')
+    backend = BasicAer.get_backend('qasm_simulator')
     job = execute(qc, backend, shots=1024)
     job.result().get_counts(qc)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     {'0': 1024}
 
@@ -1637,12 +1749,18 @@ register returns 0.
     qc = QuantumCircuit(q, c)
     qc.h(q)
     qc.measure(q, c)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_100_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐┌─┐
+    q3_0: |0>┤ H ├┤M├
+             └───┘└╥┘
+     c0_0: 0 ══════╩═
+                     </pre>
 
 
 
@@ -1654,9 +1772,9 @@ register returns 0.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    {'1': 519, '0': 505}
+    {'0': 502, '1': 522}
 
 
 
@@ -1675,12 +1793,18 @@ operation, since it is irreversible.
     qc = QuantumCircuit(q, c)
     qc.reset(q[0])
     qc.measure(q, c)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_104_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">              ┌─┐
+    q3_0: |0>─|0>─┤M├
+                  └╥┘
+     c0_0: 0 ══════╩═
+                     </pre>
 
 
 
@@ -1692,7 +1816,7 @@ operation, since it is irreversible.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     {'0': 1024}
 
@@ -1704,12 +1828,18 @@ operation, since it is irreversible.
     qc.h(q)
     qc.reset(q[0])
     qc.measure(q, c)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_106_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐     ┌─┐
+    q3_0: |0>┤ H ├─|0>─┤M├
+             └───┘     └╥┘
+     c0_0: 0 ═══════════╩═
+                          </pre>
 
 
 
@@ -1721,7 +1851,7 @@ operation, since it is irreversible.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     {'0': 1024}
 
@@ -1741,17 +1871,18 @@ classical register
     qc = QuantumCircuit(q, c)
     qc.x(q[0]).c_if(c, 0)
     qc.measure(q,c)
-    circuit_drawer(qc)
-    
-    job = execute(qc, backend, shots=1024)
-    job.result().get_counts(qc)
+    qc.draw()
 
 
 
 
-.. code-block:: text
+.. raw:: html
 
-    {'1': 1024}
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌─────┐┌─┐
+    q3_0: |0>┤  X  ├┤M├
+             ├──┴──┤└╥┘
+     c0_0: 0 ╡ = 0 ╞═╩═
+             └─────┘   </pre>
 
 
 
@@ -1760,17 +1891,37 @@ always flipped.
 
 .. code:: ipython3
 
+    job = execute(qc, backend, shots=1024)
+    job.result().get_counts(qc)
+
+
+
+
+.. parsed-literal::
+
+    {'1': 1024}
+
+
+
+.. code:: ipython3
+
     qc = QuantumCircuit(q, c)
     qc.h(q)
     qc.measure(q,c)
     qc.x(q[0]).c_if(c, 0)
     qc.measure(q,c)
-    circuit_drawer(qc)
+    qc.draw()
 
 
 
 
-.. image:: summary_of_quantum_operations_files/summary_of_quantum_operations_112_0.png
+.. raw:: html
+
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">         ┌───┐┌─┐┌─────┐┌─┐
+    q3_0: |0>┤ H ├┤M├┤  X  ├┤M├
+             └───┘└╥┘├──┴──┤└╥┘
+     c0_0: 0 ══════╩═╡ = 0 ╞═╩═
+                     └─────┘   </pre>
 
 
 
@@ -1782,7 +1933,7 @@ always flipped.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     {'1': 1024}
 
@@ -1826,15 +1977,15 @@ arbitrary state for :math:`n` qubits may be specified by a vector of
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    <qiskit.extensions.quantum_initializer._initializer.InitializeGate at 0x1198eb940>
+    <qiskit.extensions.quantum_initializer._initializer.InitializeGate at 0xa1ed7fd30>
 
 
 
 .. code:: ipython3
 
-    backend = Aer.get_backend('statevector_simulator')
+    backend = BasicAer.get_backend('statevector_simulator')
     job = execute(qc, backend)
     qc_state = job.result().get_statevector(qc)
     qc_state 
@@ -1842,12 +1993,12 @@ arbitrary state for :math:`n` qubits may be specified by a vector of
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    array([ 2.50000000e-01+0.00000000e+00j,  5.55111512e-17-3.53553391e-01j,
-            2.50000000e-01-2.50000000e-01j, -2.19980517e-18-3.09536077e-17j,
-           -2.62603921e-17+5.08377096e-17j,  7.07106781e-01-3.53553391e-01j,
-            8.67361738e-17-2.50000000e-01j,  0.00000000e+00+0.00000000e+00j])
+    array([0.25      +0.j        , 0.        -0.35355339j,
+           0.25      -0.25j      , 0.        +0.j        ,
+           0.        +0.j        , 0.70710678-0.35355339j,
+           0.        -0.25j      , 0.        +0.j        ])
 
 
 
@@ -1870,7 +2021,7 @@ The fidelity is equal to :math:`1` if and only if two states are same.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     1.0
 
