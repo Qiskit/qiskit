@@ -65,7 +65,7 @@ class LookaheadSwap(TransformationPass):
 
         super().__init__()
         self._coupling_map = coupling_map
-        self.requires.append(BarrierBeforeFinalMeasurements())        
+        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """Run one pass of the lookahead mapper on the provided DAG.
