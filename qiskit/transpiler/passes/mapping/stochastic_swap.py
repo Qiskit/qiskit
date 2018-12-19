@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 # the circuit.
 
 
-class StochasticMapper(TransformationPass):
+class StochasticSwap(TransformationPass):
     """
     Maps a DAGCircuit onto a `coupling_map` adding swap gates.
 
@@ -79,7 +79,7 @@ class StochasticMapper(TransformationPass):
 
     def run(self, dag):
         """
-        Run the StochasticMapper pass on `dag`.
+        Run the StochasticSwap pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to map.

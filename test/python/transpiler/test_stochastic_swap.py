@@ -5,19 +5,19 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Test the Stochastic Mapper pass"""
+"""Test the Stochastic Swap pass"""
 
 import unittest
-from qiskit.transpiler.passes import StochasticMapper
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.mapper import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 
-class TestStochasticMapper(QiskitTestCase):
+class TestStochasticSwap(QiskitTestCase):
     """
-    Tests the StochasticMapper pass.
+    Tests the StochasticSwap pass.
 
     All of the tests use a fixed seed since the results
     may depend on it.
@@ -46,7 +46,7 @@ class TestStochasticMapper(QiskitTestCase):
                          (QuantumRegister(2, 'q'), 1),
                          (QuantumRegister(1, 'a'), 0)])
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -73,7 +73,7 @@ class TestStochasticMapper(QiskitTestCase):
                          (QuantumRegister(1, 'a'), 0),
                          (QuantumRegister(2, 'q'), 1)])
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -100,7 +100,7 @@ class TestStochasticMapper(QiskitTestCase):
 
         layout = None
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -125,7 +125,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -150,7 +150,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -177,7 +177,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -200,7 +200,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -225,7 +225,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -267,7 +267,7 @@ class TestStochasticMapper(QiskitTestCase):
         expected.swap(qr[0], qr[1])
         expected.cx(qr[2], qr[1])
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -294,7 +294,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.h(qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -320,7 +320,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -405,7 +405,7 @@ class TestStochasticMapper(QiskitTestCase):
         #  (QuantumRegister(4, 'q'), 1): 2,
         #  (QuantumRegister(4, 'q'), 2): 1,
         #  (QuantumRegister(4, 'q'), 3): 3}
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(expected_dag, after)
 
@@ -434,7 +434,7 @@ class TestStochasticMapper(QiskitTestCase):
 
         dag = circuit_to_dag(circ)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(circuit_to_dag(circ), after)
 
@@ -455,7 +455,7 @@ class TestStochasticMapper(QiskitTestCase):
                          (QuantumRegister(2, 'qa'), 1): 1,
                          (QuantumRegister(1, 'qb'), 0): 2})
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
