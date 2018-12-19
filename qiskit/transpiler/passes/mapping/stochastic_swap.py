@@ -14,12 +14,10 @@ from pprint import pformat
 from math import inf
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.mapper import (remove_last_measurements, return_last_measurements)
 from qiskit.mapper import CouplingMap, Layout
 
 logger = getLogger(__name__)
@@ -92,7 +90,7 @@ class StochasticSwap(TransformationPass):
         if "layout" in self.property_set:
             self.initial_layout = self.property_set["layout"]
             self.input_layout = self.property_set["layout"]
-        new_dag, final_layout, last_edgemap = self._mapper(
+        new_dag, last_edgemap = self._mapper(
             dag, self.coupling_map,
             trials=self.trials, seed=self.seed)
         self.property_set["layout"] = self.initial_layout
@@ -501,4 +499,4 @@ class StochasticSwap(TransformationPass):
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
                 dagcircuit_output.compose_back(layer["graph"], edge_map)
 
-        return dagcircuit_output, self.initial_layout, last_edgemap
+        return dagcircuit_output, last_edgemap
