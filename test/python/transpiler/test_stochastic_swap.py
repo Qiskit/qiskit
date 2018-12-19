@@ -31,15 +31,15 @@ class TestStochasticSwap(QiskitTestCase):
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(1, 'a')
-        cr = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[0], ar[0])
-        circ.cx(qr[1], ar[0])
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
+        qr_q = QuantumRegister(2, 'q')
+        qr_a = QuantumRegister(1, 'a')
+        cr_c = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr_q, qr_a, cr_c)
+        circ.cx(qr_q[0], qr_a[0])
+        circ.cx(qr_q[1], qr_a[0])
+        circ.measure(qr_q[0], cr_c[0])
+        circ.measure(qr_q[1], cr_c[1])
+        circ.measure(qr_a[0], cr_c[2])
         dag = circuit_to_dag(circ)
 
         layout = Layout([(QuantumRegister(2, 'q'), 0),
@@ -58,15 +58,15 @@ class TestStochasticSwap(QiskitTestCase):
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(1, 'a')
-        cr = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[0], ar[0])
-        circ.cx(qr[1], ar[0])
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
+        qr_q = QuantumRegister(2, 'q')
+        qr_a = QuantumRegister(1, 'a')
+        cr_c = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr_q, qr_a, cr_c)
+        circ.cx(qr_q[0], qr_a[0])
+        circ.cx(qr_q[1], qr_a[0])
+        circ.measure(qr_q[0], cr_c[0])
+        circ.measure(qr_q[1], cr_c[1])
+        circ.measure(qr_a[0], cr_c[2])
         dag = circuit_to_dag(circ)
 
         layout = Layout([(QuantumRegister(2, 'q'), 0),
@@ -87,15 +87,15 @@ class TestStochasticSwap(QiskitTestCase):
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(1, 'a')
-        cr = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[0], ar[0])
-        circ.cx(qr[1], ar[0])
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
+        qr_q = QuantumRegister(2, 'q')
+        qr_a = QuantumRegister(1, 'a')
+        cr_c = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr_q, qr_a, cr_c)
+        circ.cx(qr_q[0], qr_a[0])
+        circ.cx(qr_q[1], qr_a[0])
+        circ.measure(qr_q[0], cr_c[0])
+        circ.measure(qr_q[1], cr_c[1])
+        circ.measure(qr_a[0], cr_c[2])
         dag = circuit_to_dag(circ)
 
         layout = None
