@@ -46,7 +46,7 @@ from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.mapper import Layout, remove_last_measurements, return_last_measurements, MapperError
+from qiskit.mapper import Layout, MapperError
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -80,9 +80,6 @@ class LookaheadSwap(TransformationPass):
 
         """
 
-        # Preserve fix for https://github.com/Qiskit/qiskit-terra/issues/674
-        removed_measures = remove_last_measurements(dag)
-
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
@@ -114,8 +111,6 @@ class LookaheadSwap(TransformationPass):
 
         for gate in mapped_gates:
             mapped_dag.apply_operation_back(**gate)
-
-        return_last_measurements(mapped_dag, removed_measures, layout)
 
         return mapped_dag
 
@@ -199,8 +194,21 @@ def _map_free_gates(layout, gates, coupling_map):
     remaining_gates = []
 
     for gate in gates:
-        # Ignore gates which do not have associated qubits.
+        # Gates without a partition (barrier, snapshot, save, load, noise) may
+        # still have associated qubits. Look for them in the qargs.
         if not gate['partition']:
+            qubits = [n for n in gate['graph'].multi_graph.nodes.values()
+                      if n['type'] == 'op'][0]['qargs']
+
+            if not qubits:
+                continue
+
+            if blocked_qubits.intersection(qubits):
+                blocked_qubits.update(qubits)
+                remaining_gates.append(gate)
+            else:
+                mapped_gate = _transform_gate_for_layout(gate, layout)
+                mapped_gates.append(mapped_gate)
             continue
 
         qubits = gate['partition'][0]
@@ -231,7 +239,7 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
 
     return sum(coupling_map.distance(*[layout[q] for q in gate['partition'][0]])
                for gate in gates[:max_gates]
-               if len(gate['partition'][0]) == 2)
+               if gate['partition'] and len(gate['partition'][0]) == 2)
 
 
 def _score_step(step):
