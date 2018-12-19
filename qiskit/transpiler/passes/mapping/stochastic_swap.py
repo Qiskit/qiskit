@@ -87,11 +87,11 @@ class StochasticSwap(TransformationPass):
         """
         # If the property_set contains a layout, use it to
         # override any layout passed to __init__
-        if "layout" in self.property_set:
+        if self.property_set["layout"]:
             self.initial_layout = self.property_set["layout"]
             self.input_layout = self.property_set["layout"]
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, seed=self.seed)
-        self.property_set["layout"] = self.initial_layout
+        # self.property_set["layout"] = self.initial_layout
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
