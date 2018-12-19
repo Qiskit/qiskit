@@ -128,7 +128,7 @@ class StochasticSwap(TransformationPass):
         has no multi-qubit gates.
 
         Raises:
-            TranspilerError if anything went wrong.
+            TranspilerError: if anything went wrong.
         """
         if seed is not None:
             np.random.seed(seed)
