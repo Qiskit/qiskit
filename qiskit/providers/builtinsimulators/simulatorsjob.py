@@ -99,7 +99,7 @@ class SimulatorsJob(BaseJob):
         """Gets the status of the job by querying the Python's future
 
         Returns:
-            JobStatus: The current JobStatus
+            qiskit.providers.JobStatus: The current JobStatus
 
         Raises:
             JobError: If the future is in unexpected state

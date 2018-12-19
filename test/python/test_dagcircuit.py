@@ -154,6 +154,22 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], HGate)
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
 
+    def test_quantum_successors(self):
+        """The method dag.quantum_successors() returns successors connected by quantum edges"""
+        self.dag.apply_operation_back(Measure(self.qubit1, self.clbit1))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Reset(self.qubit0))
+
+        successor_measure = self.dag.quantum_successors(self.dag.get_named_nodes('measure').pop())
+        self.assertEqual(len(successor_measure), 1)
+        cnot_node = successor_measure[0]
+        self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
+
+        successor_cnot = self.dag.quantum_successors(cnot_node)
+        self.assertEqual(len(successor_cnot), 2)
+        self.assertEqual(self.dag.multi_graph.nodes[successor_cnot[0]]["type"], 'out')
+        self.assertIsInstance(self.dag.multi_graph.nodes[successor_cnot[1]]["op"], Reset)
+
     def test_get_gates_nodes(self):
         """The method dag.get_gate_nodes() returns all gate nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
@@ -351,6 +367,7 @@ class TestDagEquivalence(QiskitTestCase):
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substitutuing a dag node with a sub-dag"""
+
     def setUp(self):
         self.dag = DAGCircuit()
         qreg = QuantumRegister(3, 'qr')
