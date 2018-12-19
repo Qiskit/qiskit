@@ -16,7 +16,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout,
+from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout, CheckMap,
                      Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
 from ._transpilererror import TranspilerError
 
@@ -95,8 +95,10 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
         raise TranspilerError('initial layout not supplied, and cannot '
                               'be inferred from backend.')
     if not backend.configuration().simulator:
-        dense_layout = DenseLayout(coupling_map, initial_layout)
-        initial_layout = dense_layout.run(dag).property_set['layout']
+        CheckMap(CouplingMap(coupling_map)).run(dag)
+        dense_layout = DenseLayout(CouplingMap(coupling_map), initial_layout)
+        dense_layout.run(dag)
+        initial_layout = dense_layout.property_set['layout']
 
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
@@ -178,7 +180,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("pre-mapping properties: %s",
                         dag.properties())
             # Insert swap gates
-            coupling = CouplingMap(couplinglist=coupling_map)
+            coupling = CouplingMap(coupling_map)
             logger.info("initial layout: %s", initial_layout)
             dag = BarrierBeforeFinalMeasurements().run(dag)
             dag, final_layout = swap_mapper(

@@ -624,7 +624,7 @@ class DAGCircuit:
                 m_wire = edge_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
-                     raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
 
                 if nd["wire"] not in input_circuit.wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
