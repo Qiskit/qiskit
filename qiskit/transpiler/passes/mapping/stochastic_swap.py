@@ -19,6 +19,7 @@ from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 
 logger = getLogger(__name__)
 
@@ -74,6 +75,7 @@ class StochasticSwap(TransformationPass):
             self.initial_layout = None
         self.trials = trials
         self.seed = seed
+        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """
