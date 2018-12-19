@@ -121,10 +121,10 @@ do this priort to calling ``circuit_drawer()``. For example::
 
 will have to be adjust to be::
 
-   from qiskit import Aer
+   from qiskit import BasicAer
    from qiskit import transpiler
    from qiskit.tools import visualization
-   backend = Aer.backend('qasm_simulator_py')
+   backend = BasicAer.backend('qasm_simulator')
    draw_circ = transpiler.transpile(circuit, backend, basis_gates='x,U,CX')
    visualization.circuit_drawer(draw_circ)
 
