@@ -319,7 +319,10 @@ class StochasticMapper(TransformationPass):
             logger.debug("layer_update: first multi-qubit gate layer")
             # Output all layers up to this point
             for j in range(i + 1):
+                # Make qubit edge map and extend by classical bits
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
+                for bit in dagcircuit_output.get_bits():
+                    edge_map[bit] = bit
                 dagcircuit_output.compose_back(layer_list[j]["graph"], edge_map)
         # Otherwise, we output the current layer and the associated swap gates.
         else:
@@ -330,8 +333,11 @@ class StochasticMapper(TransformationPass):
                 dagcircuit_output.extend_back(best_circuit)
             else:
                 logger.debug("layer_update: there are no swaps in this layer")
-            # Output this layer
+            # Make qubit edge map and extend by classical bits
             edge_map = layout.combine_into_edge_map(self.initial_layout)
+            for bit in dagcircuit_output.get_bits():
+                edge_map[bit] = bit
+            # Output this layer
             dagcircuit_output.compose_back(layer_list[i]["graph"], edge_map)
 
         return dagcircuit_output
@@ -398,6 +404,14 @@ class StochasticMapper(TransformationPass):
         for creg in circuit_graph.cregs.values():
             dagcircuit_output.add_creg(creg)
 
+        # Make a trivial wire mapping between the subcircuits
+        # returned by _layer_update and the circuit we build
+        identity_wire_map = {}
+        for qubit in circuit_graph.get_qubits():
+            identity_wire_map[qubit] = qubit
+        for bit in circuit_graph.get_bits():
+            identity_wire_map[bit] = bit
+
         first_layer = True  # True until first layer is output
         logger.debug("initial_layout = %s", layout)
 
@@ -462,7 +476,8 @@ class StochasticMapper(TransformationPass):
                                            best_layout,
                                            best_depth,
                                            best_circuit,
-                                           serial_layerlist))
+                                           serial_layerlist),
+                        identity_wire_map)
                     if first_layer:
                         first_layer = False
 
@@ -480,7 +495,8 @@ class StochasticMapper(TransformationPass):
                                        best_layout,
                                        best_depth,
                                        best_circuit,
-                                       layerlist))
+                                       layerlist),
+                    identity_wire_map)
 
                 if first_layer:
                     first_layer = False
