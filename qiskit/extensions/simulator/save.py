@@ -8,10 +8,9 @@
 """
 Simulator command to save the quantum state.
 """
-from qiskit import Instruction
 from qiskit import QuantumCircuit
-from qiskit import CompositeGate
 from qiskit import QuantumRegister
+from qiskit.circuit import Instruction
 from qiskit.extensions._extensionerror import ExtensionError
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
@@ -21,24 +20,11 @@ class Save(Instruction):
 
     def __init__(self, slot, qubits, circ):
         """Create save save instruction."""
-        super().__init__("save", [slot], list(qubits), circ)
+        super().__init__("save", [slot], list(qubits), [], circ)
 
     def inverse(self):
         """Special case. Return self."""
         return self
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        string = "save(%d) " % self.param[0]
-        for j in range(len(self.arg)):
-            if len(self.arg[j]) == 1:
-                string += "%s" % self.arg[j].name
-            else:
-                string += "%s[%d]" % (self.arg[j][0].name, self.arg[j][1])
-            if j != len(self.arg) - 1:
-                string += ","
-        string += ";"
-        return string
 
     def reapply(self, circ):
         """Reapply this instruction to corresponding qubits in circ."""
@@ -61,9 +47,8 @@ def save(self, slot):
     """
     tuples = []
     if isinstance(self, QuantumCircuit):
-        for register in self.regs.values():
-            if isinstance(register, QuantumRegister):
-                tuples.append(register)
+        for register in self.qregs:
+            tuples.append(register)
     if not tuples:
         raise ExtensionError("no qubits for save")
     if slot is None:
@@ -81,6 +66,5 @@ def save(self, slot):
     return self._attach(Save(slot, qubits, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.save = save
-CompositeGate.save = save

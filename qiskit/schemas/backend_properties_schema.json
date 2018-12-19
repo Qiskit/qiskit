@@ -18,7 +18,7 @@
                 },
                 "qubits": {
                     "items": {
-                        "type": "number"
+                        "type": "integer"
                     },
                     "minItems": 1,
                     "type": "array"
@@ -65,7 +65,6 @@
             "type": "object"
         }
     },
-    "description": "OpenQuantum backend properties schema",
     "properties": {
         "backend_name": {
             "description": "Backend name",
@@ -113,6 +112,5 @@
         "gates",
         "general"
     ],
-    "type": "object",
-    "version": "1.0.0"
+    "type": "object"
 }

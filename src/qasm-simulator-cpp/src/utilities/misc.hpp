@@ -68,7 +68,7 @@ void write_file(std::string outfile, std::string contents);
 std::string read_stream(std::istream &input);
 
 /**
- * Reads an input stream until seperating the stream into multiple strings when
+ * Reads an input stream until separating the stream into multiple strings when
  * a specified file break string is reached. The output is returned as a vector
  * of each of the resulting strings. Note this adds a newline character to the
  * end of each file.
@@ -234,12 +234,19 @@ std::vector<uint_t> int2reg(uint_t n, uint_t base = 2);
 std::vector<uint_t> int2reg(uint_t n, uint_t base, uint_t minlen);
 
 /**
+ * Converts an bitstring to a hexadecimal string
+ * @param str: a bit string (with or without leading "0b")
+ * @param prefix: prefix output string with "0x" (default true)
+ * @return: a hexadecimal string
+ */
+std::string bin2hex(std::string str, bool prefix = true);
+
+/**
  * Write me
  * @param str
  * @param regs
  * @return
  */
-
 std::string format_bitstr(std::string str, const creg_t &regs);
 
 /**
@@ -277,7 +284,7 @@ cket_t vec2ket(const cvector_t &psi, double epsilon = 0.);
 //------------------------------------------------------------------------------
 
 /**
- * Convet a hexadecimal string to a binary vector.
+ * Convert a hexadecimal string to a binary vector.
  * @param str: a hex string.
  * @returns: a binary vector.
  */
@@ -744,6 +751,43 @@ std::vector<uint_t> hex2reg(std::string str) {
   } else {
     throw std::runtime_error(std::string("invalid hexadecimal"));
   }
+}
+
+//------------------------------------------------------------------------------
+// Convert hexadecimal string to bit-string
+//------------------------------------------------------------------------------
+std::string bin2hex(std::string str, bool prefix) {
+  // empty case
+  if (str.empty())
+    return std::string();
+
+  // If string starts with 0b prob prefix
+  if (str.size() > 1 && str.substr(0, 2) == "0b") {
+    str.erase(0, 2);
+  }
+
+  // We go via 64-bit integer conversion, so we process 64-bit chunks at
+  // a time
+  const size_t block = 64;
+  const size_t len = str.size();
+  const size_t chunks = len / block;
+  const size_t remain = len % block;
+
+  // initialize output string
+  std::string hex = (prefix) ? "0x" : "";
+
+  // Start with remain
+  std::stringstream ss;
+  ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
+  hex += ss.str();
+  for (size_t j=0; j < chunks; ++j) {
+    ss.str(std::string()); // clear string stream
+    ss << std::hex << std::stoull(str.substr(remain + j * block, block), nullptr, 2);
+    std::string part = ss.str();
+    part.insert(0, block - part.size(), '0'); // pad out zeros
+    hex += part;
+  }
+  return hex;
 }
 
 //------------------------------------------------------------------------------

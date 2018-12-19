@@ -8,9 +8,9 @@
 """Tests for qiskit/_util.py"""
 import os
 import time
-from qiskit.transpiler._receiver import receiver as rec
-from qiskit.transpiler._parallel import parallel_map
-from qiskit.transpiler._progressbar import TextProgressBar
+
+from qiskit.tools.parallel import parallel_map
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from .common import QiskitTestCase
 
 
@@ -19,6 +19,13 @@ def _parfunc(x):
     """
     time.sleep(1)
     return x
+
+
+def _build_simple(_):
+    qreg = QuantumRegister(2)
+    creg = ClassicalRegister(2)
+    qc = QuantumCircuit(qreg, creg)
+    return qc
 
 
 class TestParallel(QiskitTestCase):
@@ -34,17 +41,8 @@ class TestParallel(QiskitTestCase):
         ans = parallel_map(_parfunc, list(range(10)))
         self.assertEqual(ans, list(range(10)))
 
-    def test_parallel_progressbar(self):
-        """Test parallel_map with progress bar"""
-        TextProgressBar()
-        ans = parallel_map(_parfunc, list(range(10)))
-        self.assertEqual(ans, list(range(10)))
-
-    def test_parallel_progbar_used(self):
-        """Test that correct progressbar is used."""
-        not_used = TextProgressBar()
-        not_used.touched = True
-        used = TextProgressBar()
-        parallel_map(_parfunc, list(range(10)))
-        self.assertTrue(used.channel_id not in rec.channels.keys())
-        self.assertTrue(not_used.channel_id in rec.channels.keys())
+    def test_parallel_circuit_names(self):
+        """Verify unique circuit names in parallel"""
+        out_circs = parallel_map(_build_simple, list(range(10)))
+        names = [circ.name for circ in out_circs]
+        self.assertEqual(len(names), len(set(names)))

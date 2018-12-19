@@ -13,7 +13,7 @@ used `pip install`, the examples only work from the root directory.
 """
 
 import math
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute, Aer
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute, BasicAer
 
 
 ###############################################################
@@ -60,7 +60,7 @@ print("Desired probabilities...")
 print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
-sim_backend = Aer.get_backend('qasm_simulator')
+sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(circuit, sim_backend, shots=shots)
 result = job.result()
 

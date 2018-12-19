@@ -38,7 +38,7 @@ namespace QISKIT {
  *
  * Subclasses of the BaseEngine should make sure that overloads of the the `add`
  * `compute_results`, `to_json` and `from_json` functions call the BaseEngine
- * verions of those functions as well.
+ * versions of those functions as well.
  ******************************************************************************/
 
 template <typename StateType = QubitVector> class BaseEngine {
@@ -49,10 +49,10 @@ public:
   //============================================================================
 
   // Counts formatting
-  bool counts_show = true;     // Dislay the map of final creg bitstrings
-  bool counts_sort = true;     // Sort the map of bitstrings by occurence
-  bool counts_space = true;    // Insert a space between named QISKIT cregs
-  bool counts_bits_h2l = true; // Display bitstring with least sig to right
+
+  bool counts_show = true;       // Dislay the map of final creg bitstrings
+  bool hex_counts = true;        // Return counts as hexadecimal strings
+  bool counts_sort = true;       // Sort the map of bitstrings by occurrence
 
   // Return list of final bitstrings for all shots
   bool show_final_creg = false; // Display a list of all observed outcomes
@@ -130,7 +130,7 @@ public:
    */
   virtual void compute_results(const Circuit &circ, BaseBackend<StateType> *be);
 
-  void compute_counts(const reglist clbit_labels, const creg_t &creg);
+  void compute_counts(const creg_t &creg);
 };
 
 /*******************************************************************************
@@ -169,7 +169,7 @@ template <typename StateType>
 void BaseEngine<StateType>::compute_results(const Circuit &qasm,
                                             BaseBackend<StateType> *be) {
   // Compute counts
-  compute_counts(qasm.clbit_labels, be->access_creg());
+  compute_counts(be->access_creg());
 
   // Snapshots
   if (show_snapshots && be->access_snapshots().empty() == false) {
@@ -180,27 +180,20 @@ void BaseEngine<StateType>::compute_results(const Circuit &qasm,
 }
 
 template <typename StateType>
-void BaseEngine<StateType>::compute_counts(const reglist clbit_labels,
-                                           const creg_t &creg) {
+void BaseEngine<StateType>::compute_counts(const creg_t &creg) {
   if (counts_show || show_final_creg) {
+
+    // Convert reg to string
+    // Note reg is in order [c0, c1, c2]
+    // but bitstring is in order: c2c1c0
     std::string shotstr;
-    uint_t shift = 0;
-
-    for (const auto &reg : clbit_labels) {
-      uint_t sz = reg.second;
-      for (uint_t j = 0; j < sz; j++) {
-        shotstr += std::to_string(creg[shift + j]);
-      }
-      shift += sz;
-      if (counts_space)
-        shotstr += " "; // opt whitespace between named cregs
+    for (auto it = creg.crbegin(); it != creg.crend(); ++it) {
+      shotstr += std::to_string(*it);
     }
-    if (shotstr.empty() == false && counts_space)
-      shotstr.pop_back(); // remove last whitspace char
 
-    // reverse shot string to least significant bit to the right
-    if (counts_bits_h2l == true)
-      std::reverse(shotstr.begin(), shotstr.end());
+    // Convert to hexadecimal
+    if (hex_counts)
+      shotstr = bin2hex(shotstr, true);
 
     // add shot to shot map
     if (counts_show && shotstr.empty() == false)
@@ -247,51 +240,33 @@ inline void to_json(json_t &js, const BaseEngine<StateType> &engine) {
     js["counts"] = engine.counts;
 
   if (engine.show_final_creg && engine.output_creg.empty() == false)
-    js["classical_state"] = engine.output_creg;
+    js["memory"] = engine.output_creg;
 
   if (engine.show_snapshots && engine.snapshots.empty() == false) {
-
     try {
       // use try incase state class doesn't have json conversion method
       for (const auto& pair: engine.snapshots)
-        js["snapshots"][pair.first]["statevector"] = pair.second;
+        js["snapshots"]["statevector"][pair.first] = pair.second;
     } catch (std::exception &e) {
       // Leave message in output that type conversion failed
-      js["statevector"] =
-          "Error: Failed to convert state type to JSON";
+      js["snapshots"]["statevector"] =
+        "Error: Failed to convert state type to JSON";
     }
   }
+  // check for edge case of null array and instead return empty object
+  if (js.is_null())
+    js = json_t::object();
 }
 
 template <typename StateType>
 inline void from_json(const json_t &js, BaseEngine<StateType> &engine) {
   engine = BaseEngine<StateType>();
-  std::vector<std::string> opts;
-  if (JSON::get_value(opts, "data", js)) {
-    for (auto &o : opts) {
-      to_lowercase(o);
-      string_trim(o);
-      // check options
-      if (o == "hidecounts")
-        engine.counts_show = false;
-      else if (o == "nospace")
-        engine.counts_space = false;
-      else if (o == "nosort")
-        engine.counts_sort = false;
-      else if (o == "reverse")
-        engine.counts_bits_h2l = false;
-      else if (o == "classicalstate" || o == "classicalstates")
-        engine.show_final_creg = true;
-      else if (o == "hidesnapshots" || o == "hidesnapshots")
-        engine.show_snapshots = false;
-    }
-  }
-
+  // Check for single shot memory
+  JSON::get_value(engine.show_final_creg, "memory", js);
   // parse initial state from JSON
   if (JSON::get_value(engine.initial_state, "initial_state", js)) {
     engine.initial_state_flag = true;
   }
-
 }
 
 //------------------------------------------------------------------------------

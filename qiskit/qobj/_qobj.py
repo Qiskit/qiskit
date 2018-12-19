@@ -10,6 +10,7 @@
 from types import SimpleNamespace
 
 import numpy
+import sympy
 
 from ._validation import QobjValidationError
 from ._utils import QobjType
@@ -49,14 +50,20 @@ class QobjItem(SimpleNamespace):
             return [cls._expand_item(item) for item in obj]
         if isinstance(obj, dict):
             return {key: cls._expand_item(value) for key, value in obj.items()}
-        if isinstance(obj, QobjItem):
-            return obj.as_dict()
         if isinstance(obj, numpy.integer):
             return int(obj)
         if isinstance(obj, numpy.float):
             return float(obj)
+        if isinstance(obj, sympy.Symbol):
+            return str(obj)
+        if isinstance(obj, sympy.Basic):
+            return float(obj.evalf())
         if isinstance(obj, numpy.ndarray):
-            return obj.tolist()
+            return cls._expand_item(obj.tolist())
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
+        if hasattr(obj, 'as_dict'):
+            return obj.as_dict()
         return obj
 
     @classmethod

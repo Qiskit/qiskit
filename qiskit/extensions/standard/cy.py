@@ -10,12 +10,15 @@
 """
 controlled-Y gate.
 """
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.s import SdgGate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class CyGate(Gate):
@@ -25,12 +28,24 @@ class CyGate(Gate):
         """Create new CY gate."""
         super().__init__("cy", [], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("cy %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
+    def _define_decompositions(self):
+        """
+        gate cy a,b { sdg b; cx a,b; s b; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("s", 1, 0, 0)
+        decomposition.add_basis_element("sdg", 1, 0, 0)
+        decomposition.add_basis_element("cx", 2, 0, 0)
+        rule = [
+            SdgGate(q[1]),
+            CnotGate(q[0], q[1]),
+            SGate(q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
@@ -38,7 +53,7 @@ class CyGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cy(self.arg[0], self.arg[1]))
+        self._modifiers(circ.cy(self.qargs[0], self.qargs[1]))
 
 
 def cy(self, ctl, tgt):
@@ -69,4 +84,3 @@ def cy(self, ctl, tgt):
 
 
 QuantumCircuit.cy = cy
-CompositeGate.cy = cy

@@ -14,8 +14,8 @@ used `pip install`, the examples only work from the root directory.
 
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, Aer, IBMQ
-from qiskit.backends.ibmq import least_busy
+from qiskit import execute, BasicAer, IBMQ
+from qiskit.providers.ibmq import least_busy
 
 
 ###############################################################
@@ -63,37 +63,34 @@ qft5.barrier()
 for j in range(5):
     qft5.measure(q[j], c[j])
 
-print(qft3.qasm())
-print(qft4.qasm())
-print(qft5.qasm())
+print(qft3)
+print(qft4)
+print(qft5)
 
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 print('Qasm simulator')
-sim_backend = Aer.get_backend('qasm_simulator')
+sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
-print(result)
 print(result.get_counts(qft3))
 print(result.get_counts(qft4))
 print(result.get_counts(qft5))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+                                             filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
 result = job.result()
-print(result)
 print(result.get_counts(qft3))
 print(result.get_counts(qft4))
 print(result.get_counts(qft5))

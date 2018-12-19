@@ -5,11 +5,11 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""QISKit visualization error classes."""
+"""Exception for errors raised by visualization module."""
 
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class VisualizationError(QISKitError):
+class VisualizationError(QiskitError):
     """For visualization specific errors."""
     pass
