@@ -79,7 +79,7 @@ class CommutationAnalysis(AnalysisPass):
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
             for node in self.wire_op[wire_name]:
 
-                if len(self.property_set['commutation_set'][wire_name]) == 0:
+                if not self.property_set['commutation_set'][wire_name]:
                     self.property_set['commutation_set'][wire_name].append([node])
 
                 if node not in self.property_set['commutation_set'][wire_name][-1]:
@@ -92,7 +92,9 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(self.property_set['commutation_set'][wire_name])
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
+
 def _gate_master_def(name, para=None):
+    # pylint: disable=too-many-return-statements
     if name == 'h':
         return 1. / np.sqrt(2) * np.array([[1.0, 1.0],
                                            [1.0, -1.0]], dtype=np.complex)
@@ -167,6 +169,7 @@ def _gate_master_def(name, para=None):
 
     return None
 
+
 def _calc_product(node1, node2):
 
     wire_num = len(set(node1["qargs"] + node2["qargs"]))
@@ -216,23 +219,25 @@ def _calc_product(node1, node2):
         final_unitary = np.dot(crt, final_unitary)
     return final_unitary
 
+
 def _kron_list(args):
     ret = args[0]
     for item in args[1:]:
         ret = np.kron(ret, item)
     return ret
 
+
 def _matrix_commute(node1, node2):
     # Good for composite gates or any future
     # user-defined gate of equal or less than 2 qubits.
+    ret = False
     if set(node1["qargs"]) & set(node2["qargs"]) == set():
-        return True
-
+        ret = True
     if _calc_product(node1, node2) is not None:
-        return np.array_equal(_calc_product(node1, node2),
-                              _calc_product(node2, node1))
-    else:
-        return False
+        ret = np.array_equal(_calc_product(node1, node2),
+                             _calc_product(node2, node1))
+    return ret
+
 
 def _commute(node1, node2):
     if node1["type"] != "op" or node2["type"] != "op":
