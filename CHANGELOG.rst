@@ -20,6 +20,28 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Changed
+-------
+
+- The previously deprecated default output of ``circuit_drawer()`` (using latex
+  and falling back to mpl) is no longer present. Instead the default output
+  is the ascii art ``text`` output backend.
+
+
+Removed
+-------
+
+- The previously deprecated functions ``plot_circuit()``,
+  ``latex_circuit_drawer()``, ``generate_latex_source()``, and
+  ``matplotlib_circuit_drawer()`` from ``qiskit.tools.visualization`` have
+  been removed. The ``circuit_drawer()`` function from the same module should
+  be used instead.
+
+- The previously deprecated keys ``plot_barriers`` and ``reverse_bits`` keys in
+  the ``style`` kwarg dict are deprecated, instead the
+  ``qiskit.tools.visualization.circuit_drawer()`` kwargs ``plot_barriers`` and
+  ``reverse_bits`` should be used instead.
+
 
 `0.7.0`_ - 2018-12-19
 =====================
