@@ -47,6 +47,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.mapper import Layout, MapperError
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -63,8 +64,8 @@ class LookaheadSwap(TransformationPass):
         """
 
         super().__init__()
-
         self._coupling_map = coupling_map
+        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """Run one pass of the lookahead mapper on the provided DAG.

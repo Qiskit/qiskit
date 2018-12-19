@@ -92,6 +92,10 @@ class DAGCircuit:
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
+    def get_bits(self):
+        """Return a list of bits as (ClassicalRegister, index) pairs."""
+        return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
+
     # TODO: unused function. is it needed?
     def rename_register(self, regname, newname):
         """Rename a classical or quantum register throughout the circuit.
@@ -1468,9 +1472,9 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        ts = list(self.node_nums_in_topological_order())
-        nodes_seen = dict(zip(ts, [False] * len(ts)))
-        for node in ts:
+        tops_node = list(self.node_nums_in_topological_order())
+        nodes_seen = dict(zip(tops_node, [False] * len(tops_node)))
+        for node in tops_node:
             nd = self.multi_graph.node[node]
             if nd["type"] == "op" and nd["name"] in namelist \
                     and not nodes_seen[node]:
