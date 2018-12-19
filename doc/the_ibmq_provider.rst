@@ -52,7 +52,7 @@ never saved.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     []
 
@@ -77,7 +77,7 @@ verify that there are no accounts stored now
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     []
 
@@ -100,8 +100,8 @@ and ``URL`` directly into the methods ``enable_account`` and
 
 .. code:: ipython3
 
-    import Qconfig_IBMQ_network
     import Qconfig_IBMQ_experience
+    import Qconfig_IBMQ_network
 
 To enable an account (useful for one-off use, or if you don’t want to
 save to disk)
@@ -126,11 +126,9 @@ and backends which are available
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
-     <IBMQBackend('ibmqx5') from IBMQ()>,
-     <IBMQBackend('ibmqx2') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>,
      <IBMQBackend('ibmq_qasm_simulator') from IBMQ()>]
 
@@ -151,7 +149,7 @@ Now no backends are available
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     []
 
@@ -162,8 +160,8 @@ network)
 
 .. code:: ipython3
 
-    IBMQ.save_account(Qconfig_IBMQ_experience.APItoken)
-    IBMQ.save_account(Qconfig_IBMQ_network.APItoken, Qconfig_IBMQ_network.url)
+    IBMQ.save_account(Qconfig_IBMQ_experience.APItoken, overwrite=True)
+    IBMQ.save_account(Qconfig_IBMQ_network.APItoken, Qconfig_IBMQ_network.url, overwrite=True)
 
 Now they should show up as present on disk
 
@@ -181,7 +179,7 @@ but no account active in current session yet
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     []
 
@@ -196,7 +194,7 @@ so IBMQ can’t see any backends yet
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     []
 
@@ -217,15 +215,13 @@ backends from two different accounts available for use
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
-     <IBMQBackend('ibmqx5') from IBMQ()>,
-     <IBMQBackend('ibmqx2') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>,
      <IBMQBackend('ibmq_qasm_simulator') from IBMQ()>,
-     <IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, qiskit, qiskit-terra)>,
-     <IBMQBackend('ibmq_qasm_simulator') from IBMQ(ibm-q-internal, qiskit, qiskit-terra)>]
+     <IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, research, yorktown)>,
+     <IBMQBackend('ibmq_qasm_simulator') from IBMQ(ibm-q-internal, research, yorktown)>]
 
 
 
@@ -239,10 +235,10 @@ via account filtering
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    [<IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, qiskit, qiskit-terra)>,
-     <IBMQBackend('ibmq_qasm_simulator') from IBMQ(ibm-q-internal, qiskit, qiskit-terra)>]
+    [<IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, research, yorktown)>,
+     <IBMQBackend('ibmq_qasm_simulator') from IBMQ(ibm-q-internal, research, yorktown)>]
 
 
 
@@ -268,11 +264,9 @@ and only that account’s backends are available
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
-     <IBMQBackend('ibmqx5') from IBMQ()>,
-     <IBMQBackend('ibmqx2') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>,
      <IBMQBackend('ibmq_qasm_simulator') from IBMQ()>]
 
@@ -290,11 +284,9 @@ interested in
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
-     <IBMQBackend('ibmqx5') from IBMQ()>,
-     <IBMQBackend('ibmqx2') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>,
      <IBMQBackend('ibmq_qasm_simulator') from IBMQ()>]
 
@@ -318,7 +310,7 @@ As a first example: only return currently operational devices
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>]
@@ -330,13 +322,13 @@ are operational
 
 .. code:: ipython3
 
-    IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] <= 5 and 
-                  not x.configuration()['simulator'] and x.status()['operational']==True)
+    IBMQ.backends(filters=lambda x: x.configuration().n_qubits <= 5 and 
+                  not x.configuration().simulator and x.status().operational==True)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     [<IBMQBackend('ibmqx4') from IBMQ()>]
 
@@ -347,16 +339,16 @@ queue)
 
 .. code:: ipython3
 
-    from qiskit.backends.ibmq import least_busy
+    from qiskit.providers.ibmq import least_busy
     
-    small_devices = IBMQ.backends(filters=lambda x: x.configuration()['n_qubits'] <= 5 and
-                                                           not x.configuration()['simulator'])
+    small_devices = IBMQ.backends(filters=lambda x: x.configuration().n_qubits == 5 and
+                                                           not x.configuration().simulator)
     least_busy(small_devices)
 
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     <IBMQBackend('ibmqx4') from IBMQ()>
 
@@ -374,7 +366,7 @@ the ``get_backend()`` method.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     <IBMQBackend('ibmq_16_melbourne') from IBMQ()>
 
@@ -432,9 +424,9 @@ object
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    <qiskit.backends.ibmq.ibmqprovider.IBMQProvider at 0x10e62cfd0>
+    <bound method BaseBackend.provider of <IBMQBackend('ibmqx4') from IBMQ()>>
 
 
 
@@ -447,7 +439,7 @@ Next is the ``name()``, which returns the name of the backend
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     'ibmqx4'
 
@@ -467,9 +459,9 @@ Next let’s look at the ``status()``:
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    {'pending_jobs': 6, 'name': 'ibmqx4', 'operational': True}
+    BackendStatus(backend_name='ibmqx4', backend_version='1.0.0', operational=True, pending_jobs=0, status_msg='active')
 
 
 
@@ -482,23 +474,9 @@ The next is ``configuration()``
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    {'local': False,
-     'name': 'ibmqx4',
-     'version': '1.2.0',
-     'description': '5 qubit transmon bowtie chip 3',
-     'gate_set': 'SU2+CNOT',
-     'basis_gates': 'u1,u2,u3,cx,id',
-     'online_date': '2017-09-18T00:00:00.000Z',
-     'chip_name': 'Raven',
-     'deleted': False,
-     'url': 'https://ibm.biz/qiskit-ibmqx4',
-     'internal_id': '5ae875670f020500393162b3',
-     'simulator': False,
-     'allow_q_object': False,
-     'n_qubits': 5,
-     'coupling_map': [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]}
+    BackendConfiguration(allow_q_object=True, backend_name='ibmqx4', backend_version='1.0.0', basis_gates=['u1', 'u2', 'u3', 'cx', 'id'], conditional=False, coupling_map=[[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], credits_required=True, description='5 qubit device', gates=[GateConfig(coupling_map=[[0], [1], [2], [3], [4]], name='id', parameters=[], qasm_def='gate id q { U(0,0,0) q; }'), GateConfig(coupling_map=[[0], [1], [2], [3], [4]], name='u1', parameters=['lambda'], qasm_def='gate u1(lambda) q { U(0,0,lambda) q; }'), GateConfig(coupling_map=[[0], [1], [2], [3], [4]], name='u2', parameters=['phi', 'lambda'], qasm_def='gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }'), GateConfig(coupling_map=[[0], [1], [2], [3], [4]], name='u3', parameters=['theta', 'phi', 'lambda'], qasm_def='u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'), GateConfig(coupling_map=[[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]], name='cx', parameters=[], qasm_def='gate cx q1,q2 { CX q1,q2; }')], local=False, max_experiments=75, max_shots=8192, memory=True, n_qubits=5, n_registers=1, online_date=datetime.datetime(2018, 11, 6, 5, 0, tzinfo=tzutc()), open_pulse=False, sample_name='raven', simulator=False, url='None')
 
 
 
@@ -511,92 +489,9 @@ The next is ``properties()`` method
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    {'last_update_date': '2018-11-12T02:56:39.000Z',
-     'qubits': [{'gateError': {'date': '2018-11-12T02:56:39Z',
-        'value': 0.0011160854878761173},
-       'name': 'Q0',
-       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.073},
-       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
-       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 32.8, 'unit': 'µs'},
-       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 44.6, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-12T02:56:39Z',
-        'value': 5.24987,
-        'unit': 'GHz'}},
-      {'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.00128782749692391},
-       'name': 'Q1',
-       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.073},
-       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
-       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 20.1, 'unit': 'µs'},
-       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 34.2, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-12T02:56:39Z',
-        'value': 5.29577,
-        'unit': 'GHz'}},
-      {'gateError': {'date': '2018-11-12T02:56:39Z',
-        'value': 0.001631340796924452},
-       'name': 'Q2',
-       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.033},
-       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
-       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 27.4, 'unit': 'µs'},
-       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 38, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-12T02:56:39Z',
-        'value': 5.35326,
-        'unit': 'GHz'}},
-      {'gateError': {'date': '2018-11-12T02:56:39Z',
-        'value': 0.002232583111384412},
-       'name': 'Q3',
-       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.026},
-       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
-       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 12.4, 'unit': 'µs'},
-       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 41.2, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-12T02:56:39Z',
-        'value': 5.43497,
-        'unit': 'GHz'}},
-      {'gateError': {'date': '2018-11-12T02:56:39Z',
-        'value': 0.0013737021608475342},
-       'name': 'Q4',
-       'readoutError': {'date': '2018-11-12T02:56:39Z', 'value': 0.056},
-       'buffer': {'date': '2018-11-12T02:56:39Z', 'value': 10, 'unit': 'ns'},
-       'gateTime': {'date': '2018-11-12T02:56:39Z', 'value': 60, 'unit': 'ns'},
-       'T2': {'date': '2018-11-12T02:56:39Z', 'value': 12, 'unit': 'µs'},
-       'T1': {'date': '2018-11-12T02:56:39Z', 'value': 50.3, 'unit': 'µs'},
-       'frequency': {'date': '2018-11-12T02:56:39Z',
-        'value': 5.17582,
-        'unit': 'GHz'}}],
-     'multi_qubit_gates': [{'qubits': [1, 0],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-12T02:56:39Z',
-        'value': 0.039730922592824625},
-       'name': 'CX1_0'},
-      {'qubits': [2, 0],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.0370616990430509},
-       'name': 'CX2_0'},
-      {'qubits': [2, 1],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-12T02:56:39Z',
-        'value': 0.039182981129817634},
-       'name': 'CX2_1'},
-      {'qubits': [3, 2],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.06468197586341454},
-       'name': 'CX3_2'},
-      {'qubits': [3, 4],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.0472178292725369},
-       'name': 'CX3_4'},
-      {'qubits': [4, 2],
-       'type': 'CX',
-       'gateError': {'date': '2018-11-12T02:56:39Z', 'value': 0.06971263047107376},
-       'name': 'CX4_2'}],
-     'backend': 'ibmqx4',
-     'fridge_parameters': {'cooldownDate': '2017-09-07',
-      'Temperature': {'date': '-', 'value': [], 'unit': '-'}}}
+    BackendProperties(backend_name='ibmqx4', backend_version='1.0.0', gates=[Gate(gate='u1', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0)], qubits=[0]), Gate(gate='u2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0007726307293453583)], qubits=[0]), Gate(gate='u3', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0015452614586907165)], qubits=[0]), Gate(gate='u1', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0)], qubits=[1]), Gate(gate='u2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.00197489316929661)], qubits=[1]), Gate(gate='u3', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.00394978633859322)], qubits=[1]), Gate(gate='u1', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0)], qubits=[2]), Gate(gate='u2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.001631340796924452)], qubits=[2]), Gate(gate='u3', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.003262681593848904)], qubits=[2]), Gate(gate='u1', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0)], qubits=[3]), Gate(gate='u2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.001889001411209068)], qubits=[3]), Gate(gate='u3', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.003778002822418136)], qubits=[3]), Gate(gate='u1', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0)], qubits=[4]), Gate(gate='u2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.0033494941004675316)], qubits=[4]), Gate(gate='u3', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 10, 56, 45, tzinfo=tzutc()), name='gate_error', unit='', value=0.006698988200935063)], qubits=[4]), Gate(gate='cx', name='CX1_0', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 2, 24, 19, tzinfo=tzutc()), name='gate_error', unit='', value=0.03638715304639503)], qubits=[1, 0]), Gate(gate='cx', name='CX2_0', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 2, 30, 8, tzinfo=tzutc()), name='gate_error', unit='', value=0.0260837887197298)], qubits=[2, 0]), Gate(gate='cx', name='CX2_1', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 2, 35, 38, tzinfo=tzutc()), name='gate_error', unit='', value=0.040748317062039324)], qubits=[2, 1]), Gate(gate='cx', name='CX3_2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 2, 40, 54, tzinfo=tzutc()), name='gate_error', unit='', value=0.06022428067792304)], qubits=[3, 2]), Gate(gate='cx', name='CX3_4', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 2, 47, 54, tzinfo=tzutc()), name='gate_error', unit='', value=0.04131394123324597)], qubits=[3, 4]), Gate(gate='cx', name='CX4_2', parameters=[Nduv(date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), name='gate_error', unit='', value=0.061264181329610395)], qubits=[4, 2])], general=[], last_update_date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), qubits=[[Nduv(date=datetime.datetime(2018, 12, 19, 2, 14, 12, tzinfo=tzutc()), name='T1', unit='µs', value=52.877964468812685), Nduv(date=datetime.datetime(2018, 12, 19, 2, 15, 13, tzinfo=tzutc()), name='T2', unit='µs', value=45.91461986614799), Nduv(date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), name='frequency', unit='GHz', value=5.249846359615167), Nduv(date=datetime.datetime(2018, 12, 19, 2, 13, 55, tzinfo=tzutc()), name='readout_error', unit='', value=0.060249999999999915)], [Nduv(date=datetime.datetime(2018, 12, 19, 2, 14, 12, tzinfo=tzutc()), name='T1', unit='µs', value=52.189109032554136), Nduv(date=datetime.datetime(2018, 12, 19, 2, 15, 56, tzinfo=tzutc()), name='T2', unit='µs', value=19.451959460737445), Nduv(date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), name='frequency', unit='GHz', value=5.295776909561718), Nduv(date=datetime.datetime(2018, 12, 19, 2, 13, 55, tzinfo=tzutc()), name='readout_error', unit='', value=0.07424999999999993)], [Nduv(date=datetime.datetime(2018, 12, 19, 2, 14, 12, tzinfo=tzutc()), name='T1', unit='µs', value=42.880247006778106), Nduv(date=datetime.datetime(2018, 12, 19, 2, 16, 37, tzinfo=tzutc()), name='T2', unit='µs', value=29.48085688756878), Nduv(date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), name='frequency', unit='GHz', value=5.353246798006777), Nduv(date=datetime.datetime(2018, 12, 19, 2, 13, 55, tzinfo=tzutc()), name='readout_error', unit='', value=0.029249999999999998)], [Nduv(date=datetime.datetime(2018, 12, 19, 2, 14, 12, tzinfo=tzutc()), name='T1', unit='µs', value=46.880348727946355), Nduv(date=datetime.datetime(2018, 12, 19, 2, 15, 56, tzinfo=tzutc()), name='T2', unit='µs', value=17.744486787296733), Nduv(date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), name='frequency', unit='GHz', value=5.434943769576225), Nduv(date=datetime.datetime(2018, 12, 19, 2, 13, 55, tzinfo=tzutc()), name='readout_error', unit='', value=0.02300000000000002)], [Nduv(date=datetime.datetime(2018, 12, 19, 2, 14, 12, tzinfo=tzutc()), name='T1', unit='µs', value=41.224715178255046), Nduv(date=datetime.datetime(2018, 12, 19, 2, 15, 13, tzinfo=tzutc()), name='T2', unit='µs', value=11.096548052083062), Nduv(date=datetime.datetime(2018, 12, 19, 2, 53, 6, tzinfo=tzutc()), name='frequency', unit='GHz', value=5.175820586522991), Nduv(date=datetime.datetime(2018, 12, 19, 2, 13, 55, tzinfo=tzutc()), name='readout_error', unit='', value=0.07525000000000004)]])
 
 
 
@@ -624,13 +519,13 @@ that backend
         print(str(ran_job.job_id()) + " " + str(ran_job.status()))
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    5be8f39c54dacb0059c2b0db JobStatus.DONE
-    5be8f394afd471005540d4d7 JobStatus.CANCELLED
-    5be8ae5e17436b0052751909 JobStatus.DONE
-    5be748a7e00f60005ad7f23d JobStatus.DONE
-    5be746e3d4d36f0054595d60 JobStatus.DONE
+    5c1a2b4f39c21300575b61b0 JobStatus.DONE
+    5c1a2b2439c21300575b61ae JobStatus.DONE
+    5c19dd832065d5005c4bd8fb JobStatus.DONE
+    5c19dd79ed804c0056195e67 JobStatus.DONE
+    5c19dd784051c50054922e49 JobStatus.DONE
 
 
 Then the job can be retreived using ``retrieve_job(job_id())`` method
@@ -669,7 +564,7 @@ message
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     <JobStatus.DONE: 'job has successfully run'>
 
@@ -685,7 +580,7 @@ To get a backend object from the job use the ``backend()`` method
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
     <IBMQBackend('ibmqx4') from IBMQ()>
 
@@ -700,9 +595,9 @@ To get the job_id use the ``job_id()`` method
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    '5be746e3d4d36f0054595d60'
+    '5c19dd784051c50054922e49'
 
 
 
@@ -715,9 +610,9 @@ To get the result from the job use the ``result()`` method
     print(counts)
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    {'000': 387, '001': 23, '010': 39, '011': 22, '100': 30, '101': 59, '110': 62, '111': 402}
+    {'00': 440, '10': 49, '01': 75, '11': 460}
 
 
 If you want to check the creation date use ``creation_date()``
@@ -729,9 +624,9 @@ If you want to check the creation date use ``creation_date()``
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    '2018-11-10T21:00:19.795Z'
+    '2018-12-19T05:56:08.934Z'
 
 
 
@@ -756,9 +651,9 @@ Let’s make an active example
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    <qiskit._instructionset.InstructionSet at 0x10ffb5240>
+    <qiskit.circuit.instructionset.InstructionSet at 0xa167e94a8>
 
 
 
@@ -780,9 +675,9 @@ The status of this job can be checked with the ``status()`` method
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    <JobStatus.QUEUED: 'job is queued'>
+    <JobStatus.INITIALIZING: 'job is being initialized'>
 
 
 
@@ -799,9 +694,9 @@ method.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    True
+    False
 
 
 
@@ -814,9 +709,9 @@ The ``status()`` will show that the job cancelled.
 
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    <JobStatus.CANCELLED: 'job has been cancelled'>
+    <JobStatus.QUEUED: 'job is queued'>
 
 
 
@@ -829,24 +724,15 @@ position you can use the ``queue_position()`` method.
 
 .. code:: ipython3
 
-    lapse = 0
-    interval = 60
-    while job.status().name != 'DONE':
-        print('Status @ {} seconds'.format(interval * lapse))
-        print(job.status())
-        print(job.queue_position())
-        time.sleep(interval)
-        lapse += 1
-    print(job.status())
+    from qiskit.tools.monitor import job_monitor
+    job_monitor(job)
     result = job.result()
 
 
-.. code-block:: text
 
-    Status @ 0 seconds
-    JobStatus.INITIALIZING
-    None
-    JobStatus.DONE
+.. parsed-literal::
+
+    HTML(value="<p style='font-size:16px;'>Job Status: job is being initialized </p>")
 
 
 .. code:: ipython3
@@ -855,7 +741,7 @@ position you can use the ``queue_position()`` method.
     print(counts)
 
 
-.. code-block:: text
+.. parsed-literal::
 
-    {'000': 37, '001': 155, '010': 55, '011': 50, '100': 86, '101': 582, '110': 20, '111': 39}
+    {'111': 46, '100': 58, '011': 99, '101': 504, '110': 18, '000': 29, '010': 35, '001': 235}
 
