@@ -20,17 +20,16 @@ The format is based on `Keep a Changelog`_.
 ^^^^^^^^^^^^^
 
 
+`0.7.0`_ - 2018-12-19
+^^^^^^^^^^^^^^^^^^^^^
+
+
 Added
 """""
 
 - Added DAG visualizer which requires `Graphivz <https://www.graphviz.org/>`_
   (#1059)
 - Added an ASCII art circuit visualizer (#909)
-- Added a new kwarg `filename` to
-  `qiskit.tools.visualization.plot_bloch_vector()` to optionally write the
-  rendered bloch sphere to a file instead of displaying it (#1096)
-- Added a new kwarg `filename` to `plot_state()` to optionally write the
-  rendered plot to a file instead of displaying it (#1096)
 - The QuantumCircuit class now returns an ASCII art visualization when treated
   as a string (#911)
 - The QuantumCircuit class now has a `draw()` method which behaves the same
@@ -51,21 +50,32 @@ Added
 - Per-shot measurement results are available in simulators and select devices.
   Request them by setting ``memory=True`` in ``compile()``/``execute()``,
   and retrieve them from ``result.get_memory()`` (#1385).
-- New Unroller pass in the transpiler for unrolling up to some basis (#1455).
 - Added a ``qiskit.converters`` module for translation between commonly used
   representations of a circuit: ``dag_to_circuits``, ``circuits_to_dag``,
   ``qobj_to_circuits``, ``circuits_to_qobj``, ``ast_to_dag``.
+- PassManager can schedule passes at __init__ time (#1510).
 - Added a ``.qobj()`` method for IBMQ and local simulator Jobs (#1532).
-- Added CommutationAnalysis and CommutationTransformation as new transpiler pass (#1500).
-- Added BasicSwap as new transpiler mapper pass (#1270).
-- Added LookaheadSwap as new transpiler mapper pass (#1140).
-- Added StochasticSwap as new transpiler mapper pass (#1520).
+- New Decompose pass for decomposing a gate according to a rule (#1487).
+- New Unroller pass in the transpiler for unrolling up to some basis (#1455).
+- New BarrierBeforeFinalMeasurements pass for preventing final
+  measure reorder (#1538).
+- New CommutationAnalysis and CommutationTransformation transpiler
+  passes for modifying a DAG based on gate commutativity relations (#1500).
+- New transpiler mapper pass: BasicSwap (#1270).
+- New transpiler mapper pass: LookaheadSwap (#1140).
+- New transpiler mapper pass: StochasticSwap (#1520).
+- New CXDirection pass for fixing the direction of cx gates (#1410).
+- New CheckMap pass for checking if circuit meets mapping requirements (#1433).
+- New Optimize1QGate pass for combining chains of 1q rotations (#1442).
+
 
 Changed
 """""""
 
 - Evolved pass-based transpiler to support advanced functionality (#1060)
-- Avoid consuming results during `.retrieve_job()` and `.jobs()` (#1082).
+- `.retrieve_job()` and `.jobs()` no longer returns results by default,
+  instead the result must be accessed by the `result()` method on the job
+  objects (#1082).
 - Make `backend.status()` dictionary conform with schema.
 - The different output backends for the circuit_drawer() visualizations
   have been moved into separate private modules in
@@ -83,32 +93,36 @@ Changed
 - Backend and Provider methods defined in the specification use model objects
   rather than dicts, along with validation against schemas (#1249, #1277,
   #1350). The updated methods include:
-    - ``backend.status()``(#1301).
-    - ``backend.configuration()`` (and ``__init__``) (#1323).
-    - ``backend.properties()``, returning ``None`` for sims (#1331, #1401).
-    - ``qiskit.Result`` (#1360).
+  - ``backend.status()`` (#1301).
+  - ``backend.configuration()`` (and ``__init__``) (#1323).
+  - ``backend.properties()``, returning ``None`` for sims (#1331, #1401).
+  - ``qiskit.Result`` (#1360).
 - ``backend.provider()`` is now a method instead of a property (#1312).
 - Remove local backend (Aer) fallback (#1303)
-- The signatures for the plotting functions in 
+- The signatures for the plotting functions in
   `qiskit.tools.visualization._counts_visualization.py`,
-  `qiskit.tools.visualization._state_visualization.py`, and 
-  `qiskit.tools.visualization.interactive` have been modified to make them 
+  `qiskit.tools.visualization._state_visualization.py`, and
+  `qiskit.tools.visualization.interactive` have been modified to make them
   in-line with standard Matplotlib calling conventions (#1359).
 - Remove local backend (Aer) fallback (#1303).
 - DAGCircuits store Instruction and Register objects, instead of name
   references. The DAGCircuit class methods are updated accordingly (#1210).
-- Different unrollers are deprecated. The only unrolling happens
-  from DAG to DAG (#1210).
 - ``transpile()`` now takes QuantumCircuit(s) to QuantumCircuit(s), and DAG
   processing is only done internally (#1397).
-- Moved all the circuit modules into a circuit module but for most users it is still 
-  imported in the top level for QuantumCircuit, QuantumRegister, ClassicalRegister
-- Breaking change: ``qiskit.backends.aer`` has been removed in favour of
-  ``qiskit.backends.builtinsimulators`` (Python simulators) and
-  ``qiskit.backends.legacysimulators`` (C++ simulators) (#1484)
-- Breaking change: ``Aer`` in ``qiskit`` root module has been removed. Instead ``Simulators`` will
-  stand for Python simulators and ``LegacySimulators`` for those in C++. (#1484)
-- Breaking change: ``qiskit.backends`` has been renamed to ``qiskit.providers`` (#1531).
+- The different unrollers are deprecated. The only unrolling happens
+  from DAG to DAG (#1210).
+- Moved all the circuit modules into a circuit module but for most users it
+  is still imported in the top level for QuantumCircuit, QuantumRegister,
+  ClassicalRegister
+- ``qiskit.backends`` has been renamed to ``qiskit.providers`` (#1531).
+- ``qiskit.backends.aer`` has been removed in favor of
+  ``qiskit.providers.builtinsimulators`` (Python simulators) and
+  ``qiskit.providers.legacysimulators`` (C++ simulators) (#1484)
+- ``Aer`` in ``qiskit`` root module depends on having the
+  qiskit-aer package installed, by default it is not present. Instead there are
+  2 new provider instances in the root module ``BasicAer`` which provides the
+  Python simulators and ``LegacySimulators`` which provides the old C++
+  simulators in qiskit-terra. (#1484)
 
 
 Deprecated
@@ -127,14 +141,14 @@ Deprecated
 - The ``plot_barriers`` and ``reverse_bits`` keys in the ``style`` kwarg dict
   are deprecated, instead the `qiskit.tools.visualization.circuit_drawer()`
   kwargs ``plot_barriers`` and ``reverse_bits`` should be used instead. (#1180)
-- The transpiler methods do not support emitting multiple output `format`
-  anymore (#1319).
+- The ``transpile_dag()`` function ``format`` kwarg for emitting different
+  output formats is deprecated (#1319).
 - Several methods of ``qiskit.Result`` have been deprecated (#1360).
 - The functions `plot_state()` and `iplot_state()` have been depreciated.
-  Instead the functions `plot_state_*()` and `iplot_state_*()` should be 
+  Instead the functions `plot_state_*()` and `iplot_state_*()` should be
   called. (#1359)
-- The ``skip_transpiler`` arg has been deprecated from ``tools.compile()`` and
-  ``tools.execute()`` in favor of using the PassManager directly.
+- The ``skip_transpiler`` arg has been deprecated from ``compile()`` and
+  ``execute()`` in favor of using the PassManager directly.
 
 Fixed
 """""
@@ -152,7 +166,8 @@ Fixed
   (#1226)
 - Fixed a bug where the transpiler moved middle-of-circuit measurements to the
   end (#1334)
-- The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly (#1359).
+- The`number_to_keep` kwarg in ``plot_histgram()`` now functions correctly
+  (#1359).
 - parallel_map no longer creates a progress bar for a single circuit (#1394).
 - The `timeout` parameter is now passed into the inner ``_wait_for_submission``
   function in ``IBMQJob`` from ``_wait_for_result`` (#1542).
@@ -164,9 +179,10 @@ Removed
 - Remove tools/apps (#1184).
 - Removed the dependency on ``IBMQuantumExperience``, as it is now included
   in ``qiskit.backends.IBMQ`` (#1198).
-- ``matplotlib`` is no longer in the package requirements and is now an optional
-  dependency. In order to use any matplotlib based visualizations (which
-  includes the ``qiskit.tools.visualization.circuit_drawer()`` ``mpl`` output,
+- ``matplotlib`` is no longer in the package requirements and is now an
+  optional dependency. In order to use any matplotlib based visualizations
+  (which includes the ``qiskit.tools.visualization.circuit_drawer()``
+  ``mpl`` output,
   ``qiskit.tools.visualization.plot_state``,
   ``qiskit.tools.visualization.plot_histogram``, and
   ``qiskit.tools.visualization.plot_bloch_vector`` you will now need to ensure
@@ -189,7 +205,11 @@ Removed
 - The ``qiskit.Result`` class now does post-processing of results returned
   from backends if they are called via the ``Result.get_xxx()`` methods
   (i.e. ``get_counts()``, ``get_memory()``, ``get_statevector()``,
-  ``get_unitary()``). The raw data is accessible through ``Result.data()`` (#1404).
+  ``get_unitary()``). The raw data is accessible through ``Result.data()``
+  (#1404).
+- The ``transpile()`` function kwarg ``format`` has been removed and will
+  always return a circuit object. Instead you'll need to manually convert the
+  output with the functions provided in ``qiskit.converters``.
 
 `0.6.0`_ - 2018-10-04
 ^^^^^^^^^^^^^^^^^^^^^
@@ -198,7 +218,8 @@ Removed
 Added
 """""
 
-- Added `SchemaValidationError` to be thrown when schema validation fails (#881)
+- Added `SchemaValidationError` to be thrown when schema validation fails
+  (#881)
 - Generalized Qobj schema validation functions for all qiskit schemas (#882).
 - Added decorator to check for C++ simulator availability (#662)
 - It is possible to cancel jobs in non comercial backends (#687)
@@ -209,12 +230,14 @@ Added
 - Parallelize transpilation (#701)
 - New interactive visualizations (#765).
 - Added option to reverse the qubit order when plotting a circuit. (#762, #786)
-- Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar (#701, #734)
+- Jupyter notebook magic function qiskit_job_status, qiskit_progress_bar
+  (#701, #734)
 - Add a new function ``qobj_to_circuits`` to convert a Qobj object to
   a list of QuantumCircuit objects (#877)
 - Allow selective loading of accounts from disk via hub/group/project
   filters to `IBMQ.load_accounts()`.
-- Add new `job_monitor` function to automaically check the status of a job (#975).
+- Add new `job_monitor` function to automaically check the status of a job
+  (#975).
 
 
 Changed
@@ -223,7 +246,8 @@ Changed
 - Schema tests in `tests/schemas/test_schemas.py` replaced with proper
   unit test (#834).
 - Renamed ``QISKit`` to ``Qiskit`` in the documentation. (#634)
-- Use ``Qobj`` as the formally defined schema for sending information to the devices:
+- Use ``Qobj`` as the formally defined schema for sending information to the
+  devices:
   - introduce the ``qiskit.qobj`` module. (#589, #655)
   - update the ``Qobj`` JSON schema. (#668, #677, #703, #709)
   - update the local simulators for accepting ``Qobj`` as input. (#667)
@@ -232,7 +256,8 @@ Changed
 - Q network hub/group/project credentials replaced by new url format. (#740)
 - Breaking change: ``Jobs`` API simplification. (#686)
 - Breaking change: altered tomography APIs to not use QuantumProgram. (#818)
-- Breaking change: ``BaseBackend`` API changed, properties are now methods (#858)
+- Breaking change: ``BaseBackend`` API changed, properties are now methods
+  (#858)
 - When ``plot_histogram()`` or ``plot_state()`` are called from a jupyter
   notebook if there is network connectivity the interactive plots will be used
   by default (#862, #866)
@@ -248,8 +273,8 @@ Deprecated
 - The ``number_to_keep`` kwarg on the ``plot_histogram()`` function is now
   deprecated. A field of the same name should be used in the ``option``
   dictionary kwarg instead. (#866)
-- Breaking change: ``backend.properties()`` instead of ``backend.calibration()``
-  and ``backend.parameters()`` (#870)
+- Breaking change: ``backend.properties()`` instead of
+  ``backend.calibration()`` and ``backend.parameters()`` (#870)
 
 
 Removed
@@ -267,11 +292,14 @@ Fixed
 - Fixed the examples to be compatible with version 0.5+ (#672).
 - Fixed swap mapper using qubits after measurement (#691).
 - Fixed error in cpp simulator for 3+ qubit operations (#698).
-- Fixed issue with combining or extending circuits that contain CompositeGate (#710).
+- Fixed issue with combining or extending circuits that contain CompositeGate
+  (#710).
 - Fixed the random unitary generation from the Haar measure (#760).
-- Fixed the issue with control lines spanning through several classical registers (#762).
+- Fixed the issue with control lines spanning through several classical
+  registers (#762).
 - Fixed visualizations crashing when using simulator extensions (#885).
-- Fixed check for network connection when loading interactive visualizations (#892).
+- Fixed check for network connection when loading interactive visualizations
+  (#892).
 - Fixed bug in checking that a circuit already matches a coupling map (#1024).
 
 
@@ -331,10 +359,12 @@ Added
 Changed
 """""""
 
-- Remove backend filtering in individual providers, keep only in wrapper (#575).
+- Remove backend filtering in individual providers, keep only in wrapper
+  (#575).
 - Single source of version information (#581)
 - Bumped IBMQuantumExperience dependency to 1.9.6 (#600).
-- For backend status, `status['available']` is now `status['operational']` (#609).
+- For backend status, `status['available']` is now `status['operational']`
+  (#609).
 - Added support for registering third-party providers in `register()` (#602).
 - Order strings in the output of ``available_backends()`` (#566)
 
@@ -352,7 +382,8 @@ Fixed
 """""
 
 - Fix issue with unintended inversion of initializer gates (#573).
-- Fix issue with skip_transpiler causing some gates to be ignored silently (#562).
+- Fix issue with skip_transpiler causing some gates to be ignored silently
+  (#562).
 
 
 `0.5.4`_ - 2018-06-11
@@ -390,7 +421,8 @@ Fixed
 - Fix hardcoded backend mapping tests (#521)
 - Removed ``_modifiers call`` from ``reapply`` (#534)
 - Fix circuit drawer issue with filename location on windows (#543)
-- Change initial qubit layout only if the backend coupling map is not satisfied (#527)
+- Change initial qubit layout only if the backend coupling map is not satisfied
+  (#527)
 - Fix incorrect unrolling of t to tdg in CircuitBackend (#557)
 - Fix issue with simulator extension commands not reapplying correctly (#556)
 
@@ -431,8 +463,8 @@ Changed
 Deprecated
 """"""""""
 
-- Deprecating ``ibmqx_hpc_qasm_simulator`` and ``ibmqx_qasm_simulator`` in favor
-  of ``ibmq_qasm_simulator``.
+- Deprecating ``ibmqx_hpc_qasm_simulator`` and ``ibmqx_qasm_simulator`` in
+  favor of ``ibmq_qasm_simulator``.
 
 
 Fixed
@@ -481,14 +513,15 @@ Improvements
     - Mechanisms for querying ``status`` and ``results``, or to ``cancel`` a
       job.
 - Introduce a ``skip_transpiler`` flag for ``compile()`` (#411).
-- Introduce schemas for validating interfaces between qiskit and backends (#434)
-    - qobj_schema
-    - result_schema
-    - job_status_schema
-    - default_pulse_config_schema
-    - backend_config_schema
-    - backend_props_schema
-    - backend_status_schema
+- Introduce schemas for validating interfaces between qiskit and backends
+  (#434)
+  - qobj_schema
+  - result_schema
+  - job_status_schema
+  - default_pulse_config_schema
+  - backend_config_schema
+  - backend_props_schema
+  - backend_status_schema
 - Improve C++ simulator (#386)
     - Add ``tensor_index.hpp`` for multi-partite qubit vector indexing.
     - Add ``qubit_vector.hpp`` for multi-partite qubit vector algebra.
@@ -536,13 +569,14 @@ Deprecated
 - Simulators no longer return wavefunction by setting shots=1. Instead,
   use the ``local_statevector_simulator``, or explicitly ask for ``snapshot``.
 - Return ``job`` instance after ``run()``, rather than ``result``.
-- Rename simulators according to ``PROVIDERNAME_SIMPLEALIAS_simulator_LANGUAGEORPROJECT``
+- Rename simulators according to
+  ``PROVIDERNAME_SIMPLEALIAS_simulator_LANGUAGEORPROJECT``
 - Move simulator extensions to ``qiskit/extensions/simulator``
 - Move Rzz and CSwap to standard extension library
 
 
 `0.4.15`_ - 2018-05-07
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 
 Fixed
@@ -552,7 +586,7 @@ Fixed
 
 
 `0.4.14`_ - 2018-04-18
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 
 Fixed
