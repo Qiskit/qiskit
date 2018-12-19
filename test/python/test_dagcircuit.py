@@ -120,8 +120,8 @@ class TestDagOperations(QiskitTestCase):
         """The apply_operation_front() method"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_front(Reset(self.qubit0))
-        h_node = self.dag.get_op_nodes(op=HGate(self.qubit0)).pop()
-        reset_node = self.dag.get_op_nodes(op=Reset(self.qubit0)).pop()
+        h_node = self.dag.get_op_nodes(op=HGate).pop()
+        reset_node = self.dag.get_op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.multi_graph.predecessors(h_node)))
 
@@ -145,7 +145,7 @@ class TestDagOperations(QiskitTestCase):
 
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
 
-        op_nodes = self.dag.get_op_nodes(op=HGate(self.qubit0))
+        op_nodes = self.dag.get_op_nodes(op=HGate)
         self.assertEqual(len(op_nodes), 2)
 
         op_node_1 = op_nodes.pop()
@@ -153,6 +153,22 @@ class TestDagOperations(QiskitTestCase):
 
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], HGate)
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
+
+    def test_quantum_successors(self):
+        """The method dag.quantum_successors() returns successors connected by quantum edges"""
+        self.dag.apply_operation_back(Measure(self.qubit1, self.clbit1))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Reset(self.qubit0))
+
+        successor_measure = self.dag.quantum_successors(self.dag.get_named_nodes('measure').pop())
+        self.assertEqual(len(successor_measure), 1)
+        cnot_node = successor_measure[0]
+        self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
+
+        successor_cnot = self.dag.quantum_successors(cnot_node)
+        self.assertEqual(len(successor_cnot), 2)
+        self.assertEqual(self.dag.multi_graph.nodes[successor_cnot[0]]["type"], 'out')
+        self.assertIsInstance(self.dag.multi_graph.nodes[successor_cnot[1]]["op"], Reset)
 
     def test_get_gates_nodes(self):
         """The method dag.get_gate_nodes() returns all gate nodes"""
@@ -351,6 +367,7 @@ class TestDagEquivalence(QiskitTestCase):
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substitutuing a dag node with a sub-dag"""
+
     def setUp(self):
         self.dag = DAGCircuit()
         qreg = QuantumRegister(3, 'qr')
@@ -377,7 +394,7 @@ class TestDagSubstitute(QiskitTestCase):
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
-        cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop()
+        cx_node = self.dag.get_op_nodes(op=CnotGate).pop()
 
         flipped_cx_circuit = DAGCircuit()
         v = QuantumRegister(2, "v")

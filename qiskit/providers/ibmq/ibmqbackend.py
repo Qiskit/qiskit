@@ -101,8 +101,9 @@ class IBMQBackend(BaseBackend):
         Args:
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
-            status (None or JobStatus or str): only get jobs with this status,
-                where status is e.g. `JobStatus.RUNNING` or `'RUNNING'`
+            status (None or qiskit.providers.JobStatus or str): only get jobs
+                with this status, where status is e.g. `JobStatus.RUNNING` or
+                `'RUNNING'`
             db_filter (dict): `loopback-based filter
                 <https://loopback.io/doc/en/lb2/Querying-data.html>`_.
                 This is an interface to a database ``where`` filter. Some
