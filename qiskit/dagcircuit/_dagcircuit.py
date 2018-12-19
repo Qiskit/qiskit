@@ -92,6 +92,10 @@ class DAGCircuit:
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
+    def get_bits(self):
+        """Return a list of bits as (ClassicalRegister, index) pairs."""
+        return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
+
     # TODO: unused function. is it needed?
     def rename_register(self, regname, newname):
         """Rename a classical or quantum register throughout the circuit.
