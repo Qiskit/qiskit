@@ -118,8 +118,8 @@ class StochasticSwap(TransformationPass):
         seed (int): Optional seed for the random number generator. If it is
             None we do not reseed.
 
-        Returns: a tuple containing
-            success_flag, best_circuit, best_depth, best_layout, trivial_flag
+        Returns:
+             Tuple: success_flag, best_circuit, best_depth, best_layout, trivial_flag
 
         If success_flag is True, then best_circuit contains a DAGCircuit with
         the swap circuit, best_depth contains the depth of the swap circuit,
