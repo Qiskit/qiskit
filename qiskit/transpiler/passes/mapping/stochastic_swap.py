@@ -160,7 +160,7 @@ class StochasticSwap(TransformationPass):
                 if register[0] not in circ.qregs.values():
                     circ.add_qreg(register[0])
             circ.add_basis_element("swap", 2)
-            return True, circ, 0, layout, bool(gates)
+            return True, circ, 0, layout, (not bool(gates))
 
         # Begin loop over trials of randomized algorithm
         num_qubits = len(layout)
@@ -498,8 +498,8 @@ class StochasticSwap(TransformationPass):
                 if first_layer:
                     first_layer = False
 
-        # This is the final edgemap that we need to correctly replace
-        # any measurements that needed to be removed before the swap
+        # This is the final edgemap. We might use it to correctly replace
+        # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.initial_layout = %s", pformat(self.initial_layout))
         logger.debug("mapper: layout = %s", pformat(layout))
         last_edgemap = layout.combine_into_edge_map(self.initial_layout)
@@ -507,7 +507,9 @@ class StochasticSwap(TransformationPass):
 
         # If first_layer is still set, the circuit only has single-qubit gates
         # so we can use the initial layout to output the entire circuit
+        # This code is dead due to changes to first_layer above.
         if first_layer:
+            logger.debug("mapper: first_layer flag still set")
             layout = self.initial_layout
             for i, layer in enumerate(layerlist):
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
