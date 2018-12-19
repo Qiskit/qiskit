@@ -22,7 +22,8 @@ class CXDirection(TransformationPass):
      Rearranges the direction of the cx nodes to make the circuit
      compatible with the directed coupling map.
 
-     It uses this equivalence:
+     It uses this equivalence::
+
         ---(+)---      --[H]---.---[H]--
             |      =           |
         ----.----      --[H]--(+)--[H]--

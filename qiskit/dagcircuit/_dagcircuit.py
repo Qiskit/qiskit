@@ -88,12 +88,6 @@ class DAGCircuit:
         # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
 
-        # layout of dag quantum registers on the chip
-        # TODO: rethink this. doesn't seem related to concept of DAG,
-        # but if we want to be able to generate qobj
-        # directly from a dag, we need it.
-        self.layout = []
-
     def get_qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
@@ -1280,6 +1274,19 @@ class DAGCircuit:
                 for cx_id in self.get_named_nodes(cx_name):
                     cxs_nodes.append(self.multi_graph.node[cx_id])
         return cxs_nodes
+
+    def successors(self, node):
+        """Returns the successors of a node."""
+        return self.multi_graph.successors(node)
+
+    def quantum_successors(self, node):
+        """Returns the successors of a node that are connected by a quantum edge"""
+        successors = []
+        for successor in self.successors(node):
+            if isinstance(self.multi_graph.get_edge_data(node, successor, key=0)['wire'][0],
+                          QuantumRegister):
+                successors.append(successor)
+        return successors
 
     def _remove_op_node(self, n):
         """Remove an operation node n.

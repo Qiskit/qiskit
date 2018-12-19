@@ -19,7 +19,8 @@ def process_fidelity(channel1, channel2):
     """Return the process fidelity between two quantum channels.
 
     Currently the input must be a unitary (until we decide on the channel)
-    For a unitary channels the process fidelity is given by
+    For a unitary channels the process fidelity is given by::
+
         F_p(U, U) = abs(Tr[ U^dagger U ])^2/d^2
 
     Args:
