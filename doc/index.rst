@@ -20,8 +20,9 @@ Table of Contents
    Plotting Data in Qiskit <plotting_data_in_qiskit>
    The Quantum Circuit <quantum_circuits.rst>
    Visualizing a Quantum Circuit <visualizing_a_quantum_circuit>
-   Jupyter Tools for Terra <terra_jupyter_tools>
    Summary of Quantum Operations <summary_of_quantum_operations>
+   Jupyter Tools for Terra <terra_jupyter_tools>
+   Terra Parallel Tools <terra_parallel_tools>
    Contributing to Terra <CONTRIBUTING>
    Release history <release_history>
    Terra SDK Reference <_autodoc/qiskit>
