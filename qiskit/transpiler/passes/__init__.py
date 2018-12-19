@@ -18,3 +18,5 @@ from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
+from .commutation_analysis import CommutationAnalysis
+from .commutation_transformation import CommutationTransformation
