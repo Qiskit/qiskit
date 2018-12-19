@@ -5,6 +5,7 @@
     "config": {
         "shots": 1,
         "memory_slots": 1,
+        "n_qubits": 2,
         "seed": 1
     },
     "header": {"backend_name": "qasm_simulator"},
@@ -13,9 +14,11 @@
                 "header": {
                     "name": "h0 CX01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -35,9 +38,11 @@
                 "header": {
                     "name": "h0 CX10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -57,9 +62,11 @@
                 "header": {
                     "name": "h1 CX01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -79,9 +86,11 @@
                 "header": {
                     "name": "h1 CX10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -101,9 +110,11 @@
                 "header": {
                     "name": "h0 cx01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -123,9 +134,11 @@
                 "header": {
                     "name": "h0 cx10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -145,9 +158,11 @@
                 "header": {
                     "name": "h1 cx01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -167,9 +182,11 @@
                 "header": {
                     "name": "h1 cx10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -189,9 +206,11 @@
                 "header": {
                     "name": "h0 cz01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -211,9 +230,11 @@
                 "header": {
                     "name": "h0 cz10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -233,9 +254,11 @@
                 "header": {
                     "name": "h1 cz01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -255,9 +278,11 @@
                 "header": {
                     "name": "h1 cz10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -277,9 +302,11 @@
                 "header": {
                     "name": "h0 h1 cz01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -300,9 +327,11 @@
                 "header": {
                     "name": "h0 h1 cz10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -323,9 +352,11 @@
                 "header": {
                     "name": "h0 rzz01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -345,9 +376,11 @@
                 "header": {
                     "name": "h0 rzz10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -367,9 +400,11 @@
                 "header": {
                     "name": "h1 rzz01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -389,9 +424,11 @@
                 "header": {
                     "name": "h1 rzz10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [1]},
@@ -411,9 +448,11 @@
                 "header": {
                     "name": "h0 h1 rzz01",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},
@@ -434,9 +473,11 @@
                 "header": {
                     "name": "h0 h1 rzz10",
                     "clbit_labels": [["c0", 1]],
-                    "number_of_clbits": 1,
-                    "number_of_qubits": 2,
                     "qubit_labels": [["q", 0], ["q", 1]]
+                },
+                "config": {
+                    "memory_slots": 1,
+                    "n_qubits": 2
                 },
                 "instructions": [
                     {"name": "h", "qubits": [0]},

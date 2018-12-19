@@ -10,12 +10,14 @@
 """
 Hadamard gate.
 """
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import QuantumRegister
+from qiskit.qasm import pi
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u2 import U2Gate
 
 
 class HGate(Gate):
@@ -25,10 +27,20 @@ class HGate(Gate):
         """Create new Hadamard gate."""
         super().__init__("h", [], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("h %s[%d];" % (qubit[0].name, qubit[1]))
+    def _define_decompositions(self):
+        """
+        gate h a { u2(0,pi) a; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u2", 1, 0, 2)
+        rule = [
+            U2Gate(0, pi, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
@@ -36,7 +48,7 @@ class HGate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.h(self.arg[0]))
+        self._modifiers(circ.h(self.qargs[0]))
 
 
 def h(self, q):
@@ -58,4 +70,3 @@ def h(self, q):
 
 
 QuantumCircuit.h = h
-CompositeGate.h = h

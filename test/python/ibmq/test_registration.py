@@ -9,6 +9,7 @@
 """
 Test the registration and credentials features of the wrapper.
 """
+import warnings
 import os
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -16,14 +17,14 @@ from unittest import skipIf
 from unittest.mock import patch
 
 import qiskit
-from qiskit import QISKitError
-from qiskit.backends.ibmq.credentials import (
+from qiskit import QiskitError
+from qiskit.providers.ibmq.credentials import (
     _configrc, _qconfig, discover_credentials, store_credentials, Credentials,
     read_credentials_from_qiskitrc)
-from qiskit.backends.ibmq.credentials._environ import VARIABLES_MAP
-from qiskit.backends.ibmq.ibmqprovider import QE_URL
-from qiskit.backends.ibmq.ibmqsingleprovider import IBMQSingleProvider
-from ..common import QiskitTestCase, requires_qe_access
+from qiskit.providers.ibmq.credentials._environ import VARIABLES_MAP
+from qiskit.providers.ibmq.ibmqprovider import QE_URL
+from qiskit.providers.ibmq.ibmqsingleprovider import IBMQSingleProvider
+from ..common import QiskitTestCase
 
 
 IBMQ_TEMPLATE = 'https://localhost/api/Hubs/{}/Groups/{}/Projects/{}'
@@ -148,12 +149,11 @@ class TestIBMQAccounts(QiskitTestCase):
             self.assertEqual(len(qiskit.IBMQ._accounts), 0)
             self.assertEqual(len(read_credentials_from_qiskitrc()), 0)
 
-    @requires_qe_access
-    def test_pass_bad_proxy(self, qe_token, qe_url):
+    def test_pass_bad_proxy(self):
         """Test proxy pass through."""
         failed = False
         try:
-            qiskit.IBMQ.enable_account(qe_token, qe_url, proxies=PROXIES)
+            qiskit.IBMQ.enable_account('dummy_token', 'https://dummy_url', proxies=PROXIES)
         except ConnectionError as excep:
             if 'ProxyError' in str(excep):
                 failed = True
@@ -168,7 +168,7 @@ class TestCredentials(QiskitTestCase):
     def test_autoregister_no_credentials(self):
         """Test register() with no credentials available."""
         with no_file('Qconfig.py'), custom_qiskitrc(), no_envs():
-            with self.assertRaises(QISKitError) as context_manager:
+            with self.assertRaises(QiskitError) as context_manager:
                 qiskit.IBMQ.load_accounts()
 
         self.assertIn('No IBMQ credentials found', str(context_manager.exception))
@@ -180,10 +180,12 @@ class TestCredentials(QiskitTestCase):
 
         with custom_qiskitrc():
             store_credentials(credentials)
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
             # Attempt overwriting.
-            with self.assertRaises(QISKitError) as context_manager:
+            with warnings.catch_warnings(record=True) as w:
                 store_credentials(credentials)
-            self.assertIn('already present', str(context_manager.exception))
+                self.assertIn('already present', str(w[0]))
 
             with no_file('Qconfig.py'), no_envs(), mock_ibmq_provider():
                 # Attempt overwriting.

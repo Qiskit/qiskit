@@ -55,9 +55,10 @@ using QV::omp_int_t;  // signed int for OpenMP 2.0 on msvc
 class Simulator {
 public:
   std::string id = "";                              // simulation id
-  std::string qobj_backend = "qasm_simulator_cpp"; // qobj backend specification
-  std::string simulator = "qasm_simulator_cpp";    // internally used simulator backend
+  std::string qobj_backend = "qasm_simulator"; // qobj backend specification
+  std::string simulator = "qasm_simulator";    // internally used simulator backend
   std::vector<Circuit> circuits;                   // QISKIT program
+  json_t header; // Input qobj header;
 
   // Multithreading Params
   uint_t max_memory_gb = 16;   // max memory to use
@@ -101,12 +102,12 @@ public:
 
 json_t Simulator::execute_json(){
 
-  // Initialize ouput JSON
+  // Initialize output JSON
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
   json_t ret;
-  ret["id"] = id;
-  ret["backend"] = qobj_backend;
-  ret["cpp_simulator_kernel"] = simulator;
+  ret["qobj_id"] = id;
+  ret["backend_name"] = qobj_backend;
+  ret["header"] = header;
 
   // Choose simulator and execute circuits
   try {
@@ -115,7 +116,7 @@ json_t Simulator::execute_json(){
       json_t circ_res;
 
       // Choose Simulator Backend
-      if (simulator == "clifford_simulator_cpp")
+      if (simulator == "clifford_simulator")
         circ_res = run_circuit<BaseEngine<Clifford>, CliffordBackend>(circ);
       else if (circ.noise.ideal)
         circ_res = run_circuit<VectorEngine, IdealBackend>(circ);
@@ -124,12 +125,14 @@ json_t Simulator::execute_json(){
 
       // Check results
       qobj_success &= circ_res["success"].get<bool>();
-      ret["result"].push_back(circ_res);
+      ret["results"].push_back(circ_res);
     }
     ret["time_taken"] =
         std::chrono::duration<double>(myclock_t::now() - start).count();
     ret["status"] = std::string("COMPLETED");
     ret["success"] = qobj_success;
+    ret["backend_version"] = std::string("0.0.0");
+    ret["job_id"] = std::string("TODO");
   } catch (std::exception &e) {
     ret["success"] = false;
     ret["status"] = std::string("ERROR: ") + e.what();
@@ -231,6 +234,7 @@ json_t Simulator::run_circuit(Circuit &circ) const {
 
 
     // Return results
+    ret["header"] = circ.header;
     ret["data"] = engine; // add engine output to return
     //if (simulator != "ideal" && JSON::check_key("noise_params", circ.config)) {
     if (simulator != "ideal" && backend.noise.ideal == false) {
@@ -259,7 +263,8 @@ void Simulator::load_qobj_json(const json_t &js) {
   try {
     if (check_qobj(js)) { // check valid qobj
 
-      JSON::get_value(id, "id", js);
+      JSON::get_value(id, "qobj_id", js);
+      JSON::get_value(header, "header", js);
 
       json_t config;
       JSON::get_value(config, "config", js);
@@ -270,32 +275,29 @@ void Simulator::load_qobj_json(const json_t &js) {
       JSON::get_value(max_threads_gate, "max_threads_gate", config);
 
       // Override with user simulator backend specification
-      JSON::get_value(qobj_backend, "backend", config);
+      JSON::get_value(qobj_backend, "simulator", config);
       simulator = qobj_backend; // copy backend info;
-      // look for custom override
-      JSON::get_value(simulator, "custom_simulator_kernel", config);
       to_lowercase(simulator); // convert to lowercase
       string_trim(simulator); // trim whitespace, '-', '_' characters
-
       if (simulator.find("clifford") != std::string::npos) {
-        simulator = "clifford_simulator_cpp";
+        simulator = "clifford_simulator";
       }
       else {
-        simulator = "qasm_simulator_cpp";
+        simulator = "qasm_simulator";
       }
 
       // Set simulator gateset
       gateset_t gateset;
-      if (simulator == "qasm_simulator_cpp") {
+      if (simulator == "qasm_simulator") {
         gateset = QubitBackend::gateset;
-      } else if (simulator == "clifford_simulator_cpp") {
+      } else if (simulator == "clifford_simulator") {
         gateset = CliffordBackend::gateset;
       } else {
         throw std::runtime_error(std::string("invalid simulator."));
       }
 
       // Load circuit instructions
-      const json_t &circs = js["circuits"];
+      const json_t &circs = js["experiments"];
       for (auto it = circs.cbegin(); it != circs.cend(); ++it) {
         circuits.push_back(Circuit(*it, config, gateset));
       }
@@ -311,21 +313,13 @@ void Simulator::load_qobj_json(const json_t &js) {
 
 //------------------------------------------------------------------------------
 bool Simulator::check_qobj(const json_t &qobj) {
-  std::vector<std::string> qobj_keys{"id", "circuits"}; // optional: "config"
-  std::vector<std::string> compiled_keys{"header", "operations"};
-  std::vector<std::string> header_keys{"clbit_labels", "number_of_clbits",
-                                       "number_of_qubits", "qubit_labels"};
+  std::vector<std::string> qobj_keys{"qobj_id", "experiments"}; // optional: "config"
+  std::vector<std::string> experiment_keys{"config", "instructions"};
 
   bool pass = JSON::check_keys(qobj_keys, qobj);
   if (pass) {
-    for (auto &c : qobj["circuits"]) {
-      pass &= JSON::check_key("compiled_circuit", c);
-      if (pass) {
-        pass &= JSON::check_keys(compiled_keys, c["compiled_circuit"]);
-        if (pass)
-          pass &=
-              JSON::check_keys(header_keys, c["compiled_circuit"]["header"]);
-      }
+    for (auto &c : qobj["experiments"]) {
+      pass &= JSON::check_keys(experiment_keys, c);
     }
   }
   return pass;

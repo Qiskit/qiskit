@@ -51,7 +51,7 @@ function(add_coverage_target)
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         add_custom_target(coverage)
         add_custom_command(TARGET coverage
-            COMMAND ${COV3} run --source qiskit -m unittest discover -s test -q
+            COMMAND PYTHON="${COV3} run --source qiskit --parallel-mode" stestr run --concurrency 2
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         add_custom_command(TARGET coverage
             COMMAND ${COV3} report

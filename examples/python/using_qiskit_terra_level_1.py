@@ -20,16 +20,16 @@ To control the passes and we have a pass manager for level 2 user.
 import pprint, time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError
-from qiskit import compile, IBMQ, Aer
-from qiskit.backends.ibmq import least_busy
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit import compile, IBMQ, BasicAer
+from qiskit.providers.ibmq import least_busy
+from qiskit.tools.monitor import job_monitor
 
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 try:
@@ -50,9 +50,9 @@ try:
 
     # Setting up the backend
     print("(Aer Backends)")
-    for backend in Aer.backends():
+    for backend in BasicAer.backends():
         print(backend.status())
-    my_backend = Aer.get_backend('local_qasm_simulator')
+    my_backend = BasicAer.get_backend('qasm_simulator')
     print("(QASM Simulator configuration) ")
     pprint.pprint(my_backend.configuration())
     print("(QASM Simulator properties) ")
@@ -75,40 +75,30 @@ try:
     # Compiling the job for the experimental backend 
     qobj = compile([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
 
-    # Runing the job
+    # Running the job
     sim_job = my_backend.run(qobj)
 
     # Getting the result
     sim_result=sim_job.result()
 
     # Show the results
-    print("simulation: ", sim_result)
     print(sim_result.get_counts(qc1))
     print(sim_result.get_counts(qc2))
 
     # Compile and run the Quantum Program on a real device backend
     # See a list of available remote backends
     try:
-        # Runing the job.
+        # Running the job.
         exp_job = least_busy_device.run(qobj)
 
-        lapse = 0
-        interval = 10
-        while exp_job.status().name != 'DONE':
-            print('Status @ {} seconds'.format(interval * lapse))
-            print(exp_job.status())
-            time.sleep(interval)
-            lapse += 1
-        print(exp_job.status())
-
+        job_monitor(exp_job)
         exp_result = exp_job.result()
 
         # Show the results
-        print("experiment: ", exp_result)
         print(exp_result.get_counts(qc1))
         print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
 
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

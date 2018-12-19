@@ -8,12 +8,14 @@
 """
 two-qubit ZZ-rotation gate.
 """
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class RZZGate(Gate):
@@ -23,23 +25,33 @@ class RZZGate(Gate):
         """Create new rzz gate."""
         super().__init__("rzz", [theta], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        theta = self.param[0]
-        return self._qasmif("rzz(%s) %s[%d],%s[%d];" % (theta,
-                                                        ctl[0].name, ctl[1],
-                                                        tgt[0].name, tgt[1]))
+    def _define_decompositions(self):
+        """
+        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        decomposition.add_basis_element("cx", 2, 0, 0)
+        rule = [
+            CnotGate(q[0], q[1]),
+            U1Gate(self.param[0], q[0]),
+            CnotGate(q[0], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
         self.param[0] = -self.param[0]
+        self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rzz(self.param[0], self.arg[0], self.arg[1]))
+        self._modifiers(circ.rzz(self.param[0], self.qargs[0], self.qargs[1]))
 
 
 def rzz(self, theta, ctl, tgt):
@@ -57,6 +69,5 @@ def rzz(self, theta, ctl, tgt):
     return self._attach(RZZGate(theta, ctl, tgt, self))
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.rzz = rzz
-CompositeGate.rzz = rzz
