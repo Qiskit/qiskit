@@ -29,46 +29,6 @@ class CouplingMap:
     to permitted CNOT gates
     """
 
-    @staticmethod
-    def coupling_dict2list(couplingdict):
-        """Convert coupling map dictionary into list.
-
-        Example dictionary format: {0: [1, 2], 1: [2]}
-        Example list format: [[0, 1], [0, 2], [1, 2]]
-
-        We do not do any checking of the input.
-
-        Return coupling map in list format.
-        """
-        if not couplingdict:
-            return None
-        couplinglist = []
-        for ctl, tgtlist in couplingdict.items():
-            for tgt in tgtlist:
-                couplinglist.append([ctl, tgt])
-        return couplinglist
-
-    @staticmethod
-    def coupling_list2dict(couplinglist):
-        """Convert coupling map list into dictionary.
-
-        Example list format: [[0, 1], [0, 2], [1, 2]]
-        Example dictionary format: {0: [1, 2], 1: [2]}
-
-        We do not do any checking of the input.
-
-        Return coupling map in dict format.
-        """
-        if not couplinglist:
-            return None
-        couplingdict = {}
-        for pair in couplinglist:
-            if pair[0] in couplingdict:
-                couplingdict[pair[0]].append(pair[1])
-            else:
-                couplingdict[pair[0]] = [pair[1]]
-        return couplingdict
-
     def __init__(self, couplingdict=None, couplinglist=None):
         """
         Create coupling graph. By default, the generated coupling has no nodes.
@@ -93,7 +53,13 @@ class CouplingMap:
                               'deprecated. Use a couplinglist instead.', DeprecationWarning,
                               stacklevel=2)
 
+        # the coupling map graph
         self.graph = nx.DiGraph()
+        # a dict of dicts from node pairs to distances
+        self._dist_matrix = None
+        # a sorted list of physical qubits (integers) in this coupling map
+        self._qubit_list = None
+
         if couplingdict is not None:
             for origin, destinations in couplingdict.items():
                 for destination in destinations:
@@ -117,18 +83,21 @@ class CouplingMap:
         return [edge for edge in self.graph.edges()]
 
     def add_physical_qubit(self, physical_qubit):
-        """
-        Add a physical qubit to the coupling graph as a node.
+        """Add a physical qubit to the coupling graph as a node.
 
         physical_qubit (int): An integer representing a physical qubit.
+
+        Raises:
+            CouplingError: if trying to add duplicate qubit
         """
         if not isinstance(physical_qubit, int):
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(
                 "The physical qubit %s is already in the coupling graph" % physical_qubit)
-
         self.graph.add_node(physical_qubit)
+        self._dist_matrix = None  # invalidate
+        self._qubit_list = None  # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -142,11 +111,14 @@ class CouplingMap:
         if dst not in self.physical_qubits:
             self.add_physical_qubit(dst)
         self.graph.add_edge(src, dst)
+        self._dist_matrix = None  # invalidate
 
     @property
     def physical_qubits(self):
-        """ Returns a sorted list of physical_qubits """
-        return sorted([pqubit for pqubit in self.graph.nodes])
+        """Returns a sorted list of physical_qubits"""
+        if self._qubit_list is None:
+            self._qubit_list = sorted([pqubit for pqubit in self.graph.nodes])
+        return self._qubit_list
 
     def is_connected(self):
         """
@@ -158,6 +130,38 @@ class CouplingMap:
             return nx.is_weakly_connected(self.graph)
         except nx.exception.NetworkXException:
             return False
+
+    def _compute_distance_matrix(self):
+        """Compute the full distance matrix on pairs of nodes.
+
+        The distance map self._dist_matrix is computed from the graph using
+        all_pairs_shortest_path_length.
+        """
+        if not self.is_connected():
+            raise CouplingError("coupling graph not connected")
+        lengths = nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True))
+        self._dist_matrix = dict(lengths)
+
+    def distance(self, physical_qubit1, physical_qubit2):
+        """Returns the undirected distance between physical_qubit1 and physical_qubit2.
+
+        Args:
+            physical_qubit1 (int): A physical qubit
+            physical_qubit2 (int): Another physical qubit
+
+        Returns:
+            int: The undirected distance
+
+        Raises:
+            CouplingError: if the qubits do not exist in the CouplingMap
+        """
+        if physical_qubit1 not in self.physical_qubits:
+            raise CouplingError("%s not in coupling graph" % (physical_qubit1,))
+        if physical_qubit2 not in self.physical_qubits:
+            raise CouplingError("%s not in coupling graph" % (physical_qubit2,))
+        if self._dist_matrix is None:
+            self._compute_distance_matrix()
+        return self._dist_matrix[physical_qubit1][physical_qubit2]
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
@@ -175,17 +179,6 @@ class CouplingMap:
         except nx.exception.NetworkXNoPath:
             raise CouplingError(
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
-
-    def distance(self, physical_qubit1, physical_qubit2):
-        """Returns the undirected distance between physical_qubit1 and physical_qubit2.
-        Args:
-            physical_qubit1 (int): A physical qubit
-            physical_qubit2 (int): Another physical qubit
-
-        Returns:
-            Int: The undirected distance
-        """
-        return len(self.shortest_undirected_path(physical_qubit1, physical_qubit2)) - 1
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
