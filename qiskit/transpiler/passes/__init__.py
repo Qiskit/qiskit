@@ -11,9 +11,10 @@ from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
+from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
-from .mapping.basic_mapper import BasicMapper
 from .mapping.stochastic_swap import StochasticSwap
 from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
-from .mapping.lookahead_mapper import LookaheadMapper
+from .mapping.basic_swap import BasicSwap
+from .mapping.lookahead_swap import LookaheadSwap

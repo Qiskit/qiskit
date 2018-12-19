@@ -19,7 +19,6 @@ from scipy import linalg as la
 from functools import partial
 
 # import qiskit modules
-from qiskit import mapper
 from qiskit import QiskitError
 
 # import optimization tools
@@ -78,9 +77,9 @@ def vqe(molecule='H2', depth=6, max_trials=200, shots=1):
                             'coupling_map', 'all-to-all')
 
     if entangler_map == 'all-to-all':
-        entangler_map = {i: [j for j in range(n_qubits) if j != i] for i in range(n_qubits)}
+        entangler_map = [[i, j] for i in range(n_qubits) for j in range(n_qubits) if j != i]
     else:
-        entangler_map = mapper.coupling_list2dict(entangler_map)
+        entangler_map = entangler_map
 
     initial_theta = np.random.randn(2 * n_qubits * depth)   # initial angles
     initial_c = 0.01                                        # first theta perturbations
