@@ -1,10 +1,8 @@
 from qiskit import *
-from qiskit.tools.visualization import *
-from qiskit.converters import circuit_to_dag
 
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutationAnalysis, CommutationTransformation
-from qiskit.transpiler import transpile_dag
+from qiskit.transpiler import transpile
 
 qr = QuantumRegister(5, 'qr')
 circuit = QuantumCircuit(qr)
@@ -21,14 +19,13 @@ circuit.cx(qr[4], qr[3])
 circuit.cx(qr[2], qr[3]) 
 circuit.cx(qr[3], qr[2]) 
 
-dag = circuit_to_dag(circuit)
-circuit.draw(interactive=True, output='latex')
-
-dag_drawer(dag)
+print(circuit.draw())
 
 pm = PassManager()
 
 pm.append([CommutationAnalysis(), CommutationTransformation()])
 
-dag = transpile_dag(dag, pass_manager=pm)
-dag_drawer(dag)
+# TODO make it not needed to have a backend 
+backend_device = BasicAer.get_backend('qasm_simulator')
+circuit = transpile(circuit, backend_device, pass_manager=pm)
+print(circuit.draw())

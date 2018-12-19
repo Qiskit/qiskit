@@ -12,8 +12,6 @@ but is not ready for simple scheduling.
 
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler.passes import CommutationAnalysis
-from qiskit.transpiler import AnalysisPass
-import numpy as np
 
 
 class CommutationTransformation(TransformationPass):
@@ -65,9 +63,6 @@ class CommutationTransformation(TransformationPass):
                                 dag.multi_graph.add_edge(node1, node2, name=wire_to_save)
 
                     for next_node in wire_commutation_set[c_set_ind + 1]:
-
-                        nd = dag.multi_graph.node[node1]
-                        next_nd = dag.multi_graph.node[next_node]
 
                         edge_on_wire = False
                         for temp_edge in dag.multi_graph.edges([node1], data=True):

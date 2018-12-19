@@ -11,7 +11,6 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis
 from qiskit.converters import circuit_to_dag
@@ -19,6 +18,7 @@ from ..common import QiskitTestCase
 
 
 class TestCommutationAnalysis(QiskitTestCase):
+    """Test the Communttion pass."""
 
     def setUp(self):
 
@@ -26,6 +26,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         self.pset = self.pass_.property_set = PropertySet()
 
     def test_commutation_set_property_is_created(self):
+        """Test property is created"""
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
@@ -216,6 +217,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         self.assertEqual(self.pset["commutation_set"]["qr[5]"], [[11], [17], [18], [19], [12]])
 
     def test_all_commute_circuit(self):
+        """Test circuit with that all commute"""
         qr = QuantumRegister(5, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
