@@ -521,10 +521,6 @@ def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout = layout
                 first_layer = False
 
-    # This is the final layout that we need to correctly replace
-    # any measurements that needed to be removed before the swap
-    last_layout = layout
-
     # If first_layer is still set, the circuit only has single-qubit gates
     # so we can use the initial layout to output the entire circuit
     if first_layer:
