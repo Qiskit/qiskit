@@ -14,13 +14,11 @@ from pprint import pformat
 from math import inf
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.mapper import (remove_last_measurements, return_last_measurements)
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.mapper import Layout
 
 logger = getLogger(__name__)
 
@@ -34,7 +32,7 @@ logger = getLogger(__name__)
 # the circuit.
 
 
-class StochasticMapper(TransformationPass):
+class StochasticSwap(TransformationPass):
     """
     Maps a DAGCircuit onto a `coupling_map` adding swap gates.
 
@@ -79,7 +77,7 @@ class StochasticMapper(TransformationPass):
 
     def run(self, dag):
         """
-        Run the StochasticMapper pass on `dag`.
+        Run the StochasticSwap pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -92,9 +90,7 @@ class StochasticMapper(TransformationPass):
         if "layout" in self.property_set:
             self.initial_layout = self.property_set["layout"]
             self.input_layout = self.property_set["layout"]
-        new_dag, final_layout, last_edgemap = self._mapper(
-            dag, self.coupling_map,
-            trials=self.trials, seed=self.seed)
+        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, seed=self.seed)
         self.property_set["layout"] = self.initial_layout
         return new_dag
 
@@ -122,8 +118,8 @@ class StochasticMapper(TransformationPass):
         seed (int): Optional seed for the random number generator. If it is
             None we do not reseed.
 
-        Returns: a tuple containing
-            success_flag, best_circuit, best_depth, best_layout, trivial_flag
+        Returns:
+             Tuple: success_flag, best_circuit, best_depth, best_layout, trivial_flag
 
         If success_flag is True, then best_circuit contains a DAGCircuit with
         the swap circuit, best_depth contains the depth of the swap circuit,
@@ -132,7 +128,7 @@ class StochasticMapper(TransformationPass):
         has no multi-qubit gates.
 
         Raises:
-            TranspilerError if anything went wrong.
+            TranspilerError: if anything went wrong.
         """
         if seed is not None:
             np.random.seed(seed)
@@ -267,7 +263,8 @@ class StochasticMapper(TransformationPass):
             logger.debug("layer_permutation: final distance for this trial = %s", dist)
             if dist == len(gates):
                 if depth_step < best_depth:
-                    logger.debug("layer_permutation: got circuit with improved depth %s", depth_step)
+                    logger.debug("layer_permutation: got circuit with improved depth %s",
+                                 depth_step)
                     best_circuit = trial_circuit
                     best_layout = trial_layout
                     best_depth = min(best_depth, depth_step)
@@ -516,4 +513,4 @@ class StochasticMapper(TransformationPass):
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
                 dagcircuit_output.compose_back(layer["graph"], edge_map)
 
-        return dagcircuit_output, self.initial_layout, last_edgemap
+        return dagcircuit_output

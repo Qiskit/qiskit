@@ -5,19 +5,19 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Test the Stochastic Mapper pass"""
+"""Test the Stochastic Swap pass"""
 
 import unittest
-from qiskit.transpiler.passes import StochasticMapper
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.mapper import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from ..common import QiskitTestCase
 
 
-class TestStochasticMapper(QiskitTestCase):
+class TestStochasticSwap(QiskitTestCase):
     """
-    Tests the StochasticMapper pass.
+    Tests the StochasticSwap pass.
 
     All of the tests use a fixed seed since the results
     may depend on it.
@@ -31,22 +31,22 @@ class TestStochasticMapper(QiskitTestCase):
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(1, 'a')
-        cr = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[0], ar[0])
-        circ.cx(qr[1], ar[0])
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
+        qr_q = QuantumRegister(2, 'q')
+        qr_a = QuantumRegister(1, 'a')
+        cr_c = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr_q, qr_a, cr_c)
+        circ.cx(qr_q[0], qr_a[0])
+        circ.cx(qr_q[1], qr_a[0])
+        circ.measure(qr_q[0], cr_c[0])
+        circ.measure(qr_q[1], cr_c[1])
+        circ.measure(qr_a[0], cr_c[2])
         dag = circuit_to_dag(circ)
 
         layout = Layout([(QuantumRegister(2, 'q'), 0),
                          (QuantumRegister(2, 'q'), 1),
                          (QuantumRegister(1, 'a'), 0)])
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -58,22 +58,22 @@ class TestStochasticMapper(QiskitTestCase):
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(1, 'a')
-        cr = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[0], ar[0])
-        circ.cx(qr[1], ar[0])
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
+        qr_q = QuantumRegister(2, 'q')
+        qr_a = QuantumRegister(1, 'a')
+        cr_c = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr_q, qr_a, cr_c)
+        circ.cx(qr_q[0], qr_a[0])
+        circ.cx(qr_q[1], qr_a[0])
+        circ.measure(qr_q[0], cr_c[0])
+        circ.measure(qr_q[1], cr_c[1])
+        circ.measure(qr_a[0], cr_c[2])
         dag = circuit_to_dag(circ)
 
         layout = Layout([(QuantumRegister(2, 'q'), 0),
                          (QuantumRegister(1, 'a'), 0),
                          (QuantumRegister(2, 'q'), 1)])
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -87,24 +87,23 @@ class TestStochasticMapper(QiskitTestCase):
         """
         coupling = CouplingMap(couplinglist=[[0, 1], [1, 2]])
 
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(1, 'a')
-        cr = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[0], ar[0])
-        circ.cx(qr[1], ar[0])
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
+        qr_q = QuantumRegister(2, 'q')
+        qr_a = QuantumRegister(1, 'a')
+        cr_c = ClassicalRegister(3, 'c')
+        circ = QuantumCircuit(qr_q, qr_a, cr_c)
+        circ.cx(qr_q[0], qr_a[0])
+        circ.cx(qr_q[1], qr_a[0])
+        circ.measure(qr_q[0], cr_c[0])
+        circ.measure(qr_q[1], cr_c[1])
+        circ.measure(qr_a[0], cr_c[2])
         dag = circuit_to_dag(circ)
 
         layout = None
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
-
 
     def test_trivial_case(self):
         """
@@ -125,7 +124,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -150,7 +149,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -177,7 +176,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -200,7 +199,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -225,7 +224,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -267,7 +266,7 @@ class TestStochasticMapper(QiskitTestCase):
         expected.swap(qr[0], qr[1])
         expected.cx(qr[2], qr[1])
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -294,7 +293,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.h(qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -320,7 +319,7 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -350,22 +349,22 @@ class TestStochasticMapper(QiskitTestCase):
         circuit.measure(qr[2], cr[2])
         circuit.measure(qr[3], cr[3])
         dag = circuit_to_dag(circuit)
-        #                                    ┌───┐     ┌─┐                
-        #q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
-        #                               ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
-        #q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
-        #        ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
-        #q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
-        #        └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║ 
-        #q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
-        #             └───┘└───┘└╥┘                     ║            ║  ║ 
-        # c_0: 0 ════════════════╬══════════════════════╩════════════╬══╬═
-        #                        ║                                   ║  ║ 
-        # c_1: 0 ════════════════╬═══════════════════════════════════╬══╩═
-        #                        ║                                   ║    
-        # c_2: 0 ════════════════╬═══════════════════════════════════╩════
-        #                        ║                                        
-        # c_3: 0 ════════════════╩════════════════════════════════════════
+        #                                     ┌───┐     ┌─┐
+        # q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
+        #                                ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
+        # q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
+        #         ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
+        # q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
+        #         └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║
+        # q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
+        #              └───┘└───┘└╥┘                     ║            ║  ║
+        # c_0: 0  ════════════════╬══════════════════════╩════════════╬══╬═
+        #                         ║                                   ║  ║
+        # c_1: 0  ════════════════╬═══════════════════════════════════╬══╩═
+        #                         ║                                   ║
+        # c_2: 0  ════════════════╬═══════════════════════════════════╩════
+        #                         ║
+        # c_3: 0  ════════════════╩════════════════════════════════════════
         #
         expected = QuantumCircuit(qr, cr)
         expected.x(qr[0])
@@ -383,29 +382,29 @@ class TestStochasticMapper(QiskitTestCase):
         expected.measure(qr[2], cr[1])
         expected.measure(qr[1], cr[2])
         expected_dag = circuit_to_dag(expected)
-        #                                       ┌───┐                     ┌─┐
-        #q_0: |0>───────────────────────────────┤ X ├──■──────────────────┤M├
-        #                          ┌───┐   ┌───┐└───┘  │       ┌───┐┌─┐   └╥┘
-        #q_1: |0>──────────────────┤ Y ├─X─┤ T ├───────┼───────┤ X ├┤M├────╫─
-        #        ┌───┐             └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║ 
-        #q_2: |0>┤ Z ├──■────────────────X───────────┤ X ├┤ S ├──■───╫─┤M├─╫─
-        #        └───┘┌─┴─┐┌───┐┌─┐                  └───┘└───┘      ║ └╥┘ ║ 
-        #q_3: |0>─────┤ X ├┤ H ├┤M├──────────────────────────────────╫──╫──╫─
-        #             └───┘└───┘└╥┘                                  ║  ║  ║ 
-        # c_0: 0 ════════════════╬═══════════════════════════════════╬══╬══╩═
-        #                        ║                                   ║  ║    
-        # c_1: 0 ════════════════╬═══════════════════════════════════╬══╩════
-        #                        ║                                   ║       
-        # c_2: 0 ════════════════╬═══════════════════════════════════╩═══════
-        #                        ║                                           
-        # c_3: 0 ════════════════╩═══════════════════════════════════════════
+        #                                        ┌───┐                     ┌─┐
+        # q_0: |0>───────────────────────────────┤ X ├──■──────────────────┤M├
+        #                           ┌───┐   ┌───┐└───┘  │       ┌───┐┌─┐   └╥┘
+        # q_1: |0>──────────────────┤ Y ├─X─┤ T ├───────┼───────┤ X ├┤M├────╫─
+        #         ┌───┐              └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║
+        # q_2: |0>┤ Z ├──■────────────────X───────────┤ X ├┤ S ├──■───╫─┤M├─╫─
+        #         └───┘┌─┴─┐┌───┐┌─┐                  └───┘└───┘      ║ └╥┘ ║
+        # q_3: |0>─────┤ X ├┤ H ├┤M├──────────────────────────────────╫──╫──╫─
+        #              └───┘└───┘└╥┘                                  ║  ║  ║
+        # c_0: 0  ════════════════╬═══════════════════════════════════╬══╬══╩═
+        #                         ║                                   ║  ║
+        # c_1: 0  ════════════════╬═══════════════════════════════════╬══╩════
+        #                         ║                                   ║
+        # c_2: 0  ════════════════╬═══════════════════════════════════╩═══════
+        #                         ║
+        # c_3: 0  ════════════════╩═══════════════════════════════════════════
         #
         # Layout --
         #  (QuantumRegister(4, 'q'), 0): 0,
         #  (QuantumRegister(4, 'q'), 1): 2,
         #  (QuantumRegister(4, 'q'), 2): 1,
         #  (QuantumRegister(4, 'q'), 3): 3}
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(expected_dag, after)
 
@@ -414,10 +413,11 @@ class TestStochasticMapper(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        coupling = CouplingMap(couplinglist=[[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                                             [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
-                                             [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
-                                             [15, 0], [15, 0], [15, 2], [15, 14]])
+        coupling = CouplingMap(
+            couplinglist=[[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                          [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
+                          [11, 10], [12, 5], [12, 11], [12, 13], [13, 4], [13, 14],
+                          [15, 0], [15, 0], [15, 2], [15, 14]])
         qr = QuantumRegister(16, 'q')
         cr = ClassicalRegister(16, 'c')
         circ = QuantumCircuit(qr, cr)
@@ -434,7 +434,7 @@ class TestStochasticMapper(QiskitTestCase):
 
         dag = circuit_to_dag(circ)
 
-        pass_ = StochasticMapper(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(circuit_to_dag(circ), after)
 
@@ -455,7 +455,7 @@ class TestStochasticMapper(QiskitTestCase):
                          (QuantumRegister(2, 'qa'), 1): 1,
                          (QuantumRegister(1, 'qb'), 0): 2})
 
-        pass_ = StochasticMapper(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
