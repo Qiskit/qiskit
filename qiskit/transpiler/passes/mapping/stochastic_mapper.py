@@ -87,6 +87,11 @@ class StochasticMapper(TransformationPass):
         Returns:
             DAGCircuit: A mapped DAG.
         """
+        # If the property_set contains a layout, use it to
+        # override any layout passed to __init__
+        if "layout" in self.property_set:
+            self.initial_layout = self.property_set["layout"]
+            self.input_layout = self.property_set["layout"]
         new_dag, final_layout, last_edgemap = self._mapper(
             dag, self.coupling_map,
             trials=self.trials, seed=self.seed)
