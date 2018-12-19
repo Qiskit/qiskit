@@ -120,8 +120,8 @@ class TestDagOperations(QiskitTestCase):
         """The apply_operation_front() method"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_front(Reset(self.qubit0))
-        h_node = self.dag.get_op_nodes(op=HGate(self.qubit0)).pop()
-        reset_node = self.dag.get_op_nodes(op=Reset(self.qubit0)).pop()
+        h_node = self.dag.get_op_nodes(op=HGate).pop()
+        reset_node = self.dag.get_op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.multi_graph.predecessors(h_node)))
 
@@ -145,7 +145,7 @@ class TestDagOperations(QiskitTestCase):
 
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
 
-        op_nodes = self.dag.get_op_nodes(op=HGate(self.qubit0))
+        op_nodes = self.dag.get_op_nodes(op=HGate)
         self.assertEqual(len(op_nodes), 2)
 
         op_node_1 = op_nodes.pop()
@@ -394,7 +394,7 @@ class TestDagSubstitute(QiskitTestCase):
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
-        cx_node = self.dag.get_op_nodes(op=CnotGate(self.qubit0, self.qubit1)).pop()
+        cx_node = self.dag.get_op_nodes(op=CnotGate).pop()
 
         flipped_cx_circuit = DAGCircuit()
         v = QuantumRegister(2, "v")
