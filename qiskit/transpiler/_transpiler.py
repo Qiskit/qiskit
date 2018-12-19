@@ -14,13 +14,13 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.mapper import (CouplingMap, swap_mapper,
-                           remove_last_measurements, return_last_measurements)
+from qiskit.mapper import CouplingMap, swap_mapper
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from .passes import Unroller, CXDirection, CXCancellation, Decompose, Optimize1qGates
+from .passes import (Unroller, CXDirection, CXCancellation,
+                     Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
 from ._transpilererror import TranspilerError
 
 logger = logging.getLogger(__name__)
@@ -182,10 +182,9 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                         dag.properties())
             # Insert swap gates
             coupling = CouplingMap(couplinglist=coupling_map)
-            removed_meas = remove_last_measurements(dag)
-            logger.info("measurements moved: %s", removed_meas)
             logger.info("initial layout: %s", initial_layout)
-            dag, final_layout, last_layout = swap_mapper(
+            dag = BarrierBeforeFinalMeasurements().run(dag)
+            dag, final_layout = swap_mapper(
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
@@ -198,8 +197,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
             # Simplify single qubit gates
             dag = Optimize1qGates().run(dag)
-            return_last_measurements(dag, removed_meas,
-                                     last_layout)
             logger.info("post-mapping properties: %s",
                         dag.properties())
         dag.name = name

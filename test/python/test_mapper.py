@@ -20,7 +20,7 @@ from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper._mapping import remove_last_measurements, MapperError
+from qiskit.mapper._mapping import MapperError
 from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
@@ -116,14 +116,15 @@ class TestMapper(QiskitTestCase):
         circ.measure(qr[3], cr[3])
 
         coupling_map = [[0, 2], [1, 2], [2, 3]]
+        shots = 1000
 
         result1 = execute(circ, backend=self.backend,
-                          coupling_map=coupling_map, seed=self.seed)
+                          coupling_map=coupling_map, seed=self.seed, shots=shots)
         count1 = result1.result().get_counts()
         result2 = execute(circ, backend=self.backend,
-                          coupling_map=None, seed=self.seed)
+                          coupling_map=None, seed=self.seed, shots=shots)
         count2 = result2.result().get_counts()
-        self.assertDictAlmostEqual(count1, count2)
+        self.assertDictAlmostEqual(count1, count2, shots*0.02)
 
     def test_math_domain_error(self):
         """Check for floating point errors.
@@ -268,9 +269,11 @@ class TestMapper(QiskitTestCase):
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
         out_dag = transpile_dag(dag_circuit, initial_layout=lay,
                                 coupling_map=cmap, format='dag')
-        moved_meas = remove_last_measurements(out_dag, perform_remove=False)
         meas_nodes = out_dag.get_named_nodes('measure')
-        self.assertEqual(len(moved_meas), len(meas_nodes))
+        for n in meas_nodes:
+            is_last_measure = all([after_measure in out_dag.output_map.values()
+                                   for after_measure in out_dag.quantum_successors(n)])
+            self.assertTrue(is_last_measure)
 
     def test_kak_decomposition(self):
         """Verify KAK decomposition for random Haar unitaries.
