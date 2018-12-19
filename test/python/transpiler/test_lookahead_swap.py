@@ -126,11 +126,8 @@ class TestLookaheadSwap(QiskitTestCase):
                                    for op in mapped_dag.get_named_nodes('measure'))
 
         self.assertIn(mapped_measure_qargs,
-                      [
-                          set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
-                          set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2))),
-                      ]
-                     )
+                      [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
+                       set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2)))])
 
     def test_lookahead_swap_maps_barriers(self):
         """Verify barrier nodes are updated to re-mapped qregs.
@@ -161,11 +158,9 @@ class TestLookaheadSwap(QiskitTestCase):
                                 for op in mapped_dag.get_named_nodes('barrier')][0]
 
         self.assertIn(mapped_barrier_qargs,
-                      [
-                          set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
-                          set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2))),
-                      ]
-                     )
+                      [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
+                       set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2)))])
+
 
 if __name__ == '__main__':
     unittest.main()
