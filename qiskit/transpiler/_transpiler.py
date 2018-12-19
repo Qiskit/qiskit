@@ -14,13 +14,13 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.mapper import (CouplingMap, swap_mapper, cx_cancellation, cx_direction,
+from qiskit.mapper import (CouplingMap, swap_mapper,
                            remove_last_measurements, return_last_measurements)
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
-from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
-from .passes.mapping.unroller import Unroller
+from qiskit.extensions.standard import SwapGate
+from .passes import Unroller, CXDirection, CXCancellation, Decompose, Optimize1qGates
 from ._transpilererror import TranspilerError
 
 logger = logging.getLogger(__name__)
@@ -175,6 +175,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # TODO: move each step here to a pass, and use a default passmanager below
         basis = basis_gates.split(',') if basis_gates else []
         dag = Unroller(basis).run(dag)
+        name = dag.name
         # if a coupling map is given compile to the map
         if coupling_map:
             logger.info("pre-mapping properties: %s",
@@ -188,11 +189,11 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
             # Expand swaps
-            dag = Unroller(basis).run(dag)
+            dag = Decompose(SwapGate).run(dag)
             # Change cx directions
-            dag = cx_direction(dag, coupling)
+            dag = CXDirection(coupling).run(dag)
             # Simplify cx gates
-            cx_cancellation(dag)
+            dag = CXCancellation().run(dag)
             # Unroll to the basis
             dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
             # Simplify single qubit gates
@@ -201,6 +202,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                      last_layout)
             logger.info("post-mapping properties: %s",
                         dag.properties())
+        dag.name = name
 
     if format != 'dag':
         warnings.warn("transpiler no longer supports different formats. "
