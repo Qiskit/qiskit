@@ -89,11 +89,11 @@ class StochasticSwap(TransformationPass):
         """
         # If the property_set contains a layout, use it to
         # override any layout passed to __init__
-        if "layout" in self.property_set:
+        if self.property_set["layout"]:
             self.initial_layout = self.property_set["layout"]
             self.input_layout = self.property_set["layout"]
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, seed=self.seed)
-        self.property_set["layout"] = self.initial_layout
+        # self.property_set["layout"] = self.initial_layout
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
@@ -162,7 +162,7 @@ class StochasticSwap(TransformationPass):
                 if register[0] not in circ.qregs.values():
                     circ.add_qreg(register[0])
             circ.add_basis_element("swap", 2)
-            return True, circ, 0, layout, bool(gates)
+            return True, circ, 0, layout, (not bool(gates))
 
         # Begin loop over trials of randomized algorithm
         num_qubits = len(layout)
@@ -318,7 +318,10 @@ class StochasticSwap(TransformationPass):
             logger.debug("layer_update: first multi-qubit gate layer")
             # Output all layers up to this point
             for j in range(i + 1):
+                # Make qubit edge map and extend by classical bits
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
+                for bit in dagcircuit_output.get_bits():
+                    edge_map[bit] = bit
                 dagcircuit_output.compose_back(layer_list[j]["graph"], edge_map)
         # Otherwise, we output the current layer and the associated swap gates.
         else:
@@ -329,8 +332,11 @@ class StochasticSwap(TransformationPass):
                 dagcircuit_output.extend_back(best_circuit)
             else:
                 logger.debug("layer_update: there are no swaps in this layer")
-            # Output this layer
+            # Make qubit edge map and extend by classical bits
             edge_map = layout.combine_into_edge_map(self.initial_layout)
+            for bit in dagcircuit_output.get_bits():
+                edge_map[bit] = bit
+            # Output this layer
             dagcircuit_output.compose_back(layer_list[i]["graph"], edge_map)
 
         return dagcircuit_output
@@ -397,6 +403,14 @@ class StochasticSwap(TransformationPass):
         for creg in circuit_graph.cregs.values():
             dagcircuit_output.add_creg(creg)
 
+        # Make a trivial wire mapping between the subcircuits
+        # returned by _layer_update and the circuit we build
+        identity_wire_map = {}
+        for qubit in circuit_graph.get_qubits():
+            identity_wire_map[qubit] = qubit
+        for bit in circuit_graph.get_bits():
+            identity_wire_map[bit] = bit
+
         first_layer = True  # True until first layer is output
         logger.debug("initial_layout = %s", layout)
 
@@ -461,7 +475,8 @@ class StochasticSwap(TransformationPass):
                                            best_layout,
                                            best_depth,
                                            best_circuit,
-                                           serial_layerlist))
+                                           serial_layerlist),
+                        identity_wire_map)
                     if first_layer:
                         first_layer = False
 
@@ -479,13 +494,14 @@ class StochasticSwap(TransformationPass):
                                        best_layout,
                                        best_depth,
                                        best_circuit,
-                                       layerlist))
+                                       layerlist),
+                    identity_wire_map)
 
                 if first_layer:
                     first_layer = False
 
-        # This is the final edgemap that we need to correctly replace
-        # any measurements that needed to be removed before the swap
+        # This is the final edgemap. We might use it to correctly replace
+        # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.initial_layout = %s", pformat(self.initial_layout))
         logger.debug("mapper: layout = %s", pformat(layout))
         last_edgemap = layout.combine_into_edge_map(self.initial_layout)
@@ -493,7 +509,9 @@ class StochasticSwap(TransformationPass):
 
         # If first_layer is still set, the circuit only has single-qubit gates
         # so we can use the initial layout to output the entire circuit
+        # This code is dead due to changes to first_layer above.
         if first_layer:
+            logger.debug("mapper: first_layer flag still set")
             layout = self.initial_layout
             for i, layer in enumerate(layerlist):
                 edge_map = layout.combine_into_edge_map(self.initial_layout)

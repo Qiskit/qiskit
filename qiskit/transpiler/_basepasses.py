@@ -10,6 +10,7 @@
 from abc import abstractmethod
 from collections.abc import Hashable
 from inspect import signature
+from ._propertyset import PropertySet
 
 
 class MetaPass(type):
@@ -50,7 +51,7 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.property_set = {}  # This pass's pointer to the pass manager's property set.
+        self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
 
     @classmethod
     def normalize_parameters(cls, *args, **kwargs):

@@ -386,7 +386,7 @@ class TestStochasticSwap(QiskitTestCase):
         # q_0: |0>───────────────────────────────┤ X ├──■──────────────────┤M├
         #                           ┌───┐   ┌───┐└───┘  │       ┌───┐┌─┐   └╥┘
         # q_1: |0>──────────────────┤ Y ├─X─┤ T ├───────┼───────┤ X ├┤M├────╫─
-        #         ┌───┐              └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║
+        #         ┌───┐             └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║
         # q_2: |0>┤ Z ├──■────────────────X───────────┤ X ├┤ S ├──■───╫─┤M├─╫─
         #         └───┘┌─┴─┐┌───┐┌─┐                  └───┘└───┘      ║ └╥┘ ║
         # q_3: |0>─────┤ X ├┤ H ├┤M├──────────────────────────────────╫──╫──╫─
@@ -458,6 +458,124 @@ class TestStochasticSwap(QiskitTestCase):
         pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
 
+        self.assertEqual(dag, after)
+
+    def test_congestion(self):
+        """Test code path that falls back to serial layers."""
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [1, 3]])
+        qr = QuantumRegister(2, 'q')
+        ar = QuantumRegister(2, 'a')
+        cr = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(qr, ar, cr)
+        circ.cx(qr[1], ar[0])
+        circ.cx(qr[0], ar[1])
+        circ.measure(qr[0], cr[0])
+        circ.h(qr)
+        circ.h(ar)
+        circ.cx(qr[0], qr[1])
+        circ.cx(ar[0], ar[1])
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(ar[0], cr[2])
+        circ.measure(ar[1], cr[3])
+        dag = circuit_to_dag(circ)
+        #                                             ┌─┐┌───┐        ┌─┐
+        # q_0: |0>─────────────────■──────────────────┤M├┤ H ├──■─────┤M├
+        #                   ┌───┐  │                  └╥┘└───┘┌─┴─┐┌─┐└╥┘
+        # q_1: |0>──■───────┤ H ├──┼───────────────────╫──────┤ X ├┤M├─╫─
+        #         ┌─┴─┐┌───┐└───┘  │               ┌─┐ ║      └───┘└╥┘ ║
+        # a_0: |0>┤ X ├┤ H ├───────┼─────────■─────┤M├─╫────────────╫──╫─
+        #         └───┘└───┘     ┌─┴─┐┌───┐┌─┴─┐┌─┐└╥┘ ║            ║  ║
+        # a_1: |0>───────────────┤ X ├┤ H ├┤ X ├┤M├─╫──╫────────────╫──╫─
+        #                        └───┘└───┘└───┘└╥┘ ║  ║            ║  ║
+        #  c_0: 0 ═══════════════════════════════╬══╬══╩════════════╬══╩═
+        #                                        ║  ║               ║
+        #  c_1: 0 ═══════════════════════════════╬══╬═══════════════╩════
+        #                                        ║  ║
+        #  c_2: 0 ═══════════════════════════════╬══╩════════════════════
+        #                                        ║
+        #  c_3: 0 ═══════════════════════════════╩═══════════════════════
+        #
+        #                                ┌─┐┌───┐                     ┌─┐
+        # q_0: |0>────────────────────■──┤M├┤ H ├──────────────────■──┤M├──────
+        #                           ┌─┴─┐└╥┘└───┘┌───┐┌───┐      ┌─┴─┐└╥┘┌─┐
+        # q_1: |0>──■───X───────────┤ X ├─╫──────┤ H ├┤ X ├─X────┤ X ├─╫─┤M├───
+        #         ┌─┴─┐ │      ┌───┐└───┘ ║      └───┘└─┬─┘ │    └───┘ ║ └╥┘┌─┐
+        # a_0: |0>┤ X ├─┼──────┤ H ├──────╫─────────────■───┼──────────╫──╫─┤M├
+        #         └───┘ │ ┌───┐└───┘      ║                 │ ┌─┐      ║  ║ └╥┘
+        # a_1: |0>──────X─┤ H ├───────────╫─────────────────X─┤M├──────╫──╫──╫─
+        #                 └───┘           ║                   └╥┘      ║  ║  ║
+        #  c_0: 0 ════════════════════════╩════════════════════╬═══════╩══╬══╬═
+        #                                                      ║          ║  ║
+        #  c_1: 0 ═════════════════════════════════════════════╬══════════╩══╬═
+        #                                                      ║             ║
+        #  c_2: 0 ═════════════════════════════════════════════╬═════════════╩═
+        #                                                      ║
+        #  c_3: 0 ═════════════════════════════════════════════╩═══════════════
+        #
+        # Layout from mapper:
+        # {(QuantumRegister(2, 'q'), 0): 0,
+        #  (QuantumRegister(2, 'q'), 1): 1,
+        #  (QuantumRegister(2, 'a'), 0): 2,
+        #  (QuantumRegister(2, 'a'), 1): 3}
+        #
+        #     2
+        #     |
+        # 0 - 1 - 3
+        expected = QuantumCircuit(qr, ar, cr)
+        expected.cx(qr[1], ar[0])
+        expected.h(ar[0])
+        expected.swap(qr[1], ar[1])
+        expected.cx(qr[0], qr[1])
+        expected.h(ar[1])
+        expected.h(qr[1])
+        expected.cx(ar[0], qr[1])
+        expected.measure(qr[0], cr[0])
+        expected.h(qr[0])
+        expected.measure(ar[0], cr[2])
+        expected.swap(ar[1], qr[1])
+        expected.cx(qr[0], qr[1])
+        expected.measure(ar[1], cr[3])
+        expected.measure(qr[1], cr[1])
+        expected.measure(qr[0], cr[0])
+        expected_dag = circuit_to_dag(expected)
+
+        layout = Layout([(QuantumRegister(2, 'q'), 0),
+                         (QuantumRegister(2, 'q'), 1),
+                         (QuantumRegister(2, 'a'), 0),
+                         (QuantumRegister(2, 'a'), 1)])
+
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
+        after = pass_.run(dag)
+        self.assertEqual(expected_dag, after)
+
+    def test_all_single_qubit(self):
+        """Test all trivial layers."""
+        coupling = CouplingMap(couplinglist=[[0, 1], [1, 2], [1, 3]])
+        qr = QuantumRegister(2, 'q')
+        ar = QuantumRegister(2, 'a')
+        cr = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(qr, ar, cr)
+        circ.h(qr)
+        circ.h(ar)
+        circ.s(qr)
+        circ.s(ar)
+        circ.t(qr)
+        circ.t(ar)
+        circ.measure(qr[0], cr[0])  # intentional duplicate
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(ar[0], cr[2])
+        circ.measure(ar[1], cr[3])
+        dag = circuit_to_dag(circ)
+
+        layout = Layout([(QuantumRegister(2, 'q'), 0),
+                         (QuantumRegister(2, 'q'), 1),
+                         (QuantumRegister(2, 'a'), 0),
+                         (QuantumRegister(2, 'a'), 1)])
+
+        pass_ = StochasticSwap(coupling, layout, 20, 13)
+        after = pass_.run(dag)
         self.assertEqual(dag, after)
 
 
