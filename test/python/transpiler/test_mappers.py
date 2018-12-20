@@ -8,9 +8,11 @@
 """Meta Tests for mappers
 
 Regenerate ground truth by running this on the root directory:
-python -m  test.python.transpiler.test_mappers
+> python -m  test.python.transpiler.test_mappers
 
 """
+
+# pylint: disable=redefined-builtin
 
 import unittest
 import pickle
@@ -24,39 +26,51 @@ from ..common import QiskitTestCase
 
 
 class CommonUtilities():
+    """ Some utilities for meta testing."""
     regenerate_expected = False
     seed = 42
 
     def create_passmanager(self, coupling_map):
+        ''' Returns a PassManager using self.pass_class and coupling_map '''
         return PassManager(self.pass_class(CouplingMap(coupling_map)))
 
     def create_backend(self):
+        ''' Returns a Backend.'''
         return BasicAer.get_backend('qasm_simulator')
 
-    def get_expected(self,result, test_name):
-        filename = self._get_resource_path(
-            'pickles/%s_%s.pickle' % (type(self).__name__, test_name))
+    def generate_expected(self, result, filename):
+        """
+        Checks if result.get_count matches self.count by running in a backend
+        (self.create_backend()). That's saved in a pickle in filename.
+
+        Args:
+            result (DAGCircuit): The DAGCircuit to compile and run.
+            filename (string): Where the pickle is saved.
+        """
+        sim_backend = self.create_backend()
+        qobj = compile(result, sim_backend, seed=self.seed)
+        job = sim_backend.run(qobj)
+        self.assertDictAlmostEqual(self.count, job.result().get_counts(), delta=self.delta)
+
+        with open(filename, "wb") as output_file:
+            pickle.dump(result, output_file)
+
+    def assertResult(self, result, testname):
+        ''' Fetches the pickle in testname file and compares it with result'''
+        filename = self._get_resource_path('pickles/%s_%s.pickle' % (type(self).__name__, testname))
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
-            sim_backend = self.create_backend()
-            qobj = compile(result, sim_backend, seed=self.seed)
-            job = sim_backend.run(qobj)
-            self.assertDictAlmostEqual(self.count, job.result().get_counts(), delta=self.delta)
-
-            with open(filename, "wb") as output_file:
-                pickle.dump(result, output_file)
+            self.generate_expected(result, filename)
 
         with open(filename, "rb") as input_file:
             expected = pickle.load(input_file)
-        return expected
 
-    def assertResult(self, result, test_name):
-        expected = self.get_expected(result, test_name)
         self.assertEqual(result, expected)
 
 
 class CommonTestCases(CommonUtilities):
+    """ The tests here will be run in several mappers."""
 
     def test_a_cx_to_map(self):
         """ A single CX needs to be remapped
@@ -129,10 +143,14 @@ class CommonTestCases(CommonUtilities):
 
 
 class TestsBasicMapper(CommonTestCases, QiskitTestCase):
+    """ Test CommonTestCases using BasicSwap """
     pass_class = BasicSwap
 
+
 class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
+    """ Test CommonTestCases using LookaheadSwap """
     pass_class = LookaheadSwap
+
 
 if __name__ == '__main__':
     CommonUtilities.regenerate_expected = True
