@@ -153,10 +153,12 @@ class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
     """ Test CommonTestCases using LookaheadSwap """
     pass_class = LookaheadSwap
 
+
 class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
     """ Test CommonTestCases using StochasticSwap """
     pass_class = StochasticSwap
     additional_args = {'seed': 0}
+
 
 if __name__ == '__main__':
     CommonUtilities.regenerate_expected = True
