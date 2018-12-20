@@ -79,7 +79,7 @@ class CommonTestCases(CommonUtilities):
         self.delta = 5
         coupling_map = [[0, 1], [0, 2]]
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, 'q', name='a_cx_to_map')
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[1])
