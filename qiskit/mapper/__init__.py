@@ -12,4 +12,3 @@ from ._coupling import CouplingMap
 from ._couplingerror import CouplingError
 from ._layout import Layout
 from ._mappererror import MapperError
-from ._mapping import swap_mapper

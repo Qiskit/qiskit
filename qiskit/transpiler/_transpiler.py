@@ -13,7 +13,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.mapper import CouplingMap, Layout, swap_mapper
+from qiskit.mapper import CouplingMap, Layout
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit

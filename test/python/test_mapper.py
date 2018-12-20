@@ -21,7 +21,7 @@ from qiskit.mapper import Layout
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper._mapping import MapperError
+from qiskit.mapper import MapperError
 from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
