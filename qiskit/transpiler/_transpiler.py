@@ -177,9 +177,10 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         if coupling_map:
             logger.info("pre-mapping properties: %s",
                         dag.properties())
-            # Insert swap gates
             coupling = CouplingMap(couplinglist=coupling_map)
+            # Add barriers before final measurements
             dag = BarrierBeforeFinalMeasurements().run(dag)
+            # Insert swap gates
             dag = StochasticSwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
             # Expand swaps
             dag = Decompose(SwapGate).run(dag)
