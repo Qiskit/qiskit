@@ -13,14 +13,13 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.mapper import CouplingMap, swap_mapper
+from qiskit.mapper import CouplingMap, Layout, swap_mapper
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from .passes import (Unroller, CXDirection, CXCancellation,
-                     Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
+from .passes import (Unroller, CXDirection, CXCancellation, Decompose, Optimize1qGates,
+                     BarrierBeforeFinalMeasurements, StochasticSwap)
 from ._transpilererror import TranspilerError
 
 logger = logging.getLogger(__name__)
@@ -164,8 +163,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     if num_qubits == 1 or coupling_map == "all-to-all":
         coupling_map = None
 
-    final_layout = None
-
     if pass_manager:
         # run the passes specified by the pass manager
         # TODO return the property set too. See #1086
@@ -182,11 +179,8 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                         dag.properties())
             # Insert swap gates
             coupling = CouplingMap(couplinglist=coupling_map)
-            logger.info("initial layout: %s", initial_layout)
             dag = BarrierBeforeFinalMeasurements().run(dag)
-            dag, final_layout = swap_mapper(
-                dag, coupling, initial_layout, trials=20, seed=seed_mapper)
-            logger.info("final layout: %s", final_layout)
+            dag = StochasticSwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
             # Expand swaps
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
@@ -293,16 +287,14 @@ def _pick_best_layout(dag, backend):
         backend (BaseBackend) : The backend with the coupling_map for searching
 
     Returns:
-        dict: A special ordered initial_layout
+        Layout: A special ordered initial_layout
     """
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     best_sub = _best_subset(backend, num_qubits)
-    layout = {}
+    layout = Layout()
     map_iter = 0
-    device_qubits = backend.configuration().n_qubits
-    q = QuantumRegister(device_qubits, 'q')
     for qreg in dag.qregs.values():
         for i in range(qreg.size):
-            layout[(qreg.name, i)] = (q, int(best_sub[map_iter]))
+            layout[(qreg, i)] = int(best_sub[map_iter])
             map_iter += 1
     return layout

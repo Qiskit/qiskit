@@ -17,6 +17,7 @@ from qiskit import BasicAer
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
+from qiskit.mapper import Layout
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
@@ -124,7 +125,7 @@ class TestMapper(QiskitTestCase):
         result2 = execute(circ, backend=self.backend,
                           coupling_map=None, seed=self.seed, shots=shots)
         count2 = result2.result().get_counts()
-        self.assertDictAlmostEqual(count1, count2, shots*0.02)
+        self.assertDictAlmostEqual(count1, count2, shots * 0.02)
 
     def test_math_domain_error(self):
         """Check for floating point errors.
@@ -263,11 +264,18 @@ class TestMapper(QiskitTestCase):
             self._get_resource_path('qasm/move_measurements.qasm'))
 
         dag_circuit = circuit_to_dag(circ)
-        lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-               ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-               ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
-        out_dag = transpile_dag(dag_circuit, initial_layout=lay,
+        qr_qa = QuantumRegister(2, 'qa')    # qreg qa[2];
+        qr_qb = QuantumRegister(3, 'qb')    # qreg qb[3];
+        qr_qN = QuantumRegister(3, 'qN')    # qreg qN[3];
+        qr_qc = QuantumRegister(1, 'qc')    # qreg qc[1];
+        qr_qNt = QuantumRegister(2, 'qNt')  # qreg qNt[2];
+        qr_qt = QuantumRegister(1, 'qt')    # qreg qt[1];
+
+        lay = {(qr_qa, 0): 0, (qr_qa, 1): 1, (qr_qb, 0): 15,
+               (qr_qb, 1): 2, (qr_qb, 2): 14, (qr_qN, 0): 3,
+               (qr_qN, 1): 13, (qr_qN, 2): 4, (qr_qc, 0): 12,
+               (qr_qNt, 0): 5, (qr_qNt, 1): 11, (qr_qt, 0): 6}
+        out_dag = transpile_dag(dag_circuit, initial_layout=Layout(lay),
                                 coupling_map=cmap, format='dag')
         meas_nodes = out_dag.get_named_nodes('measure')
         for n in meas_nodes:
