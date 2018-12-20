@@ -29,10 +29,12 @@ class CommonUtilities():
     """ Some utilities for meta testing."""
     regenerate_expected = False
     seed = 42
+    pass_class = None
+    additional_args = {}
 
     def create_passmanager(self, coupling_map):
         ''' Returns a PassManager using self.pass_class and coupling_map '''
-        return PassManager(self.pass_class(CouplingMap(coupling_map)))
+        return PassManager(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
 
     def create_backend(self):
         ''' Returns a Backend.'''
@@ -124,7 +126,7 @@ class CommonTestCases(CommonUtilities):
         expected count: '0000': 50%
                         '1011': 50%
         """
-        self.count = {'0000': 512, '1011': 512}
+        self.count = {'1011': 512, '0000': 512}
         self.delta = 5
         coupling_map = [[0, 1], [1, 2], [2, 3]]
 
@@ -154,6 +156,7 @@ class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
 class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
     """ Test CommonTestCases using StochasticSwap """
     pass_class = StochasticSwap
+    additional_args = {'seed': 0}
 
 if __name__ == '__main__':
     CommonUtilities.regenerate_expected = True
