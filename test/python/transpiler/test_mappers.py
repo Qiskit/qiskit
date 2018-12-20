@@ -12,7 +12,7 @@ Regenerate ground truth by running this on the root directory:
 
 """
 
-# pylint: disable=redefined-builtin
+# pylint: disable=redefined-builtin,no-member,attribute-defined-outside-init
 
 import unittest
 import pickle
