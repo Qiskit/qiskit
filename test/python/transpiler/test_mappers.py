@@ -79,16 +79,16 @@ class CommonTestCases(CommonUtilities):
         self.delta = 5
         coupling_map = [[0, 1], [0, 2]]
 
-        qr = QuantumRegister(3, 'q', name='a_cx_to_map')
+        qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3, 'c')
-        circuit = QuantumCircuit(qr, cr)
+        circuit = QuantumCircuit(qr, cr, name='a_cx_to_map')
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
-        self.assertResult(result, 'a_cx_to_map')
+        self.assertResult(result, circuit.name)
 
     def test_handle_measurement(self):
         """ Handle measurement correctly
@@ -116,7 +116,7 @@ class CommonTestCases(CommonUtilities):
 
         qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(qr, cr)
+        circuit = QuantumCircuit(qr, cr, name='handle_measurement')
         circuit.h(qr[3])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[3], qr[1])
@@ -125,7 +125,7 @@ class CommonTestCases(CommonUtilities):
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
-        self.assertResult(result, 'handle_measurement')
+        self.assertResult(result, circuit.name)
 
 
 class TestsBasicMapper(CommonTestCases, QiskitTestCase):
