@@ -19,7 +19,7 @@ import pickle
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, compile
 from qiskit.transpiler import PassManager, transpile
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap
 from qiskit.mapper import CouplingMap
 
 from ..common import QiskitTestCase
@@ -151,6 +151,9 @@ class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
     """ Test CommonTestCases using LookaheadSwap """
     pass_class = LookaheadSwap
 
+class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
+    """ Test CommonTestCases using StochasticSwap """
+    pass_class = StochasticSwap
 
 if __name__ == '__main__':
     CommonUtilities.regenerate_expected = True
