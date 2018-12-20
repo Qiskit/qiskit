@@ -136,22 +136,29 @@ jobs:
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
+      name: "lint"
       script: make style VERBOSE="" && make lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
       <<: *stage_linux_no_compile
+      name: "python35-no-compile"
+      after_script: tools/store_subunit.sh
 
     # "test" stage
     ###########################################################################
     # GNU/Linux, Python 3.5
     - stage: test
       <<: *stage_linux
+      name: "python35"
+      after_script: tools/store_subunit.sh
 
     # GNU/Linux, Python 3.6
     - stage: test
       <<: *stage_linux
       python: 3.6
+      name: "python36"
+      after_script: tools/store_subunit.sh
 
     # GNU/Linux, Python 3.7
     - stage: test
@@ -163,14 +170,20 @@ jobs:
       dist: xenial
       python: 3.7
       sudo: true
+      name: "python37"
+      after_script: tools/store_subunit.sh
 
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
       <<: *stage_osx
+      name: "python36-osx"
+      after_script: tools/store_subunit.sh
 
     # OSX, Python 3.7 (via pyenv)
     - stage: test
       <<: *stage_osx_python3_7
+      name: "python37-osx"
+      after_script: tools/store_subunit.sh
 
     # "ibmq" stage
     ###########################################################################
@@ -180,6 +193,8 @@ jobs:
       if: branch = master and repo = Qiskit/qiskit-terra and type = push
       python: 3.6
       env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
+      name: "python36-ibmq"
+      after_script: tools/store_subunit.sh
 
     # "deploy" stage.
     ###########################################################################
