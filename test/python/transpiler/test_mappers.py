@@ -131,18 +131,8 @@ class CommonTestCases(CommonUtilities):
 class TestsBasicMapper(CommonTestCases, QiskitTestCase):
     pass_class = BasicSwap
 
-    def test_specific_input(self):
-        """Some specific test"""
-        self.assertTrue(True)
-
-
 class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
     pass_class = LookaheadSwap
-
-    def test_specific_input(self):
-        """Some specific test"""
-        self.assertTrue(True)
-
 
 if __name__ == '__main__':
     CommonUtilities.regenerate_expected = True
