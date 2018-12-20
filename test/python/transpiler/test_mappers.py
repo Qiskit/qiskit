@@ -33,9 +33,10 @@ class CommonUtilities():
     def create_backend(self):
         return BasicAer.get_backend('qasm_simulator')
 
-    def assertResult(self, result, test_name):
+    def get_expected(self,result, test_name):
         filename = self._get_resource_path(
             'pickles/%s_%s.pickle' % (type(self).__name__, test_name))
+
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
             sim_backend = self.create_backend()
@@ -45,10 +46,14 @@ class CommonUtilities():
 
             with open(filename, "wb") as output_file:
                 pickle.dump(result, output_file)
-        else:
-            with open(filename, "rb") as input_file:
-                expected = pickle.load(input_file)
-            self.assertEqual(result, expected)
+
+        with open(filename, "rb") as input_file:
+            expected = pickle.load(input_file)
+        return expected
+
+    def assertResult(self, result, test_name):
+        expected = self.get_expected(result, test_name)
+        self.assertEqual(result, expected)
 
 
 class CommonTestCases(CommonUtilities):
@@ -68,10 +73,10 @@ class CommonTestCases(CommonUtilities):
          CouplingMap map: [1]<-[0]->[2]
 
         expected count: '000': 50%
-                        '110': 50%}
+                        '110': 50%
         """
         self.count = {'000': 512, '110': 512}
-        self.delta = 10
+        self.delta = 5
         coupling_map = [[0, 1], [0, 2]]
 
         qr = QuantumRegister(3, 'q')
@@ -84,6 +89,43 @@ class CommonTestCases(CommonUtilities):
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, 'a_cx_to_map')
+
+    def test_handle_measurement(self):
+        """ Handle measurement correctly
+         q0:--.-----(+)-m-------
+              |      |  |
+         q1:-(+)-(+)-|--|-m-----
+                  |  |  | |
+         q2:------|--|--|-|-m---
+                  |  |  | | |
+         q3:-[H]--.--.--|-|-|-m-
+                        | | | |
+         c0:------------.-|-|-|-
+         c1:--------------.-|-|-
+         c2:----------------.-|-
+         c3:------------------.-
+
+         CouplingMap map: [0]->[1]->[2]->[3]
+
+        expected count: '0000': 50%
+                        '1011': 50%
+        """
+        self.count = {'0000': 512, '1011': 512}
+        self.delta = 5
+        coupling_map = [[0, 1], [1, 2], [2, 3]]
+
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[3])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[3], qr[1])
+        circuit.cx(qr[3], qr[0])
+        circuit.measure(qr, cr)
+
+        result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
+                           pass_manager=self.create_passmanager(coupling_map))
+        self.assertResult(result, 'handle_measurement')
 
 
 class TestsBasicMapper(CommonTestCases, QiskitTestCase):
