@@ -41,7 +41,7 @@ class CommonUtilities():
             sim_backend = self.create_backend()
             qobj = compile(result, sim_backend, seed=self.seed)
             job = sim_backend.run(qobj)
-            self.assertAlmostEqual(self.count, job.result().get_counts())
+            self.assertDictAlmostEqual(self.count, job.result().get_counts(), delta=self.delta)
 
             with open(filename, "wb") as output_file:
                 pickle.dump(result, output_file)
@@ -71,6 +71,7 @@ class CommonTestCases(CommonUtilities):
                         '110': 50%}
         """
         self.count = {'000': 512, '110': 512}
+        self.delta = 10
         coupling_map = [[0, 1], [0, 2]]
 
         qr = QuantumRegister(3, 'q')
