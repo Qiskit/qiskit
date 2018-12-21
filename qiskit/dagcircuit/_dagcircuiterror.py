@@ -8,7 +8,7 @@
 """
 Exception for errors raised by the DAGCircuit object.
 """
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 
 class DAGCircuitError(QiskitError):

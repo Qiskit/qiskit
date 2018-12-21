@@ -14,7 +14,7 @@ import warnings
 
 from marshmallow import ValidationError
 
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 from qiskit.providers import BaseBackend, JobStatus
 from qiskit.providers.models import BackendStatus, BackendProperties
 

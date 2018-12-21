@@ -13,7 +13,7 @@ Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
 
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 
 class Layout(dict):

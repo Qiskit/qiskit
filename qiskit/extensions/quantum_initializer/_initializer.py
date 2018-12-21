@@ -13,7 +13,7 @@ import math
 import numpy as np
 import scipy
 
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 from qiskit import QuantumCircuit
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate

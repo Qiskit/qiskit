@@ -9,7 +9,7 @@
 Exception for errors raised by jobs.
 """
 
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 
 class IBMQAccountError(QiskitError):

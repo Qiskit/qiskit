@@ -8,7 +8,7 @@
 """
 Exception for errors raised by the transpiler.
 """
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 
 class TranspilerError(QiskitError):

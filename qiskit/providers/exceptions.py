@@ -9,7 +9,7 @@
 Exceptions for errors raised while handling backends and jobs.
 """
 
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 
 class JobError(QiskitError):

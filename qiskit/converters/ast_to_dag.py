@@ -14,7 +14,7 @@ from collections import OrderedDict
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import QiskitError
+from qiskit.qiskiterror import QiskitError
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
