@@ -10,7 +10,6 @@
 
 """Main Qiskit public functionality."""
 
-import os
 import pkgutil
 
 # First, check for required Python and API version
@@ -55,6 +54,4 @@ from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
 from . import wrapper
 from . import tools
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    __version__ = version_file.read().strip()
+from .version import __version__
