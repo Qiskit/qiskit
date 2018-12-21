@@ -29,7 +29,6 @@ class CommonUtilities():
     """ Some utilities for meta testing."""
     regenerate_expected = False
     seed = 42
-    pass_class = None
     additional_args = {}
 
     def create_passmanager(self, coupling_map):
