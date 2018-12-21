@@ -207,10 +207,11 @@ class LayoutTest(QiskitTestCase):
         layout = Layout()
 
         with self.assertRaises(LayoutError):
-            layout[(self.qr,0)] = (self.qr,1)
+            layout[(self.qr, 0)] = (self.qr, 1)
 
         with self.assertRaises(LayoutError):
             layout[0] = 1
+
 
 if __name__ == '__main__':
     unittest.main()
