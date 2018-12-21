@@ -92,7 +92,6 @@ class LookaheadSwap(TransformationPass):
         dag_qubits = dag.get_qubits()
         coupling_qubits = coupling_map.physical_qubits
 
-
         if self.initial_layout is None:
             if self.property_set["layout"]:
                 self.initial_layout = self.property_set["layout"]

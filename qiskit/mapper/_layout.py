@@ -197,6 +197,7 @@ class Layout(dict):
             layout.add_register(reg)
         return layout
 
+
 class LayoutError(QiskitError):
     """Errors raised by the layout object."""
 

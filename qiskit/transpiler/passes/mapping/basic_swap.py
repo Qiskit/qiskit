@@ -53,7 +53,6 @@ class BasicSwap(TransformationPass):
         """
         new_dag = DAGCircuit()
 
-
         if self.initial_layout is None:
             if self.property_set["layout"]:
                 self.initial_layout = self.property_set["layout"]
