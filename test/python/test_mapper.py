@@ -266,15 +266,15 @@ class TestMapper(QiskitTestCase):
         dag_circuit = circuit_to_dag(circ)
         qr_qa = QuantumRegister(2, 'qa')    # qreg qa[2];
         qr_qb = QuantumRegister(3, 'qb')    # qreg qb[3];
-        qr_qN = QuantumRegister(3, 'qN')    # qreg qN[3];
+        qr_qn = QuantumRegister(3, 'qN')    # qreg qN[3];
         qr_qc = QuantumRegister(1, 'qc')    # qreg qc[1];
-        qr_qNt = QuantumRegister(2, 'qNt')  # qreg qNt[2];
+        qr_qnt = QuantumRegister(2, 'qNt')  # qreg qNt[2];
         qr_qt = QuantumRegister(1, 'qt')    # qreg qt[1];
 
         lay = {(qr_qa, 0): 0, (qr_qa, 1): 1, (qr_qb, 0): 15,
-               (qr_qb, 1): 2, (qr_qb, 2): 14, (qr_qN, 0): 3,
-               (qr_qN, 1): 13, (qr_qN, 2): 4, (qr_qc, 0): 12,
-               (qr_qNt, 0): 5, (qr_qNt, 1): 11, (qr_qt, 0): 6}
+               (qr_qb, 1): 2, (qr_qb, 2): 14, (qr_qn, 0): 3,
+               (qr_qn, 1): 13, (qr_qn, 2): 4, (qr_qc, 0): 12,
+               (qr_qnt, 0): 5, (qr_qnt, 1): 11, (qr_qt, 0): 6}
         out_dag = transpile_dag(dag_circuit, initial_layout=Layout(lay),
                                 coupling_map=cmap, format='dag')
         meas_nodes = out_dag.get_named_nodes('measure')

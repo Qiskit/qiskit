@@ -73,7 +73,7 @@ class Layout(dict):
     def __setitem__(self, key, value):
         Layout.checktype(key)
         Layout.checktype(value)
-        if type(key) == type(value):
+        if isinstance(key, type(value)):
             raise LayoutError('Key (%s) and value (%s) cannot have the same type' % (key, value))
 
         if key in self:
