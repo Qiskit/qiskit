@@ -367,7 +367,7 @@ class UnitarySimulatorPy(BaseBackend):
         for experiment in qobj.experiments:
             name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info('"%s" only supports 1 shot. ' +
+                logger.info('"%s" only supports 1 shot. '
                             'Setting shots=1 for circuit "%s".',
                             self.name(), name)
                 experiment.config.shots = 1

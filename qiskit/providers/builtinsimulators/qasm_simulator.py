@@ -188,7 +188,7 @@ class QasmSimulatorPy(BaseBackend):
             list: A list of memory values in hex format.
         """
         # Get unique qubits that are actually measured
-        measured_qubits = list(set([qubit for qubit, clbit in measure_params]))
+        measured_qubits = list({qubit for qubit, clbit in measure_params})
         num_measured = len(measured_qubits)
         # Axis for numpy.sum to compute probabilities
         axis = list(range(self._number_of_qubits))
@@ -566,8 +566,8 @@ class QasmSimulatorPy(BaseBackend):
         for experiment in qobj.experiments:
             name = experiment.header.name
             if experiment.config.memory_slots == 0:
-                logger.warning('No classical registers in circuit "%s", ' +
+                logger.warning('No classical registers in circuit "%s", '
                                'counts will be empty.', name)
             elif 'measure' not in [op.name for op in experiment.instructions]:
-                logger.warning('No measurements in circuit "%s", ' +
+                logger.warning('No measurements in circuit "%s", '
                                'classical register will remain all zeros.', name)
