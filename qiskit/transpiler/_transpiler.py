@@ -185,7 +185,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Expand swaps
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
-            dag = CXDirection(coupling).run(dag)
+            dag = CXDirection(coupling, initial_layout).run(dag)
             # Simplify cx gates
             dag = CXCancellation().run(dag)
             # Unroll to the basis
