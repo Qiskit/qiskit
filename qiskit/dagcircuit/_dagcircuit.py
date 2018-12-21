@@ -23,8 +23,9 @@ import copy
 import itertools
 import networkx as nx
 
-from qiskit import QuantumRegister, ClassicalRegister
-from qiskit.circuit import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.gate import Gate
 from ._dagcircuiterror import DAGCircuitError
 
 

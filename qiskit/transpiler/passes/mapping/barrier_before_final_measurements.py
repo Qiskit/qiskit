@@ -11,7 +11,7 @@ This pass adds a barrier before the final measurements.
 """
 
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.transpiler import TransformationPass
+from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 

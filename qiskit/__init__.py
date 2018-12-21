@@ -50,8 +50,4 @@ except ImportError:
 # TODO: Remove
 from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
 
-# Import the wrapper, to make it available when doing "import qiskit".
-from . import wrapper
-from . import tools
-
 from .version import __version__

@@ -14,7 +14,7 @@ import numpy as np
 import scipy
 
 from qiskit.qiskiterror import QiskitError
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate

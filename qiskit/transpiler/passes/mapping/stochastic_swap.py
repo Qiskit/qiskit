@@ -19,7 +19,8 @@ from qiskit.transpiler import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
+
 
 logger = getLogger(__name__)
 

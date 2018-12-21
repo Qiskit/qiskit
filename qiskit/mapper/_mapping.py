@@ -17,12 +17,12 @@ import sys
 import numpy as np
 import sympy
 
-from qiskit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.swap import SwapGate
 
-from . import MapperError
+from ._mappererror import MapperError
 
 
 logger = logging.getLogger(__name__)

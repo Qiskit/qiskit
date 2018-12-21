@@ -19,7 +19,7 @@ from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 
 class BasicSwap(TransformationPass):
