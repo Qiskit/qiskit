@@ -183,6 +183,19 @@ class Layout(dict):
 
         return edge_map
 
+    @staticmethod
+    def default_layout(*regs):
+        """
+        Creates a default Layout with the registers in `regs`.
+        Args:
+            *regs (Registers): registers to include in the layout.
+        Returns:
+            Layout: A layout with all the `regs` in the given order.
+        """
+        layout = Layout()
+        for reg in regs:
+            layout.add_register(reg)
+        return layout
 
 class LayoutError(QiskitError):
     """Errors raised by the layout object."""
