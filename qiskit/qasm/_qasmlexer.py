@@ -24,7 +24,7 @@ CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
 
 
-class QasmLexer(object):
+class QasmLexer:
     """OPENQASM Lexer.
 
     This is a wrapper around the PLY lexer to support the "include" statement

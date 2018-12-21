@@ -11,7 +11,7 @@ Base backend object for the unroller that raises BackendError.
 from ._backenderror import BackendError
 
 
-class UnrollerBackend(object):
+class UnrollerBackend:
     """Backend for the unroller that raises BackendError.
 
     This backend also serves as a base class for other unroller backends.

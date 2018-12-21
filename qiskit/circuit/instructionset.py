@@ -12,7 +12,7 @@ from qiskit.qiskiterror import QiskitError
 from .instruction import Instruction
 
 
-class InstructionSet(object):
+class InstructionSet:
     """Instruction collection."""
 
     def __init__(self):

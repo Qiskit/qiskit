@@ -33,7 +33,7 @@ from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
 
-class Instruction(object):
+class Instruction:
     """Generic quantum instruction."""
 
     def __init__(self, name, param, qargs, cargs, circuit=None):

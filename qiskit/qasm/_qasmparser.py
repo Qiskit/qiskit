@@ -20,7 +20,7 @@ from ._qasmerror import QasmError
 from ._qasmlexer import QasmLexer
 
 
-class QasmParser(object):
+class QasmParser:
     """OPENQASM Parser."""
 
     # pylint: disable=unused-argument,missing-docstring,invalid-name

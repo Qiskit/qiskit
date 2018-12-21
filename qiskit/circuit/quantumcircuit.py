@@ -23,7 +23,7 @@ from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
 
-class QuantumCircuit(object):
+class QuantumCircuit:
     """Quantum circuit."""
     instances = 0
     prefix = 'circuit'

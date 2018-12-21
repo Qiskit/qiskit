@@ -12,7 +12,7 @@ from ._qasmerror import QasmError
 from ._qasmparser import QasmParser
 
 
-class Qasm(object):
+class Qasm:
     """OPENQASM circuit object."""
 
     def __init__(self, filename=None, data=None):

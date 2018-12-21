@@ -23,7 +23,7 @@ from qiskit.tools.visualization import _error
 from qiskit.tools.visualization import _qcstyle
 
 
-class QCircuitImage(object):
+class QCircuitImage:
     """This class contains methods to create \\LaTeX circuit images.
 
     The class targets the \\LaTeX package Q-circuit

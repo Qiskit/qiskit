@@ -70,7 +70,7 @@ def ast_to_dag(ast):
     return dag
 
 
-class AstInterpreter(object):
+class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
     def __init__(self, dag):
