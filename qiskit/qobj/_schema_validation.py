@@ -13,7 +13,6 @@ import logging
 import jsonschema
 
 from qiskit.qiskiterror import QiskitError
-from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +100,7 @@ def _get_validator(name, schema=None, check_schema=True,
 
 def _load_schemas_and_validators():
     """Load all default schemas into `_SCHEMAS`."""
-
-    schema_base_path = qiskit_path[0]
+    schema_base_path = os.path.join(os.path.dirname(__file__), '..')
     for name, path in _DEFAULT_SCHEMA_PATHS.items():
         _load_schema(os.path.join(schema_base_path, path), name)
         _get_validator(name)

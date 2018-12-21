@@ -8,7 +8,7 @@
 """Model for schema-conformant Results."""
 
 import warnings
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.qiskiterror import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
