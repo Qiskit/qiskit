@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
+cd ..
 # If stestr is not run we don't have anything to populate in the db
-if [ ! -d "../.stestr" ] ; then
+if [ ! -d ".stestr" ] ; then
     exit 0
 fi
 
