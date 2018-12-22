@@ -19,12 +19,13 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.display import display    # pylint: disable=import-error
 
 
-def _text_checker(job, interval):
+def _text_checker(job, interval, _interval_set=False):
     """A text-based job status checker
 
     Args:
         job (BaseJob): The job to check.
         interval (int): The interval at which to check.
+        _interval_set (bool): Was interval time set by user?
     """
     status = job.status()
     msg = status.value
@@ -39,6 +40,11 @@ def _text_checker(job, interval):
 
         if status.name == 'QUEUED':
             msg += ' (%s)' % job.queue_position()
+            if not _interval_set:
+                interval = max(job.queue_position(), 2)
+        else:
+            if not _interval_set:
+                interval = 2
 
         # Adjust length of message so there are no artifacts
         if len(msg) < msg_len:
@@ -52,7 +58,7 @@ def _text_checker(job, interval):
     print('')
 
 
-def job_monitor(job, interval=2, monitor_async=False):
+def job_monitor(job, interval=None, monitor_async=False):
     """Monitor the status of a IBMQJob instance.
 
     Args:
@@ -64,6 +70,11 @@ def job_monitor(job, interval=2, monitor_async=False):
         QiskitError: When trying to run async outside of Jupyter
         ImportError: ipywidgets not available for notebook.
     """
+    if interval is None:
+        _interval_set = False
+        interval = 2
+    else:
+        _interval_set = True
     if _NOTEBOOK_ENV:
         if monitor_async:
             try:
@@ -82,9 +93,9 @@ def job_monitor(job, interval=2, monitor_async=False):
                                                                   status, header))
             thread.start()
         else:
-            _text_checker(job, interval)
+            _text_checker(job, interval, _interval_set)
 
     else:
         if monitor_async:
             raise QiskitError('monitor_async only available in Jupyter notebooks.')
-        _text_checker(job, interval)
+        _text_checker(job, interval, _interval_set)
