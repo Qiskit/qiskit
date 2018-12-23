@@ -14,7 +14,6 @@ Table of Contents
    :maxdepth: 2
 
    Overview <overview>
-   Installation and Setup <install>
    Getting Started with Qiskit Terra <getting_started_with_qiskit_terra>
    The IBM Q Provider <the_ibmq_provider>
    Plotting Data in Qiskit <plotting_data_in_qiskit>
