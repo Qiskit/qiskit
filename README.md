@@ -4,11 +4,11 @@
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
 [![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
 
-**Qiskit**  is a software development kit  for
-developing quantum computing applications and working with NISQ (Noisy-Intermediate Scale Quantum) computers.
+**Qiskit** is an open-source framework for working with noisy intermediate-scale quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
+
 
 Qiskit is made up elements that each work together to enable quantum computing. This element is **Terra** 
-and is the foundation on which the rest of Qiskit is built (see this [post](https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492) for an overview).
+and is the foundation on which the rest of Qiskit is built.
 
 
 ## Installation
