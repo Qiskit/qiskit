@@ -49,7 +49,7 @@ class CommonUtilities():
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        qobj = compile(result, sim_backend, seed=self.seed)
+        qobj = compile(result, sim_backend, seed=self.seed, shots=self.shots)
         job = sim_backend.run(qobj)
         self.assertDictAlmostEqual(self.count, job.result().get_counts(), delta=self.delta)
 
@@ -91,6 +91,7 @@ class CommonTestCases(CommonUtilities):
                         '110': 50%
         """
         self.count = {'000': 512, '110': 512}
+        self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [0, 2]]
 
