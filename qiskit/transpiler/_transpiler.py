@@ -10,13 +10,11 @@ import logging
 import warnings
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
 from qiskit.mapper import CouplingMap, swap_mapper
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.mapper import Layout
 from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout, TrivialLayout,
                      CheckMap, Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
 from ._transpilererror import TranspilerError

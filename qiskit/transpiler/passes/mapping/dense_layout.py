@@ -63,7 +63,7 @@ class DenseLayout(AnalysisPass):
             for i in range(qreg.size):
                 layout[(qreg, i)] = int(best_sub[map_iter])
                 map_iter += 1
-        self.property_set['layout'] = layout        
+        self.property_set['layout'] = layout
 
     def _best_subset(self, n_qubits):
         """Computes the qubit mapping with the best connectivity.

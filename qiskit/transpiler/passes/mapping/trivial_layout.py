@@ -54,4 +54,4 @@ class TrivialLayout(AnalysisPass):
         layout = Layout()
         for qreg in dag.qregs.values():
             layout.add_register(qreg)
-        self.property_set['layout'] = layout        
+        self.property_set['layout'] = layout
