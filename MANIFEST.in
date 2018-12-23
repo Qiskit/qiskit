@@ -8,3 +8,4 @@ include qiskit/VERSION.txt
 include CMakeLists.txt
 include cmake/*.cmake
 include setup.py.in
+include requirements.txt

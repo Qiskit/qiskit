@@ -14,21 +14,8 @@ from subprocess import call
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
 
-
-requirements = [
-    "jsonschema>=2.6,<2.7",
-    "marshmallow>=2.16.3,<3",
-    "marshmallow_polyfield>=3.2,<4",
-    "networkx>=2.2",
-    "numpy>=1.13",
-    "pillow>=4.2.1",
-    "ply>=3.10",
-    "psutil>=5",
-    "requests>=2.19",
-    "requests-ntlm>=1.1.0",
-    "scipy>=0.19,!=0.19.1",
-    "sympy>=1.3"
-]
+with open("requirements.txt") as req_file:
+    requirements = req_file.readlines()
 
 
 # C++ components compilation
