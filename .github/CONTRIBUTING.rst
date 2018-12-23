@@ -408,7 +408,7 @@ All platforms:
 
 .. code:: sh
 
-    $> cd out
+    $> cd doc
     doc$> make doc
 
 
