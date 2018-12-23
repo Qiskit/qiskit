@@ -408,8 +408,7 @@ All platforms:
 
 .. code:: sh
 
-    $> cd doc
-    doc$> make doc
+    $> make doc
 
 
 Development cycle
