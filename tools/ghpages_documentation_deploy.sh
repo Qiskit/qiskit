@@ -14,7 +14,7 @@
 # GH_TOKEN
 
 # Non-travis variables used by this script.
-TARGET_REPOSITORY_USER="QISKit"
+TARGET_REPOSITORY_USER="Qiskit"
 TARGET_REPOSITORY_NAME="qiskit.github.io"
 TARGET_DOC_DIR="documentation"
 TARGET_DOC_DIR_DE="documentation/de"
@@ -33,10 +33,11 @@ git clone https://github.com/$TARGET_REPOSITORY_USER/$TARGET_REPOSITORY_NAME.git
 cd $TARGET_REPOSITORY_NAME
 
 echo "Replacing $TARGET_DOC_DIR with the new contents ..."
-git rm -rf $TARGET_DOC_DIR/_* $TARGET_DOC_DIR/de $TARGET_DOC_DIR/ja $TARGET_DOC_DIR/*.html
-cp -r $SOURCE_DIR/$SOURCE_DOC_DIR $TARGET_DOC_DIR
-cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_DE $TARGET_DOC_DIR_DE
-cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_JA $TARGET_DOC_DIR_JA
+git rm -rf $TARGET_DOC_DIR/_* $TARGET_DOC_DIR/de/* $TARGET_DOC_DIR/ja/* $TARGET_DOC_DIR/*.html
+mkdir -p $TARGET_DOC_DIR $TARGET_DOC_DIR_DE $TARGET_DOC_DIR_JA
+cp -r $SOURCE_DIR/$SOURCE_DOC_DIR/* $TARGET_DOC_DIR/
+cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_DE/* $TARGET_DOC_DIR_DE/
+cp -r $SOURCE_DIR/$SOURCE_DOC_DIR_JA/* $TARGET_DOC_DIR_JA/
 git add $TARGET_DOC_DIR
 
 echo "Commiting and pushing changes ..."

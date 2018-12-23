@@ -1,12 +1,15 @@
+
 Contributing
 ============
 
 **We appreciate all kinds of help, so thank you!**
 
+
 Contributing to the project
 ---------------------------
 
 You can contribute in many ways to this project.
+
 
 Issue reporting
 ~~~~~~~~~~~~~~~
@@ -15,6 +18,7 @@ This is a good point to start, when you find a problem please add
 it to the `issue tracker <https://github.com/Qiskit/qiskit-terra/issues>`_.
 The ideal report should include the steps to reproduce it.
 
+
 Doubts solving
 ~~~~~~~~~~~~~~
 
@@ -22,12 +26,14 @@ To help less advanced users is another wonderful way to start. You can
 help us close some opened issues. This kind of tickets should be
 labeled as ``question``.
 
+
 Improvement proposal
 ~~~~~~~~~~~~~~~~~~~~
 
 If you have an idea for a new feature please open a ticket labeled as
 ``enhancement``. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
+
 
 Contributor License Agreement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,11 +60,13 @@ You are welcome to contribute wherever in the code you want to, of course, but
 we recommend taking a look at the "Good first contribution" label into the
 issues and pick one. We would love to mentor you!
 
+
 Doc
 ~~~
 
 Review the parts of the documentation regarding the new changes and update it
 if it's needed.
+
 
 Pull requests
 ~~~~~~~~~~~~~
@@ -86,6 +94,7 @@ you are ready to start coding (yay!). We have two options here:
    will remove the **[WIP]** prefix from the description once the PR is ready
    to merge.
 
+
 Pull request checklist
 """"""""""""""""""""""
 
@@ -104,6 +113,7 @@ double check that:
   section, with the title of your pull request and its identifier (for example,
   "``Replace OldComponent with FluxCapacitor (#123)``".
 
+
 Commit messages
 """""""""""""""
 
@@ -119,7 +129,7 @@ Please follow the next rules for the commit messages:
 
 A good example:
 
-.. code::
+.. code-block:: text
 
     Issue #190: Short summary of the issue
     * One of the important changes
@@ -130,6 +140,7 @@ Code
 ----
 
 This section include some tips that will help you to push source code.
+
 
 Dependencies
 ~~~~~~~~~~~~
@@ -149,6 +160,7 @@ For the python code, we need some libraries that can be installed in this way:
     # Depending on the system and setup to append "sudo -H" before could be needed.
     pip install -U -r requirements.txt
     pip install -U -r requirements-dev.txt
+
 
 Building
 ~~~~~~~~
@@ -179,6 +191,7 @@ the Linux and Mac version, this is because we need to provide CMake with some
 more info about where to find libphreads.a for later building. Furthermore,
 we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
+
 
 Useful CMake flags
 ~~~~~~~~~~~~~~~~~~
@@ -285,10 +298,38 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/test_circuit.py
 
-Note many of the test will not pass unless you have setup an account with the IBMQ. To set this up please go to
-this `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and register an account. 
-We are working on making this simpler and making the test for Qiskit Terra not needing an account. 
+Note many of the tests will not be executed unless you have setup an IBMQ
+account. To set this up please go to this
+`page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and
+register an account.
 
+By default, and if there is no user credentials available, the tests that
+require online access are run with recorded (mocked) information. This is, the
+remote requests are replayed from a ``test/cassettes`` and not real HTTP
+requests is generated. If user credentials are found, in that cases it use them
+to make the network requests.
+
+How and which tests are executed is controlled by a environment variable
+``QISKIT_TESTS``. The options are (where ``uc_available = True`` if the user
+credentials are available, and ``False`` otherwise):
+
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+|  Option           | Description                                                                                                        | Default               |  If ``True``, forces                             |
++===================+====================================================================================================================+=======================+==================================================+
+| ``skip_online``   | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | ``False``             | ``rec = False``                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``mock_online``   | It runs the online tests using mocked information. Does not require user credentials.                              | ``not uc_available``  | ``skip_online = False``                          |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``run_slow``      | It runs tests tagged as *slow*.                                                                                    | ``False``             |                                                  |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+| ``rec``           | It records the remote requests. It requires user credentials.                                                      | ``False``             | ``skip_online = False``                          |
+|                   |                                                                                                                    |                       | ``run_slow = False``                             |
++-------------------+--------------------------------------------------------------------------------------------------------------------+-----------------------+--------------------------------------------------+
+
+It is possible to provide more than one option separated with commas.
+The order of precedence in the options is right to left. For example,
+``QISKIT_TESTS=skip_online,rec`` will set the options as
+``skip_online == False`` and ``rec == True``.
 
 Style guide
 ~~~~~~~~~~~
@@ -320,6 +361,7 @@ announce it and detail what has changed since the latest version.
 The channels we'll use to announce new releases are still being discussed, but
 for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
 
+
 Branch model
 ~~~~~~~~~~~~
 
@@ -350,6 +392,7 @@ There are two main branches in the repository:
     stable software ready for production environments.
   - All the tags from the release versions are created from this branch.
 
+
 Release cycle
 ~~~~~~~~~~~~~
 
@@ -367,6 +410,7 @@ When the time for a new release has come, we will:
 The ``stable`` branch should only receive changes in the form of bug fixes, so the
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
+
 
 What version should I use: development or stable?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

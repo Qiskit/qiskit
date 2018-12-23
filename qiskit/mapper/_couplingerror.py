@@ -6,12 +6,12 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by the Coupling object.
+Exception for errors raised by the CouplingMap object.
 """
-from qiskit import QISKitError
+from qiskit import QiskitError
 
 
-class CouplingError(QISKitError):
+class CouplingError(QiskitError):
     """Base class for errors raised by the coupling graph object."""
 
     def __init__(self, *msg):

@@ -10,11 +10,13 @@
 """
 Single qubit gate cycle idle.
 """
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import InstructionSet
+from qiskit.circuit import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.ubase import UBase
 
 
 class U0Gate(Gate):
@@ -24,13 +26,17 @@ class U0Gate(Gate):
         """Create new u0 gate."""
         super().__init__("u0", [m], [qubit], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        m = self.param[0]
-        return self._qasmif("u0(%f) %s[%d];" % (m,
-                                                qubit[0].name,
-                                                qubit[1]))
+    def _define_decompositions(self):
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("U", 1, 0, 3)
+        rule = [
+            UBase(0, 0, 0, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
@@ -38,7 +44,7 @@ class U0Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u0(self.param[0], self.arg[0]))
+        self._modifiers(circ.u0(self.param[0], self.qargs[0]))
 
 
 def u0(self, m, q):
@@ -54,4 +60,3 @@ def u0(self, m, q):
 
 
 QuantumCircuit.u0 = u0
-CompositeGate.u0 = u0

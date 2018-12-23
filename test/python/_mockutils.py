@@ -19,13 +19,15 @@ import logging
 from concurrent import futures
 import time
 
-from qiskit import Result
-from qiskit.backends import BaseBackend
-from qiskit.backends import BaseJob
+from qiskit.result import Result
+from qiskit.providers import BaseBackend
+from qiskit.providers import BaseJob
+from qiskit.providers.models import BackendProperties, BackendConfiguration
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
-from qiskit.backends.jobstatus import JobStatus
-from qiskit.backends.baseprovider import BaseProvider
+from qiskit.providers.jobstatus import JobStatus
+from qiskit.providers.baseprovider import BaseProvider
 
 logger = logging.getLogger(__name__)
 
@@ -44,23 +46,13 @@ class DummyProvider(BaseProvider):
 
         super().__init__()
 
-    def available_backends(self, filters=None):
-        # pylint: disable=arguments-differ
-        backends = {DummySimulator.name: self._backend}
-
-        filters = filters or {}
-        for key, value in filters.items():
-            backends = {name: instance for name, instance in backends.items()
-                        if instance.configuration().get(key) == value}
-        return list(backends.values())
-
 
 class DummySimulator(BaseBackend):
     """ This is Dummy backend simulator just for testing purposes """
 
     DEFAULT_CONFIGURATION = {
         'name': 'local_dummy_simulator',
-        'url': 'https://github.com/QISKit/qiskit-terra',
+        'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
         'description': 'A dummy simulator for testing purposes',
@@ -77,6 +69,23 @@ class DummySimulator(BaseBackend):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
         self.time_alive = time_alive
 
+    def properties(self):
+        """Return backend properties"""
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                         'unit': 'TODO', 'value': 0}]],
+            'gates': [{'qubits': [0], 'gate': 'TODO',
+                       'parameters':
+                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                             'unit': 'TODO', 'value': 0}]}],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
+
     def run(self, qobj):
         job_id = str(uuid.uuid4())
         job = DummyJob(self.run_job, qobj, job_id, self)
@@ -88,7 +97,7 @@ class DummySimulator(BaseBackend):
         """ Main dummy simulator loop """
         time.sleep(self.time_alive)
 
-        return Result(
+        return Result.from_dict(
             {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
 
 
@@ -172,9 +181,31 @@ def new_fake_qobj():
     )
 
 
-class FakeBackend():
-    """Fakes qiskit.backends.basebackend.BaseBackend instances."""
+class FakeBackend(object):
+    """A fake backend.
+    """
 
     def name(self):
-        """Return the name of the backend."""
-        return 'test-backend'
+        """ name of fake backend"""
+        return 'qiskit_is_cool'
+
+    def configuration(self):
+        """Return a make up configuration for a fake device."""
+        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
+                    [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
+                    [15, 2], [15, 14]]
+        return BackendConfiguration(
+            backend_name='fake',
+            backend_version='0.0.0',
+            n_qubits=16,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=False,
+            open_pulse=False,
+            memory=False,
+            max_shots=65536,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=qx5_cmap,
+        )
