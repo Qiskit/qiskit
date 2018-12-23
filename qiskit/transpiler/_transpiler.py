@@ -16,8 +16,9 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout, CheckMap,
-                     Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
+from qiskit.mapper import Layout
+from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout, TrivialLayout,
+                     CheckMap, Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
 from ._transpilererror import TranspilerError
 
 logger = logging.getLogger(__name__)
@@ -56,8 +57,7 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         raise TranspilerError('no basis_gates or backend to compile to')
 
     circuits = parallel_map(_transpilation, circuits,
-                            task_kwargs={'backend': backend,
-                                         'basis_gates': basis_gates,
+                            task_kwargs={'basis_gates': basis_gates,
                                          'coupling_map': coupling_map,
                                          'initial_layout': initial_layout,
                                          'seed_mapper': seed_mapper,
@@ -67,14 +67,13 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
     return circuits
 
 
-def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
+def _transpilation(circuit, basis_gates=None, coupling_map=None,
                    initial_layout=None, seed_mapper=None,
                    pass_manager=None):
     """Perform transpilation of a single circuit.
 
     Args:
         circuit (QuantumCircuit): A circuit to transpile.
-        backend (BaseBackend): a backend to compile for
         basis_gates (str): comma-separated basis gate set to compile to
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
@@ -91,14 +90,26 @@ def _transpilation(circuit, backend=None, basis_gates=None, coupling_map=None,
         return circuit
 
     dag = circuit_to_dag(circuit)
-    if not backend and not initial_layout:
-        raise TranspilerError('initial layout not supplied, and cannot '
-                              'be inferred from backend.')
-    if not backend.configuration().simulator:
-        CheckMap(CouplingMap(coupling_map)).run(dag)
-        dense_layout = DenseLayout(CouplingMap(coupling_map), initial_layout)
-        dense_layout.run(dag)
-        initial_layout = dense_layout.property_set['layout']
+
+    # pick a trivial layout if the circuit already satisfies the coupling constraints
+    # else layout on the most densely connected physical qubit subset
+    # FIXME: this should be simplified once it is ported to a PassManager
+    if coupling_map:
+        check_map = CheckMap(CouplingMap(coupling_map))
+        check_map.run(dag)
+        if check_map.property_set['is_direction_mapped']:
+            trivial_layout = TrivialLayout(CouplingMap(coupling_map))
+            trivial_layout.run(dag)
+            initial_layout = trivial_layout.property_set['layout']
+        else:
+            dense_layout = DenseLayout(CouplingMap(coupling_map))
+            dense_layout.run(dag)
+            initial_layout = dense_layout.property_set['layout']
+        # temporarily build old-style layout dict
+        # (FIXME: remove after transition to StochasticSwap pass)
+        layout = initial_layout.copy()
+        virtual_qubits = layout.get_virtual_bits()
+        initial_layout = {(v[0].name, v[1]): ('q', layout[v]) for v in virtual_qubits}
 
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
@@ -153,7 +164,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
 
     Returns:
         DAGCircuit: transformed dag
-        DAGCircuit, dict: transformed dag along with the final layout on backend qubits
     """
     # TODO: `basis_gates` will be removed after we have the unroller pass.
     # TODO: `coupling_map`, `initial_layout`, `seed_mapper` removed after mapper pass.

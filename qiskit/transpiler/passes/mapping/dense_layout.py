@@ -21,7 +21,6 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.mapper import Layout
 from qiskit.transpiler._basepasses import AnalysisPass
-from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler import TranspilerError
 
 
@@ -32,7 +31,7 @@ class DenseLayout(AnalysisPass):
 
     def __init__(self, coupling_map):
         """
-        Maps a DAGCircuit onto a `coupling_map` using swap gates.
+        Chooses a DenseLayout
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
@@ -42,43 +41,17 @@ class DenseLayout(AnalysisPass):
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.requires.append(CheckMap(self.coupling_map))
 
     def run(self, dag):
         """
-        Run the DenseLayout pass on `dag`, and set the property `layout`.
-
-        The following scenarios will be taken in order:
-        1. layout=qr[i]->i, if the dag can be trivially laid out
-        2. layout=_pick_best_layout(), otherwise
+        Pick a convenient layout depending on the best matching
+        qubit connectivity, and set the property `layout`.
 
         Args:
             dag (DAGCircuit): DAG to find layout for.
 
         Raises:
-            TranspilerError: with malformed inputs
-        """
-        if self.property_set['is_direction_mapped']:
-            trivial_layout = Layout()
-            for qreg in dag.qregs.values():
-                trivial_layout.add_register(qreg)
-            self.property_set['layout'] = trivial_layout
-        else:
-            self.property_set['layout'] = self._pick_best_layout(dag)
-
-    def _pick_best_layout(self, dag):
-        """Pick a convenient layout depending on the best matching
-        qubit connectivity.
-
-        Args:
-            dag (DAGCircuit): DAG representation of circuit.
-
-        Returns:
-            Layout: a good layout for the virtual qubits in DAG to physical qubits
-                in coupling_map
-
-        Raises:
-            TranspilerError: if wrong number of qubits given.
+            TranspilerError: if dag wider than self.coupling_map
         """
         num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
         if num_dag_qubits > self.coupling_map.size():
@@ -90,7 +63,7 @@ class DenseLayout(AnalysisPass):
             for i in range(qreg.size):
                 layout[(qreg, i)] = int(best_sub[map_iter])
                 map_iter += 1
-        return layout
+        self.property_set['layout'] = layout        
 
     def _best_subset(self, n_qubits):
         """Computes the qubit mapping with the best connectivity.
