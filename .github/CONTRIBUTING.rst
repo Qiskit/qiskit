@@ -323,14 +323,14 @@ Linux and Mac:
 
 .. code-block:: bash
 
-    $ LOG_LEVEL=INFO python -m unittest test/python/test_circuit.py
+    $ LOG_LEVEL=INFO python -m unittest test/python/circuit/test_circuit_operations.py
 
 Windows:
 
 .. code-block:: bash
 
     C:\..\> set LOG_LEVEL="INFO"
-    C:\..\> python -m unittest test/python/test_circuit.py
+    C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 
 Note many of the tests will not be executed unless you have setup an IBMQ
 account. To set this up please go to this
