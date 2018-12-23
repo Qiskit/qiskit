@@ -127,6 +127,7 @@ class CommonTestCases(CommonUtilities):
                         '1011': 50%
         """
         self.count = {'1011': 512, '0000': 512}
+        self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [1, 2], [2, 3]]
 
