@@ -226,7 +226,7 @@ def _best_subset(backend, n_qubits):
     """
     if n_qubits == 1:
         return np.array([0])
-    elif n_qubits <= 0:
+    if n_qubits <= 0:
         raise TranspilerError('Number of qubits <= 0.')
 
     device_qubits = backend.configuration().n_qubits

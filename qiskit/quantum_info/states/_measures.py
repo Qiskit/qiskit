@@ -48,10 +48,10 @@ def state_fidelity(state1, state2):
     if s1.ndim == 1 and s2.ndim == 1:
         return np.abs(s2.conj().dot(s1)) ** 2
     # fidelity of vector and density matrix
-    elif s1.ndim == 1:
+    if s1.ndim == 1:
         # psi = s1, rho = s2
         return np.abs(s1.conj().dot(s2).dot(s1))
-    elif s2.ndim == 1:
+    if s2.ndim == 1:
         # psi = s2, rho = s1
         return np.abs(s2.conj().dot(s1).dot(s2))
     # fidelity of two density matrices

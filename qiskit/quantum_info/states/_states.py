@@ -34,8 +34,7 @@ def basis_state(str_state, num):
         state = np.zeros(1 << num, dtype=complex)
         state[n] = 1
         return state
-    else:
-        raise QiskitError('size of bitstring is greater than num.')
+    raise QiskitError('size of bitstring is greater than num.')
 
 
 def random_state(num):

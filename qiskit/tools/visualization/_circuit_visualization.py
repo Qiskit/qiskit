@@ -219,15 +219,17 @@ def circuit_drawer(circuit,
                                         line_length=line_length,
                                         reversebits=reverse_bits,
                                         plotbarriers=plot_barriers)
-        elif output == 'latex':
-            image = _latex_circuit_drawer(circuit, scale=scale,
-                                          filename=filename, style=style,
-                                          plot_barriers=plot_barriers,
-                                          reverse_bits=reverse_bits)
-        elif output == 'latex_source':
+
+        if output == 'latex_source':
             return _generate_latex_source(circuit,
                                           filename=filename, scale=scale,
                                           style=style,
+                                          plot_barriers=plot_barriers,
+                                          reverse_bits=reverse_bits)
+
+        if output == 'latex':
+            image = _latex_circuit_drawer(circuit, scale=scale,
+                                          filename=filename, style=style,
                                           plot_barriers=plot_barriers,
                                           reverse_bits=reverse_bits)
         elif output == 'mpl':

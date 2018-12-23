@@ -545,7 +545,8 @@ def pauli_group(number_of_qubits, case='weight'):
             # sort on the weight of the Pauli operator
             return sorted(tmp, key=lambda x: -np.count_nonzero(
                 np.array(x.to_label(), 'c') == b'I'))
-        elif case == 'tensor':
+
+        if case == 'tensor':
             # the Pauli set is in tensor order II IX IY IZ XI ...
             for k in range(4 ** number_of_qubits):
                 z = np.zeros(number_of_qubits, dtype=np.bool)
@@ -564,8 +565,7 @@ def pauli_group(number_of_qubits, case='weight'):
                         z[j] = True
                 temp_set.append(Pauli(z, x))
             return temp_set
-        else:
-            raise QiskitError("Only support 'weight' or 'tensor' cases "
-                              "but you have {}.".format(case))
+        raise QiskitError("Only support 'weight' or 'tensor' cases "
+                          "but you have {}.".format(case))
 
     raise QiskitError("Only support number of qubits is less than 5")

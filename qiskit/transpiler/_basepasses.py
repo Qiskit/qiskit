@@ -98,9 +98,7 @@ class BasePass(metaclass=MetaPass):
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """ An analysis pass: change property set, not DAG. """
-    pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """ A transformation pass: change DAG, not property set. """
-    pass

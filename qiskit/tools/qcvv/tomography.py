@@ -751,8 +751,7 @@ def fit_tomography_data(tomo_data, method='wizard', options=None):
             epsilon = __get_option('epsilon', options)
             rho = __wizard(rho, epsilon=epsilon)
         return rho
-    else:
-        raise Exception('Invalid reconstruction method "%s"' % method)
+    raise Exception('Invalid reconstruction method "%s"' % method)
 
 
 def __get_option(opt, options):

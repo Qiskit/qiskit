@@ -192,9 +192,9 @@ def vectorize(density_matrix, method='col'):
     density_matrix = np.array(density_matrix)
     if method == 'col':
         return density_matrix.flatten(order='F')
-    elif method == 'row':
+    if method == 'row':
         return density_matrix.flatten(order='C')
-    elif method in ['pauli', 'pauli_weights']:
+    if method in ['pauli', 'pauli_weights']:
         num = int(np.log2(len(density_matrix)))  # number of qubits
         if len(density_matrix) != 2**num:
             raise Exception('Input state must be n-qubit state')

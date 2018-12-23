@@ -70,7 +70,6 @@ class BaseProgressBar(Subscriber):
     def update(self, n):
         """Update status of progress bar.
         """
-        pass
 
     def time_elapsed(self):
         """Return the time elapsed since start.
@@ -103,7 +102,6 @@ class BaseProgressBar(Subscriber):
     def finished(self):
         """Run when progress bar has completed.
         """
-        pass
 
 
 class TextProgressBar(BaseProgressBar):

@@ -31,4 +31,3 @@ class QiskitError(QISKitError):
 
 class QiskitIndexError(QiskitError, IndexError):
     """Raised when a sequence subscript is out of range."""
-    pass
