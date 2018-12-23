@@ -141,9 +141,53 @@ Code
 
 This section include some tips that will help you to push source code.
 
+.. note::
+
+    We recommend using `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`__
+    to cleanly separate Qiskit from other applications and improve your experience.
+
+
+Setup with an environment
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The simplest way to use environments is by using Anaconda
+
+.. code:: sh
+
+    conda create -y -n QiskitDevenv python=3
+    source activate QiskitDevenv
+
+For the python code, we need some libraries that can be installed in this way:
+
+.. code:: sh
+
+    cd qiskit-terra
+    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
+
+To get the examples working try  
+
+.. code:: sh
+
+    $ pip install -e .
+ 
+and then you can run them with 
+
+.. code:: sh
+
+    $ python examples/python/using_qiskit_terra_level_0.py
+
+We recommend that after setting up Terra you set up Aer to get more advanced simulators.  
+
+Building the legacy simulators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    These will become obsolete in Terra 0.8 
 
 Dependencies
-~~~~~~~~~~~~
+""""""""""""
 
 Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
 installed. As we will deal with languages that build native binaries, we will
@@ -153,17 +197,8 @@ On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
 we only support `MinGW64 <http://mingw-w64.org>`_ at the moment.
 Note that a prerequiste for the C++ toolchain is that C++14 must be supported.
 
-For the python code, we need some libraries that can be installed in this way:
-
-.. code:: sh
-
-    # Depending on the system and setup to append "sudo -H" before could be needed.
-    pip install -U -r requirements.txt
-    pip install -U -r requirements-dev.txt
-
-
 Building
-~~~~~~~~
+""""""""
 
 The preferred way CMake is meant to be used, is by setting up an "out of source" build.
 So in order to build our native code, we have to follow these steps:
@@ -192,9 +227,8 @@ more info about where to find libphreads.a for later building. Furthermore,
 we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
 
-
 Useful CMake flags
-~~~~~~~~~~~~~~~~~~
+""""""""""""""""""
 
 There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
@@ -410,37 +444,6 @@ When the time for a new release has come, we will:
 The ``stable`` branch should only receive changes in the form of bug fixes, so the
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
-
-
-What version should I use: development or stable?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-It depends on your needs as a user.
-
-If you want to use Qiskit Terra for building circuits for applications or research then we recommend
-that you should be using the stable version. However, to simplify this the latest stable version 
-can be installed using Pip.
-
-.. code:: sh
-
-    $ pip install qiskit
-
-If you found out that the release version doesn't fit your needs, and you are
-thinking about extending the functionality of Qiskit Terra, you are more likely to
-use the ``master`` branch and thinking seriously about contributing with us :). 
-
-Please clone the distribution and set up the code as described above. To get the examples working 
-try  
-
-.. code:: sh
-
-    $ pip install -e .
- 
-and then you can run them with 
-
-.. code:: sh
-
-    $ python examples/python/using_qiskit_core_level_0.py
 
 
 Documentation
