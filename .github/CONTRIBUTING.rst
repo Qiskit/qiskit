@@ -383,6 +383,35 @@ All platforms:
     out$> make style
 
 
+Documentation
+-------------
+
+The documentation for the element of Qiskit is in the ``doc`` directory. The
+documentation for the Qiskit Terra is auto-generated from python
+docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
+documentation. Please follow `Google's Python Style
+Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
+for docstrings. A good example of the style can also be found with
+`sphinx's napolean converter
+documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
+You can see the rendered documentation for the stable version of Qiskit Terra at
+the `landing page <https://qiskit.org/terra>`_.
+
+To generate the documentation, we need to invoke CMake first in order to generate
+all specific files for our current platform.
+
+See the previous *Building* section for details on how to run CMake.
+Once CMake is invoked, all configuration files are in place, so we can build the
+documentation running this command:
+
+All platforms:
+
+.. code:: sh
+
+    $> cd out
+    doc$> make doc
+
+
 Development cycle
 -----------------
 
@@ -445,31 +474,3 @@ The ``stable`` branch should only receive changes in the form of bug fixes, so t
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
 
-
-Documentation
--------------
-
-The documentation for the element of Qiskit is in the ``doc`` directory. The
-documentation for the Qiskit Terra is auto-generated from python
-docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
-documentation. Please follow `Google's Python Style
-Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
-for docstrings. A good example of the style can also be found with
-`sphinx's napolean converter
-documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
-You can see the rendered documentation for the stable version of Qiskit Terra at
-the `landing page <https://qiskit.org/terra>`_.
-
-To generate the documentation, we need to invoke CMake first in order to generate
-all specific files for our current platform.
-
-See the previous *Building* section for details on how to run CMake.
-Once CMake is invoked, all configuration files are in place, so we can build the
-documentation running this command:
-
-All platforms:
-
-.. code:: sh
-
-    $> cd out
-    doc$> make doc
