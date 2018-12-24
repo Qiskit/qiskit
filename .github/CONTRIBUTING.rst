@@ -414,9 +414,6 @@ All platforms:
 Development cycle
 -----------------
 
-Development cycle
------------------
-
 Our development cycle is straightforward, use the project boards in Github 
 for project management and use milestones for releases. The features 
 that we want to include in these releases will be tagged and discussed 
