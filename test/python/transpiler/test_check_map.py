@@ -36,7 +36,7 @@ class TestCheckMap(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertTrue(pass_.property_set['is_direction_mapped'])
 
     def test_true_map(self):
@@ -60,7 +60,7 @@ class TestCheckMap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertTrue(pass_.property_set['is_direction_mapped'])
 
     def test_true_map_in_same_layer(self):
@@ -85,7 +85,7 @@ class TestCheckMap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertTrue(pass_.property_set['is_direction_mapped'])
 
     def test_false_map(self):
@@ -105,7 +105,7 @@ class TestCheckMap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertFalse(pass_.property_set['is_mapped'])
+        self.assertFalse(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
     def test_true_map_undirected(self):
@@ -129,7 +129,7 @@ class TestCheckMap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
     def test_true_map_in_same_layer_undirected(self):
@@ -154,7 +154,7 @@ class TestCheckMap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
 
