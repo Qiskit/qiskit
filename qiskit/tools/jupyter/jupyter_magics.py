@@ -22,8 +22,7 @@ from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
 
 
-def _html_checker(job_var, interval, status, header,
-                  _interval_set=False):
+def _html_checker(job_var, interval, status, header):
     """Internal function that updates the status
     of a HTML job monitor.
 
@@ -32,7 +31,6 @@ def _html_checker(job_var, interval, status, header,
         interval (int): The status check interval
         status (widget): HTML ipywidget for output ot screen
         header (str): String representing HTML code for status.
-        _interval_set (bool): Was interval set by user?
     """
     job_status = job_var.status()
     job_status_name = job_status.name
@@ -47,12 +45,7 @@ def _html_checker(job_var, interval, status, header,
             break
         else:
             if job_status_name == 'QUEUED':
-                job_status_msg += ' (%s)' % job_var.queue_position()
-                if not _interval_set:
-                    interval = max(job_var.queue_position(), 2)
-            else:
-                if not _interval_set:
-                    interval = 2
+                job_status_msg += ' (%s)' % job_var._queue_position
             status.value = header % (job_status_msg)
 
     status.value = header % (job_status_msg)
@@ -68,20 +61,13 @@ class StatusMagic(Magics):
         '-i',
         '--interval',
         type=float,
-        default=None,
+        default=2,
         help='Interval for status check.'
     )
     def qiskit_job_status(self, line='', cell=None):
         """A Jupyter magic function to check the status of a Qiskit job instance.
         """
         args = magic_arguments.parse_argstring(self.qiskit_job_status, line)
-
-        if args.interval is None:
-            args.interval = 2
-            _interval_set = False
-        else:
-            _interval_set = True
-
         # Split cell lines to get LHS variables
         cell_lines = cell.split('\n')
         line_vars = []
@@ -141,8 +127,7 @@ class StatusMagic(Magics):
                 value=header % job_var.status().value)
 
             thread = threading.Thread(target=_html_checker, args=(job_var, args.interval,
-                                                                  status, header,
-                                                                  _interval_set))
+                                                                  status, header))
             thread.start()
             job_checkers.append(status)
 

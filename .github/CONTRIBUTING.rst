@@ -388,8 +388,6 @@ Documentation
 
 The documentation Qiskit Terra is in the ``doc`` directory. The
 documentation is auto-generated from python
-The documentation for the element of Qiskit is in the ``doc`` directory. The
-documentation for the Qiskit Terra is auto-generated from python
 docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
 documentation. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
