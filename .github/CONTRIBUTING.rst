@@ -141,9 +141,53 @@ Code
 
 This section include some tips that will help you to push source code.
 
+.. note::
+
+    We recommend using `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`__
+    to cleanly separate Qiskit from other applications and improve your experience.
+
+
+Setup with an environment
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The simplest way to use environments is by using Anaconda
+
+.. code:: sh
+
+    conda create -y -n QiskitDevenv python=3
+    source activate QiskitDevenv
+
+For the python code, we need some libraries that can be installed in this way:
+
+.. code:: sh
+
+    cd qiskit-terra
+    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
+
+To get the examples working try  
+
+.. code:: sh
+
+    $ pip install -e .
+ 
+and then you can run them with 
+
+.. code:: sh
+
+    $ python examples/python/using_qiskit_terra_level_0.py
+
+We recommend that after setting up Terra you set up Aer to get more advanced simulators.  
+
+Building the legacy simulators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    These will become obsolete in Terra 0.8 
 
 Dependencies
-~~~~~~~~~~~~
+""""""""""""
 
 Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
 installed. As we will deal with languages that build native binaries, we will
@@ -153,17 +197,8 @@ On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
 we only support `MinGW64 <http://mingw-w64.org>`_ at the moment.
 Note that a prerequiste for the C++ toolchain is that C++14 must be supported.
 
-For the python code, we need some libraries that can be installed in this way:
-
-.. code:: sh
-
-    # Depending on the system and setup to append "sudo -H" before could be needed.
-    pip install -U -r requirements.txt
-    pip install -U -r requirements-dev.txt
-
-
 Building
-~~~~~~~~
+""""""""
 
 The preferred way CMake is meant to be used, is by setting up an "out of source" build.
 So in order to build our native code, we have to follow these steps:
@@ -192,9 +227,8 @@ more info about where to find libphreads.a for later building. Furthermore,
 we are forcing CMake to generate MingGW makefiles, because we don't support
 other toolchain at the moment.
 
-
 Useful CMake flags
-~~~~~~~~~~~~~~~~~~
+""""""""""""""""""
 
 There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
@@ -289,14 +323,14 @@ Linux and Mac:
 
 .. code-block:: bash
 
-    $ LOG_LEVEL=INFO python -m unittest test/python/test_circuit.py
+    $ LOG_LEVEL=INFO python -m unittest test/python/circuit/test_circuit_operations.py
 
 Windows:
 
 .. code-block:: bash
 
     C:\..\> set LOG_LEVEL="INFO"
-    C:\..\> python -m unittest test/python/test_circuit.py
+    C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 
 Note many of the tests will not be executed unless you have setup an IBMQ
 account. To set this up please go to this
@@ -347,6 +381,34 @@ All platforms:
     $> cd out
     out$> make lint
     out$> make style
+
+
+Documentation
+-------------
+
+The documentation for the element of Qiskit is in the ``doc`` directory. The
+documentation for the Qiskit Terra is auto-generated from python
+docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
+documentation. Please follow `Google's Python Style
+Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
+for docstrings. A good example of the style can also be found with
+`sphinx's napolean converter
+documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
+You can see the rendered documentation for the stable version of Qiskit Terra at
+the `landing page <https://qiskit.org/terra>`_.
+
+To generate the documentation, we need to invoke CMake first in order to generate
+all specific files for our current platform.
+
+See the previous *Building* section for details on how to run CMake.
+Once CMake is invoked, all configuration files are in place, so we can build the
+documentation running this command:
+
+All platforms:
+
+.. code:: sh
+
+    $> make doc
 
 
 Development cycle
@@ -411,62 +473,3 @@ The ``stable`` branch should only receive changes in the form of bug fixes, so t
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
 
-
-What version should I use: development or stable?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-It depends on your needs as a user.
-
-If you want to use Qiskit Terra for building circuits for applications or research then we recommend
-that you should be using the stable version. However, to simplify this the latest stable version 
-can be installed using Pip.
-
-.. code:: sh
-
-    $ pip install qiskit
-
-If you found out that the release version doesn't fit your needs, and you are
-thinking about extending the functionality of Qiskit Terra, you are more likely to
-use the ``master`` branch and thinking seriously about contributing with us :). 
-
-Please clone the distribution and set up the code as described above. To get the examples working 
-try  
-
-.. code:: sh
-
-    $ pip install -e .
- 
-and then you can run them with 
-
-.. code:: sh
-
-    $ python examples/python/using_qiskit_core_level_0.py
-
-
-Documentation
--------------
-
-The documentation for the element of Qiskit is in the ``doc`` directory. The
-documentation for the Qiskit Terra is auto-generated from python
-docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
-documentation. Please follow `Google's Python Style
-Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
-for docstrings. A good example of the style can also be found with
-`sphinx's napolean converter
-documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
-You can see the rendered documentation for the stable version of Qiskit Terra at
-the `landing page <https://qiskit.org/terra>`_.
-
-To generate the documentation, we need to invoke CMake first in order to generate
-all specific files for our current platform.
-
-See the previous *Building* section for details on how to run CMake.
-Once CMake is invoked, all configuration files are in place, so we can build the
-documentation running this command:
-
-All platforms:
-
-.. code:: sh
-
-    $> cd out
-    doc$> make doc
