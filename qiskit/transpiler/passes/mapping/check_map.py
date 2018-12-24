@@ -7,6 +7,8 @@
 
 """
 This pass checks if a DAG is mapped to a coupling map.
+
+It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
 from qiskit.transpiler._basepasses import AnalysisPass
@@ -16,6 +18,8 @@ from qiskit.mapper import Layout
 class CheckMap(AnalysisPass):
     """
     Checks if a DAGCircuit is mapped to `coupling_map`.
+
+    It checks that all 2-qubit interactions are laid out to be physically close.
     """
 
     def __init__(self, coupling_map, initial_layout=None):
@@ -31,8 +35,8 @@ class CheckMap(AnalysisPass):
 
     def run(self, dag):
         """
-        If `dag` is mapped to `coupling_map`, the property `is_mapped` is
-        set to True (or to False otherwise).
+        If `dag` is mapped to `coupling_map`, the property
+        `is_swap_mapped` is set to True (or to False otherwise).
         If `dag` is mapped and the direction is correct the property
         `is_direction_mapped` is set to True (or to False otherwise).
 
@@ -44,17 +48,17 @@ class CheckMap(AnalysisPass):
             for qreg in dag.qregs.values():
                 self.layout.add_register(qreg)
 
-        self.property_set['is_mapped'] = True
+        self.property_set['is_swap_mapped'] = True
         self.property_set['is_direction_mapped'] = True
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for cnot in subdag.get_cnot_nodes():
-                physical_q0 = self.layout[cnot['qargs'][0]]
-                physical_q1 = self.layout[cnot['qargs'][1]]
+            for gate in subdag.get_2q_nodes():
+                physical_q0 = self.layout[gate['qargs'][0]]
+                physical_q1 = self.layout[gate['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    self.property_set['is_mapped'] = False
+                    self.property_set['is_swap_mapped'] = False
                     self.property_set['is_direction_mapped'] = False
                     return
                 else:

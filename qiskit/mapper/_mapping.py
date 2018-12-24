@@ -363,7 +363,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     Args:
         circuit_graph (DAGCircuit): input DAG circuit
         coupling_graph (CouplingGraph): coupling graph to map onto
-        initial_layout (dict): dict {(str, int): (str, int)}
+        initial_layout (Layout): dict {(str, int): (str, int)}
             from qubits of circuit_graph to qubits of coupling_graph (optional)
         trials (int): number of trials.
         seed (int): initial seed.
