@@ -41,7 +41,7 @@ class CommonUtilities():
 
     def generate_expected(self, result, filename):
         """
-        Checks if result.get_count matches self.count by running in a backend
+        Checks if result.get_counts matches self.counts by running in a backend
         (self.create_backend()). That's saved in a pickle in filename.
 
         Args:
@@ -51,7 +51,7 @@ class CommonUtilities():
         sim_backend = self.create_backend()
         qobj = compile(result, sim_backend, seed=self.seed, shots=self.shots)
         job = sim_backend.run(qobj)
-        self.assertDictAlmostEqual(self.count, job.result().get_counts(), delta=self.delta)
+        self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:
             pickle.dump(result, output_file)
@@ -90,7 +90,7 @@ class CommonTestCases(CommonUtilities):
         expected count: '000': 50%
                         '110': 50%
         """
-        self.count = {'000': 512, '110': 512}
+        self.counts = {'000': 512, '110': 512}
         self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [0, 2]]
@@ -126,7 +126,7 @@ class CommonTestCases(CommonUtilities):
         expected count: '0000': 50%
                         '1011': 50%
         """
-        self.count = {'1011': 512, '0000': 512}
+        self.counts = {'1011': 512, '0000': 512}
         self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [1, 2], [2, 3]]
