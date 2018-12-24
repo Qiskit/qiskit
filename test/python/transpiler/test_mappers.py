@@ -39,22 +39,22 @@ class CommonUtilities():
         """Returns a Backend."""
         return BasicAer.get_backend('qasm_simulator')
 
-    def generate_expected(self, result, filename):
+    def generate_expected(self, transpiled_result, filename):
         """
-        Checks if result.get_counts matches self.counts by running in a backend
+        Checks if transpiled_result matches self.counts by running in a backend
         (self.create_backend()). That's saved in a pickle in filename.
 
         Args:
-            result (DAGCircuit): The DAGCircuit to compile and run.
+            transpiled_result (DAGCircuit): The DAGCircuit to compile and run.
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        qobj = compile(result, sim_backend, seed=self.seed, shots=self.shots)
+        qobj = compile(transpiled_result, sim_backend, seed=self.seed, shots=self.shots)
         job = sim_backend.run(qobj)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:
-            pickle.dump(result, output_file)
+            pickle.dump(transpiled_result, output_file)
 
     def assertResult(self, result, testname):
         """Fetches the pickle in testname file and compares it with result."""
