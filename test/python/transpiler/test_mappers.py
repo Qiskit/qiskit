@@ -36,7 +36,7 @@ class CommonUtilities():
         passmanager = PassManager(self.pass_class(CouplingMap(coupling_map),
                                                   **self.additional_args))
         if initial_layout:
-            passmanager.property_set['layout']=Layout(initial_layout)
+            passmanager.property_set['layout'] = Layout(initial_layout)
         return passmanager
 
     def create_backend(self):
@@ -140,7 +140,7 @@ class CommonTestCases(CommonUtilities):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        layout = [qr[3],qr[0],qr[1],qr[2]]
+        layout = [qr[3], qr[0], qr[1], qr[2]]
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map, layout))
