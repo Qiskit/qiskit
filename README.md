@@ -1,25 +1,38 @@
 # Qiskit Terra
 
-[![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit-terra)
+[![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
 [![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
 [![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
 
-**Qiskit** is an open-source framework for working with noisy intermediate-scale quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
+**Qiskit**  is a software development kit  for
+developing quantum computing applications and working with NISQ (Noisy-Intermediate Scale Quantum) computers.
 
 Qiskit is made up elements that each work together to enable quantum computing. This element is **Terra** 
-and is the foundation on which the rest of Qiskit is built.
+and is the foundation on which the rest of Qiskit is built (see this [post](https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492) for an overview).
+
 
 ## Installation
 
-We encourage installing Qiskit via the PIP tool (a python package manager), which installs all Qiskit elements, including this one.
+
+We encourage installing Qiskit via the PIP tool (a python package manager):
 
 ```bash
 pip install qiskit
 ```
 
 PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
- 
-To install from source, follow the instructions in the [contribution guidelines](.github/CONTRIBUTING.rst).
+
+At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using Qiskit. In
+addition, [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) is recommended
+for interacting with the tutorials.
+For this reason we recommend installing the [Anaconda 3](https://www.continuum.io/downloads)
+python distribution, as it comes with all of these dependencies pre-installed.
+Windows users also need to install VC++ runtime components. We recommend one of the following links.
+- [Microsoft Visual C++ Redistributable for Visual Studio 2017](https://go.microsoft.com/fwlink/?LinkId=746572)
+- [Microsoft Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-US/download/details.aspx?id=48145)
+
+See [installing](doc/install.rst) Qiskit for detailed instructions, how to build from source and using environments. 
+
 
 ## Creating your first quantum program
 

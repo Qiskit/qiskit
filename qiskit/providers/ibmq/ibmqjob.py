@@ -147,7 +147,7 @@ class IBMQJob(BaseJob):
             self._job_data = {
                 'circuits': old_qobj['circuits'],
                 'hpc':  old_qobj['config'].get('hpc'),
-                'seed': old_qobj['circuits'][0]['config'].get('seed'),
+                'seed': old_qobj['circuits'][0]['config']['seed'],
                 'shots': old_qobj['config']['shots'],
                 'max_credits': old_qobj['config']['max_credits']
             }

@@ -17,10 +17,6 @@ The format is based on `Keep a Changelog`_.
   - **Security**: in case of vulnerabilities.
 
 
-`UNRELEASED`_
-=============
-
-
 `0.7.0`_ - 2018-12-19
 =====================
 
