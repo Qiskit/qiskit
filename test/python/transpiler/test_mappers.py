@@ -145,7 +145,7 @@ class CommonTestCases(CommonUtilities):
         self.assertResult(result, circuit.name)
 
 
-class TestsBasicMapper(CommonTestCases, QiskitTestCase):
+class TestsBasicSwap(CommonTestCases, QiskitTestCase):
     """ Test CommonTestCases using BasicSwap """
     pass_class = BasicSwap
 
