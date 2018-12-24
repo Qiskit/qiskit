@@ -46,8 +46,9 @@ from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.mapper import Layout, MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler import TranspilerError
+from qiskit.mapper import Layout
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -74,18 +75,18 @@ class LookaheadSwap(TransformationPass):
             dag (DAGCircuit): the directed acyclic graph to be mapped
         Returns:
             DAGCircuit: A dag mapped to be compatible with the coupling_map in
-              the property_set.
+                the property_set.
         Raises:
-            MapperError: If the provided DAG has more qubits than are available
-              in the coupling map.
-
+            TranspilerError: If the provided DAG has more qubits than are
+                available in the coupling map.
         """
 
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
         if len(dag.get_qubits()) > len(coupling_map.physical_qubits):
-            raise MapperError('DAG contains more qubits than are present in the coupling map.')
+            raise TranspilerError('DAG contains more qubits than are '
+                                  'present in the coupling map.')
 
         dag_qubits = dag.get_qubits()
         coupling_qubits = coupling_map.physical_qubits

@@ -16,8 +16,4 @@ class TranspilerError(QiskitError):
 
 
 class TranspilerAccessError(QiskitError):
-    """ Exception of access error in the transpiler passes. """
-
-
-class MapperError(QiskitError):
-    """ Exception for cases where a mapper pass cannot map. """
+    """Exception of access error in the transpiler passes."""
