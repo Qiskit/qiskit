@@ -32,11 +32,11 @@ class CommonUtilities():
     additional_args = {}
 
     def create_passmanager(self, coupling_map):
-        ''' Returns a PassManager using self.pass_class and coupling_map '''
+        """Returns a PassManager using self.pass_class and coupling_map."""
         return PassManager(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
 
     def create_backend(self):
-        ''' Returns a Backend.'''
+        """Returns a Backend."""
         return BasicAer.get_backend('qasm_simulator')
 
     def generate_expected(self, result, filename):
@@ -57,7 +57,7 @@ class CommonUtilities():
             pickle.dump(result, output_file)
 
     def assertResult(self, result, testname):
-        ''' Fetches the pickle in testname file and compares it with result'''
+        """Fetches the pickle in testname file and compares it with result."""
         filename = self._get_resource_path('pickles/%s_%s.pickle' % (type(self).__name__, testname))
 
         if self.regenerate_expected:
