@@ -66,9 +66,9 @@ class BasicSwap(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for a_cx in subdag.get_cnot_nodes():
-                physical_q0 = current_layout[a_cx['qargs'][0]]
-                physical_q1 = current_layout[a_cx['qargs'][1]]
+            for gate in subdag.get_2q_nodes():
+                physical_q0 = current_layout[gate['qargs'][0]]
+                physical_q1 = current_layout[gate['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()

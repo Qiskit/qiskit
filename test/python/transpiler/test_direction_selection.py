@@ -10,7 +10,7 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.transpiler import MapperError
+from qiskit.transpiler import TranspilerError
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.converters import circuit_to_dag
@@ -59,7 +59,7 @@ class TestCXDirection(QiskitTestCase):
 
         pass_ = CXDirection(coupling)
 
-        with self.assertRaises(MapperError):
+        with self.assertRaises(TranspilerError):
             pass_.run(dag)
 
     def test_direction_correct(self):
