@@ -20,7 +20,7 @@ import pickle
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, compile
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap
-from qiskit.mapper import CouplingMap
+from qiskit.mapper import CouplingMap, Layout
 
 from ..common import QiskitTestCase
 
@@ -31,9 +31,13 @@ class CommonUtilities():
     seed = 42
     additional_args = {}
 
-    def create_passmanager(self, coupling_map):
-        """Returns a PassManager using self.pass_class and coupling_map."""
-        return PassManager(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
+    def create_passmanager(self, coupling_map, initial_layout=None):
+        """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
+        passmanager = PassManager(self.pass_class(CouplingMap(coupling_map),
+                                                  **self.additional_args))
+        if initial_layout:
+            passmanager.property_set['layout']=Layout(initial_layout)
+        return passmanager
 
     def create_backend(self):
         """Returns a Backend."""
@@ -104,6 +108,42 @@ class CommonTestCases(CommonUtilities):
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
+        self.assertResult(result, circuit.name)
+
+    def test_initial_layout(self):
+        """ Using a non-trivial initial_layout
+         q3:----------------m--
+         q0:----------m-----|--
+                      |     |
+         q1:-[H]-(+)--|-m---|--
+                  |   | |   |
+         q2:------.---|-|-m-|--
+                      | | | |
+         c0:----------.-|-|-|--
+         c1:------------.-|-|--
+         c2:--------------.-|--
+         c3:----------------.--
+         CouplingMap map: [1]<-[0]->[2]->[3]
+
+        expected count: '000': 50%
+                        '110': 50%
+        """
+        self.counts = {'0000': 512, '0110': 512}
+        self.shots = 1024
+        self.delta = 5
+        coupling_map = [[0, 1], [0, 2], [2, 3]]
+
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr, name='initial_layout')
+        circuit.h(qr[1])
+        circuit.cx(qr[1], qr[2])
+        circuit.measure(qr, cr)
+
+        layout = [qr[3],qr[0],qr[1],qr[2]]
+
+        result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
+                           pass_manager=self.create_passmanager(coupling_map, layout))
         self.assertResult(result, circuit.name)
 
     def test_handle_measurement(self):
