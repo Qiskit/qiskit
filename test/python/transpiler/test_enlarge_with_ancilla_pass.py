@@ -1,0 +1,59 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""Test the enlarge-with-ancilla pass"""
+
+import unittest
+
+from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.mapper import Layout
+from qiskit.transpiler.passes import EnlargeWithAncilla
+from qiskit.converters import circuit_to_dag
+from ..common import QiskitTestCase
+from qiskit.tools.visualization.dag_visualization import dag_drawer
+
+
+class TestEnlargeWithAncilla(QiskitTestCase):
+    """ Tests the EnlargeWithAncilla pass."""
+
+    def setUp(self):
+        self.qr3 = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(self.qr3)
+        circuit.h(self.qr3)
+        self.dag = circuit_to_dag(circuit)
+
+    def test_no_extension(self):
+        """ There are no idle physical bits to extend."""
+        layout = Layout([(self.qr3, 0),
+                         (self.qr3, 1),
+                         (self.qr3, 2)])
+
+        pass_ = EnlargeWithAncilla(layout)
+        after = pass_.run(self.dag)
+
+        qregs = list(after.qregs.values())
+        self.assertEqual(1, len(qregs))
+        self.assertEqual(self.qr3, qregs[0])
+
+    def test_with_extension(self):
+        """ There are 2 idle physical bits to extend."""
+        layout = Layout([(self.qr3, 0),
+                         None,
+                         (self.qr3, 1),
+                         None,
+                         (self.qr3, 2)])
+
+        pass_ = EnlargeWithAncilla(layout)
+        after = pass_.run(self.dag)
+
+        qregs = list(after.qregs.values())
+        self.assertEqual(2, len(qregs))
+        self.assertEqual(self.qr3, qregs[0])
+        self.assertEqual(QuantumRegister(2, name='ancilla'), qregs[1])
+
+if __name__ == '__main__':
+    unittest.main()
