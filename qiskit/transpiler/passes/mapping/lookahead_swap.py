@@ -58,7 +58,7 @@ SEARCH_WIDTH = 4
 class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs."""
 
-    def __init__(self, coupling_map, inital_layout=None):
+    def __init__(self, coupling_map, initial_layout=None):
         """Initialize a LookaheadSwap instance.
 
         Arguments:
@@ -68,7 +68,7 @@ class LookaheadSwap(TransformationPass):
 
         super().__init__()
         self._coupling_map = coupling_map
-        self.initial_layout = inital_layout
+        self.initial_layout = initial_layout
         self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
