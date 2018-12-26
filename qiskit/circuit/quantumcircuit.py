@@ -5,11 +5,10 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=cyclic-import,invalid-name
-
 """
 Quantum circuit object.
 """
+
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
@@ -18,12 +17,12 @@ import sys
 import multiprocessing as mp
 
 from qiskit.qasm import _qasm
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
 
-class QuantumCircuit(object):
+class QuantumCircuit:
     """Quantum circuit."""
     instances = 0
     prefix = 'circuit'
@@ -413,6 +412,7 @@ class QuantumCircuit(object):
 
 
 def _circuit_from_qasm(qasm):
+    # pylint: disable=cyclic-import
     from qiskit.converters import ast_to_dag
     from qiskit.converters import dag_to_circuit
     ast = qasm.parse()

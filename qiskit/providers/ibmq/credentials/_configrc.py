@@ -15,7 +15,7 @@ from ast import literal_eval
 from collections import OrderedDict
 from configparser import ConfigParser, ParsingError
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from .credentials import Credentials
 
 DEFAULT_QISKITRC_FILE = os.path.join(os.path.expanduser("~"),

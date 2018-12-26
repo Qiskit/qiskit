@@ -12,12 +12,12 @@ import re
 import logging
 import itertools
 
-from qiskit.qiskiterror import QiskitError, QiskitIndexError
+from qiskit.exceptions import QiskitError, QiskitIndexError
 
 logger = logging.getLogger(__name__)
 
 
-class Register(object):
+class Register:
     """Implement a generic register."""
 
     # Counter for the number of instances in this class.

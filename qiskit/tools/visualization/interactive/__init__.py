@@ -5,9 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=wrong-import-order
-# pylint: disable=redefined-builtin
-
 """Qsikit visualization library."""
 
 from ._iplot_state import iplot_state
