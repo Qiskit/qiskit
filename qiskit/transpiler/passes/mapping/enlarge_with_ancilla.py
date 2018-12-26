@@ -14,6 +14,7 @@ from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import QuantumRegister
 
+
 class EnlargeWithAncilla(TransformationPass):
     """Extends the DAG with idle physical qubits in the self.property_set["layout"]."""
 
