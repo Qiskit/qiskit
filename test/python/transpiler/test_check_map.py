@@ -157,6 +157,7 @@ class TestCheckMapCX(QiskitTestCase):
         self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
+
 class TestCheckMapCZ(QiskitTestCase):
     """ Tests the CheckMap pass with CZ gates"""
 
@@ -227,6 +228,7 @@ class TestCheckMapCZ(QiskitTestCase):
 
         self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
+
 
 class TestCheckMapSwap(QiskitTestCase):
     """ Tests the CheckMap pass with Swap gates"""

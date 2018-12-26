@@ -15,6 +15,7 @@ from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
 from qiskit.extensions.standard.swap import SwapGate
 
+
 class CheckMap(AnalysisPass):
     """
     Checks if a DAGCircuit is mapped to `coupling_map`.
