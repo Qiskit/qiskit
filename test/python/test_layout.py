@@ -224,5 +224,6 @@ class LayoutTest(QiskitTestCase):
         with self.assertRaises(LayoutError):
             layout[0] = 1
 
+
 if __name__ == '__main__':
     unittest.main()

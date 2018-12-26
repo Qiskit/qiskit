@@ -15,6 +15,7 @@ Physical (qu)bits are numbers.
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
 
+
 class Layout(dict):
     """ Two-ways dict to represent a Layout."""
 
