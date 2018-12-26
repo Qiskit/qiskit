@@ -21,7 +21,7 @@ import scipy.sparse.csgraph as cs
 
 from qiskit.mapper import Layout
 from qiskit.transpiler._basepasses import AnalysisPass
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class DenseLayout(AnalysisPass):

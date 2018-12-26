@@ -11,7 +11,7 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 from .common import QiskitTestCase
 

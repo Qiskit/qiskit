@@ -19,7 +19,7 @@ from matplotlib import cm                               # pylint: disable=import
 from matplotlib.patches import Circle                   # pylint: disable=import-error
 import ipywidgets as widgets                            # pylint: disable=import-error
 from qiskit.providers.ibmq import IBMQ
-from qiskit.qiskiterror import QISKitError
+from qiskit.exceptions import QISKitError
 from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.visualization._gate_map import plot_gate_map
 

@@ -14,7 +14,7 @@ of the circuit (tuple(QuantumRegister, int)) in increasing order.
 
 from qiskit.mapper import Layout
 from qiskit.transpiler._basepasses import AnalysisPass
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TrivialLayout(AnalysisPass):

@@ -46,7 +46,7 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit._util import local_hardware_info
 from qiskit.tools.events._pubsub import Publisher
 

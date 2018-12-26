@@ -9,7 +9,7 @@
 """
 
 import math
-from qiskit.qiskiterror import QISKitError
+from qiskit.exceptions import QISKitError
 from qiskit.providers.ibmq import IBMQ
 from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 
@@ -166,7 +166,7 @@ def backend_overview():
             str_list[3] += 'Pending Jobs: %s' % stati[count].pending_jobs
 
             str_list[4] += (' '*(max_len-len(str_list[4]))+offset)
-            str_list[4] += 'Least busy:   %s' % (True if count == least_pending_idx else False)
+            str_list[4] += 'Least busy:   %s' % (count == least_pending_idx)
 
             str_list[5] += (' '*(max_len-len(str_list[5]))+offset)
             str_list[5] += 'Operational:  %s' % stati[count].operational

@@ -11,7 +11,8 @@ compatible with the coupling_map.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import HGate

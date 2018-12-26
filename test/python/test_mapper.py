@@ -25,9 +25,8 @@ from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 
 
-class FakeQX4BackEnd(object):
-    """A fake QX4 backend.
-    """
+class FakeQX4BackEnd:
+    """A fake QX4 backend."""
 
     def name(self):
         return 'qiskit_is_cool'
@@ -51,9 +50,8 @@ class FakeQX4BackEnd(object):
         )
 
 
-class FakeQX5BackEnd(object):
-    """A fake QX5 backend.
-    """
+class FakeQX5BackEnd:
+    """A fake QX5 backend."""
 
     def name(self):
         return 'qiskit_is_cool'

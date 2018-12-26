@@ -30,8 +30,8 @@ class TestBackendNameResolution(QiskitTestCase):
             deprecated_names = provider._deprecated_backend_names()
 
             for oldname, newname in deprecated_names.items():
-                if (newname == 'qasm_simulator' or
-                        newname == 'statevector_simulator') and not is_cpp_simulator_available():
+                if newname in ('qasm_simulator',
+                               'statevector_simulator') and not is_cpp_simulator_available():
                     continue
 
                 with self.subTest(provider=provider, oldname=oldname, newname=newname):

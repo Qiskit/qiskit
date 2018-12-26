@@ -60,7 +60,7 @@ def get_backends_url(config, hub, group, project):
     return '/Backends/v/1'
 
 
-class _Credentials(object):
+class _Credentials:
     """
     The Credential class to manage the tokens
     """
@@ -202,7 +202,7 @@ class _Credentials(object):
         self.data_credentials['userId'] = user_id
 
 
-class _Request(object):
+class _Request:
     """
     The Request class to manage the methods
     """
@@ -460,7 +460,7 @@ class _Request(object):
         return True
 
 
-class IBMQConnector(object):
+class IBMQConnector:
     """
     The Connector Class to do request to QX Platform
     """

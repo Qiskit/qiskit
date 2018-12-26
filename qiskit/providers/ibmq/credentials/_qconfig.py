@@ -13,7 +13,7 @@ import os
 from collections import OrderedDict
 from importlib.util import module_from_spec, spec_from_file_location
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from .credentials import Credentials
 
 DEFAULT_QCONFIG_FILE = 'Qconfig.py'

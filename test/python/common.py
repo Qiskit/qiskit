@@ -279,7 +279,7 @@ def _get_credentials(test_object, test_options):
     if test_options['mock_online']:
         return dummy_credentials
 
-    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', False):
+    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', ''):
         # Special case: instead of using the standard credentials mechanism,
         # load them from different environment variables. This assumes they
         # will always be in place, as is used by the Travis setup.
