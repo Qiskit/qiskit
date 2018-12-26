@@ -8,7 +8,7 @@
 """
 Quantum measurement in the computational basis.
 """
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 from .instruction import Instruction
 from .instructionset import InstructionSet

@@ -16,7 +16,7 @@ import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
 from ...common import (Path, QiskitTestCase, requires_qe_access,
-                       requires_cpp_simulator)
+                       requires_cpp_simulator, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.
@@ -56,14 +56,15 @@ class TestJupyter(QiskitTestCase):
 
     @requires_cpp_simulator
     def test_jupyter_jobs_pbars(self):
-        "Test Jupyter progress bars and job status functionality"
+        """Test Jupyter progress bars and job status functionality"""
         self._execute_notebook(self._get_resource_path(
             'notebooks/test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @requires_qe_access
+    @slow_test
     def test_backend_tools(self, qe_token, qe_url):
-        "Test Jupyter backend tools."
+        """Test Jupyter backend tools."""
         self._execute_notebook(self._get_resource_path(
             'notebooks/test_backend_tools.ipynb'),
                                qe_token=qe_token,

@@ -19,11 +19,11 @@ import re
 
 import numpy as np
 
-from qiskit.tools.visualization import _error
+from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
 
 
-class QCircuitImage(object):
+class QCircuitImage:
     """This class contains methods to create \\LaTeX circuit images.
 
     The class targets the \\LaTeX package Q-circuit
@@ -370,9 +370,9 @@ class QCircuitImage(object):
                                                 max_column_width[columns])
             elif op['name'] == "measure":
                 if len(op['cargs']) != 1 or len(op['qargs']) != 1:
-                    raise _error.VisualizationError("bad operation record")
+                    raise exceptions.VisualizationError("bad operation record")
                 if 'condition' in op and op['condition']:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         'conditional measures currently not supported.')
                 qname, qindex = op['qargs'][0]
                 cname, cindex = op['cargs'][0]
@@ -399,7 +399,7 @@ class QCircuitImage(object):
                     max_column_width[columns] = 0
             elif op['name'] == "reset":
                 if 'conditional' in op and op['condition']:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         'conditional reset currently not supported.')
                 qname, qindex = op['qargs'][0]
                 if aliases:
@@ -436,7 +436,7 @@ class QCircuitImage(object):
                     if columns not in max_column_width:
                         max_column_width[columns] = 0
             else:
-                raise _error.VisualizationError("bad node data")
+                raise exceptions.VisualizationError("bad node data")
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
         # the qubit/cbit labels plus initial states is 2 more
@@ -883,9 +883,9 @@ class QCircuitImage(object):
                 if (len(op['cargs']) != 1
                         or len(op['qargs']) != 1
                         or op['op'].param):
-                    raise _error.VisualizationError("bad operation record")
+                    raise exceptions.VisualizationError("bad operation record")
                 if 'condition' in op and op['condition']:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         "If controlled measures currently not supported.")
 
                 qname, qindex = op['qargs'][0]
@@ -924,7 +924,7 @@ class QCircuitImage(object):
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                 except Exception as e:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         'Error during Latex building: %s' % str(e))
             elif op['name'] in ["barrier", 'snapshot', 'load', 'save',
                                 'noise']:
@@ -948,7 +948,7 @@ class QCircuitImage(object):
                     self._latex[start][columns] = "\\qw \\barrier{" + str(
                         span) + "}"
             else:
-                raise _error.VisualizationError("bad node data")
+                raise exceptions.VisualizationError("bad node data")
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit
@@ -965,7 +965,7 @@ class QCircuitImage(object):
                 qindex = i
                 break
         else:
-            raise _error.VisualizationError(
+            raise exceptions.VisualizationError(
                 "unable to find bit for operation")
         return qindex
 

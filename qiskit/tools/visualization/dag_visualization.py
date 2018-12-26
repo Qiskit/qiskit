@@ -19,7 +19,7 @@ try:
 except ImportError:
     raise ImportError("dag_drawer requires nxpd, pydot, and Graphviz. "
                       "Run 'pip install nxpd pydot', and install graphviz")
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 
 
 def dag_drawer(dag, scale=0.7, filename=None, style='color'):

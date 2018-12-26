@@ -7,13 +7,7 @@
 
 """QObj validation module for validation against JSON schemas."""
 
-from qiskit.qiskiterror import QiskitError
 from . import _schema_validation
-
-
-class QobjValidationError(QiskitError):
-    """Represents an error during Qobj validation."""
-    pass
 
 
 def validate_qobj_against_schema(qobj):

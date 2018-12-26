@@ -6,18 +6,16 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=wrong-import-order
-# pylint: disable=redefined-builtin
 
 """Main Qiskit public functionality."""
 
-import os
 import pkgutil
 
 # First, check for required Python and API version
 from . import _util
 
 # qiskit errors operator
-from .qiskiterror import QiskitError, QISKitError
+from .exceptions import QiskitError, QISKitError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
@@ -51,10 +49,4 @@ except ImportError:
 # TODO: Remove
 from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
 
-# Import the wrapper, to make it available when doing "import qiskit".
-from . import wrapper
-from . import tools
-
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    __version__ = version_file.read().strip()
+from .version import __version__

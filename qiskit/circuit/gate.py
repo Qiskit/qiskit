@@ -8,7 +8,7 @@
 """
 Unitary gate.
 """
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
