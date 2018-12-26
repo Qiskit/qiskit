@@ -31,7 +31,7 @@ class QasmLexer:
     by creating a stack of lexers.
     """
     # pylint: disable=invalid-name,missing-docstring,unused-argument
-    # pylint: disable=attribute-defined-outside-init
+    # pylint: disable=attribute-defined-outside-init,bad-docstring-quotes
 
     def __mklexer__(self, filename):
         """Create a PLY lexer."""

@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=wrong-import-order
-# pylint: disable=redefined-builtin
 
 """Main Qiskit public functionality."""
 
