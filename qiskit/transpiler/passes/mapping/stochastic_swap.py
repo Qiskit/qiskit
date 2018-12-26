@@ -70,6 +70,7 @@ class StochasticSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
+        self.input_layout = None
         self.trials = trials
         self.seed = seed
         self.requires.append(BarrierBeforeFinalMeasurements())

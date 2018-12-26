@@ -91,9 +91,6 @@ class LookaheadSwap(TransformationPass):
             raise TranspilerError('DAG contains more qubits than are '
                                   'present in the coupling map.')
 
-        dag_qubits = dag.get_qubits()
-        coupling_qubits = coupling_map.physical_qubits
-
         if self.initial_layout is None:
             if self.property_set["layout"]:
                 self.initial_layout = self.property_set["layout"]
