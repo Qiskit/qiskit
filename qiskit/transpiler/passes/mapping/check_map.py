@@ -47,7 +47,7 @@ class CheckMap(AnalysisPass):
             if self.property_set["layout"]:
                 self.layout = self.property_set["layout"]
             else:
-                self.layout = Layout.default_layout(*dag.qregs.values())
+                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         self.property_set['is_swap_mapped'] = True
         self.property_set['is_direction_mapped'] = True

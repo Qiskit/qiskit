@@ -23,10 +23,10 @@ class LayoutTest(QiskitTestCase):
         self.qr = QuantumRegister(3, 'qr')
 
     def test_default_layout(self):
-        """Static method default_layout creates a Layout"""
+        """Static method generate_trivial_layout creates a Layout"""
         qr0 = QuantumRegister(3, 'q0')
         qr1 = QuantumRegister(2, 'q1')
-        layout = Layout.default_layout(qr0, qr1)
+        layout = Layout.generate_trivial_layout(qr0, qr1)
 
         self.assertEqual(layout[(qr0, 0)], 0)
         self.assertEqual(layout[(qr0, 1)], 1)

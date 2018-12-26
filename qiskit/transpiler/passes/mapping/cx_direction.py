@@ -59,7 +59,7 @@ class CXDirection(TransformationPass):
             if self.property_set["layout"]:
                 self.layout = self.property_set["layout"]
             else:
-                self.layout = Layout.default_layout(*dag.qregs.values())
+                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         for layer in dag.serial_layers():
             subdag = layer['graph']

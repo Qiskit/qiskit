@@ -183,9 +183,9 @@ class Layout(dict):
         return edge_map
 
     @staticmethod
-    def default_layout(*regs):
+    def generate_trivial_layout(*regs):
         """
-        Creates a default Layout with the registers in `regs`.
+        Creates a trivial ("one-to-one") Layout with the registers in `regs`.
         Args:
             *regs (Registers): registers to include in the layout.
         Returns:
@@ -195,16 +195,3 @@ class Layout(dict):
         for reg in regs:
             layout.add_register(reg)
         return layout
-
-
-class LayoutError(QiskitError):
-    """Errors raised by the layout object."""
-
-    def __init__(self, *msg):
-        """Set the error message."""
-        super().__init__(*msg)
-        self.msg = ' '.join(msg)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.msg)

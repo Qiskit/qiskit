@@ -57,7 +57,7 @@ class BasicSwap(TransformationPass):
             if self.property_set["layout"]:
                 self.initial_layout = self.property_set["layout"]
             else:
-                self.initial_layout = Layout.default_layout(*dag.qregs.values())
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         current_layout = copy(self.initial_layout)
 
