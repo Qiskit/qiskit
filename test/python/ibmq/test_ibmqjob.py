@@ -24,7 +24,7 @@ from qiskit import IBMQ
 from qiskit import compile
 from qiskit.providers import JobStatus, JobError
 from qiskit.providers.ibmq import least_busy
-from qiskit.providers.ibmq.ibmqbackend import IBMQBackendError
+from qiskit.providers.ibmq.exceptions import IBMQBackendError
 from qiskit.providers.ibmq.ibmqjob import IBMQJob
 from ..common import requires_qe_access, JobTestCase, slow_test
 
@@ -138,7 +138,7 @@ class TestIBMQJob(JobTestCase):
             for job in job_array:
                 self.log.info('%s %s %s %s', job.status(), job.status() is JobStatus.RUNNING,
                               check, job.job_id())
-            self.log.info('-'*20 + ' ' + str(time.time()-start_time))
+            self.log.info('-  %s', str(time.time()-start_time))
             if time.time() - start_time > timeout:
                 raise TimeoutError('failed to see multiple running jobs after '
                                    '{0} s'.format(timeout))

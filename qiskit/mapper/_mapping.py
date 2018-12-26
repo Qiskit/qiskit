@@ -17,11 +17,13 @@ import sys
 import numpy as np
 import sympy
 
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
-from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import QuantumRegister
 from qiskit.extensions.standard.swap import SwapGate
+
+from .exceptions import MapperError
+
 
 logger = logging.getLogger(__name__)
 
@@ -363,7 +365,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     Args:
         circuit_graph (DAGCircuit): input DAG circuit
         coupling_graph (CouplingGraph): coupling graph to map onto
-        initial_layout (dict): dict {(str, int): (str, int)}
+        initial_layout (Layout): dict {(str, int): (str, int)}
             from qubits of circuit_graph to qubits of coupling_graph (optional)
         trials (int): number of trials.
         seed (int): initial seed.

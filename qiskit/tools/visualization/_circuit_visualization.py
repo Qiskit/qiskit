@@ -25,7 +25,7 @@ import warnings
 
 from PIL import Image
 
-from qiskit.tools.visualization import _error
+from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils
@@ -236,7 +236,7 @@ def circuit_drawer(circuit,
                                                plot_barriers=plot_barriers,
                                                reverse_bits=reverse_bits)
         else:
-            raise _error.VisualizationError(
+            raise exceptions.VisualizationError(
                 'Invalid output type %s selected. The only valid choices '
                 'are latex, latex_source, text, and mpl' % output)
     if image and interactive:

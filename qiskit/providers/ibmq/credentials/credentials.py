@@ -18,7 +18,7 @@ REGEX_IBMQ_HUBS = (
 TEMPLATE_IBMQ_HUBS = '{prefix}/Hubs/{hub}/Groups/{group}/Projects/{project}'
 
 
-class Credentials(object):
+class Credentials:
     """IBM Q account credentials.
 
     Note that, by convention, two credentials that have the same hub, group

@@ -8,7 +8,7 @@
 """
 Exception for errors raised by the transpiler.
 """
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class TranspilerError(QiskitError):
@@ -16,8 +16,4 @@ class TranspilerError(QiskitError):
 
 
 class TranspilerAccessError(QiskitError):
-    """ Exception of access error in the transpiler passes. """
-
-
-class MapperError(QiskitError):
-    """ Exception for cases where a mapper pass cannot map. """
+    """Exception of access error in the transpiler passes."""

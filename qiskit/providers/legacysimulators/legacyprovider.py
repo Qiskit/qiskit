@@ -11,7 +11,7 @@ import logging
 import warnings
 from collections import OrderedDict
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.providers.builtinsimulators import SimulatorsProvider
 
 from .qasm_simulator import QasmSimulator, CliffordSimulator

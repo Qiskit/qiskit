@@ -11,26 +11,21 @@
 import sys
 import time
 import threading
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 _NOTEBOOK_ENV = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     _NOTEBOOK_ENV = True
     from IPython.display import display    # pylint: disable=import-error
-    try:
-        import ipywidgets as widgets           # pylint: disable=import-error
-    except ImportError:
-        raise ImportError('These functions  need ipywidgets. '
-                          'Run "pip install ipywidgets" before.')
-    from qiskit.tools.jupyter.jupyter_magics import _html_checker    # pylint: disable=C0412
 
 
-def _text_checker(job, interval):
+def _text_checker(job, interval, _interval_set=False):
     """A text-based job status checker
 
     Args:
         job (BaseJob): The job to check.
         interval (int): The interval at which to check.
+        _interval_set (bool): Was interval time set by user?
     """
     status = job.status()
     msg = status.value
@@ -45,6 +40,11 @@ def _text_checker(job, interval):
 
         if status.name == 'QUEUED':
             msg += ' (%s)' % job.queue_position()
+            if not _interval_set:
+                interval = max(job.queue_position(), 2)
+        else:
+            if not _interval_set:
+                interval = 2
 
         # Adjust length of message so there are no artifacts
         if len(msg) < msg_len:
@@ -58,7 +58,7 @@ def _text_checker(job, interval):
     print('')
 
 
-def job_monitor(job, interval=2, monitor_async=False):
+def job_monitor(job, interval=None, monitor_async=False):
     """Monitor the status of a IBMQJob instance.
 
     Args:
@@ -68,20 +68,34 @@ def job_monitor(job, interval=2, monitor_async=False):
 
     Raises:
         QiskitError: When trying to run async outside of Jupyter
+        ImportError: ipywidgets not available for notebook.
     """
+    if interval is None:
+        _interval_set = False
+        interval = 2
+    else:
+        _interval_set = True
     if _NOTEBOOK_ENV:
-        style = "font-size:16px;"
-        header = "<p style='{style}'>Job Status: %s </p>".format(style=style)
-        status = widgets.HTML(value=header % job.status().value)
-        display(status)
         if monitor_async:
+            try:
+                import ipywidgets as widgets  # pylint: disable=import-error
+            except ImportError:
+                raise ImportError('These functions  need ipywidgets. '
+                                  'Run "pip install ipywidgets" before.')
+            from qiskit.tools.jupyter.jupyter_magics import _html_checker  # pylint: disable=C0412
+
+            style = "font-size:16px;"
+            header = "<p style='{style}'>Job Status: %s </p>".format(style=style)
+            status = widgets.HTML(value=header % job.status().value)
+            display(status)
+
             thread = threading.Thread(target=_html_checker, args=(job, interval,
                                                                   status, header))
             thread.start()
         else:
-            _html_checker(job, interval, status, header)
+            _text_checker(job, interval, _interval_set)
 
     else:
         if monitor_async:
             raise QiskitError('monitor_async only available in Jupyter notebooks.')
-        _text_checker(job, interval)
+        _text_checker(job, interval, _interval_set)

@@ -12,8 +12,7 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
-
-from qiskit import QiskitError
+from qiskit.mapper.exceptions import LayoutError
 
 
 class Layout(dict):
@@ -182,16 +181,3 @@ class Layout(dict):
             edge_map[virtual] = another_layout[physical]
 
         return edge_map
-
-
-class LayoutError(QiskitError):
-    """Errors raised by the layout object."""
-
-    def __init__(self, *msg):
-        """Set the error message."""
-        super().__init__(*msg)
-        self.msg = ' '.join(msg)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.msg)
