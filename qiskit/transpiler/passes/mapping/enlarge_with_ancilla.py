@@ -24,6 +24,7 @@ class EnlargeWithAncilla(TransformationPass):
         """
         super().__init__()
         self.layout = layout
+        self.ancilla_name = 'ancilla'
 
     def run(self, dag):
         """
@@ -45,5 +46,11 @@ class EnlargeWithAncilla(TransformationPass):
 
         amount_of_idle_qubits = len(self.layout.idle_physical_bits())
         if amount_of_idle_qubits:
-            dag.add_qreg(QuantumRegister(amount_of_idle_qubits, name='ancilla'))
+            if self.ancilla_name in dag.qregs:
+                save_prefix = QuantumRegister.prefix
+                QuantumRegister.prefix = self.ancilla_name
+                dag.add_qreg(QuantumRegister(amount_of_idle_qubits))
+                QuantumRegister.prefix = save_prefix
+            else:
+                dag.add_qreg(QuantumRegister(amount_of_idle_qubits, name=self.ancilla_name))
         return dag

@@ -14,7 +14,6 @@ from qiskit.mapper import Layout
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.converters import circuit_to_dag
 from ..common import QiskitTestCase
-from qiskit.tools.visualization.dag_visualization import dag_drawer
 
 
 class TestEnlargeWithAncilla(QiskitTestCase):
@@ -54,6 +53,27 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         self.assertEqual(2, len(qregs))
         self.assertEqual(self.qr3, qregs[0])
         self.assertEqual(QuantumRegister(2, name='ancilla'), qregs[1])
+
+    def test_name_coalition(self):
+        """Name coalition during ancilla extension."""
+        qr_ancilla = QuantumRegister(3, 'ancilla')
+        circuit = QuantumCircuit(qr_ancilla)
+        circuit.h(qr_ancilla)
+        dag = circuit_to_dag(circuit)
+
+        layout = Layout([(qr_ancilla, 0),
+                         None,
+                         (qr_ancilla, 1),
+                         None,
+                         (qr_ancilla, 2)])
+
+        pass_ = EnlargeWithAncilla(layout)
+        after = pass_.run(dag)
+
+        qregs = list(after.qregs.values())
+        self.assertEqual(2, len(qregs))
+        self.assertEqual(qr_ancilla, qregs[0])
+        self.assertEqual(QuantumRegister(2, name='ancilla0'), qregs[1])
 
 if __name__ == '__main__':
     unittest.main()
