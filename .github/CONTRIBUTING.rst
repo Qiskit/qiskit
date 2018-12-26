@@ -414,14 +414,14 @@ All platforms:
 Development cycle
 -----------------
 
-Our development cycle is straightforward, we define a roadmap with milestones
-for releases, and features that we want to include in these releases. We use 
-the project boards in Github for project management. Whenever a new release 
-is close to be launched, we'll
-announce it and detail what has changed since the latest version in our 
-Release Notes and CHANGELOG. The channels we'll use to announce new releases are still being discussed, but
-for now, you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
-
+Our development cycle is straightforward, use the project boards in Github 
+for project management and use milestones for releases. The features 
+that we want to include in these releases will be tagged and discussed 
+in the project boards. Whenever a new release is close to be launched, 
+we'll announce it and detail what has changed since the latest version in 
+our Release Notes and Changelog. The channels we'll use to announce new 
+releases are still being discussed, but for now, you can 
+`follow us <https://twitter.com/qiskit>`_ on Twitter!
 
 
 Branch model
