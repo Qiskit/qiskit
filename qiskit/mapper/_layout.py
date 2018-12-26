@@ -13,7 +13,7 @@ Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
 from qiskit.mapper.exceptions import LayoutError
-
+from qiskit.circuit.register import Register
 
 class Layout(dict):
     """ Two-ways dict to represent a Layout."""
@@ -56,6 +56,11 @@ class Layout(dict):
         return dict.__getitem__(self, item)
 
     def __setitem__(self, key, value):
+        Layout.checktype(key)
+        Layout.checktype(value)
+        if isinstance(key, type(value)):
+            raise LayoutError('Key (%s) and value (%s) cannot have the same type' % (key, value))
+
         if key in self:
             del self[key]
         if value in self:
@@ -68,6 +73,19 @@ class Layout(dict):
     def __delitem__(self, key):
         dict.__delitem__(self, self[key])
         dict.__delitem__(self, key)
+
+    @staticmethod
+    def checktype(thing):
+        """Checks if thing is a valid type"""
+        if thing is None:
+            return
+        if isinstance(thing, int):
+            return
+        if isinstance(thing, tuple) and \
+                len(thing) == 2 and \
+                isinstance(thing[0], Register) and isinstance(thing[1], int):
+            return
+        raise LayoutError('The element %s should be a Register or an integer' % (thing,))
 
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
