@@ -157,6 +157,7 @@ class TestCheckMapCX(QiskitTestCase):
         self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
+
 class TestCheckMapSwap(QiskitTestCase):
     """ Tests the CheckMap pass."""
 
@@ -182,8 +183,30 @@ class TestCheckMapSwap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
+
+    def test_true_map_symmetric(self):
+        """ Mapped and directed, because coupling map fully connected
+
+         qr0:--X-[H]-
+               |
+         qr1:--X-----
+
+         CouplingMap map: [0]<->[1]
+        """
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.swap(qr[0], qr[1])
+        circuit.h(qr[0])
+        coupling = CouplingMap([(0, 1), (1, 0)])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CheckMap(coupling)
+        pass_.run(dag)
+
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
+        self.assertTrue(pass_.property_set['is_direction_mapped'])
 
     def test_true_map_in_same_layer(self):
         """ Two SWAPs distance_qubits 1 to each other, in the same layer
@@ -207,7 +230,7 @@ class TestCheckMapSwap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
     def test_false_map(self):
@@ -227,8 +250,9 @@ class TestCheckMapSwap(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertFalse(pass_.property_set['is_mapped'])
+        self.assertFalse(pass_.property_set['is_swap_mapped'])
         self.assertFalse(pass_.property_set['is_direction_mapped'])
+
 
 if __name__ == '__main__':
     unittest.main()
