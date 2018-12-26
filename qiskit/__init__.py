@@ -16,7 +16,7 @@ import pkgutil
 from . import _util
 
 # qiskit errors operator
-from .qiskiterror import QiskitError, QISKitError
+from .exceptions import QiskitError, QISKitError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister

@@ -9,7 +9,7 @@
 
 import warnings
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
 from .postprocess import (format_counts, format_statevector,

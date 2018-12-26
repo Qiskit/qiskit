@@ -28,7 +28,7 @@ Instructions are identified by the following fields, and are serialized as such 
 import sympy
 
 from qiskit.qasm._node import _node
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 

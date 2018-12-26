@@ -19,7 +19,7 @@ from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
+from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from .common import QiskitTestCase
 

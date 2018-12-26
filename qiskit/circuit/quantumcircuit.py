@@ -17,7 +17,7 @@ import sys
 import multiprocessing as mp
 
 from qiskit.qasm import _qasm
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 

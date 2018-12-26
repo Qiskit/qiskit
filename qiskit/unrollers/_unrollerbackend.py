@@ -8,7 +8,7 @@
 """
 Base backend object for the unroller that raises BackendError.
 """
-from ._backenderror import BackendError
+from qiskit.unrollers.exceptions import BackendError
 
 
 class UnrollerBackend:

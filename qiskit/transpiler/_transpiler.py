@@ -17,7 +17,7 @@ from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout, TrivialLayout,
                      CheckMap, Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
-from ._transpilererror import TranspilerError
+from .exceptions import TranspilerError
 
 logger = logging.getLogger(__name__)
 

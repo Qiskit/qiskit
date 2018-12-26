@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import numpy
 import sympy
 
-from ._validation import QobjValidationError
+from .exceptions import QobjValidationError
 from ._utils import QobjType
 
 # Current version of the Qobj schema.

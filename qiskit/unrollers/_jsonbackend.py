@@ -41,7 +41,7 @@ The input is a AST and a basis set and returns a json memory object::
 from collections import OrderedDict
 import sympy
 
-from qiskit.unrollers._backenderror import BackendError
+from qiskit.unrollers.exceptions import BackendError
 from qiskit.unrollers._unrollerbackend import UnrollerBackend
 
 

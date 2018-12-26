@@ -9,7 +9,7 @@
 Message broker for the Publisher / Subscriber mechanism
 """
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class _Broker:

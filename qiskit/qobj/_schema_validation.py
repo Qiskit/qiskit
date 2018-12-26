@@ -12,7 +12,7 @@ import os
 import logging
 import jsonschema
 
-from qiskit.qiskiterror import QiskitError
+from .exceptions import SchemaValidationError, _SummaryValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -210,32 +210,3 @@ def _format_causes(err, level=0):
             lines.append(_format_causes(suberr, level+1))
 
     return '\n'.join(lines)
-
-
-class SchemaValidationError(QiskitError):
-    """Represents an error during JSON Schema validation."""
-    pass
-
-
-class _SummaryValidationError(QiskitError):
-    """Cut off the message of a jsonschema.ValidationError for compactness.
-
-    Cut off the message of a jsonschema.ValidationError to avoid printing
-    noise in the standard output. The original validation error is in the
-    `validation_error` property.
-
-    Attributes:
-        validation_error (jsonschama.ValidationError): original validations
-            error.
-    """
-
-    def __init__(self, validation_error):
-        super().__init__(self._shorten_message(str(validation_error)))
-        self.validation_error = validation_error
-
-    def _shorten_message(self, message):
-        if len(message) > 1000:
-            return 'Original message too long to be useful: {}[...]'\
-                   ''.format(message[:1000])
-
-        return message

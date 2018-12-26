@@ -6,14 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by simulators.
+Exception for errors raised by extensions module.
 """
+from qiskit.exceptions import QiskitError
 
-from qiskit.qiskiterror import QiskitError
 
-
-class SimulatorError(QiskitError):
-    """Base class for errors raised by simulators."""
+class ExtensionError(QiskitError):
+    """Base class for errors raised by extensions module."""
 
     def __init__(self, *message):
         """Set the error message."""

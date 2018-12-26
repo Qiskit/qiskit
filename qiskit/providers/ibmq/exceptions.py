@@ -8,10 +8,19 @@
 """
 Exception for errors raised by jobs.
 """
-
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class IBMQAccountError(QiskitError):
     """Base class for errors raised by account management."""
+    pass
+
+
+class IBMQBackendError(QiskitError):
+    """IBM Q Backend Errors"""
+    pass
+
+
+class IBMQBackendValueError(IBMQBackendError, ValueError):
+    """Value errors thrown within IBMQBackend """
     pass

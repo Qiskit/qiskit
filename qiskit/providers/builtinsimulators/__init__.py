@@ -12,7 +12,7 @@ from .simulatorsjob import SimulatorsJob
 from .qasm_simulator import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulatorPy
 from .unitary_simulator import UnitarySimulatorPy
-from ._simulatorerror import SimulatorError
+from .exceptions import SimulatorError
 
 # Global instance to be used as the entry point for convenience.
 BasicAer = SimulatorsProvider()  # pylint: disable=invalid-name

@@ -9,7 +9,7 @@
 """
 
 import math
-from qiskit.qiskiterror import QISKitError
+from qiskit.exceptions import QISKitError
 from qiskit.providers.ibmq import IBMQ
 from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 

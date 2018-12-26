@@ -11,7 +11,7 @@ DAG Unroller
 
 import networkx as nx
 
-from ._unrollererror import UnrollerError
+from .exceptions import UnrollerError
 
 
 class DagUnroller:

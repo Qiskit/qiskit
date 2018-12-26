@@ -22,7 +22,7 @@ from qiskit.qasm import _node as node
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.swap import SwapGate
 
-from ._mappererror import MapperError
+from .exceptions import MapperError
 
 
 logger = logging.getLogger(__name__)

@@ -37,7 +37,7 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
 from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
-from ._simulatorerror import SimulatorError
+from .exceptions import SimulatorError
 from ._simulatortools import single_gate_matrix
 from ._simulatortools import cx_gate_matrix
 from ._simulatortools import einsum_vecmul_index

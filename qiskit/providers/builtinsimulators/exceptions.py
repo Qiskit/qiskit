@@ -6,14 +6,14 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by unroller backends.
+Exception for errors raised by simulators.
 """
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 
-class BackendError(QiskitError):
-    """Base class for errors raised by unroller backends."""
+class SimulatorError(QiskitError):
+    """Base class for errors raised by simulators."""
 
     def __init__(self, *message):
         """Set the error message."""

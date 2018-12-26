@@ -16,7 +16,7 @@ Functions
 
 from string import ascii_uppercase, ascii_lowercase
 import numpy as np
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 def single_gate_params(gate, params=None):

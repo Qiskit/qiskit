@@ -6,13 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by the CouplingMap object.
+Exception for errors raised by the DAGCircuit object.
 """
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 
-class CouplingError(QiskitError):
-    """Base class for errors raised by the coupling graph object."""
+class DAGCircuitError(QiskitError):
+    """Base class for errors raised by the DAGCircuit object."""
 
     def __init__(self, *msg):
         """Set the error message."""

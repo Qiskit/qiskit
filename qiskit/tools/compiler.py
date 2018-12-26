@@ -12,7 +12,7 @@ import logging
 from qiskit import transpiler
 from qiskit.transpiler._passmanager import PassManager
 from qiskit.converters import circuits_to_qobj
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 
