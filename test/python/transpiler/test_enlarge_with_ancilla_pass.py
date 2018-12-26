@@ -73,7 +73,8 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         qregs = list(after.qregs.values())
         self.assertEqual(2, len(qregs))
         self.assertEqual(qr_ancilla, qregs[0])
-        self.assertEqual(QuantumRegister(2, name='ancilla0'), qregs[1])
+        self.assertEqual(2, qregs[1].size)
+        self.assertTrue(qregs[1].name.startswith('ancilla'))
 
 
 if __name__ == '__main__':
