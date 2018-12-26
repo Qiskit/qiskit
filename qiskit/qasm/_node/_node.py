@@ -10,7 +10,7 @@ Base node object for the OPENQASM syntax tree.
 """
 
 
-class Node(object):
+class Node:
     """Base node object for the OPENQASM syntax tree."""
 
     def __init__(self, type, children=None, root=None):

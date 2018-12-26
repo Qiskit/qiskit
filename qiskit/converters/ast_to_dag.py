@@ -14,7 +14,7 @@ from collections import OrderedDict
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
@@ -70,7 +70,7 @@ def ast_to_dag(ast):
     return dag
 
 
-class AstInterpreter(object):
+class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
     def __init__(self, dag):

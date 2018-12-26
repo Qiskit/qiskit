@@ -15,7 +15,7 @@ from collections import Counter, OrderedDict
 import functools
 import numpy as np
 from ._matplotlib import HAS_MATPLOTLIB
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt

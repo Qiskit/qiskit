@@ -16,7 +16,7 @@ Functions
 
 from string import ascii_uppercase, ascii_lowercase
 import numpy as np
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 def single_gate_params(gate, params=None):
@@ -30,7 +30,7 @@ def single_gate_params(gate, params=None):
     Raises:
         QiskitError: if the gate name is not valid
     """
-    if gate == 'U' or gate == 'u3':
+    if gate in ('U', 'u3'):
         return params[0], params[1], params[2]
     elif gate == 'u2':
         return np.pi / 2, params[0], params[1]

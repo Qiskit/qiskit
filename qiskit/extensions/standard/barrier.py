@@ -8,8 +8,8 @@
 """
 Barrier instruction.
 """
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 

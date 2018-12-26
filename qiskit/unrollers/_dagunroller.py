@@ -11,10 +11,10 @@ DAG Unroller
 
 import networkx as nx
 
-from ._unrollererror import UnrollerError
+from .exceptions import UnrollerError
 
 
-class DagUnroller(object):
+class DagUnroller:
     """An Unroller that takes Dag circuits as the input."""
 
     def __init__(self, dag_circuit, backend=None):

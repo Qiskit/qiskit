@@ -134,7 +134,7 @@ def _gate_master_def(name, para=None):
     if name == 'tdag':
         return np.array([[1.0, 0.0],
                          [0.0, -np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
-    if name == 'rz' or name == 'u1':
+    if name in ('rz', 'u1'):
         return np.array([[np.exp(-1j * float(para[0]) / 2), 0],
                          [0, np.exp(1j * float(para[0]) / 2)]], dtype=np.complex)
     if name == 'rx':

@@ -12,7 +12,7 @@ import unittest
 
 from qiskit import QuantumRegister
 from qiskit.mapper import Layout
-from qiskit.mapper._layout import LayoutError
+from qiskit.mapper.exceptions import LayoutError
 from .common import QiskitTestCase
 
 

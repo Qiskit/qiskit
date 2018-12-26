@@ -9,7 +9,7 @@
 Exception for errors when there's an error in the Result
 """
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class ResultError(QiskitError):
