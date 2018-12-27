@@ -10,7 +10,7 @@
 import unittest
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit import execute
-from qiskit import LegacySimulators
+from qiskit import Aer
 from ..common import QiskitTestCase, requires_cpp_simulator
 
 
@@ -27,7 +27,7 @@ class StatevectorSimulatorTest(QiskitTestCase):
     def test_statevector_simulator(self):
         """Test final state vector for single circuit run."""
         result = execute(self.q_circuit,
-                         backend=LegacySimulators.get_backend('statevector_simulator')).result()
+                         backend=Aer.get_backend('statevector_simulator')).result()
         self.assertEqual(result.success, True)
         actual = result.get_statevector(self.q_circuit)
 

@@ -15,8 +15,8 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.providers.legacysimulators import QasmSimulator
-from qiskit.providers.legacysimulators import StatevectorSimulator
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import StatevectorSimulator
 from qiskit.providers.builtinsimulators import QasmSimulatorPy
 from qiskit.providers.builtinsimulators import StatevectorSimulatorPy
 from qiskit.providers.builtinsimulators import UnitarySimulatorPy

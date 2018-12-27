@@ -32,6 +32,7 @@ Removed
 -------
 
 - Removed the wrapper folder as part of the post 0.7 cleanup
+- removed the python wrappers of the legacy simualtors now that Qiskit Aer is out. 
 
 `0.7.0`_ - 2018-12-19
 =====================

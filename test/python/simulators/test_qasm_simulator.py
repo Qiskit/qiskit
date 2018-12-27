@@ -14,9 +14,7 @@ import numpy as np
 from numpy.linalg import norm
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.providers.legacysimulators.qasm_simulator import (QasmSimulator,
-                                                              cx_error_matrix,
-                                                              x90_error_matrix)
+from qiskit.providers.aer import QasmSimulator
 from qiskit.qobj import Qobj
 from qiskit.result.postprocess import format_statevector
 from qiskit.quantum_info import state_fidelity
@@ -46,41 +44,6 @@ class TestLegacyQasmSimulator(QiskitTestCase):
 
         self.qobj = compile([self.qc1, self.qc2], backend=self.backend,
                             shots=2000, seed=1111)
-
-    def test_x90_coherent_error_matrix(self):
-        x90 = np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2)
-        u_matrix = x90_error_matrix(0., 0.).dot(x90)
-        target = x90
-        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10,
-                               msg="identity error matrix")
-        u_matrix = x90_error_matrix(np.pi / 2., 0.).dot(x90)
-        target = -1j * np.array([[0, 1], [1, 0]])
-        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
-        u_matrix = x90_error_matrix(0., np.pi / 2.).dot(x90)
-        target = np.array([[1., -1], [1, 1.]]) / np.sqrt(2.)
-        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
-        u_matrix = x90_error_matrix(np.pi / 2, np.pi / 2.).dot(x90)
-        target = np.array([[0., -1], [1, 0.]])
-        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
-        u_matrix = x90_error_matrix(0.02, -0.03)
-        self.assertAlmostEqual(norm(u_matrix.dot(u_matrix.conj().T) - np.eye(2)), 0.0,
-                               places=10, msg="Test error matrix is unitary")
-
-    def test_cx_coherent_error_matrix(self):
-        cx_matrix = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])
-        u_matrix = cx_error_matrix(0., 0.).dot(cx_matrix)
-        target = cx_matrix
-        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10,
-                               msg="identity error matrix")
-        u_matrix = cx_error_matrix(np.pi / 2., 0.).dot(cx_matrix)
-        target = np.array([[1, 0, 1j, 0],
-                           [0, -1j, 0, 1],
-                           [1j, 0, 1, 0],
-                           [0, 1, 0, -1j]]) / np.sqrt(2)
-        self.assertAlmostEqual(norm(u_matrix - target), 0.0, places=10)
-        u_matrix = cx_error_matrix(0.03, -0.04)
-        self.assertAlmostEqual(norm(u_matrix.dot(u_matrix.conj().T) - np.eye(4)), 0.0,
-                               places=10, msg="Test error matrix is unitary")
 
     def test_run_qobj(self):
         result = self.backend.run(self.qobj).result()

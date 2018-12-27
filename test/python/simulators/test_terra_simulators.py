@@ -8,7 +8,7 @@
 
 """Tests for all builtinsimulators simulators."""
 
-from qiskit import BasicAer, LegacySimulators
+from qiskit import BasicAer, Aer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.qobj import QobjHeader
@@ -31,7 +31,7 @@ class TestTerraSimulators(QiskitTestCase):
         """Test that the qobj headers are passed onto the results."""
         custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
 
-        for provider in (BasicAer, LegacySimulators):
+        for provider in (BasicAer, Aer):
             for backend in provider.backends():
                 with self.subTest(provider=provider, backend=backend):
                     qobj = compile(self.qc1, backend)
@@ -48,7 +48,7 @@ class TestTerraSimulators(QiskitTestCase):
 
     def test_job_qobj(self):
         """Test job.qobj()."""
-        for provider in (BasicAer, LegacySimulators):
+        for provider in (BasicAer, Aer):
             for backend in provider.backends():
                 with self.subTest(provider=provider, backend=backend):
                     qobj = compile(self.qc1, backend)

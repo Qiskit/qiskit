@@ -14,7 +14,7 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit import execute
-from qiskit import BasicAer, IBMQ, LegacySimulators
+from qiskit import BasicAer, IBMQ, Aer
 from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
@@ -31,7 +31,7 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
 
-        sim_cpp = LegacySimulators.get_backend('statevector_simulator')
+        sim_cpp = Aer.get_backend('statevector_simulator')
         sim_py = BasicAer.get_backend('statevector_simulator')
         result_cpp = execute(circuit, sim_cpp).result()
         result_py = execute(circuit, sim_py).result()
@@ -52,7 +52,7 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        sim_cpp = LegacySimulators.get_backend('qasm_simulator')
+        sim_cpp = Aer.get_backend('qasm_simulator')
         sim_py = BasicAer.get_backend('qasm_simulator')
         shots = 2000
         result_cpp = execute(circuit, sim_cpp, shots=shots).result()
@@ -75,7 +75,7 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[2])
         circuit.measure(qr[2], cr[2])
 
-        sim_cpp = LegacySimulators.get_backend('qasm_simulator')
+        sim_cpp = Aer.get_backend('qasm_simulator')
         sim_py = BasicAer.get_backend('qasm_simulator')
         shots = 1000
         result_cpp = execute(circuit, sim_cpp, shots=shots, seed=1).result()
