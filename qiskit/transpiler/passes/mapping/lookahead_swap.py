@@ -46,9 +46,10 @@ from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.mapper import Layout
+
+from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4

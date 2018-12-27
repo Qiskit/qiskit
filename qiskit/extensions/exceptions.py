@@ -6,14 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by mapper module.
+Exception for errors raised by extensions module.
 """
+from qiskit.exceptions import QiskitError
 
-from qiskit import QiskitError
 
-
-class MapperError(QiskitError):
-    """Base class for errors raised by mapper module."""
+class ExtensionError(QiskitError):
+    """Base class for errors raised by extensions module."""
 
     def __init__(self, *message):
         """Set the error message."""

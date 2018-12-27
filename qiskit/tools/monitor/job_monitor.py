@@ -11,7 +11,7 @@
 import sys
 import time
 import threading
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 _NOTEBOOK_ENV = False
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):

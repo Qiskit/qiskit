@@ -8,7 +8,7 @@
 """Helper module for simplified Qiskit usage."""
 import logging
 import warnings
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 logger = logging.getLogger(__name__)
 

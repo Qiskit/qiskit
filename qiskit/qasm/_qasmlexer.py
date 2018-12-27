@@ -18,20 +18,20 @@ import ply.lex as lex
 from sympy import Number
 
 from . import _node as node
-from ._qasmerror import QasmError
+from .exceptions import QasmError
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
 
 
-class QasmLexer(object):
+class QasmLexer:
     """OPENQASM Lexer.
 
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
     # pylint: disable=invalid-name,missing-docstring,unused-argument
-    # pylint: disable=attribute-defined-outside-init
+    # pylint: disable=attribute-defined-outside-init,bad-docstring-quotes
 
     def __mklexer__(self, filename):
         """Create a PLY lexer."""

@@ -23,7 +23,7 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 import logging
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.providers.builtinsimulators._simulatorerror import SimulatorError
+from qiskit.providers.builtinsimulators.exceptions import SimulatorError
 from qiskit.providers.models import BackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
 
@@ -144,7 +144,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         for experiment in qobj.experiments:
             name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info('"{}" only supports 1 shot. ' +
-                            'Setting shots=1 for circuit "{}".',
+                logger.info('"%s" only supports 1 shot. '
+                            'Setting shots=1 for circuit "%s".',
                             self.name(), name)
                 experiment.config.shots = 1

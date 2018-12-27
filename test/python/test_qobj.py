@@ -14,7 +14,7 @@ import copy
 import jsonschema
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
-from qiskit.qobj._schema_validation import SchemaValidationError
+from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.providers.builtinsimulators import simulatorsjob

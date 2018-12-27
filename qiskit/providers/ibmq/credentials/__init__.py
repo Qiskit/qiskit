@@ -11,7 +11,7 @@ Utilities for working with credentials for the wrapper.
 from collections import OrderedDict
 import logging
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from .credentials import Credentials
 from ._configrc import read_credentials_from_qiskitrc, store_credentials
 from ._environ import read_credentials_from_environ

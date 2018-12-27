@@ -15,9 +15,19 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from .passes import (Unroller, CXDirection, CXCancellation, DenseLayout, TrivialLayout,
-                     CheckMap, Decompose, Optimize1qGates, BarrierBeforeFinalMeasurements)
-from ._transpilererror import TranspilerError
+
+
+from .passes.cx_cancellation import CXCancellation
+from .passes.decompose import Decompose
+from .passes.optimize_1q_gates import Optimize1qGates
+from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
+from .passes.mapping.check_map import CheckMap
+from .passes.mapping.cx_direction import CXDirection
+from .passes.mapping.dense_layout import DenseLayout
+from .passes.mapping.trivial_layout import TrivialLayout
+from .passes.mapping.unroller import Unroller
+
+from .exceptions import TranspilerError
 
 logger = logging.getLogger(__name__)
 

@@ -14,11 +14,11 @@ import warnings
 
 from marshmallow import ValidationError
 
-from qiskit import QiskitError
 from qiskit.providers import BaseBackend, JobStatus
 from qiskit.providers.models import BackendStatus, BackendProperties
 
 from .api import ApiError
+from .exceptions import IBMQBackendError, IBMQBackendValueError
 from .ibmqjob import IBMQJob, IBMQJobPreQobj
 
 logger = logging.getLogger(__name__)
@@ -220,16 +220,6 @@ class IBMQBackend(BaseBackend):
                                                    self.project)
         return "<{}('{}') from IBMQ({})>".format(
             self.__class__.__name__, self.name(), credentials_info)
-
-
-class IBMQBackendError(QiskitError):
-    """IBM Q Backend Errors"""
-    pass
-
-
-class IBMQBackendValueError(IBMQBackendError, ValueError):
-    """Value errors thrown within IBMQBackend """
-    pass
 
 
 def _job_class_from_job_response(job_response):

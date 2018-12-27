@@ -13,6 +13,7 @@ It checks that all 2-qubit interactions are laid out to be physically close.
 
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
+from qiskit.extensions.standard.swap import SwapGate
 
 
 class CheckMap(AnalysisPass):
@@ -32,6 +33,8 @@ class CheckMap(AnalysisPass):
         super().__init__()
         self.layout = initial_layout
         self.coupling_map = coupling_map
+        self.results = {'is_swap_mapped': [],
+                        'is_direction_mapped': []}
 
     def run(self, dag):
         """
@@ -51,16 +54,18 @@ class CheckMap(AnalysisPass):
         self.property_set['is_swap_mapped'] = True
         self.property_set['is_direction_mapped'] = True
 
-        for layer in dag.serial_layers():
-            subdag = layer['graph']
+        for gate in dag.get_2q_nodes():
+            physical_q0 = self.layout[gate['qargs'][0]]
+            physical_q1 = self.layout[gate['qargs'][1]]
 
-            for gate in subdag.get_2q_nodes():
-                physical_q0 = self.layout[gate['qargs'][0]]
-                physical_q1 = self.layout[gate['qargs'][1]]
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    self.property_set['is_swap_mapped'] = False
+            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                self.property_set['is_swap_mapped'] = False
+                self.property_set['is_direction_mapped'] = False
+                return
+            else:
+                if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
                     self.property_set['is_direction_mapped'] = False
-                    return
-                else:
-                    if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
-                        self.property_set['is_direction_mapped'] = False
+
+            if isinstance(gate['op'], SwapGate):
+                if (physical_q1, physical_q0) not in self.coupling_map.get_edges():
+                    self.property_set['is_direction_mapped'] = False

@@ -9,7 +9,7 @@
 Exception for errors raised by simulators.
 """
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class SimulatorError(QiskitError):

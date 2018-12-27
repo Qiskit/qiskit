@@ -11,7 +11,7 @@ but is not ready for simple scheduling.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler.passes import CommutationAnalysis
+from .commutation_analysis import CommutationAnalysis
 
 
 class CommutationTransformation(TransformationPass):
