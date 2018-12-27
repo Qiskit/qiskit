@@ -370,9 +370,9 @@ class TestBasicSwap(QiskitTestCase):
     def test_initial_layout_in_different_qregs(self):
         """ Using an initial_layout, and with several qregs
          0:q1_0:--(+)--
-                 |
+                   |
          1:q0_0:---|---
-                 |
+                   |
          2:q2_0:---.---
 
          CouplingMap map: [0]--[1]--[2]
