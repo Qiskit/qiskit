@@ -52,7 +52,7 @@ Add the following method in the class `CommonTestCases`:
 ```
 """
 
-# pylint: disable=redefined-builtin,no-member,attribute-defined-outside-init
+# pylint: disable=redefined-builtin,attribute-defined-outside-init
 
 import unittest
 import pickle
@@ -72,6 +72,7 @@ class CommonUtilitiesMixin():
     regenerate_expected = False
     seed = 42
     additional_args = {}
+    pass_class = object
 
     def create_passmanager(self, coupling_map, initial_layout=None):
         """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
