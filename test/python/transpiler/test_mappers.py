@@ -5,11 +5,50 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Meta Tests for mappers
+"""
+Meta Tests for mappers
+----------------------
 
-Regenerate ground truth by running this on the root directory:
+The test checks the output of the swapper to a ground truth DAG (one for each
+test/swapper) saved in as a pickle (in `test/python/pickles/`). If they need
+to be regenerated, the DAG candidate is compiled and run in a simulator and
+the count is checked before being saved. This happens with (in the root
+directory):
+
 > python -m  test.python.transpiler.test_mappers
 
+How to add a swapper
+====================
+
+Add the following class in `test/python/transpiler/test_mappers.py`
+```
+class TestsSomeSwap(CommonTestCases, QiskitTestCase):
+    pass_class = SomeSwap           # <- The pass class
+    additional_args = {'seed': 42}  # <- In case SomeSwap.__init__ requieres additional arguments
+```
+
+How to add a test for all the swappers
+======================================
+
+Add the following method in the class `CommonTestCases`:
+```
+    def test_a_common_test(self):
+        self.count = {'000': 512, '110': 512}  # <- The expected count for this circuit
+        self.delta = 5                         # <- This is delta for the AlmostEqual during
+                                               #    the count check
+        coupling_map = [[0, 1], [0, 2]]        # <- The coupling map for this specific test
+
+        qr = QuantumRegister(3, 'q')                       #
+        cr = ClassicalRegister(3, 'c')                     #  Set the circuit to test
+        circuit = QuantumCircuit(qr, cr, name='some_name') #  and dont't forget to put a name
+        circuit.h(qr[1])                                   #  (it will be used to save the pickle
+        circuit.cx(qr[1], qr[2])                           #
+        circuit.measure(qr, cr)                            #
+
+        result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
+                           pass_manager=self.create_passmanager(coupling_map))
+        self.assertResult(result, circuit.name)
+```
 """
 
 # pylint: disable=redefined-builtin,no-member,attribute-defined-outside-init
