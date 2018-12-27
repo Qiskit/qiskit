@@ -21,13 +21,15 @@ class Path(Enum):
     # Main SDK path:    qiskit/
     SDK = qiskit_path[0]
     # test.python path: qiskit/test/python/
-    TEST = os.path.join(SDK, '..', 'test', 'python')
+    TEST = os.path.normpath(os.path.join(SDK, '..', 'test', 'python'))
     # Examples path:    examples/
-    EXAMPLES = os.path.join(SDK, '..', 'examples')
+    EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
     # Schemas path:     qiskit/schemas
-    SCHEMAS = os.path.join(SDK, 'schemas')
+    SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
     # VCR cassettes path: qiskit/test/cassettes/
-    CASSETTES = os.path.join(TEST, '..', 'cassettes')
+    CASSETTES = os.path.normpath(os.path.join(TEST, '..', 'cassettes'))
+    # Sample QASMs path: qiskit/test/python/qasm
+    QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
 
 
 def setup_test_logging(logger, log_level, filename):
@@ -37,7 +39,6 @@ def setup_test_logging(logger, log_level, filename):
         logger (Logger): logger object to be updated.
         log_level (str): logging level.
         filename (str): name of the output file.
-
     """
     # Set up formatter.
     log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'

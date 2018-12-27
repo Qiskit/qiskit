@@ -120,7 +120,7 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.
         """
-        qasm_filename = self._get_resource_path('qasm/example.qasm')
+        qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
                                                                    "include \"qelib1.inc\";",
                                                                    "qreg q[3];",

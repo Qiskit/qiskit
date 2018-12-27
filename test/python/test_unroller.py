@@ -12,7 +12,7 @@ import unittest
 from qiskit import qasm
 from qiskit.unroll import DagUnroller, JsonBackend
 from qiskit.converters import ast_to_dag
-from .common import QiskitTestCase
+from .common import QiskitTestCase, Path
 
 
 class UnrollerTest(QiskitTestCase):
@@ -24,7 +24,7 @@ class UnrollerTest(QiskitTestCase):
     @unittest.skip("Temporary skipping")
     def test_dag_to_json(self):
         """Test DagUnroller with JSON backend."""
-        ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
+        ast = qasm.Qasm(filename=self._get_resource_path('example.qasm', Path.QASMS)).parse()
         dag_circuit = ast_to_dag(ast)
         dag_unroller = DagUnroller(dag_circuit, JsonBackend())
         json_circuit = dag_unroller.execute()

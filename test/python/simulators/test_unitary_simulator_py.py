@@ -14,7 +14,7 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.providers.builtinsimulators.unitary_simulator import UnitarySimulatorPy
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, Path
 
 
 class BuiltinUnitarySimulatorPyTest(QiskitTestCase):
@@ -22,7 +22,7 @@ class BuiltinUnitarySimulatorPyTest(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.qasm_filename = self._get_resource_path('qasm/example.qasm')
+        self.qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         self.backend = UnitarySimulatorPy()
 
     def test_unitary_simulator_py(self):
