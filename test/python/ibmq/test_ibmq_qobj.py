@@ -21,7 +21,6 @@ from .jobtestcase import JobTestCase
 from ..common import requires_qe_access, slow_test
 
 
-
 class TestIBMQQobj(JobTestCase):
     """Qiskit backend qobj test. Compares remote simulator as
        configured in environment variables 'IBMQ_QOBJ_DEVICE',

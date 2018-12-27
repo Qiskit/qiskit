@@ -46,8 +46,7 @@ def requires_cpp_simulator(test_item):
 
 
 def slow_test(func):
-    """
-    Decorator that signals that the test takes minutes to run.
+    """Decorator that signals that the test takes minutes to run.
 
     Args:
         func (callable): test function to be decorated.
@@ -68,8 +67,7 @@ def slow_test(func):
 
 
 def _get_credentials(test_object, test_options):
-    """
-    Finds the credentials for a specific test and options.
+    """Finds the credentials for a specific test and options.
 
     Args:
         test_object (QiskitTestCase): The test object asking for credentials
@@ -120,8 +118,9 @@ def _get_credentials(test_object, test_options):
 
 
 def requires_qe_access(func):
-    """
-    Decorator that signals that the test uses the online API:
+    """Decorator that signals that the test uses the online API:
+
+    It involves:
         * determines if the test should be skipped by checking environment
             variables.
         * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
@@ -131,6 +130,7 @@ def requires_qe_access(func):
             `Qconfig.py`, environment variables or qiskitrc.
         * if the test is not skipped, it appends `qe_token` and `qe_url` as
             arguments to the test function.
+
     Args:
         func (callable): test function to be decorated.
 

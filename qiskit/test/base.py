@@ -5,7 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Shared functionality and helpers for the unit tests."""
+"""Base TestCases for the unit tests.
+
+Implementors of unit tests for Terra are encouraged to subclass
+``QiskitTestCase`` in order to take advantage of utility functions (for example,
+the environment variables for customizing different options), and the
+decorators in the ``decorators`` package.
+"""
 
 import inspect
 import logging
