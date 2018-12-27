@@ -66,7 +66,9 @@ from ..common import QiskitTestCase
 
 
 class CommonUtilitiesMixin():
-    """Some utilities for meta testing."""
+    """Some utilities for meta testing. The methods call QiskitTestCase's methods
+    and should only be used with an instance that is also inheriting from
+    QiskitTestCase."""
     regenerate_expected = False
     seed = 42
     additional_args = {}
