@@ -34,6 +34,7 @@ Add the following method in the class `CommonTestCases`:
 ```
     def test_a_common_test(self):
         self.count = {'000': 512, '110': 512}  # <- The expected count for this circuit
+        self.shots = 1024                      # <- Shots to run in the backend.
         self.delta = 5                         # <- This is delta for the AlmostEqual during
                                                #    the count check
         coupling_map = [[0, 1], [0, 2]]        # <- The coupling map for this specific test
