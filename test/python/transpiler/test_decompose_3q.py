@@ -7,8 +7,6 @@
 
 """Test the decompose 3q pass"""
 
-from sympy import pi
-
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose3Q
 from qiskit.converters import circuit_to_dag
@@ -63,9 +61,9 @@ class TestDecompose3Q(QiskitTestCase):
 
         ref_circuit = QuantumCircuit(qr, cr)
         ref_circuit.h(qr[2]).c_if(cr, 1)
-        ref_circuit.cx(qr[1],qr[2]).c_if(cr, 1)
+        ref_circuit.cx(qr[1], qr[2]).c_if(cr, 1)
         ref_circuit.tdg(qr[2]).c_if(cr, 1)
-        ref_circuit.cx(qr[0],qr[2]).c_if(cr, 1)
+        ref_circuit.cx(qr[0], qr[2]).c_if(cr, 1)
         ref_circuit.t(qr[2]).c_if(cr, 1)
         ref_circuit.cx(qr[1], qr[2]).c_if(cr, 1)
         ref_circuit.t(qr[1]).c_if(cr, 1)
