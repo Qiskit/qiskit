@@ -26,7 +26,7 @@ from ..common import QiskitTestCase
 
 
 class CommonUtilities():
-    """ Some utilities for meta testing."""
+    """Some utilities for meta testing."""
     regenerate_expected = False
     seed = 42
     additional_args = {}
@@ -75,10 +75,10 @@ class CommonUtilities():
 
 
 class CommonTestCases(CommonUtilities):
-    """ The tests here will be run in several mappers."""
+    """The tests here will be run in several mappers."""
 
     def test_a_cx_to_map(self):
-        """ A single CX needs to be remapped
+        """A single CX needs to be remapped
          q0:----------m-----
                       |
          q1:-[H]-(+)--|-m---
@@ -111,7 +111,7 @@ class CommonTestCases(CommonUtilities):
         self.assertResult(result, circuit.name)
 
     def test_initial_layout(self):
-        """ Using a non-trivial initial_layout
+        """Using a non-trivial initial_layout
          q3:----------------m--
          q0:----------m-----|--
                       |     |
@@ -147,7 +147,7 @@ class CommonTestCases(CommonUtilities):
         self.assertResult(result, circuit.name)
 
     def test_handle_measurement(self):
-        """ Handle measurement correctly
+        """Handle measurement correctly
          q0:--.-----(+)-m-------
               |      |  |
          q1:-(+)-(+)-|--|-m-----
@@ -186,17 +186,17 @@ class CommonTestCases(CommonUtilities):
 
 
 class TestsBasicSwap(CommonTestCases, QiskitTestCase):
-    """ Test CommonTestCases using BasicSwap """
+    """Test CommonTestCases using BasicSwap """
     pass_class = BasicSwap
 
 
 class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
-    """ Test CommonTestCases using LookaheadSwap """
+    """Test CommonTestCases using LookaheadSwap """
     pass_class = LookaheadSwap
 
 
 class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
-    """ Test CommonTestCases using StochasticSwap """
+    """Test CommonTestCases using StochasticSwap """
     pass_class = StochasticSwap
     additional_args = {'seed': 0}
 
