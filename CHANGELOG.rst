@@ -26,6 +26,10 @@ Changed
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``). (#1600).
 
+Removed
+-------
+
+- Removed the wrapper folder as part of the post 0.7 cleanup
 
 `0.7.0`_ - 2018-12-19
 =====================
