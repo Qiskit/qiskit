@@ -82,7 +82,7 @@ class BasicSwap(TransformationPass):
                         qubit_2 = current_layout[connected_wire_2]
 
                         # create qregs
-                        for qreg in current_layout.get_virtual_bits().keys():
+                        for qreg in current_layout.get_registers():
                             if qreg[0] not in swap_layer.qregs.values():
                                 swap_layer.add_qreg(qreg[0])
 

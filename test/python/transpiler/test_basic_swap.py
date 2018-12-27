@@ -402,5 +402,6 @@ class TestBasicSwap(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
 if __name__ == '__main__':
     unittest.main()
