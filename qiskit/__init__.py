@@ -46,7 +46,4 @@ try:
 except ImportError:
     pass
 
-# TODO: Remove
-from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
-
 from .version import __version__
