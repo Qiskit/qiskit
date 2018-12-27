@@ -65,7 +65,7 @@ from qiskit.mapper import CouplingMap, Layout
 from ..common import QiskitTestCase
 
 
-class CommonUtilities():
+class CommonUtilitiesMixin():
     """Some utilities for meta testing."""
     regenerate_expected = False
     seed = 42
@@ -114,7 +114,7 @@ class CommonUtilities():
         self.assertEqual(result, expected)
 
 
-class CommonTestCases(CommonUtilities):
+class CommonTestCases(CommonUtilitiesMixin):
     """The tests here will be run in several mappers."""
 
     def test_a_cx_to_map(self):
@@ -242,5 +242,5 @@ class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
 
 
 if __name__ == '__main__':
-    CommonUtilities.regenerate_expected = True
+    CommonUtilitiesMixin.regenerate_expected = True
     unittest.main()
