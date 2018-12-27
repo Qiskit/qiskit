@@ -48,7 +48,7 @@ class TestTerraSimulators(QiskitTestCase):
 
     def test_job_qobj(self):
         """Test job.qobj()."""
-        for provider in (BasicAer, Aer):
+        for provider in BasicAer:
             for backend in provider.backends():
                 with self.subTest(provider=provider, backend=backend):
                     qobj = compile(self.qc1, backend)

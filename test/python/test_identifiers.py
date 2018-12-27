@@ -42,17 +42,6 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, c_qasm)
 
     @requires_cpp_simulator
-    def test_builtin_clifford_simulator(self):
-        backend = Aer.get_backend('clifford_simulator')
-        qobj = compile(self.circuits, backend=backend)
-        exp = qobj.experiments[0]
-        c_qasm = exp.header.compiled_circuit_qasm
-        self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.qr_name, c_qasm)
-        self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
-        self.assertIn(self.cr_name, c_qasm)
-
-    @requires_cpp_simulator
     def test_builtin_qasm_simulator(self):
         backend = Aer.get_backend('qasm_simulator')
         qobj = compile(self.circuits, backend=backend)
