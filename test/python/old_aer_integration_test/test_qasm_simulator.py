@@ -12,17 +12,17 @@ import unittest
 import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit import BasicAer
+from qiskit import Aer
 
 from ..common import QiskitTestCase, Path
 
 
-class TestBasicAerQasmSimulator(QiskitTestCase):
-    """Test the Basic qasm_simulator."""
+class TestAerQasmSimulator(QiskitTestCase):
+    """Test the Aer qasm_simulator."""
 
     def setUp(self):
         self.seed = 88
-        self.backend = BasicAer.get_backend('qasm_simulator')
+        self.backend = Aer.get_backend('qasm_simulator')
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         compiled_circuit.name = 'test'
@@ -83,7 +83,7 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         """test teleportation as in tutorials"""
         self.log.info('test_teleport')
         pi = np.pi
-        shots = 2000
+        shots = 10000
         qr = QuantumRegister(3, 'qr')
         cr0 = ClassicalRegister(1, 'cr0')
         cr1 = ClassicalRegister(1, 'cr1')

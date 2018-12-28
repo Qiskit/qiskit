@@ -12,7 +12,7 @@ import os
 import unittest
 
 from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
-from qiskit.providers.legacysimulators import QasmSimulator
+from qiskit.providers.aer import QasmSimulator
 
 from .utils import Path
 from .http_recorder import http_recorder

@@ -75,9 +75,8 @@ class DagUnroller:
                 # Extensions should not be hardcoded in the DAGUnroller.
                 extra_fields = None
                 if current_node["op"].name == "snapshot":
-                    print(current_node["op"].param)
-                    extra_fields = {'type': str(current_node["op"].param[0]), 
-                                    'label': str(current_node["op"].param[1]),
+                    extra_fields = {'type': str(current_node["op"].param[1]), 
+                                    'label': str(current_node["op"].param[0]),
                                     'texparams': []}
 
                 self.backend.start_gate(current_node["op"],
