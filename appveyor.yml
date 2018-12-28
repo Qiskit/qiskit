@@ -35,6 +35,7 @@ install:
     - pip.exe install jupyter
     - pip.exe install ipywidgets
     - pip.exe install stestr
+    - pip.exe install qiskit-aer
 # TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
 
