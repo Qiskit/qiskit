@@ -24,14 +24,20 @@ Changed
 -------
 
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
-  within each package (for example, ``qiskit.exceptions.QiskitError``). (#1600).
+  within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
 - The ``QiskitTestCase`` and testing utilities are now included as part of
-  ``qiskit.test`` and thus available for third-party implementations. (#1616).
+  ``qiskit.test`` and thus available for third-party implementations (#1616)
+- The snapshot instruction now takes ``label`` and ``snap_type`` instead of
+  ``slot`` (#1615).
 
 Removed
 -------
 
-- Removed the wrapper folder as part of the post 0.7 cleanup
+- Removed the wrapper folder as part of the post 0.7 cleanup (#1613).
+- Removed the python wrappers of the legacy simualtors now that
+  Qiskit Aer is out (#1615).
+- Removed simulator instructions ``save``, ``load``, ``wait``, ``noise``
+  as unsupported in Aer (#1615).
 
 `0.7.0`_ - 2018-12-19
 =====================

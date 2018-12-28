@@ -14,9 +14,11 @@ import os
 import tempfile
 import unittest
 
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import compile, execute
 from qiskit import QiskitError
-from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
 from ..common import QiskitTestCase
 
 
@@ -40,26 +42,24 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ + meas
 
-        circ2 = QuantumCircuit()
-        circ2.add_register(qreg0)
-        circ2.add_register(qreg1)
-        circ2.x(qreg0[1])
-        circ2.x(qreg1[0])
+        backend_sim = BasicAer.get_backend('qasm_simulator')
+        qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
+        qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
-        meas2 = QuantumCircuit()
-        meas2.add_register(qreg0)
-        meas2.add_register(qreg1)
-        meas2.add_register(creg0)
-        meas2.add_register(creg1)
-        meas2.measure(qreg0, creg0)
-        meas2.measure(qreg1, creg1)
+        result = backend_sim.run(qobj_qc).result()
+        counts = result.get_counts(qc)
 
-        qc2 = circ2 + meas2
+        target = {'01 10': 1024}
 
-        dag_qc = circuit_to_dag(qc)
-        dag_qc2 = circuit_to_dag(qc2)
-        dag_circ2 = circuit_to_dag(circ2)
-        dag_circ = circuit_to_dag(circ)
+        backend_sim = BasicAer.get_backend('statevector_simulator')
+        result = backend_sim.run(qobj_circ).result()
+        state = result.get_statevector(circ)
 
-        self.assertEqual(dag_qc, dag_qc2)
-        self.assertEqual(dag_circ, dag_circ2)
+        backend_sim = BasicAer.get_backend('unitary_simulator')
+        result = backend_sim.run(qobj_circ).result()
+        unitary = result.get_unitary(circ)
+
+        self.assertEqual(counts, target)
+        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
+        self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
+                               1.0, places=7)

@@ -95,7 +95,7 @@ setup(
         quantum circuits easily, and takes care of the constraints of real hardware.""",
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
-    author_email="qiskit@us.ibm.com",
+    author_email="qiskit@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",

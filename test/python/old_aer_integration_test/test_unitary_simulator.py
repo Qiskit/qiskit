@@ -11,42 +11,20 @@
 import unittest
 import numpy as np
 
+import qiskit
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.providers.builtinsimulators.unitary_simulator import UnitarySimulatorPy
-from ..common import QiskitTestCase, Path
+from ..common import QiskitTestCase, requires_cpp_simulator
 
 
-class BuiltinUnitarySimulatorPyTest(QiskitTestCase):
-    """Test built-in unitary simulator."""
+@requires_cpp_simulator
+class AerUnitarySimulatorPyTest(QiskitTestCase):
+    """Test Aer unitary simulator."""
 
     def setUp(self):
-        self.seed = 88
-        self.qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
-        self.backend = UnitarySimulatorPy()
+        self.backend = qiskit.providers.aer.UnitarySimulator()
 
-    def test_unitary_simulator_py(self):
-        """test generation of circuit unitary"""
-        circuit = QuantumCircuit.from_qasm_file(self.qasm_filename)
-        qobj = compile(circuit, backend=self.backend, shots=1)
-        # strip measurements from circuit to avoid warnings
-        instructions = [op for op in qobj.experiments[0].instructions
-                        if op.name != 'measure']
-        qobj.experiments[0].instructions = instructions
-        # numpy.savetxt currently prints complex numbers in a way
-        # loadtxt can't read. To save file do,
-        # fmtstr=['% .4g%+.4gj' for i in range(numCols)]
-        # np.savetxt('example_unitary_matrix.dat', numpyMatrix, fmt=fmtstr,
-        # delimiter=',')
-        expected = np.loadtxt(self._get_resource_path('example_unitary_matrix.dat'),
-                              dtype='complex', delimiter=',')
-
-        result = self.backend.run(qobj).result()
-        self.assertTrue(np.allclose(result.get_unitary(circuit),
-                                    expected,
-                                    rtol=1e-3))
-
-    def test_builtin_unitary_simulator_py(self):
+    def test_aer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
         qobj = compile(circuits, backend=self.backend)
