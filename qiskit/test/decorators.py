@@ -9,10 +9,10 @@
 
 import functools
 import os
+import sys
 import unittest
 
 from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
-from qiskit.providers.legacysimulators import QasmSimulator
 
 from .utils import Path
 from .http_recorder import http_recorder
@@ -25,9 +25,12 @@ def is_cpp_simulator_available():
     Returns:
         bool: True if simulator executable is available
     """
+    # TODO: HACK FROM THE DEPTHS OF DESPAIR AS AER DOES NOT WORK ON MAC
+    if sys.platform == 'darwin':
+        return False
     try:
-        QasmSimulator()
-    except FileNotFoundError:
+        import qiskit.providers.aer  # pylint: disable=unused-import
+    except ImportError:
         return False
     return True
 
