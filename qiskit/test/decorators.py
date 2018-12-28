@@ -29,7 +29,7 @@ def is_cpp_simulator_available():
     if sys.platform == 'darwin':
         return False
     try:
-        from qiskit.providers import aer  # pylint: disable=unused-variable
+        import qiskit.providers.aer  # pylint: disable=unused-import
     except ImportError:
         return False
     return True

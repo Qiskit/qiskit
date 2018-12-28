@@ -32,7 +32,7 @@ class TestBasicAerQobj(QiskitTestCase):
         custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
 
         for backend in BasicAer.backends():
-            with self.subTest(provider=BasicAer, backend=backend):
+            with self.subTest(backend=backend):
                 qobj = compile(self.qc1, backend)
 
                 # Update the Qobj header.
@@ -48,7 +48,7 @@ class TestBasicAerQobj(QiskitTestCase):
     def test_job_qobj(self):
         """Test job.qobj()."""
         for backend in BasicAer.backends():
-            with self.subTest(provider=BasicAer, backend=backend):
+            with self.subTest(backend=backend):
                 qobj = compile(self.qc1, backend)
 
                 job = backend.run(qobj)

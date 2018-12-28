@@ -31,7 +31,7 @@ class TestBackendNameResolution(QiskitTestCase):
                            'statevector_simulator') and not is_cpp_simulator_available():
                 continue
 
-            with self.subTest(provider=BasicAer, oldname=oldname, newname=newname):
+            with self.subTest(oldname=oldname, newname=newname):
                 try:
                     resolved_newname = _get_first_available_backend(BasicAer, newname)
                     real_backend = BasicAer.get_backend(resolved_newname)
