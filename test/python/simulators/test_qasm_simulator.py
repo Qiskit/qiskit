@@ -35,8 +35,7 @@ class TestLegacyQasmSimulator(QiskitTestCase):
         self.backend = QasmSimulator()
 
         qasm_file_name = 'example.qasm'
-        qasm_file_path = self._get_resource_path(
-            'qasm/' + qasm_file_name, Path.TEST)
+        qasm_file_path = self._get_resource_path(qasm_file_name, Path.QASMS)
         self.qc1 = QuantumCircuit.from_qasm_file(qasm_file_path)
 
         qr = QuantumRegister(2, 'q')

@@ -14,7 +14,8 @@ from vcr import VCR
 
 
 class IdRemoverPersister(FilesystemPersister):
-    """
+    """VCR Persister for Qiskit.
+
     IdRemoverPersister is a VCR persister. This is, it implements a way to save and load cassettes.
     This persister in particular inherits load_cassette from FilesystemPersister (basically, it
     loads a standard cassette in the standard way from the file system). On the saving side, it
@@ -23,8 +24,7 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def get_responses_with(string_to_find, cassette_dict):
-        """
-        Filters the requests from cassette_dict
+        """Filters the requests from cassette_dict
 
         Args:
             string_to_find (str): request path
@@ -39,8 +39,7 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def get_new_id(field, path, id_tracker, type_=str):
-        """
-        Creates a new dummy id (or value) for replacing an existing id (or value).
+        """Creates a new dummy id (or value) for replacing an existing id (or value).
 
         Args:
             field (str): field name is used, in same cases, to create a dummy value.
@@ -62,8 +61,8 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def get_matching_dicts(data_dict, map_list):
-        """
-        Find subdicts that are described in map_list.
+        """Find subdicts that are described in map_list.
+
         Args:
             data_dict (dict): in which the map_list is going to be searched.
             map_list (list): the list of nested keys to find in the data_dict
@@ -88,7 +87,8 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def remove_id_in_a_json(jsonobj, field, path, id_tracker):
-        """
+        """Replaces ids with dummy values in a json.
+
         Replaces in jsonobj (in-place) the field with dummy value (which is constructed with
         id_tracker, if it was already replaced, or path, if it needs to be created).
 
@@ -110,7 +110,8 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def remove_ids_in_a_response(response, fields, path, id_tracker):
-        """
+        """Replaces ids with dummy values in a response.
+
         Replaces in response (in-place) the fields with dummy values (which is constructed with
         id_tracker, if it was already replaced, or path, if it needs to be created).
 
@@ -127,7 +128,8 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def remove_ids(ids2remove, cassette_dict):
-        """
+        """Replaces ids with dummy values in a cassette.
+
         Replaces in cassette_dict (in-place) the fields defined by ids2remove with dummy values.
         Internally, it used a map (id_tracker) between real values and dummy values to keep
         consistency during the renaming.
@@ -149,7 +151,8 @@ class IdRemoverPersister(FilesystemPersister):
 
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer):
-        """
+        """Extends FilesystemPersister.save_cassette
+
         Extends FilesystemPersister.save_cassette. Replaces particular values (defined by
         ids2remove) which are replaced by a dummy value. The full manipulation is in
         cassette_dict, before saving it using FilesystemPersister.save_cassette
@@ -181,8 +184,7 @@ class IdRemoverPersister(FilesystemPersister):
 
 
 def http_recorder(vcr_mode, cassette_dir):
-    """
-    Creates a VCR object in vcr_mode mode.
+    """Creates a VCR object in vcr_mode mode.
 
     Args:
         vcr_mode (string): the parameter for record_mode.
@@ -213,8 +215,7 @@ def http_recorder(vcr_mode, cassette_dir):
 
 
 def _purge_headers_cb(headers):
-    """
-    Remove headers from the response.
+    """Remove headers from the response.
 
     Args:
         headers (list): headers to remove from the response
@@ -222,7 +223,6 @@ def _purge_headers_cb(headers):
     Returns:
         callable: for been used in before_record_response VCR constructor.
     """
-
     header_list = []
     for item in headers:
         if not isinstance(item, tuple):
@@ -230,8 +230,7 @@ def _purge_headers_cb(headers):
         header_list.append(item[0:2])  # ensure the tuple is a pair
 
     def before_record_response_cb(response):
-        """
-        Purge headers from response.
+        """Purge headers from response.
 
         Args:
             response (dict): a VCR response
@@ -251,7 +250,8 @@ def _purge_headers_cb(headers):
 
 
 def _unordered_query_matcher(request1, request2):
-    """
+    """A VCR matcher that ignores the order of values in the query string.
+
     A VCR matcher (a la VCR.matcher) that ignores the order of the values in the query string.
     Useful for filter params, for example.
 
