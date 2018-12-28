@@ -47,7 +47,6 @@ class TestBasicAerQobj(QiskitTestCase):
 
     def test_job_qobj(self):
         """Test job.qobj()."""
-        # TODO: if Aer supports job.qobj add here
         for backend in BasicAer.backends():
             with self.subTest(provider=BasicAer, backend=backend):
                 qobj = compile(self.qc1, backend)
