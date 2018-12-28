@@ -8,7 +8,7 @@
 """Decorator for using with Qiskit unit tests."""
 
 import functools
-import os
+import os, sys
 import unittest
 
 from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
