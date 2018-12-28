@@ -54,8 +54,10 @@ class TestCircuitDrawer(QiskitTestCase):
             with self.subTest('Test calling of the {} draw method'.format(draw_method),
                               draw_method=draw_method):
 
-                # Patch function corresponding to the current circuit drawer such that it does nothing
-                with patch.object(_cv, self.draw_methods[draw_method], return_value=None) as mock_draw_method:
+                # Patch function corresponding to the current circuit drawer such that
+                # it does nothing
+                with patch.object(_cv, self.draw_methods[draw_method], return_value=None)\
+                        as mock_draw_method:
 
                     # Check that corresponding function was called once
                     circuit_drawer(None, output=draw_method)
@@ -81,7 +83,8 @@ class TestCircuitDrawer(QiskitTestCase):
         with self.subTest('Test fallback to latex_circuit_drawer'):
 
             # Patch _latex_circuit_drawer such that it does nothing
-            with patch.object(_cv, self.draw_methods['latex'], return_value=None) as mock_latex_circuit_drawer:
+            with patch.object(_cv, self.draw_methods['latex'], return_value=None)\
+                    as mock_latex_circuit_drawer:
 
                 # Check that _latex_circuit_drawer was called once
                 circuit_drawer(None)
@@ -97,7 +100,8 @@ class TestCircuitDrawer(QiskitTestCase):
                 with patch.object(_mpl, 'HAS_MATPLOTLIB', return_value=True):
 
                     # Patch _matplotlib_circuit_drawer such that it does nothing
-                    with patch.object(_cv, self.draw_methods['mpl']) as mock_matplotlib_circuit_drawer:
+                    with patch.object(_cv, self.draw_methods['mpl'])\
+                            as mock_matplotlib_circuit_drawer:
 
                         # Check that _matplotlib_circuit_drawer was called once
                         circuit_drawer(None)
