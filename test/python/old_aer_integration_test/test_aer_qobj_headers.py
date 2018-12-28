@@ -8,6 +8,8 @@
 
 """Tests for all BasicAer  simulators."""
 
+import unittest
+
 from qiskit import Aer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
@@ -44,6 +46,7 @@ class TestBasicAerQobj(QiskitTestCase):
                 self.assertEqual(result.results[0].header.some_field,
                                  'extra info')
 
+    @unittest.skip("skipping as aer does not support. I made and issue")
     def test_job_qobj(self):
         """Test job.qobj()."""
         for backend in Aer.backends():
@@ -51,5 +54,4 @@ class TestBasicAerQobj(QiskitTestCase):
                 qobj = compile(self.qc1, backend)
 
                 job = backend.run(qobj)
-                # TODO: if Aer supports job.qobj add here
-                #self.assertEqual(job.qobj(), qobj)
+                self.assertEqual(job.qobj(), qobj)

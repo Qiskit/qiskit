@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=missing-docstring,redefined-builtin
-from sys import version_info
+
 import unittest
 
 import numpy as np

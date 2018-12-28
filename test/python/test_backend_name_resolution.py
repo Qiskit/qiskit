@@ -9,12 +9,10 @@
 """Test backend name resolution for functionality, via groups, deprecations and
 aliases."""
 
-from qiskit import IBMQ, BasicAer, Aer
-from qiskit.providers.aer import QasmSimulator
+from qiskit import IBMQ, BasicAer
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from .common import (QiskitTestCase,
                      is_cpp_simulator_available,
-                     requires_cpp_simulator,
                      requires_qe_access)
 
 

@@ -11,7 +11,7 @@ import unittest
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit import execute
 from qiskit import BasicAer
-from ..common import QiskitTestCase, requires_cpp_simulator
+from ..common import QiskitTestCase
 
 
 class StatevectorSimulatorTest(QiskitTestCase):
