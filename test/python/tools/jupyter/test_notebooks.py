@@ -15,8 +15,7 @@ import unittest
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
-from ...common import (Path, QiskitTestCase, requires_qe_access,
-                       requires_cpp_simulator, slow_test)
+from ...common import (Path, QiskitTestCase, requires_qe_access, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.
@@ -54,7 +53,6 @@ class TestJupyter(QiskitTestCase):
         execute_preprocessor.preprocess(
             notebook, {'metadata': {'path': self.execution_path}})
 
-    @requires_cpp_simulator
     def test_jupyter_jobs_pbars(self):
         """Test Jupyter progress bars and job status functionality"""
         self._execute_notebook(self._get_resource_path(
