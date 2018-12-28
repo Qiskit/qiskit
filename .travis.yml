@@ -141,7 +141,7 @@ jobs:
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
-      <<: *stage_linux_no_compile
+      <<: *stage_linux
 
     # "test" stage
     ###########################################################################
