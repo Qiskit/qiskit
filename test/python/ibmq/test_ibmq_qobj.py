@@ -17,7 +17,8 @@ from qiskit import (ClassicalRegister, QuantumCircuit, QuantumRegister, compile)
 
 from qiskit import IBMQ, BasicAer
 from qiskit.qasm import pi
-from ..common import requires_qe_access, JobTestCase, slow_test
+from .jobtestcase import JobTestCase
+from ..common import requires_qe_access, slow_test
 
 
 class TestIBMQQobj(JobTestCase):

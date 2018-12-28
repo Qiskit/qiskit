@@ -26,7 +26,8 @@ from qiskit.providers import JobStatus, JobError
 from qiskit.providers.ibmq import least_busy
 from qiskit.providers.ibmq.exceptions import IBMQBackendError
 from qiskit.providers.ibmq.ibmqjob import IBMQJob
-from ..common import requires_qe_access, JobTestCase, slow_test
+from .jobtestcase import JobTestCase
+from ..common import requires_qe_access, slow_test
 
 
 class TestIBMQJob(JobTestCase):

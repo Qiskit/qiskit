@@ -25,6 +25,8 @@ Changed
 
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``). (#1600).
+- The ``QiskitTestCase`` and testing utilities are now included as part of
+  ``qiskit.test`` and thus available for third-party implementations. (#1616).
 
 Removed
 -------

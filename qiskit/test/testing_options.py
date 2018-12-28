@@ -30,8 +30,8 @@ def get_test_options(option_var='QISKIT_TESTS'):
     }
 
     def turn_false(option):
-        """
-        Turn an option to False
+        """Turn an option to False.
+
         Args:
             option (str): Turns defaults[option] to False
 
@@ -49,8 +49,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     }
 
     def set_flag(flag_):
-        """
-        Set the flag to True and flip all the flags that need to be rewritten.
+        """Set the flag to True and flip all the flags that need to be rewritten.
 
         Args:
             flag_ (str): Option to be True
@@ -74,7 +73,8 @@ def get_test_options(option_var='QISKIT_TESTS'):
 
 
 def _is_ci_fork_pull_request():
-    """
+    """Check if the tests are being run in a CI environment from a PR.
+
     Check if the tests are being run in a CI environment and if it is a pull
     request.
 
