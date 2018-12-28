@@ -13,12 +13,6 @@ import unittest
 
 from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
 
-# Try to import the Aer provider if th Aer element is installed.
-try:
-    from qiskit.providers.aer import QasmSimulator
-except ImportError:
-    pass
-
 from .utils import Path
 from .http_recorder import http_recorder
 from .testing_options import get_test_options
@@ -31,8 +25,9 @@ def is_cpp_simulator_available():
         bool: True if simulator executable is available
     """
     try:
+        from qiskit.providers.aer import QasmSimulator
         QasmSimulator()
-    except FileNotFoundError:
+    except ImportError:
         return False
     return True
 
