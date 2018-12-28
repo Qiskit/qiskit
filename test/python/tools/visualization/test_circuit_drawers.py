@@ -6,19 +6,94 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Tests for circuit_drawer."""
+import os
+import shutil
+
+import qiskit.tools.visualization._circuit_visualization as _cv
+import qiskit.tools.visualization._matplotlib as _mpl
+
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.tools.visualization import circuit_drawer
+from qiskit.tools.visualization import VisualizationError
 
 import unittest
 from unittest.mock import patch
 
 from PIL.Image import Image
-
-import qiskit.tools.visualization._circuit_visualization as _cv
-import qiskit.tools.visualization._matplotlib as _mpl
-
-from qiskit.tools.visualization import circuit_drawer
-from qiskit.tools.visualization import VisualizationError
+from numpy import pi
 
 from ...common import QiskitTestCase
+
+
+def _this_directory():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+_references_dir = os.path.join(_this_directory(), 'references')
+
+
+def _small_circuit():
+    qr = QuantumRegister(1)
+    cr = ClassicalRegister(1)
+    circuit = QuantumCircuit(qr, cr)
+
+    circuit.x(qr[0])
+    circuit.barrier(qr[0])
+    circuit.measure(qr, cr)
+
+    return circuit
+
+
+def _medium_circuit():
+    qr = QuantumRegister(3)
+    cr = ClassicalRegister(3)
+    circuit = QuantumCircuit(qr, cr)
+
+    circuit.x(qr[0])
+    circuit.y(qr[1])
+    circuit.z(qr[2])
+
+    circuit.h(qr[0])
+    circuit.s(qr[1])
+    circuit.sdg(qr[2])
+
+    circuit.t(qr[0])
+    circuit.tdg(qr[1])
+    circuit.iden(qr[2])
+
+    circuit.reset(qr[0])
+    circuit.reset(qr[1])
+    circuit.reset(qr[2])
+
+    circuit.rx(pi / 8, qr[0])
+    circuit.ry(pi / 8, qr[1])
+    circuit.rz(pi / 8, qr[2])
+
+    circuit.u1(pi / 8, qr[0])
+    circuit.u2(pi / 8, pi / 8, qr[1])
+    circuit.u3(pi / 8, pi / 8, pi / 8, qr[2])
+
+    circuit.swap(qr[0], qr[1])
+
+    circuit.cx(qr[0], qr[1])
+    circuit.cy(qr[1], qr[2])
+    circuit.cz(qr[2], qr[0])
+    circuit.ch(qr[0], qr[1])
+
+    circuit.cu1(pi / 8, qr[0], qr[1])
+    circuit.cu3(pi / 8, pi / 8, pi / 8, qr[1], qr[2])
+
+    circuit.barrier(qr)
+
+    circuit.measure(qr, cr)
+
+    return circuit
+
+
+def _get_black_pixels(image):
+    black_and_white_version = image.convert('1')
+    black_pixels = black_and_white_version.histogram()[0]
+    return black_pixels
 
 
 class TestCircuitDrawer(QiskitTestCase):
@@ -135,6 +210,88 @@ class TestCircuitDrawer(QiskitTestCase):
                         # Check that show was called once
                         circuit_drawer(None, output=draw_method, interactive=True)
                         mock_show.assert_called_once()
+
+
+class TestDrawingMethods(QiskitTestCase):
+    def setUp(self):
+        self.draw_methods = ('text', 'latex', 'latex_source', 'mpl')
+        self.extensions = {'mpl': '.png'}
+
+        self.file_output_methods = ('text', 'latex_source')
+        self.image_output_methods = ('latex', 'mpl')
+
+        self.tmp_dir = os.path.join(_this_directory(), 'tmp')
+        if not os.path.exists(self.tmp_dir):
+            os.makedirs(self.tmp_dir)
+
+        # file_dir = os.path.join(_references_dir, 'small_circuit')
+        # small_circuit = self._small_circuit()
+        # for draw_method in self.draw_methods:
+        #     if not os.path.exists(file_dir):
+        #         os.makedirs(file_dir)
+        #     circuit_drawer(small_circuit,
+        #                    output=draw_method,
+        #                    filename=os.path.join(file_dir, draw_method))
+
+    def test_small_circuit(self):
+        small_circuit = _small_circuit()
+        references_dir = os.path.join(_references_dir, 'small_circuit')
+        test_output_dir = os.path.join(self.tmp_dir, 'small_circuit')
+        if not os.path.exists(test_output_dir):
+            os.makedirs(test_output_dir)
+
+        for draw_method in self.draw_methods:
+            with self.subTest('Test of drawing a small circuit'
+                              ' with `{}` output format'.format(draw_method),
+                              draw_method=draw_method):
+                reference_output = os.path.join(references_dir, draw_method)
+                test_output = os.path.join(test_output_dir, draw_method)
+
+                circuit_drawer(small_circuit,
+                               output=draw_method,
+                               filename=test_output)
+
+                self.assertOutputsAreEqual(draw_method,
+                                           test_output + self.extensions.get(draw_method, ''),
+                                           reference_output + self.extensions.get(draw_method, ''))
+
+    def assertOutputsAreEqual(self, draw_method, test_output, reference_output):
+        if draw_method in self.file_output_methods:
+            self.assertFilesAreEqual(test_output, reference_output)
+
+        if draw_method in self.image_output_methods:
+            self.assertImagesAreEqual(test_output, reference_output)
+
+    def assertFilesAreEqual(self, current, expected):
+        """Checks if both files are the same."""
+        self.assertTrue(os.path.exists(current))
+        self.assertTrue(os.path.exists(expected))
+        with open(current, "r", encoding='cp437') as cur, \
+                open(expected, "r", encoding='cp437') as exp:
+            self.assertEqual(cur.read(), exp.read())
+
+    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
+        """Checks if both images are similar enough to be considered equal.
+        Similarity is controlled with the ```diff_tolerance``` argument."""
+        from PIL import Image, ImageChops
+
+        if isinstance(current, str):
+            current = Image.open(current)
+        if isinstance(expected, str):
+            expected = Image.open(expected)
+
+        diff = ImageChops.difference(expected, current)
+        black_pixels = _get_black_pixels(diff)
+        total_pixels = diff.size[0] * diff.size[1]
+        similarity_ratio = black_pixels / total_pixels
+        self.assertTrue(
+            1 - similarity_ratio < diff_tolerance,
+            'The images are different by more than a {}%'
+            .format(diff_tolerance * 100))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
+        super(TestDrawingMethods, self).tearDown()
 
 
 if __name__ == '__main__':
