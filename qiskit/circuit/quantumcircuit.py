@@ -177,7 +177,7 @@ class QuantumCircuit:
         return self
 
     def __add__(self, rhs):
-        """Overload + to implement self.concatenate."""
+        """Overload + to implement self.combine."""
         return self.combine(rhs)
 
     def __iadd__(self, rhs):

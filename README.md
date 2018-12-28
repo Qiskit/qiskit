@@ -1,6 +1,6 @@
 # Qiskit Terra
 
-[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.org/Qiskit/qiskit-terra)![](https://img.shields.io/pypi/v/qiskit-terra.svg?style=popout-square)![](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.org/Qiskit/qiskit-terra)[![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)
 
 **Qiskit** is an open-source framework for working with noisy intermediate-scale quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
 
@@ -96,7 +96,7 @@ the levels.
 
 ## Contribution guidelines
 
-If you'd like to contribute to Qiskit, please take a look at our
+If you'd like to contribute to Qiskit Terra, please take a look at our
 [contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expect to uphold to this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). For questions that are more suited for a forum we use the Qiskit tag in the [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
@@ -104,7 +104,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracki
 ### Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
-[Qiskit Tutorial](https://github.com/Qiskit/qiskit-tutorial) repository.
+[Qiskit Tutorial](https://github.com/Qiskit/qiskit-tutorials) repository.
 
 ## Authors
 
