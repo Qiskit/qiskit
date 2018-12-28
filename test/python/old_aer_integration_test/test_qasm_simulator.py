@@ -16,6 +16,7 @@ from qiskit import Aer
 
 from ..common import QiskitTestCase, requires_cpp_simulator, Path
 
+
 @requires_cpp_simulator
 class TestAerQasmSimulator(QiskitTestCase):
     """Test the Aer qasm_simulator."""
