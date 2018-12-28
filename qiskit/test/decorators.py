@@ -29,8 +29,7 @@ def is_cpp_simulator_available():
     if sys.platform == 'darwin':
         return False
     try:
-        from qiskit.providers.aer import QasmSimulator
-        QasmSimulator()
+        from qiskit.providers import aer
     except ImportError:
         return False
     return True

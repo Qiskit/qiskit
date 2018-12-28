@@ -15,19 +15,12 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer import StatevectorSimulator
 from ..common import QiskitTestCase
 from .._mockutils import new_fake_qobj, FakeBackend
 
 
 class TestSimulatorsJob(QiskitTestCase):
     """Test how backends create SimulatorsJob objects and the SimulatorsJob class."""
-
-    _backends = [
-        QasmSimulator,
-        StatevectorSimulator,
-    ]
 
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors

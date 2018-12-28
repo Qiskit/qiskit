@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-from qiskit import Aer
+import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit import QiskitError
@@ -43,7 +43,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ + meas
 
-        backend_sim = Aer.get_backend('qasm_simulator')
+        backend_sim = qiskit.providers.aer.QasmSimulator()
         qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
         qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
@@ -52,11 +52,11 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         target = {'01 10': 1024}
 
-        backend_sim = Aer.get_backend('statevector_simulator')
+        backend_sim = qiskit.providers.aer.StatevectorSimulator()
         result = backend_sim.run(qobj_circ).result()
         state = result.get_statevector(circ)
 
-        backend_sim = Aer.get_backend('unitary_simulator')
+        backend_sim = qiskit.providers.aer.UnitarySimulator()
         result = backend_sim.run(qobj_circ).result()
         unitary = result.get_unitary(circ)
 
