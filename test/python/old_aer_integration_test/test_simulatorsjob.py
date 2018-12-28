@@ -17,9 +17,6 @@ from unittest.mock import patch
 
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import StatevectorSimulator
-from qiskit.providers.builtinsimulators import QasmSimulatorPy
-from qiskit.providers.builtinsimulators import StatevectorSimulatorPy
-from qiskit.providers.builtinsimulators import UnitarySimulatorPy
 from ..common import QiskitTestCase
 from .._mockutils import new_fake_qobj, FakeBackend
 
@@ -29,10 +26,7 @@ class TestSimulatorsJob(QiskitTestCase):
 
     _backends = [
         QasmSimulator,
-        QasmSimulatorPy,
         StatevectorSimulator,
-        StatevectorSimulatorPy,
-        UnitarySimulatorPy
     ]
 
     def test_multiple_execution(self):

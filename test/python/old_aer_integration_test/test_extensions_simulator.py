@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 import qiskit
 import qiskit.extensions.simulator
-from qiskit import BasicAer, Aer
+from qiskit import Aer
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
 from qiskit import execute
@@ -50,6 +50,7 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
+        basis_gates = 'cx,u1,u2,u3,snapshot'
         qr = qiskit.QuantumRegister(2)
         cr = qiskit.ClassicalRegister(2)
         circuit = qiskit.QuantumCircuit(qr, cr)
@@ -60,7 +61,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit.h(qr[1])
 
         sim = Aer.get_backend('statevector_simulator')
-        result = execute(circuit, sim).result()
+        result = execute(circuit, sim, basis_gates=basis_gates).result()
         # TODO: rely on Result.get_statevector() postprocessing rather than manual
         snapshots = result.data(0)['snapshots']['statevector']['3']
         snapshot = format_statevector(snapshots[0])

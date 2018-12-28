@@ -41,7 +41,7 @@ class TestBackendNameResolution(QiskitTestCase):
                     # The real name of the backend might not exist
                     pass
                 else:
-                    BasicAerself.assertEqual(BasicAer.backends(oldname)[0], real_backend)
+                    self.assertEqual(BasicAer.backends(oldname)[0], real_backend)
 
     @requires_qe_access
     def test_aliases(self, qe_token, qe_url):

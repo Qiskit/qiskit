@@ -12,18 +12,23 @@ import unittest
 import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.providers.builtinsimulators.qasm_simulator import QasmSimulatorPy
+from qiskit import BasicAer
 
 from ..common import QiskitTestCase, Path
 
 
-class TestBuiltinQasmSimulatorPy(QiskitTestCase):
-    """Test the built-in qasm_simulator."""
+class TestBasicAerQasmSimulator(QiskitTestCase):
+    """Test the Basic qasm_simulator."""
 
     def setUp(self):
         self.seed = 88
+<<<<<<< HEAD:test/python/simulators/test_qasm_simulator_py.py
         self.backend = QasmSimulatorPy()
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
+=======
+        self.backend = BasicAer.get_backend('qasm_simulator')
+        qasm_filename = self._get_resource_path('qasm/example.qasm')
+>>>>>>> Fixing test:test/python/basicaer/test_qasm_simulator.py
         compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         compiled_circuit.name = 'test'
         self.qobj = compile(compiled_circuit, backend=self.backend)
@@ -32,7 +37,7 @@ class TestBuiltinQasmSimulatorPy(QiskitTestCase):
         """Test single shot run."""
         shots = 1
         self.qobj.config.shots = shots
-        result = QasmSimulatorPy().run(self.qobj).result()
+        result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
 
     def test_qasm_simulator(self):
