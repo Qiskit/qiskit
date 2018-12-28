@@ -15,7 +15,7 @@ import ply
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm._node._node import Node
 
-from .common import QiskitTestCase
+from .common import QiskitTestCase, Path
 
 
 def parse(file_path, prec=15):
@@ -31,11 +31,11 @@ def parse(file_path, prec=15):
 class TestParser(QiskitTestCase):
     """QasmParser"""
     def setUp(self):
-        self.qasm_file_path = self._get_resource_path('qasm/example.qasm')
+        self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
         self.qasm_file_path_fail = self._get_resource_path(
-            'qasm/example_fail.qasm')
+            'example_fail.qasm', Path.QASMS)
         self.qasm_file_path_if = self._get_resource_path(
-            'qasm/example_if.qasm')
+            'example_if.qasm', Path.QASMS)
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
