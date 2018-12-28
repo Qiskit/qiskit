@@ -16,11 +16,10 @@ from marshmallow import ValidationError
 
 from qiskit.qobj._schema_validation import (validate_json_against_schema,
                                             _get_validator)
-from qiskit import __path__ as qiskit_path
 from qiskit.providers.models import (BackendConfiguration, BackendProperties,
                                      BackendStatus, JobStatus)
 from qiskit.result import Result
-from .common import QiskitTestCase
+from .common import QiskitTestCase, Path
 
 
 logger = logging.getLogger(__name__)
@@ -55,8 +54,8 @@ class TestSchemaExamples(QiskitTestCase):
     }
 
     def setUp(self):
-        self.examples_base_path = os.path.join(qiskit_path[0], 'schemas',
-                                               'examples')
+        self.examples_base_path = self._get_resource_path('examples',
+                                                          Path.SCHEMAS)
 
     def test_examples_are_valid(self):
         """Validate example json files against respective schemas"""

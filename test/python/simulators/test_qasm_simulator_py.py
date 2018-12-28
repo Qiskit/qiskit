@@ -14,7 +14,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.providers.builtinsimulators.qasm_simulator import QasmSimulatorPy
 
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, Path
 
 
 class TestBuiltinQasmSimulatorPy(QiskitTestCase):
@@ -23,7 +23,7 @@ class TestBuiltinQasmSimulatorPy(QiskitTestCase):
     def setUp(self):
         self.seed = 88
         self.backend = QasmSimulatorPy()
-        qasm_filename = self._get_resource_path('qasm/example.qasm')
+        qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         compiled_circuit.name = 'test'
         self.qobj = compile(compiled_circuit, backend=self.backend)
