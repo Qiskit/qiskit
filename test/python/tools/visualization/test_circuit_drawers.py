@@ -8,6 +8,7 @@
 """Tests for circuit_drawer."""
 import os
 import shutil
+import itertools
 
 import qiskit.tools.visualization._circuit_visualization as _cv
 import qiskit.tools.visualization._matplotlib as _mpl
@@ -220,6 +221,11 @@ class TestDrawingMethods(QiskitTestCase):
         self.file_output_methods = ('text', 'latex_source')
         self.image_output_methods = ('latex', 'mpl')
 
+        self.circuits = {
+            'small_circuit': _small_circuit(),
+            'medium_circuit': _medium_circuit(),
+            'large_circuit': _large_circuit(),
+        }
         self.tmp_dir = os.path.join(_this_directory(), 'tmp')
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
@@ -234,7 +240,6 @@ class TestDrawingMethods(QiskitTestCase):
         #                    filename=os.path.join(file_dir, draw_method))
 
     def test_small_circuit(self):
-        small_circuit = _small_circuit()
         references_dir = os.path.join(_references_dir, 'small_circuit')
         test_output_dir = os.path.join(self.tmp_dir, 'small_circuit')
         if not os.path.exists(test_output_dir):
@@ -247,7 +252,7 @@ class TestDrawingMethods(QiskitTestCase):
                 reference_output = os.path.join(references_dir, draw_method)
                 test_output = os.path.join(test_output_dir, draw_method)
 
-                circuit_drawer(small_circuit,
+                circuit_drawer(_small_circuit(),
                                output=draw_method,
                                filename=test_output)
 
