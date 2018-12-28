@@ -24,6 +24,9 @@ def is_cpp_simulator_available():
     Returns:
         bool: True if simulator executable is available
     """
+    # TODO: HACK FROM THE DEPTHS OF DESPAIR AS AER DOES NOT WORK ON MAC
+    if sys.platform == 'darwin':
+        return False
     try:
         from qiskit.providers.aer import QasmSimulator
         QasmSimulator()
