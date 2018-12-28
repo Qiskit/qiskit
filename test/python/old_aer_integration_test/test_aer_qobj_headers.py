@@ -15,9 +15,9 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.qobj import QobjHeader
 
-from ..common import QiskitTestCase
+from ..common import QiskitTestCase, requires_cpp_simulator
 
-
+@requires_cpp_simulator
 class TestBasicAerQobj(QiskitTestCase):
     """Tests for all the Terra simulators."""
 

@@ -12,7 +12,12 @@ import os
 import unittest
 
 from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
-from qiskit.providers.aer import QasmSimulator
+
+# Try to import the Aer provider if th Aer element is installed.
+try:
+    from qiskit.providers.aer import QasmSimulator
+except ImportError:
+    pass
 
 from .utils import Path
 from .http_recorder import http_recorder
