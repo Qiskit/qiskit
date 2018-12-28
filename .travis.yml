@@ -29,6 +29,7 @@ stage_generic: &stage_generic
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt
+    - pip install qiskit-aer
     # Create the basic cmake structure, setting out/ as the default dir.
     - mkdir out && cd out && cmake $CMAKE_FLAGS ..
   script:
@@ -140,7 +141,7 @@ jobs:
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
-      <<: *stage_linux_no_compile
+      <<: *stage_linux
 
     # "test" stage
     ###########################################################################

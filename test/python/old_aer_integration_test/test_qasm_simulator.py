@@ -6,23 +6,24 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=missing-docstring,redefined-builtin
-from sys import version_info
-import unittest
 
+import unittest
 import numpy as np
+
+import qiskit
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.providers.builtinsimulators.qasm_simulator import QasmSimulatorPy
 
-from ..common import QiskitTestCase, Path
+from ..common import QiskitTestCase, requires_cpp_simulator, Path
 
 
-class TestBuiltinQasmSimulatorPy(QiskitTestCase):
-    """Test the built-in qasm_simulator."""
+@requires_cpp_simulator
+class TestAerQasmSimulator(QiskitTestCase):
+    """Test the Aer qasm_simulator."""
 
     def setUp(self):
         self.seed = 88
-        self.backend = QasmSimulatorPy()
+        self.backend = qiskit.providers.aer.QasmSimulator()
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         compiled_circuit.name = 'test'
@@ -32,7 +33,7 @@ class TestBuiltinQasmSimulatorPy(QiskitTestCase):
         """Test single shot run."""
         shots = 1
         self.qobj.config.shots = shots
-        result = QasmSimulatorPy().run(self.qobj).result()
+        result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
 
     def test_qasm_simulator(self):
@@ -79,14 +80,11 @@ class TestBuiltinQasmSimulatorPy(QiskitTestCase):
         self.assertEqual(counts_if_true, {'111': 100})
         self.assertEqual(counts_if_false, {'001': 100})
 
-    @unittest.skipIf(version_info.minor == 5,
-                     "Due to gate ordering issues with Python 3.5 "
-                     "we have to disable this test until fixed")
     def test_teleport(self):
         """test teleportation as in tutorials"""
         self.log.info('test_teleport')
         pi = np.pi
-        shots = 2000
+        shots = 10000
         qr = QuantumRegister(3, 'qr')
         cr0 = ClassicalRegister(1, 'cr0')
         cr1 = ClassicalRegister(1, 'cr1')
