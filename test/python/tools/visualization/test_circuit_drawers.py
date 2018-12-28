@@ -537,7 +537,7 @@ class TestCircuitDrawer(QiskitTestCase):
         with self.assertRaises(VisualizationError):
             circuit_drawer(None, output='wrong_output')
 
-    #@unittest.skip('Test for deprecated fallback is skipped ')
+    @unittest.skip('Test for deprecated fallback is skipped ')
     def test_no_output_provided(self):
         """Tests how `circuit_drawer` falls back when no `output` is given
 
