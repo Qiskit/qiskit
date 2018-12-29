@@ -94,7 +94,7 @@ and the token will only be active for the session. For examples using Terra with
 devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in 
 the levels.
 
-## Contribution guidelines
+## Contribution Guidelines
 
 If you'd like to contribute to Qiskit Terra, please take a look at our
 [contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expected to uphold to this code.
@@ -104,7 +104,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracki
 and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
 For questions that are more suited for a forum, we use the **Qiskit** tag in [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
 
-### Next Steps
+## Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
 [Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials) repository.
