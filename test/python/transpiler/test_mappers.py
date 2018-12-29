@@ -5,9 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""
-Meta Tests for mappers
-----------------------
+"""Meta tests for mappers.
 
 The test checks the output of the swapper to a ground truth DAG (one for each
 test/swapper) saved in as a pickle (in `test/python/pickles/`). If they need
@@ -17,34 +15,45 @@ directory):
 
 > python -m  test.python.transpiler.test_mappers
 
-How to add a swapper
-====================
+To **add a swapper**: add a new class to this file:
 
-Add the following class in `test/python/transpiler/test_mappers.py`
-```
-class TestsSomeSwap(CommonTestCases, QiskitTestCase):
-    pass_class = SomeSwap           # <- The pass class
-    additional_args = {'seed': 42}  # <- In case SomeSwap.__init__ requieres additional arguments
-```
+* inheriting from ``CommonTestCases, QiskitTestCase``
+* overwrite the required attribute ``pass_class``
 
-How to add a test for all the swappers
-======================================
+For example::
 
-Add the following method in the class `CommonTestCases`:
-```
+    class TestsSomeSwap(CommonTestCases, QiskitTestCase):
+        pass_class = SomeSwap           # The pass class
+        additional_args = {'seed': 42}  # In case SomeSwap.__init__ requires
+                                        # additional arguments
+
+To **add a test for all the swappers**: add a new method ``test_foo``to the
+``CommonTestCase`` class:
+
+* defining the following required ``self`` attributes: ``self.count``,
+  ``self.shots``, ``self.delta``. They are required for the regeneration of the
+  ground truth.
+* use the ``self.assertResult`` assertion for comparing for regeneration of the
+  ground truth.
+* explicitly set a unique ``name`` of the ``QuantumCircuit``, as it it used
+  for the name of the pickle file of the ground truth.
+
+For example::
+
     def test_a_common_test(self):
-        self.count = {'000': 512, '110': 512}  # <- The expected count for this circuit
-        self.shots = 1024                      # <- Shots to run in the backend.
-        self.delta = 5                         # <- This is delta for the AlmostEqual during
-                                               #    the count check
-        coupling_map = [[0, 1], [0, 2]]        # <- The coupling map for this specific test
+        self.count = {'000': 512, '110': 512}  # The expected count for this circuit
+        self.shots = 1024                      # Shots to run in the backend.
+        self.delta = 5                         # This is delta for the AlmostEqual during
+                                               # the count check
+        coupling_map = [[0, 1], [0, 2]]        # The coupling map for this specific test
 
-        qr = QuantumRegister(3, 'q')                       #
-        cr = ClassicalRegister(3, 'c')                     #  Set the circuit to test
-        circuit = QuantumCircuit(qr, cr, name='some_name') #  and dont't forget to put a name
-        circuit.h(qr[1])                                   #  (it will be used to save the pickle
-        circuit.cx(qr[1], qr[2])                           #
-        circuit.measure(qr, cr)                            #
+        qr = QuantumRegister(3, 'q')               #
+        cr = ClassicalRegister(3, 'c')             # Set the circuit to test
+        circuit = QuantumCircuit(qr, cr,           # and don't forget to put a name
+                                 name='some_name') # (it will be used to save the pickle
+        circuit.h(qr[1])                           #
+        circuit.cx(qr[1], qr[2])                   #
+        circuit.measure(qr, cr)                    #
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
@@ -65,14 +74,20 @@ from qiskit.mapper import CouplingMap, Layout
 from ..common import QiskitTestCase
 
 
-class CommonUtilitiesMixin():
-    """Some utilities for meta testing. The methods call QiskitTestCase's methods
-    and should only be used with an instance that is also inheriting from
-    QiskitTestCase."""
+class CommonUtilitiesMixin:
+    """Utilities for meta testing.
+
+    Subclasses should redefine the ``pass_class`` argument, with a Swap Mapper
+    class.
+
+    Note: This class assumes that the subclass is also inheriting from
+    ``QiskitTestCase``, and it uses ``QiskitTestCase`` methods directly.
+    """
+
     regenerate_expected = False
     seed = 42
     additional_args = {}
-    pass_class = object
+    pass_class = None
 
     def create_passmanager(self, coupling_map, initial_layout=None):
         """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
@@ -87,7 +102,8 @@ class CommonUtilitiesMixin():
         return BasicAer.get_backend('qasm_simulator')
 
     def generate_expected(self, transpiled_result, filename):
-        """
+        """Generates the expected result into a file.
+
         Checks if transpiled_result matches self.counts by running in a backend
         (self.create_backend()). That's saved in a pickle in filename.
 
@@ -118,10 +134,22 @@ class CommonUtilitiesMixin():
 
 
 class CommonTestCases(CommonUtilitiesMixin):
-    """The tests here will be run in several mappers."""
+    """Tests that are run in several mappers.
+
+    The tests here will be run in several mappers. When adding a test, please
+    ensure that the test:
+
+    * defines ``self.count``, ``self.shots``, ``self.delta``.
+    * uses the ``self.assertResult`` assertion for comparing for regeneration of
+      the ground truth.
+    * explicitly sets a unique ``name`` of the ``QuantumCircuit``.
+
+    See also ``CommonUtilitiesMixin`` and the module docstring.
+    """
 
     def test_a_cx_to_map(self):
-        """A single CX needs to be remapped
+        """A single CX needs to be remapped.
+
          q0:----------m-----
                       |
          q1:-[H]-(+)--|-m---
@@ -154,7 +182,8 @@ class CommonTestCases(CommonUtilitiesMixin):
         self.assertResult(result, circuit.name)
 
     def test_initial_layout(self):
-        """Using a non-trivial initial_layout
+        """Using a non-trivial initial_layout.
+
          q3:----------------m--
          q0:----------m-----|--
                       |     |
@@ -190,7 +219,8 @@ class CommonTestCases(CommonUtilitiesMixin):
         self.assertResult(result, circuit.name)
 
     def test_handle_measurement(self):
-        """Handle measurement correctly
+        """Handle measurement correctly.
+
          q0:--.-----(+)-m-------
               |      |  |
          q1:-(+)-(+)-|--|-m-----
@@ -229,17 +259,17 @@ class CommonTestCases(CommonUtilitiesMixin):
 
 
 class TestsBasicSwap(CommonTestCases, QiskitTestCase):
-    """Test CommonTestCases using BasicSwap """
+    """Test CommonTestCases using BasicSwap."""
     pass_class = BasicSwap
 
 
 class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
-    """Test CommonTestCases using LookaheadSwap """
+    """Test CommonTestCases using LookaheadSwap."""
     pass_class = LookaheadSwap
 
 
 class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
-    """Test CommonTestCases using StochasticSwap """
+    """Test CommonTestCases using StochasticSwap."""
     pass_class = StochasticSwap
     additional_args = {'seed': 0}
 
