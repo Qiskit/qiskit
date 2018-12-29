@@ -31,6 +31,12 @@ Changed
   ``slot`` (#1615).
 - The test folders have been reorganized to match the python modules (#1625)
 
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
+
 Removed
 -------
 

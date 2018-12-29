@@ -20,7 +20,6 @@ from qiskit import execute
 from qiskit.exceptions import QiskitError
 from .._mockutils import FakeBackend
 from ..common import QiskitTestCase
-from ..common import requires_cpp_simulator
 
 
 class TestCompiler(QiskitTestCase):
@@ -274,13 +273,12 @@ class TestCompiler(QiskitTestCase):
         threshold = 0.05 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    @requires_cpp_simulator
     def test_example_swap_bits(self):
         """Test a toy example swapping a set bit around.
 
         Uses the mapper. Pass if results are correct.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator')
+        backend = qiskit.BasicAer.get_backend('qasm_simulator')
         coupling_map = [[0, 1], [0, 8], [1, 2], [1, 9], [2, 3], [2, 10],
                         [3, 4], [3, 11], [4, 5], [4, 12], [5, 6], [5, 13],
                         [6, 7], [6, 14], [7, 15], [8, 9], [9, 10], [10, 11],
