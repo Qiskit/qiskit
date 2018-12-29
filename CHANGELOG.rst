@@ -30,6 +30,12 @@ Changed
 - The snapshot instruction now takes ``label`` and ``snap_type`` instead of
   ``slot`` (#1615).
 
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
+
 Removed
 -------
 
