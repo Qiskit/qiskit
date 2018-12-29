@@ -16,13 +16,11 @@ import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile
 from qiskit import compile
-from qiskit.result import Result
 from qiskit import execute
 from qiskit.exceptions import QiskitError
-from qiskit.providers.ibmq import least_busy
 from .._mockutils import FakeBackend
 from ..common import QiskitTestCase
-from ..common import requires_qe_access, requires_cpp_simulator
+from ..common import requires_cpp_simulator
 
 
 class TestCompiler(QiskitTestCase):

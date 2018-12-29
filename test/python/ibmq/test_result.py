@@ -25,16 +25,6 @@ class TestQiskitResult(QiskitTestCase):
         self._qc1.measure(qr[0], cr[0])
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
-        self.backend = BasicAer.get_backend('qasm_simulator')
-        self._result1 = qiskit.execute(self._qc1, self.backend).result()
-        self._result2 = qiskit.execute(self._qc2, self.backend).result()
-
-    def test_builtin_simulator_result_fields(self):
-        """Test components of a result from a local simulator."""
-        self.assertEqual('qasm_simulator', self._result1.backend_name)
-        self.assertIsInstance(self._result1.job_id, str)
-        self.assertEqual(self._result1.status, 'COMPLETED')
-        self.assertEqual(self._result1.results[0].status, 'DONE')
 
     @requires_qe_access
     def test_ibmq_result_fields(self, qe_token, qe_url):
@@ -46,36 +36,6 @@ class TestQiskitResult(QiskitTestCase):
         self.assertIsInstance(remote_result.job_id, str)
         self.assertEqual(remote_result.status, 'COMPLETED')
         self.assertEqual(self._result1.results[0].status, 'DONE')
-
-    def test_extend_result(self):
-        """Test extending a Result instance is possible."""
-        result1, result2 = (self._result1, self._result2)
-        counts1 = result1.get_counts(self._qc1.name)
-        counts2 = result2.get_counts(self._qc2.name)
-        result1 += result2  # extend a result
-        self.assertEqual(
-            [
-                result1.get_counts(self._qc1.name),
-                result2.get_counts(self._qc2.name)
-            ],
-            [counts1, counts2]
-        )
-
-    def test_combine_results(self):
-        """Test combining results in a new Result instance is possible."""
-        result1, result2 = (self._result1, self._result2)
-        counts1 = result1.get_counts(self._qc1.name)
-        counts2 = result2.get_counts(self._qc2.name)
-        new_result = result1 + result2  # combine results
-        self.assertEqual(
-            [
-                new_result.get_counts(self._qc1.name),
-                new_result.get_counts(self._qc2.name)
-            ],
-            [counts1, counts2]
-        )
-        self.assertIsNot(new_result, result1)
-        self.assertIsNot(new_result, result2)
 
 
 if __name__ == '__main__':
