@@ -10,7 +10,6 @@
 import unittest
 
 import qiskit
-from qiskit import BasicAer
 from ..common import QiskitTestCase, requires_qe_access
 
 
@@ -35,7 +34,7 @@ class TestQiskitResult(QiskitTestCase):
         self.assertEqual(remote_result.backend_name, remote_backend.name())
         self.assertIsInstance(remote_result.job_id, str)
         self.assertEqual(remote_result.status, 'COMPLETED')
-        self.assertEqual(self._result1.results[0].status, 'DONE')
+        self.assertEqual(remote_result.results[0].status, 'DONE')
 
 
 if __name__ == '__main__':
