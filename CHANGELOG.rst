@@ -16,6 +16,15 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
+=============
+`UNRELEASED`_
+=============
+
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
 
 `0.7.0`_ - 2018-12-19
 =====================
