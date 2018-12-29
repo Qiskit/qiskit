@@ -13,7 +13,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 
-from .common import QiskitTestCase
+from ..common import QiskitTestCase
 
 
 class TestStandard1Q(QiskitTestCase):

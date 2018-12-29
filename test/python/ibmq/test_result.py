@@ -11,7 +11,7 @@ import unittest
 
 import qiskit
 from qiskit import BasicAer
-from .common import QiskitTestCase, requires_qe_access
+from ..common import QiskitTestCase, requires_qe_access
 
 
 class TestQiskitResult(QiskitTestCase):

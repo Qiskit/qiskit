@@ -11,22 +11,12 @@
 import json
 import jsonschema
 
-from qiskit import IBMQ, BasicAer
-from qiskit.providers.builtinsimulators import SimulatorsProvider
-from .common import Path, QiskitTestCase, requires_qe_access
+from qiskit import IBMQ
+from ..common import Path, QiskitTestCase, requires_qe_access
 
 
 class TestBackends(QiskitTestCase):
-    """Qiskit Backends (Object) Tests."""
-
-    def test_builtin_simulators_backends_exist(self):
-        """Test if there are local backends.
-
-        If all correct some should exists.
-        """
-        builtin_simulators = SimulatorsProvider()
-        local = builtin_simulators.backends()
-        self.assertTrue(len(local) > 0)
+    """Qiskit IBMQ Backends (Object) Tests."""
 
     @requires_qe_access
     def test_remote_backends_exist(self, qe_token, qe_url):
@@ -58,28 +48,6 @@ class TestBackends(QiskitTestCase):
         remotes = IBMQ.backends(simulator=True)
         self.assertTrue(remotes)
 
-    def test_get_backend(self):
-        """Test get backends.
-
-        If all correct should return a name the same as input.
-        """
-        backend = BasicAer.backends(name='qasm_simulator')[0]
-        self.assertEqual(backend.name(), 'qasm_simulator')
-
-    def test_builtin_simulators_backend_status(self):
-        """Test backend_status.
-
-        If all correct should pass the validation.
-        """
-        schema_path = self._get_resource_path(
-            'backend_status_schema.json', path=Path.SCHEMAS)
-        with open(schema_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
-        for backend in BasicAer.backends():
-            status = backend.status()
-            jsonschema.validate(status.to_dict(), schema)
-
     @requires_qe_access
     def test_remote_backend_status(self, qe_token, qe_url):
         """Test backend_status.
@@ -95,21 +63,6 @@ class TestBackends(QiskitTestCase):
         for backend in IBMQ.backends():
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
-
-    def test_builtin_simulators_backend_configuration(self):
-        """Test backend configuration.
-
-        If all correct should pass the validation.
-        """
-        schema_path = self._get_resource_path(
-            'backend_configuration_schema.json', path=Path.SCHEMAS)
-        with open(schema_path, 'r') as schema_file:
-            schema = json.load(schema_file)
-
-        builtin_simulators = BasicAer.backends()
-        for backend in builtin_simulators:
-            configuration = backend.configuration()
-            jsonschema.validate(configuration.to_dict(), schema)
 
     @requires_qe_access
     def test_remote_backend_configuration(self, qe_token, qe_url):
@@ -127,16 +80,6 @@ class TestBackends(QiskitTestCase):
         for backend in remotes:
             configuration = backend.configuration()
             jsonschema.validate(configuration.to_dict(), schema)
-
-    def test_builtin_simulators_backend_properties(self):
-        """Test backend properties.
-
-        If all correct should pass the validation.
-        """
-        simulators = BasicAer.backends()
-        for backend in simulators:
-            properties = backend.properties()
-            self.assertEqual(properties, None)
 
     @requires_qe_access
     def test_remote_backend_properties(self, qe_token, qe_url):

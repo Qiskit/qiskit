@@ -9,7 +9,7 @@
 
 from qiskit import IBMQ
 from qiskit.providers.ibmq import least_busy
-from .common import requires_qe_access, QiskitTestCase
+from ..common import requires_qe_access, QiskitTestCase
 
 
 class TestBackendFilters(QiskitTestCase):
