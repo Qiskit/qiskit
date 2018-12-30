@@ -5,6 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=redefined-builtin
 
 """Tests for all BasicAer  simulators."""
 
@@ -12,10 +13,9 @@ import unittest
 
 import qiskit
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
+from qiskit import compile
 from qiskit.qobj import QobjHeader
-
-from ..common import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator

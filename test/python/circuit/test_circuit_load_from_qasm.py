@@ -10,8 +10,7 @@
 
 from qiskit import QiskitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-
-from ..common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class LoadFromQasmTest(QiskitTestCase):

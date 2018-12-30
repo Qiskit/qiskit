@@ -13,8 +13,7 @@ import numpy as np
 import qiskit
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-
-from ..common import QiskitTestCase, requires_cpp_simulator, Path
+from qiskit.test import QiskitTestCase, requires_cpp_simulator, Path
 
 
 @requires_cpp_simulator

@@ -13,8 +13,7 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit import BasicAer
-
-from ..common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class TestBasicAerQasmSimulator(QiskitTestCase):

@@ -29,6 +29,13 @@ Changed
   ``qiskit.test`` and thus available for third-party implementations (#1616)
 - The snapshot instruction now takes ``label`` and ``snap_type`` instead of
   ``slot`` (#1615).
+- The test folders have been reorganized to match the python modules (#1625)
+
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
 
 Removed
 -------
@@ -38,6 +45,7 @@ Removed
   Qiskit Aer is out (#1615).
 - Removed simulator instructions ``save``, ``load``, ``wait``, ``noise``
   as unsupported in Aer (#1615).
+- Removed circuit.add as deprecated (#1627)
 
 `0.7.0`_ - 2018-12-19
 =====================

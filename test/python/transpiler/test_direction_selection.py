@@ -14,7 +14,7 @@ from qiskit.transpiler import TranspilerError
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCXDirection(QiskitTestCase):

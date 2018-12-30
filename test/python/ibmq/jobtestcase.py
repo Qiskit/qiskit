@@ -11,7 +11,7 @@
 import time
 
 from qiskit.providers import JobStatus
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class JobTestCase(QiskitTestCase):

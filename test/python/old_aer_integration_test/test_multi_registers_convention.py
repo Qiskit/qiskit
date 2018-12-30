@@ -5,21 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-import
 # pylint: disable=redefined-builtin
 
 """Test Qiskit's QuantumCircuit class for multiple registers."""
 
-import os
-import tempfile
-import unittest
-
 import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, execute
-from qiskit import QiskitError
+from qiskit import compile
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
-from ..common import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_cpp_simulator
 
 
 class TestCircuitMultiRegs(QiskitTestCase):

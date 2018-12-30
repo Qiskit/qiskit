@@ -5,9 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Schemas test."""
+
 import json
 import logging
 import os
@@ -19,7 +18,7 @@ from qiskit.qobj._schema_validation import (validate_json_against_schema,
 from qiskit.providers.models import (BackendConfiguration, BackendProperties,
                                      BackendStatus, JobStatus)
 from qiskit.result import Result
-from .common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 logger = logging.getLogger(__name__)

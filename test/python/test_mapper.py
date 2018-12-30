@@ -5,9 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-
-# pylint: disable=redefined-builtin
+# pylint: disable=missing-docstring,redefined-builtin
 
 import unittest
 
@@ -22,7 +20,7 @@ from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import MapperError
 from qiskit.converters import circuit_to_dag
-from .common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class FakeQX4BackEnd:
