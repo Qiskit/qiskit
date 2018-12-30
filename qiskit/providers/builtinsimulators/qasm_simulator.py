@@ -458,7 +458,6 @@ class QasmSimulatorPy(BaseBackend):
             seed = np.random.randint(2147483647, dtype='int32')
 
         self._local_random.seed(seed=seed)
-        print(self._local_random)
         # Check if measure sampling is supported for current circuit
         self._validate_measure_sampling(experiment)
 

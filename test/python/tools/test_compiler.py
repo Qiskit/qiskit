@@ -333,10 +333,13 @@ class TestCompiler(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
+        qc.barrier(qr)
         qc.measure(qr, cr)
         backend = BasicAer.get_backend('qasm_simulator')
-        rtrue = execute(qc, backend, seed=42).result()
-        rfalse = execute(qc, backend, seed=42, pass_manager=PassManager()).result()
+        qrtrue = compile(qc, backend, seed=42)
+        rtrue = backend.run(qrtrue).result()
+        qrfalse = compile(qc, backend, seed=42, pass_manager=PassManager())
+        rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
 

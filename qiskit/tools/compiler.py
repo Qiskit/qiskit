@@ -63,7 +63,6 @@ def compile(circuits, backend,
                               'memory': memory})
     if seed:
         run_config.seed = seed
-        print(seed)
     qobj = circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=run_config,
                             qobj_id=qobj_id)
 
