@@ -9,25 +9,26 @@
 
 import unittest
 
-import qiskit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import execute
 from qiskit import BasicAer
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQiskitResult(QiskitTestCase):
     """Test qiskit.Result API"""
 
     def setUp(self):
-        qr = qiskit.QuantumRegister(1)
-        cr = qiskit.ClassicalRegister(1)
-        self._qc1 = qiskit.QuantumCircuit(qr, cr, name='qc1')
-        self._qc2 = qiskit.QuantumCircuit(qr, cr, name='qc2')
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        self._qc1 = QuantumCircuit(qr, cr, name='qc1')
+        self._qc2 = QuantumCircuit(qr, cr, name='qc2')
         self._qc1.measure(qr[0], cr[0])
         self._qc2.x(qr[0])
         self._qc2.measure(qr[0], cr[0])
         self.backend = BasicAer.get_backend('qasm_simulator')
-        self._result1 = qiskit.execute(self._qc1, self.backend).result()
-        self._result2 = qiskit.execute(self._qc2, self.backend).result()
+        self._result1 = execute(self._qc1, self.backend).result()
+        self._result2 = execute(self._qc2, self.backend).result()
 
     def test_extend_result(self):
         """Test extending a Result instance is possible."""

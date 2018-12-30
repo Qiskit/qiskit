@@ -16,7 +16,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit.result import Result
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestBasicAerIntegration(QiskitTestCase):

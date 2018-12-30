@@ -14,8 +14,7 @@ from qiskit import compile, BasicAer
 from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.tools.compiler import circuits_to_qobj
 from qiskit.converters import circuit_to_dag
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestTranspile(QiskitTestCase):

@@ -5,16 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests for the converters."""
 
 import unittest
 
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitToDag(QiskitTestCase):

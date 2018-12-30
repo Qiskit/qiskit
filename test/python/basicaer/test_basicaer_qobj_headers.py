@@ -12,8 +12,7 @@ from qiskit import BasicAer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.qobj import QobjHeader
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestBasicAerQobj(QiskitTestCase):

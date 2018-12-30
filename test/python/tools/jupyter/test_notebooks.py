@@ -5,8 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests for the wrapper functionality."""
 
 import os
@@ -15,7 +13,7 @@ import unittest
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
-from ...common import (Path, QiskitTestCase, requires_qe_access, slow_test)
+from qiskit.test import (Path, QiskitTestCase, requires_qe_access, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.

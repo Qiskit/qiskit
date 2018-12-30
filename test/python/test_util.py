@@ -10,7 +10,7 @@
 from unittest import mock
 
 from qiskit import _util
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestUtil(QiskitTestCase):

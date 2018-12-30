@@ -14,7 +14,7 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
 from qiskit import BasicAer
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class BasicAerUnitarySimulatorPyTest(QiskitTestCase):

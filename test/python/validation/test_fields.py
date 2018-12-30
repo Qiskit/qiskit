@@ -5,14 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
 """Test polymorphic and validated fields."""
-
-from test.python.common import QiskitTestCase
 
 from qiskit.validation import fields, ValidationError
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import TryFrom, ByAttribute, ByType
+from qiskit.test import QiskitTestCase
 
 
 class DummySchema(BaseSchema):

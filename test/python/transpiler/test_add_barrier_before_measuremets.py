@@ -11,7 +11,7 @@ import unittest
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestAddBarrierBeforeMeasuremets(QiskitTestCase):

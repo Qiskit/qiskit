@@ -14,7 +14,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
 from qiskit.extensions.standard import HGate
 from qiskit.extensions.standard import ToffoliGate
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDecompose(QiskitTestCase):

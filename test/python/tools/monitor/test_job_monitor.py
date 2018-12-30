@@ -12,7 +12,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit import execute
 from qiskit.tools.monitor import job_monitor
-from ...common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestJobMonitor(QiskitTestCase):
