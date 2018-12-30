@@ -29,6 +29,7 @@ Changed
   ``qiskit.test`` and thus available for third-party implementations (#1616)
 - The snapshot instruction now takes ``label`` and ``snap_type`` instead of
   ``slot`` (#1615).
+- The test folders have been reorganized to match the python modules (#1625)
 
 Fixed
 -----
