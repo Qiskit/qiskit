@@ -18,7 +18,7 @@ from qiskit.transpiler import transpile
 from qiskit import compile, execute
 from qiskit.result import Result
 from qiskit.providers.ibmq import least_busy
-from ..common import QiskitTestCase, requires_qe_access
+from qiskit.test import QiskitTestCase, requires_qe_access
 
 
 class TestCompiler(QiskitTestCase):

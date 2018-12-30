@@ -12,7 +12,7 @@ import unittest
 from qiskit import qasm
 from qiskit.unroll import DagUnroller, JsonBackend
 from qiskit.converters import ast_to_dag
-from .common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class UnrollerTest(QiskitTestCase):

@@ -5,16 +5,18 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tests qiskit/mapper/_quaternion"""
+"""Tests quaternion conversion"""
+
 import math
 import numpy as np
 import scipy.linalg as la
+
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQuaternions(QiskitTestCase):
-    """Tests qiskit/mapper_quaternion"""
+    """Tests qiskit.quantum_info.operators.quaternion"""
 
     def test_random_euler(self):
         """Quaternion from random Euler rotations."""

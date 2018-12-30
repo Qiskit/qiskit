@@ -5,21 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring,broad-except
-
 """Non-string identifiers for circuit and record identifiers test"""
 
 import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import QiskitError
-# pylint: disable=redefined-builtin
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestAnonymousIds(QiskitTestCase):
-    """Test the anonymous use of registers.
-    """
+    """Test the anonymous use of registers."""
 
     def test_create_anonymous_classical_register(self):
         """ClassicalRegister with no name."""

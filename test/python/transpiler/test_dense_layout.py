@@ -13,7 +13,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDenseLayout(QiskitTestCase):

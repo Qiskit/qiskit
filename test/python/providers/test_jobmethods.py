@@ -15,7 +15,7 @@ from os import path
 import unittest
 from unittest.mock import patch
 
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 from .._mockutils import new_fake_qobj, FakeBackend
 
 

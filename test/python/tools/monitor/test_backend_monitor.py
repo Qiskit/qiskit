@@ -5,13 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
 """Tests for the wrapper functionality."""
 
 import unittest
 from qiskit.providers.ibmq import IBMQ
 from qiskit.tools.monitor import backend_overview, backend_monitor
-from ...common import QiskitTestCase, requires_qe_access
+from qiskit.test import QiskitTestCase, requires_qe_access
 
 
 class TestBackendOverview(QiskitTestCase):
