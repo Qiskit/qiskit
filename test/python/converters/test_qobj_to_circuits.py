@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=redefined-builtin
+# pylint: disable=unused-import
 
 """Tests for the converters."""
 

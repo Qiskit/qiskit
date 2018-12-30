@@ -225,9 +225,10 @@ class QobjConditional(QobjItem):
         type (string): type of the conditional
         val (hex): value of the conditional
     """
+    # pylint: disable=redefined-builtin
     REQUIRED_ARGS = ['mask', 'type', 'val']
 
     def __init__(self, mask, type, val):
         self.mask = mask
-        self.type = type  # pylint: disable=redefined-builtin
+        self.type = type
         self.val = val
