@@ -22,7 +22,7 @@ class TestCircuitToDag(QiskitTestCase):
 
 
     def test_circuit_and_dag(self):
-        "Check convert to dag and back"
+        """Check convert to dag and back"""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit_in = QuantumCircuit(qr, cr)
