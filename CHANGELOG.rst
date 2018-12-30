@@ -45,6 +45,7 @@ Removed
   Qiskit Aer is out (#1615).
 - Removed simulator instructions ``save``, ``load``, ``wait``, ``noise``
   as unsupported in Aer (#1615).
+- Removed circuit.add as deprecated (#1627)
 
 `0.7.0`_ - 2018-12-19
 =====================
