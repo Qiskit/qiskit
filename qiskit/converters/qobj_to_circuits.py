@@ -48,7 +48,7 @@ def qobj_to_circuits(qobj):
                         qubit_label = x.header.qubit_labels[qubit]
                         qubits.append(
                             qreg_dict[qubit_label[0]][qubit_label[1]])
-                except:
+                except Exception:
                     pass
                 clbits = []
                 try:
@@ -56,12 +56,12 @@ def qobj_to_circuits(qobj):
                         clbit_label = x.header.clbit_labels[clbit]
                         clbits.append(
                             creg_dict[clbit_label[0]][clbit_label[1]])
-                except:
+                except Exception:
                     pass
                 params = []
                 try:
-                    params= i.params
-                except:
+                    params = i.params
+                except Exception:
                     pass
                 if i.name in ['snapshot']:
                     instr_method(*params)
