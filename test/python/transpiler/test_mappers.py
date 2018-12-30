@@ -91,8 +91,9 @@ class CommonUtilitiesMixin:
 
     def create_passmanager(self, coupling_map, initial_layout=None):
         """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
-        passmanager = PassManager(self.pass_class(CouplingMap(coupling_map),
-                                                  **self.additional_args))
+        passmanager = PassManager(
+            self.pass_class(CouplingMap(coupling_map),  # pylint: disable=not-callable
+                            **self.additional_args))
         if initial_layout:
             passmanager.property_set['layout'] = Layout(initial_layout)
         return passmanager
