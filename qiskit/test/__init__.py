@@ -10,5 +10,3 @@
 from .base import QiskitTestCase
 from .decorators import requires_aer_provider, requires_qe_access, slow_test
 from .utils import Path
-from .mock import (FakeProvider, FakeSimulator, FakeTenerife, FakeMelbourne,
-                   FakeRueschlikon, FakeTokyo, new_fake_qobj)
