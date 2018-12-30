@@ -5,13 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tests for qiskit/_util.py"""
+"""Tests for qiskit/tools/parallel"""
 import os
 import time
 
 from qiskit.tools.parallel import parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 def _parfunc(x):

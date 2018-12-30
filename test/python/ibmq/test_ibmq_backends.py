@@ -17,8 +17,7 @@ from qiskit import IBMQ
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile
 from qiskit.qobj import QobjHeader
-
-from ..common import Path, QiskitTestCase, requires_qe_access, slow_test
+from qiskit.test import Path, QiskitTestCase, requires_qe_access, slow_test
 
 
 class TestIBMQBackends(QiskitTestCase):

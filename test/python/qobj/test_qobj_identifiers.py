@@ -5,16 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring,broad-except
+# pylint: disable=missing-docstring,redefined-builtin
 
 """Non-string identifiers for circuit and record identifiers test"""
 
 import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-# pylint: disable=redefined-builtin
 from qiskit import compile, BasicAer
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQobjIdentifiers(QiskitTestCase):

@@ -5,15 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
 """Test backend name resolution for functionality, via groups, deprecations and
 aliases."""
 
 from qiskit import IBMQ, BasicAer
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from .common import (QiskitTestCase,
-                     is_cpp_simulator_available,
-                     requires_qe_access)
+from qiskit.test import QiskitTestCase, requires_qe_access
 
 
 class TestBackendNameResolution(QiskitTestCase):
@@ -27,10 +24,6 @@ class TestBackendNameResolution(QiskitTestCase):
         deprecated_names = BasicAer._deprecated_backend_names()
 
         for oldname, newname in deprecated_names.items():
-            if newname in ('qasm_simulator',
-                           'statevector_simulator') and not is_cpp_simulator_available():
-                continue
-
             with self.subTest(oldname=oldname, newname=newname):
                 try:
                     resolved_newname = _get_first_available_backend(BasicAer, newname)

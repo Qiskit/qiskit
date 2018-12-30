@@ -20,7 +20,7 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import execute, BasicAer
 from qiskit.quantum_info import state_fidelity
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestInitialize(QiskitTestCase):

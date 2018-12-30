@@ -5,8 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests for the converters."""
 
 import unittest
@@ -14,8 +12,7 @@ import unittest
 from qiskit.converters import ast_to_dag, circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import qasm
-
-from ..common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class TestAstToDag(QiskitTestCase):

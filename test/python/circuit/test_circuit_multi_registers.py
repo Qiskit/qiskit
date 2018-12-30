@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import QiskitError
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitMultiRegs(QiskitTestCase):

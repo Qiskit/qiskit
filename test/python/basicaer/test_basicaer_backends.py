@@ -13,7 +13,7 @@ import jsonschema
 
 from qiskit import BasicAer
 from qiskit.providers.builtinsimulators import SimulatorsProvider
-from ..common import Path, QiskitTestCase
+from qiskit.test import Path, QiskitTestCase
 
 
 class TestBasicAerBackends(QiskitTestCase):
