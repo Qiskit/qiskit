@@ -5,8 +5,8 @@ Contributing
 **We appreciate all kinds of help, so thank you!**
 
 
-Contributing to the project
----------------------------
+Contributing to Qiskit Terra
+----------------------------
 
 You can contribute in many ways to this project.
 
@@ -48,9 +48,10 @@ the pull request,  including a link to accept the agreement. The
 `individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
 available for review as a PDF.
 
-NOTE: If you work for a company that wants to allow you to contribute your work,
-then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
-and email it to us at qiskit@us.ibm.com.
+.. note::
+    If you work for a company that wants to allow you to contribute your work,
+    then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
+    and email it to us at qiskit@us.ibm.com.
 
 
 Good first contributions
@@ -136,10 +137,10 @@ A good example:
     * Another important change
 
 
-Code
-----
+Installing Qiskit Terra from source
+-----------------------------------
 
-This section include some tips that will help you to push source code.
+This section include some tips that will help you install and push source code.
 
 .. note::
 
@@ -386,8 +387,8 @@ All platforms:
 Documentation
 -------------
 
-The documentation for the element of Qiskit is in the ``doc`` directory. The
-documentation for the Qiskit Terra is auto-generated from python
+The documentation Qiskit Terra is in the ``doc`` directory. The
+documentation is auto-generated from python
 docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
 documentation. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
@@ -414,14 +415,14 @@ All platforms:
 Development cycle
 -----------------
 
-Our development cycle is straightforward, we define a roadmap with milestones
-for releases, and features that we want to include in these releases. The
-roadmap is not public at the moment, but it's a committed project in our
-community and we are working to make parts of it public in a way that can be
-beneficial for everyone. Whenever a new release is close to be launched, we'll
-announce it and detail what has changed since the latest version.
-The channels we'll use to announce new releases are still being discussed, but
-for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
+Our development cycle is straightforward, use the project boards in Github 
+for project management and use milestones for releases. The features 
+that we want to include in these releases will be tagged and discussed 
+in the project boards. Whenever a new release is close to be launched, 
+we'll announce it and detail what has changed since the latest version in 
+our Release Notes and Changelog. The channels we'll use to announce new 
+releases are still being discussed, but for now, you can 
+`follow us <https://twitter.com/qiskit>`_ on Twitter!
 
 
 Branch model

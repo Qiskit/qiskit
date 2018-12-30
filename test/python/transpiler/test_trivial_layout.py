@@ -14,7 +14,7 @@ from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDenseLayout(QiskitTestCase):

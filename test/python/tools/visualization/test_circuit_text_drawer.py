@@ -15,7 +15,7 @@ from codecs import encode
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import _text as elements
 from qiskit.tools.visualization import _text_circuit_drawer
-from ...common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestTextDrawerElement(QiskitTestCase):

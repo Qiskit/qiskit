@@ -12,7 +12,6 @@ Quantum circuit object.
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
-import warnings
 import sys
 import multiprocessing as mp
 
@@ -177,7 +176,7 @@ class QuantumCircuit:
         return self
 
     def __add__(self, rhs):
-        """Overload + to implement self.concatenate."""
+        """Overload + to implement self.combine."""
         return self.combine(rhs)
 
     def __iadd__(self, rhs):
@@ -209,14 +208,6 @@ class QuantumCircuit:
                 self.cregs.append(register)
             else:
                 raise QiskitError("expected a register")
-
-    def add(self, *regs):
-        """Add registers."""
-
-        warnings.warn('The add() function is deprecated and will be '
-                      'removed in a future release. Instead use '
-                      'QuantumCircuit.add_register().', DeprecationWarning)
-        self.add_register(*regs)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""

@@ -38,15 +38,11 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # Please note these are global instances, not modules.
 from qiskit.providers.ibmq import IBMQ
 from qiskit.providers.builtinsimulators import BasicAer
-from qiskit.providers.legacysimulators import LegacySimulators
 
 # Try to import the Aer provider if th Aer element is installed.
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
     pass
-
-# TODO: Remove
-from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
 
 from .version import __version__
