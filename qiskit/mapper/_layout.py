@@ -86,7 +86,7 @@ class Layout(dict):
                 len(thing) == 2 and \
                 isinstance(thing[0], Register) and isinstance(thing[1], int):
             return
-        raise LayoutError('The element %s should be a Register or an integer' % (thing,))
+        raise LayoutError('The element %s should be a (Register, integer) tuple or an integer' % (thing,))
 
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
