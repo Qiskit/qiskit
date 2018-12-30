@@ -142,21 +142,15 @@ class QobjConfig(QobjItem):
     """Configuration for a Qobj.
 
     Attributes:
-        shots (int): number of shots.
-        memory_slots (int): number of measurements slots in the classical
-            memory on the backend.
-
+        None should be required
     Attributes defined in the schema but not required:
         max_credits (int): number of credits.
         seed (int): random seed.
+        memory_slots (int): number of measurements slots in the classical
+            memory on the backend.
+        shots (int): number of shots.
     """
-    REQUIRED_ARGS = ['shots', 'memory_slots']
-
-    def __init__(self, shots, memory_slots, **kwargs):
-        self.shots = shots
-        self.memory_slots = memory_slots
-
-        super().__init__(**kwargs)
+    pass
 
 
 class QobjHeader(QobjItem):
