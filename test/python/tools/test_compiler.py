@@ -326,7 +326,7 @@ class TestCompiler(QiskitTestCase):
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
 
-    def test_compile_skip_transpiler(self):
+    def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)

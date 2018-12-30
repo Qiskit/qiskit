@@ -456,7 +456,10 @@ class QasmSimulatorPy(BaseBackend):
             # For compatibility on Windows force dyte to be int32
             # and set the maximum value to be (2 ** 31) - 1
             seed = np.random.randint(2147483647, dtype='int32')
-        self._local_random.seed(seed)
+            
+
+        self._local_random.seed(seed=seed)
+        print(self._local_random)
         # Check if measure sampling is supported for current circuit
         self._validate_measure_sampling(experiment)
 
