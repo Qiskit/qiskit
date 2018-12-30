@@ -11,7 +11,7 @@ import unittest
 
 import qiskit
 from qiskit import BasicAer
-from .common import QiskitTestCase, requires_qe_access
+from ..common import QiskitTestCase
 
 
 class TestQiskitResult(QiskitTestCase):
@@ -28,24 +28,6 @@ class TestQiskitResult(QiskitTestCase):
         self.backend = BasicAer.get_backend('qasm_simulator')
         self._result1 = qiskit.execute(self._qc1, self.backend).result()
         self._result2 = qiskit.execute(self._qc2, self.backend).result()
-
-    def test_builtin_simulator_result_fields(self):
-        """Test components of a result from a local simulator."""
-        self.assertEqual('qasm_simulator', self._result1.backend_name)
-        self.assertIsInstance(self._result1.job_id, str)
-        self.assertEqual(self._result1.status, 'COMPLETED')
-        self.assertEqual(self._result1.results[0].status, 'DONE')
-
-    @requires_qe_access
-    def test_ibmq_result_fields(self, qe_token, qe_url):
-        """Test components of a result from a remote simulator."""
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        remote_backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
-        remote_result = qiskit.execute(self._qc1, remote_backend).result()
-        self.assertEqual(remote_result.backend_name, remote_backend.name())
-        self.assertIsInstance(remote_result.job_id, str)
-        self.assertEqual(remote_result.status, 'COMPLETED')
-        self.assertEqual(self._result1.results[0].status, 'DONE')
 
     def test_extend_result(self):
         """Test extending a Result instance is possible."""

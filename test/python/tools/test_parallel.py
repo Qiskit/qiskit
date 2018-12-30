@@ -11,7 +11,7 @@ import time
 
 from qiskit.tools.parallel import parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from .common import QiskitTestCase
+from ..common import QiskitTestCase
 
 
 def _parfunc(x):

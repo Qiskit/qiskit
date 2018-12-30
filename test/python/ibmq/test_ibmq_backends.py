@@ -5,19 +5,24 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=redefined-builtin
+
 
 """Tests for all IBMQ backends."""
 
-from qiskit import IBMQ, ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
+import json
+import jsonschema
+
+from qiskit import IBMQ
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import compile
 from qiskit.qobj import QobjHeader
 
-from ..common import QiskitTestCase, requires_qe_access, slow_test
+from ..common import Path, QiskitTestCase, requires_qe_access, slow_test
 
 
 class TestIBMQBackends(QiskitTestCase):
     """Tests for all the IBMQ backends."""
-
     def setUp(self):
         super().setUp()
 
@@ -26,6 +31,71 @@ class TestIBMQBackends(QiskitTestCase):
         self.qc1 = QuantumCircuit(qr, cr, name='circuit0')
         self.qc1.h(qr[0])
         self.qc1.measure(qr, cr)
+
+    @requires_qe_access
+    def test_remote_backends_exist(self, qe_token, qe_url):
+        """Test if there are remote backends."""
+        IBMQ.enable_account(qe_token, qe_url)
+        remotes = IBMQ.backends()
+        self.assertTrue(len(remotes) > 0)
+
+    @requires_qe_access
+    def test_remote_backends_exist_real_device(self, qe_token, qe_url):
+        """Test if there are remote backends that are devices."""
+        IBMQ.enable_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
+        self.assertTrue(remotes)
+
+    @requires_qe_access
+    def test_remote_backends_exist_simulator(self, qe_token, qe_url):
+        """Test if there are remote backends that are simulators."""
+        IBMQ.enable_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=True)
+        self.assertTrue(remotes)
+
+    @requires_qe_access
+    def test_remote_backend_status(self, qe_token, qe_url):
+        """Test backend_status."""
+        schema_path = self._get_resource_path(
+            'backend_status_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
+        IBMQ.enable_account(qe_token, qe_url)
+        for backend in IBMQ.backends():
+            status = backend.status()
+            jsonschema.validate(status.to_dict(), schema)
+
+    @requires_qe_access
+    def test_remote_backend_configuration(self, qe_token, qe_url):
+        """Test backend configuration."""
+        schema_path = self._get_resource_path(
+            'backend_configuration_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
+        IBMQ.enable_account(qe_token, qe_url)
+        remotes = IBMQ.backends()
+        for backend in remotes:
+            configuration = backend.configuration()
+            jsonschema.validate(configuration.to_dict(), schema)
+
+    @requires_qe_access
+    def test_remote_backend_properties(self, qe_token, qe_url):
+        """Test backend properties."""
+        schema_path = self._get_resource_path(
+            'backend_properties_schema.json', path=Path.SCHEMAS)
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
+
+        IBMQ.enable_account(qe_token, qe_url)
+        remotes = IBMQ.backends(simulator=False)
+        for backend in remotes:
+            properties = backend.properties()
+            if backend.configuration().simulator:
+                self.assertEqual(properties, None)
+            else:
+                jsonschema.validate(properties.to_dict(), schema)
 
     @requires_qe_access
     def test_qobj_headers_in_result_sims(self, qe_token, qe_url):
