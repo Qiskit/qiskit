@@ -15,14 +15,13 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 
 class TestDenseLayout(QiskitTestCase):
     """Tests the TrivialLayout pass"""
 
     def setUp(self):
-        self.cmap5 = CouplingMap([[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]])
-
         self.cmap16 = CouplingMap([[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
                                    [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
                                    [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
@@ -38,7 +37,8 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = TrivialLayout(self.cmap5)
+        coupling_map = FakeTenerife().configuration().coupling_map
+        pass_ = TrivialLayout(coupling_map)
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
