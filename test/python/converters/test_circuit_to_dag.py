@@ -20,7 +20,6 @@ from ..common import QiskitTestCase
 class TestCircuitToDag(QiskitTestCase):
     """Test Circuit to DAG."""
 
-
     def test_circuit_and_dag(self):
         """Check convert to dag and back"""
         qr = QuantumRegister(3)
