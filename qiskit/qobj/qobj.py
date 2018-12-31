@@ -232,3 +232,5 @@ class QobjConditional(QobjItem):
         self.mask = mask
         self.type = type
         self.val = val
+
+        super().__init__()
