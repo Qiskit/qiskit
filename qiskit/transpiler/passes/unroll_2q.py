@@ -5,14 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Pass for decompose 3q gates into 2q or 1q gates."""
+"""Pass for decompose 3q (or more) gates into 2q or 1q gates."""
 
 from qiskit.transpiler._basepasses import TransformationPass
 
 
-class Decompose3Q(TransformationPass):
+class Unroll2Q(TransformationPass):
     """
-    Recursively expands 3q gates using their decomposition rules.
+    Recursively expands 3q (or more) gates using their decomposition rules.
     """
 
     def run(self, dag):
@@ -23,7 +23,7 @@ class Decompose3Q(TransformationPass):
         Returns:
             DAGCircuit: output dag where 3q gates were expanded.
         """
-        for node_id, node_data in dag.get_3q_nodes():
+        for node_id, node_data in dag.get_qe_3q_nodes():
             decomposition_rules = node_data["op"].decompositions()
 
             # TODO: allow choosing other possible decompositions

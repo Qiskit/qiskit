@@ -11,7 +11,7 @@ from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
-from .decompose_3q import Decompose3Q
+from .unroll_2q import Unroll2Q
 from .commutation_analysis import CommutationAnalysis
 from .commutation_transformation import CommutationTransformation
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements

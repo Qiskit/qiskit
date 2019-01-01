@@ -1266,11 +1266,11 @@ class DAGCircuit:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
 
-    def get_3q_nodes(self):
-        """Get list of 3-qubit nodes: (id, data)."""
+    def get_qe_3q_nodes(self):
+        """Get list of 3-or-more-qubit nodes: (id, data)."""
         three_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
-            if node_data['type'] == 'op' and len(node_data['qargs']) == 3:
+            if node_data['type'] == 'op' and len(node_data['qargs']) >= 3:
                 three_q_nodes.append((node_id, self.multi_graph.node[node_id]))
         return three_q_nodes
 

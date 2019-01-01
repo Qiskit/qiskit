@@ -8,9 +8,9 @@
 """Test the decompose 3q pass"""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler.passes import Decompose3Q
+from qiskit.transpiler.passes import Unroll2Q
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDecompose3Q(QiskitTestCase):
@@ -24,7 +24,7 @@ class TestDecompose3Q(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Decompose3Q()
+        pass_ = Unroll2Q()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.get_op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
@@ -40,7 +40,7 @@ class TestDecompose3Q(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.cswap(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Decompose3Q()
+        pass_ = Unroll2Q()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.get_op_nodes(data=True)
         self.assertEqual(len(op_nodes), 17)
@@ -56,7 +56,7 @@ class TestDecompose3Q(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
         dag = circuit_to_dag(circuit)
-        pass_ = Decompose3Q()
+        pass_ = Unroll2Q()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.get_op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
