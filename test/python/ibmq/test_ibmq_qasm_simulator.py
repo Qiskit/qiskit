@@ -5,16 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring,broad-except
+# pylint: disable=missing-docstring,redefined-builtin
 
 """Test IBMQ online qasm simulator.
 TODO: Must expand tests. Re-evaluate after Aer."""
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-# pylint: disable=redefined-builtin
 from qiskit import compile
 from qiskit import IBMQ
-from ..common import requires_qe_access, QiskitTestCase
+from qiskit.test import requires_qe_access, QiskitTestCase
 
 
 class TestIbmqQasmSimulator(QiskitTestCase):
@@ -22,10 +21,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
     @requires_qe_access
     def test_execute_one_circuit_simulator_online(self, qe_token, qe_url):
-        """Test execute_one_circuit_simulator_online.
-
-        If all correct should return correct counts.
-        """
+        """Test execute_one_circuit_simulator_online."""
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
@@ -45,10 +41,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
     @requires_qe_access
     def test_execute_several_circuits_simulator_online(self, qe_token, qe_url):
-        """Test execute_several_circuits_simulator_online.
-
-        If all correct should return correct counts.
-        """
+        """Test execute_several_circuits_simulator_online."""
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 
@@ -78,10 +71,7 @@ class TestIbmqQasmSimulator(QiskitTestCase):
 
     @requires_qe_access
     def test_online_qasm_simulator_two_registers(self, qe_token, qe_url):
-        """Test online_qasm_simulator_two_registers.
-
-        If all correct should return correct counts.
-        """
+        """Test online_qasm_simulator_two_registers."""
         IBMQ.enable_account(qe_token, qe_url)
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
 

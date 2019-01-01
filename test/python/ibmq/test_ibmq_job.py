@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring,broad-except
+# pylint: disable=missing-docstring
 
 # pylint: disable=redefined-builtin
 
@@ -26,8 +26,8 @@ from qiskit.providers import JobStatus, JobError
 from qiskit.providers.ibmq import least_busy
 from qiskit.providers.ibmq.exceptions import IBMQBackendError
 from qiskit.providers.ibmq.ibmqjob import IBMQJob
+from qiskit.test import requires_qe_access, slow_test
 from .jobtestcase import JobTestCase
-from ..common import requires_qe_access, slow_test
 
 
 class TestIBMQJob(JobTestCase):

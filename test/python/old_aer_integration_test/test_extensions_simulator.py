@@ -10,14 +10,13 @@
 """Tests for verifying the correctness of simulator extension instructions."""
 
 import unittest
-import numpy as np
 
 import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
 from qiskit import execute
-from ..common import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator

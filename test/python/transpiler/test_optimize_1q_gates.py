@@ -15,7 +15,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 from .._mockutils import FakeBackend
 
 

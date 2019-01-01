@@ -19,7 +19,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitMultiRegs(QiskitTestCase):

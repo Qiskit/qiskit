@@ -14,7 +14,7 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit import execute
-from ..common import requires_qe_access, QiskitTestCase, requires_cpp_simulator
+from qiskit.test import requires_qe_access, QiskitTestCase, requires_cpp_simulator
 
 
 @requires_cpp_simulator

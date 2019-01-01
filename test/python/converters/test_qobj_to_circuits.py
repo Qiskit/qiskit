@@ -19,7 +19,7 @@ from qiskit import compile
 from qiskit.qobj import Qobj
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQobjToCircuits(QiskitTestCase):
