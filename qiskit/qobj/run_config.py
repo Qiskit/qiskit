@@ -34,7 +34,7 @@ class RunConfig(BaseModel):
 
     Attributes:
         shots (int): the number of shots.
-        max_credit (int): the max_credit to use on the IBMQ public devices.
+        max_credits (int): the max_credits to use on the IBMQ public devices.
         seed (int): the seed to use in the simulator for the first experiment.
         memory (bool): to use memory.
     """
