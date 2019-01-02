@@ -28,15 +28,14 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
         run_config (RunConfig): RunConfig object
         qobj_id (int): identifier for the generated qobj
 
-        TODO: Delete after qiskit-terra 0.8
-        backend_name (str): to be deleted
-        config (dict): to be deleted
-        shots (int): to be deleted
-        max_credits (int): to be deleted
-        basis_gates (str): to be deleted
-        coupling_map (list): to be deleted
-        seed (int): to be deleted
-        memory (bool): to be deleted
+        backend_name (str): TODO: delete after qiskit-terra 0.8
+        config (dict): TODO: delete after qiskit-terra 0.8
+        shots (int): TODO: delete after qiskit-terra 0.8
+        max_credits (int): TODO: delete after qiskit-terra 0.8
+        basis_gates (str): TODO: delete after qiskit-terra 0.8
+        coupling_map (list): TODO: delete after qiskit-terra 0.8
+        seed (int): TODO: delete after qiskit-terra 0.8
+        memory (bool): TODO: delete after qiskit-terra 0.8
 
     Returns:
         Qobj: the Qobj to be run on the backends
