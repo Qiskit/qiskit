@@ -48,7 +48,7 @@ def compile(circuits, backend,
         QiskitError: if the desired options are not supported by backend
     """
     if config:
-        warnings.warn('This does not do anything', DeprecationWarning)
+        warnings.warn('The `config` argument is deprecated and does not do anything', DeprecationWarning)
 
     backend_memory = getattr(backend.configuration(), 'memory', False)
     if memory and not backend_memory:
