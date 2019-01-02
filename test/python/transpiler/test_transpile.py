@@ -67,6 +67,6 @@ class TestTranspile(QiskitTestCase):
                              pass_manager=None)
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
-        run_config = RunConfig(**{'shots': 1024, 'max_credits': 10})
+        run_config = RunConfig(shots=1024, max_credits=10)
         qobj2 = circuits_to_qobj(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
         self.assertEqual(qobj, qobj2)

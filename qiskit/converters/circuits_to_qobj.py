@@ -46,25 +46,26 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
         circuits = [circuits]
 
     if backend_name:
-        warnings.warn('This is not required anymore', DeprecationWarning)
+        warnings.warn('backend_name is not required anymore', DeprecationWarning)
         user_qobj_header.backend_name = backend_name
     if config:
-        warnings.warn('Set all Configs in RunConfig', DeprecationWarning)
+        warnings.warn('config is not used anymore. Set all configs in '
+                      'run_config.', DeprecationWarning)
     if shots:
-        warnings.warn('The shots is set in RunConfig', DeprecationWarning)
+        warnings.warn('shots is not used anymore. Set it via run_config.', DeprecationWarning)
         run_config.shots = shots
     if basis_gates:
-        warnings.warn('This was never used', DeprecationWarning)
+        warnings.warn('basis_gates was unused and will be removed.', DeprecationWarning)
     if coupling_map:
-        warnings.warn('This was never used', DeprecationWarning)
+        warnings.warn('coupling_map was unused and will be removed.', DeprecationWarning)
     if seed:
-        warnings.warn('The seed is set in RunConfig', DeprecationWarning)
+        warnings.warn('seed is not used anymore. Set it via run_config', DeprecationWarning)
         run_config.seed = seed
     if memory:
-        warnings.warn('The memory is set in RunConfig', DeprecationWarning)
+        warnings.warn('memory is not used anymore. Set it via run_config', DeprecationWarning)
         run_config.memory = memory
     if max_credits:
-        warnings.warn('The max_credits is set in RunConfig', DeprecationWarning)
+        warnings.warn('max_credits is not used anymore. Set it via run_config', DeprecationWarning)
         run_config.max_credits = max_credits
 
     userconfig = QobjConfig(**run_config.to_dict())

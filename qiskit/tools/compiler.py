@@ -48,7 +48,8 @@ def compile(circuits, backend,
         QiskitError: if the desired options are not supported by backend
     """
     if config:
-        warnings.warn('The `config` argument is deprecated and does not do anything', DeprecationWarning)
+        warnings.warn('The `config` argument is deprecated and '
+                      'does not do anything', DeprecationWarning)
 
     backend_memory = getattr(backend.configuration(), 'memory', False)
     if memory and not backend_memory:
@@ -59,8 +60,8 @@ def compile(circuits, backend,
                                     seed_mapper, pass_manager)
 
     # step 4: Making a qobj
-    run_config = RunConfig(**{'shots': shots, 'max_credits': max_credits,
-                              'memory': memory})
+    run_config = RunConfig(shots=shots, max_credits=max_credits, memory=memory)
+
     if seed:
         run_config.seed = seed
     qobj = circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=run_config,
