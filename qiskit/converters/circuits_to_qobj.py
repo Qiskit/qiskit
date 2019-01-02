@@ -15,7 +15,7 @@ from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditio
 from qiskit.qobj.run_config import RunConfig
 
 
-def circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=RunConfig(),
+def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
                      qobj_id=None, backend_name=None,
                      config=None, shots=None, max_credits=None,
                      basis_gates=None,
@@ -28,6 +28,7 @@ def circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=RunConf
         run_config (RunConfig): RunConfig object
         qobj_id (int): identifier for the generated qobj
 
+        TODO: Delete after qiskit-terra 0.8
         backend_name (str): to be deleted
         config (dict): to be deleted
         shots (int): to be deleted
@@ -40,6 +41,8 @@ def circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=RunConf
     Returns:
         Qobj: the Qobj to be run on the backends
     """
+    user_qobj_header = user_qobj_header or QobjHeader()
+    run_config = run_config or RunConfig()
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
