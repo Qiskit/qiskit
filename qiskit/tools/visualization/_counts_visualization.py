@@ -66,8 +66,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         labels.append('rest')
 
     labels_dict = OrderedDict()
-    for label in labels:
-        labels_dict[label] = 0
 
     # Set bar colors
     if color is None:
@@ -81,15 +79,20 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
         values = []
-        for key in labels_dict:
+        for key in labels:
             if key not in execution:
-                values.append(0)
+                if number_to_keep is None:
+                    labels_dict[key] = 1
+                    values.append(0)
+                else:
+                    values.append(-1)
             else:
-                labels_dict[key] += 1
+                labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
-        pvalues = values / sum(values)
-        numelem = len(values)
+        where_idx = np.where(values >= 0)[0]
+        pvalues = values[where_idx] / sum(values[where_idx])
+        numelem = len(values[where_idx])
         ind = np.arange(numelem)  # the x locations for the groups
         width = 1/(len(data)+1)  # the width of the bars
         rects = []
@@ -97,13 +100,14 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             label = None
             if not idx and legend:
                 label = legend[item]
-            rects.append(ax.bar(idx+item*width, val, width, label=label,
-                                color=color[item % len(color)],
-                                zorder=2))
+            if val >= 0:
+                rects.append(ax.bar(idx+item*width, val, width, label=label,
+                                    color=color[item % len(color)],
+                                    zorder=2))
         # add some text for labels, title, and axes ticks
         ax.set_ylabel('Probabilities', fontsize=14)
         ax.set_xticks(ind)
-        ax.set_xticklabels(labels, fontsize=14, rotation=70)
+        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
         ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
         # attach some text labels
         if bar_labels:
