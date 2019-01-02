@@ -58,13 +58,21 @@ class FredkinGate(Gate):
 
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-    if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt1, QuantumRegister) and \
-       isinstance(tgt2, QuantumRegister) and \
+    if isinstance(ctl, QuantumRegister):
+        ctl = [(ctl, i) for i in range(len(ctl))]
+    if isinstance(tgt1, QuantumRegister):
+        tgt1 = [(tgt1, i) for i in range(len(tgt1))]
+    if isinstance(tgt2, QuantumRegister):
+        tgt2 = [(tgt2, i) for i in range(len(tgt2))]
+        
+    if ctl and tgt1 and tgt2 and \
+       isinstance(ctl, list) and \
+       isinstance(tgt1, list) and \
+       isinstance(tgt2, list) and \
        len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
         instructions = InstructionSet()
-        for i in range(ctl.size):
-            instructions.add(self.cswap((ctl, i), (tgt1, i), (tgt2, i)))
+        for ictl1, ictl2, itgt in zip(ctl1, ctl2, tgt):
+            instructions.add(self.ccx(ictl1, ictl2, itgt))
         return instructions
 
     self._check_qubit(ctl)

@@ -50,9 +50,13 @@ class U0Gate(Gate):
 def u0(self, m, q):
     """Apply u0 with length m to q."""
     if isinstance(q, QuantumRegister):
+        q = [(q, j) for j in range(len(q))]
+        
+    if q and isinstance(q, list):
         instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.u0(m, (q, j)))
+        for qubit in q:
+            self._check_qubit(qubit)
+            instructions.add(self.u0(m, qubit))
         return instructions
 
     self._check_qubit(q)

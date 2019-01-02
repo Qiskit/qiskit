@@ -59,9 +59,13 @@ class RXGate(Gate):
 def rx(self, theta, q):
     """Apply Rx to q."""
     if isinstance(q, QuantumRegister):
+        q = [(q, j) for j in range(len(q))]
+        
+    if q and isinstance(q, list):
         instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.rx(theta, (q, j)))
+        for qubit in q:
+            self._check_qubit(qubit)
+            instructions.add(self.rx(theta, qubit))
         return instructions
 
     self._check_qubit(q)

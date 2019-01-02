@@ -60,23 +60,16 @@ class CrzGate(Gate):
 
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        instructions = InstructionSet()
-        for i in range(ctl.size):
-            instructions.add(self.crz(theta, (ctl, i), (tgt, i)))
-        return instructions
-
     if isinstance(ctl, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(ctl.size):
-            instructions.add(self.crz(theta, (ctl, j), tgt))
-        return instructions
-
+        ctl = [(ctl, i) for i in range(len(ctl))]
     if isinstance(tgt, QuantumRegister):
+        tgt = [(tgt, i) for i in range(len(tgt))]
+
+    if ctl and tgt and isinstance(ctl, list) and \
+       isinstance(tgt, list) and len(ctl) == len(tgt):
         instructions = InstructionSet()
-        for j in range(tgt.size):
-            instructions.add(self.crz(theta, ctl, (tgt, j)))
+        for ictl, itgt in zip(ctl, tgt):
+            instructions.add(self.crz(theta, ictl, itgt))
         return instructions
 
     self._check_qubit(ctl)

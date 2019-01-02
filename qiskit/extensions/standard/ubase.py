@@ -43,13 +43,16 @@ class UBase(Gate):  # pylint: disable=abstract-method
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
     if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.u_base(theta, phi, lam, (q, j)))
-        return gs
+        q = [(q, j) for j in range(len(q))]
+        
+    if q and isinstance(q, list):
+        instructions = InstructionSet()
+        for qubit in q:
+            self._check_qubit(qubit)
+            instructions.add(self.u_base(theta, phi, lam, qubit))
+        return instructions
 
     self._check_qubit(q)
     return self._attach(UBase(theta, phi, lam, q, self))
-
 
 QuantumCircuit.u_base = u_base
