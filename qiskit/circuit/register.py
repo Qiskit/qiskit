@@ -83,7 +83,8 @@ class Register:
         self.check_range(key)
         if isinstance(key, slice):
             return [(self, ind) for ind in range(*key.indices(len(self)))]
-        else return self, key
+        else:
+            return self, key
 
     def __iter__(self):
         """
