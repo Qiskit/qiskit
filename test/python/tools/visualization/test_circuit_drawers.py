@@ -24,7 +24,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import circuit_drawer
 from qiskit.tools.visualization import VisualizationError
 
-from ...common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 def _this_directory():
