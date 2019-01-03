@@ -65,15 +65,15 @@ def cswap(self, ctl, tgt1, tgt2):
     if isinstance(tgt2, QuantumRegister):
         tgt2 = [(tgt2, i) for i in range(len(tgt2))]
 
-    if ctl and tgt1 and tgt2 and \
-       isinstance(ctl, list) and \
-       isinstance(tgt1, list) and \
-       isinstance(tgt2, list) and \
-       len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
-        instructions = InstructionSet()
-        for ictl1, ictl2, itgt in zip(ctl1, ctl2, tgt):
-            instructions.add(self.ccx(ictl1, ictl2, itgt))
-        return instructions
+    if ctl and tgt1 and tgt2:
+        if isinstance(ctl, list) and \
+           isinstance(tgt1, list) and \
+           isinstance(tgt2, list) and \
+           len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
+            instructions = InstructionSet()
+            for ictl, itgt1, itgt2 in zip(ctl, tgt1, tgt2):
+                instructions.add(self.ccx(ictl, itgt1, itgt2))
+            return instructions
 
     self._check_qubit(ctl)
     self._check_qubit(tgt1)

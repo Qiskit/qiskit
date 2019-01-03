@@ -81,10 +81,9 @@ class Register:
         if not isinstance(key, (int, slice)):
             raise QiskitError("expected integer or slice index into register")
         self.check_range(key)
-        if isinstance(key, int):
-            return self, key
-        elif isinstance(key, slice):
+        if isinstance(key, slice):
             return [(self, ind) for ind in range(*key.indices(len(self)))]
+        else return self, key
 
     def __iter__(self):
         """
