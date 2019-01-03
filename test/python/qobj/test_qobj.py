@@ -20,6 +20,7 @@ from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.providers.builtinsimulators import simulatorsjob
 from qiskit.providers.ibmq import ibmqjob
 from qiskit.test import QiskitTestCase
+
 from .._mockutils import FakeBackend
 
 
@@ -131,24 +132,13 @@ class TestQobj(QiskitTestCase):
         qc1.measure(qr, cr)
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
-        shots = 1024
         backend = BasicAer.get_backend('qasm_simulator')
-        config = {'seed': 10, 'shots': 1, 'xvals': [1, 2, 3, 4]}
-        qobj1 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
+        qobj1 = compile(circuits, backend=backend, shots=1024, seed=88)
         qobj1.experiments[0].config.shots = 50
-        qobj1.experiments[0].config.xvals = [1, 1, 1]
-        config['shots'] = 1000
-        config['xvals'][0] = 'only for qobj2'
-        qobj2 = compile(circuits, backend=backend, shots=shots, seed=88, config=config)
+        qobj1.experiments[1].config.shots = 1
         self.assertTrue(qobj1.experiments[0].config.shots == 50)
         self.assertTrue(qobj1.experiments[1].config.shots == 1)
-        self.assertTrue(qobj1.experiments[0].config.xvals == [1, 1, 1])
-        self.assertTrue(qobj1.experiments[1].config.xvals == [1, 2, 3, 4])
         self.assertTrue(qobj1.config.shots == 1024)
-        self.assertTrue(qobj2.experiments[0].config.shots == 1000)
-        self.assertTrue(qobj2.experiments[1].config.shots == 1000)
-        self.assertTrue(qobj2.experiments[0].config.xvals == ['only for qobj2', 2, 3, 4])
-        self.assertTrue(qobj2.experiments[1].config.xvals == ['only for qobj2', 2, 3, 4])
 
 
 def _nop():

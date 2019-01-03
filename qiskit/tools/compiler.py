@@ -10,9 +10,10 @@ import warnings
 import logging
 
 from qiskit import transpiler
-from qiskit.transpiler._passmanager import PassManager
 from qiskit.converters import circuits_to_qobj
-from qiskit.exceptions import QiskitError
+from qiskit.qobj import RunConfig
+from qiskit.qobj import QobjHeader
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +21,8 @@ logger = logging.getLogger(__name__)
 # pylint: disable=redefined-builtin
 def compile(circuits, backend,
             config=None, basis_gates=None, coupling_map=None, initial_layout=None,
-            shots=1024, max_credits=10, seed=None, qobj_id=None,
-            skip_transpiler=False, seed_mapper=None, pass_manager=None, memory=False):
+            shots=1024, max_credits=10, seed=None, qobj_id=None, seed_mapper=None,
+            pass_manager=None, memory=False):
     """Compile a list of circuits into a qobj.
 
     Args:
@@ -38,7 +39,6 @@ def compile(circuits, backend,
         qobj_id (int): identifier for the generated qobj
         pass_manager (PassManager): a pass manger for the transpiler pipeline
         memory (bool): if True, per-shot measurement bitstrings are returned as well
-        skip_transpiler (bool): DEPRECATED skip transpiler and create qobj directly
 
     Returns:
         Qobj: the qobj to be run on the backends
@@ -46,32 +46,33 @@ def compile(circuits, backend,
     Raises:
         QiskitError: if the desired options are not supported by backend
     """
-    if skip_transpiler:  # empty pass manager which does nothing
-        pass_manager = PassManager()
-        warnings.warn('The skip_transpiler option has been deprecated. '
-                      'Please pass an empty PassManager() instance instead',
-                      DeprecationWarning)
-
-    backend_memory = getattr(backend.configuration(), 'memory', False)
-    if memory and not backend_memory:
-        raise QiskitError("Backend %s only returns total counts, not single-shot memory." %
-                          backend.name())
+    if config:
+        warnings.warn('The `config` argument is deprecated and '
+                      'does not do anything', DeprecationWarning)
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                     seed_mapper, pass_manager)
 
     # step 4: Making a qobj
-    qobj = circuits_to_qobj(circuits, backend_name=backend.name(),
-                            config=config, shots=shots, max_credits=max_credits,
-                            qobj_id=qobj_id, basis_gates=basis_gates,
-                            coupling_map=coupling_map, seed=seed, memory=memory)
+    run_config = RunConfig()
+
+    if seed:
+        run_config.seed = seed
+    if shots:
+        run_config.shots = shots
+    if max_credits:
+        run_config.max_credits = max_credits
+    if memory:
+        run_config.memory = memory
+    qobj = circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=run_config,
+                            qobj_id=qobj_id)
 
     return qobj
 
 
 def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
             initial_layout=None, shots=1024, max_credits=10, seed=None,
-            qobj_id=None, skip_transpiler=False, seed_mapper=None, pass_manager=None,
+            qobj_id=None, seed_mapper=None, pass_manager=None,
             memory=False, **kwargs):
     """Executes a set of circuits.
 
@@ -89,22 +90,16 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         qobj_id (int): identifier for the generated qobj
         pass_manager (PassManager): a pass manger for the transpiler pipeline
         memory (bool): if True, per-shot measurement bitstrings are returned as well.
-        skip_transpiler (bool): DEPRECATED skip transpiler and create qobj directly
         kwargs: extra arguments used by AER for running configurable backends.
                 Refer to the backend documentation for details on these arguments
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
     """
-    if skip_transpiler:  # empty pass manager which does nothing
-        pass_manager = PassManager()
-        warnings.warn('The skip_transpiler option has been deprecated. '
-                      'Please pass an empty PassManager() instance instead',
-                      DeprecationWarning)
 
     qobj = compile(circuits, backend,
                    config, basis_gates, coupling_map, initial_layout,
-                   shots, max_credits, seed, qobj_id,
-                   skip_transpiler, seed_mapper, pass_manager, memory)
+                   shots, max_credits, seed, qobj_id, seed_mapper,
+                   pass_manager, memory)
 
     return backend.run(qobj, **kwargs)

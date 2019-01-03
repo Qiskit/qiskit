@@ -138,27 +138,6 @@ class Qobj(QobjItem):
         super().__init__(**kwargs)
 
 
-class QobjConfig(QobjItem):
-    """Configuration for a Qobj.
-
-    Attributes:
-        shots (int): number of shots.
-        memory_slots (int): number of measurements slots in the classical
-            memory on the backend.
-
-    Attributes defined in the schema but not required:
-        max_credits (int): number of credits.
-        seed (int): random seed.
-    """
-    REQUIRED_ARGS = ['shots', 'memory_slots']
-
-    def __init__(self, shots, memory_slots, **kwargs):
-        self.shots = shots
-        self.memory_slots = memory_slots
-
-        super().__init__(**kwargs)
-
-
 class QobjHeader(QobjItem):
     """Header for a Qobj.
 
@@ -167,6 +146,21 @@ class QobjHeader(QobjItem):
         backend_version (str): the backend version this set of experiments was generated for.
         qubit_labels (list): map physical qubits to qregs (for QASM).
         clbit_labels (list): map classical clbits to memory_slots (for QASM).
+    """
+    pass
+
+
+class QobjConfig(QobjItem):
+    """Configuration for a Qobj.
+
+    Attributes:
+        None should be required
+    Attributes defined in the schema but not required:
+        max_credits (int): number of credits.
+        seed (int): random seed.
+        memory_slots (int): number of measurements slots in the classical
+            memory on the backend.
+        shots (int): number of shots.
     """
     pass
 
@@ -189,10 +183,17 @@ class QobjExperiment(QobjItem):
 
 
 class QobjExperimentHeader(QobjItem):
-    """Header for a Qobj.
+    """Header for a Qobj Experiment .
 
     Attributes defined in the schema but not required:
         name (str): experiment name.
+    """
+    pass
+
+
+class QobjExperimentConfig(QobjItem):
+    """Config for a Qobj Experiment.
+
     """
     pass
 
@@ -201,8 +202,12 @@ class QobjInstruction(QobjItem):
     """Quantum Instruction.
 
     Attributes:
-        name(str): name of the gate.
-        qubits(list): list of qubits to apply to the gate.
+        name(str): name of the operation.
+    Optional Attributes:
+        qubits(list): list of qubits to apply to the operation.
+        params(list): list of params for the operation.
+        memory(list): list of memory to apply to the operation.
+        conditional(QobjConditional): conditional Qobj
     """
     REQUIRED_ARGS = ['name']
 
@@ -210,3 +215,22 @@ class QobjInstruction(QobjItem):
         self.name = name
 
         super().__init__(**kwargs)
+
+
+class QobjConditional(QobjItem):
+    """Quantum Conditional.
+
+    Attributes:
+        mask (hex): mask of the conditional
+        type (string): type of the conditional
+        val (hex): value of the conditional
+    """
+    # pylint: disable=redefined-builtin
+    REQUIRED_ARGS = ['mask', 'type', 'val']
+
+    def __init__(self, mask, type, val):
+        self.mask = mask
+        self.type = type
+        self.val = val
+
+        super().__init__()
