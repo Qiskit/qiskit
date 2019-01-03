@@ -19,8 +19,8 @@ class TestRegister(QiskitTestCase):
         """simple slice test"""
         qr = QuantumRegister(5)
         cr = ClassicalRegister(5)
-        qr[0:3]
-        cr[0:3]
+        v1 = qr[0:3]
+        v2 = cr[0:3]
         qc = QuantumCircuit(qr, cr)
         self.log.info(qc.qasm())
 
