@@ -13,7 +13,7 @@ from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestLookaheadSwap(QiskitTestCase):

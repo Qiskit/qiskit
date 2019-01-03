@@ -92,6 +92,7 @@ class QiskitTestCase(unittest.TestCase):
             TypeError: raises TestCase failureException if the test fails.
         """
         def valid_comparison(value):
+            """compare value to delta, within places accuracy"""
             if places is not None:
                 return round(value, places) == 0
             else:

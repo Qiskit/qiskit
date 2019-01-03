@@ -5,15 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
 """Test qiskit validators."""
-from test.python.common import QiskitTestCase
 
 from marshmallow.validate import Regexp
 
 from qiskit.validation import fields, ValidationError
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
 from qiskit.validation.validate import PatternProperties
+from qiskit.test import QiskitTestCase
 
 
 class HistogramSchema(BaseSchema):
