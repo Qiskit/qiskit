@@ -22,7 +22,7 @@ class RunConfigSchema(BaseSchema):
     shots = Integer(validate=Range(min=1))
     max_credits = Integer(validate=Range(min=3, max=10))  # TODO: can we check the range
     seed = Integer()
-    memory = Boolean()  # TODO: set default to be False
+    memory = Boolean()  # set default to be False
 
 
 @bind_schema(RunConfigSchema)
@@ -33,5 +33,8 @@ class RunConfig(BaseModel):
     full description of the model, please check ``RunConfigSchema``.
 
     Attributes:
-        None required.
+        shots (int): the number of shots.
+        max_credits (int): the max_credits to use on the IBMQ public devices.
+        seed (int): the seed to use in the simulator for the first experiment.
+        memory (bool): to use memory.
     """

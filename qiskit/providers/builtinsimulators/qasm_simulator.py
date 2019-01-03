@@ -396,7 +396,7 @@ class QasmSimulatorPy(BaseBackend):
         self._validate(qobj)
         result_list = []
         self._shots = qobj.config.shots
-        self._memory = qobj.config.memory
+        self._memory = getattr(qobj.config, 'memory', False)
         self._qobj_config = qobj.config
         start = time.time()
         for experiment in qobj.experiments:

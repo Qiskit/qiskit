@@ -11,7 +11,6 @@ import logging
 
 from qiskit import transpiler
 from qiskit.converters import circuits_to_qobj
-from qiskit.exceptions import QiskitError
 from qiskit.qobj import RunConfig
 from qiskit.qobj import QobjHeader
 
@@ -51,19 +50,20 @@ def compile(circuits, backend,
         warnings.warn('The `config` argument is deprecated and '
                       'does not do anything', DeprecationWarning)
 
-    backend_memory = getattr(backend.configuration(), 'memory', False)
-    if memory and not backend_memory:
-        raise QiskitError("Backend %s only returns total counts, not single-shot memory." %
-                          backend.name())
-
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                     seed_mapper, pass_manager)
 
     # step 4: Making a qobj
-    run_config = RunConfig(shots=shots, max_credits=max_credits, memory=memory)
+    run_config = RunConfig()
 
     if seed:
         run_config.seed = seed
+    if shots:
+        run_config.shots = shots
+    if max_credits:
+        run_config.max_credits = max_credits
+    if memory:
+        run_config.memory = memory
     qobj = circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=run_config,
                             qobj_id=qobj_id)
 
