@@ -887,9 +887,6 @@
                             "type": "integer"
                         }                        
                     },
-                    "required": [
-                        "shots"
-                    ],
                     "title": "Qobj-level configuration",
                     "type": "object"
                 },
