@@ -523,7 +523,6 @@ class IBMQJobPreQobj(IBMQJob):
     def qobj(self):
         """Return the Qobj submitted for this job."""
         warnings.warn('This job has not been submitted using Qobj.')
-        return None
 
 
 def _reorder_bits(job_data):

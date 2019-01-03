@@ -18,7 +18,7 @@ onto a device with this coupling.
 
 import warnings
 import networkx as nx
-from ._couplingerror import CouplingError
+from .exceptions import CouplingError
 
 
 class CouplingMap:

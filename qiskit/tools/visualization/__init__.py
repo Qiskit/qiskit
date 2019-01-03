@@ -20,7 +20,7 @@ from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_state)
 
 from ._circuit_visualization import circuit_drawer, qx_color_scheme
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 from ._matplotlib import HAS_MATPLOTLIB
 
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):

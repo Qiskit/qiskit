@@ -5,9 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-
-# pylint: disable=redefined-builtin
+# pylint: disable=missing-docstring,redefined-builtin
 
 import unittest
 
@@ -22,12 +20,11 @@ from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import MapperError
 from qiskit.converters import circuit_to_dag
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase, Path
 
 
-class FakeQX4BackEnd(object):
-    """A fake QX4 backend.
-    """
+class FakeQX4BackEnd:
+    """A fake QX4 backend."""
 
     def name(self):
         return 'qiskit_is_cool'
@@ -51,9 +48,8 @@ class FakeQX4BackEnd(object):
         )
 
 
-class FakeQX5BackEnd(object):
-    """A fake QX5 backend.
-    """
+class FakeQX5BackEnd:
+    """A fake QX5 backend."""
 
     def name(self):
         return 'qiskit_is_cool'
@@ -161,7 +157,7 @@ class TestMapper(QiskitTestCase):
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
         circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('qasm/random_n5_d5.qasm'))
+            self._get_resource_path('random_n5_d5.qasm', Path.QASMS))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = execute(circ, backend=self.backend,
@@ -260,7 +256,7 @@ class TestMapper(QiskitTestCase):
         backend = FakeQX5BackEnd()
         cmap = backend.configuration().coupling_map
         circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('qasm/move_measurements.qasm'))
+            self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
         dag_circuit = circuit_to_dag(circ)
         lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),

@@ -17,6 +17,8 @@ from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasure
 from .mapping.check_map import CheckMap
 from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
+from .mapping.trivial_layout import TrivialLayout
+from .mapping.dense_layout import DenseLayout
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap

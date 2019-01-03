@@ -8,9 +8,9 @@
 """Qobj conversion helpers."""
 import logging
 
-from qiskit import QiskitError
-from ._qobj import QOBJ_VERSION
-from ._qobj import QobjItem
+from qiskit.exceptions import QiskitError
+from .qobj import QOBJ_VERSION
+from .qobj import QobjItem
 
 
 logger = logging.getLogger(__name__)

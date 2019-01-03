@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=redefined-builtin
+# pylint: disable=unused-import
 
 """Tests for the converters."""
 
@@ -19,7 +20,8 @@ from qiskit import compile
 from qiskit.qobj import Qobj
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
+import qiskit.extensions.simulator
 
 
 class TestQobjToCircuits(QiskitTestCase):

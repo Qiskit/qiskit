@@ -24,7 +24,7 @@ import tempfile
 
 from PIL import Image
 
-from qiskit.tools.visualization import _error
+from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _latex
 from qiskit.tools.visualization import _text
 from qiskit.tools.visualization import _utils

@@ -31,7 +31,7 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.providers import BaseBackend
 from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.result import Result
-from ._simulatorerror import SimulatorError
+from .exceptions import SimulatorError
 from ._simulatortools import single_gate_matrix
 from ._simulatortools import cx_gate_matrix
 from ._simulatortools import einsum_matmul_index
@@ -367,7 +367,7 @@ class UnitarySimulatorPy(BaseBackend):
         for experiment in qobj.experiments:
             name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info('"%s" only supports 1 shot. ' +
+                logger.info('"%s" only supports 1 shot. '
                             'Setting shots=1 for circuit "%s".',
                             self.name(), name)
                 experiment.config.shots = 1

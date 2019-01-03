@@ -7,7 +7,7 @@ nxpd>=0.2
 pillow>=4.2.1
 pycodestyle
 pydot
-pylint>=1.8,<1.9
+pylint>=2.2,<2.3
 Sphinx==1.7.5
 sphinxcontrib-fulltoc==1.2.0
 sphinx_materialdesign_theme

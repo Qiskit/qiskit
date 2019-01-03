@@ -12,8 +12,8 @@ import unittest
 
 from qiskit import QuantumRegister
 from qiskit.mapper import Layout
-from qiskit.mapper._layout import LayoutError
-from .common import QiskitTestCase
+from qiskit.mapper.exceptions import LayoutError
+from qiskit.test import QiskitTestCase
 
 
 class LayoutTest(QiskitTestCase):
