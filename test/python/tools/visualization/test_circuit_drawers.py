@@ -37,7 +37,8 @@ REFERENCES_DIR = os.path.join(_this_directory(), 'references')
 def _small_circuit():
     """Creates a simple small circuit consisting of one qubit, one bit and one gate applied.
 
-    Returns: an instance of QuantumCircuit.
+    Returns:
+         QuantumCircuit: the small quantum circuit defined with the function body operations list.
 
     """
     qr = QuantumRegister(1)
@@ -55,7 +56,8 @@ def _medium_circuit():
     """Creates a medium-size quantum circuit, consisting of three qubits and most used gates applied
     to them.
 
-    Returns: an instance of QuantumCircuit.
+    Returns:
+         QuantumCircuit: the medium quantum circuit defined with the function body operations list.
 
     """
 
@@ -108,7 +110,8 @@ def _large_circuit():
     """Creates a large quantum circuit consisting of nine qubits and most used gates applied to them
     all similarly to the medium quantum circuit.
 
-    Returns: an instance of QuantumCircuit.
+    Returns:
+         QuantumCircuit: the large quantum circuit defined with the function body operations list.
 
     """
     qr = QuantumRegister(9)
@@ -165,7 +168,8 @@ def _deep_circuit():
     """Creates a very deep quantum circuit with nineteen qubits but poor on operations: there is
     only one gate applied to each qubit.
 
-    Returns: an instance of QuantumCircuit.
+    Returns:
+         QuantumCircuit: the deep quantum circuit defined with the function body operations list.
 
     """
     qr = QuantumRegister(20)
@@ -443,7 +447,8 @@ class TestDrawingMethods(QiskitTestCase):
             test_output (str): path to circuit drawer output
             reference_output (str): path to reference output
 
-        Returns: True if outputs are similar up to given precision, False otherwise.
+        Returns:
+             bool: True if outputs are similar up to given precision, False otherwise.
 
         """
         if draw_method in self.file_output_methods:
