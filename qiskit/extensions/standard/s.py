@@ -90,7 +90,7 @@ def s(self, q):
     """Apply S to q."""
     if isinstance(q, QuantumRegister):
         q = [(q, j) for j in range(len(q))]
-        
+
     if q and isinstance(q, list):
         instructions = InstructionSet()
         for qubit in q:
@@ -106,7 +106,7 @@ def sdg(self, q):
     """Apply Sdg to q."""
     if isinstance(q, QuantumRegister):
         q = [(q, j) for j in range(len(q))]
-        
+
     if q and isinstance(q, list):
         instructions = InstructionSet()
         for qubit in q:

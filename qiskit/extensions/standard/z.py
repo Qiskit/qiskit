@@ -52,7 +52,7 @@ def z(self, q):
     """Apply Z to q."""
     if isinstance(q, QuantumRegister):
         q = [(q, j) for j in range(len(q))]
-        
+
     if q and isinstance(q, list):
         instructions = InstructionSet()
         for qubit in q:

@@ -44,7 +44,7 @@ def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
     if isinstance(q, QuantumRegister):
         q = [(q, j) for j in range(len(q))]
-        
+
     if q and isinstance(q, list):
         instructions = InstructionSet()
         for qubit in q:
@@ -54,5 +54,6 @@ def u_base(self, theta, phi, lam, q):
 
     self._check_qubit(q)
     return self._attach(UBase(theta, phi, lam, q, self))
+
 
 QuantumCircuit.u_base = u_base

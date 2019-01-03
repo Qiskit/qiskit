@@ -57,14 +57,14 @@ def x(self, q):
     """Apply X to q."""
     if isinstance(q, QuantumRegister):
         q = [(q, j) for j in range(len(q))]
-        
+
     if q and isinstance(q, list):
         instructions = InstructionSet()
         for qubit in q:
             self._check_qubit(qubit)
             instructions.add(self.x(qubit))
         return instructions
-            
+
     self._check_qubit(q)
     return self._attach(XGate(q, self))
 

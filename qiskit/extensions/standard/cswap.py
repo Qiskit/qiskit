@@ -64,7 +64,7 @@ def cswap(self, ctl, tgt1, tgt2):
         tgt1 = [(tgt1, i) for i in range(len(tgt1))]
     if isinstance(tgt2, QuantumRegister):
         tgt2 = [(tgt2, i) for i in range(len(tgt2))]
-        
+
     if ctl and tgt1 and tgt2 and \
        isinstance(ctl, list) and \
        isinstance(tgt1, list) and \

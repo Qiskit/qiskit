@@ -53,7 +53,7 @@ def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     if isinstance(q, QuantumRegister):
         q = [(q, j) for j in range(len(q))]
-        
+
     if q and isinstance(q, list):
         instructions = InstructionSet()
         for qubit in q:

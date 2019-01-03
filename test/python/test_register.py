@@ -4,6 +4,7 @@ import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase, Path
 
+
 class TestRegister(QiskitTestCase):
     """Test the mapper."""
 
@@ -22,7 +23,7 @@ class TestRegister(QiskitTestCase):
         qc.x(qr[0])
         qc.y(qr)
         qc.x(qr[0:2])
-        qc.h(qr[slice(0,9,2)])
+        qc.h(qr[slice(0, 9, 2)])
         self.log.info(qc.qasm())
 
     def test_apply_barrier_to_slice(self):
@@ -45,7 +46,7 @@ class TestRegister(QiskitTestCase):
         qc.barrier(qcontrol)
         qc.ccx(qcontrol, qcontrol2, qtarget2)
         qc.barrier(qcontrol)
-        qc.ccx(qcontrol[0:2], qcontrol[2:4], qcontrol[5:7]) 
+        qc.ccx(qcontrol[0:2], qcontrol[2:4], qcontrol[5:7])
         self.log.info(qc.qasm())
 
     def test_apply_ccx_to_non_register(self):
@@ -59,7 +60,7 @@ class TestRegister(QiskitTestCase):
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
         self.assertRaises(qiskit.exceptions.QiskitError, qc.cx, qc[0:2], qc[2:4])
-        
+
     def test_apply_ch_to_slice(self):
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
@@ -75,7 +76,5 @@ class TestRegister(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.y(qr)
         qc.x(qr[0:2])
-        qc.h(qr[slice(0,9,2)])
+        qc.h(qr[slice(0, 9, 2)])
         qc.draw()
-        
-        

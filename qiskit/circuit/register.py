@@ -85,7 +85,6 @@ class Register:
             return self, key
         elif isinstance(key, slice):
             return [(self, ind) for ind in range(*key.indices(len(self)))]
-                
 
     def __iter__(self):
         """
