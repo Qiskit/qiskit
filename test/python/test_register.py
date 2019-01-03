@@ -19,10 +19,8 @@ class TestRegister(QiskitTestCase):
         """simple slice test"""
         qr = QuantumRegister(5)
         cr = ClassicalRegister(5)
-        v1 = qr[0:3]
-        v2 = cr[0:3]
-        qc = QuantumCircuit(qr, cr)
-        self.log.info(qc.qasm())
+        self.assertEqual(len(qr[0:3]), 3)
+        self.assertEqual(len(cr[0:3]), 3)
 
     def test_apply_gate_to_slice(self):
         """test applying gate to register slice"""
