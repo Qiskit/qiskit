@@ -11,13 +11,12 @@
 
 import unittest
 import numpy as np
-from qiskit import execute, QuantumRegister, QuantumCircuit, BasicAer
 
+from qiskit import execute, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.quantum_info import basis_state, random_state
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import projector
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestStates(QiskitTestCase):

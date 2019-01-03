@@ -27,7 +27,7 @@ if HAS_MATPLOTLIB:
     from matplotlib.colors import Normalize, LightSource
     from mpl_toolkits.mplot3d import proj3d
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from qiskit.tools.visualization._error import VisualizationError
+    from qiskit.tools.visualization.exceptions import VisualizationError
     from qiskit.tools.visualization._bloch import Bloch
     from qiskit.tools.visualization._utils import _validate_input_state
 
@@ -278,7 +278,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     pc1 = Poly3DCollection(verts, alpha=0.15, facecolor='k',
                            linewidths=1, zorder=1)
 
-    if min(dzr) < 0 and max(dzr) > 0:
+    if min(dzr) < 0 < max(dzr):
         ax1.add_collection3d(pc1)
 
     ax2 = fig.add_subplot(1, 2, 2, projection='3d')
@@ -296,7 +296,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     pc2 = Poly3DCollection(verts, alpha=0.2, facecolor='k',
                            linewidths=1, zorder=1)
 
-    if min(dzi) < 0 and max(dzi) > 0:
+    if min(dzi) < 0 < max(dzi):
         ax2.add_collection3d(pc2)
 
     ax1.set_xticks(np.arange(0.5, lx+0.5, 1))

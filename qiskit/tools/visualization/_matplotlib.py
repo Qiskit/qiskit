@@ -25,7 +25,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.tools.visualization import _error
+from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
 
@@ -674,7 +674,7 @@ class MatplotlibDrawer:
                 self._line(qreg_b, qreg_t)
             else:
                 logger.critical('Invalid gate %s', op)
-                raise _error.VisualizationError('invalid gate {}'.format(op))
+                raise exceptions.VisualizationError('invalid gate {}'.format(op))
         #
         # adjust window size and draw horizontal lines
         #

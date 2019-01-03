@@ -7,7 +7,7 @@
 
 """ Fenced objects are wraps for raising TranspilerAccessError when they are modified."""
 
-from ._transpilererror import TranspilerAccessError
+from .exceptions import TranspilerAccessError
 
 
 class FencedObject():

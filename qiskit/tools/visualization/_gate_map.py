@@ -9,7 +9,7 @@
 
 import matplotlib.pyplot as plt  # pylint: disable=import-error
 import matplotlib.patches as mpatches  # pylint: disable=import-error
-from qiskit.qiskiterror import QISKitError
+from qiskit.exceptions import QISKitError
 
 
 class _GraphDist():

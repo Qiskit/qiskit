@@ -181,9 +181,8 @@ def new_fake_qobj():
     )
 
 
-class FakeBackend(object):
-    """A fake backend.
-    """
+class FakeBackend:
+    """A fake backend."""
 
     def name(self):
         """ name of fake backend"""

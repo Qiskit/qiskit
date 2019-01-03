@@ -9,7 +9,7 @@
 
 import unittest
 from qiskit.transpiler import PropertySet
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestPropertySet(QiskitTestCase):

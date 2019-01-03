@@ -5,25 +5,23 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=cyclic-import,invalid-name
-
 """
 Quantum circuit object.
 """
+
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
-import warnings
 import sys
 import multiprocessing as mp
 
 from qiskit.qasm import _qasm
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
 
-class QuantumCircuit(object):
+class QuantumCircuit:
     """Quantum circuit."""
     instances = 0
     prefix = 'circuit'
@@ -178,7 +176,7 @@ class QuantumCircuit(object):
         return self
 
     def __add__(self, rhs):
-        """Overload + to implement self.concatenate."""
+        """Overload + to implement self.combine."""
         return self.combine(rhs)
 
     def __iadd__(self, rhs):
@@ -210,14 +208,6 @@ class QuantumCircuit(object):
                 self.cregs.append(register)
             else:
                 raise QiskitError("expected a register")
-
-    def add(self, *regs):
-        """Add registers."""
-
-        warnings.warn('The add() function is deprecated and will be '
-                      'removed in a future release. Instead use '
-                      'QuantumCircuit.add_register().', DeprecationWarning)
-        self.add_register(*regs)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
@@ -413,6 +403,7 @@ class QuantumCircuit(object):
 
 
 def _circuit_from_qasm(qasm):
+    # pylint: disable=cyclic-import
     from qiskit.converters import ast_to_dag
     from qiskit.converters import dag_to_circuit
     ast = qasm.parse()

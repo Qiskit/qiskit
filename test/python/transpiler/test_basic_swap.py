@@ -12,7 +12,7 @@ from qiskit.transpiler.passes import BasicSwap
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestBasicSwap(QiskitTestCase):

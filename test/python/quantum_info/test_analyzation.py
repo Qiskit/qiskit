@@ -12,7 +12,7 @@ import unittest
 import qiskit
 from qiskit import BasicAer
 from qiskit.quantum_info.analyzation.average import average_data
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestAnalyzation(QiskitTestCase):
