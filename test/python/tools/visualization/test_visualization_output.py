@@ -20,7 +20,6 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 from qiskit.test import QiskitTestCase
 
 
-
 def _path_to_diagram_reference(filename):
     return os.path.join(_this_directory(), 'references', filename)
 
