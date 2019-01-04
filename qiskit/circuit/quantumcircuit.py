@@ -423,6 +423,7 @@ def _1q_gate(func):
         return func(self, *params, q)
     return wrapper
 
+
 def _control_target_gate(func):
     """Wrapper for two qubit control-target type gate"""
     @wraps(func)
@@ -444,8 +445,7 @@ def _control_target_gate(func):
             else:
                 raise QiskitError('control or target are not qubits')
 
-        if ctl and tgt and isinstance(ctl, list) \
-          and isinstance(tgt, list):
+        if ctl and tgt and isinstance(ctl, list) and isinstance(tgt, list):
             instructions = InstructionSet()
             if len(ctl) == len(tgt):
                 for ictl, itgt in zip(ctl, tgt):
@@ -461,6 +461,7 @@ def _control_target_gate(func):
             return instructions
         return func(self, *params, ctl, tgt)
     return wrapper
+
 
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import

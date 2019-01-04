@@ -53,6 +53,7 @@ class CzGate(Gate):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.cz(self.qargs[0], self.qargs[1]))
 
+
 @_control_target_gate
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
