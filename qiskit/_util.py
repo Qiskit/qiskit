@@ -7,12 +7,14 @@
 """Common utilities for Qiskit."""
 
 import logging
-import re
-import sys
 import platform
-import warnings
+import re
 import socket
+import sys
+import warnings
+
 import psutil
+from marshmallow.warnings import ChangedInMarshmallow3Warning
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +26,13 @@ def _check_python_version():
         raise Exception('Qiskit requires Python version 3.5 or greater.')
 
 
-def _enable_deprecation_warnings():
-    """
+def _filter_deprecation_warnings():
+    """Apply filters to deprecation warnings.
+
     Force the `DeprecationWarning` warnings to be displayed for the qiskit
     module, overriding the system configuration as they are ignored by default
-    [1] for end-users.
+    [1] for end-users. Additionally, silence the `ChangedInMarshmallow3Warning`
+    messages.
 
     TODO: on Python 3.7, this might not be needed due to PEP-0565 [2].
 
@@ -47,9 +51,14 @@ def _enable_deprecation_warnings():
         # ._add_filter is internal and not available in some Python versions.
         pass
 
+    # Add a filter for ignoring ChangedInMarshmallow3Warning, as we depend on
+    # marhsmallow 2 explicitly. 2.17.0 introduced new deprecation warnings that
+    # are useful for eventually migrating, but too verbose for our purposes.
+    warnings.simplefilter('ignore', category=ChangedInMarshmallow3Warning)
+
 
 _check_python_version()
-_enable_deprecation_warnings()
+_filter_deprecation_warnings()
 
 
 def local_hardware_info():
