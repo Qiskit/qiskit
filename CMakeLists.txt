@@ -9,12 +9,6 @@ set(QISKIT_VERSION ${PROJECT_VERSION} CACHE INTERNAL "VERSION OF QISKIT")
 include(cmake/defaults.cmake)
 
 if (ENABLE_TARGETS_NON_PYTHON)
-    # Add Toolchain utilities for C++ sources
-    include(cmake/toolchain-utils.cmake)
-
-    # Add C++ Qiskit Simulator
-    add_subdirectory(${PROJECT_SOURCE_DIR}/src/qasm-simulator-cpp)
-
     # Add Python distributable package generator
     include(cmake/python-build.cmake)
     add_pypi_package_target(pypi_package both)
