@@ -24,14 +24,11 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import circuit_drawer
 from qiskit.tools.visualization import VisualizationError
 
-from qiskit.test import QiskitTestCase
+from qiskit.test import QiskitTestCase, Path
 
 
 def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
-
-
-REFERENCES_DIR = os.path.join(_this_directory(), 'references')
 
 
 def _small_circuit():
@@ -387,8 +384,8 @@ class TestDrawingMethods(QiskitTestCase):
             # such that consequent tests won't fail
             _reset_registers()
 
-    @unittest.skip('A test which runs tests for all circuit types inside is skipped.'
-                   'Tests for all circuit types are better to be launched separately.')
+    #@unittest.skip('A test which runs tests for all circuit types inside is skipped.'
+    #               'Tests for all circuit types are better to be launched separately.')
     def test_all_circuit_types(self):
         """Adds one more nested loop and this tests whether outputs of different circuit drawers
          upon drawing all types of circuit equal reference outputs.
@@ -434,7 +431,7 @@ class TestDrawingMethods(QiskitTestCase):
             os.makedirs(test_output_dir)
 
         # Simply obtain path to folder with references
-        references_dir = os.path.join(REFERENCES_DIR, circuit_type)
+        references_dir = self._get_resource_path(circuit_type, path=Path.CIRCUIT_DRAWERS_REFERENCES)
 
         return test_output_dir, references_dir
 
