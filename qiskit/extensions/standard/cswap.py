@@ -16,6 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
+from qiskit.exceptions import QiskitError
 
 
 class FredkinGate(Gate):
@@ -68,12 +69,14 @@ def cswap(self, ctl, tgt1, tgt2):
     if ctl and tgt1 and tgt2:
         if isinstance(ctl, list) and \
            isinstance(tgt1, list) and \
-           isinstance(tgt2, list) and \
-           len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
-            instructions = InstructionSet()
-            for ictl, itgt1, itgt2 in zip(ctl, tgt1, tgt2):
-                instructions.add(self.cswap(ictl, itgt1, itgt2))
-            return instructions
+           isinstance(tgt2, list):
+            if len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
+                instructions = InstructionSet()
+                for ictl, itgt1, itgt2 in zip(ctl, tgt1, tgt2):
+                    instructions.add(self.cswap(ictl, itgt1, itgt2))
+                return instructions
+            else:
+                raise QiskitError('unequal register sizes')
 
     self._check_qubit(ctl)
     self._check_qubit(tgt1)

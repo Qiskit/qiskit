@@ -118,6 +118,17 @@ class TestCircuitRegisters(QiskitTestCase):
         qc.ccx(qcontrol[0:2], qcontrol[2:4], qcontrol[5:7])
         self.log.info(qc.qasm())
 
+    def test_cswap_on_slice(self):
+        """test applying cswap to register slice"""
+        qr1 = QuantumRegister(10)
+        qr2 = QuantumRegister(5)
+        qc = QuantumCircuit(qr1, qr2)
+        qc.cswap(qr2[3::-1], qr1[1:9:2], qr1[2:9:2])
+        qc.cswap(qr2[0], qr1[1], qr1[2])
+        qc.cswap([qr2[0]], [qr1[1]], [qr1[2]])
+        self.assertRaises(qiskit.exceptions.QiskitError, qc.cswap, qr2[4::-1],
+                          qr1[1:9:2], qr1[2:9:2])
+
     def test_apply_ccx_to_non_register(self):
         """test applying ccx to non-register raises"""
         qr = QuantumRegister(10)

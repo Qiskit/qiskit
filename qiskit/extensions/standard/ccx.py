@@ -87,12 +87,14 @@ def ccx(self, ctl1, ctl2, tgt):
     if ctl1 and ctl2 and tgt:
         if isinstance(ctl1, list) and \
            isinstance(ctl2, list) and \
-           isinstance(tgt, list) and \
-           len(ctl1) == len(tgt) and len(ctl2) == len(tgt):
-            instructions = InstructionSet()
-            for ictl1, ictl2, itgt in zip(ctl1, ctl2, tgt):
-                instructions.add(self.ccx(ictl1, ictl2, itgt))
-            return instructions
+           isinstance(tgt, list):
+            if len(ctl1) == len(tgt) and len(ctl2) == len(tgt):
+                instructions = InstructionSet()
+                for ictl1, ictl2, itgt in zip(ctl1, ctl2, tgt):
+                    instructions.add(self.ccx(ictl1, ictl2, itgt))
+                return instructions
+            else:
+                raise QiskitError('unequal register sizes')
 
     self._check_qubit(ctl1)
     self._check_qubit(ctl2)
