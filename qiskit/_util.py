@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def _check_python_version():
-    """Check for Python version 3.5+
-    """
+    """Check for Python version 3.5+."""
     if sys.version_info < (3, 5):
         raise Exception('Qiskit requires Python version 3.5 or greater.')
 
@@ -69,7 +68,6 @@ def local_hardware_info():
 
     Returns:
         dict: The hardware information.
-
     """
     results = {
         'os': platform.system(),
@@ -80,8 +78,7 @@ def local_hardware_info():
 
 
 def _has_connection(hostname, port):
-    """Checks to see if internet connection exists to host
-    via specified port
+    """Checks if internet connection exists to host via specified port.
 
     If any exception is raised while trying to open a socket this will return
     false.
