@@ -12,8 +12,8 @@ One-pulse single-qubit gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.quantumcircuit import _1q_gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import pi
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -55,18 +55,9 @@ class U2Gate(Gate):
         self._modifiers(circ.u2(self.param[0], self.param[1], self.qargs[0]))
 
 
+@_1q_gate
 def u2(self, phi, lam, q):
     """Apply u2 to q."""
-    if isinstance(q, QuantumRegister):
-        q = [(q, j) for j in range(len(q))]
-
-    if q and isinstance(q, list):
-        instructions = InstructionSet()
-        for qubit in q:
-            self._check_qubit(qubit)
-            instructions.add(self.u2(phi, lam, qubit))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(U2Gate(phi, lam, q, self))
 

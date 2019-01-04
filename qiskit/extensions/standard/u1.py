@@ -12,8 +12,8 @@ Diagonal single qubit gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.quantumcircuit import _1q_gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.ubase import UBase
@@ -49,18 +49,9 @@ class U1Gate(Gate):
         self._modifiers(circ.u1(self.param[0], self.qargs[0]))
 
 
+@_1q_gate
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
-    if isinstance(q, QuantumRegister):
-        q = [(q, j) for j in range(len(q))]
-
-    if q and isinstance(q, list):
-        instructions = InstructionSet()
-        for qubit in q:
-            self._check_qubit(qubit)
-            instructions.add(self.u1(theta, qubit))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(U1Gate(theta, q, self))
 

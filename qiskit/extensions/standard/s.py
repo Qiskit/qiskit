@@ -12,8 +12,8 @@ S=diag(1,i) Clifford phase gate or its inverse.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.quantumcircuit import _1q_gate
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -86,34 +86,16 @@ class SdgGate(Gate):
         return inv
 
 
+@_1q_gate
 def s(self, q):
     """Apply S to q."""
-    if isinstance(q, QuantumRegister):
-        q = [(q, j) for j in range(len(q))]
-
-    if q and isinstance(q, list):
-        instructions = InstructionSet()
-        for qubit in q:
-            self._check_qubit(qubit)
-            instructions.add(self.s(qubit))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(SGate(q, self))
 
 
+@_1q_gate
 def sdg(self, q):
     """Apply Sdg to q."""
-    if isinstance(q, QuantumRegister):
-        q = [(q, j) for j in range(len(q))]
-
-    if q and isinstance(q, list):
-        instructions = InstructionSet()
-        for qubit in q:
-            self._check_qubit(qubit)
-            instructions.add(self.sdg(qubit))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(SdgGate(q, self))
 

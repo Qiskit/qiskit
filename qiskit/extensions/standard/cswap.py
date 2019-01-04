@@ -72,7 +72,7 @@ def cswap(self, ctl, tgt1, tgt2):
            len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
             instructions = InstructionSet()
             for ictl, itgt1, itgt2 in zip(ctl, tgt1, tgt2):
-                instructions.add(self.ccx(ictl, itgt1, itgt2))
+                instructions.add(self.cswap(ictl, itgt1, itgt2))
             return instructions
 
     self._check_qubit(ctl)

@@ -14,9 +14,11 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
+from functools import wraps
 
 from qiskit.qasm import _qasm
 from qiskit.exceptions import QiskitError
+from .instructionset import InstructionSet
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -401,6 +403,64 @@ class QuantumCircuit:
         qasm = _qasm.Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
 
+
+def _1q_gate(func):
+    """Wrapper for one qubit gate"""
+    @wraps(func)
+    def wrapper(self, *args):
+        """Wrapper for one qubit gate"""
+        params = args[0:-1] if len(args) > 1 else tuple()
+        q = args[-1]
+        if isinstance(q, QuantumRegister):
+            q = [(q, j) for j in range(len(q))]
+
+        if q and isinstance(q, list):
+            instructions = InstructionSet()
+            for qubit in q:
+                self._check_qubit(qubit)
+                instructions.add(func(self, *params, qubit))
+            return instructions
+        return func(self, *params, q)
+    return wrapper
+
+def _control_target_gate(func):
+    """Wrapper for two qubit control-target type gate"""
+    @wraps(func)
+    def wrapper(self, *args):
+        """Wrapper for one qubit gate"""
+        params = args[0:-2] if len(args) > 2 else tuple()
+        ctl = args[-2]
+        tgt = args[-1]
+        if isinstance(ctl, QuantumRegister):
+            ctl = [(ctl, i) for i in range(len(ctl))]
+        if isinstance(tgt, QuantumRegister):
+            tgt = [(tgt, i) for i in range(len(tgt))]
+        if isinstance(ctl, list) != isinstance(tgt, list):
+            # TODO: check for Qubit instance
+            if isinstance(ctl, tuple):
+                ctl = [ctl]
+            elif isinstance(tgt, tuple):
+                tgt = [tgt]
+            else:
+                raise QiskitError('control or target are not qubits')
+
+        if ctl and tgt and isinstance(ctl, list) \
+          and isinstance(tgt, list):
+            instructions = InstructionSet()
+            if len(ctl) == len(tgt):
+                for ictl, itgt in zip(ctl, tgt):
+                    instructions.add(func(self, *params, ictl, itgt))
+            elif len(ctl) == 1:
+                for itgt in tgt:
+                    instructions.add(func(self, *params, ctl[0], itgt))
+            elif len(tgt) == 1:
+                for ictl in ctl:
+                    instructions.add(func(self, *params, ictl, tgt[0]))
+            else:
+                raise QiskitError('indeterminate control or target qubits')
+            return instructions
+        return func(self, *params, ctl, tgt)
+    return wrapper
 
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import

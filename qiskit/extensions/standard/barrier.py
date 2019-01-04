@@ -48,6 +48,8 @@ def barrier(self, *qargs):
                 qubits.extend([(qarg, j) for j in range(qarg.size)])
             else:
                 qubits.extend(qarg)
+        else:
+            qubits.append(qarg)
 
     self._check_dups(qubits)
     for qubit in qubits:
