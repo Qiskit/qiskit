@@ -42,29 +42,19 @@ stage_linux: &stage_linux
   dist: trusty
   language: python
   python: 3.5
-  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True"
-  addons:
-    apt:
-      sources:
-        - ubuntu-toolchain-r-test
-      packages:
-        - liblapack-dev
-        - libblas-dev
-        - g++-5
+  env: CMAKE_FLAGS="-D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True"
 
 stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
   osx_image: xcode9.2
   language: generic
-  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-6 -D ENABLE_TARGETS_QA=False -D STATIC_LINKING=True" MPLBACKEND=ps
+  env: CMAKE_FLAGS="-D ENABLE_TARGETS_QA=False -D STATIC_LINKING=True" MPLBACKEND=ps
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew install gcc@6
-      brew link --overwrite gcc@6
       brew upgrade pyenv
       pyenv install 3.6.5
       virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
@@ -78,8 +68,6 @@ stage_osx_python3_7: &stage_osx_python3_7
     # installable in Python 3.7 but it is not strictly necessary for building.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew install gcc@6
-      brew link --overwrite gcc@6
       brew upgrade pyenv
       brew install freetype
       brew install pkg-config
@@ -180,7 +168,7 @@ jobs:
       <<: *stage_linux
       if: branch = master and repo = Qiskit/qiskit-terra and type = push
       python: 3.6
-      env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
+      env: CMAKE_FLAGS="-D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
 
     # "deploy" stage.
     ###########################################################################
