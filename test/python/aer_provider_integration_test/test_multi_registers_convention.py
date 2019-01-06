@@ -13,13 +13,13 @@ import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
-from qiskit.test import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
 
-    @requires_cpp_simulator
+    @requires_aer_provider
     def test_circuit_multi(self):
         """Test circuit multi regs declared at start.
         """
