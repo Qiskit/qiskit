@@ -396,7 +396,7 @@ class QasmSimulatorPy(BaseBackend):
         self._validate(qobj)
         result_list = []
         self._shots = qobj.config.shots
-        self._memory = qobj.config.memory
+        self._memory = getattr(qobj.config, 'memory', False)
         self._qobj_config = qobj.config
         start = time.time()
         for experiment in qobj.experiments:
@@ -456,7 +456,8 @@ class QasmSimulatorPy(BaseBackend):
             # For compatibility on Windows force dyte to be int32
             # and set the maximum value to be (2 ** 31) - 1
             seed = np.random.randint(2147483647, dtype='int32')
-        self._local_random.seed(seed)
+
+        self._local_random.seed(seed=seed)
         # Check if measure sampling is supported for current circuit
         self._validate_measure_sampling(experiment)
 
