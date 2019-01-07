@@ -72,3 +72,17 @@ def projector(state, flatten=False):
     if flatten:
         return density_matrix.flatten(order='F')
     return density_matrix
+
+
+def purity(state):
+    """Calculate the purity of a quantum state.
+
+    Args:
+        state (np.array): a quantum state
+    Returns:
+        float: purity.
+    """
+    rho = np.array(state)
+    if rho.ndim == 1:
+        rho = outer(rho)
+    return np.real(np.trace(rho.dot(rho)))

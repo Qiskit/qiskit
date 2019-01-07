@@ -452,20 +452,6 @@ def state_fidelity(state1, state2):
     return new_state_fidelity(state1, state2)
 
 
-def purity(state):
-    """Calculate the purity of a quantum state.
-
-    Args:
-        state (np.array): a quantum state
-    Returns:
-        float: purity.
-    """
-    rho = np.array(state)
-    if rho.ndim == 1:
-        rho = outer(rho)
-    return np.real(np.trace(rho.dot(rho)))
-
-
 def concurrence(state):
     """Calculate the concurrence.
 
