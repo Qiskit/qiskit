@@ -16,6 +16,7 @@ from qiskit import execute, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.quantum_info import basis_state, random_state
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import projector
+from qiskit.quantum_info import purity
 from qiskit.test import QiskitTestCase
 
 
@@ -96,6 +97,20 @@ class TestStates(QiskitTestCase):
         backend = BasicAer.get_backend('statevector_simulator')
         qc_state = execute(qc, backend).result().get_statevector(qc)
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
+
+    def test_purity(self):
+        rho1 = [[1, 0], [0, 0]]
+        rho2 = [[0.5, 0], [0, 0.5]]
+        rho3 = 0.7 * np.array(rho1) + 0.3 * np.array(rho2)
+        test_pass = (purity(rho1) == 1.0 and
+                     purity(rho2) == 0.5 and
+                     round(purity(rho3), 10) == 0.745)
+        self.assertTrue(test_pass)
+
+    def test_purity_1d_input(self):
+        input_state = [1, 0]
+        res = purity(input_state)
+        self.assertEqual(1, res)
 
 
 if __name__ == '__main__':
