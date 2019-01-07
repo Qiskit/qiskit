@@ -21,7 +21,6 @@ sudo: false
 # matrix, mimicking a hierarchy:
 # * stage_generic
 #   * stage_linux
-#     * stage_linux_no_compile
 #   * stage_osx
 
 stage_generic: &stage_generic
@@ -160,7 +159,7 @@ jobs:
     ###########################################################################
     # github pages documentation update (GNU/Linux, Python 3.5)
     - stage: deploy doc and pypi
-      <<: *stage_linux_no_compile
+      <<: *stage_linux
       if: branch = stable and repo = Qiskit/qiskit-terra and type = push
       script: cd ..
       deploy:
