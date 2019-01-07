@@ -251,138 +251,28 @@ class TestDrawingMethods(QiskitTestCase):
          reference outputs.
         """
         # Specify a type of circuit used in this test
-        circuit_type = 'small'
-
-        # Obtain paths to directory where produced and reference outputs are to be stored
-        # correspondingly
-        test_output_dir, references_dir = self._prepare_dirs('{}'.format(circuit_type))
-
-        for draw_method in self.draw_methods:
-
-            # Create a subTest for each underlying circuit drawer
-            with self.subTest('Test of drawing a {} circuit'
-                              ' with `{}` output format'.format(circuit_type, draw_method),
-                              draw_method=draw_method):
-
-                # Obtain path to files with produced and reference outputs correspondingly
-                test_output = os.path.join(test_output_dir, draw_method)
-                reference_output = os.path.join(references_dir, draw_method)
-
-                # Make underlying circuit drawer to draw chosen circuit
-                circuit_drawer(self.circuits[circuit_type](),
-                               output=draw_method,
-                               filename=test_output)
-
-                # Check if produced output equals the reference one
-                self.assertOutputsAreEqual(draw_method,
-                                           test_output + self.extensions.get(draw_method, ''),
-                                           reference_output + self.extensions.get(draw_method, ''))
-
-            # We have built a QuantumCircuit and counters of registers increased, we have reset them
-            # such that consequent tests won't fail
-            _reset_registers()
+        self.check_circuit_type('small')
 
     def test_medium_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a medium circuit equal
          reference outputs.
         """
         # Specify a type of circuit used in this test
-        circuit_type = 'medium'
-
-        # Obtain paths to directory where produced and reference outputs are to be stored
-        # correspondingly
-        test_output_dir, references_dir = self._prepare_dirs('{}'.format(circuit_type))
-
-        for draw_method in self.draw_methods:
-            # Create a subTest for each underlying circuit drawer
-            with self.subTest('Test of drawing a {} circuit'
-                              ' with `{}` output format'.format(circuit_type, draw_method),
-                              draw_method=draw_method):
-                # Obtain path to files with produced and reference outputs correspondingly
-                test_output = os.path.join(test_output_dir, draw_method)
-                reference_output = os.path.join(references_dir, draw_method)
-
-                # Make underlying circuit drawer to draw chosen circuit
-                circuit_drawer(self.circuits[circuit_type](),
-                               output=draw_method,
-                               filename=test_output)
-
-                # Check if produced output equals the reference one
-                self.assertOutputsAreEqual(draw_method,
-                                           test_output + self.extensions.get(draw_method, ''),
-                                           reference_output + self.extensions.get(draw_method, ''))
-
-            # We have built a QuantumCircuit and counters of registers increased, we have reset them
-            # such that consequent tests won't fail
-            _reset_registers()
+        self.check_circuit_type('medium')
 
     def test_large_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a large circuit equal
          reference outputs.
         """
         # Specify a type of circuit used in this test
-        circuit_type = 'large'
-
-        # Obtain paths to directory where produced and reference outputs are to be stored
-        # correspondingly
-        test_output_dir, references_dir = self._prepare_dirs('{}'.format(circuit_type))
-
-        for draw_method in self.draw_methods:
-            # Create a subTest for each underlying circuit drawer
-            with self.subTest('Test of drawing a {} circuit'
-                              ' with `{}` output format'.format(circuit_type, draw_method),
-                              draw_method=draw_method):
-                # Obtain path to files with produced and reference outputs correspondingly
-                test_output = os.path.join(test_output_dir, draw_method)
-                reference_output = os.path.join(references_dir, draw_method)
-
-                # Make underlying circuit drawer to draw chosen circuit
-                circuit_drawer(self.circuits[circuit_type](),
-                               output=draw_method,
-                               filename=test_output)
-
-                # Check if produced output equals the reference one
-                self.assertOutputsAreEqual(draw_method,
-                                           test_output + self.extensions.get(draw_method, ''),
-                                           reference_output + self.extensions.get(draw_method, ''))
-
-            # We have built a QuantumCircuit and counters of registers increased, we have reset them
-            # such that consequent tests won't fail
-            _reset_registers()
+        self.check_circuit_type('large')
 
     def test_deep_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a deep circuit equal
          reference outputs.
         """
         # Specify a type of circuit used in this test
-        circuit_type = 'deep'
-
-        # Obtain paths to directory where produced and reference outputs are to be stored
-        # correspondingly
-        test_output_dir, references_dir = self._prepare_dirs('{}'.format(circuit_type))
-
-        for draw_method in self.draw_methods:
-            # Create a subTest for each underlying circuit drawer
-            with self.subTest('Test of drawing a {} circuit'
-                              ' with `{}` output format'.format(circuit_type, draw_method),
-                              draw_method=draw_method):
-                # Obtain path to files with produced and reference outputs correspondingly
-                test_output = os.path.join(test_output_dir, draw_method)
-                reference_output = os.path.join(references_dir, draw_method)
-
-                # Make underlying circuit drawer to draw chosen circuit
-                circuit_drawer(self.circuits[circuit_type](),
-                               output=draw_method,
-                               filename=test_output)
-
-                # Check if produced output equals the reference one
-                self.assertOutputsAreEqual(draw_method,
-                                           test_output + self.extensions.get(draw_method, ''),
-                                           reference_output + self.extensions.get(draw_method, ''))
-
-            # We have built a QuantumCircuit and counters of registers increased, we have reset them
-            # such that consequent tests won't fail
-            _reset_registers()
+        self.check_circuit_type('deep')
 
     #@unittest.skip('A test which runs tests for all circuit types inside is skipped.'
     #               'Tests for all circuit types are better to be launched separately.')
@@ -394,34 +284,48 @@ class TestDrawingMethods(QiskitTestCase):
 
             # Create a subTest for each type of circuit
             with self.subTest(circuit_type=circuit_type):
-                # Obtain paths to directory where produced and reference outputs are to be stored
-                # correspondingly
-                test_output_dir, references_dir = self._prepare_dirs('{}'.format(circuit_type))
+                self.check_circuit_type(circuit_type)
 
-                for draw_method in self.draw_methods:
-                    # Create a subTest for each underlying circuit drawer
-                    with self.subTest('Test of drawing a {} circuit'
-                                      ' with `{}` output format'.format(circuit_type, draw_method),
-                                      draw_method=draw_method):
-                        # Obtain path to files with produced and reference outputs correspondingly
-                        test_output = os.path.join(test_output_dir, draw_method)
-                        reference_output = os.path.join(references_dir, draw_method)
+    def check_circuit_type(self, circuit_type):
+        """Checks whether outputs of different circuit drawers upon drawing a given circuit type
+        equal reference outputs.
 
-                        # Make underlying circuit drawer to draw chosen circuit
-                        circuit_drawer(self.circuits[circuit_type](),
-                                       output=draw_method,
-                                       filename=test_output)
+        Args:
+            circuit_type (str): a type of circuit to be checked ('small', 'medium', 'large', or
+            'deep')
 
-                        # Check if produced output equals the reference one
-                        self.assertOutputsAreEqual(draw_method,
-                                                   test_output + self.extensions.get(draw_method,
-                                                                                     ''),
-                                                   reference_output + self.extensions.get(
-                                                       draw_method, ''))
+        Returns:
+            bool: True if outputs of all drawers for current circuit type equal reference
+            ones up to given precision, False otherwise.
+        """
+        # Obtain paths to directory where produced and reference outputs are to be stored
+        # correspondingly
+        test_output_dir, references_dir = self._prepare_dirs('{}'.format(circuit_type))
 
-                    # We have built a QuantumCircuit and counters of registers increased, we have
-                    # reset them such that consequent tests won't fail
-                    _reset_registers()
+        for draw_method in self.draw_methods:
+            # Create a subTest for each underlying circuit drawer
+            with self.subTest('Test of drawing a {} circuit'
+                              ' with `{}` output format'.format(circuit_type, draw_method),
+                              draw_method=draw_method):
+                # Obtain path to files with produced and reference outputs correspondingly
+                test_output = os.path.join(test_output_dir, draw_method)
+                reference_output = os.path.join(references_dir, draw_method)
+
+                # Make underlying circuit drawer to draw chosen circuit
+                circuit_drawer(self.circuits[circuit_type](),
+                               output=draw_method,
+                               filename=test_output)
+
+                # Check if produced output equals the reference one
+                self.assertOutputsAreEqual(draw_method,
+                                           test_output + self.extensions.get(draw_method,
+                                                                             ''),
+                                           reference_output + self.extensions.get(
+                                               draw_method, ''))
+
+            # We have built a QuantumCircuit and counters of registers increased, we have
+            # reset them such that consequent tests won't fail
+            _reset_registers()
 
     def _prepare_dirs(self, circuit_type):
         # Create a folder to store all the outputs produced during testing of particular circuit
