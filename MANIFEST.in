@@ -1,5 +1,4 @@
 include qiskit/qasm/libs/*.inc
-recursive-include src/qasm-simulator-cpp *
 include qiskit/schemas/*json
 include qiskit/VERSION.txt
 include CMakeLists.txt
