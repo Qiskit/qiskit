@@ -32,7 +32,7 @@ from qiskit.tools.visualization import _utils
 
 logger = logging.getLogger(__name__)
 
-Register = collections.namedtuple('Register', 'name index')
+Register = collections.namedtuple('Register', 'reg index')
 
 WID = 0.65
 HIG = 0.65
@@ -137,13 +137,12 @@ class MatplotlibDrawer:
         self._ops = ops
 
     def _registers(self, creg, qreg):
-        # NOTE: formats of clbit and qubit are different!
         self._creg = []
         for e in creg:
-            self._creg.append(Register(name=e[0], index=e[1]))
+            self._creg.append(Register(reg=e[0], index=e[1]))
         self._qreg = []
         for e in qreg:
-            self._qreg.append(Register(name=e[0], index=e[1]))
+            self._qreg.append(Register(reg=e[0], index=e[1]))
 
     @property
     def ast(self):
@@ -363,15 +362,15 @@ class MatplotlibDrawer:
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
-                label = '${}_{{{}}}$'.format(reg.name.name, reg.index)
+                label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
             else:
-                label = '${}$'.format(reg.name.name)
+                label = '${}$'.format(reg.reg.name)
             pos = -ii
             self._qreg_dict[ii] = {
                 'y': pos,
                 'label': label,
                 'index': reg.index,
-                'group': reg.name
+                'group': reg.reg
             }
             self._cond['n_lines'] += 1
         # classical register
@@ -384,22 +383,22 @@ class MatplotlibDrawer:
                     self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
-                    label = '${}$'.format(reg.name.name)
+                    label = '${}$'.format(reg.reg.name)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.name
+                        'group': reg.reg
                     }
-                    if not (not nreg or reg.name != nreg.name):
+                    if not (not nreg or reg.reg != nreg.reg):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.name.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.name
+                        'group': reg.reg
                     }
                 self._cond['n_lines'] += 1
                 idx += 1
