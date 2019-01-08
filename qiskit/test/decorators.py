@@ -19,7 +19,7 @@ from .http_recorder import http_recorder
 from .testing_options import get_test_options
 
 
-def is_cpp_simulator_available():
+def is_aer_provider_available():
     """Check if the C++ simulator can be instantiated.
 
     Returns:
@@ -35,8 +35,8 @@ def is_cpp_simulator_available():
     return True
 
 
-def requires_cpp_simulator(test_item):
-    """Decorator that skips test if C++ simulator is not available
+def requires_aer_provider(test_item):
+    """Decorator that skips test if qiskit aer provider is not available
 
     Args:
         test_item (callable): function or class to be decorated.
@@ -44,8 +44,8 @@ def requires_cpp_simulator(test_item):
     Returns:
         callable: the decorated function.
     """
-    reason = 'C++ simulator not found, skipping test'
-    return unittest.skipIf(not is_cpp_simulator_available(), reason)(test_item)
+    reason = 'Aer provider not found, skipping test'
+    return unittest.skipIf(not is_aer_provider_available(), reason)(test_item)
 
 
 def slow_test(func):
