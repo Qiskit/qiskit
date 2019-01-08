@@ -222,7 +222,7 @@ class TestCircuitRegisters(QiskitTestCase):
         for gate, ictrl, itgt in zip(qc.data, range(0, 2), range(2, 4)):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(gate.qargs), 1)
-            self.assertEqual(len(gate.cargs), 1)            
+            self.assertEqual(len(gate.cargs), 1)
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
         # test single element slice
@@ -231,7 +231,7 @@ class TestCircuitRegisters(QiskitTestCase):
         for gate, ictrl, itgt in zip(qc.data, range(0, 1), range(2, 3)):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(gate.qargs), 1)
-            self.assertEqual(len(gate.cargs), 1)            
+            self.assertEqual(len(gate.cargs), 1)
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
         # test tuple
@@ -243,7 +243,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(len(op.qargs), 1)
         self.assertEqual(len(op.cargs), 1)
         self.assertTrue(isinstance(op.qargs[0], tuple))
-        self.assertTrue(isinstance(op.cargs[0], tuple))        
+        self.assertTrue(isinstance(op.cargs[0], tuple))
         self.assertEqual(gate.qargs[0][1], 0)
         self.assertEqual(gate.cargs[0][1], 2)
         # test full register
@@ -252,7 +252,7 @@ class TestCircuitRegisters(QiskitTestCase):
         for gate, ictrl, itgt in zip(qc.data, range(len(qr)), range(len(cr))):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(gate.qargs), 1)
-            self.assertEqual(len(gate.cargs), 1)            
+            self.assertEqual(len(gate.cargs), 1)
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
         # test mix slice full register
@@ -261,7 +261,6 @@ class TestCircuitRegisters(QiskitTestCase):
         for gate, ictrl, itgt in zip(qc.data, range(0, 10, 2), range(len(cr2))):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(gate.qargs), 1)
-            self.assertEqual(len(gate.cargs), 1)            
+            self.assertEqual(len(gate.cargs), 1)
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
-        

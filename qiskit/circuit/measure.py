@@ -67,8 +67,7 @@ def measure(self, qubit, cbit):
 
     if qubit and cbit and isinstance(qubit, list) and isinstance(cbit, list):
         if len(qubit) != len(cbit):
-            raise QiskitError(f'qubit ({len(qubit)}) and cbit ({len(cbit)}) '
-                              'should have the same length')
+            raise QiskitError('qubit and cbit should have the same length if lists')
         instructions = InstructionSet()
         for qb1, cb1 in zip(qubit, cbit):
             instructions.add(self.measure(qb1, cb1))

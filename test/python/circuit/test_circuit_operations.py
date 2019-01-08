@@ -135,4 +135,3 @@ class TestCircuitOperations(QiskitTestCase):
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
                          'qubit (2) and cbit (1) should have the same length')
-
