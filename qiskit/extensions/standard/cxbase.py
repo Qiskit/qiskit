@@ -10,7 +10,7 @@ Fundamental controlled-NOT gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.quantumcircuit import _control_target_gate
+from qiskit.circuit.decorators import _control_target_gate
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 

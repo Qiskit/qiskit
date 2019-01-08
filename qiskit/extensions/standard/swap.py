@@ -14,6 +14,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _2q_gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
@@ -52,24 +53,13 @@ class SwapGate(Gate):
         self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
 
 
-def swap(self, ctl, tgt):
-    """Apply SWAP from ctl to tgt."""
-    if isinstance(ctl, QuantumRegister):
-        ctl = [(ctl, i) for i in range(len(ctl))]
-    if isinstance(tgt, QuantumRegister):
-        tgt = [(tgt, i) for i in range(len(tgt))]
-
-    if ctl and tgt and isinstance(ctl, list) and \
-       isinstance(tgt, list) and len(ctl) == len(tgt):
-        instructions = InstructionSet()
-        for ictl, itgt in zip(ctl, tgt):
-            instructions.add(self.swap(ictl, itgt))
-        return instructions
-
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(SwapGate(ctl, tgt, self))
+@_2q_gate
+def swap(self, qubit1, qubit2):
+    """Apply SWAP from qubit1 to qubit2."""
+    self._check_qubit(qubit1)
+    self._check_qubit(qubit2)
+    self._check_dups([qubit1, qubit2])
+    return self._attach(SwapGate(qubit1, qubit2, self))
 
 
 QuantumCircuit.swap = swap

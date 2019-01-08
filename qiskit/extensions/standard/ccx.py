@@ -78,12 +78,21 @@ class ToffoliGate(Gate):
 
 def ccx(self, ctl1, ctl2, tgt):
     """Apply Toffoli to from ctl1 and ctl2 to tgt."""
+    # expand registers to lists of qubits
     if isinstance(ctl1, QuantumRegister):
         ctl1 = [(ctl1, i) for i in range(len(ctl1))]
     if isinstance(ctl2, QuantumRegister):
         ctl2 = [(ctl2, i) for i in range(len(ctl2))]
     if isinstance(tgt, QuantumRegister):
         tgt = [(tgt, i) for i in range(len(tgt))]
+    # expand single qubit target if controls are lists of qubits
+    if isinstance(ctl1, list) and len(ctl1) == len(ctl2):
+        if isinstance(tgt, tuple):
+            tgt = [tgt]
+        if len(tgt) == 1:
+            tgt = tgt * len(ctl1)
+        elif len(tgt) != len(ctl1):
+            raise QiskitError('target register size should match controls or be one')
 
     if ctl1 and ctl2 and tgt:
         if isinstance(ctl1, list) and \
@@ -96,6 +105,8 @@ def ccx(self, ctl1, ctl2, tgt):
                 return instructions
             else:
                 raise QiskitError('unequal register sizes')
+    else:
+        raise QiskitError('empty control or target argument')
 
     self._check_qubit(ctl1)
     self._check_qubit(ctl2)

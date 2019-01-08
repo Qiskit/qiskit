@@ -13,7 +13,7 @@ S=diag(1,i) Clifford phase gate or its inverse.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.quantumcircuit import _1q_gate
+from qiskit.circuit.decorators import _1q_gate
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
