@@ -8,5 +8,5 @@
 """Functionality and helpers for testing Qiskit."""
 
 from .base import QiskitTestCase
-from .decorators import requires_cpp_simulator, requires_qe_access, slow_test
+from .decorators import requires_aer_provider, requires_qe_access, slow_test
 from .utils import Path
