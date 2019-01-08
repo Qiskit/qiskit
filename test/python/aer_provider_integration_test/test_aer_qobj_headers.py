@@ -15,10 +15,10 @@ import qiskit
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile
 from qiskit.qobj import QobjHeader
-from qiskit.test import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
-@requires_cpp_simulator
+@requires_aer_provider
 class TestBasicAerQobj(QiskitTestCase):
     """Tests for all the Terra simulators."""
 

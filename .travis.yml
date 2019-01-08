@@ -21,7 +21,6 @@ sudo: false
 # matrix, mimicking a hierarchy:
 # * stage_generic
 #   * stage_linux
-#     * stage_linux_no_compile
 #   * stage_osx
 
 stage_generic: &stage_generic
@@ -30,8 +29,6 @@ stage_generic: &stage_generic
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt
     - pip install qiskit-aer
-    # Create the basic cmake structure, setting out/ as the default dir.
-    - mkdir out && cd out && cmake $CMAKE_FLAGS ..
   script:
     # Compile the executables and run the tests.
     - make && ARGS="-V" make test
@@ -42,29 +39,18 @@ stage_linux: &stage_linux
   dist: trusty
   language: python
   python: 3.5
-  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True"
-  addons:
-    apt:
-      sources:
-        - ubuntu-toolchain-r-test
-      packages:
-        - liblapack-dev
-        - libblas-dev
-        - g++-5
 
 stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
   osx_image: xcode9.2
   language: generic
-  env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-6 -D ENABLE_TARGETS_QA=False -D STATIC_LINKING=True" MPLBACKEND=ps
+  env: MPLBACKEND=ps
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew install gcc@6
-      brew link --overwrite gcc@6
       brew upgrade pyenv
       pyenv install 3.6.5
       virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
@@ -74,12 +60,8 @@ stage_osx: &stage_osx
 stage_osx_python3_7: &stage_osx_python3_7
   <<: *stage_osx
   before_install:
-    # Last line drops cmake from the list of requirements since it is not
-    # installable in Python 3.7 but it is not strictly necessary for building.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew install gcc@6
-      brew link --overwrite gcc@6
       brew upgrade pyenv
       brew install freetype
       brew install pkg-config
@@ -87,12 +69,6 @@ stage_osx_python3_7: &stage_osx_python3_7
       virtualenv --python ~/.pyenv/versions/3.7.0/bin/python venv
       source venv/bin/activate
     fi
-
-stage_linux_no_compile: &stage_linux_no_compile
-  <<: *stage_linux
-  addons: false
-  env: CMAKE_FLAGS="-D ENABLE_TARGETS_NON_PYTHON=False"
-
 
 # Other aliases: for convenience, keeping the "jobs" matrix defined later on
 # less verbose.
@@ -136,7 +112,7 @@ jobs:
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
-      <<: *stage_linux_no_compile
+      <<: *stage_linux
       script: make style VERBOSE="" && make lint VERBOSE=""
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
@@ -145,9 +121,6 @@ jobs:
 
     # "test" stage
     ###########################################################################
-    # GNU/Linux, Python 3.5
-    - stage: test
-      <<: *stage_linux
 
     # GNU/Linux, Python 3.6
     - stage: test
@@ -180,13 +153,13 @@ jobs:
       <<: *stage_linux
       if: branch = master and repo = Qiskit/qiskit-terra and type = push
       python: 3.6
-      env: CMAKE_FLAGS="-D CMAKE_CXX_COMPILER=g++-5 -D ENABLE_TARGETS_QA=False -D WHEEL_TAG=-pmanylinux1_x86_64 -D STATIC_LINKING=True" USE_ALTERNATE_ENV_CREDENTIALS=True
+      env: USE_ALTERNATE_ENV_CREDENTIALS=True
 
     # "deploy" stage.
     ###########################################################################
     # github pages documentation update (GNU/Linux, Python 3.5)
     - stage: deploy doc and pypi
-      <<: *stage_linux_no_compile
+      <<: *stage_linux
       if: branch = stable and repo = Qiskit/qiskit-terra and type = push
       script: cd ..
       deploy:
@@ -196,8 +169,6 @@ jobs:
     - stage: deploy doc and pypi
       <<: *stage_linux
       if: branch = stable and repo = Qiskit/qiskit-terra and type = push
-      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
-      script: cd ..
       deploy:
         <<: *deploy_pypi
 
@@ -205,8 +176,6 @@ jobs:
     - stage: deploy doc and pypi
       <<: *stage_osx
       if: branch = stable and repo = Qiskit/qiskit-terra and type = push
-      install: mkdir out && cd out && cmake $CMAKE_FLAGS ..
-      script: cd ..
       deploy:
         <<: *deploy_pypi
         distributions: "bdist_wheel"
