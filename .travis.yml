@@ -46,13 +46,15 @@ stage_osx: &stage_osx
   osx_image: xcode9.2
   language: generic
   env: MPLBACKEND=ps
+  addons:
+    homebrew:
+      packages:
+      - pyenv
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew upgrade pyenv
-      pyenv install --list
       pyenv install 3.6.5
       virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
       source venv/bin/activate
