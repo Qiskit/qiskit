@@ -52,6 +52,7 @@ stage_osx: &stage_osx
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
       brew upgrade pyenv
+      pyenv install --list
       pyenv install 3.6.5
       virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
       source venv/bin/activate
@@ -65,6 +66,7 @@ stage_osx_python3_7: &stage_osx_python3_7
       brew upgrade pyenv
       brew install freetype
       brew install pkg-config
+      pyenv install --list
       pyenv install 3.7.0
       virtualenv --python ~/.pyenv/versions/3.7.0/bin/python venv
       source venv/bin/activate
