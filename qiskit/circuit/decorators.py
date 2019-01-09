@@ -44,7 +44,7 @@ def _2q_gate(func):
         if isinstance(qubit1, list) and isinstance(qubit2, list):
             if len(qubit1) != len(qubit2):
                 raise QiskitError('lengths of qubit arguments do not match: '
-                                  f'{len(qubit1)} != {len(qubit2)}')
+                                  '{0} != {1}'.format(len(qubit1), len(qubit2)))
 
         if qubit1 and qubit2 and isinstance(qubit1, list) and isinstance(qubit2, list):
             instructions = InstructionSet()

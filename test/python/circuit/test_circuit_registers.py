@@ -155,6 +155,7 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.qargs[2][1], i)
 
     def test_ccx_multicontrol_single_target(self):
+        """ccx with multi-qubit controls and single qubit target"""
         qcontrol1 = QuantumRegister(5)
         qcontrol2 = QuantumRegister(5)
         qtarget = QuantumRegister(2)
