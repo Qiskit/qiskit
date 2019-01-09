@@ -84,12 +84,12 @@ class TestCircuitRegisters(QiskitTestCase):
 
     def test_apply_gate_to_slice(self):
         """test applying gate to register slice"""
-        sl = slice(0, 9, 2)
+        sli = slice(0, 9, 2)
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0:9:2])
-        for i, index in enumerate(range(*sl.indices(sl.stop))):
+        for i, index in enumerate(range(*sli.indices(sli.stop))):
             self.assertEqual(qc.data[i].qargs[0][1], index)
 
     def test_apply_barrier_to_slice(self):
