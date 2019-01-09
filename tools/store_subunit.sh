@@ -16,4 +16,5 @@ if [ "$TRAVIS_PULL_REQUEST" != "false" ] ; then
     METADATA+=",pr_num:$TRAVIS_PULL_REQUEST,sha1:$TRAVIS_PULL_REQUEST_SHA,pr_origin:$TRAVIS_PULL_REQUEST_SLUG"
 fi
 
+echo "$SUBUNIT_DB_URI"
 stestr last --subunit | subunit2sql --database-connection="$SUBUNIT_DB_URI" --artifacts="$TRAVIS_JOB_WEB_URL" --run_meta="$METADATA"
