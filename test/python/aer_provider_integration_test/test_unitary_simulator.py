@@ -13,10 +13,10 @@ import numpy as np
 import qiskit
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit import compile
-from qiskit.test import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
-@requires_cpp_simulator
+@requires_aer_provider
 class AerUnitarySimulatorPyTest(QiskitTestCase):
     """Test Aer unitary simulator."""
 

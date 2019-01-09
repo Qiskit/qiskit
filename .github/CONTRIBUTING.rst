@@ -180,112 +180,6 @@ and then you can run them with
 
 We recommend that after setting up Terra you set up Aer to get more advanced simulators.  
 
-Building the legacy simulators
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note::
-
-    These will become obsolete in Terra 0.8 
-
-Dependencies
-""""""""""""
-
-Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
-installed. As we will deal with languages that build native binaries, we will
-need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
-
-On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
-we only support `MinGW64 <http://mingw-w64.org>`_ at the moment.
-Note that a prerequiste for the C++ toolchain is that C++14 must be supported.
-
-Building
-""""""""
-
-The preferred way CMake is meant to be used, is by setting up an "out of source" build.
-So in order to build our native code, we have to follow these steps:
-
-Linux and Mac
-
-.. code::
-
-    qiskit-terra$ mkdir out
-    qiskit-terra$ cd out
-    qiskit-terra/out$ cmake ..
-    qiskit-terra/out$ make
-
-Windows
-
-.. code::
-
-    C:\..\> mkdir out
-    C:\..\> cd out
-    C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a -G "MinGW Makefiles" ..
-    C:\..\out> make
-
-As you can see, the Windows cmake command invocation is slightly different from
-the Linux and Mac version, this is because we need to provide CMake with some
-more info about where to find libphreads.a for later building. Furthermore,
-we are forcing CMake to generate MingGW makefiles, because we don't support
-other toolchain at the moment.
-
-Useful CMake flags
-""""""""""""""""""
-
-There are some useful flags that can be set during cmake command invocation and
-will help you change some default behavior. To make use of them, you just need to
-pass them right after ``-D`` cmake argument. Example:
-.. code::
-
-    qiskit-terra/out$ cmake -DUSEFUL_FLAG=Value ..
-
-Flags:
-
-USER_LIB_PATH
-    This flag tells CMake to look for libraries that are needed by some of the native
-    components to be built, but they are not in a common place where CMake could find
-    it automatically.
-    Values: An absolute path with file included.
-    Default: No value.
-    Example: ``cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a ..``
-
-STATIC_LINKING
-    Tells the build system whether to create static versions of the programs being built or not.
-    Notes: On MacOS static linking is not fully working for all versions of GNU G++/Clang
-    compilers, so enable this flag in this platform could cause errors.
-    Values: True|False
-    Default: False
-    Example: ``cmake -DSTATIC_LINKING=True ..``
-
-CMAKE_BUILD_TYPE
-    Tells the build system to create executables/libraries for debugging purposes
-    or highly optimized binaries ready for distribution.
-    Values: Debug|Release
-    Default: "Release"
-    Example: ``cmake -DCMAKE_BUILD_TYPE="Debug" ..``
-
-ENABLE_TARGETS_NON_PYTHON
-    We can enable or disable non-python code generation by setting this flag to True or False
-    respectively. This is mostly used in our CI systems so they can launch some fast tests
-    for the Python code (which is currently a majority).
-    Values: True|False
-    Default: True
-    Example: ``cmake -DENABLE_TARGETS_NON_PYTHON=True ..``
-
-ENABLE_TARGETS_QA
-    We can enable or disable QA stuff (lintering, styling and testing) by setting this flag to
-    True or False respectively. This is mostly used in our CI systems so they can run light
-    stages pretty fast, and fail fast if they found any issues within the code.
-    Values: True|False
-    Default: True
-    Example: ``cmake -DENABLE_TARGETS_QA=True ..``
-
-WHEEL_TAG
-    This is used to force platform specific tag name generation when creating wheels package
-    for Pypi.
-    Values: "-pWhateverTagName"
-    Default: No value.
-    Example: ``cmake -DWHEEL_TAG="-pmanylinux1_x86_64" ..``
-
 
 Test
 ~~~~
@@ -397,13 +291,6 @@ for docstrings. A good example of the style can also be found with
 documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
 You can see the rendered documentation for the stable version of Qiskit Terra at
 the `landing page <https://qiskit.org/terra>`_.
-
-To generate the documentation, we need to invoke CMake first in order to generate
-all specific files for our current platform.
-
-See the previous *Building* section for details on how to run CMake.
-Once CMake is invoked, all configuration files are in place, so we can build the
-documentation running this command:
 
 All platforms:
 

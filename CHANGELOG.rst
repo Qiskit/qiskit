@@ -19,6 +19,7 @@ The format is based on `Keep a Changelog`_.
 
 `UNRELEASED`_
 =============
+
 Added
 -----
 
@@ -36,7 +37,9 @@ Changed
   ``slot`` (#1615).
 - The test folders have been reorganized to match the python modules (#1625)
 - The circuits_to_qobj no longers uses the unrollers (#1629)
-
+- The previously deprecated default output of ``circuit_drawer()`` (using latex
+  and falling back to mpl) is no longer present. Instead the default output
+  is the ascii art ``text`` output backend.
 
 Fixed
 -----
@@ -47,6 +50,15 @@ Fixed
 Removed
 -------
 
+- The previously deprecated functions ``plot_circuit()``,
+  ``latex_circuit_drawer()``, ``generate_latex_source()``, and
+  ``matplotlib_circuit_drawer()`` from ``qiskit.tools.visualization`` have
+  been removed. The ``circuit_drawer()`` function from the same module should
+  be used instead.
+- The previously deprecated keys ``plot_barriers`` and ``reverse_bits`` keys in
+  the ``style`` kwarg dict are deprecated, instead the
+  ``qiskit.tools.visualization.circuit_drawer()`` kwargs ``plot_barriers`` and
+  ``reverse_bits`` should be used instead.
 - Removed the wrapper folder as part of the post 0.7 cleanup (#1613).
 - Removed the python wrappers of the legacy simualtors now that
   Qiskit Aer is out (#1615).

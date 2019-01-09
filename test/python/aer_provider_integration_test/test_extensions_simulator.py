@@ -16,10 +16,10 @@ import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
 from qiskit import execute
-from qiskit.test import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
-@requires_cpp_simulator
+@requires_aer_provider
 class TestExtensionsSimulator(QiskitTestCase):
     """Test instruction extensions for builtinsimulators simulators:
     save, load, noise, snapshot, wait
