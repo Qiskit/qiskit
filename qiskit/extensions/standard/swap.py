@@ -12,7 +12,6 @@ SWAP gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _2q_gate
 from qiskit.dagcircuit import DAGCircuit
