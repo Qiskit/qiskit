@@ -50,6 +50,9 @@ stage_osx: &stage_osx
     homebrew:
       packages:
       - pyenv
+      - freetype
+      - pkg-config
+      update: true
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
@@ -65,10 +68,6 @@ stage_osx_python3_7: &stage_osx_python3_7
   before_install:
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      brew upgrade pyenv
-      brew install freetype
-      brew install pkg-config
-      pyenv install --list
       pyenv install 3.7.0
       virtualenv --python ~/.pyenv/versions/3.7.0/bin/python venv
       source venv/bin/activate
