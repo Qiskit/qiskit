@@ -23,9 +23,10 @@ import copy
 import itertools
 import networkx as nx
 
-from qiskit import QuantumRegister, ClassicalRegister
-from qiskit.circuit import Gate
-from ._dagcircuiterror import DAGCircuitError
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.gate import Gate
+from .exceptions import DAGCircuitError
 
 
 class DAGCircuit:
@@ -91,6 +92,10 @@ class DAGCircuit:
     def get_qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
+
+    def get_bits(self):
+        """Return a list of bits as (ClassicalRegister, index) pairs."""
+        return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
 
     # TODO: unused function. is it needed?
     def rename_register(self, regname, newname):
@@ -300,7 +305,7 @@ class DAGCircuit:
         # Check for each wire
         for wire in args:
             if wire not in amap:
-                raise DAGCircuitError("(qu)bit %s not found" % (wire,))
+                raise DAGCircuitError("(qu)bit %s[%d] not found" % (wire[0].name, wire[1]))
 
     def _bits_in_condition(self, cond):
         """Return a list of bits in the given condition.
@@ -620,10 +625,10 @@ class DAGCircuit:
                 m_wire = edge_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
-                    raise DAGCircuitError("wire (%s,%d) not in self" % (m_wire[0].name, m_wire[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
 
                 if nd["wire"] not in input_circuit.wires:
-                    raise DAGCircuitError("inconsistent wire type for (%s,%d) in input_circuit"
+                    raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
                                           % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "out":
@@ -688,11 +693,11 @@ class DAGCircuit:
                 m_name = wire_map.get(nd["wire"], nd["wire"])
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
-                    raise DAGCircuitError("wire (%s,%d) not in self" % (m_name[0].name, m_name[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (m_name[0].name, m_name[1]))
 
                 if nd["wire"] not in input_circuit.wires:
                     raise DAGCircuitError(
-                        "inconsistent wire for (%s,%d) in input_circuit"
+                        "inconsistent wire for %s[%d] in input_circuit"
                         % (nd["wire"][0].name, nd["wire"][1]))
 
             elif nd["type"] == "in":
@@ -953,11 +958,8 @@ class DAGCircuit:
                 full_pred_map[w] = self.multi_graph.predecessors(
                     self.output_map[w])[0]
                 if len(list(self.multi_graph.predecessors(self.output_map[w]))) != 1:
-                    raise DAGCircuitError(
-
-                        "too many predecessors for (%s,%d) output node" % (w[0], w[1])
-                    )
-
+                    raise DAGCircuitError("too many predecessors for %s[%d] "
+                                          "output node" % (w[0], w[1]))
         return full_pred_map, full_succ_map
 
     @staticmethod
@@ -1212,12 +1214,8 @@ class DAGCircuit:
     def get_op_nodes(self, op=None, data=False):
         """Get the list of "op" nodes in the dag.
 
-        Note: this method returns all nodes of a given op type (e.g. HGate),
-        and does not look at the gate operands. Because in the future, the
-        operands won't even be part of the gate.
-
         Args:
-            op (Instruction or None): op nodes to return. if op=None, return
+            op (Type): Instruction subclass op nodes to return. if op=None, return
                 all op nodes.
             data (bool): Default: False. If True, return a list of tuple
                 (node_id, node_data). If False, return a list of int (node_id)
@@ -1228,9 +1226,7 @@ class DAGCircuit:
         nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data["type"] == "op":
-                if op is None:
-                    nodes.append((node_id, node_data))
-                elif type(node_data["op"]) is type(op):
+                if op is None or isinstance(node_data["op"], op):
                     nodes.append((node_id, node_data))
         if not data:
             nodes = [n[0] for n in nodes]
@@ -1254,26 +1250,34 @@ class DAGCircuit:
             nodes = [n[0] for n in nodes]
         return nodes
 
-    def get_named_nodes(self, name):
-        """Get the set of "op" node ids with the given name."""
-        if name not in self.basis:
-            raise DAGCircuitError("%s is not in the list of basis operations"
-                                  % name)
+    def get_named_nodes(self, *names):
+        """Get the set of "op" nodes with the given name."""
+        named_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and node_data['op'].name in names:
+                named_nodes.append(node_id)
+        return named_nodes
 
-        # We need to instantiate the full list now because the underlying multi_graph
-        # may change when users iterate over the named nodes.
-        return {node_id for node_id, data in self.multi_graph.nodes(data=True)
-                if data["type"] == "op" and data["op"].name == name}
+    def get_2q_nodes(self):
+        """Get the set of 2-qubit nodes."""
+        two_q_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
+                two_q_nodes.append(self.multi_graph.node[node_id])
+        return two_q_nodes
 
-    def get_cnot_nodes(self):
-        """Get the set of Cnot."""
-        cx_names = ['cx', 'CX']
-        cxs_nodes = []
-        for cx_name in cx_names:
-            if cx_name in self.basis:
-                for cx_id in self.get_named_nodes(cx_name):
-                    cxs_nodes.append(self.multi_graph.node[cx_id])
-        return cxs_nodes
+    def successors(self, node):
+        """Returns the successors of a node."""
+        return self.multi_graph.successors(node)
+
+    def quantum_successors(self, node):
+        """Returns the successors of a node that are connected by a quantum edge"""
+        successors = []
+        for successor in self.successors(node):
+            if isinstance(self.multi_graph.get_edge_data(node, successor, key=0)['wire'][0],
+                          QuantumRegister):
+                successors.append(successor)
+        return successors
 
     def _remove_op_node(self, n):
         """Remove an operation node n.
@@ -1461,9 +1465,9 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        ts = list(self.node_nums_in_topological_order())
-        nodes_seen = dict(zip(ts, [False] * len(ts)))
-        for node in ts:
+        tops_node = list(self.node_nums_in_topological_order())
+        nodes_seen = dict(zip(tops_node, [False] * len(tops_node)))
+        for node in tops_node:
             nd = self.multi_graph.node[node]
             if nd["type"] == "op" and nd["name"] in namelist \
                     and not nodes_seen[node]:

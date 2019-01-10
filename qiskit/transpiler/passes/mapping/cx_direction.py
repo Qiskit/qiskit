@@ -11,7 +11,8 @@ compatible with the coupling_map.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler import MapperError
+from qiskit.transpiler.exceptions import TranspilerError
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import HGate
@@ -22,7 +23,8 @@ class CXDirection(TransformationPass):
      Rearranges the direction of the cx nodes to make the circuit
      compatible with the directed coupling map.
 
-     It uses this equivalence:
+     It uses this equivalence::
+
         ---(+)---      --[H]---.---[H]--
             |      =           |
         ----.----      --[H]--(+)--[H]--
@@ -48,8 +50,8 @@ class CXDirection(TransformationPass):
             DAGCircuit: The rearranged dag for the coupling map
 
         Raises:
-            MapperError: If the circuit cannot be mapped just by flipping the
-                         cx nodes.
+            TranspilerError: If the circuit cannot be mapped just by flipping the
+                cx nodes.
         """
         new_dag = DAGCircuit()
 
@@ -65,16 +67,16 @@ class CXDirection(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for cnot in subdag.get_cnot_nodes():
-
-                control = cnot['op'].qargs[0]
-                target = cnot['op'].qargs[1]
+            for cnot_id in subdag.get_named_nodes('cx', 'CX'):
+                cnot_node = subdag.multi_graph.nodes[cnot_id]
+                control = cnot_node['op'].qargs[0]
+                target = cnot_node['op'].qargs[1]
 
                 physical_q0 = self.layout[control]
                 physical_q1 = self.layout[target]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    raise MapperError('The circuit requires a connectiontion between the phsycial '
-                                      'qubits %s and %s' % (physical_q0, physical_q1))
+                    raise TranspilerError('The circuit requires a connection between physical '
+                                          'qubits %s and %s' % (physical_q0, physical_q1))
 
                 if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
                     # A flip needs to be done
@@ -93,7 +95,7 @@ class CXDirection(TransformationPass):
                     subdag.apply_operation_front(HGate(control))
 
                     # Flips the CX
-                    cnot['op'].qargs[0], cnot['op'].qargs[1] = target, control
+                    cnot_node['op'].qargs[0], cnot_node['op'].qargs[1] = target, control
 
             new_dag.extend_back(subdag)
 

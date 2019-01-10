@@ -31,7 +31,7 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.providers import BaseBackend
 from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.result import Result
-from ._simulatorerror import SimulatorError
+from .exceptions import SimulatorError
 from ._simulatortools import single_gate_matrix
 from ._simulatortools import cx_gate_matrix
 from ._simulatortools import einsum_matmul_index
@@ -221,7 +221,8 @@ class UnitarySimulatorPy(BaseBackend):
         Returns:
             SimulatorsJob: derived from BaseJob
 
-        Additional Information:
+        Additional Information::
+
             backend_options: Is a dict of options for the backend. It may contain
                 * "initial_unitary": matrix_like
                 * "chop_threshold": double
@@ -235,14 +236,15 @@ class UnitarySimulatorPy(BaseBackend):
             setting small values to zero in the output unitary. The default
             value is 1e-15.
 
-            Example:
-            backend_options = {
-                "initial_unitary": np.array([[1, 0, 0, 0],
-                                             [0, 0, 0, 1],
-                                             [0, 0, 1, 0],
-                                             [0, 1, 0, 0]])
-                "chop_threshold": 1e-15
-            }
+            Example::
+
+                backend_options = {
+                    "initial_unitary": np.array([[1, 0, 0, 0],
+                                                 [0, 0, 0, 1],
+                                                 [0, 0, 1, 0],
+                                                 [0, 1, 0, 0]])
+                    "chop_threshold": 1e-15
+                }
         """
         self._set_options(qobj_config=qobj.config,
                           backend_options=backend_options)
@@ -286,8 +288,8 @@ class UnitarySimulatorPy(BaseBackend):
             experiment (QobjExperiment): experiment from qobj experiments list
 
         Returns:
-            dict: A dictionary of results.
             dict: A result dictionary which looks something like::
+
                 {
                 "name": name of this experiment (obtained from qobj.experiment header)
                 "seed": random seed used for simulation
@@ -365,7 +367,7 @@ class UnitarySimulatorPy(BaseBackend):
         for experiment in qobj.experiments:
             name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info('"%s" only supports 1 shot. ' +
+                logger.info('"%s" only supports 1 shot. '
                             'Setting shots=1 for circuit "%s".',
                             self.name(), name)
                 experiment.config.shots = 1

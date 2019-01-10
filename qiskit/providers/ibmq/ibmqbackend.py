@@ -14,11 +14,11 @@ import warnings
 
 from marshmallow import ValidationError
 
-from qiskit import QiskitError
 from qiskit.providers import BaseBackend, JobStatus
 from qiskit.providers.models import BackendStatus, BackendProperties
 
 from .api import ApiError
+from .exceptions import IBMQBackendError, IBMQBackendValueError
 from .ibmqjob import IBMQJob, IBMQJobPreQobj
 
 logger = logging.getLogger(__name__)
@@ -101,8 +101,9 @@ class IBMQBackend(BaseBackend):
         Args:
             limit (int): number of jobs to retrieve
             skip (int): starting index of retrieval
-            status (None or JobStatus or str): only get jobs with this status,
-                where status is e.g. `JobStatus.RUNNING` or `'RUNNING'`
+            status (None or qiskit.providers.JobStatus or str): only get jobs
+                with this status, where status is e.g. `JobStatus.RUNNING` or
+                `'RUNNING'`
             db_filter (dict): `loopback-based filter
                 <https://loopback.io/doc/en/lb2/Querying-data.html>`_.
                 This is an interface to a database ``where`` filter. Some
@@ -219,16 +220,6 @@ class IBMQBackend(BaseBackend):
                                                    self.project)
         return "<{}('{}') from IBMQ({})>".format(
             self.__class__.__name__, self.name(), credentials_info)
-
-
-class IBMQBackendError(QiskitError):
-    """IBM Q Backend Errors"""
-    pass
-
-
-class IBMQBackendValueError(IBMQBackendError, ValueError):
-    """Value errors thrown within IBMQBackend """
-    pass
 
 
 def _job_class_from_job_response(job_response):

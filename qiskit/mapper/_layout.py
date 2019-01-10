@@ -12,8 +12,7 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
-
-from qiskit import QiskitError
+from qiskit.mapper.exceptions import LayoutError
 
 
 class Layout(dict):
@@ -155,19 +154,21 @@ class Layout(dict):
         self[right] = temp
 
     def combine_into_edge_map(self, another_layout):
-        """ Combines self and another_layout into an "edge map". For example
+        """ Combines self and another_layout into an "edge map".
+
+        For example::
 
               self       another_layout  resulting edge map
            qr_1 -> 0        0 <- q_2         qr_1 -> q_2
            qr_2 -> 2        2 <- q_1         qr_2 -> q_1
            qr_3 -> 3        3 <- q_0         qr_3 -> q_0
 
-           The edge map is used to compose dags via, for example, compose_back.
+        The edge map is used to compose dags via, for example, compose_back.
 
         Args:
             another_layout (Layout): The other layout to combine.
         Returns:
-            Dict: A "edge map".
+            dict: A "edge map".
         Raises:
             LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
         """
@@ -180,16 +181,3 @@ class Layout(dict):
             edge_map[virtual] = another_layout[physical]
 
         return edge_map
-
-
-class LayoutError(QiskitError):
-    """Errors raised by the layout object."""
-
-    def __init__(self, *msg):
-        """Set the error message."""
-        super().__init__(*msg)
-        self.msg = ' '.join(msg)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.msg)

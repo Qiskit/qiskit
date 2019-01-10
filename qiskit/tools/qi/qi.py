@@ -22,7 +22,7 @@ import scipy.linalg as la
 from scipy.stats import unitary_group
 
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
 from qiskit.quantum_info import state_fidelity as new_state_fidelity
 

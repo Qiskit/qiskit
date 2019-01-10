@@ -14,7 +14,7 @@ A collection of useful quantum information functions for states.
 """
 
 import numpy as np
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 def basis_state(str_state, num):

@@ -10,7 +10,7 @@
 import numpy as np
 
 from qiskit.tools.qcvv import fitters
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQCVVFitters(QiskitTestCase):

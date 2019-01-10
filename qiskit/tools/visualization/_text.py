@@ -12,7 +12,7 @@ A module for drawing circuits in ascii art or some other text representation
 from shutil import get_terminal_size
 import sys
 
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 
 
 class DrawElement():

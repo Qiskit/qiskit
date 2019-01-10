@@ -17,15 +17,13 @@ import sys
 import numpy as np
 import sympy
 
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
-from qiskit.mapper import MapperError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
-from qiskit import QuantumRegister
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.swap import SwapGate
-from qiskit.circuit.measure import Measure
+
+from .exceptions import MapperError
+
 
 logger = logging.getLogger(__name__)
 
@@ -318,66 +316,6 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     return True, best_circ, best_d, best_layout, False
 
 
-def cx_direction(circuit_graph, coupling_graph):
-    """Change the direction of CNOT gates to conform to CouplingGraph.
-
-    circuit_graph = input DAGCircuit
-    coupling_graph = corresponding CouplingGraph
-
-    Adds "h" to the circuit basis.
-
-    Returns a DAGCircuit object containing a circuit equivalent to
-    circuit_graph but with CNOT gate directions matching the edges
-    of coupling_graph. Raises an exception if the circuit_graph
-    does not conform to the coupling_graph.
-    """
-    if "cx" not in circuit_graph.basis:
-        return circuit_graph
-    if circuit_graph.basis["cx"] != (2, 0, 0):
-        raise MapperError("cx gate has unexpected signature %s" %
-                          circuit_graph.basis["cx"])
-
-    qr_fcx = QuantumRegister(2, "fcx")
-    flipped_cx_circuit = DAGCircuit()
-    flipped_cx_circuit.add_qreg(qr_fcx)
-    flipped_cx_circuit.add_basis_element("CX", 2)
-    flipped_cx_circuit.add_basis_element("U", 1, 0, 3)
-    flipped_cx_circuit.add_basis_element("cx", 2)
-    flipped_cx_circuit.add_basis_element("u2", 1, 0, 2)
-    flipped_cx_circuit.add_basis_element("h", 1)
-    flipped_cx_circuit.add_gate_data("cx", cx_data)
-    flipped_cx_circuit.add_gate_data("u2", u2_data)
-    flipped_cx_circuit.add_gate_data("h", h_data)
-    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[1]))
-    flipped_cx_circuit.apply_operation_back(CnotGate(qr_fcx[1], qr_fcx[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[0]))
-    flipped_cx_circuit.apply_operation_back(HGate(qr_fcx[1]))
-
-    q_tmp = QuantumRegister(coupling_graph.size(), 'q')
-    cg_edges = [((q_tmp, i), (q_tmp, j)) for i, j in coupling_graph.get_edges()]
-
-    for cx_node in circuit_graph.get_named_nodes("cx"):
-        nd = circuit_graph.multi_graph.node[cx_node]
-        cxedge = tuple(nd["qargs"])
-        if cxedge in cg_edges:
-            logger.debug("cx %s[%d], %s[%d] -- OK",
-                         cxedge[0][0], cxedge[0][1],
-                         cxedge[1][0], cxedge[1][1])
-            continue
-        elif (cxedge[1], cxedge[0]) in cg_edges:
-            circuit_graph.substitute_node_with_dag(cx_node,
-                                                   flipped_cx_circuit,
-                                                   wires=[qr_fcx[0], qr_fcx[1]])
-            logger.debug("cx %s[%d], %s[%d] -FLIP",
-                         cxedge[0][0], cxedge[0][1],
-                         cxedge[1][0], cxedge[1][1])
-        else:
-            raise MapperError("circuit incompatible with CouplingGraph: "
-                              "cx on %s" % pprint.pformat(cxedge))
-    return circuit_graph
-
-
 def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
                              best_circ, layer_list, coupling_graph):
     """Update the QASM string for an iteration of swap_mapper.
@@ -427,7 +365,7 @@ def swap_mapper(circuit_graph, coupling_graph,
     Args:
         circuit_graph (DAGCircuit): input DAG circuit
         coupling_graph (CouplingGraph): coupling graph to map onto
-        initial_layout (dict): dict {(str, int): (str, int)}
+        initial_layout (Layout): dict {(str, int): (str, int)}
             from qubits of circuit_graph to qubits of coupling_graph (optional)
         trials (int): number of trials.
         seed (int): initial seed.
@@ -438,8 +376,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         a layout dict mapping qubits of circuit_graph into qubits
         of coupling_graph. The layout may differ from the initial_layout
         if the first layer of gates cannot be executed on the
-        initial_layout. Finally, returned is the final layer qubit
-        permutation that is needed to add measurements back in.
+        initial_layout.
 
     Raises:
         MapperError: if there was any error during the mapping or with the
@@ -586,10 +523,6 @@ def swap_mapper(circuit_graph, coupling_graph,
                 initial_layout = layout
                 first_layer = False
 
-    # This is the final layout that we need to correctly replace
-    # any measurements that needed to be removed before the swap
-    last_layout = layout
-
     # If first_layer is still set, the circuit only has single-qubit gates
     # so we can use the initial layout to output the entire circuit
     if first_layer:
@@ -597,83 +530,4 @@ def swap_mapper(circuit_graph, coupling_graph,
         for i, layer in enumerate(layerlist):
             dagcircuit_output.compose_back(layer["graph"], layout)
 
-    return dagcircuit_output, initial_layout, last_layout
-
-
-def cx_cancellation(circuit):
-    """Cancel back-to-back "cx" gates in circuit."""
-    runs = circuit.collect_runs(["cx"])
-    for run in runs:
-        # Partition the run into chunks with equal gate arguments
-        partition = []
-        chunk = []
-        for i in range(len(run) - 1):
-            chunk.append(run[i])
-            qargs0 = circuit.multi_graph.node[run[i]]["qargs"]
-            qargs1 = circuit.multi_graph.node[run[i + 1]]["qargs"]
-            if qargs0 != qargs1:
-                partition.append(chunk)
-                chunk = []
-        chunk.append(run[-1])
-        partition.append(chunk)
-        # Simplify each chunk in the partition
-        for chunk in partition:
-            if len(chunk) % 2 == 0:
-                for n in chunk:
-                    circuit._remove_op_node(n)
-            else:
-                for n in chunk[1:]:
-                    circuit._remove_op_node(n)
-    return circuit
-
-
-def remove_last_measurements(dag_circuit, perform_remove=True):
-    """Removes all measurements that occur as the last operation
-    on a given qubit for a DAG circuit.  Measurements that are followed by
-    additional gates are untouched.
-
-    This operation is done in-place on the input DAG circuit if perform_pop=True.
-
-    Parameters:
-        dag_circuit (DAGCircuit): DAG circuit.
-        perform_remove (bool): Whether to perform removal, or just return node list.
-
-    Returns:
-        list: List of all measurement node indices (int) that were removed.
-    """
-    removed_meas = []
-    try:
-        meas_nodes = dag_circuit.get_named_nodes('measure')
-    except DAGCircuitError:
-        return removed_meas
-
-    for idx in meas_nodes:
-        _, succ_map = dag_circuit._make_pred_succ_maps(idx)
-        if len(succ_map) == 2 and all([dag_circuit.multi_graph.node[n]["type"] == "out"
-                                       for n in succ_map.values()]):
-            # All succesors of the measurement are outputs, one for qubit and one for cbit
-            # (As opposed to more gates being applied), and it is safe to remove the
-            # measurement node and add it back after the swap mapper is done.
-            removed_meas.append(dag_circuit.multi_graph.node[idx])
-            if perform_remove:
-                dag_circuit._remove_op_node(idx)
-    return removed_meas
-
-
-def return_last_measurements(dag_circuit, removed_meas, final_layout):
-    """Returns the measurements to a quantum circuit, removed by
-    `remove_last_measurements` after the swap mapper is finished.
-
-    This operation is done in-place on the input DAG circuit.
-
-    Parameters:
-        dag_circuit (DAGCircuit): DAG circuit.
-        removed_meas (list[int]): List of measurements previously removed.
-        final_layout (dict): Qubit layout after swap mapping.
-    """
-    if any(removed_meas) and 'measure' not in dag_circuit.basis.keys():
-        dag_circuit.add_basis_element("measure", 1, 1, 0)
-    for meas in removed_meas:
-        new_q = final_layout[meas['qargs'][0]]
-        new_c = meas['cargs'][0]
-        dag_circuit.apply_operation_back(Measure(new_q, new_c))
+    return dagcircuit_output, initial_layout

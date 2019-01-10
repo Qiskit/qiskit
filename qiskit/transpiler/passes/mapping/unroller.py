@@ -19,7 +19,7 @@ class Unroller(TransformationPass):
     def __init__(self, basis=None):
         """
         Args:
-            basis (list[Gate]): Target basis gates to unroll to.
+            basis (list[qiskit.circuit.gate.Gate]): Target basis gates to unroll to.
         """
         super().__init__()
         self.basis = basis or []

@@ -21,9 +21,12 @@ from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.instruction import Instruction
-from qiskit.transpiler import TransformationPass
+from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.mapping.unroller import Unroller
+
+
+_CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
@@ -196,6 +199,7 @@ class Optimize1qGates(TransformationPass):
         # Careful with the factor of two in yzy_to_zyz
         thetap, phip, lambdap = Optimize1qGates.yzy_to_zyz((lambda1 + phi2), theta1, theta2)
         (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
+
         return (theta, phi, lamb)
 
     @staticmethod
@@ -220,4 +224,6 @@ class Optimize1qGates(TransformationPass):
         abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))
         if not np.allclose(abs_inner, 1, eps):
             raise MapperError('YZY and ZYZ angles do not give same rotation matrix.')
+        out_angles = tuple(0 if np.abs(angle) < _CHOP_THRESHOLD else angle
+                           for angle in out_angles)
         return out_angles
