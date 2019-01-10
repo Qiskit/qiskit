@@ -49,7 +49,7 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['theme/_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -81,7 +81,67 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_materialdesign_theme' # use the theme in subdir 'theme'
+
+html_sidebars = {
+   '**': ['globaltoc.html']
+}
+
+# Theme options are theme-specific and customize the look and feel of a theme
+# further.  For a list of options available for each theme, see the
+# documentation.
+#
+html_theme_options = {
+    # Specify a list of menu in Header.
+    # Tuples forms:
+    #  ('Name', 'external url or path of pages in the document', boolean, 'icon name')
+    #
+    # Third argument:
+    # True indicates an external link.
+    # False indicates path of pages in the document.
+    #
+    # Fourth argument:
+    # Specify the icon name.
+    # For details see link.
+    # https://material.io/icons/
+    'header_links': [],
+
+    # Customize css colors.
+    # For details see link.
+    # https://getmdl.io/customize/index.html
+    #
+    # Values: amber, blue, brown, cyan deep_orange, deep_purple, green, grey, indigo, light_blue,
+    #         light_green, lime, orange, pink, purple, red, teal, yellow(Default: indigo)
+    'primary_color': 'blue',
+    # Values: Same as primary_color. (Default: pink)
+    'accent_color': 'indigo',
+
+    # Customize layout.
+    # For details see link.
+    # https://getmdl.io/components/index.html#layout-section
+    'fixed_drawer': True,
+    'fixed_header': False,
+    'header_waterfall': True,
+    'header_scroll': False,
+
+    # Render title in header.
+    # Values: True, False (Default: False)
+    'show_header_title': False,
+    # Render title in drawer.
+    # Values: True, False (Default: True)
+    'show_drawer_title': True,
+    # Render footer.
+    'show_footer': False
+}
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ['theme/static/']
+
+html_favicon = 'theme/static/img/favicon.ico'
+
+html_last_updated_fmt = '%Y/%m/%d'
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -159,3 +219,15 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+
+def setup(app):
+    # Add the css required by sphinx-materialdesign-theme.
+    app.add_stylesheet(
+        'material-design-lite-1.3.0/material.{}-{}.min.css'.format(
+            html_theme_options['primary_color'],
+            html_theme_options['accent_color']))
+    app.add_stylesheet('sphinx_materialdesign_theme.css')
+    # Add the custom css and js used by the Qiskit theme.
+    app.add_stylesheet('css/theme.css')
+    app.add_javascript('js/themeExt.js')
