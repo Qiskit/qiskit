@@ -7,7 +7,6 @@
 
 """Tools for compiling a batch of quantum circuits."""
 import logging
-import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.mapper import CouplingMap, swap_mapper
