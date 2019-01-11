@@ -39,6 +39,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
     Raises:
         VisualizationError: when style is not recognized.
+        ImportError: when nxpd or pydot not installed.
     """
     try:
         import nxpd
