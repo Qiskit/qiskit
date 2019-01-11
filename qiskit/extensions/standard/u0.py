@@ -44,7 +44,7 @@ class U0Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u0(self.param[0], self.qargs[0]))
+        self._modifiers(circ.u0(self.params[0], self.qargs[0]))
 
 
 @_1q_gate
