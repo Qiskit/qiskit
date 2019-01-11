@@ -43,9 +43,11 @@ def barrier(self, *qargs):
                 qubits.append((qreg, j))
 
     for qarg in qargs:
-        if isinstance(qarg, QuantumRegister):
-            for j in range(qarg.size):
-                qubits.append((qarg, j))
+        if isinstance(qarg, (QuantumRegister, list)):
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([(qarg, j) for j in range(qarg.size)])
+            else:
+                qubits.extend(qarg)
         else:
             qubits.append(qarg)
 

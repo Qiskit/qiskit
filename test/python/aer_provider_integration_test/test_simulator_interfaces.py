@@ -14,10 +14,10 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit import execute
-from qiskit.test import requires_qe_access, QiskitTestCase, requires_cpp_simulator
+from qiskit.test import requires_qe_access, QiskitTestCase, requires_aer_provider
 
 
-@requires_cpp_simulator
+@requires_aer_provider
 class TestCrossSimulation(QiskitTestCase):
     """Test output consistency across simulators (from built-in and legacy simulators & IBMQ)
     """
