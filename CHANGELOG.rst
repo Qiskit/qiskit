@@ -68,7 +68,8 @@ Removed
   as unsupported in Aer (#1615).
 - Removed circuit.add as deprecated (#1627)
 - Removed the unroller (#1629)
-- Remove deprecated result methods (#1659)
+- Removed deprecated result methods (#1659)
+- Removed deprecated transpile_dag() 'format' kwarg (#1664)
 
 `0.7.0`_ - 2018-12-19
 =====================
