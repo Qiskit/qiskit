@@ -434,8 +434,8 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(QiskitError, qc.swap, (self.qr, 3), self.qr[0])
         self.assertRaises(QiskitError, qc.swap, self.cr, self.qr)
         self.assertRaises(QiskitError, qc.swap, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.swap, self.qr, self.qr2[1])
-        self.assertRaises(QiskitError, qc.swap, self.qr[1], self.qr2)
+        self.assertRaises(QiskitError, qc.swap, self.qr, self.qr2[[1, 2]])
+        self.assertRaises(QiskitError, qc.swap, self.qr[:2], self.qr2)
 
     def test_t(self):
         self.assertRaises(QiskitError, self.circuit.t, self.cr[0])
