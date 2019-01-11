@@ -83,7 +83,7 @@ class Register:
         self.check_range(key)
         if isinstance(key, slice):
             return [(self, ind) for ind in range(*key.indices(len(self)))]
-        elif isinstance(key, list): # list of qubits indices
+        elif isinstance(key, list):  # list of qubit indices
             if max(key) < len(self):
                 return [(self, ind) for ind in key]
             else:
