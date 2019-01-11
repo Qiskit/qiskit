@@ -8,13 +8,9 @@
 """
 Quantum measurement in the computational basis.
 """
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.decorators import _2q_gate
 from .instruction import Instruction
-from .instructionset import InstructionSet
 from .quantumcircuit import QuantumCircuit
-from .quantumregister import QuantumRegister
-from .classicalregister import ClassicalRegister
 
 
 class Measure(Instruction):

@@ -10,7 +10,6 @@ Toffoli gate. Controlled-Controlled-X.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _3q_gate
 from qiskit.dagcircuit import DAGCircuit
@@ -19,7 +18,6 @@ from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
-from qiskit.exceptions import QiskitError
 
 
 class ToffoliGate(Gate):
