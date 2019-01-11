@@ -40,6 +40,7 @@ Changed
 - The previously deprecated default output of ``circuit_drawer()`` (using latex
   and falling back to mpl) is no longer present. Instead the default output
   is the ascii art ``text`` output backend.
+- Changed param to params
 
 Fixed
 -----
