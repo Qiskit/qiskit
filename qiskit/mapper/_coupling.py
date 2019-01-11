@@ -16,7 +16,6 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
-import warnings
 import networkx as nx
 from .exceptions import CouplingError
 
