@@ -23,13 +23,13 @@ class CouplingTest(QiskitTestCase):
 
     def test_coupling_str(self):
         coupling_list = [(0, 1), (0, 2), (1, 2)]
-        coupling = CouplingMap(couplinglist=coupling_list)
+        coupling = CouplingMap(coupling_list)
         expected = ("[(0, 1), (0, 2), (1, 2)]")
         self.assertEqual(expected, str(coupling))
 
     def test_coupling_distance(self):
         coupling_list = [(0, 1), (0, 2), (1, 2)]
-        coupling = CouplingMap(couplinglist=coupling_list)
+        coupling = CouplingMap(coupling_list)
         self.assertTrue(coupling.is_connected())
         physical_qubits = coupling.physical_qubits
         result = coupling.distance(physical_qubits[0], physical_qubits[1])
@@ -62,7 +62,7 @@ class CouplingTest(QiskitTestCase):
 
     def test_init_with_couplinglist(self):
         coupling_list = [[0, 1], [1, 2]]
-        coupling = CouplingMap(couplinglist=coupling_list)
+        coupling = CouplingMap(coupling_list)
 
         qubits_expected = [0, 1, 2]
         edges_expected = [(0, 1), (1, 2)]
