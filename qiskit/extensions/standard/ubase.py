@@ -12,8 +12,7 @@ Element of SU(2).
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _1q_gate
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
@@ -40,14 +39,9 @@ class UBase(Gate):  # pylint: disable=abstract-method
                                     self.qargs[0]))
 
 
+@_1q_gate
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.u_base(theta, phi, lam, (q, j)))
-        return gs
-
     self._check_qubit(q)
     return self._attach(UBase(theta, phi, lam, q, self))
 

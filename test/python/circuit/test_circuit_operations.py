@@ -134,11 +134,4 @@ class TestCircuitOperations(QiskitTestCase):
         with self.assertRaises(QiskitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
-                         'qubit (2) and cbit (1) should have the same length')
-
-        with self.assertRaises(QiskitError) as ctx:
-            quantum_circuit.measure(quantum_reg[1], classical_reg_1)
-        self.assertEqual(ctx.exception.message, 'Both qubit <tuple> and cbit <ClassicalRegister> '
-                                                'should be Registers or formated as tuples. Hint: '
-                                                'You can use subscript eg. cbit[0] to '
-                                                'convert it into tuple.')
+                         'qubit and cbit should have the same length if lists')

@@ -25,6 +25,7 @@ Added
 
 - Added a RunConfig object for configurations for run configurations to be used 
   in compile and circuits_to_qobj. (#1629)
+- Added support for register slicing when applying operations to a register (#1643).
 
 Changed
 -------

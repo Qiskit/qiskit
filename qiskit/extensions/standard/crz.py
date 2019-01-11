@@ -10,8 +10,8 @@ controlled-rz gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _control_target_gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
@@ -58,27 +58,9 @@ class CrzGate(Gate):
         self._modifiers(circ.crz(self.param[0], self.qargs[0], self.qargs[1]))
 
 
+@_control_target_gate
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        instructions = InstructionSet()
-        for i in range(ctl.size):
-            instructions.add(self.crz(theta, (ctl, i), (tgt, i)))
-        return instructions
-
-    if isinstance(ctl, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(ctl.size):
-            instructions.add(self.crz(theta, (ctl, j), tgt))
-        return instructions
-
-    if isinstance(tgt, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(tgt.size):
-            instructions.add(self.crz(theta, ctl, (tgt, j)))
-        return instructions
-
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
