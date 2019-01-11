@@ -60,10 +60,6 @@ class CouplingTest(QiskitTestCase):
         graph.add_physical_qubit(1)
         self.assertRaises(CouplingError, graph.distance, 0, 1)
 
-    def test_raises_when_init_with_both_dict_and_list(self):
-        self.assertRaises(CouplingError, CouplingMap,
-                          couplingdict={0: [1]}, couplinglist=[[0, 1]])
-
     def test_init_with_couplinglist(self):
         coupling_list = [[0, 1], [1, 2]]
         coupling = CouplingMap(couplinglist=coupling_list)
