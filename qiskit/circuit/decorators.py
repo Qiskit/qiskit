@@ -1,5 +1,14 @@
-"""This module contains decorators for expanding registers objects or
-list of qubits into a series of single qubit/cbit instructions to be handled by the """
+# -*- coding: utf-8 -*-
+
+# Copyright 2017, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+"""
+This module contains decorators for expanding register objects or
+list of qubits into a series of single qubit/cbit instructions to be handled by
+the wrapped operation.
+"""
 
 from functools import wraps
 from qiskit.exceptions import QiskitError
@@ -96,4 +105,41 @@ def _control_target_gate(func):
                 raise QiskitError('indeterminate control or target qubits')
             return instructions
         return func(self, *params, ctl, tgt)
+    return wrapper
+
+
+def _3q_gate(func):
+    """
+    Broadcast single qubit args to multiqubit args if other args have multiple
+    qubits.
+    """
+    @wraps(func)
+    def wrapper(self, *args):
+        """Wrapper for control-target gate"""
+        params = args[0:-3] if len(args) > 3 else tuple()
+        qargs = args[-3:]
+        if not all([isinstance(arg, tuple) for arg in qargs]):
+            broadcast_size = max(len(arg) for arg in qargs)
+            expanded_qargs = []
+            for arg in qargs:
+                if isinstance(arg, QuantumRegister):
+                    arg = [(arg, i) for i in range(len(arg))]
+                elif isinstance(arg, tuple):
+                    arg = [arg]
+                # now we should have a list of qubits
+                if isinstance(arg, list) and len(arg) == 1:
+                    arg = arg * broadcast_size
+                if len(arg) != broadcast_size:
+                    raise QiskitError('register sizes should match or be one')
+                expanded_qargs.append(arg)
+            qargs = expanded_qargs
+            if all([isinstance(arg, list) for arg in qargs]):
+                if all(qargs):
+                    instructions = InstructionSet()
+                    for iqargs in zip(*qargs):
+                        instructions.add(self.ccx(*iqargs))
+                    return instructions
+                else:
+                    raise QiskitError('empty control or target argument')
+        return func(self, *params, *qargs)
     return wrapper

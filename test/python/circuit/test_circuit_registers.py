@@ -265,3 +265,24 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(len(gate.cargs), 1)
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
+
+    def test_list_indexing(self):
+        """test list indexing"""
+        qr = QuantumRegister(10)
+        cr = QuantumRegister(10)
+        qc = QuantumCircuit(qr, cr)
+        ind = [0, 1, 8, 9]
+        qc.h(qr[ind])
+        self.assertEqual(len(qc.data), len(ind))
+        for gate, index in zip(qc.data, ind):
+            self.assertEqual(gate.name, 'h')
+            self.assertEqual(len(gate.qargs), 1)
+            self.assertEqual(gate.qargs[0][1], index)
+        qc = QuantumCircuit(qr, cr)
+        ind = [0, 1, 8, 9]
+        qc.cx(qr[ind], qr[2:6])
+        for gate, ind1, ind2 in zip(qc.data, ind, range(2, 6)):
+            self.assertEqual(gate.name, 'cx')
+            self.assertEqual(len(gate.qargs), 2)
+            self.assertEqual(gate.qargs[0][1], ind1)
+            self.assertEqual(gate.qargs[1][1], ind2)
