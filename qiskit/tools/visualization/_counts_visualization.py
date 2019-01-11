@@ -73,6 +73,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     elif isinstance(color, str):
         color = [color]
 
+    all_pvalues = []
     for item, execution in enumerate(data):
         if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
@@ -92,6 +93,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         values = np.array(values, dtype=float)
         where_idx = np.where(values >= 0)[0]
         pvalues = values[where_idx] / sum(values[where_idx])
+        for value in pvalues:
+            all_pvalues.append(value)
         numelem = len(values[where_idx])
         ind = np.arange(numelem)  # the x locations for the groups
         width = 1/(len(data)+1)  # the width of the bars
@@ -104,11 +107,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                 rects.append(ax.bar(idx+item*width, val, width, label=label,
                                     color=color[item % len(color)],
                                     zorder=2))
-        # add some text for labels, title, and axes ticks
-        ax.set_ylabel('Probabilities', fontsize=14)
         ax.set_xticks(ind)
         ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
-        ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
         # attach some text labels
         if bar_labels:
             for rect in rects:
@@ -123,6 +123,9 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                                 '0',
                                 ha='center', va='bottom', zorder=3)
 
+    # add some text for labels, title, and axes ticks
+    ax.set_ylabel('Probabilities', fontsize=14)
+    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_pvalues])])])
     if sort == 'desc':
         ax.invert_xaxis()
     elif sort != 'asc':
