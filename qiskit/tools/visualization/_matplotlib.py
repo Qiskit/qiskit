@@ -550,7 +550,7 @@ class MatplotlibDrawer:
 
             # rotation parameter
             if 'op' in op.keys() and hasattr(op['op'], 'param'):
-                param = self.param_parse(op['op'].param, self._style.pimode)
+                param = self.param_parse(op['op'].params, self._style.pimode)
             else:
                 param = None
             # conditional gate

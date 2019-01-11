@@ -33,7 +33,7 @@ class U2Gate(Gate):
         decomposition.add_qreg(q)
         decomposition.add_basis_element("U", 1, 0, 3)
         rule = [
-            UBase(pi/2, self.param[0], self.param[1], q[0])
+            UBase(pi/2, self.params[0], self.params[1], q[0])
         ]
         for inst in rule:
             decomposition.apply_operation_back(inst)
@@ -44,15 +44,15 @@ class U2Gate(Gate):
 
         u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
         """
-        phi = self.param[0]
-        self.param[0] = -self.param[1] - pi
-        self.param[1] = -phi + pi
+        phi = self.params[0]
+        self.params[0] = -self.params[1] - pi
+        self.params[1] = -phi + pi
         self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u2(self.param[0], self.param[1], self.qargs[0]))
+        self._modifiers(circ.u2(self.params[0], self.params[1], self.qargs[0]))
 
 
 @_1q_gate

@@ -38,9 +38,9 @@ class CrzGate(Gate):
         decomposition.add_basis_element("u1", 1, 0, 1)
         decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
-            U1Gate(self.param[0]/2, q[1]),
+            U1Gate(self.params[0]/2, q[1]),
             CnotGate(q[0], q[1]),
-            U1Gate(-self.param[0]/2, q[1]),
+            U1Gate(-self.params[0]/2, q[1]),
             CnotGate(q[0], q[1])
         ]
         for inst in rule:
@@ -49,13 +49,13 @@ class CrzGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.param[0] = -self.param[0]
+        self.params[0] = -self.params[0]
         self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.crz(self.param[0], self.qargs[0], self.qargs[1]))
+        self._modifiers(circ.crz(self.params[0], self.qargs[0], self.qargs[1]))
 
 
 @_control_target_gate
