@@ -46,6 +46,7 @@ release = '0.7'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -75,6 +76,16 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+# A boolean that decides whether module names are prepended to all object names
+# (for object types where a “module” of some kind is defined), e.g. for
+# py:function directives.
+add_module_names = False
+
+# A list of prefixes that are ignored for sorting the Python module index
+# (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
+# This can be handy if you document a project that consists of a single
+# package. Works only for the HTML builder currently.
+modindex_common_prefix = ['qiskit.']
 
 # -- Options for HTML output -------------------------------------------------
 

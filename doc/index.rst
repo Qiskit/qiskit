@@ -7,8 +7,7 @@ Welcome to Qiskit's documentation!
 
    overview
    install
-
-
+   Qiskit Module reference <autodoc/qiskit>
 
 Indices and tables
 ==================
