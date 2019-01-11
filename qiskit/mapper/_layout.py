@@ -57,8 +57,8 @@ class Layout(dict):
         return dict.__getitem__(self, item)
 
     def __setitem__(self, key, value):
-        Layout.checktype(key)
-        Layout.checktype(value)
+        Layout._checktype(key)
+        Layout._checktype(value)
         if isinstance(key, type(value)):
             raise LayoutError('Key (%s) and value (%s) cannot have the same type' % (key, value))
 
@@ -76,7 +76,7 @@ class Layout(dict):
         dict.__delitem__(self, key)
 
     @staticmethod
-    def checktype(thing):
+    def _checktype(thing):
         """Checks if thing is a valid type"""
         if thing is None:
             return
