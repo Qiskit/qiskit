@@ -115,7 +115,7 @@ class TestMovedFromMapper(QiskitTestCase):
         for n in simplified_dag.multi_graph.nodes:
             node = simplified_dag.multi_graph.node[n]
             if node['name'] == 'u1':
-                params.add(node['op'].param[0])
+                params.add(node['op'].params[0])
 
         expected_params = {-3 * sympy.pi / 2,
                            1.0 + 0.55 * sympy.pi,

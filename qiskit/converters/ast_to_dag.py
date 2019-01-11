@@ -306,13 +306,13 @@ class AstInterpreter:
                               "file=%s" % node.file)
         return None
 
-    def _create_dag_op(self, name, param, qargs):
+    def _create_dag_op(self, name, params, qargs):
         """
         Create a DAG node out of a parsed AST op node.
 
         Args:
             name (str): operation name to apply to the dag.
-            param (list): op parameters
+            params (list): op parameters
             qargs (list(QuantumRegister, int)): qubits to attach to
 
         Raises:
@@ -375,7 +375,7 @@ class AstInterpreter:
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 
-        op = op_class(*param, *qargs)
+        op = op_class(*params, *qargs)
 
-        self.dag.add_basis_element(name, len(qargs), 0, len(param))
+        self.dag.add_basis_element(name, len(qargs), 0, len(params))
         self.dag.apply_operation_back(op, condition=self.condition)
