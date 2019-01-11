@@ -52,11 +52,11 @@ class Optimize1qGates(TransformationPass):
                         or left_name not in ["u1", "u2", "u3", "id"]):
                     raise MapperError("internal error")
                 if left_name == "u1":
-                    left_parameters = (N(0), N(0), node["op"].param[0])
+                    left_parameters = (N(0), N(0), node["op"].params[0])
                 elif left_name == "u2":
-                    left_parameters = (sympy.pi / 2, node["op"].param[0], node["op"].param[1])
+                    left_parameters = (sympy.pi / 2, node["op"].params[0], node["op"].params[1])
                 elif left_name == "u3":
-                    left_parameters = tuple(node["op"].param)
+                    left_parameters = tuple(node["op"].params)
                 else:
                     left_name = "u1"  # replace id with u1
                     left_parameters = (N(0), N(0), N(0))
