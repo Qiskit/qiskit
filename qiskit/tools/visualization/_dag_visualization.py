@@ -13,12 +13,6 @@ Visualization function for DAG circuit representation.
 
 import sys
 import copy
-try:
-    import nxpd
-    import pydot  # pylint: disable=unused-import
-except ImportError:
-    raise ImportError("dag_drawer requires nxpd, pydot, and Graphviz. "
-                      "Run 'pip install nxpd pydot', and install graphviz")
 from .exceptions import VisualizationError
 
 
@@ -46,6 +40,13 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     Raises:
         VisualizationError: when style is not recognized.
     """
+    try:
+        import nxpd
+        import pydot  # pylint: disable=unused-import
+    except ImportError:
+        raise ImportError("dag_drawer requires nxpd, pydot, and Graphviz. "
+                          "Run 'pip install nxpd pydot', and install graphviz")
+
     G = copy.deepcopy(dag.multi_graph)  # don't modify the original graph attributes
     G.graph['dpi'] = 100 * scale
 

@@ -42,6 +42,9 @@ Changed
   and falling back to mpl) is no longer present. Instead the default output
   is the ascii art ``text`` output backend.
 - Changed param to params in Instruction (#1665).
+- ``dag_drawer`` and ``plot_gate_map`` are available via importing
+  ``qiskit.tools.visualization``. They will raise at the point of use, if
+  dependencies are not installed (#1669).
 
 Fixed
 -----
