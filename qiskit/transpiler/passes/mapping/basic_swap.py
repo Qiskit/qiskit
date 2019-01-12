@@ -54,13 +54,11 @@ class BasicSwap(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.initial_layout is None:
-            # create a one-to-one layout
-            self.initial_layout = Layout()
-            physical_qubit = 0
-            for qreg in dag.qregs.values():
-                for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = physical_qubit
-                    physical_qubit += 1
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
         current_layout = copy(self.initial_layout)
 
         for layer in dag.serial_layers():

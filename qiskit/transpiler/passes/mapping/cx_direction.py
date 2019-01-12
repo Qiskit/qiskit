@@ -56,13 +56,10 @@ class CXDirection(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.layout is None:
-            # create a one-to-one layout
-            self.layout = Layout()
-            wire_no = 0
-            for qreg in dag.qregs.values():
-                for index in range(qreg.size):
-                    self.layout[(qreg, index)] = wire_no
-                    wire_no += 1
+            if self.property_set["layout"]:
+                self.layout = self.property_set["layout"]
+            else:
+                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
