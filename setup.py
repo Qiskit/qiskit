@@ -5,14 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-import os
-import platform
-from distutils.command.build import build
-from multiprocessing import cpu_count
-from subprocess import call
-
 from setuptools import setup, find_packages
-from setuptools.dist import Distribution
 
 
 requirements = [
@@ -29,12 +22,6 @@ requirements = [
     "scipy>=0.19,!=0.19.1",
     "sympy>=1.3"
 ]
-
-
-# This is for creating wheel specific platforms
-class BinaryDistribution(Distribution):
-    def has_ext_modules(self):
-        return True
 
 
 setup(
@@ -64,7 +51,6 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
-    distclass=BinaryDistribution,
     extra_requires={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
                           'pydot'],
