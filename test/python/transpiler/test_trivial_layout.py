@@ -35,7 +35,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = TrivialLayout(self.cmap5)
+        pass_ = TrivialLayout(CouplingMap(self.cmap5))
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
@@ -56,7 +56,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.measure(qr0[2], cr[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = TrivialLayout(self.cmap16)
+        pass_ = TrivialLayout(CouplingMap(self.cmap16))
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
@@ -75,7 +75,7 @@ class TestDenseLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         with self.assertRaises(TranspilerError):
-            pass_ = TrivialLayout(self.cmap5)
+            pass_ = TrivialLayout(CouplingMap(self.cmap5))
             pass_.run(dag)
 
 

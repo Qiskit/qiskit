@@ -16,7 +16,7 @@ import unittest
 
 from unittest.mock import patch
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import new_fake_qobj, FakeBackend
+from qiskit.test.mock import new_fake_qobj, FakeRueschlikon
 
 
 class TestSimulatorsJob(QiskitTestCase):

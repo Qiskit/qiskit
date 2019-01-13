@@ -11,18 +11,16 @@
 """IBMQJob states test-suite."""
 
 import unittest
-import time
 from contextlib import suppress
 from qiskit.providers.jobstatus import JobStatus
-from qiskit.providers.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob, API_FINAL_STATES
-from qiskit.providers.ibmq.api import ApiError
+from qiskit.providers.ibmq.ibmqjob import IBMQJobPreQobj, API_FINAL_STATES
 from qiskit.providers import JobError, JobTimeoutError
-from qiskit.test.mock import (BaseFakeAPI, UnknownStatusAPI, ValidatingAPI,
+from qiskit.test.mock import (FakeRueschlikon, BaseFakeAPI, UnknownStatusAPI, ValidatingAPI,
                               ErrorWhileValidatingAPI, NonQueuedAPI, ErrorWhileCreatingAPI,
                               ErrorWhileRunningAPI, QueuedAPI, RejectingJobAPI, UnavailableRunAPI,
                               ThrowingAPI, ThrowingNonJobRelatedErrorAPI, ThrowingGetJobAPI,
                               CancellableAPI, NonCancellableAPI, ErroredCancellationAPI,
-                              FakeRueschlikon, new_fake_qobj, _auto_progress_api)
+                              new_fake_qobj, _auto_progress_api)
 from .jobtestcase import JobTestCase
 
 

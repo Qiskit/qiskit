@@ -5,6 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=missing-docstring
 
 """
 Utilities for mocking the IBMQ provider, including job responses and backends.
@@ -31,6 +32,8 @@ from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
+from qiskit.providers.exceptions import QiskitBackendNotFoundError
+
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +98,7 @@ class FakeBackend(BaseBackend):
 
     def run(self, qobj):
         job_id = str(uuid.uuid4())
-        job = FakeJob(self.run_job, qobj, job_id, self)
+        job = FakeJob(self, job_id, self.run_job, qobj)
         job.submit()
         return job
 
@@ -113,20 +116,20 @@ class FakeQasmSimulator(FakeBackend):
 
     def __init__(self):
         _configuration = BackendConfiguration(
-                backend_name='fake_qasm_simulator',
-                backend_version='0.0.0',
-                n_qubits=5,
-                basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                             'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                             'snapshot', 'unitary'],
-                simulator=True,
-                local=True,
-                conditional=True,
-                open_pulse=False,
-                memory=True,
-                max_shots=65536,
-                gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
-            )
+            backend_name='fake_qasm_simulator',
+            backend_version='0.0.0',
+            n_qubits=5,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
+                         'snapshot', 'unitary'],
+            simulator=True,
+            local=True,
+            conditional=True,
+            open_pulse=False,
+            memory=True,
+            max_shots=65536,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
+        )
 
         super().__init__(_configuration)
 
@@ -283,10 +286,10 @@ class FakeJob(BaseJob):
     """Fake simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, fn, qobj, job_id, backend):
-        super().__init__()
-        self._job_id = job_id
+    def __init__(self, backend, job_id, fn, qobj):
+        super().__init__(backend, job_id)
         self._backend = backend
+        self._job_id = job_id
         self._qobj = qobj
         self._future = None
         self._future_callback = fn

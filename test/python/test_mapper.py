@@ -12,8 +12,6 @@ import unittest
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
-from qiskit.providers.models import BackendConfiguration
-from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.mapper._compiling import two_qubit_kak
@@ -21,7 +19,7 @@ from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import MapperError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon 
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 
 class TestMapper(QiskitTestCase):
