@@ -158,16 +158,6 @@ jobs:
       python: 3.6
       env: USE_ALTERNATE_ENV_CREDENTIALS=True
 
-    # "deploy" stage.
-    ###########################################################################
-    # github pages documentation update (GNU/Linux, Python 3.5)
-    - stage: deploy doc and pypi
-      <<: *stage_linux
-      if: branch = stable and repo = Qiskit/qiskit-terra and type = push
-      script: cd ..
-      deploy:
-        <<: *deploy_ghpages
-
     # GNU/Linux, Python 3.5
     - stage: deploy doc and pypi
       <<: *stage_linux
