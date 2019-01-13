@@ -559,7 +559,7 @@ class MatplotlibDrawer:
                         ii in self._creg_dict]
                 mask = 0
                 for index, cbit in enumerate(self._creg):
-                    if cbit.name == op['condition'][0]:
+                    if cbit.reg == op['condition'][0]:
                         mask |= (1 << index)
                 val = op['condition'][1]
                 # cbit list to consider
