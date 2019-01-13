@@ -318,7 +318,7 @@ the three-qubit GHZ state
 
 .. math:: |\psi\rangle = |000\rangle +|111\rangle)/\sqrt{2},
 
- and let :math:`xyz` denote the bitstring that results. Recall that,
+and let :math:`xyz` denote the bitstring that results. Recall that,
 under the qubit labeling used by Qiskit, :math:`x` would correspond to
 the outcome on qubit 2, :math:`y` to the outcome on qubit 1, and
 :math:`z` to the outcome on qubit 0. This representation of the
@@ -331,7 +331,7 @@ The probability of obtaining outcome :math:`xyz` is given by
 
 .. math:: \mathrm{Pr}(xyz) = |\langle xyz | \psi \rangle |^{2}.
 
- By explicit computation, we see there are only two bitstrings that will
+By explicit computation, we see there are only two bitstrings that will
 occur: :math:`000` and :math:`111`. If the bitstring :math:`000` is
 obtained, the state of the qubits is :math:`|000\rangle`, and if the
 bitstring is :math:`111`, the qubits are left in the state

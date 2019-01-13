@@ -522,7 +522,7 @@ to being deprecated:
 
   The recommended way for opening a connection to the IBMQ API and for using
   the backends is through the
-  :ref:`top-level functions <qiskit_top_level_functions>` directly instead of
+  top-level functions directly instead of
   the ``QuantumProgram`` methods. In particular, the
   :func:`qiskit.register` method provides the equivalent of the previous
   :func:`qiskit.QuantumProgram.set_api` call. In a similar vein, there is a new
@@ -644,5 +644,3 @@ Several functions of the SDK have been made more flexible and user-friendly:
     data = result.get_data(qc)
     data = result.get_data()
 
-
-.. include:: CHANGELOG.rst
