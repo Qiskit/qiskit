@@ -47,9 +47,10 @@ class CheckMap(AnalysisPass):
             dag (DAGCircuit): DAG to map.
         """
         if self.layout is None:
-            self.layout = Layout()
-            for qreg in dag.qregs.values():
-                self.layout.add_register(qreg)
+            if self.property_set["layout"]:
+                self.layout = self.property_set["layout"]
+            else:
+                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         self.property_set['is_swap_mapped'] = True
         self.property_set['is_direction_mapped'] = True

@@ -58,15 +58,17 @@ SEARCH_WIDTH = 4
 class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs."""
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, initial_layout=None):
         """Initialize a LookaheadSwap instance.
 
         Arguments:
             coupling_map (CouplingMap): CouplingMap of the target backend.
+            initial_layout (Layout): The initial layout of the DAG to analyze.
         """
 
         super().__init__()
         self._coupling_map = coupling_map
+        self.initial_layout = initial_layout
         self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
@@ -89,14 +91,14 @@ class LookaheadSwap(TransformationPass):
             raise TranspilerError('DAG contains more qubits than are '
                                   'present in the coupling map.')
 
-        dag_qubits = dag.get_qubits()
-        coupling_qubits = coupling_map.physical_qubits
-
-        starting_layout = [dag_qubits[i] if i < len(dag_qubits) else None
-                           for i in range(len(coupling_qubits))]
+        if self.initial_layout is None:
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         mapped_gates = []
-        layout = Layout(starting_layout)
+        layout = self.initial_layout.copy()
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:

@@ -20,6 +20,9 @@ from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_state)
 
 from ._circuit_visualization import circuit_drawer, qx_color_scheme
+from ._dag_visualization import dag_drawer
+from ._gate_map import plot_gate_map
+
 from .exceptions import VisualizationError
 from ._matplotlib import HAS_MATPLOTLIB
 
@@ -32,6 +35,3 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
                                                             iplot_state_hinton,
                                                             iplot_histogram,
                                                             iplot_state_paulivec)
-
-if HAS_MATPLOTLIB:
-    from ._gate_map import plot_gate_map

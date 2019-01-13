@@ -334,8 +334,8 @@ class TestIBMQJob(JobTestCase):
 
 
 @unittest.skip('Temporarily disabled, see #1162')
-class TestQObjectBasedIBMQJob(JobTestCase):
-    """Test jobs supporting QObject."""
+class TestQobjBasedIBMQJob(JobTestCase):
+    """Test jobs supporting Qobj."""
 
     def setUp(self):
         super().setUp()
@@ -351,13 +351,13 @@ class TestQObjectBasedIBMQJob(JobTestCase):
 
         self._qc = _bell_circuit()
 
-    def test_qobject_enabled_job(self):
+    def test_qobj_enabled_job(self):
         """Job should be an instance of IBMQJob."""
         qobj = compile(self._qc, self._backend)
         job = self._backend.run(qobj)
         self.assertIsInstance(job, IBMQJob)
 
-    def test_qobject_result(self):
+    def test_qobj_enabled_result(self):
         """Jobs can be retrieved."""
         qobj = compile(self._qc, self._backend)
         job = self._backend.run(qobj)
