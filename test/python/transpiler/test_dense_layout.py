@@ -14,39 +14,14 @@ from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeTokyo
 
 
 class TestDenseLayout(QiskitTestCase):
     """Tests the DenseLayout pass"""
 
     def setUp(self):
-        """
-        0  =  1   =  2   =  3     4
-
-        ||    ||    ||     ||  X  ||
-
-        5  =  6   =  7   =  8  =  9
-
-        || X  ||    ||   X  ||
-
-        10 =  11  =  12  =  13 =  14
-
-        ||    ||  X         || X  ||
-
-        15 =  16  =  17     18    19
-        """
-        self.cmap20 = [[0, 1], [0, 5], [1, 0], [1, 2], [1, 6], [2, 1],
-                       [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
-                       [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5],
-                       [6, 7], [6, 10], [6, 11], [7, 1], [7, 6], [7, 8], [7, 12],
-                       [7, 13], [8, 3], [8, 4], [8, 7], [8, 9], [8, 12], [8, 13],
-                       [9, 3], [9, 4], [9, 8], [10, 5], [10, 6], [10, 11], [10, 15],
-                       [11, 5], [11, 6], [11, 10], [11, 12], [11, 16], [11, 17],
-                       [12, 7], [12, 8], [12, 11], [12, 13], [12, 16], [13, 7],
-                       [13, 8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13],
-                       [14, 18], [14, 19], [15, 10], [15, 16], [16, 11], [16, 12],
-                       [16, 15], [16, 17], [17, 11], [17, 16], [18, 13], [18, 14],
-                       [19, 13], [19, 14]]
+        self.cmap20 = FakeTokyo().configuration().coupling_map
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map.

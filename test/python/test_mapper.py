@@ -12,8 +12,6 @@ import unittest
 from qiskit import compile, execute
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
-from qiskit.providers.models import BackendConfiguration
-from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import Qobj
 from qiskit.transpiler._transpiler import transpile_dag
 from qiskit.mapper._compiling import two_qubit_kak
@@ -21,59 +19,7 @@ from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper._mapping import MapperError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
-
-
-class FakeQX4BackEnd:
-    """A fake QX4 backend."""
-
-    def name(self):
-        return 'qiskit_is_cool'
-
-    def configuration(self):
-        qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
-
-        return BackendConfiguration(
-            backend_name='fake_qx4',
-            backend_version='0.0.0',
-            n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-            simulator=False,
-            local=True,
-            conditional=False,
-            open_pulse=False,
-            memory=False,
-            max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=qx4_cmap,
-        )
-
-
-class FakeQX5BackEnd:
-    """A fake QX5 backend."""
-
-    def name(self):
-        return 'qiskit_is_cool'
-
-    def configuration(self):
-        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
-                    [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
-                    [13, 14], [15, 0], [15, 2], [15, 14]]
-
-        return BackendConfiguration(
-            backend_name='fake_qx5',
-            backend_version='0.0.0',
-            n_qubits=16,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-            simulator=False,
-            local=True,
-            conditional=False,
-            open_pulse=False,
-            memory=False,
-            max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=qx5_cmap,
-        )
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 
 class TestMapper(QiskitTestCase):
@@ -206,7 +152,7 @@ class TestMapper(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        backend = FakeQX5BackEnd()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16, 'qr')
         cr = ClassicalRegister(16, 'cr')
         qc = QuantumCircuit(qr, cr)
@@ -233,7 +179,7 @@ class TestMapper(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
-        backend = FakeQX4BackEnd()
+        backend = FakeTenerife()
         qr = QuantumRegister(2)
         circ1 = QuantumCircuit(qr)
         circ1.cx(qr[0], qr[1])
@@ -253,7 +199,7 @@ class TestMapper(QiskitTestCase):
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.
         """
-        backend = FakeQX5BackEnd()
+        backend = FakeRueschlikon()
         cmap = backend.configuration().coupling_map
         circ = QuantumCircuit.from_qasm_file(
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
