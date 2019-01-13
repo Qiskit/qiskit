@@ -16,7 +16,7 @@ from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from .._mockutils import FakeBackend
+from qiskit.test.mock import FakeRueschlikon
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -53,7 +53,7 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates())
-        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
+        result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
 
         self.assertEqual(expected, result)
 

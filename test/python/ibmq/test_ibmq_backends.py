@@ -17,6 +17,7 @@ from qiskit import IBMQ
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile
 from qiskit.qobj import QobjHeader
+from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.test import Path, QiskitTestCase, requires_qe_access, slow_test
 
 
@@ -140,3 +141,23 @@ class TestIBMQBackends(QiskitTestCase):
                 self.assertEqual(result.header.to_dict(), custom_qobj_header)
                 self.assertEqual(result.results[0].header.some_field,
                                  'extra info')
+
+    @requires_qe_access
+    def test_aliases(self, qe_token, qe_url):
+        """Test that display names of devices map the same backends as the
+        regular names."""
+        IBMQ.enable_account(qe_token, qe_url)
+        aliased_names = IBMQ._aliased_backend_names()
+
+        for display_name, backend_name in aliased_names.items():
+            with self.subTest(display_name=display_name,
+                              backend_name=backend_name):
+                try:
+                    backend_by_name = IBMQ.get_backend(backend_name)
+                except QiskitBackendNotFoundError:
+                    # The real name of the backend might not exist
+                    pass
+                else:
+                    backend_by_display_name = IBMQ.get_backend(display_name)
+                    self.assertEqual(backend_by_name, backend_by_display_name)
+                    self.assertEqual(backend_by_display_name.name(), backend_name)
