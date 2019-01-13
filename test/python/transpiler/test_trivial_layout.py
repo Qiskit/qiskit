@@ -22,10 +22,8 @@ class TestDenseLayout(QiskitTestCase):
     """Tests the TrivialLayout pass"""
 
     def setUp(self):
-        self.cmap16 = CouplingMap([[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
-                                   [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
-                                   [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
-                                   [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]])
+        self.cmap5 = FakeTenerife().configuration().coupling_map
+        self.cmap16 = FakeRueschlikon().configuration().coupling_map
 
     def test_3q_circuit_5q_coupling(self):
         """Test finds trivial layout for 3q circuit on 5q device.
@@ -37,8 +35,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        coupling_map = FakeTenerife().configuration().coupling_map
-        pass_ = TrivialLayout(coupling_map)
+        pass_ = TrivialLayout(self.cmap5)
         pass_.run(dag)
         layout = pass_.property_set['layout']
 

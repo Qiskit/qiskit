@@ -17,14 +17,13 @@ from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.ibmq.ibmqjob import IBMQJobPreQobj, IBMQJob, API_FINAL_STATES
 from qiskit.providers.ibmq.api import ApiError
 from qiskit.providers import JobError, JobTimeoutError
-from .jobtestcase import JobTestCase
-from qiskit.test import new_fake_qobj, FakeRueschlikon
-from qiskit.test.mock import (_auto_progress_api, BaseFakeAPI, UnknownStatusAPI, ValidatingAPI,
+from qiskit.test.mock import (BaseFakeAPI, UnknownStatusAPI, ValidatingAPI,
                               ErrorWhileValidatingAPI, NonQueuedAPI, ErrorWhileCreatingAPI,
                               ErrorWhileRunningAPI, QueuedAPI, RejectingJobAPI, UnavailableRunAPI,
                               ThrowingAPI, ThrowingNonJobRelatedErrorAPI, ThrowingGetJobAPI,
                               CancellableAPI, NonCancellableAPI, ErroredCancellationAPI,
-                              QObjResultAPI)
+                              FakeRueschlikon, new_fake_qobj, _auto_progress_api)
+from .jobtestcase import JobTestCase
 
 
 class TestIBMQJobStates(JobTestCase):
@@ -253,21 +252,6 @@ class TestIBMQJobStates(JobTestCase):
                         self.assertTrue(self._current_api.get_job.called)
                     else:
                         self.assertFalse(self._current_api.get_job.called)
-
-    # TODO: Once qobj results come by default from all the simulator
-    # backends, move to integration tests in test_result.py
-    def test_qobj_result(self):
-        job = self.run_with_api(QObjResultAPI(), job_class=IBMQJob)
-
-        self.wait_for_initialization(job)
-        self._current_api.progress()
-        result = job.result()
-        self.assertEqual(result.success, True)
-        self.assertEqual(result.get_counts('Bell state'),
-                         {'00': 480, '11': 490, '01': 20, '10': 34})
-        self.assertEqual(result.get_counts('Bell state XY'),
-                         {'00': 29, '11': 15, '01': 510, '10': 480})
-        self.assertEqual(len(result.results), 2)
 
     def run_with_api(self, api, job_class=IBMQJobPreQobj):
         """Creates a new ``IBMQJobPreQobj`` instance running with the provided API

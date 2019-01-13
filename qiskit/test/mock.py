@@ -9,8 +9,8 @@
 """
 Utilities for mocking the IBMQ provider, including job responses and backends.
 
-The module includes, among other, a dummy backend. The purpose of
-this class is to create backends that we can trick for testing purposes:
+The module includes dummy provider, backends, and jobs. The purpose of
+these classes is to trick backends for testing purposes:
 testing local timeouts, arbitrary responses or behavior, etc.
 
 The mock devices are mainly for testing the compiler.
@@ -26,6 +26,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers import BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
+from qiskit.providers.ibmq.api import ApiError
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.providers.jobstatus import JobStatus
@@ -57,30 +58,22 @@ class FakeProvider(BaseProvider):
     def __init__(self):
         self._backends = [FakeQasmSimulator(),
                           FakeTenerife(),
-                          FakeRueschlikon()]
+                          FakeMelbourne(),
+                          FakeRueschlikon(),
+                          FakeTokyo()]
         super().__init__()
 
 
 class FakeBackend(BaseBackend):
     """This is a dummy backend just for testing purposes."""
 
-    DEFAULT_CONFIGURATION = {
-        'name': 'local_dummy_simulator',
-        'url': 'https://github.com/Qiskit/qiskit-terra',
-        'simulator': True,
-        'local': True,
-        'description': 'A dummy simulator for testing purposes',
-        'coupling_map': 'all-to-all',
-        'basis_gates': 'u1,u2,u3,cx,id'
-    }
-
-    def __init__(self, configuration=None, time_alive=10):
+    def __init__(self, configuration, time_alive=10):
         """
         Args:
             configuration (dict): backend configuration
             time_alive (int): time to wait before returning result
         """
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+        super().__init__(configuration)
         self.time_alive = time_alive
 
     def properties(self):
@@ -118,32 +111,40 @@ class FakeBackend(BaseBackend):
 class FakeQasmSimulator(FakeBackend):
     """A fake simulator backend."""
 
-    def configuration(self):
-        return BackendConfiguration(
-            backend_name='fake_qasm_simulator',
-            backend_version='0.0.0',
-            n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                         'snapshot', 'unitary'],
-            simulator=True,
-            local=True,
-            conditional=True,
-            open_pulse=False,
-            memory=True,
-            max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=cmap,
-        )
+    def __init__(self):
+        _configuration = BackendConfiguration(
+                backend_name='fake_qasm_simulator',
+                backend_version='0.0.0',
+                n_qubits=5,
+                basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+                             'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
+                             'snapshot', 'unitary'],
+                simulator=True,
+                local=True,
+                conditional=True,
+                open_pulse=False,
+                memory=True,
+                max_shots=65536,
+                gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
+            )
+
+        super().__init__(_configuration)
 
 
 class FakeTenerife(FakeBackend):
     """A fake 5 qubit backend."""
 
-    def configuration(self):
+    def __init__(self):
+        """
+            1
+          / |
+        0 - 2 - 3
+            | /
+            4
+        """
         cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
 
-        return BackendConfiguration(
+        _configuration = BackendConfiguration(
             backend_name='fake_tenerife',
             backend_version='0.0.0',
             n_qubits=5,
@@ -158,17 +159,59 @@ class FakeTenerife(FakeBackend):
             coupling_map=cmap,
         )
 
+        super().__init__(_configuration)
+
+
+class FakeMelbourne(FakeBackend):
+    """A fake 14 qubit backend."""
+
+    def __init__(self):
+        """
+        0  -  1  -  2  -  3  -  4  -  5  -  6
+
+              |     |     |     |     |     |
+
+              13 -  12  - 11 -  10 -  9  -  8  -   7
+        """
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        _configuration = BackendConfiguration(
+            backend_name='fake_melbourne',
+            backend_version='0.0.0',
+            n_qubits=14,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=False,
+            open_pulse=False,
+            memory=False,
+            max_shots=65536,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=cmap,
+        )
+
+        super().__init__(_configuration)
+
 
 class FakeRueschlikon(FakeBackend):
     """A fake 16 qubit backend."""
 
-    def configuration(self):
-        camp = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+    def __init__(self):
+        """
+        1  -  2  -  3  -  4  -  5  -  6  -  7   -  8
+
+        |     |     |     |     |     |     |      |
+
+        0  -  15 -  14 -  13 -  12 -  11 -  10  -  9
+        """
+        cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
                 [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
                 [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
                 [13, 14], [15, 0], [15, 2], [15, 14]]
 
-        return BackendConfiguration(
+        _configuration = BackendConfiguration(
             backend_name='fake_rueschlikon',
             backend_version='0.0.0',
             n_qubits=16,
@@ -183,11 +226,28 @@ class FakeRueschlikon(FakeBackend):
             coupling_map=cmap,
         )
 
+        super().__init__(_configuration)
+
 
 class FakeTokyo(FakeBackend):
     """A fake 20 qubit backend."""
 
-    def configuration(self):
+    def __init__(self):
+        """
+        0  =  1   =  2   =  3     4
+
+        ||    ||    ||     ||  X  ||
+
+        5  =  6   =  7   =  8  =  9
+
+        || X  ||    ||   X  ||
+
+        10 =  11  =  12  =  13 =  14
+
+        ||    ||  X         || X  ||
+
+        15 =  16  =  17     18    19
+        """
         cmap = [[0, 1], [0, 5], [1, 0], [1, 2], [1, 6], [2, 1],
                 [2, 3], [2, 6], [3, 2], [3, 8], [3, 9], [4, 8], [4, 9],
                 [5, 0], [5, 6], [5, 10], [5, 11], [6, 1], [6, 2], [6, 5],
@@ -201,7 +261,7 @@ class FakeTokyo(FakeBackend):
                 [16, 15], [16, 17], [17, 11], [17, 16], [18, 13], [18, 14],
                 [19, 13], [19, 14]]
 
-        return BackendConfiguration(
+        _configuration = BackendConfiguration(
             backend_name='fake_tokyo',
             backend_version='0.0.0',
             n_qubits=16,
@@ -215,6 +275,8 @@ class FakeTokyo(FakeBackend):
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=cmap,
         )
+
+        super().__init__(_configuration)
 
 
 class FakeJob(BaseJob):
@@ -282,7 +344,7 @@ class FakeJob(BaseJob):
 
 def new_fake_qobj():
     """Create fake `Qobj` and backend instances."""
-    backend = FakeBackend()
+    backend = FakeQasmSimulator()
     return Qobj(
         qobj_id='test-id',
         config=QobjConfig(shots=1024, memory_slots=1, max_credits=100),
@@ -298,13 +360,12 @@ def new_fake_qobj():
 
 
 def _auto_progress_api(api, interval=0.2):
-    """Progress a `BaseFakeAPI` instacn every `interval` seconds until reaching
+    """Progress a `BaseFakeAPI` instance every `interval` seconds until reaching
     the final state.
     """
-    with suppress(BaseFakeAPI.NoMoreStatesError):
-        while True:
-            time.sleep(interval)
-            api.progress()
+    while True:
+        time.sleep(interval)
+        api.progress()
 
 
 class BaseFakeAPI():
@@ -517,60 +578,3 @@ class ErroredCancellationAPI(BaseFakeAPI):
 
     def cancel_job(self, job_id, *_args, **_kwargs):
         return {'status': 'Error', 'error': 'test-error-while-cancelling'}
-
-
-# TODO: Remove once qobj results come by default from all the simulator
-# backends.
-class QObjResultAPI(BaseFakeAPI):
-    """Class for emulating a successfully-completed non-queued API."""
-
-    _job_status = [
-        {'status': 'RUNNING'},
-        {
-            'status': 'COMPLETED',
-            'qObjectResult': {
-                'backend_name': 'ibmqx2',
-                'backend_version': '1.1.1',
-                'job_id': 'XC1323XG2',
-                'qobj_id': 'Experiment1',
-                'success': True,
-                'status': 'COMPLETED',
-                'results': [
-                    {
-                        'header': {
-                            'name': 'Bell state',
-                            'memory_slots': 2,
-                            'creg_sizes': [['c', 2]],
-                            'clbit_labels': [['c', 0], ['c', 1]],
-                            'qubit_labels': [['q', 0], ['q', 1]]
-                        },
-                        'shots': 1024,
-                        'status': 'DONE',
-                        'success': True,
-                        'data': {
-                            'counts': {
-                                '0x0': 480, '0x3': 490, '0x1': 20, '0x2': 34
-                            }
-                        }
-                    },
-                    {
-                        'header': {
-                            'name': 'Bell state XY',
-                            'memory_slots': 2,
-                            'creg_sizes': [['c', 2]],
-                            'clbit_labels': [['c', 0], ['c', 1]],
-                            'qubit_labels': [['q', 0], ['q', 1]]
-                        },
-                        'shots': 1024,
-                        'status': 'DONE',
-                        'success': True,
-                        'data': {
-                            'counts': {
-                                '0x0': 29, '0x3': 15, '0x1': 510, '0x2': 480
-                            }
-                        }
-                    }
-                ]
-            }
-        }
-    ]

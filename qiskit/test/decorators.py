@@ -27,7 +27,7 @@ def is_aer_provider_available():
     """
     # TODO: HACK FROM THE DEPTHS OF DESPAIR AS AER DOES NOT WORK ON MAC
     if sys.platform == 'darwin':
-        return False
+        return True
     try:
         import qiskit.providers.aer  # pylint: disable=unused-import,unused-variable
     except ImportError:
