@@ -284,8 +284,7 @@ class TestIBMQJob(JobTestCase):
         job_list = backend.jobs(limit=5, skip=0, status=JobStatus.DONE)
 
         self.log.info('found %s matching jobs', len(job_list))
-        for i, job in enumerate(job_list):
-            self.log.info('match #%d: %s', i, job.result().status)
+        for job in job_list:
             self.assertTrue(job.status() is JobStatus.DONE)
 
     @requires_qe_access
