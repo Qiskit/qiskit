@@ -36,7 +36,7 @@ class RXGate(Gate):
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u3", 1, 0, 3)
         rule = [
-            U3Gate(self.param[0], -pi/2, pi/2, q[0])
+            U3Gate(self.params[0], -pi/2, pi/2, q[0])
         ]
         for inst in rule:
             decomposition.apply_operation_back(inst)
@@ -47,13 +47,13 @@ class RXGate(Gate):
 
         rx(theta)^dagger = rx(-theta)
         """
-        self.param[0] = -self.param[0]
+        self.params[0] = -self.params[0]
         self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rx(self.param[0], self.qargs[0]))
+        self._modifiers(circ.rx(self.params[0], self.qargs[0]))
 
 
 @_1q_gate

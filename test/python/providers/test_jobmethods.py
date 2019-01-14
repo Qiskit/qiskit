@@ -13,10 +13,10 @@ import uuid
 from contextlib import contextmanager
 from os import path
 import unittest
-from unittest.mock import patch
 
+from unittest.mock import patch
 from qiskit.test import QiskitTestCase
-from .._mockutils import new_fake_qobj, FakeBackend
+from qiskit.test.mock import new_fake_qobj, FakeRueschlikon
 
 
 class TestSimulatorsJob(QiskitTestCase):
@@ -31,7 +31,7 @@ class TestSimulatorsJob(QiskitTestCase):
         target_tasks = [lambda: None for _ in range(taskcount)]
 
         job_id = str(uuid.uuid4())
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (SimulatorJob, executor):
             for index in range(taskcount):
@@ -51,7 +51,7 @@ class TestSimulatorsJob(QiskitTestCase):
         # future object.
 
         job_id = str(uuid.uuid4())
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (SimulatorsJob, executor):
             job = SimulatorsJob(backend, job_id, lambda: None, new_fake_qobj())

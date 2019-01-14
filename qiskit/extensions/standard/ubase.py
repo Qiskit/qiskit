@@ -27,15 +27,15 @@ class UBase(Gate):  # pylint: disable=abstract-method
 
         U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
         """
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
+        self.params[0] = -self.params[0]
+        phi = self.params[1]
+        self.params[1] = -self.params[2]
+        self.params[2] = -phi
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u_base(self.param[0], self.param[1], self.param[2],
+        self._modifiers(circ.u_base(self.params[0], self.params[1], self.params[2],
                                     self.qargs[0]))
 
 

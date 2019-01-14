@@ -35,7 +35,7 @@ class RZGate(Gate):
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u1", 1, 0, 1)
         rule = [
-            U1Gate(self.param[0], q[0])
+            U1Gate(self.params[0], q[0])
         ]
         for inst in rule:
             decomposition.apply_operation_back(inst)
@@ -46,13 +46,13 @@ class RZGate(Gate):
 
         rz(phi)^dagger = rz(-phi)
         """
-        self.param[0] = -self.param[0]
+        self.params[0] = -self.params[0]
         self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rz(self.param[0], self.qargs[0]))
+        self._modifiers(circ.rz(self.params[0], self.qargs[0]))
 
 
 @_1q_gate

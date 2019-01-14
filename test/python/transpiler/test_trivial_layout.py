@@ -15,18 +15,15 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 
 class TestDenseLayout(QiskitTestCase):
     """Tests the TrivialLayout pass"""
 
     def setUp(self):
-        self.cmap5 = CouplingMap([[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]])
-
-        self.cmap16 = CouplingMap([[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
-                                   [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
-                                   [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
-                                   [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]])
+        self.cmap5 = FakeTenerife().configuration().coupling_map
+        self.cmap16 = FakeRueschlikon().configuration().coupling_map
 
     def test_3q_circuit_5q_coupling(self):
         """Test finds trivial layout for 3q circuit on 5q device.
@@ -38,7 +35,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = TrivialLayout(self.cmap5)
+        pass_ = TrivialLayout(CouplingMap(self.cmap5))
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
@@ -59,7 +56,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.measure(qr0[2], cr[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = TrivialLayout(self.cmap16)
+        pass_ = TrivialLayout(CouplingMap(self.cmap16))
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
@@ -78,7 +75,7 @@ class TestDenseLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         with self.assertRaises(TranspilerError):
-            pass_ = TrivialLayout(self.cmap5)
+            pass_ = TrivialLayout(CouplingMap(self.cmap5))
             pass_.run(dag)
 
 
