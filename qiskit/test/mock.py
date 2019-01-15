@@ -27,7 +27,6 @@ from qiskit.providers import BaseBackend
 from qiskit.providers import BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.providers.ibmq.api import ApiError
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.providers.jobstatus import JobStatus
