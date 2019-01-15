@@ -71,10 +71,12 @@ Removed
   as unsupported in Aer (#1615).
 - Removed circuit.add as deprecated (#1627)
 - Removed the unroller (#1629)
-- Removed deprecated result methods (#1659)
-- Removed deprecated transpile_dag() 'format' kwarg (#1664)
-- Removed deprecated Pauli v, w, and pauli_group case arg as int (#1680)
-- Removed deprecated state_fidelity() function from tools.qi (#1681)
+- Removed deprecated ``result`` methods (#1659)
+- Removed deprecated ``couplingdict`` kwarg from ``CouplingMap`` (#1666)
+- Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
+- Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
+- Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
+- Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
 
 `0.7.0`_ - 2018-12-19
 =====================
