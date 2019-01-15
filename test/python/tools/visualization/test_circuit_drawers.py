@@ -365,26 +365,25 @@ class TestDrawingMethods(QiskitTestCase):
 
         with open(current, "r", encoding='cp437') as cur, \
                 open(expected, "r", encoding='cp437') as exp:
-            self.assertEqual(cur.read(), exp.read())
+            self.assertEqual(cur.read(), exp.read(), msg='{} file differs from {}'.format(current,
+                                                                                          expected))
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled with the ```diff_tolerance``` argument."""
         from PIL import Image as im
 
-        if isinstance(current, str):
-            current = im.open(current)
-        if isinstance(expected, str):
-            expected = im.open(expected)
+        current_im = im.open(current)
+        expected_im = im.open(expected)
 
-        diff = ImageChops.difference(expected, current)
+        diff = ImageChops.difference(expected_im, current_im)
         black_pixels = _get_black_pixels(diff)
         total_pixels = diff.size[0] * diff.size[1]
         similarity_ratio = black_pixels / total_pixels
         self.assertTrue(
             1 - similarity_ratio < diff_tolerance,
-            'The images are different by more than a {}%'
-            .format(diff_tolerance * 100))
+            msg='The image {} differs from {} by more than a {}%'
+            .format(current, expected, diff_tolerance * 100))
 
     def tearDown(self):
         # Mercilessly delete a temporary folder
