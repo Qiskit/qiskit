@@ -34,7 +34,7 @@ class CouplingMap:
 
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
-                an adjacency list, e.g. [[0,1], [0,2], [1,2]].
+                an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
         """
 
         # the coupling map graph
@@ -176,6 +176,6 @@ class CouplingMap:
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["(%s, %s)" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
             string += "]"
         return string

@@ -22,9 +22,9 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual("", str(coupling))
 
     def test_coupling_str(self):
-        coupling_list = [(0, 1), (0, 2), (1, 2)]
+        coupling_list = [[0, 1], [0, 2], [1, 2]]
         coupling = CouplingMap(coupling_list)
-        expected = ("[(0, 1), (0, 2), (1, 2)]")
+        expected = ("[[0, 1], [0, 2], [1, 2]]")
         self.assertEqual(expected, str(coupling))
 
     def test_coupling_distance(self):
@@ -50,7 +50,7 @@ class CouplingTest(QiskitTestCase):
         coupling = CouplingMap()
         self.assertEqual("", str(coupling))
         coupling.add_edge(0, 1)
-        expected = ("[(0, 1)]")
+        expected = ("[[0, 1]]")
         self.assertEqual(expected, str(coupling))
 
     def test_distance_error(self):

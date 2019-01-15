@@ -54,7 +54,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -79,7 +79,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[3])
-        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -99,7 +99,7 @@ class TestCheckMapCX(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = CouplingMap([(0, 2), (2, 1)])
+        coupling = CouplingMap([[0, 2], [2, 1]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -123,7 +123,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[2], qr[0])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -148,7 +148,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[3], qr[2])
-        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -176,7 +176,7 @@ class TestCheckMapCZ(QiskitTestCase):
         circuit.cz(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cz(qr[0], qr[2])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -196,7 +196,7 @@ class TestCheckMapCZ(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cz(qr[0], qr[1])
-        coupling = CouplingMap([(0, 2), (2, 1)])
+        coupling = CouplingMap([[0, 2], [2, 1]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -220,7 +220,7 @@ class TestCheckMapCZ(QiskitTestCase):
         circuit.cz(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cz(qr[2], qr[0])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
@@ -249,7 +249,7 @@ class TestCheckMapSwap(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.swap(qr[0], qr[2])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
