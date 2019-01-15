@@ -10,7 +10,6 @@ import os
 import sys
 import shutil
 import itertools
-import copy
 
 import unittest
 from unittest.mock import patch, call
