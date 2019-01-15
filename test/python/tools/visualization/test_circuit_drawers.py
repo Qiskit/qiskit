@@ -7,6 +7,7 @@
 
 """Tests for circuit_drawer."""
 import os
+import sys
 import shutil
 import itertools
 
@@ -30,6 +31,8 @@ from qiskit.test import QiskitTestCase, Path
 def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
+def _version_to_str():
+    return '{}.{}'.format(sys.version_info[0], sys.version_info[1])
 
 def _small_circuit():
     """Creates a simple small circuit consisting of one qubit, one bit and one gate applied.
@@ -246,6 +249,29 @@ class TestDrawingMethods(QiskitTestCase):
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
 
+        # This piece of code allows one to easily generate new references just at set up procedure
+        # (consequently, all the following test should be successful). Uncomment to use it.
+        # for circuit_type in self.circuits:
+        #     for draw_method in self.draw_methods:
+        #         references_dir = self._get_resource_path(os.path.join(_version_to_str(),
+        #                                                               circuit_type),
+        #                                                  path=Path.CIRCUIT_DRAWERS_REFERENCES)
+        #
+        #         references_dir = os.path.join(references_dir)
+        #         if not os.path.exists(references_dir):
+        #             os.makedirs(references_dir)
+        #
+        #         reference_output = os.path.join(references_dir, draw_method)
+        #
+        #         # Make underlying circuit drawer to draw chosen circuit
+        #         circuit_drawer(self.circuits[circuit_type](),
+        #                        output=draw_method,
+        #                        filename=reference_output)
+        #
+        #         # We have built a QuantumCircuit and counters of registers increased, we have
+        #         # reset them such that consequent tests won't fail
+        #         _reset_registers()
+
     def test_small_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a small circuit equal
          reference outputs.
@@ -274,8 +300,8 @@ class TestDrawingMethods(QiskitTestCase):
         # Specify a type of circuit used in this test
         self.check_circuit_type('deep')
 
-    # @unittest.skip('A test which runs tests for all circuit types inside is skipped.'
-    #               'Tests for all circuit types are better to be launched separately.')
+    @unittest.skip('A test which runs tests for all circuit types inside is skipped.'
+                  'Tests for all circuit types are better to be launched separately.')
     def test_all_circuit_types(self):
         """Adds one more nested loop and this tests whether outputs of different circuit drawers
          upon drawing all types of circuit equal reference outputs.
@@ -335,7 +361,10 @@ class TestDrawingMethods(QiskitTestCase):
             os.makedirs(test_output_dir)
 
         # Simply obtain path to folder with references
-        references_dir = self._get_resource_path(circuit_type, path=Path.CIRCUIT_DRAWERS_REFERENCES)
+        references_dir = self._get_resource_path(os.path.join(_version_to_str(),
+                                                              circuit_type),
+                                                 path=Path.CIRCUIT_DRAWERS_REFERENCES)
+        references_dir = os.path.join(references_dir)
 
         return test_output_dir, references_dir
 
