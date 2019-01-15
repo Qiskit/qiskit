@@ -74,6 +74,7 @@ Removed
 - Removed deprecated result methods (#1659)
 - Removed deprecated transpile_dag() 'format' kwarg (#1664)
 - Removed deprecated Pauli v, w, and pauli_group case arg as int (#1680)
+- Removed deprecated state_fidelity() function from tools.qi (#1681)
 
 `0.7.0`_ - 2018-12-19
 =====================

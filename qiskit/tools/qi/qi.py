@@ -15,7 +15,6 @@ over time.
 """
 
 import math
-import warnings
 
 import numpy as np
 import scipy.linalg as la
@@ -24,7 +23,6 @@ from scipy.stats import unitary_group
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
-from qiskit.quantum_info import state_fidelity as new_state_fidelity
 
 
 ###############################################################
@@ -427,29 +425,6 @@ def __random_density_bures(N, rank=None):
 ###############################################################
 # Measures.
 ###############################################################
-
-
-def state_fidelity(state1, state2):
-    """Return the state fidelity between two quantum states.
-
-    Either input may be a state vector, or a density matrix. The state
-    fidelity (F) for two density matrices is defined as:
-        F(rho1, rho2) = Tr[sqrt(sqrt(rho1).rho2.sqrt(rho1))] ^ 2
-    For two pure states the fidelity is given by
-        F(|psi1>, |psi2>) = |<psi1|psi2>|^2
-
-    Args:
-        state1 (array_like): a quantum state vector or density matrix.
-        state2 (array_like): a quantum state vector or density matrix.
-
-    Returns:
-        array_like: The state fidelity F(state1, state2).
-    """
-    warnings.warn('The state_fidelity() function in qiskit.tools.qi has been '
-                  'deprecated and will be removed in the future. Instead use '
-                  'the state_fidelity() function in qiskit.quantum_info',
-                  DeprecationWarning)
-    return new_state_fidelity(state1, state2)
 
 
 def purity(state):
