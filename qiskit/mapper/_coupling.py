@@ -16,7 +16,6 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
-import warnings
 import networkx as nx
 from .exceptions import CouplingError
 
@@ -29,29 +28,14 @@ class CouplingMap:
     to permitted CNOT gates
     """
 
-    def __init__(self, couplingdict=None, couplinglist=None):
+    def __init__(self, couplinglist=None):
         """
         Create coupling graph. By default, the generated coupling has no nodes.
 
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
-                an adjacency list, e.g. [[0,1], [0,2], [1,2]].
-            couplingdict (dict or None): DEPRECATED An initial coupling graph
-                specified as an adjacency dict, e.g. {0: [1, 2], 1: [2]}.
-        Raises:
-            CouplingError: If both couplinglist and couplingdict are supplied.
+                an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
         """
-        if couplingdict is not None and couplinglist is not None:
-            raise CouplingError('Cannot specify both couplingdict and couplinglist')
-
-        if couplingdict is not None:
-            if isinstance(couplingdict, list):
-                couplinglist = couplingdict
-                couplingdict = None
-            else:
-                warnings.warn('Initializing a coupling object through a couplingdict is '
-                              'deprecated. Use a couplinglist instead.', DeprecationWarning,
-                              stacklevel=2)
 
         # the coupling map graph
         self.graph = nx.DiGraph()
@@ -59,11 +43,6 @@ class CouplingMap:
         self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
-
-        if couplingdict is not None:
-            for origin, destinations in couplingdict.items():
-                for destination in destinations:
-                    self.add_edge(origin, destination)
 
         if couplinglist is not None:
             for source, target in couplinglist:
@@ -197,6 +176,6 @@ class CouplingMap:
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["(%s, %s)" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
             string += "]"
         return string

@@ -33,7 +33,7 @@ class TestLookaheadSwap(QiskitTestCase):
         original_dag = circuit_to_dag(circuit)
 
         # Create coupling map which contains all two-qubit gates in the circuit.
-        coupling_map = CouplingMap(couplinglist=[(0, 1), (0, 2)])
+        coupling_map = CouplingMap([[0, 1], [0, 2]])
 
         pass_manager = PassManager()
         pass_manager.append(LookaheadSwap(coupling_map))
@@ -59,7 +59,7 @@ class TestLookaheadSwap(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
         dag_circuit = circuit_to_dag(circuit)
 
-        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
 
         pass_manager = PassManager()
         pass_manager.append([LookaheadSwap(coupling_map)])
@@ -87,7 +87,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         dag_circuit = circuit_to_dag(circuit)
 
-        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
 
         pass_manager = PassManager()
         pass_manager.append([LookaheadSwap(coupling_map)])
@@ -116,7 +116,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         dag_circuit = circuit_to_dag(circuit)
 
-        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
 
         pass_manager = PassManager()
         pass_manager.append([LookaheadSwap(coupling_map)])
@@ -148,7 +148,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         dag_circuit = circuit_to_dag(circuit)
 
-        coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
 
         pass_manager = PassManager()
         pass_manager.append([LookaheadSwap(coupling_map)])
