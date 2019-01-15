@@ -11,7 +11,7 @@ import shutil
 import itertools
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 from PIL.Image import Image
 from PIL import ImageChops
@@ -463,7 +463,15 @@ class TestCircuitDrawer(QiskitTestCase):
 
                 # Check that _latex_circuit_drawer was called once
                 circuit_drawer(None)
-                mock_latex_circuit_drawer.assert_called_once()
+                mock_latex_circuit_drawer.assert_called_once_with(call(None,
+                                                                       scale=0.7,
+                                                                       filename=None,
+                                                                       style=None,
+                                                                       output='text',
+                                                                       interactive=False,
+                                                                       line_length=None,
+                                                                       plot_barriers=True,
+                                                                       reverse_bits=False))
 
         # Create a subTest for fallback to matplotlib_circuit_drawer
         with self.subTest('Test fallback to matplotlib_circuit_drawer'):
@@ -509,7 +517,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
                         # Check that show was called once
                         circuit_drawer(None, output=draw_method, interactive=True)
-                        mock_show.assert_called_once()
+                        mock_show.assert_called_once_with()
 
 
 if __name__ == '__main__':
