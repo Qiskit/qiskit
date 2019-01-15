@@ -274,7 +274,7 @@ class TestDrawingMethods(QiskitTestCase):
         # Specify a type of circuit used in this test
         self.check_circuit_type('deep')
 
-    #@unittest.skip('A test which runs tests for all circuit types inside is skipped.'
+    # @unittest.skip('A test which runs tests for all circuit types inside is skipped.'
     #               'Tests for all circuit types are better to be launched separately.')
     def test_all_circuit_types(self):
         """Adds one more nested loop and this tests whether outputs of different circuit drawers
