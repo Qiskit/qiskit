@@ -10,6 +10,7 @@ import os
 import sys
 import shutil
 import itertools
+import copy
 
 import unittest
 from unittest.mock import patch, call
@@ -447,6 +448,37 @@ class TestCircuitDrawer(QiskitTestCase):
         # Specify methods which imply testing of the interactive mode
         self.interactive_draw_methods = ('latex', 'mpl')
 
+        # Specify which arguments shall be passed to the mocked call of corresponding draw method
+        self.calls = {
+            'text': {
+                'filename': None,
+                'line_length': None,
+                'reversebits': False,
+                'plotbarriers': True,
+            },
+            'latex': {
+                'scale': 0.7,
+                'filename': None,
+                'style': None,
+                'plot_barriers': True,
+                'reverse_bits': False
+            },
+            'latex_source': {
+                'scale': 0.7,
+                'filename': None,
+                'style': None,
+                'plot_barriers': True,
+                'reverse_bits': False
+            },
+            'mpl': {
+                'scale': 0.7,
+                'filename': None,
+                'style': None,
+                'plot_barriers': True,
+                'reverse_bits': False
+            },
+        }
+
     def test_correct_output_provided(self):
         """Tests how correctly specified output circuit drawer is called.
 
@@ -464,9 +496,9 @@ class TestCircuitDrawer(QiskitTestCase):
                 with patch.object(_cv, self.draw_methods[draw_method], return_value=None)\
                         as mock_draw_method:
 
-                    # Check that corresponding function was called once
+                    # Check that corresponding function was called once with the correct arguments
                     circuit_drawer(None, output=draw_method)
-                    mock_draw_method.assert_called_once()
+                    mock_draw_method.assert_called_once_with(None, **self.calls[draw_method])
 
     def test_wrong_output_provided(self):
         """Tests correct exceptioning of wrong output format """
@@ -491,7 +523,7 @@ class TestCircuitDrawer(QiskitTestCase):
             with patch.object(_cv, self.draw_methods['latex'], return_value=None)\
                     as mock_latex_circuit_drawer:
 
-                # Check that _latex_circuit_drawer was called once
+                # Check that _latex_circuit_drawer was called once with the correct arguments
                 circuit_drawer(None)
                 mock_latex_circuit_drawer.assert_called_once_with(call(None,
                                                                        scale=0.7,
@@ -514,11 +546,20 @@ class TestCircuitDrawer(QiskitTestCase):
 
                     # Patch _matplotlib_circuit_drawer such that it does nothing
                     with patch.object(_cv, self.draw_methods['mpl'])\
-                            as mock_matplotlib_circuit_drawer:
+                            as mock_mpl_circuit_drawer:
 
-                        # Check that _matplotlib_circuit_drawer was called once
+                        # Check that _matplotlib_circuit_drawer was called once with the correct
+                        # arguments
                         circuit_drawer(None)
-                        mock_matplotlib_circuit_drawer.assert_called_once()
+                        mock_mpl_circuit_drawer.assert_called_once_with(call(None,
+                                                                             scale=0.7,
+                                                                             filename=None,
+                                                                             style=None,
+                                                                             output='text',
+                                                                             interactive=False,
+                                                                             line_length=None,
+                                                                             plot_barriers=True,
+                                                                             reverse_bits=False))
 
                 # Patch HAS_MATPLOTLIB attribute of _matplotlib to False
                 with patch.object(_mpl, 'HAS_MATPLOTLIB', new=False):
@@ -545,7 +586,7 @@ class TestCircuitDrawer(QiskitTestCase):
                     # Patch show attribute of Image such that it does nothing
                     with patch.object(Image, 'show', return_value=None) as mock_show:
 
-                        # Check that show was called once
+                        # Check that show was called once with the correct arguments
                         circuit_drawer(None, output=draw_method, interactive=True)
                         mock_show.assert_called_once_with()
 
