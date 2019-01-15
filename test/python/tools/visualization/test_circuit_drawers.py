@@ -31,8 +31,10 @@ from qiskit.test import QiskitTestCase, Path
 def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
+
 def _version_to_str():
     return '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+
 
 def _small_circuit():
     """Creates a simple small circuit consisting of one qubit, one bit and one gate applied.
@@ -300,8 +302,8 @@ class TestDrawingMethods(QiskitTestCase):
         # Specify a type of circuit used in this test
         self.check_circuit_type('deep')
 
-    @unittest.skip('A test which runs tests for all circuit types inside is skipped.'
-                  'Tests for all circuit types are better to be launched separately.')
+    @unittest.skip('A test which runs tests for all circuit types inside is skipped. '
+                   'Tests for all circuit types are better to be launched separately.')
     def test_all_circuit_types(self):
         """Adds one more nested loop and this tests whether outputs of different circuit drawers
          upon drawing all types of circuit equal reference outputs.
