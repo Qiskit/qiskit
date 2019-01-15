@@ -840,13 +840,13 @@ class DAGCircuit:
                         qarglist = nd["qargs"]
                     qarg = ",".join(map(lambda x: "%s[%d]" % (x[0].name, x[1]),
                                         qarglist))
-                    if nd["op"].param:
+                    if nd["op"].params:
                         if eval_symbols:
                             param = ",".join(map(lambda x: str(x.evalf()),
-                                                 nd["op"].param))
+                                                 nd["op"].params))
                         else:
                             param = ",".join(map(lambda x: x.replace("**", "^"),
-                                                 map(str, nd["op"].param)))
+                                                 map(str, nd["op"].params)))
                         out += "%s(%s) %s;\n" % (nm, param, qarg)
                     else:
                         out += "%s %s;\n" % (nm, qarg)

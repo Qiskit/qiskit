@@ -56,7 +56,7 @@ def dag_to_circuit(dag):
             clbits = []
             for clbit in n['cargs']:
                 clbits.append(cregs[clbit[0].name][clbit[1]])
-            params = n['op'].param
+            params = n['op'].params
 
             if name in ['snapshot', 'save', 'noise', 'load']:
                 result = instr_method(params[0])

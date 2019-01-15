@@ -41,6 +41,10 @@ Changed
 - The previously deprecated default output of ``circuit_drawer()`` (using latex
   and falling back to mpl) is no longer present. Instead the default output
   is the ascii art ``text`` output backend.
+- Changed param to params in Instruction (#1665).
+- ``dag_drawer`` and ``plot_gate_map`` are available via importing
+  ``qiskit.tools.visualization``. They will raise at the point of use, if
+  dependencies are not installed (#1669).
 
 Fixed
 -----
@@ -69,6 +73,9 @@ Removed
 - Removed the unroller (#1629)
 - Removed deprecated result methods (#1659)
 - Removed deprecated couplingdict kwarg from CouplingMap (#1666)
+- Removed deprecated transpile_dag() 'format' kwarg (#1664)
+- Removed deprecated Pauli v, w, and pauli_group case arg as int (#1680)
+- Removed deprecated state_fidelity() function from tools.qi (#1681)
 
 `0.7.0`_ - 2018-12-19
 =====================

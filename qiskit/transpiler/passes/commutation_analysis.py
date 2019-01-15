@@ -204,7 +204,7 @@ def _calc_product(node1, node2):
 
         else:
 
-            mat = _gate_master_def(name=node['name'], para=node['op'].param)
+            mat = _gate_master_def(name=node['name'], para=node['op'].params)
             node_num = "{0}[{1}]".format(str(node["qargs"][0][0].name),
                                          str(node["qargs"][0][1]))
             qstate_list[wires.index(node_num)] = mat
