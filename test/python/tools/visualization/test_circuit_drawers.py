@@ -333,6 +333,8 @@ class TestDrawingMethods(QiskitTestCase):
                                                                                  ''),
                                                reference_output + self.extensions.get(
                                                    draw_method, ''))
+
+                # If `pfdlatex` is not installed, well, there is no sense in testing it
                 except OSError:
                     pass
 
