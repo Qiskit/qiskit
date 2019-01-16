@@ -9,7 +9,6 @@
 import os
 import sys
 import shutil
-import itertools
 
 import unittest
 from unittest.mock import patch, call
@@ -43,8 +42,8 @@ def _small_circuit():
          QuantumCircuit: the small quantum circuit defined with the function body operations list.
 
     """
-    qr = QuantumRegister(1, name='q0')
-    cr = ClassicalRegister(1, name='c0')
+    qr = QuantumRegister(1, name='qr')
+    cr = ClassicalRegister(1, name='cr')
     circuit = QuantumCircuit(qr, cr)
 
     circuit.x(qr[0])
@@ -63,8 +62,8 @@ def _medium_circuit():
 
     """
 
-    qr = QuantumRegister(3, name='q0')
-    cr = ClassicalRegister(3, name='c0')
+    qr = QuantumRegister(3, name='qr')
+    cr = ClassicalRegister(3, name='cr')
     circuit = QuantumCircuit(qr, cr)
 
     circuit.x(qr[0])
@@ -116,8 +115,8 @@ def _large_circuit():
          QuantumCircuit: the large quantum circuit defined with the function body operations list.
 
     """
-    qr = QuantumRegister(9, name='q0')
-    cr = ClassicalRegister(9, name='c0')
+    qr = QuantumRegister(9, name='qr')
+    cr = ClassicalRegister(9, name='cr')
     circuit = QuantumCircuit(qr, cr)
 
     for i in range(3):
@@ -174,8 +173,8 @@ def _deep_circuit():
          QuantumCircuit: the deep quantum circuit defined with the function body operations list.
 
     """
-    qr = QuantumRegister(20, name='q0')
-    cr = ClassicalRegister(20, name='c0')
+    qr = QuantumRegister(20, name='qr')
+    cr = ClassicalRegister(20, name='cr')
     circuit = QuantumCircuit(qr, cr)
 
     for i in range(10):
@@ -240,22 +239,22 @@ class TestDrawingMethods(QiskitTestCase):
 
         # This piece of code allows one to easily generate new references just at set up procedure
         # (consequently, all the following test should be successful). Uncomment to use it.
-        # for circuit_type in self.circuits:
-        #     for draw_method in self.draw_methods:
-        #         references_dir = self._get_resource_path(os.path.join(_version_to_str(),
-        #                                                               circuit_type),
-        #                                                  path=Path.CIRCUIT_DRAWERS_REFERENCES)
-        #
-        #         references_dir = os.path.join(references_dir)
-        #         if not os.path.exists(references_dir):
-        #             os.makedirs(references_dir)
-        #
-        #         reference_output = os.path.join(references_dir, draw_method)
-        #
-        #         # Make underlying circuit drawer to draw chosen circuit
-        #         circuit_drawer(self.circuits[circuit_type](),
-        #                        output=draw_method,
-        #                        filename=reference_output)
+        for circuit_type in self.circuits:
+            for draw_method in self.draw_methods:
+                references_dir = self._get_resource_path(os.path.join(_version_to_str(),
+                                                                      circuit_type),
+                                                         path=Path.CIRCUIT_DRAWERS_REFERENCES)
+
+                references_dir = os.path.join(references_dir)
+                if not os.path.exists(references_dir):
+                    os.makedirs(references_dir)
+
+                reference_output = os.path.join(references_dir, draw_method)
+
+                # Make underlying circuit drawer to draw chosen circuit
+                circuit_drawer(self.circuits[circuit_type](),
+                               output=draw_method,
+                               filename=reference_output)
 
     def test_small_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a small circuit equal

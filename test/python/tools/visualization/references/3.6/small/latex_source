@@ -15,8 +15,8 @@
 \begin{document}
 \begin{equation*}
     \Qcircuit @C=0.5em @R=0.0em @!R {
-	 	\lstick{q0_{0}: \ket{0}} & \gate{X} & \qw \barrier[-1.15em]{0} & \meter & \qw & \qw\\
-	 	\lstick{c0_{0}: 0} & \cw & \cw & \cw \cwx[-1] & \cw & \cw\\
+	 	\lstick{qr_{0}: \ket{0}} & \gate{X} & \qw \barrier[-1.15em]{0} & \meter & \qw & \qw\\
+	 	\lstick{cr_{0}: 0} & \cw & \cw & \cw \cwx[-1] & \cw & \cw\\
 	 }
 \end{equation*}
 
