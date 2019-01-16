@@ -19,7 +19,7 @@ from matplotlib import cm                               # pylint: disable=import
 from matplotlib.patches import Circle                   # pylint: disable=import-error
 import ipywidgets as widgets                            # pylint: disable=import-error
 from qiskit.providers.ibmq import IBMQ
-from qiskit.exceptions import QISKitError
+from qiskit.exceptions import QiskitError
 from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.visualization._gate_map import plot_gate_map
 
@@ -34,7 +34,7 @@ class BackendMonitor(Magics):
         """
         backend = self.shell.user_ns[line]
         if not isinstance(backend, IBMQBackend):
-            raise QISKitError('Input variable is not of type IBMQBackend.')
+            raise QiskitError('Input variable is not of type IBMQBackend.')
         title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
         title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
         title_html = "<h1 {style}>{name}</h1>".format(
