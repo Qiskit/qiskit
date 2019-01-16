@@ -43,8 +43,8 @@ def _small_circuit():
          QuantumCircuit: the small quantum circuit defined with the function body operations list.
 
     """
-    qr = QuantumRegister(1)
-    cr = ClassicalRegister(1)
+    qr = QuantumRegister(1, name='q0')
+    cr = ClassicalRegister(1, name='c0')
     circuit = QuantumCircuit(qr, cr)
 
     circuit.x(qr[0])
@@ -63,8 +63,8 @@ def _medium_circuit():
 
     """
 
-    qr = QuantumRegister(3)
-    cr = ClassicalRegister(3)
+    qr = QuantumRegister(3, name='q0')
+    cr = ClassicalRegister(3, name='c0')
     circuit = QuantumCircuit(qr, cr)
 
     circuit.x(qr[0])
@@ -116,8 +116,8 @@ def _large_circuit():
          QuantumCircuit: the large quantum circuit defined with the function body operations list.
 
     """
-    qr = QuantumRegister(9)
-    cr = ClassicalRegister(9)
+    qr = QuantumRegister(9, name='q0')
+    cr = ClassicalRegister(9, name='c0')
     circuit = QuantumCircuit(qr, cr)
 
     for i in range(3):
@@ -174,8 +174,8 @@ def _deep_circuit():
          QuantumCircuit: the deep quantum circuit defined with the function body operations list.
 
     """
-    qr = QuantumRegister(20)
-    cr = ClassicalRegister(20)
+    qr = QuantumRegister(20, name='q0')
+    cr = ClassicalRegister(20, name='c0')
     circuit = QuantumCircuit(qr, cr)
 
     for i in range(10):
@@ -188,19 +188,6 @@ def _deep_circuit():
     circuit.measure(qr, cr)
 
     return circuit
-
-
-def _reset_registers():
-    """Resets counters of created QuantumRegister and ClassicalRegister instances.
-
-    This function is required since references has been obtained such that their QuantumRegisters
-    have zero index. Since many circuits are build while testing, indices of correspinding
-    registers will be distinct from zero and thus they will lead to test failures unless we reset
-    them manually.
-
-    """
-    QuantumRegister.instances_counter = itertools.count()
-    ClassicalRegister.instances_counter = itertools.count()
 
 
 def _get_black_pixels(image):
@@ -269,10 +256,6 @@ class TestDrawingMethods(QiskitTestCase):
         #         circuit_drawer(self.circuits[circuit_type](),
         #                        output=draw_method,
         #                        filename=reference_output)
-        #
-        #         # We have built a QuantumCircuit and counters of registers increased, we have
-        #         # reset them such that consequent tests won't fail
-        #         _reset_registers()
 
     def test_small_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a small circuit equal
@@ -350,10 +333,6 @@ class TestDrawingMethods(QiskitTestCase):
                                                                              ''),
                                            reference_output + self.extensions.get(
                                                draw_method, ''))
-
-            # We have built a QuantumCircuit and counters of registers increased, we have
-            # reset them such that consequent tests won't fail
-            _reset_registers()
 
     def _prepare_dirs(self, circuit_type):
         # Create a folder to store all the outputs produced during testing of particular circuit
