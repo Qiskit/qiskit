@@ -14,9 +14,10 @@ import os
 import unittest
 from codecs import encode
 from math import pi
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from test.python.tools.visualization._drawing_test_case import DrawingTestCase
+
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 
 
