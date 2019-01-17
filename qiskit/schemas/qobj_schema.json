@@ -879,7 +879,14 @@
                         },                        
                         "seed": {
                             "default": 1,
-                            "type": "integer"
+                           "anyOf": [
+                            {
+                                "type": "array"
+                            },
+                            {
+                                "type": "integer"
+                            }
+                        ]
                         },
                         "shots": {
                             "description": "Number of repetitions of each experiment",
