@@ -11,6 +11,7 @@ from PIL import ImageChops
 
 from qiskit.test import QiskitTestCase
 
+
 def _get_black_pixels(image):
     black_and_white_version = image.convert('1')
     black_pixels = black_and_white_version.histogram()[0]
