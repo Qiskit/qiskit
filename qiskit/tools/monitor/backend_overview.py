@@ -9,7 +9,7 @@
 """
 
 import math
-from qiskit.exceptions import QISKitError
+from qiskit.exceptions import QiskitError
 from qiskit.providers.ibmq import IBMQ
 from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 
@@ -21,7 +21,7 @@ def get_unique_backends():
         list: Unique available backends.
 
     Raises:
-        QISKitError: No backends available.
+        QiskitError: No backends available.
     """
     backends = IBMQ.backends()
     unique_hardware_backends = []
@@ -31,7 +31,7 @@ def get_unique_backends():
             unique_hardware_backends.append(back)
             unique_names.append(back.name())
     if not unique_hardware_backends:
-        raise QISKitError('No backends available.')
+        raise QiskitError('No backends available.')
     return unique_hardware_backends
 
 
@@ -41,10 +41,10 @@ def backend_monitor(backend):
     Args:
         backend (IBMQBackend): Backend to monitor.
     Raises:
-        QISKitError: Input is not a IBMQ backend.
+        QiskitError: Input is not a IBMQ backend.
     """
     if not isinstance(backend, IBMQBackend):
-        raise QISKitError('Input variable is not of type IBMQBackend.')
+        raise QiskitError('Input variable is not of type IBMQBackend.')
     config = backend.configuration().to_dict()
     status = backend.status().to_dict()
     config_dict = {**status, **config}
