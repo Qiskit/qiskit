@@ -77,6 +77,7 @@ Removed
 - Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
 - Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
 - Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
+- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
 
 `0.7.0`_ - 2018-12-19
 =====================

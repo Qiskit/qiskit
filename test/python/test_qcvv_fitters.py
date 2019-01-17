@@ -48,7 +48,7 @@ class TestQCVVFitters(QiskitTestCase):
     def test_shape_rb_data(self):
         """Test randomized benchmark data shaping function."""
         raw_data = np.zeros((2, 2, 2))
-        # TODO(mtreinish): Come up with a more realistic input data set instead
+        # TODO: Come up with a more realistic input data set instead
         # of this synthetic example
         for i in range(2):
             raw_data[i][i][i] = i + 1
