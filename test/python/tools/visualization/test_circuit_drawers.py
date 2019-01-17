@@ -14,7 +14,6 @@ import unittest
 from unittest.mock import patch, call
 
 from PIL.Image import Image
-from PIL import ImageChops
 from numpy import pi
 
 import qiskit.tools.visualization._circuit_visualization as _cv
@@ -25,10 +24,8 @@ from qiskit.tools.visualization import circuit_drawer
 from qiskit.tools.visualization import VisualizationError
 
 from qiskit.test import QiskitTestCase, Path
+from test.python.tools.visualization._drawing_test_case import DrawingTestCase
 
-
-def _this_directory():
-    return os.path.dirname(os.path.abspath(__file__))
 
 def _small_circuit():
     """Creates a simple small circuit consisting of one qubit, one bit and one gate applied.
@@ -184,13 +181,7 @@ def _deep_circuit():
     return circuit
 
 
-def _get_black_pixels(image):
-    black_and_white_version = image.convert('1')
-    black_pixels = black_and_white_version.histogram()[0]
-    return black_pixels
-
-
-class TestDrawingMethods(QiskitTestCase):
+class TestDrawingMethods(DrawingTestCase):
     """This class implements a test case which checks whether outputs of different circuit drawers
     upon drawing different types of QuantumCircuit equal the reference outputs.
 
@@ -209,6 +200,8 @@ class TestDrawingMethods(QiskitTestCase):
 
     """
     def setUp(self):
+        super(TestDrawingMethods, self).setUp()
+
         # Specify output formats which define a draw method
         self.draw_methods = ('text', 'latex', 'latex_source', 'mpl')
 
@@ -366,33 +359,6 @@ class TestDrawingMethods(QiskitTestCase):
 
         if draw_method in self.image_output_methods:
             self.assertImagesAreEqual(test_output, reference_output)
-
-    def assertFilesAreEqual(self, current, expected):
-        """Checks if both files are the same."""
-        self.assertTrue(os.path.exists(current))
-        self.assertTrue(os.path.exists(expected))
-
-        with open(current, "r", encoding='cp437') as cur, \
-                open(expected, "r", encoding='cp437') as exp:
-            self.assertEqual(cur.read(), exp.read(), msg='{} file differs from {}'.format(current,
-                                                                                          expected))
-
-    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
-        """Checks if both images are similar enough to be considered equal.
-        Similarity is controlled with the ```diff_tolerance``` argument."""
-        from PIL import Image as im
-
-        current_im = im.open(current)
-        expected_im = im.open(expected)
-
-        diff = ImageChops.difference(expected_im, current_im)
-        black_pixels = _get_black_pixels(diff)
-        total_pixels = diff.size[0] * diff.size[1]
-        similarity_ratio = black_pixels / total_pixels
-        self.assertTrue(
-            1 - similarity_ratio < diff_tolerance,
-            msg='The image {} differs from {} by more than a {}%'
-            .format(current, expected, diff_tolerance * 100))
 
     def tearDown(self):
         # Mercilessly delete a temporary folder
