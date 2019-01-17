@@ -31,6 +31,8 @@ from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
 
+from .exceptions import QiskitValidationError
+
 
 class ModelTypeValidator(_fields.Field):
     """A field able to validate the correct type of a value."""
@@ -93,8 +95,8 @@ class BaseSchema(Schema):
     """
 
     class Meta:
-        # In marshmallow3, all schemas are strict. This line prevents warnings
-        # to be issued when using marshmallow2.
+        """In marshmallow3, all schemas are strict."""
+        # TODO: remove when upgrading to marshmallow3
         strict = True
 
     model_cls = SimpleNamespace
@@ -225,9 +227,10 @@ class _SchemaBinder:
     def _validate(instance):
         """Validate the internal representation of the instance."""
         try:
-            errors = instance.schema.validate(instance.to_dict())
-        except ValidationError:
-            raise
+            _ = instance.schema.validate(instance.to_dict())
+        except ValidationError as ex:
+            raise QiskitValidationError(
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
     @staticmethod
     def _validate_after_init(init_method):
@@ -236,9 +239,10 @@ class _SchemaBinder:
         @wraps(init_method)
         def _decorated(self, **kwargs):
             try:
-                errors = self.shallow_schema.validate(kwargs)
-            except ValidationError:
-                raise
+                _ = self.shallow_schema.validate(kwargs)
+            except ValidationError as ex:
+                raise QiskitValidationError(
+                    ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
             init_method(self, **kwargs)
 
@@ -320,9 +324,11 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, errors = self.schema.dump(self)
-        except ValidationError:
-            raise
+            data, _ = self.schema.dump(self)
+        except ValidationError as ex:
+            raise QiskitValidationError(
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+
         return data
 
     @classmethod
@@ -333,9 +339,11 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, errors = cls.schema.load(dict_)
-        except ValidationError:
-            raise
+            data, _ = cls.schema.load(dict_)
+        except ValidationError as ex:
+            raise QiskitValidationError(
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+
         return data
 
 
