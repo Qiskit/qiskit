@@ -16,8 +16,8 @@ from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 from test.python.tools.visualization._drawing_test_case import DrawingTestCase
+from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 
 
 def _path_to_diagram_reference(filename):

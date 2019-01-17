@@ -24,9 +24,6 @@ class DrawingTestCase(QiskitTestCase):
     TestVisualizationImplementation.
 
     """
-    def setUp(self):
-        super(DrawingTestCase, self).setUp()
-
     def assertFilesAreEqual(self, current, expected):
         """Checks if both files are the same.
 
@@ -72,6 +69,3 @@ class DrawingTestCase(QiskitTestCase):
             1 - similarity_ratio < diff_tolerance,
             msg='The image {} differs from {} by more than a {}%'
             .format(current, expected, diff_tolerance * 100))
-
-    def tearDown(self):
-        super(DrawingTestCase, self).tearDown()

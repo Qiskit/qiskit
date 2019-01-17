@@ -13,6 +13,8 @@ import tempfile
 import unittest
 from unittest.mock import patch, call
 
+from test.python.tools.visualization._drawing_test_case import DrawingTestCase
+
 from PIL.Image import Image
 from numpy import pi
 
@@ -24,7 +26,6 @@ from qiskit.tools.visualization import circuit_drawer
 from qiskit.tools.visualization import VisualizationError
 
 from qiskit.test import QiskitTestCase, Path
-from test.python.tools.visualization._drawing_test_case import DrawingTestCase
 
 
 def _small_circuit():
@@ -263,9 +264,9 @@ class TestDrawingMethods(DrawingTestCase):
         # Specify a type of circuit used in this test
         self.check_circuit_type('large')
 
-    @unittest.skip('Currently, text drawer produces different outputs for different Python versions'
-                   'while testing deep circuits. Hence, it is rational to skip this test until'
-                   'issue will be solved.')
+    @unittest.skip('Currently, text drawer produces different outputs for different'
+                   ' Python versions while testing deep circuits. Hence, it is rational'
+                   ' to skip this test until issue will be solved.')
     def test_deep_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a deep circuit equal
          reference outputs.
