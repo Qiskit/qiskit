@@ -264,9 +264,7 @@ class TestDrawingMethods(DrawingTestCase):
         # Specify a type of circuit used in this test
         self.check_circuit_type('large')
 
-    @unittest.skip('Currently, text drawer produces different outputs for different. '
-                   'Python versions while testing deep circuits. '
-                   'Hence, it is rational to skip this test until issue will be solved.')
+    @unittest.skip('The test is skipped this until issue #1685 will be solved.')
     def test_deep_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a deep circuit equal
          reference outputs.
