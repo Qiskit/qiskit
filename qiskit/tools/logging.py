@@ -10,7 +10,6 @@
 import logging
 from logging.config import dictConfig
 
-
 class SimpleInfoFormatter(logging.Formatter):
     """Custom Formatter that uses a simple format for INFO."""
     _style_info = logging._STYLES['%'][0]('%(message)s')
@@ -45,7 +44,7 @@ QISKIT_LOGGING_CONFIG = {
 }
 
 
-def set_qiskit_logger():
+def set_qiskit_logger(level=None):
     """Update 'qiskit' logger configuration using a SDK default one.
 
     Update the configuration of the 'qiskit' logger using the default SDK
@@ -60,6 +59,9 @@ def set_qiskit_logger():
         for the 'qiskit.*' loggers, and might interfere with custom logger
         configurations.
     """
+    if level and isinstance(level, int):
+        QISKIT_LOGGING_CONFIG['loggers']['qiskit']['level'] = level
+
     dictConfig(QISKIT_LOGGING_CONFIG)
 
 
