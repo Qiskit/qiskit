@@ -92,6 +92,11 @@ class BaseSchema(Schema):
          constructor is passed all named parameters from deserialization.
     """
 
+    class Meta:
+        # In marshmallow3, all schemas are strict. This line prevents warnings
+        # to be issued when using marshmallow2.
+        strict = True
+
     model_cls = SimpleNamespace
 
     @post_dump(pass_original=True, pass_many=True)
@@ -219,9 +224,10 @@ class _SchemaBinder:
     @staticmethod
     def _validate(instance):
         """Validate the internal representation of the instance."""
-        errors = instance.schema.validate(instance.to_dict())
-        if errors:
-            raise ValidationError(errors)
+        try:
+            errors = instance.schema.validate(instance.to_dict())
+        except ValidationError:
+            raise
 
     @staticmethod
     def _validate_after_init(init_method):
@@ -229,9 +235,10 @@ class _SchemaBinder:
 
         @wraps(init_method)
         def _decorated(self, **kwargs):
-            errors = self.shallow_schema.validate(kwargs)
-            if errors:
-                raise ValidationError(errors)
+            try:
+                errors = self.shallow_schema.validate(kwargs)
+            except ValidationError:
+                raise
 
             init_method(self, **kwargs)
 
@@ -312,9 +319,10 @@ class BaseModel(SimpleNamespace):
         Note that this method requires that the model is bound with
         ``@bind_schema``.
         """
-        data, errors = self.schema.dump(self)
-        if errors:
-            raise ValidationError(errors)
+        try:
+            data, errors = self.schema.dump(self)
+        except ValidationError:
+            raise
         return data
 
     @classmethod
@@ -324,9 +332,10 @@ class BaseModel(SimpleNamespace):
         Note that this method requires that the model is bound with
         ``@bind_schema``.
         """
-        data, errors = cls.schema.load(dict_)
-        if errors:
-            raise ValidationError(errors)
+        try:
+            data, errors = cls.schema.load(dict_)
+        except ValidationError:
+            raise
         return data
 
 
