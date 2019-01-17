@@ -7,8 +7,8 @@
 
 """Tests for circuit_drawer."""
 import os
-import sys
 import shutil
+import tempfile
 
 import unittest
 from unittest.mock import patch, call
@@ -228,9 +228,7 @@ class TestDrawingMethods(QiskitTestCase):
         }
 
         # Create a temporary folder to store all the outputs produced during testing
-        self.tmp_dir = os.path.join(_this_directory(), 'tmp')
-        if not os.path.exists(self.tmp_dir):
-            os.makedirs(self.tmp_dir)
+        self.tmp_dir = tempfile.mkdtemp()
 
         # This piece of code allows one to easily generate new references just at set up procedure
         # (consequently, all the following test should be successful). Uncomment to use it.
