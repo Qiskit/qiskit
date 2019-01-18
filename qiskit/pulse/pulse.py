@@ -12,13 +12,12 @@ Pulse envelope generation.
 import ast
 import cmath
 import inspect
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import get_backend as get_matplotlib_backend
-
 from scipy.interpolate import CubicSpline
-from qiskit.exceptions import QiskitError
 
+from qiskit.exceptions import QiskitError
 
 builtin = ['exp', 'log', 'log10', 'sqrt', 'acos', 'asin', 'atan', 'cos', 'sin', 'tan',
            'acosh', 'asinh', 'atanh', 'cosh', 'sinh', 'tanh', 'pi', 'e', 'tau']
