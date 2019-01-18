@@ -348,6 +348,7 @@ class DAGCircuit:
         self.multi_graph.node[self.node_counter]["condition"] = condition
         #self.multi_graph.node[self.node_counter]["node_count"] = node_count
         self.node_to_ordering[self.node_counter] = node_count
+        print("Adding node ", op.name, " with priority ", node_count, " qubits : ", qargs)
 
 
 
@@ -1001,10 +1002,10 @@ class DAGCircuit:
             list: The list of node numbers in topological order
         """
 
-
-
         # lambda x: self.node_to_val[x] or x
-        return nx.lexicographical_topological_sort(self.multi_graph, key=self._key)
+        print(self.node_to_ordering)
+        # Sp not using the sort works better in this case?
+        return nx.lexicographical_topological_sort(self.multi_graph)#, key=self._key)
 
     def substitute_circuit_all(self, op, input_circuit, wires=None):
         """Replace every occurrence of operation op with input_circuit.
