@@ -61,7 +61,7 @@ Note: Naming the QuantumRegister is optional and not required.
 
 After you create the circuit with its registers, you can add gates
 (“operations”) to manipulate the registers. As you proceed through the
-documentation you will find more gates and circuits; the below is an
+documentation you will find more gates and circuits; below is an
 example of a quantum circuit that makes a three-qubit GHZ state
 
 .. math:: |\psi\rangle = \left(|000\rangle+|111\rangle\right)/\sqrt{2}.
