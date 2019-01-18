@@ -46,6 +46,8 @@ def circuit_to_dag(circuit):
         "load": ["load", -1, 0, 1],
         "noise": ["noise", -1, 0, 1]
     }
+
+    node_count = 0
     for main_instruction in circuit.data:
         # TODO: generate definitions and nodes for CompositeGates,
         # for now simply drop their instructions into the DAG
@@ -82,6 +84,7 @@ def circuit_to_dag(circuit):
 
             inst = duplicate_instruction(instruction)
             dagcircuit.apply_operation_back(inst, inst.qargs,
-                                            inst.cargs, control)
+                                            inst.cargs, control, node_count)
+            node_count += 1
 
     return dagcircuit
