@@ -7,6 +7,5 @@
 
 """Models and schemas for Terra."""
 
-from marshmallow import ValidationError
-
 from .base import BaseModel, BaseSchema, bind_schema, ModelTypeValidator
+from .exceptions import ModelValidationError

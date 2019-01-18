@@ -12,7 +12,7 @@ from marshmallow import ValidationError
 from qiskit.exceptions import QiskitError
 
 
-class QiskitValidationError(ValidationError, QiskitError):
+class ModelValidationError(ValidationError, QiskitError):
     """Raised when a sequence subscript is out of range."""
     def __init__(self, message, field_names=None, fields=None, data=None,
                  **kwargs):

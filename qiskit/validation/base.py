@@ -31,7 +31,7 @@ from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
 
-from .exceptions import QiskitValidationError
+from .exceptions import ModelValidationError
 
 
 class ModelTypeValidator(_fields.Field):
@@ -229,7 +229,7 @@ class _SchemaBinder:
         try:
             _ = instance.schema.validate(instance.to_dict())
         except ValidationError as ex:
-            raise QiskitValidationError(
+            raise ModelValidationError(
                 ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
     @staticmethod
@@ -241,7 +241,7 @@ class _SchemaBinder:
             try:
                 _ = self.shallow_schema.validate(kwargs)
             except ValidationError as ex:
-                raise QiskitValidationError(
+                raise ModelValidationError(
                     ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
             init_method(self, **kwargs)
@@ -326,7 +326,7 @@ class BaseModel(SimpleNamespace):
         try:
             data, _ = self.schema.dump(self)
         except ValidationError as ex:
-            raise QiskitValidationError(
+            raise ModelValidationError(
                 ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
         return data
@@ -341,7 +341,7 @@ class BaseModel(SimpleNamespace):
         try:
             data, _ = cls.schema.load(dict_)
         except ValidationError as ex:
-            raise QiskitValidationError(
+            raise ModelValidationError(
                 ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
         return data
