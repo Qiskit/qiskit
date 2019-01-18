@@ -36,38 +36,38 @@ class Pulse:
         Raises:
             QiskitError: when pulse envelope is not in the correct format.
         """
-        self._param = {}
+        self._params = {}
         self._ast = None
         self.t_intv = t_intv
         self.t_gate = t_gate
 
         if isinstance(envfunc, str):
             self._ast, pars = Pulse.eval_expr(envfunc)
-            self._param = {par: kwargs.get(par, 0) for par in pars}
+            self._params = {par: kwargs.get(par, 0) for par in pars}
         else:
             raise QiskitError('Incorrect specification of pulse envelope function.')
 
     @property
-    def param(self):
+    def params(self):
         """Get parameters for describing pulse envelope
 
         Returns:
             dict: pulse parameters
         """
-        return self._param
+        return self._params
 
-    @param.setter
-    def param(self, param_new):
+    @params.setter
+    def params(self, params_new):
         """Set parameters for describing pulse envelope
 
         Args:
-            param_new (dict): dictionary of parameters
+            params_new (dict): dictionary of parameters
         Raises:
             QiskitError: when pulse parameter is not in the correct format.
         """
-        if isinstance(param_new, dict):
-            for key, val in self._param.items():
-                self._param[key] = param_new.get(key, val)
+        if isinstance(params_new, dict):
+            for key, val in self._params.items():
+                self._params[key] = params_new.get(key, val)
         else:
             raise QiskitError('Pulse parameter should be dictionary.')
 
@@ -82,7 +82,7 @@ class Pulse:
         if self._ast:
             math_funcs = dict(inspect.getmembers(cmath))
             _dict = {k: math_funcs.get(k, None) for k in MATH}
-            _dict.update(self._param)
+            _dict.update(self._params)
             envelope = []
 
             _time = 0
@@ -148,12 +148,12 @@ class Pulse:
             QiskitError: when unintentional code is injected.
         """
         tree = ast.parse(expr_str, mode='eval')
-        param = []
+        params = []
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
-                if node.id not in MATH and node.id not in param and node.id != 't':
-                    param.append(node.id)
+                if node.id not in MATH and node.id not in params and node.id != 't':
+                    params.append(node.id)
             elif isinstance(node, (ast.Expression, ast.Call, ast.Load,
                                    ast.BinOp, ast.UnaryOp, ast.operator,
                                    ast.unaryop, ast.cmpop, ast.Num)):
@@ -161,4 +161,4 @@ class Pulse:
             else:
                 raise QiskitError('Invalid function is used in the equation.')
 
-        return tree, param
+        return tree, params
