@@ -45,6 +45,8 @@ Changed
 - ``dag_drawer`` and ``plot_gate_map`` are available via importing
   ``qiskit.tools.visualization``. They will raise at the point of use, if
   dependencies are not installed (#1669).
+- The ``qiskit.validation`` schemas are now strict and raise a more specific
+  ``ModelValidationError`` (#1695).
 
 Fixed
 -----
