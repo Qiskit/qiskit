@@ -89,8 +89,6 @@ class DAGCircuit:
         # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
 
-        # Maps node number to its position in the circuit
-        self.node_to_ordering = {}
 
     def get_qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
@@ -324,7 +322,7 @@ class DAGCircuit:
             all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
         return all_bits
 
-    def _add_op_node(self, op, qargs, cargs, condition=None, node_count=0):
+    def _add_op_node(self, op, qargs, cargs, condition=None):
         """Add a new operation node to the graph and assign properties.
 
         Args:
@@ -346,13 +344,8 @@ class DAGCircuit:
         self.multi_graph.node[self.node_counter]["qargs"] = qargs
         self.multi_graph.node[self.node_counter]["cargs"] = cargs
         self.multi_graph.node[self.node_counter]["condition"] = condition
-        #self.multi_graph.node[self.node_counter]["node_count"] = node_count
-        self.node_to_ordering[self.node_counter] = node_count
-        print("Adding node ", op.name, " with priority ", node_count, " qubits : ", qargs)
 
-
-
-    def apply_operation_back(self, op, qargs=None, cargs=None, condition=None, node_count=0):
+    def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
         TODO: make `qargs` and `cargs` mandatory, when they are dropped from op.
 
@@ -375,7 +368,7 @@ class DAGCircuit:
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        self._add_op_node(op, qargs, cargs, condition, node_count)
+        self._add_op_node(op, qargs, cargs, condition)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -989,10 +982,6 @@ class DAGCircuit:
         return nx.is_isomorphic(self.multi_graph, other.multi_graph,
                                 node_match=DAGCircuit._match_dag_nodes)
 
-    def _key(self, x):
-        if x in self.node_to_ordering.keys():
-            return self.node_to_ordering[x]
-        return x
 
     def node_nums_in_topological_order(self):
         """
@@ -1002,10 +991,7 @@ class DAGCircuit:
             list: The list of node numbers in topological order
         """
 
-        # lambda x: self.node_to_val[x] or x
-        print(self.node_to_ordering)
-        # Sp not using the sort works better in this case?
-        return nx.lexicographical_topological_sort(self.multi_graph)#, key=self._key)
+        return nx.lexicographical_topological_sort(self.multi_graph)
 
     def substitute_circuit_all(self, op, input_circuit, wires=None):
         """Replace every occurrence of operation op with input_circuit.
