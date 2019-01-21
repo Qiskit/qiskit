@@ -5,47 +5,63 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name,missing-docstring,missing-param-doc
+
 """
 Pulse envelope generation.
 """
 
-import ast
-import cmath
-import inspect
+import warnings
 
 import numpy as np
-from matplotlib import get_backend as get_matplotlib_backend, pyplot as plt
-from scipy.interpolate import CubicSpline
+
 
 from qiskit.exceptions import QiskitError
+from qiskit.tools.visualization._pulse_visualization import pulse_drawer
 
-MATH = ['exp', 'log', 'log10', 'sqrt', 'acos', 'asin', 'atan', 'cos', 'sin', 'tan',
-        'acosh', 'asinh', 'atanh', 'cosh', 'sinh', 'tanh', 'pi', 'e', 'tau']
+from inspect import signature
 
 
-class Pulse:
+class FunctionalPulse:
     """Pulse specification."""
 
-    def __init__(self, envfunc, t_gate, t_intv, **kwargs):
-        """Create a new pulse envelope.
-        Args:
-            envfunc (str): equation describing pulse envelope
-            t_gate (float): gate time
-            t_intv (float): time interval of sampling points
-            **kwargs: initial values of pulse parameter
-        Raises:
-            QiskitError: when pulse envelope is not in the correct format.
-        """
-        self._params = {}
-        self._ast = None
-        self.t_intv = t_intv
-        self.t_gate = t_gate
+    def __init__(self, pulse):
+        """Register pulse envelope function.
 
-        if isinstance(envfunc, str):
-            self._ast, pars = Pulse.eval_expr(envfunc)
-            self._params = {par: kwargs.get(par, 0) for par in pars}
+        Args:
+            pulse (callable): a function describing pulse envelope
+        Raises:
+            QiskitError: when incorrect envelope function is specified
+        """
+
+        if callable(pulse):
+            sig = signature(pulse)
+            if 'width' in sig.parameters:
+                self.pulse = pulse
+            else:
+                raise QiskitError('Pulse function requires "width" argument.')
         else:
-            raise QiskitError('Incorrect specification of pulse envelope function.')
+            raise QiskitError('Pulse function is not callable.')
+
+    def __call__(self, width, **kwargs):
+        """Return Functional Pulse with methods
+        """
+        return _FunctionalPulse(self.pulse, width=width, **kwargs)
+
+
+class _FunctionalPulse:
+    """Pulse specification with methods."""
+
+    def __init__(self, pulse, width, **kwargs):
+        """ Generate new pulse instance
+
+        Args:
+            pulse (callable): a function describing pulse envelope
+            width (float): pulse width
+        """
+        self.pulse = pulse
+        self.width = width
+        self._params = kwargs
 
     @property
     def params(self):
@@ -72,93 +88,44 @@ class Pulse:
             raise QiskitError('Pulse parameter should be dictionary.')
 
     def tolist(self):
-        """Calculate and output pulse envelope as a list of complex values [re, im]
+        """Output pulse envelope as a list of complex values
 
         Returns:
             list: complex pulse envelope at each sampling point
         Raises:
-            QiskitError: when envelope function is not initialized.
+            QiskitError: when pulse envelope is not a number
         """
-        if self._ast:
-            math_funcs = dict(inspect.getmembers(cmath))
-            _dict = {k: math_funcs.get(k, None) for k in MATH}
-            _dict.update(self._params)
-            envelope = []
 
-            _time = 0
-            while _time <= self.t_gate:
-                _dict['t'] = _time
-                value = eval(compile(self._ast, filename='', mode='eval'),
-                             {"__builtins__": None}, _dict)
-                envelope.append([np.real(value), np.imag(value)])
-                _time += self.t_intv
-        else:
-            raise QiskitError('Envelope function is not defined.')
+        def _cmp2list(val):
+            if isinstance(val, complex):
+                re_v = np.real(val)
+                im_v = np.imag(val)
+            elif isinstance(val, float):
+                re_v = val
+                im_v = 0
+            else:
+                raise QiskitError('Pulse envelope should be numbers.')
 
-        return envelope
+            if np.sqrt(re_v ** 2 + im_v ** 2) > 1:
+                warnings.warn('Pulse amplitude exceeds 1.')
 
-    def plot(self, nop=1000):
-        """Visualize pulse envelope.
+            return [re_v, im_v]
+
+        smp = list(map(_cmp2list, self.pulse(self.width, **self._params)))
+
+        return smp
+
+    def plot(self, interactive=False, **kwargs):
+        """Visualize pulse envelope
 
         Args:
-            nop (int): number of points for interpolation
+            interactive (bool): when set true show the circuit in a new window
         Returns:
             matplotlib.figure: a matplotlib figure object for the pulse envelope
         """
-        pulse_samp = np.array(self.tolist())
-        re_y = np.array(pulse_samp[:, 0])
-        im_y = np.array(pulse_samp[:, 1])
-        x = self.t_intv * np.linspace(0, len(re_y) - 1, len(re_y))
+        image = pulse_drawer(np.array(self.tolist()), **kwargs)
 
-        # spline interpolation
-        cs_ry = CubicSpline(x, re_y)
-        cs_iy = CubicSpline(x, im_y)
-        x_interp = np.linspace(0, max(x), nop)
+        if image and interactive:
+            image.show()
 
-        figure = plt.figure(figsize=(6, 5))
-        ax0 = figure.add_subplot(111)
-        ax0.scatter(x=x, y=re_y, c='red')
-        ax0.scatter(x=x, y=im_y, c='blue')
-        ax0.fill_between(x=x_interp, y1=cs_ry(x_interp), y2=np.zeros_like(x_interp),
-                         facecolors='r', alpha=0.5)
-        ax0.fill_between(x=x_interp, y1=cs_iy(x_interp), y2=np.zeros_like(x_interp),
-                         facecolors='b', alpha=0.5)
-        ax0.set_xlim([0, self.t_gate])
-        ax0.grid(b=True, linestyle='-')
-
-        if get_matplotlib_backend() == 'module://ipykernel.pylab.backend_inline':
-            # returns None when matplotlib is inline mode to prevent Jupyter
-            # with matplotlib inlining enabled to draw the diagram twice.
-            img = None
-        else:
-            img = figure
-
-        return img
-
-    @staticmethod
-    def eval_expr(expr_str):
-        """Safety check of the input string
-
-        Args:
-            expr_str (str): equation string to be evaluated
-
-        Returns:
-            tuple[AST, list]: a tuple in the form (AST, list)
-        Raises:
-            QiskitError: when unintentional code is injected.
-        """
-        tree = ast.parse(expr_str, mode='eval')
-        params = []
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name):
-                if node.id not in MATH and node.id not in params and node.id != 't':
-                    params.append(node.id)
-            elif isinstance(node, (ast.Expression, ast.Call, ast.Load,
-                                   ast.BinOp, ast.UnaryOp, ast.operator,
-                                   ast.unaryop, ast.cmpop, ast.Num)):
-                continue
-            else:
-                raise QiskitError('Invalid function is used in the equation.')
-
-        return tree, params
+        return image
