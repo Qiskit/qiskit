@@ -176,6 +176,8 @@ class TestVisualizationUtils(QiskitTestCase):
         """ _get_instructions without reversebits """
         (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
 
+        print(self.circuit)
+        print(self.circuit.data)
         self.assertEqual([(self.qr1, 0), (self.qr1, 1), (self.qr2, 0), (self.qr2, 1)], qregs)
         self.assertEqual([(self.cr1, 0), (self.cr1, 1), (self.cr2, 0), (self.cr2, 1)], cregs)
         self.assertEqual([op['name'] for op in ops],
