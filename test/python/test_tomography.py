@@ -10,13 +10,12 @@
 """Test of QCVV/tomography module."""
 
 import unittest
-
 import numpy as np
 
 from qiskit import execute, BasicAer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.qcvv import tomography as tomo
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestTomography(QiskitTestCase):
