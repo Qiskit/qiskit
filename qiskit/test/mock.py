@@ -27,7 +27,6 @@ from qiskit.providers import BaseBackend
 from qiskit.providers import BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.providers.ibmq.api import ApiError
 from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
 from qiskit.qobj import QobjExperiment, QobjExperimentHeader
 from qiskit.providers.jobstatus import JobStatus
@@ -73,7 +72,7 @@ class FakeBackend(BaseBackend):
     def __init__(self, configuration, time_alive=10):
         """
         Args:
-            configuration (dict): backend configuration
+            configuration (BackendConfiguration): backend configuration
             time_alive (int): time to wait before returning result
         """
         super().__init__(configuration)
@@ -115,7 +114,7 @@ class FakeQasmSimulator(FakeBackend):
     """A fake simulator backend."""
 
     def __init__(self):
-        _configuration = BackendConfiguration(
+        configuration = BackendConfiguration(
             backend_name='fake_qasm_simulator',
             backend_version='0.0.0',
             n_qubits=5,
@@ -131,7 +130,7 @@ class FakeQasmSimulator(FakeBackend):
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
         )
 
-        super().__init__(_configuration)
+        super().__init__(configuration)
 
 
 class FakeTenerife(FakeBackend):
@@ -147,7 +146,7 @@ class FakeTenerife(FakeBackend):
         """
         cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
 
-        _configuration = BackendConfiguration(
+        configuration = BackendConfiguration(
             backend_name='fake_tenerife',
             backend_version='0.0.0',
             n_qubits=5,
@@ -162,7 +161,7 @@ class FakeTenerife(FakeBackend):
             coupling_map=cmap,
         )
 
-        super().__init__(_configuration)
+        super().__init__(configuration)
 
 
 class FakeMelbourne(FakeBackend):
@@ -180,7 +179,7 @@ class FakeMelbourne(FakeBackend):
                 [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
                 [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]]
 
-        _configuration = BackendConfiguration(
+        configuration = BackendConfiguration(
             backend_name='fake_melbourne',
             backend_version='0.0.0',
             n_qubits=14,
@@ -195,7 +194,7 @@ class FakeMelbourne(FakeBackend):
             coupling_map=cmap,
         )
 
-        super().__init__(_configuration)
+        super().__init__(configuration)
 
 
 class FakeRueschlikon(FakeBackend):
@@ -214,7 +213,7 @@ class FakeRueschlikon(FakeBackend):
                 [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
                 [13, 14], [15, 0], [15, 2], [15, 14]]
 
-        _configuration = BackendConfiguration(
+        configuration = BackendConfiguration(
             backend_name='fake_rueschlikon',
             backend_version='0.0.0',
             n_qubits=16,
@@ -229,7 +228,7 @@ class FakeRueschlikon(FakeBackend):
             coupling_map=cmap,
         )
 
-        super().__init__(_configuration)
+        super().__init__(configuration)
 
 
 class FakeTokyo(FakeBackend):
@@ -264,7 +263,7 @@ class FakeTokyo(FakeBackend):
                 [16, 15], [16, 17], [17, 11], [17, 16], [18, 13], [18, 14],
                 [19, 13], [19, 14]]
 
-        _configuration = BackendConfiguration(
+        configuration = BackendConfiguration(
             backend_name='fake_tokyo',
             backend_version='0.0.0',
             n_qubits=16,
@@ -279,7 +278,7 @@ class FakeTokyo(FakeBackend):
             coupling_map=cmap,
         )
 
-        super().__init__(_configuration)
+        super().__init__(configuration)
 
 
 class FakeJob(BaseJob):
@@ -360,224 +359,3 @@ def new_fake_qobj():
             config=QobjItem(seed=123456)
         )]
     )
-
-
-def _auto_progress_api(api, interval=0.2):
-    """Progress a `BaseFakeAPI` instance every `interval` seconds until reaching
-    the final state.
-    """
-    while True:
-        time.sleep(interval)
-        api.progress()
-
-
-class BaseFakeAPI():
-    """Base class for faking the IBM-Q API."""
-
-    class NoMoreStatesError(Exception):
-        """Raised when it is not possible to progress more."""
-
-    _job_status = []
-
-    _can_cancel = False
-
-    def __init__(self):
-        self._state = 0
-        self.config = {'hub': None, 'group': None, 'project': None}
-        if self._can_cancel:
-            self.config.update({
-                'hub': 'test-hub',
-                'group': 'test-group',
-                'project': 'test-project'
-            })
-
-    def get_job(self, job_id):
-        if not job_id:
-            return {'status': 'Error', 'error': 'Job ID not specified'}
-        return self._job_status[self._state]
-
-    def get_status_job(self, job_id):
-        summary_fields = ['status', 'error', 'infoQueue']
-        complete_response = self.get_job(job_id)
-        return {key: value for key, value in complete_response.items()
-                if key in summary_fields}
-
-    def run_job(self, *_args, **_kwargs):
-        time.sleep(0.2)
-        return {'id': 'TEST_ID'}
-
-    def cancel_job(self, job_id, *_args, **_kwargs):
-        if not job_id:
-            return {'status': 'Error', 'error': 'Job ID not specified'}
-        return {} if self._can_cancel else {
-            'error': 'testing fake API can not cancel'}
-
-    def progress(self):
-        if self._state == len(self._job_status) - 1:
-            raise self.NoMoreStatesError()
-        self._state += 1
-
-
-class UnknownStatusAPI(BaseFakeAPI):
-    """Class for emulating an API with unknown status codes."""
-
-    _job_status = [
-        {'status': 'UNKNOWN'}
-    ]
-
-
-class ValidatingAPI(BaseFakeAPI):
-    """Class for emulating an API with job validation."""
-
-    _job_status = [
-        {'status': 'VALIDATING'},
-        {'status': 'RUNNING'}
-    ]
-
-
-class ErrorWhileValidatingAPI(BaseFakeAPI):
-    """Class for emulating an API processing an invalid job."""
-
-    _job_status = [
-        {'status': 'VALIDATING'},
-        {'status': 'ERROR_VALIDATING_JOB'}
-    ]
-
-
-class NonQueuedAPI(BaseFakeAPI):
-    """Class for emulating a successfully-completed non-queued API."""
-
-    _job_status = [
-        {'status': 'RUNNING'},
-        {'status': 'COMPLETED', 'qasms': []}
-    ]
-
-
-class ErrorWhileCreatingAPI(BaseFakeAPI):
-    """Class emulating an API processing a job that errors while creating
-    the job.
-    """
-
-    _job_status = [
-        {'status': 'ERROR_CREATING_JOB'}
-    ]
-
-
-class ErrorWhileRunningAPI(BaseFakeAPI):
-    """Class emulating an API processing a job that errors while running."""
-
-    _job_status = [
-        {'status': 'RUNNING'},
-        {'status': 'ERROR_RUNNING_JOB', 'error': 'Error running job'}
-    ]
-
-
-class QueuedAPI(BaseFakeAPI):
-    """Class for emulating a successfully-completed queued API."""
-
-    _job_status = [
-        {'status': 'RUNNING', 'infoQueue': {'status': 'PENDING_IN_QUEUE'}},
-        {'status': 'RUNNING'},
-        {'status': 'COMPLETED'}
-    ]
-
-
-class RejectingJobAPI(BaseFakeAPI):
-    """Class for emulating an API unable of initializing."""
-
-    def run_job(self, *_args, **_kwargs):
-        return {'error': 'invalid qobj'}
-
-
-class UnavailableRunAPI(BaseFakeAPI):
-    """Class for emulating an API throwing before even initializing."""
-
-    def run_job(self, *_args, **_kwargs):
-        time.sleep(0.2)
-        raise ApiError()
-
-
-class ThrowingAPI(BaseFakeAPI):
-    """Class for emulating an API throwing in the middle of execution."""
-
-    _job_status = [
-        {'status': 'RUNNING'}
-    ]
-
-    def get_job(self, job_id):
-        raise ApiError()
-
-
-class ThrowingNonJobRelatedErrorAPI(BaseFakeAPI):
-    """Class for emulating an scenario where the job is done but the API
-    fails some times for non job-related errors.
-    """
-
-    _job_status = [
-        {'status': 'COMPLETED'}
-    ]
-
-    def __init__(self, errors_before_success=2):
-        super().__init__()
-        self._number_of_exceptions_to_throw = errors_before_success
-
-    def get_job(self, job_id):
-        if self._number_of_exceptions_to_throw != 0:
-            self._number_of_exceptions_to_throw -= 1
-            raise ApiError()
-
-        return super().get_job(job_id)
-
-
-class ThrowingGetJobAPI(BaseFakeAPI):
-    """Class for emulating an API throwing in the middle of execution. But not in
-       get_status_job() , just in get_job().
-       """
-
-    _job_status = [
-        {'status': 'COMPLETED'}
-    ]
-
-    def get_status_job(self, job_id):
-        return self._job_status[self._state]
-
-    def get_job(self, job_id):
-        raise ApiError('Unexpected error')
-
-
-class CancellableAPI(BaseFakeAPI):
-    """Class for emulating an API with cancellation."""
-
-    _job_status = [
-        {'status': 'RUNNING'},
-        {'status': 'CANCELLED'}
-    ]
-
-    _can_cancel = True
-
-
-class NonCancellableAPI(BaseFakeAPI):
-    """Class for emulating an API without cancellation running a long job."""
-
-    _job_status = [
-        {'status': 'RUNNING'},
-        {'status': 'RUNNING'},
-        {'status': 'RUNNING'}
-    ]
-
-
-class ErroredCancellationAPI(BaseFakeAPI):
-    """Class for emulating an API with cancellation but throwing while
-    trying.
-    """
-
-    _job_status = [
-        {'status': 'RUNNING'},
-        {'status': 'RUNNING'},
-        {'status': 'RUNNING'}
-    ]
-
-    _can_cancel = True
-
-    def cancel_job(self, job_id, *_args, **_kwargs):
-        return {'status': 'Error', 'error': 'test-error-while-cancelling'}

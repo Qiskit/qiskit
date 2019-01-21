@@ -81,6 +81,8 @@ Removed
 - Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
 - Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
 - Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
+  package (``pip install qiskit-ibmq-provider``). (#1700)
 
 `0.7.0`_ - 2018-12-19
 =====================
