@@ -39,8 +39,7 @@ class TrivialLayout(AnalysisPass):
 
     def run(self, dag):
         """
-        Pick a convenient layout depending on the best matching
-        qubit connectivity, and set the property `layout`.
+        Pick a layout by assigning n circuit qubits to device qubits 0, .., n-1.
 
         Args:
             dag (DAGCircuit): DAG to find layout for.
@@ -51,7 +50,4 @@ class TrivialLayout(AnalysisPass):
         num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError('Number of qubits greater than device.')
-        layout = Layout()
-        for qreg in dag.qregs.values():
-            layout.add_register(qreg)
-        self.property_set['layout'] = layout
+        self.property_set['layout'] = Layout.generate_trivial_layout(*dag.qregs.values())

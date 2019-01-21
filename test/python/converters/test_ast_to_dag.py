@@ -5,8 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests for the converters."""
 
 import unittest
@@ -14,8 +12,7 @@ import unittest
 from qiskit.converters import ast_to_dag, circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import qasm
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase, Path
 
 
 class TestAstToDag(QiskitTestCase):
@@ -31,7 +28,8 @@ class TestAstToDag(QiskitTestCase):
 
     def test_from_ast_to_dag(self):
         """Test Unroller.execute()"""
-        ast = qasm.Qasm(filename=self._get_resource_path('qasm/example.qasm')).parse()
+        ast = qasm.Qasm(filename=self._get_resource_path('example.qasm',
+                                                         Path.QASMS)).parse()
         dag_circuit = ast_to_dag(ast)
         expected_result = """\
 OPENQASM 2.0;

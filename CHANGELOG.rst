@@ -20,6 +20,70 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Added
+-----
+
+- Added a RunConfig object for configurations for run configurations to be used 
+  in compile and circuits_to_qobj. (#1629)
+- Added support for register slicing when applying operations to a register (#1643).
+
+Changed
+-------
+
+- The ``Exception`` subclasses have been moved to an ``.exceptions`` module
+  within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
+- The ``QiskitTestCase`` and testing utilities are now included as part of
+  ``qiskit.test`` and thus available for third-party implementations (#1616)
+- The snapshot instruction now takes ``label`` and ``snap_type`` instead of
+  ``slot`` (#1615).
+- The test folders have been reorganized to match the python modules (#1625)
+- The circuits_to_qobj no longers uses the unrollers (#1629)
+- The previously deprecated default output of ``circuit_drawer()`` (using latex
+  and falling back to mpl) is no longer present. Instead the default output
+  is the ascii art ``text`` output backend.
+- Changed param to params in Instruction (#1665).
+- ``dag_drawer`` and ``plot_gate_map`` are available via importing
+  ``qiskit.tools.visualization``. They will raise at the point of use, if
+  dependencies are not installed (#1669).
+- The ``qiskit.validation`` schemas are now strict and raise a more specific
+  ``ModelValidationError`` (#1695).
+
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
+- Fixed a minor conda env bug in Makefile (#1691).
+- Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
+
+Removed
+-------
+
+- The previously deprecated functions ``plot_circuit()``,
+  ``latex_circuit_drawer()``, ``generate_latex_source()``, and
+  ``matplotlib_circuit_drawer()`` from ``qiskit.tools.visualization`` have
+  been removed. The ``circuit_drawer()`` function from the same module should
+  be used instead.
+- The previously deprecated keys ``plot_barriers`` and ``reverse_bits`` keys in
+  the ``style`` kwarg dict are deprecated, instead the
+  ``qiskit.tools.visualization.circuit_drawer()`` kwargs ``plot_barriers`` and
+  ``reverse_bits`` should be used instead.
+- Removed the wrapper folder as part of the post 0.7 cleanup (#1613).
+- Removed the python wrappers of the legacy simualtors now that
+  Qiskit Aer is out (#1615).
+- Removed simulator instructions ``save``, ``load``, ``wait``, ``noise``
+  as unsupported in Aer (#1615).
+- Removed circuit.add as deprecated (#1627)
+- Removed the unroller (#1629)
+- Removed deprecated ``result`` methods (#1659)
+- Removed deprecated ``couplingdict`` kwarg from ``CouplingMap`` (#1666)
+- Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
+- Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
+- Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
+- Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
+- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
+  package (``pip install qiskit-ibmq-provider``). (#1700)
 
 `0.7.0`_ - 2018-12-19
 =====================

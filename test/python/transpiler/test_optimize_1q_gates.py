@@ -15,8 +15,8 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
-from .._mockutils import FakeBackend
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeRueschlikon
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -53,7 +53,7 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates())
-        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
+        result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
 
         self.assertEqual(expected, result)
 
@@ -115,7 +115,7 @@ class TestMovedFromMapper(QiskitTestCase):
         for n in simplified_dag.multi_graph.nodes:
             node = simplified_dag.multi_graph.node[n]
             if node['name'] == 'u1':
-                params.add(node['op'].param[0])
+                params.add(node['op'].params[0])
 
         expected_params = {-3 * sympy.pi / 2,
                            1.0 + 0.55 * sympy.pi,

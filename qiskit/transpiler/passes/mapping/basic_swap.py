@@ -54,13 +54,11 @@ class BasicSwap(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.initial_layout is None:
-            # create a one-to-one layout
-            self.initial_layout = Layout()
-            physical_qubit = 0
-            for qreg in dag.qregs.values():
-                for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = physical_qubit
-                    physical_qubit += 1
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
         current_layout = copy(self.initial_layout)
 
         for layer in dag.serial_layers():
@@ -81,11 +79,10 @@ class BasicSwap(TransformationPass):
                         qubit_1 = current_layout[connected_wire_1]
                         qubit_2 = current_layout[connected_wire_2]
 
-                        # create the involved registers
-                        if qubit_1[0] not in swap_layer.qregs.values():
-                            swap_layer.add_qreg(qubit_1[0])
-                        if qubit_2[0] not in swap_layer.qregs.values():
-                            swap_layer.add_qreg(qubit_2[0])
+                        # create qregs
+                        for qreg in current_layout.get_registers():
+                            if qreg[0] not in swap_layer.qregs.values():
+                                swap_layer.add_qreg(qreg[0])
 
                         # create the swap operation
                         swap_layer.add_basis_element('swap', 2, 0, 0)
