@@ -12,14 +12,12 @@ Pulse envelope generation.
 """
 
 import warnings
+from inspect import signature
 
 import numpy as np
 
-
 from qiskit.exceptions import QiskitError
 from qiskit.tools.visualization._pulse_visualization import pulse_drawer
-
-from inspect import signature
 
 
 class FunctionalPulse:
