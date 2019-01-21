@@ -435,8 +435,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               'q2_0: |0>───────────────',
                               '                        ',
                               'q2_1: |0>───────────|0>─',
-                              '                        ']
-)
+                              '                        '])
         qr1 = QuantumRegister(2, 'q1')
         qr2 = QuantumRegister(2, 'q2')
         circuit = QuantumCircuit(qr1, qr2)

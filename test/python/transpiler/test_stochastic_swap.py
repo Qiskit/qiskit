@@ -10,7 +10,7 @@
 import unittest
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.mapper import CouplingMap, Layout
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
@@ -406,7 +406,7 @@ class TestStochasticSwap(QiskitTestCase):
         #  (QuantumRegister(4, 'q'), 3): 3}
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
-        
+
         self.assertEqual(expected_dag, after)
 
     def test_already_mapped(self):
