@@ -192,8 +192,12 @@ class IBMQBackend(BaseBackend):
         Raises:
             IBMQBackendError: if retrieval failed
         """
+
         try:
-            job_info = self._api.get_status_job(job_id)
+            job_info = self._api.get_job(job_id)
+            if job_info['backend']['name'] != self.name():
+                raise IBMQBackendError('Job "{}" belongs to backend "{}", not "{}".'
+                                       .format(job_id, job_info['backend']['name'], self.name()))
             if 'error' in job_info:
                 raise IBMQBackendError('Failed to get job "{}": {}'
                                        .format(job_id, job_info['error']))

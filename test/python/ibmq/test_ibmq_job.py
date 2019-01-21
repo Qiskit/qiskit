@@ -268,6 +268,29 @@ class TestIBMQJob(JobTestCase):
             self.assertEqual(job.qobj(), None)
 
     @requires_qe_access
+    def test_retrieve_job_uses_appropriate_backend(self, qe_token, qe_url):
+        IBMQ.enable_account(qe_token, qe_url)
+        simulator_backend = IBMQ.get_backend('ibmq_qasm_simulator')
+        backends = IBMQ.backends(simulator=False)
+        real_backend = least_busy(backends)
+
+        qobj_sim = compile(self._qc, simulator_backend)
+        job_sim = simulator_backend.run(qobj_sim)
+
+        qobj_real = compile(self._qc, real_backend)
+        job_real = real_backend.run(qobj_real)
+
+        # test a retrieved job's backend is the same as the queried backend
+        self.assertEqual(simulator_backend.retrieve_job(job_sim.job_id()).backend().name(),
+                         simulator_backend.name())
+        self.assertEqual(real_backend.retrieve_job(job_real.job_id()).backend().name(),
+                         real_backend.name())
+
+        # test retrieve requests for jobs that exist on other backends throw errors
+        self.assertRaises(IBMQBackendError, simulator_backend.retrieve_job, job_real.job_id())
+        self.assertRaises(IBMQBackendError, real_backend.retrieve_job, job_sim.job_id())
+
+    @requires_qe_access
     def test_retrieve_job_error(self, qe_token, qe_url):
         IBMQ.enable_account(qe_token, qe_url)
         backends = IBMQ.backends(simulator=False)
