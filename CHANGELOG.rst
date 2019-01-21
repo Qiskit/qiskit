@@ -53,6 +53,7 @@ Fixed
 
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
+- Fixed a minor conda env bug in Makefile (#1691).
 
 Removed
 -------
