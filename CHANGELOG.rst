@@ -136,6 +136,8 @@ Added
 - New CXDirection pass for fixing the direction of cx gates (#1410).
 - New CheckMap pass for checking if circuit meets mapping requirements (#1433).
 - New Optimize1QGate pass for combining chains of 1q rotations (#1442).
+- New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
+  selection pass (#1603).
 
 
 Changed
