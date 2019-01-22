@@ -55,7 +55,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         self.assertEqual(QuantumRegister(2, name='ancilla'), qregs[1])
 
     def test_name_coalition(self):
-        """Name coalition during ancilla extension."""
+        """Name collision during ancilla extension."""
         qr_ancilla = QuantumRegister(3, 'ancilla')
         circuit = QuantumCircuit(qr_ancilla)
         circuit.h(qr_ancilla)
