@@ -36,6 +36,7 @@ install:
     - pip.exe install ipywidgets
     - pip.exe install stestr
     - pip.exe install qiskit-aer
+    - pip.exe install qiskit-ibmq-provider
 # TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
 

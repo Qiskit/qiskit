@@ -12,8 +12,6 @@ import os
 import sys
 import unittest
 
-from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
-
 from .utils import Path
 from .http_recorder import http_recorder
 from .testing_options import get_test_options
@@ -29,7 +27,7 @@ def is_aer_provider_available():
     if sys.platform == 'darwin':
         return False
     try:
-        import qiskit.providers.aer  # pylint: disable=unused-import,unused-variable
+        import qiskit.providers.aer  # pylint: disable=unused-import
     except ImportError:
         return False
     return True
@@ -74,17 +72,27 @@ def _get_credentials(test_object, test_options):
 
     Args:
         test_object (QiskitTestCase): The test object asking for credentials
-        test_options (dict): Options after QISKIT_TESTS was parsed by get_test_options.
+        test_options (dict): Options after QISKIT_TESTS was parsed by
+            get_test_options.
 
     Returns:
         Credentials: set of credentials
 
     Raises:
-        Exception: When the credential could not be set and they are needed for that set of options
+        ImportError: if the
+        Exception: when the credential could not be set and they are needed
+            for that set of options
     """
+    try:
+        from qiskit.providers.ibmq.credentials import (Credentials,
+                                                       discover_credentials)
+    except ImportError:
+        raise ImportError('qiskit-ibmq-provider could not be found, and is '
+                          'required for mocking or executing online tests.')
 
-    dummy_credentials = Credentials('dummyapiusersloginWithTokenid01',
-                                    'https://quantumexperience.ng.bluemix.net/api')
+    dummy_credentials = Credentials(
+        'dummyapiusersloginWithTokenid01',
+        'https://quantumexperience.ng.bluemix.net/api')
 
     if test_options['mock_online']:
         return dummy_credentials
@@ -112,10 +120,11 @@ def _get_credentials(test_object, test_options):
 
     # No user credentials were found.
     if test_options['rec']:
-        raise Exception('Could not locate valid credentials. You need them for recording '
-                        'tests against the remote API.')
+        raise Exception('Could not locate valid credentials. You need them for '
+                        'recording tests against the remote API.')
 
-    test_object.log.warning("No user credentials were detected. Running with mocked data.")
+    test_object.log.warning('No user credentials were detected. '
+                            'Running with mocked data.')
     test_options['mock_online'] = True
     return dummy_credentials
 

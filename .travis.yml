@@ -29,6 +29,7 @@ stage_generic: &stage_generic
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt
     - pip install qiskit-aer
+    - pip install qiskit-ibmq-provider
   script:
     # Compile the executables and run the tests.
     - make test
