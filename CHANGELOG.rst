@@ -47,6 +47,8 @@ Changed
   dependencies are not installed (#1669).
 - The ``qiskit.validation`` schemas are now strict and raise a more specific
   ``ModelValidationError`` (#1695).
+- The default transpile pipeline will now add a barrier before the set of
+  final measurements when compiling for both simulators and devices (#1591).
 
 Fixed
 -----
@@ -55,6 +57,8 @@ Fixed
   qasm_simulator (#1624).
 - Fixed a minor conda env bug in Makefile (#1691).
 - Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
+- Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
+  used in conditional operations (#1705).
 
 Removed
 -------
