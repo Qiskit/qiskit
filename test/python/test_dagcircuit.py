@@ -21,7 +21,7 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDagRegisters(QiskitTestCase):

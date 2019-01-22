@@ -5,14 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
 """Test polymorphic and validated fields."""
 
-from test.python.common import QiskitTestCase
-
-from qiskit.validation import fields, ValidationError
+from qiskit.validation import fields
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.exceptions import ModelValidationError
 from qiskit.validation.fields import TryFrom, ByAttribute, ByType
+from qiskit.test import QiskitTestCase
 
 
 class DummySchema(BaseSchema):
@@ -83,13 +82,13 @@ class TestFields(QiskitTestCase):
 
     def test_try_from_field_invalid(self):
         """Test the TryFrom field, with invalid kind of object."""
-        with self.assertRaises(ValidationError) as context_manager:
+        with self.assertRaises(ModelValidationError) as context_manager:
             _ = PetOwner(auto_pets=[Cat(fur_density=1.5), NotAPet()])
         self.assertIn('auto_pets', str(context_manager.exception))
 
     def test_try_from_field_invalid_from_dict(self):
         """Test the TryFrom field, instantiation from dict, with invalid."""
-        with self.assertRaises(ValidationError) as context_manager:
+        with self.assertRaises(ModelValidationError) as context_manager:
             _ = PetOwner.from_dict({'auto_pets': [{'fur_density': 1.5},
                                                   {'name': 'John Doe'}]})
         self.assertIn('auto_pets', str(context_manager.exception))
@@ -112,13 +111,13 @@ class TestFields(QiskitTestCase):
 
     def test_by_attribute_field_invalid(self):
         """Test the ByAttribute field, with invalid kind of object."""
-        with self.assertRaises(ValidationError) as context_manager:
+        with self.assertRaises(ModelValidationError) as context_manager:
             _ = PetOwner(by_attribute_pets=[Cat(fur_density=1.5), NotAPet()])
         self.assertIn('by_attribute_pets', str(context_manager.exception))
 
     def test_by_attribute_field_invalid_from_dict(self):
         """Test the ByAttribute field, instantiation from dict, with invalid."""
-        with self.assertRaises(ValidationError) as context_manager:
+        with self.assertRaises(ModelValidationError) as context_manager:
             _ = PetOwner.from_dict({'by_attribute_pets': [{'fur_density': 1.5},
                                                           {'name': 'John Doe'}]})
         self.assertIn('by_attribute_pets', str(context_manager.exception))
@@ -135,12 +134,12 @@ class TestFields(QiskitTestCase):
 
     def test_by_type_field_invalid(self):
         """Test the ByType field, with invalid kind of object."""
-        with self.assertRaises(ValidationError) as context_manager:
+        with self.assertRaises(ModelValidationError) as context_manager:
             _ = PetOwner(by_type_contact=123)
         self.assertIn('by_type_contact', str(context_manager.exception))
 
     def test_by_type_field_invalid_from_dict(self):
         """Test the ByType field, instantiation from dict, with invalid."""
-        with self.assertRaises(ValidationError) as context_manager:
+        with self.assertRaises(ModelValidationError) as context_manager:
             _ = PetOwner.from_dict({'by_type_contact': 123})
         self.assertIn('by_type_contact', str(context_manager.exception))

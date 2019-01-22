@@ -588,9 +588,9 @@ class TextDrawing():
 
     @staticmethod
     def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None if there is no param."""
-        if 'op' in instruction and hasattr(instruction['op'], 'param'):
-            return ['%.5g' % i for i in instruction['op'].param]
+        """Get the params and format them to add them to a label. None if there are no params."""
+        if 'op' in instruction and hasattr(instruction['op'], 'params'):
+            return ['%.5g' % i for i in instruction['op'].params]
         return None
 
     @staticmethod
