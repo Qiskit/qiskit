@@ -74,7 +74,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         self.assertEqual(2, len(qregs))
         self.assertEqual(qr_ancilla, qregs[0])
         self.assertEqual(2, qregs[1].size)
-        self.assertRegex(qregs[1].name, '^ancilla\d+$')
+        self.assertRegex(qregs[1].name, r'^ancilla\d+$')
 
 
 if __name__ == '__main__':
