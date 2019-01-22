@@ -17,7 +17,6 @@ from inspect import signature
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.tools.visualization._pulse_visualization import pulse_drawer
 
 
 class FunctionalPulse:
@@ -121,6 +120,8 @@ class _FunctionalPulse:
         Returns:
             matplotlib.figure: a matplotlib figure object for the pulse envelope
         """
+        from qiskit.tools.visualization._pulse_visualization import pulse_drawer
+
         image = pulse_drawer(np.array(self.tolist()), **kwargs)
 
         if image and interactive:

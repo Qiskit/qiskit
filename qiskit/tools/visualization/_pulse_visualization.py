@@ -48,8 +48,8 @@ def pulse_drawer(samples, nop=1000, size=(6, 5)):
     image = plt.figure(figsize=size)
     ax0 = image.add_subplot(111)
 
-    ax0.scatter(x=time, y=re_y, c='red')
-    ax0.scatter(x=time, y=im_y, c='blue')
+    ax0.scatter(x=time, y=re_y, c='red', label='real part')
+    ax0.scatter(x=time, y=im_y, c='blue', label='imaginary part')
     ax0.fill_between(x=time_interp, y1=cs_ry(time_interp),
                      y2=np.zeros_like(time_interp),
                      facecolors='red', alpha=0.5)
@@ -58,6 +58,8 @@ def pulse_drawer(samples, nop=1000, size=(6, 5)):
                      facecolors='blue', alpha=0.5)
     ax0.set_xlim(0, max(time))
     ax0.grid(b=True, linestyle='-')
+    ax0.legend(bbox_to_anchor=(0.5, 1.00), loc='lower center',
+               ncol=2, frameon=False, fontsize=14)
 
     plt.close(image)
     return image
