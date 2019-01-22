@@ -30,7 +30,9 @@ class EnlargeWithAncilla(TransformationPass):
     def run(self, dag):
         """
         Extends `dag` with idle physical qubits in the self.property_set["layout"]
-        (or `layout` kwarg from `__init__`).
+        (or `layout` kwarg from `__init__`). If an extension is performed, the DAG
+        will be extended with an additional quantum register with the name  "ancilla"
+        (or "ancillaN" if the name is already taken, where N is an integer).
 
         Args:
             dag (DAGCircuit): DAG to extend.
