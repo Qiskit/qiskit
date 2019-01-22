@@ -26,6 +26,8 @@ Added
 - Added a RunConfig object for configurations for run configurations to be used 
   in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
+- Added ``qiskit.pulse.pulse`` and ``qiskit.tools.visualization._pulse_visualization``
+  to generate and visualize user defined pulse (#1692)
 
 Changed
 -------
