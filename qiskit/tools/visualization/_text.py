@@ -13,6 +13,7 @@ from shutil import get_terminal_size
 import sys
 
 from .exceptions import VisualizationError
+from qiskit.converters import circuit_to_dag
 
 
 class DrawElement():
@@ -660,7 +661,7 @@ class TextDrawing():
         for instruction in instructions:
             instruction.length = longest
 
-    def _instruction_to_gate(self, instruction, layer, current_cons):
+    def _instruction_to_gate(self, instruction, layer, current_cons, connection_labels):
 
         # add in a gate that operates over multiple qubits
         def add_connected_gate(instruction, gates, layer, current_cons):
@@ -758,7 +759,7 @@ class TextDrawing():
             raise VisualizationError(
                 "Text visualizer does not know how to handle this instruction", instruction)
 
-        return layer, current_cons
+        return layer, current_cons, connection_labels
 
     def build_layers(self):
         """
@@ -768,13 +769,10 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        layers = []
 
-        layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
+        layers = [InputWire.fillup_layer(self.wire_names(with_initial_value=True))]
 
-        from qiskit.converters import circuit_to_dag
         dag = circuit_to_dag(self.circuit)
-
 
         for dag_layer in dag.layers():
             layer = Layer(self.qregs, self.cregs)
@@ -787,7 +785,7 @@ class TextDrawing():
             for (_, instruction) in dag_instructions:
 
                 connection_labels.append(None)
-                current_cons = []
+                current_connections = []
 
                 multiqubit_gate = len(instruction['qargs']) > 1
 
@@ -810,27 +808,26 @@ class TextDrawing():
 
                             # needs to be separate layer
                             mlayer = Layer(self.qregs, self.cregs)
-                            mlayer, current_cons = self._instruction_to_gate(instruction, mlayer, current_cons)
+                            mlayer, current_connections, connection_labels = self._instruction_to_gate(instruction, mlayer, current_connections, connection_labels)
 
                             # sort into qubit order
-                            current_cons.sort(key=lambda tup: tup[0])
-                            current_cons = [g for q, g in current_cons]
-                            connections.append(current_cons)
+                            current_connections.sort(key=lambda tup: tup[0])
+                            current_connections = [g for q, g in current_connections]
+                            connections.append(current_connections)
 
                             mlayer.connect_with("│")
                             layers.append(mlayer.full_layer)
                             continue
 
-
                 # mulitqubit has been checked to see that it doesn't interfere
-                layer, current_cons = self._instruction_to_gate(instruction, layer, current_cons)
+                layer, current_connections, connection_labels = self._instruction_to_gate(instruction, layer, current_connections, connection_labels)
 
                 # Only add if there have been connections made between qubits
-                if len(current_cons) > 0:
+                if len(current_connections) > 0:
                     # sort into qubit order
-                    current_cons.sort(key=lambda tup: tup[0])
-                    current_cons = [g for q, g in current_cons]
-                    connections.append(current_cons)
+                    current_connections.sort(key=lambda tup: tup[0])
+                    current_connections = [g for q, g in current_connections]
+                    connections.append(current_connections)
 
             for i, con in enumerate(connections):
                 layer.connections.append((connection_labels[i], con))
