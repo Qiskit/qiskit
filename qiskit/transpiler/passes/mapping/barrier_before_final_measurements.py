@@ -23,7 +23,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         last_measures = []
         for measure in dag.get_named_nodes('measure'):
             is_last_measurement = all([after_measure in dag.output_map.values() for after_measure in
-                                       dag.quantum_successors(measure)])
+                                       dag.successors(measure)])
             if is_last_measurement:
                 last_measures.append(measure)
 
