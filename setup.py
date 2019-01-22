@@ -53,7 +53,7 @@ setup(
     python_requires=">=3.5",
     extra_requires={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
-                          'pydot', 'scipy'],
+                          'pydot'],
         'full-featured-simulators': ['qiskit-aer>=0.1']
     }
 )

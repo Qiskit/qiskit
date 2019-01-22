@@ -10,6 +10,7 @@ Visualization function for pulse envelope.
 """
 
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 
 def pulse_drawer(samples, nop=1000, size=(6, 5)):
@@ -30,11 +31,6 @@ def pulse_drawer(samples, nop=1000, size=(6, 5)):
     except ImportError:
         raise ImportError('pulse_drawer need matplotlib. '
                           'Run "pip install matplotlib" before.')
-    try:
-        from scipy.interpolate import CubicSpline
-    except ImportError:
-        raise ImportError('pulse_drawer need matplotlib. '
-                          'Run "pip install scipy" before.')
 
     re_y = samples[:, 0]
     im_y = samples[:, 1]
