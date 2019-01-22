@@ -187,8 +187,11 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
         basis = basis_gates.split(',') if basis_gates else []
-        dag = Unroller(basis).run(dag)
         name = dag.name
+
+        dag = Unroller(basis).run(dag)
+        dag = BarrierBeforeFinalMeasurements().run(dag)
+
         # if a coupling map is given compile to the map
         if coupling_map:
             logger.info("pre-mapping properties: %s",
@@ -196,7 +199,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Insert swap gates
             coupling = CouplingMap(coupling_map)
             logger.info("initial layout: %s", initial_layout)
-            dag = BarrierBeforeFinalMeasurements().run(dag)
+
             dag, final_layout = swap_mapper(
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)

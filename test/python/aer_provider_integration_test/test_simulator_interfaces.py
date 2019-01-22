@@ -14,7 +14,7 @@ import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit import execute
-from qiskit.test import requires_qe_access, QiskitTestCase, requires_aer_provider
+from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
 @requires_aer_provider

@@ -10,9 +10,10 @@
 from collections.abc import Iterable
 
 from marshmallow import fields as _fields
+from marshmallow.exceptions import ValidationError
 from marshmallow.utils import is_collection
 
-from qiskit.validation import ValidationError, ModelTypeValidator
+from qiskit.validation import ModelTypeValidator
 
 
 class Nested(_fields.Nested, ModelTypeValidator):
