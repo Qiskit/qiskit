@@ -289,7 +289,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = _utils._get_instructions(circuit, reversebits=reversebits)
-    text_drawing = _text.TextDrawing(qregs, cregs, ops)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, circuit)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
@@ -441,4 +441,4 @@ def _matplotlib_circuit_drawer(circuit,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)
     qcd.parse_circuit(circuit)
-    return qcd.draw(filename)
+    return qcd.draw(filename, verbose=True)

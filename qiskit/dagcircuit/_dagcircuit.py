@@ -982,7 +982,6 @@ class DAGCircuit:
         return nx.is_isomorphic(self.multi_graph, other.multi_graph,
                                 node_match=DAGCircuit._match_dag_nodes)
 
-
     def node_nums_in_topological_order(self):
         """
         Returns the nodes (their ids) in topological order.
