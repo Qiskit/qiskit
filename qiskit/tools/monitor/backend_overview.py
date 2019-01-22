@@ -10,8 +10,12 @@
 
 import math
 from qiskit.exceptions import QiskitError
-from qiskit.providers.ibmq import IBMQ
-from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
+
+try:
+    # pylint: disable=import-error,no-name-in-module
+    from qiskit.providers.ibmq import IBMQ, IBMQBackend
+except ImportError:
+    pass
 
 
 def get_unique_backends():

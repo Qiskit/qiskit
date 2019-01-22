@@ -42,10 +42,13 @@ class QiskitTestCase(unittest.TestCase):
     def tearDown(self):
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the wrapper from qiskit.
-        from qiskit.providers.ibmq import IBMQ
+        try:
+            from qiskit.providers.ibmq import IBMQ
+            IBMQ._accounts.clear()
+        except ImportError:
+            pass
         from qiskit.providers.builtinsimulators import BasicAer
 
-        IBMQ._accounts.clear()
         BasicAer._backends = BasicAer._verify_backends()
 
     @staticmethod
