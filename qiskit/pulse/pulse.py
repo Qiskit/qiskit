@@ -97,9 +97,9 @@ class _FunctionalPulse:
             if isinstance(val, complex):
                 re_v = np.real(val)
                 im_v = np.imag(val)
-            elif isinstance(val, float):
-                re_v = val
-                im_v = 0
+            elif isinstance(val, (float, int, np.integer)):
+                re_v = float(val)
+                im_v = 0.0
             else:
                 raise QiskitError('Pulse envelope should be numbers.')
 
