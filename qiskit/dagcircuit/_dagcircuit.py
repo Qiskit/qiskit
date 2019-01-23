@@ -914,7 +914,7 @@ class DAGCircuit:
             n (int): reference to self.multi_graph node id
 
         Returns:
-            set(dict): set({predecessor_map, successor_map})
+            tuple(dict): tuple(predecessor_map, successor_map)
                 These map from wire (Register, int) to predecessor (successor)
                 nodes of n.
         """
@@ -1277,6 +1277,10 @@ class DAGCircuit:
     def successors(self, node):
         """Returns the successors of a node."""
         return self.multi_graph.successors(node)
+
+    def descendants(self, node):
+        """Returns the descendants of a node."""
+        return nx.descendants(self.multi_graph, node)
 
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""
