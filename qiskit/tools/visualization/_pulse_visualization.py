@@ -13,7 +13,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 
 
-def pulse_drawer(samples, nop=1000, size=(6, 5)):
+def pulse_drawer(samples, filename=None, dpi=150, nop=1000, size=(6, 5)):
     """Plot the interpolated envelope of single pulse
 
     Args:
@@ -56,6 +56,9 @@ def pulse_drawer(samples, nop=1000, size=(6, 5)):
     ax0.grid(b=True, linestyle='-')
     ax0.legend(bbox_to_anchor=(0.5, 1.00), loc='lower center',
                ncol=2, frameon=False, fontsize=14)
+
+    if filename:
+        image.savefig(filename, dpi=dpi, bbox_inches='tight')
 
     plt.close(image)
     return image
