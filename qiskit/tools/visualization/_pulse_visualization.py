@@ -18,6 +18,8 @@ def pulse_drawer(samples, filename=None, dpi=150, nop=1000, size=(6, 5)):
 
     Args:
         samples (ndarray): data points of complex pulse envelope
+        filename (str): name required to save pulse image
+        dpi (int): resolution of saved image
         nop (int): data points for interpolation
         size (tuple): size of figure
     Returns:
