@@ -12,7 +12,7 @@ from qiskit.transpiler._basepasses import TransformationPass
 
 class Decompose(TransformationPass):
     """
-    Expand a gate in a circle using its decomposition rules.
+    Expand a gate in a circuit using its decomposition rules.
     """
 
     def __init__(self, gate=None):
