@@ -38,25 +38,11 @@ def _1q_gate(func):
 
 
 def _2q_gate(func=None, broadcastable=None):
-    """
-    Broadcast single qubit args to multiqubit args if other args have multiple
-    qubits.
-
-    Args:
-        func (None or function): None if broadcastable is not None.
-        broadcastable (None or list(bool)): If None, every single element qubit
-            argument will be broadcast. If a list of boolean, only qubit arguments
-            corresponding to 'True' will be broadcast.
-
-    Returns:
-        partial object: behaves like func
-    """
     if func is None:
         return functools.partial(_2q_gate, broadcastable=broadcastable)
 
     @functools.wraps(func)
     def wrapper(self, *args):
-        """Wrapper for 2 qubit gate"""
         params = args[0:-2] if len(args) > 2 else tuple()
         qargs = args[-2:]
         if broadcastable is None:
@@ -94,25 +80,11 @@ def _2q_gate(func=None, broadcastable=None):
 
 
 def _3q_gate(func=None, broadcastable=None):
-    """
-    Broadcast single qubit args to multiqubit args if other args have multiple
-    qubits.
-
-    Args:
-        func (None or function): None if broadcastable is not None.
-        broadcastable (None or list(bool)): If None, every single element qubit
-            argument will be broadcast. If a list of boolean, only qubit arguments
-            corresponding to 'True' will be broadcast.
-
-    Return:
-        partial object: behaves like func
-    """
     if func is None:
         return functools.partial(_3q_gate, broadcastable=broadcastable)
 
     @functools.wraps(func)
     def wrapper(self, *args):
-        """Wrapper for control-target gate"""
         params = args[0:-3] if len(args) > 3 else tuple()
         qargs = args[-3:]
         if broadcastable is None:

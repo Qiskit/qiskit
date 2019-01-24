@@ -267,11 +267,11 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.cargs[0][1], itgt)
 
     def test_measure_slice_raises(self):
+        """test raising exception for strange measures"""
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
-        cr2 = ClassicalRegister(5)
         qc = QuantumCircuit(qr, cr)
-        with self.assertRaises(QiskitError) as cm:
+        with self.assertRaises(QiskitError):
             qc.measure(qr[0:2], cr[2])
         # this is ok
         qc.measure(qr[0], cr[0:2])
