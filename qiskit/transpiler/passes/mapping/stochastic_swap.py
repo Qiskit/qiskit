@@ -69,11 +69,8 @@ class StochasticSwap(TransformationPass):
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.input_layout = initial_layout
-        if initial_layout is not None:
-            self.initial_layout = initial_layout.copy()
-        else:
-            self.initial_layout = None
+        self.initial_layout = initial_layout
+        self.input_layout = None
         self.trials = trials
         self.seed = seed
         self.requires.append(BarrierBeforeFinalMeasurements())
@@ -88,11 +85,15 @@ class StochasticSwap(TransformationPass):
         Returns:
             DAGCircuit: A mapped DAG.
         """
-        # If the property_set contains a layout, use it to
-        # override any layout passed to __init__
-        if self.property_set["layout"]:
-            self.initial_layout = self.property_set["layout"]
-            self.input_layout = self.property_set["layout"]
+
+        if self.initial_layout is None:
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
+        self.input_layout = self.initial_layout.copy()
+
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, seed=self.seed)
         # self.property_set["layout"] = self.initial_layout
         return new_dag

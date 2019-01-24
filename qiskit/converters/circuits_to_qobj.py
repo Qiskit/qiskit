@@ -117,16 +117,16 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
                 clbit_indices = [clbit_labels.index([clbit[0].name, clbit[1]])
                                  for clbit in opt.cargs]
                 current_instruction.memory = clbit_indices
-            # TODO: we are not constant with params vs param
-            if opt.param:
-                params = list(map(lambda x: x.evalf(), opt.param))
+
+            if opt.params:
+                params = list(map(lambda x: x.evalf(), opt.params))
                 current_instruction.params = params
 
             # TODO: I really dont like this for snapshot. I also think we should change
             # type to snap_type
             if opt.name == "snapshot":
-                current_instruction.label = str(opt.param[0])
-                current_instruction.type = str(opt.param[1])
+                current_instruction.label = str(opt.params[0])
+                current_instruction.type = str(opt.params[1])
             if opt.control:
                 mask = 0
                 for clbit in clbit_labels:

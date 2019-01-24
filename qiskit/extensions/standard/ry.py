@@ -35,7 +35,7 @@ class RYGate(Gate):
         decomposition.add_qreg(q)
         decomposition.add_basis_element("u3", 1, 0, 3)
         rule = [
-            U3Gate(self.param[0], 0, 0, q[0])
+            U3Gate(self.params[0], 0, 0, q[0])
         ]
         for inst in rule:
             decomposition.apply_operation_back(inst)
@@ -46,13 +46,13 @@ class RYGate(Gate):
 
         ry(theta)^dagger = ry(-theta)
         """
-        self.param[0] = -self.param[0]
+        self.params[0] = -self.params[0]
         self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ry(self.param[0], self.qargs[0]))
+        self._modifiers(circ.ry(self.params[0], self.qargs[0]))
 
 
 @_1q_gate
