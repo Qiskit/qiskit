@@ -48,26 +48,16 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
-        final_qubits = []
-        for final_op in final_ops:
-            qubit = dag.multi_graph.node[final_op]['qargs'][0]
-            if qubit not in final_qubits:
-                final_qubits.append(qubit)
+        final_qubits = set(dag.multi_graph.node[final_op]['qargs'][0]
+                           for final_op in final_ops)
 
-        dag.add_basis_element('barrier', len(final_qubits), 0, 0)
         barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
+        new_barrier_id = barrier_layer.node_counter
 
         # Preserve order of final ops collected earlier from the original DAG.
         ordered_node_ids = [node_id for node_id in dag.node_nums_in_topological_order()
                             if node_id in set(final_ops)]
         ordered_final_nodes = [dag.multi_graph.node[node] for node in ordered_node_ids]
-
-        # If a barrier equivalent to the new barrier was already present in the
-        # DAG, it would be first on the list of final nodes to re-add. Check if
-        # it exists and return the DAG unmodified if so.
-        barrier_to_add = barrier_layer.get_op_nodes(data=True)[0][1]
-        if ordered_final_nodes[0] == barrier_to_add:
-            return dag
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
@@ -75,6 +65,37 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         for final_op in final_ops:
             dag._remove_op_node(final_op)
+
+        # Check to see if the new barrier added to the DAG is equivalent to any
+        # existing barriers, and if so, consolidate the two.
+        our_ancestors = barrier_layer.ancestors(new_barrier_id)
+        our_descendants = barrier_layer.descendants(new_barrier_id)
+        our_qubits = final_qubits
+
+        existing_barriers = barrier_layer.get_named_nodes('barrier')
+        existing_barriers.remove(new_barrier_id)
+
+        for candidate_barrier in existing_barriers:
+            their_ancestors = barrier_layer.ancestors(candidate_barrier)
+            their_descendants = barrier_layer.descendants(candidate_barrier)
+            their_qubits = set(barrier_layer.multi_graph.nodes[candidate_barrier]['op'].qargs)
+
+            if (
+                    not our_qubits.isdisjoint(their_qubits)
+                    and our_ancestors.isdisjoint(their_descendants)
+                    and our_descendants.isdisjoint(their_ancestors)
+            ):
+                merge_barrier = Barrier(qubits=(our_qubits | their_qubits))
+                barrier_layer.apply_operation_front(merge_barrier)
+
+                merge_barrier_id = barrier_layer.node_counter
+                our_ancestors = our_ancestors | their_ancestors
+                our_descendants = our_descendants | their_descendants
+
+                barrier_layer._remove_op_node(candidate_barrier)
+                barrier_layer._remove_op_node(new_barrier_id)
+
+                new_barrier_id = merge_barrier_id
 
         dag.extend_back(barrier_layer)
 
