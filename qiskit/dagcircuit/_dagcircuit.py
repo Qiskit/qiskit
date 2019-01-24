@@ -1259,12 +1259,20 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
-        """Get the set of 2-qubit nodes."""
+        """Get list of 2-qubit nodes."""
         two_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
+
+    def get_3q_or_more_nodes(self):
+        """Get list of 3-or-more-qubit nodes: (id, data)."""
+        three_q_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and len(node_data['qargs']) >= 3:
+                three_q_nodes.append((node_id, self.multi_graph.node[node_id]))
+        return three_q_nodes
 
     def successors(self, node):
         """Returns the successors of a node."""
