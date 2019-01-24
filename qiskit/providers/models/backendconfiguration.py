@@ -47,7 +47,7 @@ class BackendConfigurationSchema(BaseSchema):
     local = Boolean(required=True)
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)
-    open_pulse = Boolean(required=True, validate=Equal(False))
+    open_pulse = Boolean(required=True)
     memory = Boolean(required=True)
     max_shots = Integer(required=True, validate=Range(min=1))
 
