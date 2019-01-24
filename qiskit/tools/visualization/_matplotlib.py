@@ -15,6 +15,7 @@ import itertools
 import json
 import logging
 import math
+import pprint
 
 import numpy as np
 
@@ -483,6 +484,9 @@ class MatplotlibDrawer:
         #
         for i, (op, op_next) in enumerate(
                 itertools.zip_longest(self._ops, next_ops)):
+
+            print("---OP---")
+            pprint.pprint(op, width=1)
             # wide gate
             if op['name'] in _wide_gate:
                 _iswide = True
@@ -501,6 +505,8 @@ class MatplotlibDrawer:
                             break
             else:
                 q_idxs = []
+
+            print("q_idxs : ", q_idxs)
             # get creg index
             if 'cargs' in op.keys():
                 c_idxs = []
@@ -512,6 +518,7 @@ class MatplotlibDrawer:
                             break
             else:
                 c_idxs = []
+
             # find empty space to place gate
             if not _barriers['group']:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
@@ -592,10 +599,18 @@ class MatplotlibDrawer:
                 self._measure(q_xy[0], c_xy[0], vv)
             elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
                                 'noise']:
-                q_group = self._qreg_dict[q_idxs[0]]['group']
-                if q_group not in _barriers['group']:
-                    _barriers['group'].append(q_group)
-                _barriers['coord'].append(q_xy[0])
+
+                # Go over all indices to add barrier
+                for index in range(len(q_idxs)):
+
+                    # issue is why is this not extracting the other group
+                    # should have both extracted and then added to _barriers['group']
+                    q_group = self._qreg_dict[q_idxs[index]]['group']
+
+                    if q_group not in _barriers['group']:
+                        _barriers['group'].append(q_group)
+                    _barriers['coord'].append(q_xy[index])
+
                 if op_next and op_next['name'] == 'barrier':
                     continue
                 else:
