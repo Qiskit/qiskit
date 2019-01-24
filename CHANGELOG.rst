@@ -23,7 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-- Added a RunConfig object for configurations for run configurations to be used 
+- Added a RunConfig object for configurations for run configurations to be used
   in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
 
@@ -51,6 +51,7 @@ Fixed
 
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
+- Fixed a bug where barriers didn't plot over all qubits when using matplotlib.
 
 Removed
 -------
