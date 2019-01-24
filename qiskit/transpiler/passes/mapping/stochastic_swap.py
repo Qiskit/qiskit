@@ -14,6 +14,7 @@ from pprint import pformat
 from math import inf
 import numpy as np
 
+from qiskit.tools.visualization import dag_drawer
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
@@ -418,6 +419,7 @@ class StochasticSwap(TransformationPass):
 
         # Iterate over layers
         for i, layer in enumerate(layerlist):
+            #dag_drawer(dagcircuit_output)
 
             # Attempt to find a permutation for this layer
             success_flag, best_circuit, best_depth, best_layout, trivial_flag \
@@ -434,15 +436,17 @@ class StochasticSwap(TransformationPass):
                              "retrying sequentially", i)
                 serial_layerlist = list(layer["graph"].serial_layers())
 
-                # Go through each gate in the layer
+                best_d = 10
+               # Go through each gate in the layer
                 for j, serial_layer in enumerate(serial_layerlist):
-
+                    #dag_drawer(dagcircuit_output)
                     success_flag, best_circuit, best_depth, best_layout, trivial_flag = \
                         self._layer_permutation(
                             serial_layer["partition"],
                             layout, qubit_subset,
                             coupling_graph,
                             trials, seed)
+                    dag_drawer(best_circuit)
                     logger.debug("mapper: layer %d, sublayer %d", i, j)
                     logger.debug("mapper: success_flag=%s,best_depth=%s,"
                                  "trivial_flag=%s",
@@ -467,18 +471,23 @@ class StochasticSwap(TransformationPass):
                     if first_layer:
                         self.initial_layout = layout
 
-                    # Update the record of qubit positions
-                    # for each inner iteration
-                    layout = best_layout
-                    # Update the DAG
-                    dagcircuit_output.extend_back(
-                        self._layer_update(j,
-                                           first_layer,
-                                           best_layout,
-                                           best_depth,
-                                           best_circuit,
-                                           serial_layerlist),
-                        identity_wire_map)
+                    logger.debug("Best depth : " + str(best_depth))
+                    # THIS IS WHERE I HAVE BEEN CHANGING THINGS
+                    # PREVIOUSLY JUST ALWAYS UPDATED THE LAYOUT BUT THAT CAN'T BE RIGHT SURELY
+                    if best_depth <= best_d:
+                        best_d = best_depth
+                        # Update the record of qubit positions
+                        # for each inner iteration
+                        layout = best_layout
+                        # Update the DAG
+                        dagcircuit_output.extend_back(
+                            self._layer_update(j,
+                                               first_layer,
+                                               best_layout,
+                                               best_depth,
+                                               best_circuit,
+                                               serial_layerlist),
+                            identity_wire_map)
                     if first_layer:
                         first_layer = False
 
@@ -519,4 +528,6 @@ class StochasticSwap(TransformationPass):
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
                 dagcircuit_output.compose_back(layer["graph"], edge_map)
 
+
+        dag_drawer(dagcircuit_output)
         return dagcircuit_output

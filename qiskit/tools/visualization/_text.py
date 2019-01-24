@@ -781,8 +781,12 @@ class TextDrawing():
             connections = []
             connection_labels = []
 
+
             dag_instructions = dag_layer['graph'].get_gate_nodes(data=True)
-            for (_, instruction) in dag_instructions:
+
+            # TODO should this sort be moved elsewhere?
+            dag_instructions.sort(key=lambda tup: tup[0])
+            for (index, instruction) in dag_instructions:
 
                 connection_labels.append(None)
                 current_connections = []
@@ -815,8 +819,14 @@ class TextDrawing():
                             current_connections = [g for q, g in current_connections]
                             connections.append(current_connections)
 
+                            # add in previous layer
+                            layer.connect_with("│")
+                            layers.append(layer.full_layer)
+                            layer = Layer(self.qregs, self.cregs)
+
                             mlayer.connect_with("│")
                             layers.append(mlayer.full_layer)
+
                             continue
 
                 # mulitqubit has been checked to see that it doesn't interfere
@@ -835,6 +845,8 @@ class TextDrawing():
             layer.connect_with("│")
             layers.append(layer.full_layer)
 
+
+        # layers here are correct
         return layers
 
 
