@@ -7,11 +7,10 @@
 
 """Exception for errors raised by Qiskit.
 
-Note: this module will be deprecated in Terra 0.7+. Please import the exceptions
+Note: this module will be deprecated in Terra 0.8+. Please import the exceptions
 from the `qiskit.exceptions` module instead.
 """
 
 # pylint: disable=unused-import
 
-from .exceptions import QISKitError
 from .exceptions import QiskitError

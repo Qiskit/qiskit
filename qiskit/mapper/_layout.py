@@ -118,6 +118,14 @@ class Layout(dict):
         for bit in reg:
             self.add(bit)
 
+    def get_registers(self):
+        """
+        Returns the registers in the layout [QuantumRegister(2, 'qr0'), QuantumRegister(3, 'qr1')]
+        Returns:
+            List: A list of Register in the layout
+        """
+        return list(self.get_virtual_bits().keys())
+
     def set_length(self, amount_of_physical_bits):
         """
         Extends the layout length to `amount_of_physical_bits`.

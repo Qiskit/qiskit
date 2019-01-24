@@ -15,7 +15,7 @@ import pkgutil
 from . import _util
 
 # qiskit errors operator
-from .exceptions import QiskitError, QISKitError
+from .exceptions import QiskitError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
@@ -36,12 +36,16 @@ import qiskit.circuit.reset
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
-from qiskit.providers.ibmq import IBMQ
 from qiskit.providers.builtinsimulators import BasicAer
 
-# Try to import the Aer provider if th Aer element is installed.
+# Try to import the Aer provider if the Aer element is installed.
 try:
     from qiskit.providers.aer import Aer
+except ImportError:
+    pass
+# Try to import the IBQM provider if the IBMQ element is installed.
+try:
+    from qiskit.providers.ibmq import IBMQ
 except ImportError:
     pass
 
