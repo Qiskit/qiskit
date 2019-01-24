@@ -7,7 +7,7 @@
 
 """Model and schema for backend configuration."""
 
-from marshmallow.validate import Equal, Length, OneOf, Range, Regexp
+from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, String
