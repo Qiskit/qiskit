@@ -266,6 +266,16 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
 
+    def test_measure_slice_raises(self):
+        qr = QuantumRegister(10)
+        cr = ClassicalRegister(10)
+        cr2 = ClassicalRegister(5)
+        qc = QuantumCircuit(qr, cr)
+        with self.assertRaises(QiskitError) as cm:
+            qc.measure(qr[0:2], cr[2])
+        # this is ok
+        qc.measure(qr[0], cr[0:2])
+
     def test_list_indexing(self):
         """test list indexing"""
         qr = QuantumRegister(10)

@@ -56,7 +56,7 @@ class FredkinGate(Gate):
         self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
-@_3q_gate
+@_3q_gate(broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
     self._check_qubit(ctl)

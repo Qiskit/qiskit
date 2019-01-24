@@ -34,7 +34,7 @@ class Measure(Instruction):
         self._modifiers(circuit.measure(self.qargs[0], self.cargs[0]))
 
 
-@_2q_gate
+@_2q_gate(broadcastable=[True, False])
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
 

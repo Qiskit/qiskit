@@ -10,7 +10,7 @@ list of qubits into a series of single qubit/cbit instructions to be handled by
 the wrapped operation.
 """
 
-from functools import wraps
+import functools
 from qiskit.exceptions import QiskitError
 from .instructionset import InstructionSet
 from .quantumregister import QuantumRegister
@@ -19,7 +19,7 @@ from .register import Register
 
 def _1q_gate(func):
     """Wrapper for one qubit gate"""
-    @wraps(func)
+    @functools.wraps(func)
     def wrapper(self, *args):
         """Wrapper for one qubit gate"""
         params = args[0:-1] if len(args) > 1 else tuple()
@@ -37,32 +37,44 @@ def _1q_gate(func):
     return wrapper
 
 
-def _2q_gate(func):
+def _2q_gate(func=None, broadcastable=None):
     """
     Broadcast single qubit args to multiqubit args if other args have multiple
     qubits.
+
+    Args:
+        func (None or function): None if broadcastable is not None.
+        broadcastable (None or list(bool)): If None, every single element qubit
+            argument will be broadcast. If a list of boolean, only qubit arguments
+            corresponding to 'True' will be broadcast.
     """
-    @wraps(func)
+    if func is None:
+        return functools.partial(_2q_gate, broadcastable=broadcastable)
+    @functools.wraps(func)
     def wrapper(self, *args):
-        """Wrapper for control-target gate"""
+        """Wrapper for 2 qubit gate"""
         params = args[0:-2] if len(args) > 2 else tuple()
         qargs = args[-2:]
+        if broadcastable is None:
+            blist = [True] * len(qargs)
+        else:
+            blist = broadcastable
         if not all([isinstance(arg, tuple) for arg in qargs]):
             if any([not isinstance(arg, (tuple, list, Register))
                     for arg in qargs]):
                 raise QiskitError('operation arguments must be qubits/cbits')
             broadcast_size = max(len(arg) for arg in qargs)
             expanded_qargs = []
-            for arg in qargs:
+            for arg, broadcast in zip(qargs, blist):
                 if isinstance(arg, Register):
                     arg = [(arg, i) for i in range(len(arg))]
                 elif isinstance(arg, tuple):
                     arg = [arg]
                 # now we should have a list of qubits
-                if isinstance(arg, list) and len(arg) == 1:
+                if isinstance(arg, list) and len(arg) == 1 and broadcast:
                     arg = arg * broadcast_size
                 if len(arg) != broadcast_size:
-                    raise QiskitError('register sizes should match or be one')
+                    raise QiskitError('register size error')
                 expanded_qargs.append(arg)
             qargs = expanded_qargs
             if all([isinstance(arg, list) for arg in qargs]):
@@ -77,29 +89,41 @@ def _2q_gate(func):
     return wrapper
 
 
-def _3q_gate(func):
+def _3q_gate(func=None, broadcastable=None):
     """
     Broadcast single qubit args to multiqubit args if other args have multiple
     qubits.
+
+    Args:
+        func (None or function): None if broadcastable is not None.
+        broadcastable (None or list(bool)): If None, every single element qubit
+            argument will be broadcast. If a list of boolean, only qubit arguments
+            corresponding to 'True' will be broadcast.
     """
-    @wraps(func)
+    if func is None:
+        return functools.partial(_3q_gate, broadcastable=broadcastable)
+    @functools.wraps(func)
     def wrapper(self, *args):
         """Wrapper for control-target gate"""
         params = args[0:-3] if len(args) > 3 else tuple()
         qargs = args[-3:]
+        if broadcastable is None:
+            blist = [True] * len(qargs)
+        else:
+            blist = broadcastable
         if not all([isinstance(arg, tuple) for arg in qargs]):
             if any([not isinstance(arg, (tuple, list, Register))
                     for arg in qargs]):
                 raise QiskitError('operation arguments must be qubits/cbits')
             broadcast_size = max(len(arg) for arg in qargs)
             expanded_qargs = []
-            for arg in qargs:
+            for arg, broadcast in zip(qargs, blist):
                 if isinstance(arg, Register):
                     arg = [(arg, i) for i in range(len(arg))]
                 elif isinstance(arg, tuple):
                     arg = [arg]
                 # now we should have a list of qubits
-                if isinstance(arg, list) and len(arg) == 1:
+                if isinstance(arg, list) and len(arg) == 1 and broadcast:
                     arg = arg * broadcast_size
                 if len(arg) != broadcast_size:
                     raise QiskitError('register sizes should match or be one')

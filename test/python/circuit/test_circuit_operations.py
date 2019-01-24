@@ -135,4 +135,4 @@ class TestCircuitOperations(QiskitTestCase):
         with self.assertRaises(QiskitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
-                         'register sizes should match or be one')
+                         'register size error')

@@ -52,7 +52,7 @@ class SwapGate(Gate):
         self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
 
 
-@_2q_gate
+@_2q_gate(broadcastable=[False, False])
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""
     self._check_qubit(qubit1)

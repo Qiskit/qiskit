@@ -54,7 +54,7 @@ class RZZGate(Gate):
         self._modifiers(circ.rzz(self.param[0], self.qargs[0], self.qargs[1]))
 
 
-@_2q_gate
+@_2q_gate(broadcastable=[False, False])
 def rzz(self, theta, qubit1, qubit2):
     """Apply RZZ to circuit."""
     self._check_qubit(qubit1)
