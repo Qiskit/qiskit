@@ -53,8 +53,8 @@ def _2q_gate(func=None, broadcastable=None):
     """
     if func is None:
         return functools.partial(_2q_gate, broadcastable=broadcastable)
-    @functools.wraps(func)
 
+    @functools.wraps(func)
     def wrapper(self, *args):
         """Wrapper for 2 qubit gate"""
         params = args[0:-2] if len(args) > 2 else tuple()
