@@ -15,7 +15,6 @@ import itertools
 import json
 import logging
 import math
-import pprint
 
 import numpy as np
 
@@ -485,8 +484,6 @@ class MatplotlibDrawer:
         for i, (op, op_next) in enumerate(
                 itertools.zip_longest(self._ops, next_ops)):
 
-            print("---OP---")
-            pprint.pprint(op, width=1)
             # wide gate
             if op['name'] in _wide_gate:
                 _iswide = True
@@ -506,7 +503,6 @@ class MatplotlibDrawer:
             else:
                 q_idxs = []
 
-            print("q_idxs : ", q_idxs)
             # get creg index
             if 'cargs' in op.keys():
                 c_idxs = []
@@ -600,11 +596,8 @@ class MatplotlibDrawer:
             elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
                                 'noise']:
 
-                # Go over all indices to add barrier
+                # Go over all indices to add barriers across
                 for index in range(len(q_idxs)):
-
-                    # issue is why is this not extracting the other group
-                    # should have both extracted and then added to _barriers['group']
                     q_group = self._qreg_dict[q_idxs[index]]['group']
 
                     if q_group not in _barriers['group']:
