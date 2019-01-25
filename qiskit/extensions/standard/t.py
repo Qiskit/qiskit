@@ -13,7 +13,7 @@ T=sqrt(S) phase gate or its inverse.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _1q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -86,14 +86,14 @@ class TdgGate(Gate):
         return inv
 
 
-@_1q_gate
+@_op_expand(1)
 def t(self, q):
     """Apply T to q."""
     self._check_qubit(q)
     return self._attach(TGate(q, self))
 
 
-@_1q_gate
+@_op_expand(1)
 def tdg(self, q):
     """Apply Tdg to q."""
     self._check_qubit(q)

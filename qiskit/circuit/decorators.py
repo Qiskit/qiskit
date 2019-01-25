@@ -13,28 +13,7 @@ the wrapped operation.
 import functools
 from qiskit.exceptions import QiskitError
 from .instructionset import InstructionSet
-from .quantumregister import QuantumRegister
 from .register import Register
-
-
-def _1q_gate(func):
-    """Wrapper for one qubit gate"""
-    @functools.wraps(func)
-    def wrapper(self, *args):
-        """Wrapper for one qubit gate"""
-        params = args[0:-1] if len(args) > 1 else tuple()
-        q = args[-1]
-        if isinstance(q, QuantumRegister):
-            q = [(q, j) for j in range(len(q))]
-
-        if q and isinstance(q, list):
-            instructions = InstructionSet()
-            for qubit in q:
-                self._check_qubit(qubit)
-                instructions.add(func(self, *params, qubit))
-            return instructions
-        return func(self, *params, q)
-    return wrapper
 
 
 def _is_bit(obj):
@@ -47,7 +26,17 @@ def _is_bit(obj):
 
 
 def _op_expand(n_bits, func=None, broadcastable=None):
-    """Decorator for expanding an operation across a whole register or register subset."""
+    """Decorator for expanding an operation across a whole register or register subset.
+    Args:
+        n_bits (int): the number of register bit arguments the decorated function takes
+        func (function): used for decorators with keyword args
+        broadcastable (list(bool)): list of bool for which register args can be
+            broadcast from 1 bit to the max size of the rest of the args. Defaults
+            to all True if not specified.
+
+    Return:
+        type: partial function object
+    """
     if func is None:
         return functools.partial(_op_expand, n_bits, broadcastable=broadcastable)
 

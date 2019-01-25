@@ -154,18 +154,6 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.qargs[1][1], i)
             self.assertEqual(gate.qargs[2][1], i)
 
-    def test_ccx_multicontrol_single_target(self):
-        """ccx with multi-qubit controls and single qubit target"""
-        qcontrol1 = QuantumRegister(5)
-        qcontrol2 = QuantumRegister(5)
-        qtarget = QuantumRegister(2)
-        qc = QuantumCircuit(qcontrol1, qcontrol2, qtarget)
-        qc.ccx(qcontrol1[0:2], qcontrol2[0:2], qtarget[0])
-        self.assertEqual(qc.data[0].qargs[-1], qc.data[1].qargs[-1])
-        qc.ccx(qcontrol1[0:2], qcontrol2[0:2], qtarget[0:2])
-        for i, gate in enumerate(qc.data[2:]):
-            self.assertEqual(gate.qargs[0][1], i)
-
     def test_cswap_on_slice(self):
         """test applying cswap to register slice"""
         qr1 = QuantumRegister(10)
