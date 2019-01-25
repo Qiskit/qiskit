@@ -405,7 +405,7 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True, line_length=None):
+    def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True, line_length=None, justify=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -414,6 +414,10 @@ class TextDrawing():
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
+
+        if justify:
+            justify.lower()
+        self.justify = justify if justify == 'left' or justify == 'right' else None
 
     def __str__(self):
         return self.single_string()
@@ -781,10 +785,9 @@ class TextDrawing():
             connections = []
             connection_labels = []
 
-
             dag_instructions = dag_layer['graph'].get_gate_nodes(data=True)
 
-            # TODO should this sort be moved elsewhere?
+            # sort into the order they were input
             dag_instructions.sort(key=lambda tup: tup[0])
             for (index, instruction) in dag_instructions:
 
@@ -795,20 +798,20 @@ class TextDrawing():
 
                 if multiqubit_gate:
                         # see if indices overlap
-                        gate_indicies = [i for q, i in instruction['qargs']]
+                        gate_indices = [i for q, i in instruction['qargs']]
 
-                        all_indicies = []
+                        all_indices = []
                         # get all other indies
-                        for _, ins in dag_instructions :
-                            if ins != instruction :
-                                all_indicies.append([i for q,i in ins['qargs']])
+                        for _, ins in dag_instructions:
+                            if ins != instruction:
+                                all_indices.append([i for q, i in ins['qargs']])
 
-                        all_indicies = [x for sub in all_indicies for x in sub]
+                        all_indices = [x for sub in all_indices for x in sub]
 
                         # compare the lists
-                        gate_span = list(range(min(gate_indicies), max(gate_indicies)))
+                        gate_span = list(range(min(gate_indices), max(gate_indices)))
 
-                        if any(i in gate_span for i in all_indicies):
+                        if any(i in gate_span for i in all_indices):
 
                             # needs to be separate layer
                             mlayer = Layer(self.qregs, self.cregs)
@@ -817,20 +820,26 @@ class TextDrawing():
                             # sort into qubit order
                             current_connections.sort(key=lambda tup: tup[0])
                             current_connections = [g for q, g in current_connections]
-                            connections.append(current_connections)
-
+                            
                             # add in previous layer
                             layer.connect_with("│")
                             layers.append(layer.full_layer)
                             layer = Layer(self.qregs, self.cregs)
 
+                            # add in this connection
+                            mlayer.connections.append((connection_labels[0], current_connections))
                             mlayer.connect_with("│")
                             layers.append(mlayer.full_layer)
 
                             continue
 
                 # mulitqubit has been checked to see that it doesn't interfere
-                layer, current_connections, connection_labels = self._instruction_to_gate(instruction, layer, current_connections, connection_labels)
+                # or gate isn't multiqubit
+                layer, new_connections, connection_labels = self._instruction_to_gate(instruction, layer,
+                                                                                      current_connections,
+                                                                                      connection_labels)
+
+                current_connections += new_connections
 
                 # Only add if there have been connections made between qubits
                 if len(current_connections) > 0:
@@ -844,7 +853,6 @@ class TextDrawing():
 
             layer.connect_with("│")
             layers.append(layer.full_layer)
-
 
         # layers here are correct
         return layers
