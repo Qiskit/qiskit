@@ -483,7 +483,6 @@ class MatplotlibDrawer:
         #
         for i, (op, op_next) in enumerate(
                 itertools.zip_longest(self._ops, next_ops)):
-
             # wide gate
             if op['name'] in _wide_gate:
                 _iswide = True
@@ -502,7 +501,6 @@ class MatplotlibDrawer:
                             break
             else:
                 q_idxs = []
-
             # get creg index
             if 'cargs' in op.keys():
                 c_idxs = []
@@ -514,7 +512,6 @@ class MatplotlibDrawer:
                             break
             else:
                 c_idxs = []
-
             # find empty space to place gate
             if not _barriers['group']:
                 this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
@@ -597,8 +594,8 @@ class MatplotlibDrawer:
                                 'noise']:
 
                 # Go over all indices to add barriers across
-                for index in range(len(q_idxs)):
-                    q_group = self._qreg_dict[q_idxs[index]]['group']
+                for index, qbit in enumerate(q_idxs):
+                    q_group = self._qreg_dict[qbit]['group']
 
                     if q_group not in _barriers['group']:
                         _barriers['group'].append(q_group)
