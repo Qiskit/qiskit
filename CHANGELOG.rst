@@ -91,6 +91,8 @@ Removed
 - Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
 - The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
   package (``pip install qiskit-ibmq-provider``). (#1700)
+- ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
+  was part of the pre-qobj specification (#1715).
 
 `0.7.0`_ - 2018-12-19
 =====================
