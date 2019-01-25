@@ -11,7 +11,7 @@ Toffoli gate. Controlled-Controlled-X.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _3q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.h import HGate
@@ -75,7 +75,7 @@ class ToffoliGate(Gate):
         self._modifiers(circ.ccx(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
-@_3q_gate
+@_op_expand(3, broadcastable=[True, True, False])
 def ccx(self, ctl1, ctl2, tgt):
     """Apply Toffoli to from ctl1 and ctl2 to tgt."""
     self._check_qubit(ctl1)

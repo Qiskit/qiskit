@@ -11,7 +11,7 @@ Fredkin gate. Controlled-SWAP.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _3q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
@@ -56,7 +56,7 @@ class FredkinGate(Gate):
         self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
-@_3q_gate(broadcastable=[True, False, False])
+@_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
     self._check_qubit(ctl)

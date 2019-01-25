@@ -8,7 +8,7 @@
 """
 Quantum measurement in the computational basis.
 """
-from qiskit.circuit.decorators import _2q_gate
+from qiskit.circuit.decorators import _op_expand
 from .instruction import Instruction
 from .quantumcircuit import QuantumCircuit
 
@@ -34,7 +34,7 @@ class Measure(Instruction):
         self._modifiers(circuit.measure(self.qargs[0], self.cargs[0]))
 
 
-@_2q_gate(broadcastable=[True, False])
+@_op_expand(2, broadcastable=[False, False])
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
 
