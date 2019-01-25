@@ -355,7 +355,7 @@ def new_fake_qobj():
             instructions=[
                 QobjInstruction(name='barrier', qubits=[1])
             ],
-            header=QobjExperimentHeader(compiled_circuit_qasm='fake-code'),
+            header=QobjExperimentHeader(),
             config=QobjItem(seed=123456)
         )]
     )
