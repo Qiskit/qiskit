@@ -170,7 +170,7 @@ def circuit_drawer(circuit,
                                     line_length=line_length,
                                     reversebits=reverse_bits,
                                     plotbarriers=plot_barriers,
-                                    justify=None)
+                                    justify=justify)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,

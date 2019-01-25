@@ -785,6 +785,8 @@ class TextDrawing():
             connections = []
             connection_labels = []
 
+            mqubit_layers = []
+
             dag_instructions = dag_layer['graph'].get_gate_nodes(data=True)
 
             # sort into the order they were input
@@ -820,16 +822,22 @@ class TextDrawing():
                             # sort into qubit order
                             current_connections.sort(key=lambda tup: tup[0])
                             current_connections = [g for q, g in current_connections]
-                            
-                            # add in previous layer
-                            layer.connect_with("│")
-                            layers.append(layer.full_layer)
-                            layer = Layer(self.qregs, self.cregs)
 
                             # add in this connection
                             mlayer.connections.append((connection_labels[0], current_connections))
                             mlayer.connect_with("│")
-                            layers.append(mlayer.full_layer)
+
+                            print(self.justify)
+                            if self.justify:
+                                mqubit_layers.append(mlayer.full_layer)
+                            else:
+
+                                # add in previous layer
+                                layer.connect_with("│")
+                                layers.append(layer.full_layer)
+                                layer = Layer(self.qregs, self.cregs)
+
+                                layers.append(mlayer.full_layer)
 
                             continue
 
@@ -853,6 +861,14 @@ class TextDrawing():
 
             layer.connect_with("│")
             layers.append(layer.full_layer)
+
+            if self.justify == 'left':
+                layers += mqubit_layers
+            if self.justify == 'right':
+                old_last_layer = layers[-1]
+                del layers[-1]
+                layers += mqubit_layers
+                layers.append(old_last_layer)
 
         # layers here are correct
         return layers
