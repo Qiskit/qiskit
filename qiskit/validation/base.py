@@ -31,6 +31,8 @@ from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection
 
+from .exceptions import ModelValidationError
+
 
 class ModelTypeValidator(_fields.Field):
     """A field able to validate the correct type of a value."""
@@ -91,6 +93,11 @@ class BaseSchema(Schema):
          model_cls (type): class used to instantiate the instance. The
          constructor is passed all named parameters from deserialization.
     """
+
+    class Meta:
+        """In marshmallow3, all schemas are strict."""
+        # TODO: remove when upgrading to marshmallow3
+        strict = True
 
     model_cls = SimpleNamespace
 
@@ -219,9 +226,11 @@ class _SchemaBinder:
     @staticmethod
     def _validate(instance):
         """Validate the internal representation of the instance."""
-        errors = instance.schema.validate(instance.to_dict())
-        if errors:
-            raise ValidationError(errors)
+        try:
+            _ = instance.schema.validate(instance.to_dict())
+        except ValidationError as ex:
+            raise ModelValidationError(
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
     @staticmethod
     def _validate_after_init(init_method):
@@ -229,9 +238,11 @@ class _SchemaBinder:
 
         @wraps(init_method)
         def _decorated(self, **kwargs):
-            errors = self.shallow_schema.validate(kwargs)
-            if errors:
-                raise ValidationError(errors)
+            try:
+                _ = self.shallow_schema.validate(kwargs)
+            except ValidationError as ex:
+                raise ModelValidationError(
+                    ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
 
             init_method(self, **kwargs)
 
@@ -312,9 +323,12 @@ class BaseModel(SimpleNamespace):
         Note that this method requires that the model is bound with
         ``@bind_schema``.
         """
-        data, errors = self.schema.dump(self)
-        if errors:
-            raise ValidationError(errors)
+        try:
+            data, _ = self.schema.dump(self)
+        except ValidationError as ex:
+            raise ModelValidationError(
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+
         return data
 
     @classmethod
@@ -324,9 +338,12 @@ class BaseModel(SimpleNamespace):
         Note that this method requires that the model is bound with
         ``@bind_schema``.
         """
-        data, errors = cls.schema.load(dict_)
-        if errors:
-            raise ValidationError(errors)
+        try:
+            data, _ = cls.schema.load(dict_)
+        except ValidationError as ex:
+            raise ModelValidationError(
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+
         return data
 
 
