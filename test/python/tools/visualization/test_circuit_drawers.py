@@ -447,69 +447,6 @@ class TestCircuitDrawer(QiskitTestCase):
         with self.assertRaises(VisualizationError):
             circuit_drawer(None, output='wrong_output')
 
-    @unittest.skip('Test for deprecated fallback is skipped ')
-    def test_no_output_provided(self):
-        """Tests how `circuit_drawer` falls back when no `output` is given
-
-        First, it creates a subTest to check how `circuit_drawer` falls back
-        to LaTeX circuit drawer.
-
-        Next, it creates a subTest to test fallback to matplotlib circuit drawer.
-        Here, it checks two cases: `HAS_MATPLOTLIB=True` and `HAS_MATPLOTLIB=False`.
-
-        """
-        # Create a subTest for fallback to latex_circuit_drawer
-        with self.subTest('Test fallback to latex_circuit_drawer'):
-
-            # Patch _latex_circuit_drawer such that it does nothing
-            with patch.object(_cv, self.draw_methods['latex'], return_value=None)\
-                    as mock_latex_circuit_drawer:
-
-                # Check that _latex_circuit_drawer was called once with the correct arguments
-                circuit_drawer(None)
-                mock_latex_circuit_drawer.assert_called_once_with(call(None,
-                                                                       scale=0.7,
-                                                                       filename=None,
-                                                                       style=None,
-                                                                       output='text',
-                                                                       interactive=False,
-                                                                       line_length=None,
-                                                                       plot_barriers=True,
-                                                                       reverse_bits=False))
-
-        # Create a subTest for fallback to matplotlib_circuit_drawer
-        with self.subTest('Test fallback to matplotlib_circuit_drawer'):
-
-            # Patch _latex_circuit_drawer such that it raises FileNotFoundError
-            with patch.object(_cv, self.draw_methods['latex'], side_effect=FileNotFoundError) as _:
-
-                # Patch HAS_MATPLOTLIB attribute of _matplotlib to True
-                with patch.object(_mpl, 'HAS_MATPLOTLIB', return_value=True):
-
-                    # Patch _matplotlib_circuit_drawer such that it does nothing
-                    with patch.object(_cv, self.draw_methods['mpl'])\
-                            as mock_mpl_circuit_drawer:
-
-                        # Check that _matplotlib_circuit_drawer was called once with the correct
-                        # arguments
-                        circuit_drawer(None)
-                        mock_mpl_circuit_drawer.assert_called_once_with(call(None,
-                                                                             scale=0.7,
-                                                                             filename=None,
-                                                                             style=None,
-                                                                             output='text',
-                                                                             interactive=False,
-                                                                             line_length=None,
-                                                                             plot_barriers=True,
-                                                                             reverse_bits=False))
-
-                # Patch HAS_MATPLOTLIB attribute of _matplotlib to False
-                with patch.object(_mpl, 'HAS_MATPLOTLIB', new=False):
-
-                    # Check that circuit_drawer raises correct exception
-                    with self.assertRaises(ImportError):
-                        circuit_drawer(None)
-
     def test_interactive(self):
         """Tests that `interactive=True` makes Image to be shown.
 
