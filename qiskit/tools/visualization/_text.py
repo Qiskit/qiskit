@@ -873,53 +873,159 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        layer = Layer(self.qregs, self.cregs)
-        qubits_in_layer = []
-        current_connections = []
-        connection_labels = []
-        connections = []
 
-        for instruction in self.instructions:
 
-            curr_nodes = [i for _, i in instruction['qargs']]
-            gate_span = list(range(min(curr_nodes), max(curr_nodes)))
+        """
+        
+        
+        I DON'T LIKE THIS METHOD - COME UP WITH A BETTER WAY I DON'T THINK
+        THIS WILL WORK AT ALL
+        
+        H[0]
+        H[1]
+        X[1]
+        
+        WOULD GIVE DAG
+        H[0], H[1]
+        X[1]
+        
+        BUT RIGHT JUSTIFIED IS
+        H[1]
+        H[0], X[1]
+        
+        
+        """
 
-            if any(qubit in gate_span for qubit in qubits_in_layer):
 
-                connections.append(current_connections)
 
-                for i, con in enumerate(connections):
-                    layer.connections.append((connection_labels[i], con))
+        reordered_layers = [[]]
+        to_add = {}
 
-                # add in previous layer
-                layer.connect_with("│")
-                layers.append(layer.full_layer)
+        # from collections import namedtuple
+        # Circuit_Layer = namedtuple('Circuit_Layer', ['layer', 'connections', 'labels'])
 
-                # make new layer
-                layer = Layer(self.qregs, self.cregs)
-                connections = []
+        dag_layers = []
 
-                qubits_in_layer = gate_span
+        for dl in dag.layers():
+            dag_layers.append(dl)
 
-            else:
-                qubits_in_layer += curr_nodes
+        dag_layers.reverse()
 
-            layer, new_connections, connection_labels = self._instruction_to_gate(instruction, layer,
-                                                                                      current_connections,
+        layer_dicts = [{}]
+
+        for dag_layer in dag_layers:
+
+            dag_instructions = dag_layer['graph'].get_gate_nodes(data=True)
+
+            # sort into the order they were input
+            dag_instructions.sort(key=lambda tup: tup[0])
+            for (_, instruction) in dag_instructions:
+
+                print("Looking at instruction : ", instruction)
+
+                gate_indices = [i for q, i in instruction['qargs']]
+                gate_span = list(range(min(gate_indices), max(gate_indices)+1))
+
+                added = False
+                print("gate_span : ", gate_span)
+                for i in range(len(layer_dicts)):
+                    # iterate from the end
+                    curr_dict = layer_dicts[-1-i]
+
+                    print(curr_dict)
+
+                    if any(index in curr_dict for index in gate_span):
+                        added = True
+
+                        if i == 0:
+                            new_dict = {}
+
+                            for index in gate_span:
+                                new_dict[index] = instruction
+                            layer_dicts.append(new_dict)
+                        else :
+                            curr_dict = layer_dicts[-i]
+                            for index in gate_span:
+                                curr_dict[index] = instruction
+
+                            print("added to layer")
+                        break
+
+                if not added:
+                    for index in gate_span:
+                        layer_dicts[0][index] = instruction
+                    print("added to first layer")
+
+        for i, d in enumerate(layer_dicts):
+            print("Timestep ", len(layer_dicts) - i)
+            for k,v in d.items():
+                print(k, " : ", v['name'])
+
+        # need to convert from dict format to layers
+        layer_dicts.reverse()
+        for index, layer_dict in enumerate(layer_dicts):
+
+            layer = Layer(self.qregs, self.cregs)
+            connections = []
+            connection_labels = []
+
+            mqubit_layers = []
+
+            for _, instruction in layer_dict.items():
+                connection_labels.append(None)
+                instruction_connections = []
+
+                multiqubit_gate = len(instruction['qargs']) > 1
+
+                if multiqubit_gate:
+                    # see if indices overlap
+                    gate_indices = [i for q, i in instruction['qargs']]
+                    gate_span = list(range(min(gate_indices), max(gate_indices)))
+
+                    all_indices = []
+                    # get all other indices
+                    for q, ins in layer_dict.items():
+                        if ins != instruction:
+                            all_indices.append([i for _, i in ins['qargs']])
+
+                    all_indices = [x for sub_list in all_indices for x in sub_list]
+
+                    # compare the lists
+                    if any(i in gate_span for i in all_indices):
+                        # needs to be separate layer
+                        mlayer = Layer(self.qregs, self.cregs)
+                        mlayer, instruction_connections, connection_labels = self._instruction_to_gate(instruction,
+                                                                                                       mlayer,
+                                                                                                       instruction_connections,
+                                                                                                       connection_labels)
+
+                        # add in this connection
+                        mlayer.connections.append((connection_labels[0], instruction_connections))
+                        mlayer.connect_with("│")
+
+                        mqubit_layers.append(mlayer.full_layer)
+
+                        continue
+
+                # mulitqubit has been checked to see that it doesn't interfere
+                # or gate isn't multiqubit
+                layer, new_connections, connection_labels = self._instruction_to_gate(instruction, layer,
+                                                                                      instruction_connections,
                                                                                       connection_labels)
+                # current_connections += new_connections
+                if len(new_connections) > 0:
+                    connections.append(new_connections)
 
-        # current_connections += new_connections
-        if len(current_connections) > 0:
-            current_connections = new_connections
+            for i, con in enumerate(connections):
+                layer.connections.append((connection_labels[i], con))
 
-        for i, con in enumerate(connections):
-            label = None
-            if i < len(connection_labels) - 1 :
-                label = connection_labels[i]
-            layer.connections.append((label, con))
+            layer.connect_with("│")
+            layers.append(layer.full_layer)
 
-        layer.connect_with("│")
-        layers.append(layer.full_layer)
+            layers += mqubit_layers
+
+
+
 
         return layers
 
