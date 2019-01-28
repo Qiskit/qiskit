@@ -23,8 +23,12 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
+  selection pass (#1603).
+- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614). 
 - Added a RunConfig object for configurations for run configurations to be used 
   in compile and circuits_to_qobj. (#1629)
+- Added support for register slicing when applying operations to a register (#1643).
 
 Changed
 -------
@@ -40,12 +44,24 @@ Changed
 - The previously deprecated default output of ``circuit_drawer()`` (using latex
   and falling back to mpl) is no longer present. Instead the default output
   is the ascii art ``text`` output backend.
+- Changed param to params in Instruction (#1665).
+- ``dag_drawer`` and ``plot_gate_map`` are available via importing
+  ``qiskit.tools.visualization``. They will raise at the point of use, if
+  dependencies are not installed (#1669).
+- The ``qiskit.validation`` schemas are now strict and raise a more specific
+  ``ModelValidationError`` (#1695).
+- The default transpile pipeline will now add a barrier before the set of
+  final measurements when compiling for both simulators and devices (#1591).
 
 Fixed
 -----
 
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
+- Fixed a minor conda env bug in Makefile (#1691).
+- Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
+- Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
+  used in conditional operations (#1705).
 
 Removed
 -------
@@ -66,6 +82,17 @@ Removed
   as unsupported in Aer (#1615).
 - Removed circuit.add as deprecated (#1627)
 - Removed the unroller (#1629)
+- Removed deprecated ``result`` methods (#1659)
+- Removed deprecated ``couplingdict`` kwarg from ``CouplingMap`` (#1666)
+- Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
+- Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
+- Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
+- Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
+- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
+  package (``pip install qiskit-ibmq-provider``). (#1700)
+- ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
+  was part of the pre-qobj specification (#1715).
 
 `0.7.0`_ - 2018-12-19
 =====================

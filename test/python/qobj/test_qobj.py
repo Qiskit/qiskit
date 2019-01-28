@@ -18,10 +18,8 @@ from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.providers.builtinsimulators import simulatorsjob
-from qiskit.providers.ibmq import ibmqjob
 from qiskit.test import QiskitTestCase
-
-from .._mockutils import FakeBackend
+from qiskit.test.mock import FakeRueschlikon
 
 
 class TestQobj(QiskitTestCase):
@@ -101,22 +99,11 @@ class TestQobj(QiskitTestCase):
         """Test SimulatorJob is denied resource request access when given an invalid Qobj instance.
         """
         job_id = str(uuid.uuid4())
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
             job = simulatorsjob.SimulatorsJob(backend, job_id, _nop, self.bad_qobj)
-            job.submit()
-
-    def test_ibmqobj_raises_error_when_sending_bad_qobj(self):
-        """Test IBMQobj is denied resource request access when given an invalid Qobj instance."""
-
-        backend = FakeBackend()
-        self.bad_qobj.header = QobjHeader(backend_name=backend.name())
-
-        api_stub = {}
-        with self.assertRaises(SchemaValidationError):
-            job = ibmqjob.IBMQJob(backend, None, api_stub, 'True', self.bad_qobj)
             job.submit()
 
     def test_change_qobj_after_compile(self):

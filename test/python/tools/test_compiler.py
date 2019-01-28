@@ -17,7 +17,7 @@ from qiskit.transpiler import PassManager, transpile
 from qiskit import compile, execute
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from .._mockutils import FakeBackend
+from qiskit.test.mock import FakeRueschlikon
 
 
 class TestCompiler(QiskitTestCase):
@@ -66,7 +66,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(name='qr', size=11)
         cr = ClassicalRegister(name='qc', size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -132,7 +132,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(3, name='qr')
         qr2 = QuantumRegister(1, name='qr2')
         qr3 = QuantumRegister(4, name='qr3')
@@ -152,7 +152,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(16)
         qc = QuantumCircuit(qr, cr)
@@ -176,7 +176,7 @@ class TestCompiler(QiskitTestCase):
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -314,7 +314,7 @@ class TestCompiler(QiskitTestCase):
     def test_parallel_compile(self):
         """Trigger parallel routines in compile.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)

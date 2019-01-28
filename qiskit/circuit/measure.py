@@ -42,8 +42,8 @@ def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
 
     Args:
-        qubit (QuantumRegister|tuple): quantum register
-        cbit (ClassicalRegister|tuple): classical register
+        qubit (QuantumRegister|list|tuple): quantum register
+        cbit (ClassicalRegister|list|tuple): classical register
 
     Returns:
         qiskit.Instruction: the attached measure instruction.
@@ -52,21 +52,26 @@ def measure(self, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    if isinstance(qubit, QuantumRegister) and isinstance(cbit, ClassicalRegister) \
-            and len(qubit) == len(cbit):
+    if isinstance(qubit, QuantumRegister):
+        qubit = [(qubit, i) for i in range(len(qubit))]
+    if isinstance(cbit, ClassicalRegister):
+        cbit = [(cbit, i) for i in range(len(cbit))]
+    if isinstance(qubit, list) != isinstance(cbit, list):
+        # TODO: check for Qubit instance
+        if isinstance(qubit, tuple):
+            qubit = [qubit]
+        elif isinstance(cbit, tuple):
+            cbit = [cbit]
+        else:
+            raise QiskitError('control or target are not qubits')
+
+    if qubit and cbit and isinstance(qubit, list) and isinstance(cbit, list):
+        if len(qubit) != len(cbit):
+            raise QiskitError('qubit and cbit should have the same length if lists')
         instructions = InstructionSet()
-        for i in range(qubit.size):
-            instructions.add(self.measure((qubit, i), (cbit, i)))
+        for qb1, cb1 in zip(qubit, cbit):
+            instructions.add(self.measure(qb1, cb1))
         return instructions
-    elif isinstance(qubit, QuantumRegister) and isinstance(cbit, ClassicalRegister) and len(
-            qubit) != len(cbit):
-        raise QiskitError("qubit (%s) and cbit (%s) should have the same length"
-                          % (len(qubit), len(cbit)))
-    elif not (isinstance(qubit, tuple) and isinstance(cbit, tuple)):
-        raise QiskitError(
-            "Both qubit <%s> and cbit <%s> should be Registers or formated as tuples. "
-            "Hint: You can use subscript eg. cbit[0] to convert it into tuple."
-            % (type(qubit).__name__, type(cbit).__name__))
 
     self._check_qubit(qubit)
     self._check_creg(cbit[0])

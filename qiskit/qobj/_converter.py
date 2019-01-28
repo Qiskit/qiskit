@@ -94,8 +94,6 @@ def qobj_to_dict_previous_version(qobj):
                 'operations': [instruction.as_dict() for instruction in
                                experiment.instructions]
             },
-            'compiled_circuit_qasm': getattr(experiment.header,
-                                             'compiled_circuit_qasm', None)
         }
 
         converted['circuits'].append(circuit)

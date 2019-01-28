@@ -7,7 +7,6 @@
 
 """Tools for compiling a batch of quantum circuits."""
 import logging
-import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.mapper import CouplingMap, swap_mapper
@@ -122,7 +121,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
                               initial_layout=initial_layout,
-                              format='dag',
                               seed_mapper=seed_mapper,
                               pass_manager=pass_manager)
 
@@ -133,8 +131,7 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
 # pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
-                  initial_layout=None, format='dag', seed_mapper=None,
-                  pass_manager=None):
+                  initial_layout=None, seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
@@ -163,7 +160,6 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
                                 ("q", 2): ("q", 2),
                                 ("q", 3): ("q", 3)
                               }
-        format (str): DEPRECATED The target format of the compilation: {'dag', 'json', 'qasm'}
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -191,8 +187,11 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
         basis = basis_gates.split(',') if basis_gates else []
-        dag = Unroller(basis).run(dag)
         name = dag.name
+
+        dag = Unroller(basis).run(dag)
+        dag = BarrierBeforeFinalMeasurements().run(dag)
+
         # if a coupling map is given compile to the map
         if coupling_map:
             logger.info("pre-mapping properties: %s",
@@ -200,7 +199,7 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             # Insert swap gates
             coupling = CouplingMap(coupling_map)
             logger.info("initial layout: %s", initial_layout)
-            dag = BarrierBeforeFinalMeasurements().run(dag)
+
             dag, final_layout = swap_mapper(
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
@@ -217,10 +216,5 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("post-mapping properties: %s",
                         dag.properties())
         dag.name = name
-
-    if format != 'dag':
-        warnings.warn("transpiler no longer supports different formats. "
-                      "only dag to dag transformations are supported.",
-                      DeprecationWarning)
 
     return dag

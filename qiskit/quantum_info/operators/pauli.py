@@ -12,7 +12,6 @@ Tools for working with Pauli Operators.
 
 A simple pauli class and some tools.
 """
-import warnings
 
 import numpy as np
 from scipy import sparse
@@ -214,22 +213,6 @@ class Pauli:
     def __hash__(self):
         """Make object is hashable, based on the pauli label to hash."""
         return hash(str(self))
-
-    @property
-    def v(self):
-        """Old getter of z."""
-        warnings.warn('Accessing property `v` is deprecated, please access `z` instead,'
-                      'Furthermore, use the `update_z` method if you would like to update'
-                      'the z vector', DeprecationWarning)
-        return self._z
-
-    @property
-    def w(self):
-        """Old getter of x."""
-        warnings.warn('Accessing property `w` is deprecated, please access `x` instead,'
-                      'Furthermore, use the `update_x` method if you would like to update'
-                      'the x vector', DeprecationWarning)
-        return self._x
 
     @property
     def z(self):
@@ -530,15 +513,6 @@ def pauli_group(number_of_qubits, case='weight'):
     """
     if number_of_qubits < 5:
         temp_set = []
-        if isinstance(case, int):
-            warnings.warn('Passing case as integer is deprecated, please pass `weight`'
-                          ' or `tensor` instead,', DeprecationWarning)
-            if case == 0:
-                case = 'weight'
-            elif case == 1:
-                case = 'tensor'
-            else:
-                case = 'na'
 
         if case == 'weight':
             tmp = pauli_group(number_of_qubits, case='tensor')

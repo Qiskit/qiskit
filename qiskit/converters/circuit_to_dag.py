@@ -74,9 +74,9 @@ def circuit_to_dag(circuit):
                 if inst.name == 'barrier':
                     params = [inst.qargs]
                 elif inst.name in simulator_instructions.keys():
-                    params = inst.param + [inst.qargs] + [inst.circuit]
+                    params = inst.params + [inst.qargs] + [inst.circuit]
                 else:
-                    params = inst.param + inst.qargs + inst.cargs
+                    params = inst.params + inst.qargs + inst.cargs
                 new_inst = inst.__class__(*params)
                 return new_inst
 
