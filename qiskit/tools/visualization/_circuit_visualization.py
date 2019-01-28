@@ -33,7 +33,7 @@ from qiskit.tools.visualization import _matplotlib
 logger = logging.getLogger(__name__)
 
 
-def circuit_drawer(circuit,
+def  circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
                    style=None,

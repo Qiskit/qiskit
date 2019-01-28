@@ -417,9 +417,10 @@ class TextDrawing():
 
         if justify:
             justify.lower()
-        self.justify = justify if justify == 'left' or justify == 'right' else None
+        # default to left
+        self.justify = justify if justify == 'right' or justify == 'none' else 'left'
 
-        self.reversebits= reversebits
+        self.reverse_bits = reversebits
 
     def __str__(self):
         return self.single_string()
@@ -677,7 +678,8 @@ class TextDrawing():
         def add_connected_gate(instruction, gates, layer, current_cons):
             for i, gate in enumerate(gates):
                 layer.set_qubit(instruction['qargs'][i], gate)
-                current_cons.append((instruction['qargs'][i][1], gate))
+                actual_index = self.qregs.index(instruction['qargs'][i])
+                current_cons.append((actual_index, gate))
 
         if instruction['name'] == 'measure':
             gate = MeasureFrom()
@@ -770,6 +772,7 @@ class TextDrawing():
                 "Text visualizer does not know how to handle this instruction", instruction)
 
         # sort into the order they were declared in
+        # this ensures that connected boxes have lines in the right direction
         current_cons.sort(key=lambda tup: tup[0])
         current_cons = [g for q, g in current_cons]
 
@@ -785,8 +788,7 @@ class TextDrawing():
             return self.build_layers_right(layers, dag)
         elif self.justify == 'left':
             return self.build_layers_left(layers, dag)
-        else:
-            return self.build_layers_none(layers)
+        return self.build_layers_none(layers)
 
     def build_layers_left(self, layers, dag):
         """
@@ -803,7 +805,7 @@ class TextDrawing():
     def _build_layers_both(self, layers,starting_layers):
         
         for start_layer in starting_layers:
-            layer = Layer(self.qregs, self.cregs, self.reversebits)
+            layer = Layer(self.qregs, self.cregs, self.reverse_bits)
 
             # 2D array of qubits that are connected in this layer
             connections = []
@@ -827,32 +829,43 @@ class TextDrawing():
                 multiqubit_gate = len(instruction['qargs']) > 1
 
                 if multiqubit_gate:
-                        # see if indices overlap
-                        gate_indices = [i for q, i in instruction['qargs']]
-                        gate_span = list(range(min(gate_indices), max(gate_indices)))
 
-                        all_indices = []
-                        # get all other indices
-                        for ins in instructions:
-                            if ins != instruction:
-                                all_indices.append([i for _, i in ins['qargs']])
+                    # get the gate span
+                    min_index = len(self.qregs)
+                    max_index = 0
+                    for qreg in instruction['qargs']:
+                        index = self.qregs.index(qreg)
 
-                        all_indices = [x for sub_list in all_indices for x in sub_list]
+                        if index < min_index:
+                            min_index = index
+                        if index > max_index:
+                            max_index = index
 
-                        # compare the lists
-                        if any(i in gate_span for i in all_indices):
+                    gate_span = self.qregs[min_index:max_index+1]
+                    all_indices = []
+                    # get all other indices
+                    for ins in instructions:
+                        if ins != instruction:
+                            all_indices.append(ins['qargs'])
 
-                            # needs to be separate layer
-                            multiqubit_layer = Layer(self.qregs, self.cregs, self.reversbits)
-                            multiqubit_layer, instruction_connections, connection_labels = self._instruction_to_gate(instruction, multiqubit_layer, instruction_connections, connection_labels)
+                    all_indices = [i for sublist in all_indices for i in sublist]
 
-                            # add in this connection
-                            multiqubit_layer.connections.append((connection_labels[0], instruction_connections))
-                            multiqubit_layer.connect_with("│")
+                    # compare the lists
+                    if any(i in gate_span for i in all_indices):
 
-                            mqubit_layers.append(multiqubit_layer.full_layer)
+                        # needs to be separate layer
+                        multiqubit_layer = Layer(self.qregs, self.cregs, self.reverse_bits)
+                        multiqubit_layer, instruction_connections, connection_labels = self._instruction_to_gate(instruction,
+                                                                                                                 multiqubit_layer,
+                                                                                                                 instruction_connections, connection_labels)
 
-                            continue
+                        # add in this connection
+                        multiqubit_layer.connections.append((connection_labels[0], instruction_connections))
+                        multiqubit_layer.connect_with("│")
+
+                        mqubit_layers.append(multiqubit_layer.full_layer)
+
+                        continue
 
                 # mulitqubit has been checked to see that it doesn't interfere
                 # or gate isn't multiqubit
@@ -943,7 +956,7 @@ class TextDrawing():
 
         for instruction in self.instructions:
 
-            layer = Layer(self.qregs, self.cregs, self.reversebits)
+            layer = Layer(self.qregs, self.cregs, self.reverse_bits)
             layer, current_connections, connection_label = self._instruction_to_gate(instruction, layer,
                                                                                      [],
                                                                                      [])
@@ -1063,6 +1076,9 @@ class Layer:
 
             if self.reversebits:
                 affected_bits.reverse()
+
+            if len(affected_bits) < 1:
+                continue
 
             affected_bits[0].connect(wire_char, ['bot'])
             for affected_bit in affected_bits[1:-1]:
