@@ -11,7 +11,7 @@ import shutil
 import tempfile
 
 import unittest
-from unittest.mock import patch, call
+from unittest.mock import patch
 
 from test.python.tools.visualization._drawing_test_case import DrawingTestCase
 
@@ -19,7 +19,6 @@ from PIL.Image import Image
 from numpy import pi
 
 import qiskit.tools.visualization._circuit_visualization as _cv
-import qiskit.tools.visualization._matplotlib as _mpl
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import circuit_drawer
