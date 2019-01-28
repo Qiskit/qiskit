@@ -405,7 +405,7 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True, line_length=None, justify=None):
+    def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True, line_length=None, justify=None, reversebits=False):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -418,6 +418,8 @@ class TextDrawing():
         if justify:
             justify.lower()
         self.justify = justify if justify == 'left' or justify == 'right' else None
+
+        self.reversebits= reversebits
 
     def __str__(self):
         return self.single_string()
@@ -666,11 +668,10 @@ class TextDrawing():
         for instruction in instructions:
             instruction.length = longest
 
-    def _instruction_to_gate(self, instruction, layer, current_cons, connection_labels=None):
+    def _instruction_to_gate(self, instruction, layer, current_cons, connection_labels):
 
-        #TODO pretty sure this is won't work
-        if not connection_labels :
-            connection_labels = [None for _ in range(len(layer.qregs))]
+        # updated later
+        connection_labels.append(None)
 
         # add in a gate that operates over multiple qubits
         def add_connected_gate(instruction, gates, layer, current_cons):
@@ -781,25 +782,28 @@ class TextDrawing():
         dag = circuit_to_dag(self.circuit)
 
         if self.justify == 'right':
-            layers = self.build_layers_right(layers, dag)
+            return self.build_layers_right(layers, dag)
         elif self.justify == 'left':
-            layers = self.build_layers_left(layers, dag)
+            return self.build_layers_left(layers, dag)
         else:
-            layers = self.build_layers_none(layers)
-
-        return layers
+            return self.build_layers_none(layers)
 
     def build_layers_left(self, layers, dag):
         """
         Constructs layers. Gates are placed as far left in the circuit as possible. If a layer
-        has multiqubit gates that would overlap with other gates when drawn, they are placed after any single qubit gate
+        has multiqubit gates that would overlap with other gates when drawn, they are placed after any single qubit
+        gates.
         Returns:
             list: List of DrawElements.
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        for dag_layer in dag.layers():
-            layer = Layer(self.qregs, self.cregs)
+        return self._build_layers_both(layers, dag.layers())
+
+    def _build_layers_both(self, layers,starting_layers):
+        
+        for start_layer in starting_layers:
+            layer = Layer(self.qregs, self.cregs, self.reversebits)
 
             # 2D array of qubits that are connected in this layer
             connections = []
@@ -807,13 +811,17 @@ class TextDrawing():
 
             mqubit_layers = []
 
-            dag_instructions = dag_layer['graph'].get_gate_nodes(data=True)
+            if self.justify == 'left':
+                instructions = start_layer['graph'].get_gate_nodes(data=True)
 
-            # sort into the order they were input
-            dag_instructions.sort(key=lambda tup: tup[0])
-            for (_, instruction) in dag_instructions:
+                # sort into the order they were input
+                instructions.sort(key=lambda tup: tup[0])
+                instructions = [v for k, v in instructions]
+            else:
+                instructions = start_layer
 
-                connection_labels.append(None)
+            for instruction in instructions:
+
                 instruction_connections = []
 
                 multiqubit_gate = len(instruction['qargs']) > 1
@@ -825,7 +833,7 @@ class TextDrawing():
 
                         all_indices = []
                         # get all other indices
-                        for _, ins in dag_instructions:
+                        for ins in instructions:
                             if ins != instruction:
                                 all_indices.append([i for _, i in ins['qargs']])
 
@@ -835,14 +843,14 @@ class TextDrawing():
                         if any(i in gate_span for i in all_indices):
 
                             # needs to be separate layer
-                            mlayer = Layer(self.qregs, self.cregs)
-                            mlayer, instruction_connections, connection_labels = self._instruction_to_gate(instruction, mlayer, instruction_connections, connection_labels)
+                            multiqubit_layer = Layer(self.qregs, self.cregs, self.reversbits)
+                            multiqubit_layer, instruction_connections, connection_labels = self._instruction_to_gate(instruction, multiqubit_layer, instruction_connections, connection_labels)
 
                             # add in this connection
-                            mlayer.connections.append((connection_labels[0], instruction_connections))
-                            mlayer.connect_with("│")
+                            multiqubit_layer.connections.append((connection_labels[0], instruction_connections))
+                            multiqubit_layer.connect_with("│")
 
-                            mqubit_layers.append(mlayer.full_layer)
+                            mqubit_layers.append(multiqubit_layer.full_layer)
 
                             continue
 
@@ -851,7 +859,6 @@ class TextDrawing():
                 layer, new_connections, connection_labels = self._instruction_to_gate(instruction, layer,
                                                                                       instruction_connections,
                                                                                       connection_labels)
-                # current_connections += new_connections
                 if len(new_connections) > 0:
                     connections.append(new_connections)
 
@@ -874,36 +881,6 @@ class TextDrawing():
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
 
-
-        """
-        
-        
-        I DON'T LIKE THIS METHOD - COME UP WITH A BETTER WAY I DON'T THINK
-        THIS WILL WORK AT ALL
-        
-        H[0]
-        H[1]
-        X[1]
-        
-        WOULD GIVE DAG
-        H[0], H[1]
-        X[1]
-        
-        BUT RIGHT JUSTIFIED IS
-        H[1]
-        H[0], X[1]
-        
-        
-        """
-
-
-
-        reordered_layers = [[]]
-        to_add = {}
-
-        # from collections import namedtuple
-        # Circuit_Layer = namedtuple('Circuit_Layer', ['layer', 'connections', 'labels'])
-
         dag_layers = []
 
         for dl in dag.layers():
@@ -921,18 +898,13 @@ class TextDrawing():
             dag_instructions.sort(key=lambda tup: tup[0])
             for (_, instruction) in dag_instructions:
 
-                print("Looking at instruction : ", instruction)
-
                 gate_indices = [i for q, i in instruction['qargs']]
                 gate_span = list(range(min(gate_indices), max(gate_indices)+1))
 
                 added = False
-                print("gate_span : ", gate_span)
                 for i in range(len(layer_dicts)):
                     # iterate from the end
                     curr_dict = layer_dicts[-1-i]
-
-                    print(curr_dict)
 
                     if any(index in curr_dict for index in gate_span):
                         added = True
@@ -948,86 +920,17 @@ class TextDrawing():
                             for index in gate_span:
                                 curr_dict[index] = instruction
 
-                            print("added to layer")
                         break
 
                 if not added:
                     for index in gate_span:
                         layer_dicts[0][index] = instruction
-                    print("added to first layer")
-
-        for i, d in enumerate(layer_dicts):
-            print("Timestep ", len(layer_dicts) - i)
-            for k,v in d.items():
-                print(k, " : ", v['name'])
 
         # need to convert from dict format to layers
         layer_dicts.reverse()
-        for index, layer_dict in enumerate(layer_dicts):
+        layers_arr = [list(layer.values()) for layer in layer_dicts]
 
-            layer = Layer(self.qregs, self.cregs)
-            connections = []
-            connection_labels = []
-
-            mqubit_layers = []
-
-            for _, instruction in layer_dict.items():
-                connection_labels.append(None)
-                instruction_connections = []
-
-                multiqubit_gate = len(instruction['qargs']) > 1
-
-                if multiqubit_gate:
-                    # see if indices overlap
-                    gate_indices = [i for q, i in instruction['qargs']]
-                    gate_span = list(range(min(gate_indices), max(gate_indices)))
-
-                    all_indices = []
-                    # get all other indices
-                    for q, ins in layer_dict.items():
-                        if ins != instruction:
-                            all_indices.append([i for _, i in ins['qargs']])
-
-                    all_indices = [x for sub_list in all_indices for x in sub_list]
-
-                    # compare the lists
-                    if any(i in gate_span for i in all_indices):
-                        # needs to be separate layer
-                        mlayer = Layer(self.qregs, self.cregs)
-                        mlayer, instruction_connections, connection_labels = self._instruction_to_gate(instruction,
-                                                                                                       mlayer,
-                                                                                                       instruction_connections,
-                                                                                                       connection_labels)
-
-                        # add in this connection
-                        mlayer.connections.append((connection_labels[0], instruction_connections))
-                        mlayer.connect_with("│")
-
-                        mqubit_layers.append(mlayer.full_layer)
-
-                        continue
-
-                # mulitqubit has been checked to see that it doesn't interfere
-                # or gate isn't multiqubit
-                layer, new_connections, connection_labels = self._instruction_to_gate(instruction, layer,
-                                                                                      instruction_connections,
-                                                                                      connection_labels)
-                # current_connections += new_connections
-                if len(new_connections) > 0:
-                    connections.append(new_connections)
-
-            for i, con in enumerate(connections):
-                layer.connections.append((connection_labels[i], con))
-
-            layer.connect_with("│")
-            layers.append(layer.full_layer)
-
-            layers += mqubit_layers
-
-
-
-
-        return layers
+        return self._build_layers_both(layers, layers_arr)
 
     def build_layers_none(self, layers):
         """
@@ -1040,13 +943,12 @@ class TextDrawing():
 
         for instruction in self.instructions:
 
-            layer = Layer(self.qregs, self.cregs)
+            layer = Layer(self.qregs, self.cregs, self.reversebits)
             layer, current_connections, connection_label = self._instruction_to_gate(instruction, layer,
                                                                                      [],
                                                                                      [])
-            label = None if len(connection_label) == 0 else connection_label[0]
 
-            layer.connections.append((label, current_connections))
+            layer.connections.append((connection_label[0], current_connections))
             layer.connect_with("│")
             layers.append(layer.full_layer)
 
@@ -1056,12 +958,13 @@ class TextDrawing():
 class Layer:
     """ A layer is the "column" of the circuit. """
 
-    def __init__(self, qregs, cregs):
+    def __init__(self, qregs, cregs, reversebits=False):
         self.qregs = qregs
         self.cregs = cregs
         self.qubit_layer = [None] * len(qregs)
         self.connections = []
         self.clbit_layer = [None] * len(cregs)
+        self.reversebits = reversebits
 
     @property
     def full_layer(self):
@@ -1158,7 +1061,8 @@ class Layer:
 
         for label, affected_bits in self.connections:
 
-            print(self.connections)
+            if self.reversebits:
+                affected_bits.reverse()
 
             affected_bits[0].connect(wire_char, ['bot'])
             for affected_bit in affected_bits[1:-1]:
