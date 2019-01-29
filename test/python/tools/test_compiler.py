@@ -17,7 +17,7 @@ from qiskit.transpiler import PassManager, transpile
 from qiskit import compile, execute
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from .._mockutils import FakeBackend
+from qiskit.test.mock import FakeRueschlikon
 
 
 class TestCompiler(QiskitTestCase):
@@ -66,7 +66,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(name='qr', size=11)
         cr = ClassicalRegister(name='qc', size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -132,7 +132,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(3, name='qr')
         qr2 = QuantumRegister(1, name='qr2')
         qr3 = QuantumRegister(4, name='qr3')
@@ -152,7 +152,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(16)
         qc = QuantumCircuit(qr, cr)
@@ -176,7 +176,7 @@ class TestCompiler(QiskitTestCase):
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -314,7 +314,7 @@ class TestCompiler(QiskitTestCase):
     def test_parallel_compile(self):
         """Trigger parallel routines in compile.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -326,17 +326,20 @@ class TestCompiler(QiskitTestCase):
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
 
-    def test_compile_skip_transpiler(self):
+    def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
+        qc.barrier(qr)
         qc.measure(qr, cr)
         backend = BasicAer.get_backend('qasm_simulator')
-        rtrue = execute(qc, backend, seed=42).result()
-        rfalse = execute(qc, backend, seed=42, pass_manager=PassManager()).result()
+        qrtrue = compile(qc, backend, seed=42)
+        rtrue = backend.run(qrtrue).result()
+        qrfalse = compile(qc, backend, seed=42, pass_manager=PassManager())
+        rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
 

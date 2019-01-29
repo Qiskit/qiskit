@@ -33,31 +33,22 @@ class TestQobjIdentifiers(QiskitTestCase):
         backend = BasicAer.get_backend('qasm_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
-        c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.qr_name, c_qasm)
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
-        self.assertIn(self.cr_name, c_qasm)
 
     def test_builtin_qasm_simulator(self):
         backend = BasicAer.get_backend('qasm_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
-        c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.qr_name, c_qasm)
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
-        self.assertIn(self.cr_name, c_qasm)
 
     def test_builtin_unitary_simulator_py(self):
         backend = BasicAer.get_backend('unitary_simulator')
         qobj = compile(self.circuits, backend=backend)
         exp = qobj.experiments[0]
-        c_qasm = exp.header.compiled_circuit_qasm
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.qr_name, c_qasm)
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
-        self.assertIn(self.cr_name, c_qasm)
 
 
 if __name__ == '__main__':
