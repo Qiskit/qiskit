@@ -1,11 +1,6 @@
 # SDK config file
 Qconfig.py
 
-# My test files
-test/python/tools/visualization/test_order_bug.py
-test/python/tools/visualization/matplotlibrc
-test/python/tools/visualization/test_draw_inline.py
-
 # ply outputs
 qiskit/qasm/parser.out
 

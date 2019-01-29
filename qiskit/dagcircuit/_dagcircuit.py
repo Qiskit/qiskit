@@ -89,7 +89,6 @@ class DAGCircuit:
         # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
 
-
     def get_qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
@@ -989,8 +988,7 @@ class DAGCircuit:
         Returns:
             list: The list of node numbers in topological order
         """
-
-        return nx.lexicographical_topological_sort(self.multi_graph)
+        return nx.topological_sort(self.multi_graph)
 
     def substitute_circuit_all(self, op, input_circuit, wires=None):
         """Replace every occurrence of operation op with input_circuit.

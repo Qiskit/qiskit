@@ -33,7 +33,7 @@ from qiskit.tools.visualization import _matplotlib
 logger = logging.getLogger(__name__)
 
 
-def  circuit_drawer(circuit,
+def circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
                    style=None,
@@ -77,6 +77,11 @@ def  circuit_drawer(circuit,
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
+        justify (string): Options are `left`, `right` or `none`, if anything
+            else is supplied it defaults to left justified. It refers to where
+            gates should be placed in the output circuit if there is an option.
+            `none` results in each gate being placed in its own column. Currently
+            only supported by text drawer.
 
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
@@ -287,11 +292,15 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
                    at all, set line_length=-1.
         reversebits (bool): Rearrange the bits in reverse order.
         plotbarriers (bool): Draws the barriers when they are there.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+                        the circuit should be justified.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = _utils._get_instructions(circuit, reversebits=reversebits)
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, circuit, justify=justify, reversebits=reversebits)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, circuit,
+                                     justify=justify,
+                                     reversebits=reversebits)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
