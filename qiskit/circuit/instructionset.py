@@ -19,6 +19,14 @@ class InstructionSet:
         """New collection of instructions."""
         self.instructions = []
 
+    def __len__(self):
+        """Return number of instructions in set"""
+        return len(self.instructions)
+
+    def __getitem__(self, i):
+        """Return instruction at index"""
+        return self.instructions[i]
+
     def add(self, gate):
         """Add instruction to set."""
         if not isinstance(gate, Instruction):

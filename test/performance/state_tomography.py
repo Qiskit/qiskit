@@ -22,8 +22,8 @@ from qiskit import QiskitError, execute
 
 # import tomography libary and other useful tools
 import qiskit.tools.qcvv.tomography as tomo
-from qiskit.tools.qi.qi import state_fidelity, purity
-from qiskit.tools.qi.qi import outer, random_unitary_matrix
+from qiskit.tools.qi.qi import purity, outer, random_unitary_matrix
+from qiskit.quantum_info import state_fidelity
 
 
 # circuit that outputs the target state

@@ -12,8 +12,8 @@ Hadamard gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _1q_gate
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
@@ -51,14 +51,9 @@ class HGate(Gate):
         self._modifiers(circ.h(self.qargs[0]))
 
 
+@_1q_gate
 def h(self, q):
     """Apply H to q."""
-    if isinstance(q, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.h((q, j)))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(HGate(q, self))
 
