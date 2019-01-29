@@ -11,6 +11,7 @@ from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
+from .unroll_3q_or_more import Unroll3qOrMore
 from .commutation_analysis import CommutationAnalysis
 from .commutation_transformation import CommutationTransformation
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
@@ -22,3 +23,4 @@ from .mapping.dense_layout import DenseLayout
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap
+from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
