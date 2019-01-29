@@ -47,20 +47,22 @@ stage_osx: &stage_osx
   osx_image: xcode9.2
   language: generic
   env: MPLBACKEND=ps
-  addons:
-    homebrew:
-      packages:
-      - pyenv
-      - freetype
-      - pkg-config
-      update: true
+  cache:
+    pip: true
+    directories:
+      - ~/.pyenv
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      pyenv install 3.6.5
-      virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
+      if [[ ! -d ~/.pyenv ]]; then
+        curl https://pyenv.run | bash
+        pyenv install 3.5.6
+        pyenv install 3.6.5
+        pyenv install 3.7.2
+      fi
+      virtualenv --python ~/.pyenv/versions/3.5.6/bin/python venv
       source venv/bin/activate
     fi
 
@@ -109,9 +111,25 @@ jobs:
       python: 3.7
       sudo: true
 
+    # OSX, Python 3.5.6 (via pyenv)
+    - stage: test
+      <<: *stage_osx
+
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
       <<: *stage_osx
+      before_install:
+        |
+        if [ ${TRAVIS_OS_NAME} = "osx" ]; then
+          if [[ ! -d ~/.pyenv ]]; then
+            curl https://pyenv.run | bash
+            pyenv install 3.5.6
+            pyenv install 3.6.5
+            pyenv install 3.7.2
+          fi
+          virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
+          source venv/bin/activate
+        fi
 
     # OSX, Python 3.7 (via pyenv)
     - stage: test
@@ -119,9 +137,14 @@ jobs:
       before_install:
         |
         if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-        pyenv install 3.7.0
-        virtualenv --python ~/.pyenv/versions/3.7.0/bin/python venv
-        source venv/bin/activate
+          if [[ ! -d ~/.pyenv ]]; then
+            curl https://pyenv.run | bash
+            pyenv install 3.5.6
+            pyenv install 3.6.5
+            pyenv install 3.7.2
+          fi
+          virtualenv --python ~/.pyenv/versions/3.7.2/bin/python venv
+          source venv/bin/activate
         fi
 
     # "ibmq" stage
