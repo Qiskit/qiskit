@@ -802,9 +802,10 @@ class TextDrawing():
         """
         return self._build_layers_both(layers, dag.layers())
 
-    def _build_layers_both(self, layers,starting_layers):
-        
+    def _build_layers_both(self, layers, starting_layers):
+
         for start_layer in starting_layers:
+
             layer = Layer(self.qregs, self.cregs, self.reverse_bits)
 
             # 2D array of qubits that are connected in this layer
@@ -814,7 +815,7 @@ class TextDrawing():
             mqubit_layers = []
 
             if self.justify == 'left':
-                instructions = start_layer['graph'].get_gate_nodes(data=True)
+                instructions = start_layer['graph'].get_op_nodes(data=True)
 
                 # sort into the order they were input
                 instructions.sort(key=lambda tup: tup[0])
@@ -905,7 +906,7 @@ class TextDrawing():
 
         for dag_layer in dag_layers:
 
-            dag_instructions = dag_layer['graph'].get_gate_nodes(data=True)
+            dag_instructions = dag_layer['graph'].get_op_nodes(data=True)
 
             # sort into the order they were input
             dag_instructions.sort(key=lambda tup: tup[0])
