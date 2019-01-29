@@ -654,8 +654,7 @@ class TextDrawing():
             else:
                 ret += botc
 
-
-        return  ret
+        return ret
 
     @staticmethod
     def normalize_width(layer):
@@ -691,7 +690,7 @@ class TextDrawing():
                                      'noise']:
             # barrier
             if not self.plotbarriers:
-                    return layer, current_cons
+                    return layer, current_cons, connection_labels
 
             for qubit in instruction['qargs']:
                 layer.set_qubit(qubit, Barrier())
@@ -827,27 +826,20 @@ class TextDrawing():
 
                 instruction_connections = []
 
-                multiqubit_gate = len(instruction['qargs']) > 1
+                multibit_gate = len(instruction['qargs']) + len(instruction['cargs'])  > 1
 
-                if multiqubit_gate:
+                if multibit_gate:
 
                     # get the gate span
-                    min_index = len(self.qregs)
-                    max_index = 0
-                    for qreg in instruction['qargs']:
-                        index = self.qregs.index(qreg)
-
-                        if index < min_index:
-                            min_index = index
-                        if index > max_index:
-                            max_index = index
-
-                    gate_span = self.qregs[min_index:max_index+1]
+                    gate_span = self._get_gate_span(instruction)
                     all_indices = []
                     # get all other indices
                     for ins in instructions:
                         if ins != instruction:
-                            all_indices.append(ins['qargs'])
+                            if ins['cargs']:
+                                all_indices.append(self._get_gate_span(ins))
+                            else :
+                                all_indices.append(ins['qargs'])
 
                     all_indices = [i for sublist in all_indices for i in sublist]
 
@@ -886,6 +878,22 @@ class TextDrawing():
 
         return layers
 
+    def _get_gate_span(self, instruction):
+        min_index = len(self.qregs)
+        max_index = 0
+        for qreg in instruction['qargs']:
+            index = self.qregs.index(qreg)
+
+            if index < min_index:
+                min_index = index
+            if index > max_index:
+                max_index = index
+
+        if instruction['cargs']:
+            return self.qregs[min_index:]
+
+        return self.qregs[min_index:max_index + 1]
+
     def build_layers_right(self, layers, dag):
         """
         Constructs layers. Nodes are as far right in the circuit as possible.
@@ -912,8 +920,7 @@ class TextDrawing():
             dag_instructions.sort(key=lambda tup: tup[0])
             for (_, instruction) in dag_instructions:
 
-                gate_indices = [i for q, i in instruction['qargs']]
-                gate_span = list(range(min(gate_indices), max(gate_indices)+1))
+                gate_span = self._get_gate_span(instruction)
 
                 added = False
                 for i in range(len(layer_dicts)):
@@ -929,7 +936,7 @@ class TextDrawing():
                             for index in gate_span:
                                 new_dict[index] = instruction
                             layer_dicts.append(new_dict)
-                        else :
+                        else:
                             curr_dict = layer_dicts[-i]
                             for index in gate_span:
                                 curr_dict[index] = instruction
@@ -1074,9 +1081,6 @@ class Layer:
             return
 
         for label, affected_bits in self.connections:
-
-            if self.reversebits:
-                affected_bits.reverse()
 
             if len(affected_bits) < 1:
                 continue
