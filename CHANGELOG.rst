@@ -26,8 +26,8 @@ Added
 
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
-- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614). 
-- Added a RunConfig object for configurations for run configurations to be used 
+- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
+- Added a RunConfig object for configurations for run configurations to be used
   in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
 
