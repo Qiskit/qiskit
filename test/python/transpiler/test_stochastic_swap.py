@@ -18,7 +18,6 @@ from qiskit.test import QiskitTestCase
 class TestStochasticSwap(QiskitTestCase):
     """
     Tests the StochasticSwap pass.
-
     All of the tests use a fixed seed since the results
     may depend on it.
     """
@@ -112,7 +111,6 @@ class TestStochasticSwap(QiskitTestCase):
          q1:---.-------|--
                        |
          q2:-----------.--
-
          Coupling map: [1]--[0]--[2]
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
@@ -134,11 +132,9 @@ class TestStochasticSwap(QiskitTestCase):
          q0:--(+)--
                |
          q1:---.---
-
          q2:--(+)--
                |
          q3:---.---
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -162,11 +158,9 @@ class TestStochasticSwap(QiskitTestCase):
         introduce additional swap gates. The new
         initial layout is found in pass_.initial_layout.
          q0:-------
-
          q1:--(+)--
                |
          q2:---.---
-
          Coupling map: [1]--[0]--[2]
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
@@ -188,7 +182,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr1:---|--------
                 |
          qr2:--(+)-------
-
          Coupling map: [0]--[1]--[2]
         """
         coupling = CouplingMap([[1, 0], [1, 2]])
@@ -213,7 +206,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:---|----|--
                 |    |
          qr3:---.---(+)-
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -240,9 +232,7 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:-------|---
                     |
          qr3:--[H]--.---
-
          Coupling map: [0]--[1]--[2]--[3]
-
          qr0:------X---------
                    |
          qr1:------X-(+)-----
@@ -250,7 +240,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:------X--.------
                    |
          qr3:-[H]--X---------
-
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
@@ -282,7 +271,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:---|-------
                 |
          qr3:---.--[H]--
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -307,7 +295,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:---|--------|--
                 |        |
          qr3:---.--[H]--(+)-
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -326,7 +313,6 @@ class TestStochasticSwap(QiskitTestCase):
 
     def test_overoptimization_case(self):
         """Check mapper overoptimization.
-
         The mapper should not change the semantics of the input.
         An overoptimization introduced issue #81:
         https://github.com/Qiskit/qiskit-terra/issues/81
@@ -349,22 +335,22 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.measure(qr[2], cr[2])
         circuit.measure(qr[3], cr[3])
         dag = circuit_to_dag(circuit)
-        #           ┌───┐                                        ┌─┐
-        # q_0: | 0 >┤ X ├────────────■───────────────────────────┤M├─────────
-        #           └───┘┌───┐     ┌─┴─┐     ┌───┐               └╥┘┌─┐
-        # q_1: | 0 >─────┤ Y ├─────┤ X ├─────┤ S ├────────────■───╫─┤M├──────
-        #                └───┘┌───┐└───┘     └───┘┌───┐     ┌─┴─┐ ║ └╥┘┌─┐
-        # q_2: | 0 >──────────┤ Z ├───────■───────┤ T ├─────┤ X ├─╫──╫─┤M├───
-        #                     └───┘     ┌─┴─┐     └───┘┌───┐└───┘ ║  ║ └╥┘┌─┐
-        # q_3: | 0 >────────────────────┤ X ├──────────┤ H ├──────╫──╫──╫─┤M├
-        #                               └───┘          └───┘      ║  ║  ║ └╥┘
-        # c_0: 0    ══════════════════════════════════════════════╩══╬══╬══╬═
-        #                                                            ║  ║  ║
-        #  c_1: 0   ═════════════════════════════════════════════════╩══╬══╬═
-        #                                                               ║  ║
-        #  c_2: 0   ════════════════════════════════════════════════════╩══╬═
-        #                                                                  ║
-        #  c_3: 0   ═══════════════════════════════════════════════════════╩═
+        #                                     ┌───┐     ┌─┐
+        # q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
+        #                                ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
+        # q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
+        #         ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
+        # q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
+        #         └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║
+        # q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
+        #              └───┘└───┘└╥┘                     ║            ║  ║
+        # c_0: 0  ════════════════╬══════════════════════╩════════════╬══╬═
+        #                         ║                                   ║  ║
+        # c_1: 0  ════════════════╬═══════════════════════════════════╬══╩═
+        #                         ║                                   ║
+        # c_2: 0  ════════════════╬═══════════════════════════════════╩════
+        #                         ║
+        # c_3: 0  ════════════════╩════════════════════════════════════════
         #
         expected = QuantumCircuit(qr, cr)
         expected.x(qr[0])
@@ -382,22 +368,22 @@ class TestStochasticSwap(QiskitTestCase):
         expected.measure(qr[2], cr[1])
         expected.measure(qr[1], cr[2])
         expected_dag = circuit_to_dag(expected)
-        #           ┌───┐                               ┌─┐
-        # q_0: | 0 >┤ X ├────────────────────────────■──┤M├─────────────────────
-        #           └───┘┌───┐                       │  └╥┘     ┌───┐┌───┐   ┌─┐
-        # q_1: | 0 >─────┤ Y ├───────────────────X───┼───╫──────┤ T ├┤ X ├───┤M├
-        #                └───┘┌───┐              │ ┌─┴─┐ ║ ┌───┐└───┘└─┬─┘┌─┐└╥┘
-        # q_2: | 0 >──────────┤ Z ├──■───────────X─┤ X ├─╫─┤ S ├───────■──┤M├─╫─
-        #                     └───┘┌─┴─┐┌───┐┌─┐   └───┘ ║ └───┘          └╥┘ ║
-        # q_3: | 0 >───────────────┤ X ├┤ H ├┤M├─────────╫─────────────────╫──╫─
-        #                          └───┘└───┘└╥┘         ║                 ║  ║
-        # c_0: 0    ══════════════════════════╬══════════╩═════════════════╬══╬═
-        #                                     ║                            ║  ║
-        # c_1: 0    ══════════════════════════╬════════════════════════════╩══╬═
-        #                                     ║                               ║
-        # c_2: 0    ══════════════════════════╬═══════════════════════════════╩═
-        #                                     ║
-        # c_3: 0    ══════════════════════════╩═════════════════════════════════
+        #                                        ┌───┐                     ┌─┐
+        # q_0: |0>───────────────────────────────┤ X ├──■──────────────────┤M├
+        #                           ┌───┐   ┌───┐└───┘  │       ┌───┐┌─┐   └╥┘
+        # q_1: |0>──────────────────┤ Y ├─X─┤ T ├───────┼───────┤ X ├┤M├────╫─
+        #         ┌───┐             └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║
+        # q_2: |0>┤ Z ├──■────────────────X───────────┤ X ├┤ S ├──■───╫─┤M├─╫─
+        #         └───┘┌─┴─┐┌───┐┌─┐                  └───┘└───┘      ║ └╥┘ ║
+        # q_3: |0>─────┤ X ├┤ H ├┤M├──────────────────────────────────╫──╫──╫─
+        #              └───┘└───┘└╥┘                                  ║  ║  ║
+        # c_0: 0  ════════════════╬═══════════════════════════════════╬══╬══╩═
+        #                         ║                                   ║  ║
+        # c_1: 0  ════════════════╬═══════════════════════════════════╬══╩════
+        #                         ║                                   ║
+        # c_2: 0  ════════════════╬═══════════════════════════════════╩═══════
+        #                         ║
+        # c_3: 0  ════════════════╩═══════════════════════════════════════════
         #
         # Layout --
         #  (QuantumRegister(4, 'q'), 0): 0,
@@ -406,12 +392,10 @@ class TestStochasticSwap(QiskitTestCase):
         #  (QuantumRegister(4, 'q'), 3): 3}
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
-
         self.assertEqual(expected_dag, after)
 
     def test_already_mapped(self):
         """Circuit not remapped if matches topology.
-
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
         coupling = CouplingMap(
@@ -496,7 +480,6 @@ class TestStochasticSwap(QiskitTestCase):
         #  c_2: 0 ═══════════════════════════════╬══╩════════════════════
         #                                        ║
         #  c_3: 0 ═══════════════════════════════╩═══════════════════════
-        #
         #
         #                                ┌─┐┌───┐                     ┌─┐
         # q_0: |0>────────────────────■──┤M├┤ H ├──────────────────■──┤M├──────

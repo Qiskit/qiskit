@@ -37,6 +37,7 @@ logger = getLogger(__name__)
 class StochasticSwap(TransformationPass):
     """
     Maps a DAGCircuit onto a `coupling_map` adding swap gates.
+
     Uses a randomized algorithm.
     """
 
@@ -44,15 +45,21 @@ class StochasticSwap(TransformationPass):
                  trials=20, seed=None):
         """
         Map a DAGCircuit onto a `coupling_map` using swap gates.
+
         If initial_layout is not None, we assume the input circuit
         has been layed out before running this pass, and that
         the layout process yields a DAG, coupling map, and layout
         with the following properties:
+
         1. All three have the same number of qubits
         2. The layout a bijection from the DAG qubits to the coupling map
+
         For this mapping pass, it may also be necessary that
+
         3. The coupling map is a connected graph
+
         If these are not satisfied, the behavior is undefined.
+
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling
                 map.
@@ -71,8 +78,10 @@ class StochasticSwap(TransformationPass):
     def run(self, dag):
         """
         Run the StochasticSwap pass on `dag`.
+
         Args:
             dag (DAGCircuit): DAG to map.
+
         Returns:
             DAGCircuit: A mapped DAG.
         """
@@ -92,9 +101,12 @@ class StochasticSwap(TransformationPass):
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
                            coupling, trials, seed=None):
         """Find a swap circuit that implements a permutation for this layer.
+
         The goal is to swap qubits such that qubits in the same two-qubit gates
         are adjacent.
+
         Based on S. Bravyi's algorithm.
+
         layer_partition (list): The layer_partition is a list of (qu)bit
             lists and each qubit is a tuple (qreg, index).
         layout (Layout): The layout is a Layout object mapping virtual
@@ -109,13 +121,16 @@ class StochasticSwap(TransformationPass):
         trials (int): Number of attempts the randomized algorithm makes.
         seed (int): Optional seed for the random number generator. If it is
             None we do not reseed.
+
         Returns:
              Tuple: success_flag, best_circuit, best_depth, best_layout, trivial_flag
+
         If success_flag is True, then best_circuit contains a DAGCircuit with
         the swap circuit, best_depth contains the depth of the swap circuit,
         and best_layout contains the new positions of the data qubits after the
         swap circuit has been applied. The trivial_flag is set if the layer
         has no multi-qubit gates.
+
         Raises:
             TranspilerError: if anything went wrong.
         """
@@ -276,6 +291,7 @@ class StochasticSwap(TransformationPass):
     def _layer_update(self, i, first_layer, best_layout, best_depth,
                       best_circuit, layer_list):
         """Provide a DAGCircuit for a new mapped layer.
+
         i (int) = layer number
         first_layer (bool) = True if this is the first layer in the
             circuit with any multi-qubit gates
@@ -285,6 +301,7 @@ class StochasticSwap(TransformationPass):
             from _layer_permutation
         layer_list (list) = list of DAGCircuit objects for each layer,
             output of DAGCircuit layers() method
+
         Return a DAGCircuit object to append to the output DAGCircuit
         that the _mapper method is building.
         """
@@ -329,12 +346,15 @@ class StochasticSwap(TransformationPass):
     def _mapper(self, circuit_graph, coupling_graph,
                 trials=20, seed=None):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
+
         Use self.initial_layout for the initial layout.
+
         Args:
             circuit_graph (DAGCircuit): input DAG circuit
             coupling_graph (CouplingMap): coupling graph to map onto
             trials (int): number of trials.
             seed (int): initial seed.
+
         Returns:
             DAGCircuit: object containing a circuit equivalent to
                 circuit_graph that respects couplings in coupling_graph
@@ -344,6 +364,7 @@ class StochasticSwap(TransformationPass):
                 executed on the initial_layout, since in this case
                 it is more efficient to modify the layout instead of swapping
             Dict: a final-layer qubit permutation
+
         Raises:
             TranspilerError: if there was any error during the mapping
                 or with the parameters.
