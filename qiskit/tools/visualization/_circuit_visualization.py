@@ -297,7 +297,9 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
-    qregs, cregs, ops = _utils._get_instructions(circuit, reversebits=reversebits)
+    qregs, cregs, ops = _utils._get_layered_instructions(circuit,
+                                                         reversebits=reversebits,
+                                                         justify=justify)
     text_drawing = _text.TextDrawing(qregs, cregs, ops, circuit,
                                      justify=justify,
                                      reversebits=reversebits)
