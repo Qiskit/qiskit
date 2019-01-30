@@ -206,12 +206,17 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
             # cache miss, fail gracefully
             except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
                 circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
+                if len(circuit_cache.qobjs) > 0:
+                    logger.info('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
+                    # Uncomment for easier debugging
+                    # print('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
+                    circuit_cache.misses += 1
+                else:
+                    logger.info('Circuit cache is empty, compiling from scratch.')
                 circuit_cache.clear_cache()
-                logger.debug('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
                 qobj = q_compile(sub_circuits, backend, **backend_config,
                                  **compile_config, **run_config.to_dict())
                 circuit_cache.cache_circuit(qobj, sub_circuits, i)
-                circuit_cache.misses += 1
         else:
             qobj = q_compile(sub_circuits, backend, **backend_config,
                              **compile_config, **run_config.to_dict())

@@ -269,3 +269,11 @@ class QuantumInstance:
     def is_local(self):
         """Return True if backend is a local backend."""
         return is_local_backend(self._backend)
+
+    @property
+    def circuit_cache(self):
+        return self._circuit_cache
+
+    @property
+    def has_circuit_caching(self):
+        return self._circuit_cache is not None
