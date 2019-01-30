@@ -914,7 +914,7 @@ class DAGCircuit:
             n (int): reference to self.multi_graph node id
 
         Returns:
-            set(dict): set({predecessor_map, successor_map})
+            tuple(dict): tuple(predecessor_map, successor_map)
                 These map from wire (Register, int) to predecessor (successor)
                 nodes of n.
         """
@@ -975,6 +975,15 @@ class DAGCircuit:
         """
         copy_node1 = {k: v for (k, v) in node1.items()}
         copy_node2 = {k: v for (k, v) in node2.items()}
+
+        # For barriers, qarg order is not significant so compare as sets
+        if 'barrier' == copy_node1['name'] == copy_node2['name']:
+            node1_qargs = set(copy_node1.pop('qargs', []))
+            node2_qargs = set(copy_node2.pop('qargs', []))
+
+            if node1_qargs != node2_qargs:
+                return False
+
         return copy_node1 == copy_node2
 
     def __eq__(self, other):
@@ -1277,6 +1286,14 @@ class DAGCircuit:
     def successors(self, node):
         """Returns the successors of a node."""
         return self.multi_graph.successors(node)
+
+    def ancestors(self, node):
+        """Returns the ancestors of a node."""
+        return nx.ancestors(self.multi_graph, node)
+
+    def descendants(self, node):
+        """Returns the descendants of a node."""
+        return nx.descendants(self.multi_graph, node)
 
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""

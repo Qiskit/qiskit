@@ -533,7 +533,7 @@ class TestStochasticSwap(QiskitTestCase):
         expected.measure(qr[0], cr[0])
         expected.h(qr[0])
         expected.measure(ar[0], cr[2])
-        expected.swap(ar[1], qr[1])
+        expected.swap(qr[1], ar[1])
         expected.cx(qr[0], qr[1])
         expected.measure(ar[1], cr[3])
         expected.measure(qr[1], cr[1])
@@ -577,6 +577,34 @@ class TestStochasticSwap(QiskitTestCase):
         pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(dag, after)
+
+    def test_only_output_cx_and_swaps_in_coupling_map(self):
+        """Test that output DAG contains only 2q gates from the the coupling map."""
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+
+        layout = Layout([(QuantumRegister(4, 'q'), 0),
+                         (QuantumRegister(4, 'q'), 1),
+                         (QuantumRegister(4, 'q'), 2),
+                         (QuantumRegister(4, 'q'), 3)])
+
+        pass_ = StochasticSwap(coupling, layout, 20, 5)
+        after = pass_.run(dag)
+
+        valid_couplings = [set([layout[a], layout[b]])
+                           for (a, b) in coupling.get_edges()]
+
+        for _2q_node in after.get_2q_nodes():
+            self.assertIn(set(_2q_node['qargs']), valid_couplings)
 
 
 if __name__ == '__main__':
