@@ -6,28 +6,22 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=wrong-import-order
-# pylint: disable=redefined-builtin
 
 """Main Qiskit public functionality."""
 
-import os
 import pkgutil
 
 # First, check for required Python and API version
 from . import _util
 
 # qiskit errors operator
-from .qiskiterror import QiskitError, QISKitError
+from .exceptions import QiskitError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from .tools.compiler import (compile, execute)
-
-# Please note these are global instances, not modules.
-from qiskit.backends.ibmq import IBMQ
-from qiskit.backends.aer import Aer  # pylint: disable=invalid-name
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
@@ -37,16 +31,22 @@ import qiskit.circuit.measure
 import qiskit.circuit.reset
 
 # Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports or any non-import code.
+# to be placed *before* the wrapper imports or any non-import code AND *before*
+# importing the package you want to allow extensions for (in this case `backends`).
 __path__ = pkgutil.extend_path(__path__, __name__)
 
-# TODO: Remove
-from .wrapper._wrapper import (load_qasm_string, load_qasm_file)
+# Please note these are global instances, not modules.
+from qiskit.providers.builtinsimulators import BasicAer
 
-# Import the wrapper, to make it available when doing "import qiskit".
-from . import wrapper
-from . import tools
+# Try to import the Aer provider if the Aer element is installed.
+try:
+    from qiskit.providers.aer import Aer
+except ImportError:
+    pass
+# Try to import the IBQM provider if the IBMQ element is installed.
+try:
+    from qiskit.providers.ibmq import IBMQ
+except ImportError:
+    pass
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    __version__ = version_file.read().strip()
+from .version import __version__

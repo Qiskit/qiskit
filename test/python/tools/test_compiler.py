@@ -7,53 +7,17 @@
 
 # pylint: disable=redefined-builtin
 
-
 """Compiler Test."""
 
 import unittest
 
-import qiskit
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile
-from qiskit import compile
-from qiskit.result import Result
-from qiskit.backends.models import BackendConfiguration
-from qiskit.backends.models.backendconfiguration import GateConfig
-from qiskit import execute
-from qiskit.qiskiterror import QiskitError
-from qiskit.backends.ibmq import least_busy
-from ..common import QiskitTestCase
-from ..common import requires_qe_access, requires_cpp_simulator
-
-
-class FakeBackend(object):
-    """A fake backend.
-    """
-
-    def name(self):
-        """ name of fake backend"""
-        return 'qiskit_is_cool'
-
-    def configuration(self):
-        """Return a make up configuration for a fake device."""
-        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10], [11, 10],
-                    [12, 5], [12, 11], [12, 13], [13, 4], [13, 14], [15, 0],
-                    [15, 2], [15, 14]]
-        return BackendConfiguration(
-            backend_name='fake',
-            backend_version='0.0.0',
-            n_qubits=16,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-            simulator=False,
-            local=True,
-            conditional=False,
-            open_pulse=False,
-            memory=False,
-            max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=qx5_cmap,
-        )
+from qiskit import compile, execute
+from qiskit.exceptions import QiskitError
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeRueschlikon
 
 
 class TestCompiler(QiskitTestCase):
@@ -66,7 +30,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -83,7 +47,7 @@ class TestCompiler(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -99,206 +63,10 @@ class TestCompiler(QiskitTestCase):
         self.assertIsInstance(circuits[0], QuantumCircuit)
         self.assertIsInstance(circuits[1], QuantumCircuit)
 
-    def test_compile_run(self):
-        """Test Compiler and run.
-
-        If all correct some should exists.
-        """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-
-        qobj = compile(qc, backend)
-        result = backend.run(qobj).result()
-        self.assertIsInstance(result, Result)
-
-    def test_compile_two_run(self):
-        """Test Compiler and run.
-
-        If all correct some should exists.
-        """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
-        qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = compile([qc, qc_extra], backend)
-        result = backend.run(qobj).result()
-        self.assertIsInstance(result, Result)
-
-    def test_execute(self):
-        """Test Execute.
-
-        If all correct some should exists.
-        """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
-
-        qubit_reg = QuantumRegister(2)
-        clbit_reg = ClassicalRegister(2)
-        qc = QuantumCircuit(qubit_reg, clbit_reg)
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        job = execute(qc, backend)
-        results = job.result()
-        self.assertIsInstance(results, Result)
-
-    def test_execute_two(self):
-        """Test execute two.
-
-        If all correct some should exists.
-        """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
-
-        qubit_reg = QuantumRegister(2)
-        clbit_reg = ClassicalRegister(2)
-        qc = QuantumCircuit(qubit_reg, clbit_reg)
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qc_extra = QuantumCircuit(qubit_reg, clbit_reg)
-        qc_extra.measure(qubit_reg, clbit_reg)
-        job = execute([qc, qc_extra], backend)
-        results = job.result()
-        self.assertIsInstance(results, Result)
-
-    @requires_qe_access
-    def test_compile_remote(self, qe_token, qe_url):
-        """Test Compiler remote.
-
-        If all correct some should exists.
-        """
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        backend = least_busy(qiskit.IBMQ.backends())
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-
-        circuits = transpile(qc, backend)
-        self.assertIsInstance(circuits, QuantumCircuit)
-
-    @requires_qe_access
-    def test_compile_two_remote(self, qe_token, qe_url):
-        """Test Compiler remote on two circuits.
-
-        If all correct some should exists.
-        """
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        backend = least_busy(qiskit.IBMQ.backends())
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
-        qc_extra.measure(qubit_reg, clbit_reg)
-        circuits = transpile([qc, qc_extra], backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
-        self.assertIsInstance(circuits[1], QuantumCircuit)
-
-    @requires_qe_access
-    def test_compile_run_remote(self, qe_token, qe_url):
-        """Test Compiler and run remote.
-
-        If all correct some should exists.
-        """
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qobj = compile(qc, backend, seed=TestCompiler.seed)
-        job = backend.run(qobj)
-        result = job.result(timeout=20)
-        self.assertIsInstance(result, Result)
-
-    @requires_qe_access
-    def test_compile_two_run_remote(self, qe_token, qe_url):
-        """Test Compiler and run two circuits.
-
-        If all correct some should exists.
-        """
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
-        qc_extra.measure(qubit_reg, clbit_reg)
-        qobj = compile([qc, qc_extra], backend, seed=TestCompiler.seed)
-        job = backend.run(qobj)
-        result = job.result()
-        self.assertIsInstance(result, Result)
-
-    @requires_qe_access
-    def test_execute_remote(self, qe_token, qe_url):
-        """Test Execute remote.
-
-        If all correct some should exists.
-        """
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
-
-        qubit_reg = QuantumRegister(2)
-        clbit_reg = ClassicalRegister(2)
-        qc = QuantumCircuit(qubit_reg, clbit_reg)
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-
-        job = execute(qc, backend, seed=TestCompiler.seed)
-        results = job.result()
-        self.assertIsInstance(results, Result)
-
-    @requires_qe_access
-    def test_execute_two_remote(self, qe_token, qe_url):
-        """Test execute two remote.
-
-        If all correct some should exists.
-        """
-        qiskit.IBMQ.enable_account(qe_token, qe_url)
-        backend = qiskit.IBMQ.get_backend(local=False, simulator=True)
-
-        qubit_reg = QuantumRegister(2)
-        clbit_reg = ClassicalRegister(2)
-        qc = QuantumCircuit(qubit_reg, clbit_reg)
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qc_extra = QuantumCircuit(qubit_reg, clbit_reg)
-        qc_extra.measure(qubit_reg, clbit_reg)
-        job = execute([qc, qc_extra], backend, seed=TestCompiler.seed)
-        results = job.result()
-        self.assertIsInstance(results, Result)
-
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(name='qr', size=11)
         cr = ClassicalRegister(name='qc', size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -364,7 +132,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(3, name='qr')
         qr2 = QuantumRegister(1, name='qr2')
         qr3 = QuantumRegister(4, name='qr3')
@@ -384,7 +152,7 @@ class TestCompiler(QiskitTestCase):
     def test_mapping_already_satisfied(self):
         """Test compiler doesn't change circuit already matching backend coupling
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(16)
         qc = QuantumCircuit(qr, cr)
@@ -408,7 +176,7 @@ class TestCompiler(QiskitTestCase):
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -427,7 +195,7 @@ class TestCompiler(QiskitTestCase):
 
         Pass if the results are correct.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
         coupling_map = [[0, 1], [0, 2],
                         [1, 2],
                         [3, 2], [3, 4],
@@ -440,7 +208,7 @@ class TestCompiler(QiskitTestCase):
         # Create a GHZ state
         ghz.h(qr[0])
         for i in range(4):
-            ghz.cx(qr[i], qr[i+1])
+            ghz.cx(qr[i], qr[i + 1])
         # Insert a barrier before measurement
         ghz.barrier()
         # Measure all of the qubits in the standard basis
@@ -461,7 +229,7 @@ class TestCompiler(QiskitTestCase):
         bell_result = backend.run(bell_qobj).result()
         ghz_result = backend.run(ghz_qobj).result()
 
-        threshold = 0.04 * shots
+        threshold = 0.05 * shots
         counts_bell = bell_result.get_counts()
         target_bell = {'00000': shots / 2, '00011': shots / 2}
         self.assertDictAlmostEqual(counts_bell, target_bell, threshold)
@@ -475,7 +243,7 @@ class TestCompiler(QiskitTestCase):
         If all correct should return data with the same stats. The circuit may
         be different.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
 
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')
@@ -486,7 +254,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
-        shots = 1024
+        shots = 2048
         coupling_map = [[0, 1], [1, 2]]
         initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
                           ("qr", 2): ("q", 2)}
@@ -500,16 +268,15 @@ class TestCompiler(QiskitTestCase):
 
         counts = result.get_counts(qc)
         target = {'000': shots / 2, '111': shots / 2}
-        threshold = 0.04 * shots
+        threshold = 0.05 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    @requires_cpp_simulator
     def test_example_swap_bits(self):
         """Test a toy example swapping a set bit around.
 
         Uses the mapper. Pass if results are correct.
         """
-        backend = qiskit.Aer.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend('qasm_simulator')
         coupling_map = [[0, 1], [0, 8], [1, 2], [1, 9], [2, 3], [2, 10],
                         [3, 4], [3, 11], [4, 5], [4, 12], [5, 6], [5, 13],
                         [6, 7], [6, 14], [7, 15], [8, 9], [9, 10], [10, 11],
@@ -518,21 +285,21 @@ class TestCompiler(QiskitTestCase):
         n = 3  # make this at least 3
         qr0 = QuantumRegister(n)
         qr1 = QuantumRegister(n)
-        ans = ClassicalRegister(2*n)
+        ans = ClassicalRegister(2 * n)
         qc = QuantumCircuit(qr0, qr1, ans)
         # Set the first bit of qr0
         qc.x(qr0[0])
         # Swap the set bit
-        qc.swap(qr0[0], qr0[n-1])
-        qc.swap(qr0[n-1], qr1[n-1])
-        qc.swap(qr1[n-1], qr0[1])
+        qc.swap(qr0[0], qr0[n - 1])
+        qc.swap(qr0[n - 1], qr1[n - 1])
+        qc.swap(qr1[n - 1], qr0[1])
         qc.swap(qr0[1], qr1[1])
         # Insert a barrier before measurement
         qc.barrier()
         # Measure all of the qubits in the standard basis
         for j in range(n):
             qc.measure(qr0[j], ans[j])
-            qc.measure(qr1[j], ans[j+n])
+            qc.measure(qr1[j], ans[j + n])
         # First version: no mapping
         result = execute(qc, backend=backend,
                          coupling_map=None, shots=1024,
@@ -547,7 +314,7 @@ class TestCompiler(QiskitTestCase):
     def test_parallel_compile(self):
         """Trigger parallel routines in compile.
         """
-        backend = FakeBackend()
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -559,17 +326,20 @@ class TestCompiler(QiskitTestCase):
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
 
-    def test_compile_skip_transpiler(self):
+    def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
         qc.u1(3.14, qr[0])
         qc.u2(3.14, 1.57, qr[0])
+        qc.barrier(qr)
         qc.measure(qr, cr)
-        backend = qiskit.Aer.get_backend('qasm_simulator_py')
-        rtrue = execute(qc, backend, seed=42).result()
-        rfalse = execute(qc, backend, seed=42, pass_manager=PassManager()).result()
+        backend = BasicAer.get_backend('qasm_simulator')
+        qrtrue = compile(qc, backend, seed=42)
+        rtrue = backend.run(qrtrue).result()
+        qrfalse = compile(qc, backend, seed=42, pass_manager=PassManager())
+        rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
 

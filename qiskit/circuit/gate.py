@@ -8,18 +8,18 @@
 """
 Unitary gate.
 """
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, param, qargs, circuit=None):
+    def __init__(self, name, params, qargs, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string
-        param = list of real parameters (will be converted to symbolic)
+        params = list of real parameters (will be converted to symbolic)
         qargs = list of pairs (QuantumRegister, index)
         circuit = QuantumCircuit containing this gate
         """
@@ -29,7 +29,7 @@ class Gate(Instruction):
         if not hasattr(self, '_decompositions'):
             self._decompositions = None
 
-        super().__init__(name, param, qargs, [], circuit)
+        super().__init__(name, params, qargs, [], circuit)
 
     def inverse(self):
         """Invert this gate."""

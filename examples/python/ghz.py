@@ -13,8 +13,8 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import IBMQ, Aer, execute
-from qiskit.backends.ibmq import least_busy
+from qiskit import IBMQ, BasicAer, execute
+from qiskit.providers.ibmq import least_busy
 
 
 ###############################################################
@@ -45,18 +45,16 @@ except:
              For now, there's only access to local simulator backends...""")
 
 # First version: simulator
-sim_backend = Aer.get_backend('qasm_simulator')
+sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
 print('Qasm simulator')
-print(result)
 print(result.get_counts(qc))
 
 # Second version: real device
 least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration()['n_qubits'] > 4))
+                                             filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()
-print(result)
 print(result.get_counts(qc))

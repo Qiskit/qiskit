@@ -14,12 +14,12 @@ import tempfile
 import unittest
 
 import qiskit.extensions.simulator
-from qiskit import Aer
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitQasm(QiskitTestCase):

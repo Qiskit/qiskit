@@ -13,13 +13,13 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, Aer
+from qiskit import compile, BasicAer
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-backend = Aer.get_backend("qasm_simulator")
+backend = BasicAer.get_backend("qasm_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.
@@ -74,5 +74,4 @@ qobj_exp.header.compiled_circuit_qasm = ""
 job = backend.run(qobj)
 result = job.result()
 print(result.get_counts(qc))
-print(result.data(0))
 # Both versions should give the same distribution

@@ -7,15 +7,12 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
-import qiskit.extensions.simulator  # pylint: disable=unused-import
-from qiskit import Aer
+
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
-from qiskit.result.postprocess import format_statevector
-
-from ..common import QiskitTestCase, requires_cpp_simulator
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitOperations(QiskitTestCase):
@@ -32,7 +29,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -50,7 +47,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -73,33 +70,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertRaises(QiskitError, qc1.__add__, qc2)
         self.assertRaises(QiskitError, qc1.__add__, qcr3)
 
-    @requires_cpp_simulator
-    def test_combine_circuit_extension_instructions(self):
-        """Test combining circuits containing barrier, initializer, snapshot
-        """
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc1 = QuantumCircuit(qr)
-        desired_vector = [0.5 + 0.j, 0.5 + 0.j, 0.5 + 0.j, 0.5 + 0.j]
-        qc1.initialize(desired_vector, qr)
-        qc1.barrier()
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.snapshot(slot='1')
-        qc2.measure(qr, cr)
-        new_circuit = qc1 + qc2
-        backend = Aer.get_backend('qasm_simulator')
-        shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
-        snapshot_vectors = result.data(0)['snapshots']['statevector']['1']
-        snapshot = format_statevector(snapshot_vectors[0])
-        fidelity = state_fidelity(snapshot, desired_vector)
-        self.assertGreater(fidelity, 0.99)
-
-        counts = result.get_counts()
-        target = {'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4}
-        threshold = 0.04 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
-
     def test_extend_circuit(self):
         """Test extending a circuit with same registers.
         """
@@ -111,7 +81,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(qr[0], cr[0])
         qc2.measure(qr[1], cr[1])
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -129,7 +99,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.measure(qr, cr)
         qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator_py')
+        backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
         result = execute(qc1, backend=backend, shots=shots, seed=78).result()
         counts = result.get_counts()
@@ -152,33 +122,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertRaises(QiskitError, qc1.__iadd__, qc2)
         self.assertRaises(QiskitError, qc1.__iadd__, qcr3)
 
-    @requires_cpp_simulator
-    def test_extend_circuit_extension_instructions(self):
-        """Test extending circuits containing barrier, initializer, snapshot
-        """
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc1 = QuantumCircuit(qr)
-        desired_vector = [0.5, 0.5, 0.5, 0.5]
-        qc1.initialize(desired_vector, qr)
-        qc1.barrier()
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.snapshot(slot='1')
-        qc2.measure(qr, cr)
-        qc1 += qc2
-        backend = Aer.get_backend('qasm_simulator_py')
-        shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
-
-        snapshot_vectors = result.data(0)['snapshots']['1']['statevector']
-        fidelity = state_fidelity(snapshot_vectors[0], desired_vector)
-        self.assertGreater(fidelity, 0.99)
-
-        counts = result.get_counts()
-        target = {'00': shots/4, '01': shots/4, '10': shots/4, '11': shots/4}
-        threshold = 0.04 * shots
-        self.assertDictAlmostEqual(counts, target, threshold)
-
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
         """
@@ -191,11 +134,4 @@ class TestCircuitOperations(QiskitTestCase):
         with self.assertRaises(QiskitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
-                         'qubit (2) and cbit (1) should have the same length')
-
-        with self.assertRaises(QiskitError) as ctx:
-            quantum_circuit.measure(quantum_reg[1], classical_reg_1)
-        self.assertEqual(ctx.exception.message, 'Both qubit <tuple> and cbit <ClassicalRegister> '
-                                                'should be Registers or formated as tuples. Hint: '
-                                                'You can use subscript eg. cbit[0] to '
-                                                'convert it into tuple.')
+                         'qubit and cbit should have the same length if lists')

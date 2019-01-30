@@ -12,8 +12,8 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
-
-from qiskit import QiskitError
+from qiskit.mapper.exceptions import LayoutError
+from qiskit.circuit.register import Register
 
 
 class Layout(dict):
@@ -57,6 +57,11 @@ class Layout(dict):
         return dict.__getitem__(self, item)
 
     def __setitem__(self, key, value):
+        Layout._checktype(key)
+        Layout._checktype(value)
+        if isinstance(key, type(value)):
+            raise LayoutError('Key (%s) and value (%s) cannot have the same type' % (key, value))
+
         if key in self:
             del self[key]
         if value in self:
@@ -70,8 +75,26 @@ class Layout(dict):
         dict.__delitem__(self, self[key])
         dict.__delitem__(self, key)
 
+    @staticmethod
+    def _checktype(thing):
+        """Checks if thing is a valid type"""
+        if thing is None:
+            return
+        if isinstance(thing, int):
+            return
+        if isinstance(thing, tuple) and \
+                len(thing) == 2 and \
+                isinstance(thing[0], Register) and isinstance(thing[1], int):
+            return
+        raise LayoutError(
+            'The element %s should be a (Register, integer) tuple or an integer' % (thing,))
+
     def __len__(self):
         return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
+
+    # Override dict's built-in copy method which would return a dict instead of a Layout.
+    def copy(self):
+        return type(self)(self)
 
     def add(self, virtual_bit, physical_bit=None):
         """
@@ -94,6 +117,14 @@ class Layout(dict):
         """
         for bit in reg:
             self.add(bit)
+
+    def get_registers(self):
+        """
+        Returns the registers in the layout [QuantumRegister(2, 'qr0'), QuantumRegister(3, 'qr1')]
+        Returns:
+            List: A list of Register in the layout
+        """
+        return list(self.get_virtual_bits().keys())
 
     def set_length(self, amount_of_physical_bits):
         """
@@ -151,19 +182,21 @@ class Layout(dict):
         self[right] = temp
 
     def combine_into_edge_map(self, another_layout):
-        """ Combines self and another_layout into an "edge map". For example
+        """ Combines self and another_layout into an "edge map".
+
+        For example::
 
               self       another_layout  resulting edge map
            qr_1 -> 0        0 <- q_2         qr_1 -> q_2
            qr_2 -> 2        2 <- q_1         qr_2 -> q_1
            qr_3 -> 3        3 <- q_0         qr_3 -> q_0
 
-           The edge map is used to compose dags via, for example, compose_back.
+        The edge map is used to compose dags via, for example, compose_back.
 
         Args:
             another_layout (Layout): The other layout to combine.
         Returns:
-            Dict: A "edge map".
+            dict: A "edge map".
         Raises:
             LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
         """
@@ -177,15 +210,16 @@ class Layout(dict):
 
         return edge_map
 
-
-class LayoutError(QiskitError):
-    """Errors raised by the layout object."""
-
-    def __init__(self, *msg):
-        """Set the error message."""
-        super().__init__(*msg)
-        self.msg = ' '.join(msg)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.msg)
+    @staticmethod
+    def generate_trivial_layout(*regs):
+        """
+        Creates a trivial ("one-to-one") Layout with the registers in `regs`.
+        Args:
+            *regs (Registers): registers to include in the layout.
+        Returns:
+            Layout: A layout with all the `regs` in the given order.
+        """
+        layout = Layout()
+        for reg in regs:
+            layout.add_register(reg)
+        return layout

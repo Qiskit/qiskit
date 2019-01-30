@@ -9,7 +9,7 @@
 Qiskit visualization library.
 """
 import warnings
-from qiskit.tools.visualization import VisualizationError
+from qiskit.tools.visualization.exceptions import VisualizationError
 from qiskit.tools.visualization._utils import _validate_input_state
 from ._iplot_blochsphere import iplot_bloch_multivector
 from ._iplot_cities import iplot_state_city
@@ -25,7 +25,7 @@ def iplot_state(quantum_state, method='city', figsize=None):
         quantum_state (ndarray): statevector or density matrix
                                  representation of a quantum state.
         method (str): Plotting method to use.
-        figsize (tuple): Figure size in inches.
+        figsize (tuple): Figure size in pixels.
 
     Raises:
         VisualizationError: if the input is not a statevector or density

@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,import-error
 
 """
 Visualization functions for measurement counts.
@@ -15,7 +15,7 @@ from collections import Counter, OrderedDict
 import functools
 import numpy as np
 from ._matplotlib import HAS_MATPLOTLIB
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
@@ -66,8 +66,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         labels.append('rest')
 
     labels_dict = OrderedDict()
-    for label in labels:
-        labels_dict[label] = 0
 
     # Set bar colors
     if color is None:
@@ -75,36 +73,42 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     elif isinstance(color, str):
         color = [color]
 
+    all_pvalues = []
     for item, execution in enumerate(data):
         if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
         values = []
-        for key in labels_dict:
+        for key in labels:
             if key not in execution:
-                values.append(0)
+                if number_to_keep is None:
+                    labels_dict[key] = 1
+                    values.append(0)
+                else:
+                    values.append(-1)
             else:
-                labels_dict[key] += 1
+                labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
-        pvalues = values / sum(values)
-        numelem = len(values)
+        where_idx = np.where(values >= 0)[0]
+        pvalues = values[where_idx] / sum(values[where_idx])
+        for value in pvalues:
+            all_pvalues.append(value)
+        numelem = len(values[where_idx])
         ind = np.arange(numelem)  # the x locations for the groups
-        width = 0.35  # the width of the bars
+        width = 1/(len(data)+1)  # the width of the bars
         rects = []
         for idx, val in enumerate(pvalues):
             label = None
             if not idx and legend:
                 label = legend[item]
-            rects.append(ax.bar(idx+(labels_dict[labels[idx]]-1)*width, val, width, label=label,
-                                color=color[item % len(color)],
-                                zorder=2))
-        # add some text for labels, title, and axes ticks
-        ax.set_ylabel('Probabilities', fontsize=14)
+            if val >= 0:
+                rects.append(ax.bar(idx+item*width, val, width, label=label,
+                                    color=color[item % len(color)],
+                                    zorder=2))
         ax.set_xticks(ind)
-        ax.set_xticklabels(labels, fontsize=14, rotation=70)
-        ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
+        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
         # attach some text labels
         if bar_labels:
             for rect in rects:
@@ -114,7 +118,14 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                         ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
                                 '%.3f' % float(height),
                                 ha='center', va='bottom', zorder=3)
+                    else:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '0',
+                                ha='center', va='bottom', zorder=3)
 
+    # add some text for labels, title, and axes ticks
+    ax.set_ylabel('Probabilities', fontsize=14)
+    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_pvalues])])])
     if sort == 'desc':
         ax.invert_xaxis()
     elif sort != 'asc':
@@ -131,7 +142,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         plt.title(title)
 
     if legend:
-        plt.legend()
+        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
+                  borderaxespad=0, frameon=True, fontsize=12)
     if fig:
         plt.close(fig)
     return fig

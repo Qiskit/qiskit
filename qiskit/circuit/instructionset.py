@@ -8,16 +8,24 @@
 """
 Instruction collection.
 """
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
-class InstructionSet(object):
+class InstructionSet:
     """Instruction collection."""
 
     def __init__(self):
         """New collection of instructions."""
         self.instructions = []
+
+    def __len__(self):
+        """Return number of instructions in set"""
+        return len(self.instructions)
+
+    def __getitem__(self, i):
+        """Return instruction at index"""
+        return self.instructions[i]
 
     def add(self, gate):
         """Add instruction to set."""

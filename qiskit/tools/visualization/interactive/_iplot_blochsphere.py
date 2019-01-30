@@ -30,7 +30,7 @@ def iplot_bloch_multivector(rho, figsize=None):
 
         Args:
             rho (array): State vector or density matrix
-            figsize (tuple): Figure size in inches.
+            figsize (tuple): Figure size in pixels.
     """
 
     # HTML

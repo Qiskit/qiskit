@@ -9,10 +9,18 @@
 """
 
 from IPython import get_ipython          # pylint: disable=import-error
+from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
-from .progressbar import HTMLProgressBar, TextProgressBar
+from .progressbar import HTMLProgressBar
+
+if HAS_MATPLOTLIB:
+    from ._backend_overview import BackendOverview
+    from ._backend_monitor import BackendMonitor
 
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     _IP.register_magics(StatusMagic)
+    if HAS_MATPLOTLIB:
+        _IP.register_magics(BackendOverview)
+        _IP.register_magics(BackendMonitor)

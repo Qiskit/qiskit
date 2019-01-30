@@ -10,7 +10,7 @@
 import PIL
 import numpy as np
 from qiskit.converters import circuit_to_dag
-from qiskit.tools.visualization._error import VisualizationError
+from qiskit.tools.visualization.exceptions import VisualizationError
 
 
 def _validate_input_state(quantum_state):
@@ -76,7 +76,7 @@ def _get_instructions(circuit, reversebits=False):
     for creg in dag.cregs.values():
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
-    if not reversebits:
+    if reversebits:
         qregs.reverse()
         cregs.reverse()
 

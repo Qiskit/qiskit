@@ -7,12 +7,13 @@
 
 """ Tests the layout object"""
 
+import copy
 import unittest
 
 from qiskit import QuantumRegister
 from qiskit.mapper import Layout
-from qiskit.mapper._layout import LayoutError
-from .common import QiskitTestCase
+from qiskit.mapper.exceptions import LayoutError
+from qiskit.test import QiskitTestCase
 
 
 class LayoutTest(QiskitTestCase):
@@ -20,6 +21,18 @@ class LayoutTest(QiskitTestCase):
 
     def setUp(self):
         self.qr = QuantumRegister(3, 'qr')
+
+    def test_default_layout(self):
+        """Static method generate_trivial_layout creates a Layout"""
+        qr0 = QuantumRegister(3, 'q0')
+        qr1 = QuantumRegister(2, 'q1')
+        layout = Layout.generate_trivial_layout(qr0, qr1)
+
+        self.assertEqual(layout[(qr0, 0)], 0)
+        self.assertEqual(layout[(qr0, 1)], 1)
+        self.assertEqual(layout[(qr0, 2)], 2)
+        self.assertEqual(layout[(qr1, 0)], 3)
+        self.assertEqual(layout[(qr1, 1)], 4)
 
     def test_layout_from_dict(self):
         """Constructor from a dict"""
@@ -172,6 +185,44 @@ class LayoutTest(QiskitTestCase):
 
         with self.assertRaises(LayoutError):
             _ = layout.combine_into_edge_map(another_layout)
+
+    def test_copy(self):
+        """Test copy methods return equivalent layouts."""
+        layout = Layout()
+        layout.add((self.qr, 0))
+        layout.add((self.qr, 1))
+
+        layout_dict_copy = layout.copy()
+        self.assertTrue(isinstance(layout_dict_copy, Layout))
+        self.assertDictEqual(layout, layout_dict_copy)
+
+        layout_copy_copy = copy.copy(layout)
+        self.assertTrue(isinstance(layout_copy_copy, Layout))
+        self.assertDictEqual(layout, layout_copy_copy)
+
+        layout_copy_deepcopy = copy.deepcopy(layout)
+        self.assertTrue(isinstance(layout_copy_deepcopy, Layout))
+        self.assertDictEqual(layout, layout_copy_deepcopy)
+
+    def test_layout_error_str_key(self):
+        """Layout does not work with strings"""
+        layout = Layout()
+
+        with self.assertRaises(LayoutError):
+            layout['a_string'] = 3
+
+        with self.assertRaises(LayoutError):
+            layout[2] = 'a_string'
+
+    def test_layout_error_when_same_type(self):
+        """Layout does not work when key and value are the same type"""
+        layout = Layout()
+
+        with self.assertRaises(LayoutError):
+            layout[(self.qr, 0)] = (self.qr, 1)
+
+        with self.assertRaises(LayoutError):
+            layout[0] = 1
 
 
 if __name__ == '__main__':

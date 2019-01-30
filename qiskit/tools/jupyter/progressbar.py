@@ -41,71 +41,13 @@
 """Progress bars module"""
 
 import time
-import datetime
-import sys
-import ipywidgets as widgets                # pylint: disable=import-error
+try:
+    import ipywidgets as widgets           # pylint: disable=import-error
+except ImportError:
+    raise ImportError('These functions  need ipywidgets. '
+                      'Run "pip install ipywidgets" before.')
 from IPython.display import display         # pylint: disable=import-error
-from qiskit._pubsub import Subscriber
-
-
-class BaseProgressBar(Subscriber):
-    """An abstract progress bar with some shared functionality.
-    """
-    def __init__(self):
-        super().__init__()
-        self.type = 'progressbar'
-        self.touched = False
-        self.iter = None
-        self.t_start = None
-        self.t_done = None
-
-    def start(self, iterations):
-        """Start the progress bar.
-
-        Parameters:
-            iterations (int): Number of iterations.
-        """
-        self.touched = True
-        self.iter = int(iterations)
-        self.t_start = time.time()
-
-    def update(self, n):
-        """Update status of progress bar.
-        """
-        pass
-
-    def time_elapsed(self):
-        """Return the time elapsed since start.
-
-        Returns:
-            elapsed_time: Time since progress bar started.
-        """
-        return "%6.2fs" % (time.time() - self.t_start)
-
-    def time_remaining_est(self, completed_iter):
-        """Estimate the remaining time left.
-
-        Parameters:
-            completed_iter (int): Number of iterations completed.
-
-        Returns:
-            est_time: Estimated time remaining.
-        """
-        if completed_iter:
-            t_r_est = (time.time() - self.t_start) / \
-                completed_iter*(self.iter-completed_iter)
-        else:
-            t_r_est = 0
-        date_time = datetime.datetime(1, 1, 1) + datetime.timedelta(seconds=t_r_est)
-        time_string = "%02d:%02d:%02d:%02d" % \
-            (date_time.day - 1, date_time.hour, date_time.minute, date_time.second)
-
-        return time_string
-
-    def finished(self):
-        """Run when progress bar has completed.
-        """
-        pass
+from qiskit.tools.events.progressbar import BaseProgressBar
 
 
 class HTMLProgressBar(BaseProgressBar):
@@ -128,7 +70,7 @@ class HTMLProgressBar(BaseProgressBar):
                 num_tasks: Number of compilation tasks the progress bar will track
             """
             self.start(num_tasks)
-        self.subscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
+        self.subscribe("terra.parallel.start", _initialize_progress_bar)
 
         def _update_progress_bar(progress):
             """ When an event of compilation completes, this function will be called, and
@@ -138,17 +80,17 @@ class HTMLProgressBar(BaseProgressBar):
                 progress: Number of tasks completed
             """
             self.update(progress)
-        self.subscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
+        self.subscribe("terra.parallel.done", _update_progress_bar)
 
         def _finish_progress_bar():
             """ When an event of compilation finishes (meaning that there's no more circuits to
             compile), this function will be called, unsubscribing from all events and
             finishing the progress bar."""
-            self.unsubscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
-            self.unsubscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
-            self.unsubscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+            self.unsubscribe("terra.parallel.start", _initialize_progress_bar)
+            self.unsubscribe("terra.parallel.done", _update_progress_bar)
+            self.unsubscribe("terra.parallel.finish", _finish_progress_bar)
             self.finished()
-        self.subscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
+        self.subscribe("terra.parallel.finish", _finish_progress_bar)
 
     def start(self, iterations):
         self.touched = True
@@ -169,49 +111,3 @@ class HTMLProgressBar(BaseProgressBar):
         self.t_done = time.time()
         self.progress_bar.bar_style = 'success'
         self.label.value = "Elapsed time: %s" % self.time_elapsed()
-
-
-class TextProgressBar(BaseProgressBar):
-    """
-    A simple text-based progress bar.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self._init_subscriber()
-
-    def _init_subscriber(self):
-        def _initialize_progress_bar(num_tasks):
-            """ """
-            self.start(num_tasks)
-        self.subscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
-
-        def _update_progress_bar(progress):
-            """ """
-            self.update(progress)
-        self.subscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
-
-        def _finish_progress_bar():
-            """ """
-            self.unsubscribe("terra.transpiler.transpile_dag.start", _initialize_progress_bar)
-            self.unsubscribe("terra.transpiler.transpile_dag.done", _update_progress_bar)
-            self.unsubscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
-            self.finished()
-        self.subscribe("terra.transpiler.transpile_dag.finish", _finish_progress_bar)
-
-    def start(self, iterations):
-        self.touched = True
-        self.iter = int(iterations)
-        self.t_start = time.time()
-        pbar = '-' * 50
-        sys.stdout.write('\r|%s| %s%s%s [%s]' %
-                         (pbar, 0, '/', self.iter, ''))
-
-    def update(self, n):
-        filled_length = int(round(50 * n / self.iter))
-        pbar = u'█' * filled_length + '-' * (50 - filled_length)
-        time_left = self.time_remaining_est(n)
-        sys.stdout.write('\r|%s| %s%s%s [%s]' % (pbar, n, '/', self.iter, time_left))
-        if n == self.iter:
-            sys.stdout.write('\n')
-        sys.stdout.flush()

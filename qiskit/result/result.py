@@ -7,8 +7,9 @@
 
 """Model for schema-conformant Results."""
 
-import warnings
-from qiskit import QiskitError, QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+
 from qiskit.validation.base import BaseModel, bind_schema
 from .postprocess import (format_counts, format_statevector,
                           format_unitary, format_memory)
@@ -228,119 +229,3 @@ class Result(BaseModel):
         except StopIteration:
             raise QiskitError('Data for experiment "%s" could not be found.' %
                               key)
-
-    # To be deprecated after 0.7
-
-    def __iadd__(self, other):
-        """Append a Result object to current Result object.
-
-        Arg:
-            other (Result): a Result object to append.
-        Returns:
-            Result: The current object with appended results.
-        Raises:
-            QiskitError: if the Results cannot be combined.
-        """
-        warnings.warn('Result addition is deprecated and will be removed in '
-                      'version 0.7+.', DeprecationWarning)
-
-        this_backend = self.backend_name
-        other_backend = other.backend_name
-        if this_backend != other_backend:
-            raise QiskitError('Result objects from different backends cannot be combined.')
-
-        if not self.success or not other.success:
-            raise QiskitError('Can not combine a failed result with another result.')
-
-        self.results.extend(other.results)
-        return self
-
-    def __add__(self, other):
-        """Combine Result objects.
-
-        Arg:
-            other (Result): a Result object to combine.
-        Returns:
-            Result: A new Result object consisting of combined objects.
-        """
-        warnings.warn('Result addition is deprecated and will be removed in '
-                      'version 0.7+.', DeprecationWarning)
-
-        copy_of_self = self.from_dict(self.to_dict())
-        copy_of_self += other
-        return copy_of_self
-
-    def get_status(self):
-        """Return whole result status."""
-        warnings.warn('get_status() is deprecated and will be removed in '
-                      'version 0.7+. Instead use result.status directly.',
-                      DeprecationWarning)
-        return getattr(self, 'status', '')
-
-    def circuit_statuses(self):
-        """Return statuses of all circuits.
-
-        Returns:
-            list(str): List of status result strings.
-        """
-        warnings.warn('circuit_statuses() is deprecated and will be removed in '
-                      'version 0.7+. Instead use result.results[x]status '
-                      'directly.', DeprecationWarning)
-
-        return [getattr(experiment_result, 'status', '') for
-                experiment_result in self.results]
-
-    def get_circuit_status(self, icircuit):
-        """Return the status of circuit at index icircuit.
-
-        Args:
-            icircuit (int): index of circuit
-        Returns:
-            string: the status of the circuit.
-        """
-        warnings.warn('get_circuit_status() is deprecated and will be removed '
-                      'in version 0.7+. Instead use result.results[x]status '
-                      'directly.', DeprecationWarning)
-        return self[icircuit].status
-
-    def get_job_id(self):
-        """Return the job id assigned by the api if this is a remote job.
-
-        Returns:
-            string: a string containing the job id.
-        """
-        warnings.warn('get_job_id() is deprecated and will be removed in '
-                      'version 0.7+. Instead use result.job_id directly.',
-                      DeprecationWarning)
-
-        return self.job_id
-
-    def get_ran_qasm(self, name):
-        """Get the ran qasm for the named circuit and backend.
-
-        Args:
-            name (str): the name of the quantum circuit.
-
-        Returns:
-            string: A text version of the qasm file that has been run.
-        Raises:
-            QiskitError: if the circuit was not found.
-        """
-        warnings.warn('get_ran_qasm() is deprecated and will be removed in '
-                      'version 0.7+.', DeprecationWarning)
-
-        try:
-            return self.results[name].compiled_circuit_qasm
-        except KeyError:
-            raise QiskitError('No  qasm for circuit "{0}"'.format(name))
-
-    def get_names(self):
-        """Get the circuit names of the results.
-
-        Returns:
-            List: A list of circuit names.
-        """
-        warnings.warn('get_names() is deprecated and will be removed in '
-                      'version 0.7+. Instead inspect result.results directly',
-                      DeprecationWarning)
-        return list(self.results.keys())
