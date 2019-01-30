@@ -78,11 +78,11 @@ def purity(state):
     """Calculate the purity of a quantum state.
 
     Args:
-        state (np.array): a quantum state
+        state (ndarray): a quantum state
     Returns:
         float: purity.
     """
     rho = np.array(state)
     if rho.ndim == 1:
-        rho = outer(rho)
+        rho = projector(rho)
     return np.real(np.trace(rho.dot(rho)))
