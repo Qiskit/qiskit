@@ -24,6 +24,7 @@ from scipy.stats import unitary_group
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
+from qiskit.quantum_info import purity as new_purity
 from qiskit.quantum_info import state_fidelity as new_state_fidelity
 
 
@@ -450,6 +451,21 @@ def state_fidelity(state1, state2):
                   'the state_fidelity() function in qiskit.quantum_info',
                   DeprecationWarning)
     return new_state_fidelity(state1, state2)
+
+
+def purity(state):
+    """Calculate the purity of a quantum state.
+
+    Args:
+        state (np.array): a quantum state
+    Returns:
+        float: purity.
+    """
+    warnings.warn('The purity() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the purity() function in qiskit.quantum_info',
+                  DeprecationWarning)
+    return new_purity(state)
 
 
 def concurrence(state):
