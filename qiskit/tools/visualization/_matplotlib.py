@@ -592,10 +592,15 @@ class MatplotlibDrawer:
                 self._measure(q_xy[0], c_xy[0], vv)
             elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
                                 'noise']:
-                q_group = self._qreg_dict[q_idxs[0]]['group']
-                if q_group not in _barriers['group']:
-                    _barriers['group'].append(q_group)
-                _barriers['coord'].append(q_xy[0])
+
+                # Go over all indices to add barriers across
+                for index, qbit in enumerate(q_idxs):
+                    q_group = self._qreg_dict[qbit]['group']
+
+                    if q_group not in _barriers['group']:
+                        _barriers['group'].append(q_group)
+                    _barriers['coord'].append(q_xy[index])
+
                 if op_next and op_next['name'] == 'barrier':
                     continue
                 else:
