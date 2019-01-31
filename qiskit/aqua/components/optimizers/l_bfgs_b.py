@@ -44,8 +44,8 @@ class L_BFGS_B(Optimizer):
                     'default': 1000
                 },
                 'maxiter': {
-                    'type': ['integer', 'null'],
-                    'default': None
+                    'type': 'integer',
+                    'default': 15000
                 },
                 'factr': {
                     'type': 'integer',
@@ -71,7 +71,7 @@ class L_BFGS_B(Optimizer):
         'optimizer': ['local']
     }
 
-    def __init__(self, maxfun=1000, maxiter=None, factr=10, iprint=-1, epsilon=1e-08):
+    def __init__(self, maxfun=1000, maxiter=15000, factr=10, iprint=-1, epsilon=1e-08):
         """
         Constructor.
 
@@ -100,8 +100,7 @@ class L_BFGS_B(Optimizer):
         self.validate(locals())
         super().__init__()
         for k, v in locals().items():
-            # Only allows options not None since maxiter, for instance, will fail if it is None
-            if v is not None and k in self._configuration['options']:
+            if k in self._configuration['options']:
                 self._options[k] = v
 
     def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
