@@ -15,7 +15,7 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
-
+import numpy as np
 import networkx as nx
 from .exceptions import CouplingError
 
@@ -131,7 +131,13 @@ class CouplingMap:
         if not self.is_connected():
             raise CouplingError("coupling graph not connected")
         lengths = nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True))
-        self._dist_matrix = dict(lengths)
+        lengths = dict(lengths)
+        size = len(lengths)
+        cmap = np.zeros((size, size))
+        for idx in range(size):
+            cmap[idx, np.fromiter(lengths[idx].keys(), dtype=int)] = np.fromiter(
+                lengths[idx].values(), dtype=int)
+        self._dist_matrix = cmap
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -152,7 +158,7 @@ class CouplingMap:
             raise CouplingError("%s not in coupling graph" % (physical_qubit2,))
         if self._dist_matrix is None:
             self._compute_distance_matrix()
-        return self._dist_matrix[physical_qubit1][physical_qubit2]
+        return self._dist_matrix[physical_qubit1, physical_qubit2]
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
