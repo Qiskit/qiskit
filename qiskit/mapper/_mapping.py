@@ -242,7 +242,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                 progress_made = False
                 # Loop over edges of coupling graph
                 for e in coupling.get_edges():
-                    e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
+                    e = [(QR, edge) for edge in e]
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
