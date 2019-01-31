@@ -51,6 +51,10 @@ class BasicSwap(TransformationPass):
 
         Returns:
             DAGCircuit: A mapped DAG.
+
+        Raises:
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
         new_dag = DAGCircuit()
 
@@ -64,7 +68,8 @@ class BasicSwap(TransformationPass):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
-            raise TranspilerError("Mappers require to have the layout to be the same size as the coupling map")
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         current_layout = copy(self.initial_layout)
 

@@ -80,8 +80,8 @@ class LookaheadSwap(TransformationPass):
             DAGCircuit: A dag mapped to be compatible with the coupling_map in
                 the property_set.
         Raises:
-            TranspilerError: If the provided DAG has more qubits than are
-                available in the coupling map.
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
 
         coupling_map = self._coupling_map
@@ -97,7 +97,8 @@ class LookaheadSwap(TransformationPass):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         if len(self._coupling_map.physical_qubits) != len(self.initial_layout):
-            raise TranspilerError("Mappers require to have the layout to be the same size as the coupling map")
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         mapped_gates = []
         layout = self.initial_layout.copy()
