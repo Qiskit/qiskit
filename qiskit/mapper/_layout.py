@@ -52,7 +52,8 @@ class Layout(dict):
             self[key] = value
 
     def __getitem__(self, item):
-        if isinstance(item, int) and item < len(self) and item not in self:
+        # N.B. Layout.__len__ is O(layout size). Short circuit early when possible.
+        if isinstance(item, int) and item not in self and item < len(self):
             return None
         return dict.__getitem__(self, item)
 
@@ -94,7 +95,16 @@ class Layout(dict):
 
     # Override dict's built-in copy method which would return a dict instead of a Layout.
     def copy(self):
-        return type(self)(self)
+        layout_copy = type(self)()
+
+        # Since self is known to be a valid Layout, bypass overhead and type checks in
+        # Layout.__init__ and Layout.__setitem__.
+        for key, value in self.items():
+            if key is not None:
+                dict.__setitem__(layout_copy, key, value)
+            if value is not None:
+                dict.__setitem__(layout_copy, value, key)
+        return layout_copy
 
     def add(self, virtual_bit, physical_bit=None):
         """
