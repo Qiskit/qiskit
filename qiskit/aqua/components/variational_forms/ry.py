@@ -50,7 +50,14 @@ class RY(VariationalForm):
                 }
             },
             'additionalProperties': False
-        }
+        },
+        'depends': [
+            {'pluggable_type': 'initial_state',
+             'default': {
+                     'name': 'ZERO',
+                }
+             },
+        ],
     }
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,

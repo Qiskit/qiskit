@@ -29,7 +29,7 @@ import logging
 import numpy as np
 from qiskit.providers import BaseBackend
 
-from qiskit.aqua import Pluggable, QuantumInstance, AquaError
+from qiskit.aqua import Pluggable, PluggableType, QuantumInstance, AquaError
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +37,16 @@ logger = logging.getLogger(__name__)
 class QuantumAlgorithm(Pluggable):
 
     # Configuration dictionary keys
-    SECTION_KEY_ALGORITHM = 'algorithm'
-    SECTION_KEY_OPTIMIZER = 'optimizer'
-    SECTION_KEY_VAR_FORM = 'variational_form'
-    SECTION_KEY_INITIAL_STATE = 'initial_state'
-    SECTION_KEY_IQFT = 'iqft'
-    SECTION_KEY_ORACLE = 'oracle'
-    SECTION_KEY_FEATURE_MAP = 'feature_map'
-    SECTION_KEY_MULTICLASS_EXTENSION = 'multiclass_extension'
-    SECTION_KEY_UNCERTAINTY_PROBLEM = 'uncertainty_problem'
-    SECTION_KEY_UNCERTAINTY_MODEL = 'uncertainty_model'
+    SECTION_KEY_ALGORITHM = PluggableType.ALGORITHM.value
+    SECTION_KEY_OPTIMIZER = PluggableType.OPTIMIZER.value
+    SECTION_KEY_VAR_FORM = PluggableType.VARIATIONAL_FORM.value
+    SECTION_KEY_INITIAL_STATE = PluggableType.INITIAL_STATE.value
+    SECTION_KEY_IQFT = PluggableType.IQFT.value
+    SECTION_KEY_ORACLE = PluggableType.ORACLE.value
+    SECTION_KEY_FEATURE_MAP = PluggableType.FEATURE_MAP.value
+    SECTION_KEY_MULTICLASS_EXTENSION = PluggableType.MULTICLASS_EXTENSION.value
+    SECTION_KEY_UNCERTAINTY_PROBLEM = PluggableType.UNCERTAINTY_PROBLEM.value
+    SECTION_KEY_UNCERTAINTY_MODEL = PluggableType.UNCERTAINTY_MODEL.value
 
     """
     Base class for Algorithms.
