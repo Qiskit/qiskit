@@ -52,7 +52,8 @@ class Layout(dict):
             self[key] = value
 
     def __getitem__(self, item):
-        if isinstance(item, int) and item < len(self) and item not in self:
+        # N.B. Layout.__len__ is O(layout size). Short circuit early when possible.
+        if isinstance(item, int) and item not in self and item < len(self):
             return None
         return dict.__getitem__(self, item)
 
