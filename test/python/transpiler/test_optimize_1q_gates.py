@@ -49,12 +49,11 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
         circuit.h(qr[0])
 
         expected = QuantumCircuit(qr)
-        expected.u2(0, sympy.pi, qr[0])
+        expected.u2(0, np.pi, qr[0])
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
-
         self.assertEqual(expected, result)
 
 
