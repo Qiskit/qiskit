@@ -95,6 +95,7 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
          q1:--------|--[m]--  -> q1:-------|---|--[m]--
                     |   |                  |   |   |
          c0:--------.---|---      c0:----------.---|---
+                        |                          |
          c1:------------.---      c0:--------------.---
         """
         qr0 = QuantumRegister(1, 'q0')
@@ -151,8 +152,8 @@ class TestAddBarrierBeforeMeasuremets(QiskitTestCase):
     def test_preserve_measure_for_conditional(self):
         """ Test barrier is inserted after any measurements used for conditionals
 
-         q0:--[H]--[m]------------     q0:--[H]--[m]-------|-------
-                    |                             |        |
+         q0:--[H]--[m]------------     q0:--[H]--[m]---------------
+                    |                             |
          q1:--------|--[ z]--[m]--  -> q1:--------|--[ z]--|--[m]--
                     |    |    |                   |    |       |
          c0:--------.--[=1]---|---     c0:--------.--[=1]------|---
@@ -211,11 +212,11 @@ class TestAddBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
     def test_remove_barrier_in_different_qregs(self):
         """ Two measurements in different qregs to the same creg
-                                     |
+
          q0:--|--[m]------     q0:---|--[m]------
                   |                  |   |
          q1:--|---|--[m]--  -> q1:---|---|--[m]--
-                  |   |              |   |   |
+                  |   |                  |   |
          c0:------.---|---     c0:-------.---|---
             ----------.---        -----------.---
         """
@@ -233,6 +234,121 @@ class TestAddBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
         expected.barrier(qr0, qr1)
         expected.measure(qr0, cr0[0])
         expected.measure(qr1, cr0[1])
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_preserve_barriers_for_measurement_ordering(self):
+        """ If the circuit has a barrier to enforce a measurement order, preserve it in the output.
+
+         q:---[m]--|-------     q:---|--[m]--|-------
+           ----|---|--[m]--  ->   ---|---|---|--[m]--
+               |       |                 |       |
+         c:----.-------|---     c:-------.-------|---
+           ------------.---       ---------------.---
+        """
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr[0], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[1])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier(qr)
+        expected.measure(qr[0], cr[0])
+        expected.barrier(qr)
+        expected.measure(qr[1], cr[1])
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_measures_followed_by_barriers_should_be_final(self):
+        """ If a measurement is followed only by a barrier, insert the barrier before it.
+
+         q:---[H]--|--[m]--|-------     q:---[H]--|--[m]-|-------
+           ---[H]--|---|---|--[m]--  ->   ---[H]--|---|--|--[m]--
+                       |       |                      |      |
+         c:------------.-------|---     c:------------.------|---
+           --------------------.---       -------------------.---
+        """
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[1])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.h(qr)
+        expected.barrier(qr)
+        expected.measure(qr[0], cr[0])
+        expected.barrier(qr)
+        expected.measure(qr[1], cr[1])
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_should_merge_with_smaller_duplicate_barrier(self):
+        """ If an equivalent barrier exists covering a subset of the qubits
+        covered by the new barrier, it should be replaced.
+
+         q:---|--[m]-------------     q:---|--[m]-------------
+           ---|---|---[m]--------  ->   ---|---|---[m]--------
+           -------|----|---[m]---       ---|---|----|---[m]---
+                  |    |    |                  |    |    |
+         c:-------.----|----|----     c:-------.----|----|----
+           ------------.----|----       ------------.----|----
+           -----------------.----       -----------------.----
+        """
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.barrier(qr[0], qr[1])
+        circuit.measure(qr, cr)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier(qr)
+        expected.measure(qr, cr)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_should_merge_with_larger_duplicate_barrier(self):
+        """ If a barrier exists and is stronger than the barrier to be inserted,
+        preserve the existing barrier and do not insert a new barrier.
+
+         q:---|--[m]--|-------     q:---|--[m]-|-------
+           ---|---|---|--[m]--  ->   ---|---|--|--[m]--
+           ---|---|---|---|---       ---|---|--|---|---
+                  |       |                 |      |
+         c:-------.-------|---     c:-------.------|---
+           ---------------.---       --------------.---
+           -------------------       ------------------
+        """
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[1])
+
+        expected = circuit
 
         pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
