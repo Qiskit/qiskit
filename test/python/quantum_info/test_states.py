@@ -126,10 +126,22 @@ class TestStates(QiskitTestCase):
                 + basis_state('01',2)+ basis_state('11',2))
         state_3 = 0.5*(basis_state('000',3) + basis_state('001',3) \
                 + basis_state('010',3) + basis_state('100',3))
+        self.assertEqual(purity(state_1), 1.0)
+        self.assertEqual(purity(state_2), 1.0)
+        self.assertEqual(purity(state_3), 1.0)
+
+    def test_purity_pure_matrix_state(self):
+        state_1 = (1/np.sqrt(2))*(basis_state('0',1) + basis_state('1',1))
+        state_1 = projector(state_1)
+        state_2 = (1/np.sqrt(3))*( basis_state('00',2) \
+                + basis_state('01',2)+ basis_state('11',2))
+        state_2 = projector(state_2)
+        state_3 = 0.5*(basis_state('000',3) + basis_state('001',3) \
+                + basis_state('010',3) + basis_state('100',3))
+        state_3 = projector(state_3)
         self.assertAlmostEqual(purity(state_1), 1.0, places=10)
         self.assertAlmostEqual(purity(state_2), 1.0, places=10)
         self.assertEqual(purity(state_3), 1.0)
-
 
     def test_purity_mixed_state(self):
         state_1 = 0.5*(projector(basis_state('0',1)) \

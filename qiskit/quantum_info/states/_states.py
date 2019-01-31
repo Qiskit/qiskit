@@ -84,5 +84,5 @@ def purity(state):
     """
     rho = np.array(state)
     if rho.ndim == 1:
-        rho = projector(rho)
+        return 1.0
     return np.real(np.trace(rho.dot(rho)))
