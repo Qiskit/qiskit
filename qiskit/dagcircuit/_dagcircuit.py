@@ -914,7 +914,7 @@ class DAGCircuit:
             n (int): reference to self.multi_graph node id
 
         Returns:
-            set(dict): set({predecessor_map, successor_map})
+            tuple(dict): tuple(predecessor_map, successor_map)
                 These map from wire (Register, int) to predecessor (successor)
                 nodes of n.
         """
@@ -975,6 +975,15 @@ class DAGCircuit:
         """
         copy_node1 = {k: v for (k, v) in node1.items()}
         copy_node2 = {k: v for (k, v) in node2.items()}
+
+        # For barriers, qarg order is not significant so compare as sets
+        if 'barrier' == copy_node1['name'] == copy_node2['name']:
+            node1_qargs = set(copy_node1.pop('qargs', []))
+            node2_qargs = set(copy_node2.pop('qargs', []))
+
+            if node1_qargs != node2_qargs:
+                return False
+
         return copy_node1 == copy_node2
 
     def __eq__(self, other):
@@ -988,7 +997,7 @@ class DAGCircuit:
         Returns:
             list: The list of node numbers in topological order
         """
-        return nx.topological_sort(self.multi_graph)
+        return nx.lexicographical_topological_sort(self.multi_graph)
 
     def substitute_circuit_all(self, op, input_circuit, wires=None):
         """Replace every occurrence of operation op with input_circuit.
@@ -1259,16 +1268,32 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
-        """Get the set of 2-qubit nodes."""
+        """Get list of 2-qubit nodes."""
         two_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
 
+    def get_3q_or_more_nodes(self):
+        """Get list of 3-or-more-qubit nodes: (id, data)."""
+        three_q_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and len(node_data['qargs']) >= 3:
+                three_q_nodes.append((node_id, self.multi_graph.node[node_id]))
+        return three_q_nodes
+
     def successors(self, node):
         """Returns the successors of a node."""
         return self.multi_graph.successors(node)
+
+    def ancestors(self, node):
+        """Returns the ancestors of a node."""
+        return nx.ancestors(self.multi_graph, node)
+
+    def descendants(self, node):
+        """Returns the descendants of a node."""
+        return nx.descendants(self.multi_graph, node)
 
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""

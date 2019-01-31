@@ -18,10 +18,14 @@ import matplotlib as mpl                                # pylint: disable=import
 from matplotlib import cm                               # pylint: disable=import-error
 from matplotlib.patches import Circle                   # pylint: disable=import-error
 import ipywidgets as widgets                            # pylint: disable=import-error
-from qiskit.providers.ibmq import IBMQ
 from qiskit.exceptions import QiskitError
-from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 from qiskit.tools.visualization._gate_map import plot_gate_map
+
+try:
+    # pylint: disable=import-error,no-name-in-module
+    from qiskit.providers.ibmq import IBMQ, IBMQBackend
+except ImportError:
+    pass
 
 
 @magics_class
