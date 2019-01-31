@@ -173,7 +173,7 @@ class StochasticSwap(TransformationPass):
         best_layout = None  # initialize best final layout
 
         cdist2 = coupling._dist_matrix**2
-        #scaling matrix
+        # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
         utri_idx = np.triu_indices(num_qubits)
         for trial in range(trials):
@@ -188,7 +188,7 @@ class StochasticSwap(TransformationPass):
             data = 1 + np.random.normal(0, 1/num_qubits,
                                         size=num_qubits*(num_qubits+1)//2)
             scale[utri_idx] = data
-            xi = (scale+scale.T)*cdist2 # pylint: disable=invalid-name
+            xi = (scale+scale.T)*cdist2  # pylint: disable=invalid-name
 
             slice_circuit = DAGCircuit()  # circuit for this swap slice
             for register in trial_layout.get_virtual_bits().keys():
