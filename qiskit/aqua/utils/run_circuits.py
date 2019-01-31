@@ -355,7 +355,10 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
         job_id = str(uuid.uuid4())
         if is_simulator_backend(backend):
             if is_aer_provider(backend):
-                job = backend.run(qobj, **backend_options, **noise_config, validate=False)
+                from qiskit.providers.aer.aerjob import AerJob
+                job = AerJob(backend, job_id, backend._run_job, qobj, backend_options, noise_config)
+                job._future = job._executor.submit(job._fn, job._job_id, job._qobj,
+                                                   backend_options, noise_config, validate=False)
             else:
                 job = SimulatorsJob(backend, job_id, backend._run_job, qobj)
                 job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
