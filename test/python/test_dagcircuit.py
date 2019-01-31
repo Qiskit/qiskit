@@ -212,7 +212,7 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(HGate(self.qubit2))
 
         named_nodes = self.dag.node_nums_in_topological_order()
-        self.assertEqual([9, 10, 7, 8, 5, 3, 1, 11, 13, 4, 12, 14, 15, 6, 2],
+        self.assertEqual([1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 4, 14, 2, 15, 6],
                          [i for i in named_nodes])
 
 
