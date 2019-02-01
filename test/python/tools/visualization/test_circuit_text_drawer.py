@@ -664,6 +664,170 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.measure(qr, cr)
         self.assertEqual(_text_circuit_drawer(circuit)._repr_html_(), expected)
 
+    def test_text_justify_left(self):
+        """ Drawing with left justify """
+        expected = '\n'.join(['         ┌───┐   ',
+                              'q1_0: |0>┤ X ├───',
+                              '         ├───┤┌─┐',
+                              'q1_1: |0>┤ H ├┤M├',
+                              '         └───┘└╥┘',
+                              ' c1_0: 0 ══════╬═',
+                              '               ║ ',
+                              ' c1_1: 0 ══════╩═',
+                              '                 '])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.x(qr1[0])
+        circuit.h(qr1[1])
+        circuit.measure(qr1[1], cr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='left')), expected)
+
+    def test_text_justify_right(self):
+        """ Drawing with right justify """
+        expected = '\n'.join(['              ┌───┐',
+                              'q1_0: |0>─────┤ X ├',
+                              '         ┌───┐└┌─┐┘',
+                              'q1_1: |0>┤ H ├─┤M├─',
+                              '         └───┘ └╥┘ ',
+                              ' c1_0: 0 ═══════╬══',
+                              '                ║  ',
+                              ' c1_1: 0 ═══════╩══',
+                              '                   '])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.x(qr1[0])
+        circuit.h(qr1[1])
+        circuit.measure(qr1[1], cr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
+
+    def test_text_justify_none(self):
+        """ Drawing with none justify """
+        expected = '\n'.join(['         ┌───┐        ',
+                              'q1_0: |0>┤ X ├────────',
+                              '         └───┘┌───┐┌─┐',
+                              'q1_1: |0>─────┤ H ├┤M├',
+                              '              └───┘└╥┘',
+                              ' c1_0: 0 ═══════════╬═',
+                              '                    ║ ',
+                              ' c1_1: 0 ═══════════╩═',
+                              '                      '])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.x(qr1[0])
+        circuit.h(qr1[1])
+        circuit.measure(qr1[1], cr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='none')), expected)
+
+    def test_text_justify_left_barrier(self):
+        """ Left justify respects barriers"""
+        expected = '\n'.join(['         ┌───┐ ░      ',
+                              'q1_0: |0>┤ H ├─░──────',
+                              '         └───┘ ░ ┌───┐',
+                              'q1_1: |0>──────░─┤ H ├',
+                              '               ░ └───┘'])
+
+        qr1 = QuantumRegister(2, 'q1')
+        circuit = QuantumCircuit(qr1)
+        circuit.h(qr1[0])
+        circuit.barrier(qr1)
+        circuit.h(qr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='left')), expected)
+
+    def test_text_justify_right_barrier(self):
+        """ Right justify respects barriers """
+        expected = '\n'.join(['         ┌───┐ ░      ',
+                              'q1_0: |0>┤ H ├─░──────',
+                              '         └───┘ ░ ┌───┐',
+                              'q1_1: |0>──────░─┤ H ├',
+                              '               ░ └───┘'])
+
+        qr1 = QuantumRegister(2, 'q1')
+        circuit = QuantumCircuit(qr1)
+        circuit.h(qr1[0])
+        circuit.barrier(qr1)
+        circuit.h(qr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
+
+    def test_text_overlap_cx(self):
+        """ Overlapping CX gates are drawn not overlapping"""
+        expected = '\n'.join(['                    ',
+                              'q1_0: |0>──■────────',
+                              '           │        ',
+                              'q1_1: |0>──┼────■───',
+                              '           │  ┌─┴─┐ ',
+                              'q1_2: |0>──┼──┤ X ├─',
+                              '         ┌─┴─┐└───┘ ',
+                              'q1_3: |0>┤ X ├──────',
+                              '         └───┘      '])
+
+        qr1 = QuantumRegister(4, 'q1')
+        circuit = QuantumCircuit(qr1)
+        circuit.cx(qr1[0], qr1[3])
+        circuit.cx(qr1[1], qr1[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='left')), expected)
+
+    def test_text_overlap_measure(self):
+        """ Measure is drawn not overlapping"""
+        expected = '\n'.join(['         ┌─┐     ',
+                              'q1_0: |0>┤M├─────',
+                              '         └╥┘┌───┐',
+                              'q1_1: |0>─╫─┤ X ├',
+                              '          ║ └───┘',
+                              ' c1_0: 0 ═╩══════',
+                              '                 ',
+                              ' c1_1: 0 ════════',
+                              '                 '])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.measure(qr1[0], cr1[0])
+        circuit.x(qr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='left')), expected)
+
+    def test_text_overlap_swap(self):
+        """ Swap is drawn in 2 separate columns"""
+        expected = '\n'.join(['                ',
+                              'q1_0: |0>─X─────',
+                              '          │     ',
+                              'q1_1: |0>─┼──X──',
+                              '          │  │  ',
+                              'q2_0: |0>─X──┼──',
+                              '             │  ',
+                              'q2_1: |0>────X──',
+                              '                '])
+
+        qr1 = QuantumRegister(2, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.swap(qr1, qr2)
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='left')), expected)
+
+    def test_text_justify_right_measure_resize(self):
+        """ Measure gate can resize if necessary"""
+        expected = '\n'.join(['         ┌───┐',
+                              'q1_0: |0>┤ X ├',
+                              '         └┌─┐┘',
+                              'q1_1: |0>─┤M├─',
+                              '          └╥┘ ',
+                              ' c1_0: 0 ══╬══',
+                              '           ║  ',
+                              ' c1_1: 0 ══╩══',
+                              '              '])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.x(qr1[0])
+        circuit.measure(qr1[1], cr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
+
 
 if __name__ == '__main__':
     unittest.main()

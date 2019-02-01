@@ -66,6 +66,7 @@ class DrawElement():
     @property
     def length(self):
         """ Returns the length of the element, including the box around."""
+
         return max(len(self.top), len(self.mid), len(self.bot))
 
     @length.setter
@@ -170,6 +171,9 @@ class MeasureFrom(BoxOnQuWire):
         self.top_connect = "┌─┐"
         self.mid_content = "┤M├"
         self.bot_connect = "└╥┘"
+
+        self.top_pad = self.bot_pad = " "
+        self._mid_padding = '─'
 
 
 class MultiBox(DrawElement):
@@ -564,6 +568,7 @@ class TextDrawing():
         lines = []
         bot_line = None
         for wire in wires:
+
             # TOP
             top_line = ''
             for instruction in wire:
@@ -685,7 +690,6 @@ class TextDrawing():
         if instruction['name'] == 'measure':
             gate = MeasureFrom()
             layer.set_qubit(instruction['qargs'][0], gate)
-            current_cons.append((instruction['qargs'][0][1], gate))
             layer.set_clbit(instruction['cargs'][0], MeasureTo())
 
         elif instruction['name'] in ['barrier', 'snapshot', 'save', 'load',
@@ -781,18 +785,18 @@ class TextDrawing():
 
     def build_layers(self):
         """
-                Constructs layers.
-                Returns:
-                    list: List of DrawElements.
-                Raises:
-                    VisualizationError: When the drawing is, for some reason, impossible to be drawn.
-                """
+        Constructs layers.
+        Returns:
+            list: List of DrawElements.
+        Raises:
+            VisualizationError: When the drawing is, for some reason, impossible to be drawn.
+        """
 
         layers = [InputWire.fillup_layer(self.wire_names(with_initial_value=True))]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)
-            
+
             for instruction in instruction_layer:
                 layer, current_connections, connection_label = \
                     self._instruction_to_gate(instruction, layer)
