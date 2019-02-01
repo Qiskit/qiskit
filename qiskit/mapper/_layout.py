@@ -12,15 +12,17 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
+from copy import deepcopy
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
 
 
-class Layout(dict):
+class Layout():
     """ Two-ways dict to represent a Layout."""
 
     def __init__(self, input_=None):
-        dict.__init__(self)
+        self._p2v = {}
+        self._v2p = {}
         if isinstance(input_, dict):
             self.from_dict(input_)
         if isinstance(input_, list):
@@ -37,7 +39,8 @@ class Layout(dict):
              (QuantumRegister(3, 'qr'), 2): 2}
         """
         for key, value in input_dict.items():
-            self[key] = value
+            self._v2p[key] = value
+            self._p2v[value] = key
 
     def from_list(self, input_list):
         """
@@ -48,56 +51,67 @@ class Layout(dict):
             [(QuantumRegister(3, 'qr'), 0), None,
              (QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 3)]
         """
-        for key, value in enumerate(input_list):
-            self[key] = value
-
-    def __setitem__(self, key, value):
-        Layout._checktype(key)
-        Layout._checktype(value)
-        if isinstance(key, type(value)):
-            raise LayoutError('Key (%s) and value (%s) cannot have the same type' % (key, value))
-
-        if key in self:
-            del self[key]
-        if value in self:
-            del self[value]
-        if key is not None:
-            dict.__setitem__(self, key, value)
-        if value is not None:
-            dict.__setitem__(self, value, key)
-
-    def __delitem__(self, key):
-        dict.__delitem__(self, self[key])
-        dict.__delitem__(self, key)
+        for physical, virtual in enumerate(input_list):
+            if Layout.is_virtual(virtual):
+                self._set_type_checked_item(virtual, physical)
 
     @staticmethod
-    def _checktype(thing):
-        """Checks if thing is a valid type"""
-        if thing is None:
-            return
-        if isinstance(thing, int):
-            return
-        if isinstance(thing, tuple) and \
-                len(thing) == 2 and \
-                isinstance(thing[0], Register) and isinstance(thing[1], int):
-            return
-        raise LayoutError(
-            'The element %s should be a (Register, integer) tuple or an integer' % (thing,))
+    def is_virtual(value):
+        return value is None or isinstance(value, tuple) and \
+               len(value) == 2 and \
+               isinstance(value[0], Register) and isinstance(value[1], int)
+
+    def __getitem__(self, item):
+        if item in self._p2v:
+            return self._p2v[item]
+        if item in self._v2p:
+            return self._v2p[item]
+        raise KeyError('The item %s does not exist in the Layout' % (item,))
+
+    def __setitem__(self, key, value):
+        if isinstance(key, int) and Layout.is_virtual(value):
+            physical = key
+            virtual = value
+        elif isinstance(value, int) and Layout.is_virtual(key):
+            physical = value
+            virtual = key
+        else:
+            raise LayoutError('The map (%s -> %s) has to be a ((Register, integer) -> integer)'
+                              ' or the other way around.' % (key, value))
+
+        self._set_type_checked_item(virtual, physical)
+
+    def _set_type_checked_item(self, virtual, physical):
+        if physical in self._p2v:
+            del self._p2v[physical]
+        if virtual in self._p2v:
+            del self._v2p[virtual]
+
+        self._p2v[physical] = virtual
+        if virtual is not None:
+            self._v2p[virtual] = physical
+
+    def __delitem__(self, key):
+        if isinstance(key, int):
+            del self._p2v[key]
+            del self._v2p[self._p2v[key]]
+        elif isinstance(key, tuple) and \
+                len(key) == 2 and \
+                isinstance(key[0], Register) and isinstance(key[1], int):
+            del self._v2p[key]
+            del self._p2v[self._v2p[key]]
+        else:
+            raise LayoutError('The key to remove should be of the form'
+                              ' (Register, integer) or integer) and %s was provided' % (type(key),))
 
     def __len__(self):
-        return dict.__len__(self) // 2
+        return len(self._p2v)
 
-    # Override dict's built-in copy method which would return a dict instead of a Layout.
     def copy(self):
         layout_copy = type(self)()
+        layout_copy._p2v = deepcopy(self._p2v)
+        layout_copy._v2p = deepcopy(self._v2p)
 
-        # Since self is known to be a valid Layout, bypass overhead and type checks in
-        # Layout.__init__ and Layout.__setitem__.
-        for key, value in self.items():
-            if key is not None:
-                dict.__setitem__(layout_copy, key, value)
-            if value is not None:
-                dict.__setitem__(layout_copy, value, key)
         return layout_copy
 
     def add(self, virtual_bit, physical_bit=None):
@@ -111,7 +125,7 @@ class Layout(dict):
         """
         if physical_bit is None:
             physical_candidate = len(self)
-            while self.get(physical_candidate) is not None:
+            while physical_candidate in self._p2v:
                 physical_candidate += 1
             physical_bit = physical_candidate
         self[virtual_bit] = physical_bit
@@ -139,7 +153,7 @@ class Layout(dict):
         """
         idle_physical_bit_list = []
         for physical_bit in self.get_physical_bits():
-            if self[physical_bit] is None:
+            if self._p2v[physical_bit] is None:
                 idle_physical_bit_list.append(physical_bit)
         return idle_physical_bit_list
 
@@ -148,14 +162,14 @@ class Layout(dict):
         Returns the dictionary where the keys are virtual (qu)bits and the
         values are physical (qu)bits.
         """
-        return {key: value for key, value in self.items() if isinstance(key, tuple)}
+        return self._v2p
 
     def get_physical_bits(self):
         """
         Returns the dictionary where the keys are physical (qu)bits and the
         values are virtual (qu)bits.
         """
-        return {key: value for key, value in self.items() if isinstance(key, int)}
+        return self._p2v
 
     def swap(self, left, right):
         """ Swaps the map between left and right.
@@ -193,7 +207,7 @@ class Layout(dict):
         edge_map = dict()
 
         for virtual, physical in self.get_virtual_bits().items():
-            if physical not in another_layout:
+            if physical not in another_layout._p2v:
                 raise LayoutError('The wire_map_from_layouts() method does not support when the'
                                   ' other layout (another_layout) is smaller.')
             edge_map[virtual] = another_layout[physical]

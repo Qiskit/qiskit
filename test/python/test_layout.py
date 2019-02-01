@@ -84,6 +84,16 @@ class LayoutTest(QiskitTestCase):
         layout.add((self.qr, 1), 3)
         self.assertEqual(len(layout), 2)
 
+    def test_layout_len_with_idle(self):
+        """Length of the layout is the amount of physical bits"""
+        layout = Layout()
+        self.assertEqual(len(layout), 0)
+        layout.add((self.qr, 2))
+        self.assertEqual(len(layout), 1)
+        layout.add((self.qr, 1), 3)
+        self.assertEqual(len(layout), 2)
+
+
     def test_layout_idle_physical_bits(self):
         """Get physical_bits that are not mapped"""
         layout = Layout()
@@ -212,15 +222,18 @@ class LayoutTest(QiskitTestCase):
 
         layout_dict_copy = layout.copy()
         self.assertTrue(isinstance(layout_dict_copy, Layout))
-        self.assertDictEqual(layout, layout_dict_copy)
+        self.assertDictEqual(layout.get_physical_bits(), layout_dict_copy.get_physical_bits())
+        self.assertDictEqual(layout.get_virtual_bits(), layout_dict_copy.get_virtual_bits())
 
         layout_copy_copy = copy.copy(layout)
         self.assertTrue(isinstance(layout_copy_copy, Layout))
-        self.assertDictEqual(layout, layout_copy_copy)
+        self.assertDictEqual(layout.get_physical_bits(), layout_dict_copy.get_physical_bits())
+        self.assertDictEqual(layout.get_virtual_bits(), layout_dict_copy.get_virtual_bits())
 
         layout_copy_deepcopy = copy.deepcopy(layout)
         self.assertTrue(isinstance(layout_copy_deepcopy, Layout))
-        self.assertDictEqual(layout, layout_copy_deepcopy)
+        self.assertDictEqual(layout.get_physical_bits(), layout_dict_copy.get_physical_bits())
+        self.assertDictEqual(layout.get_virtual_bits(), layout_dict_copy.get_virtual_bits())
 
     def test_layout_error_str_key(self):
         """Layout does not work with strings"""
