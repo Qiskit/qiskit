@@ -781,20 +781,19 @@ class TextDrawing():
 
     def build_layers(self):
         """
-        Constructs layers.
-        Returns:
-            list: List of DrawElements.
-        Raises:
-            VisualizationError: When the drawing is, for some reason, impossible to be drawn.
-        """
+                Constructs layers.
+                Returns:
+                    list: List of DrawElements.
+                Raises:
+                    VisualizationError: When the drawing is, for some reason, impossible to be drawn.
+                """
 
         layers = [InputWire.fillup_layer(self.wire_names(with_initial_value=True))]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)
-
+            
             for instruction in instruction_layer:
-
                 layer, current_connections, connection_label = \
                     self._instruction_to_gate(instruction, layer)
 
