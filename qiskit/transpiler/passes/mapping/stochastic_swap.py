@@ -74,6 +74,7 @@ class StochasticSwap(TransformationPass):
         self.trials = trials
         self.seed = seed
         self.requires.append(BarrierBeforeFinalMeasurements())
+        self.dag = None
 
     def run(self, dag):
         """
@@ -93,7 +94,7 @@ class StochasticSwap(TransformationPass):
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         self.input_layout = self.initial_layout.copy()
-
+        self.dag = dag
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, seed=self.seed)
         # self.property_set["layout"] = self.initial_layout
         return new_dag
@@ -177,11 +178,15 @@ class StochasticSwap(TransformationPass):
         scale = np.zeros((num_qubits, num_qubits))
         utri_idx = np.triu_indices(num_qubits)
 
+        int_qubit_subset = regtuple_to_numeric(qubit_subset, self.dag)
+        int_gates = gates_to_idx(gates, self.dag)
+        int_layout = layout_to_numeric(layout, self.dag, coupling.size())
+        
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
-            trial_layout = layout.copy()
+            trial_layout = int_layout.copy()
             trial_circuit = DAGCircuit()  # SWAP circuit for this trial
-            for register in trial_layout.get_virtual_bits().keys():
+            for register in layout.get_virtual_bits().keys():
                 if register[0] not in trial_circuit.qregs.values():
                     trial_circuit.add_qreg(register[0])
 
@@ -192,7 +197,7 @@ class StochasticSwap(TransformationPass):
             xi = (scale+scale.T)*cdist2  # pylint: disable=invalid-name
 
             slice_circuit = DAGCircuit()  # circuit for this swap slice
-            for register in trial_layout.get_virtual_bits().keys():
+            for register in layout.get_virtual_bits().keys():
                 if register[0] not in slice_circuit.qregs.values():
                     slice_circuit.add_qreg(register[0])
             slice_circuit.add_basis_element("swap", 2)
@@ -201,18 +206,21 @@ class StochasticSwap(TransformationPass):
             depth_step = 1
             depth_max = 2 * num_qubits + 1
             while depth_step < depth_max:
-                qubit_set = set(qubit_subset)
+                qubit_set = set(int_qubit_subset)
                 # While there are still qubits available
                 while qubit_set:
                     # Compute the objective function
-                    min_cost = sum(xi[trial_layout[g[0]]][trial_layout[g[1]]] for g in gates)
+                    min_cost = sum(xi[trial_layout.logical_to_physical[int_gates[0]],
+                                      trial_layout.logical_to_physical[int_gates[1]]])
                     # Try to decrease objective function
                     cost_reduced = False
 
                     # Loop over edges of coupling graph
                     need_copy = True
                     for edge in coupling.get_edges():
-                        qubits = (trial_layout[edge[0]], trial_layout[edge[1]])
+                        qubits = (trial_layout.physical_to_logical[edge[0]],
+                                  trial_layout.physical_to_logical[edge[1]])
+                        
                         # Are the qubits available?
                         if qubits[0] in qubit_set and qubits[1] in qubit_set:
                             # Try this edge to reduce the cost
@@ -222,7 +230,8 @@ class StochasticSwap(TransformationPass):
                             new_layout.swap(edge[0], edge[1])
 
                             # Compute the objective function
-                            new_cost = sum(xi[new_layout[g[0]]][new_layout[g[1]]] for g in gates)
+                            new_cost = sum(xi[new_layout.logical_to_physical[int_gates[0]],
+                                              new_layout.logical_to_physical[int_gates[1]]])
                             # Record progress if we succceed
                             if new_cost < min_cost:
                                 logger.debug("layer_permutation: min_cost "
@@ -254,9 +263,8 @@ class StochasticSwap(TransformationPass):
                 # failed to improve the cost.
 
                 # Compute the coupling graph distance
-                dist = sum(coupling.distance(trial_layout[g[0]],
-                                             trial_layout[g[1]])
-                           for g in gates)
+                dist = sum(coupling._dist_matrix[trial_layout.logical_to_physical[int_gates[0]],
+                                                 trial_layout.logical_to_physical[int_gates[1]]])
                 logger.debug("layer_permutation: new swap distance = %s", dist)
                 # If all gates can be applied now, we are finished.
                 # Otherwise we need to consider a deeper swap circuit
@@ -271,9 +279,9 @@ class StochasticSwap(TransformationPass):
                 logger.debug("layer_permutation: increment depth to %s", depth_step)
 
             # Either we have succeeded at some depth d < dmax or failed
-            dist = sum(coupling.distance(trial_layout[g[0]],
-                                         trial_layout[g[1]])
-                       for g in gates)
+            dist = sum(coupling._dist_matrix[trial_layout.logical_to_physical[int_gates[0]],
+                                            trial_layout.logical_to_physical[int_gates[1]]])
+            
             logger.debug("layer_permutation: final distance for this trial = %s", dist)
             if dist == len(gates):
                 if depth_step < best_depth:
@@ -296,7 +304,8 @@ class StochasticSwap(TransformationPass):
 
         # Otherwise, we return our result for this layer
         logger.debug("layer_permutation: success!")
-        return True, best_circuit, best_depth, best_layout, False
+        best_lay = numeric_to_layout(best_layout, self.dag)
+        return True, best_circuit, best_depth, best_lay, False
 
     def _layer_update(self, i, first_layer, best_layout, best_depth,
                       best_circuit, layer_list):
@@ -530,3 +539,95 @@ class StochasticSwap(TransformationPass):
                 dagcircuit_output.compose_back(layer["graph"], edge_map)
 
         return dagcircuit_output
+
+
+class NLayout(object):
+    def __init__(self, num_logic, num_phys):
+        if num_logic > num_phys:
+            raise Exception('Too many qubits')
+        self._num_logical = num_logic
+        self._num_physical = num_phys
+        self.logical_to_physical = None
+        self.physical_to_logical = None
+        self.is_set = False
+        self.orig_logical = None
+        self.orig_physical = None
+
+    def copy(self):
+        out = NLayout(self._num_logical, self._num_physical)
+        if self.is_set:
+            out.logical_to_physical = np.empty_like(self.logical_to_physical)
+            out.logical_to_physical = self.logical_to_physical[:]
+            out.physical_to_logical = np.empty_like(self.physical_to_logical)
+            out.physical_to_logical = self.physical_to_logical[:]
+            out.is_set = True
+        
+        return out
+
+    def swap(self, a, b):
+        if self.is_set:
+            self.logical_to_physical[a], self.logical_to_physical[b] = \
+                self.logical_to_physical[b], self.logical_to_physical[a]
+
+            self.physical_to_logical[a], self.physical_to_logical[b] = \
+                self.physical_to_logical[b], self.physical_to_logical[a]
+        else:
+            raise Exception('NLayout is not set.')
+
+
+def regtuple_to_numeric(items, dag):
+    sizes = [qr.size for qr in dag.qregs.values()]
+    reg_idx = np.cumsum([0]+sizes)
+    regint = {}
+    for ind, qreg in enumerate(dag.qregs.values()):
+        regint[qreg] = ind
+    out = np.zeros(len(items), dtype=int)
+    for idx, val in enumerate(items):
+        out[idx] = reg_idx[regint[val[0]]]+val[1]
+    return out
+
+
+def gates_to_idx(gates, dag):
+    sizes = [qr.size for qr in dag.qregs.values()]
+    reg_idx = np.cumsum([0]+sizes)
+    regint = {}
+    for ind, qreg in enumerate(dag.qregs.values()):
+        regint[qreg] = ind
+    out = [[], []]
+    for gate in gates:
+        out[0].append(reg_idx[regint[gate[0][0]]]+gate[0][1])
+        out[1].append(reg_idx[regint[gate[1][0]]]+gate[1][1])
+    return out
+
+
+def layout_to_numeric(layout, dag, num_qubits):
+    sizes = [qr.size for qr in dag.qregs.values()]
+    reg_idx = np.cumsum([0]+sizes)
+    num_logical_qubits = sum(sizes)
+    regint = {}
+    for ind, qreg in enumerate(dag.qregs.values()):
+        regint[qreg] = ind
+    logical_to_physical = np.zeros(num_logical_qubits, dtype=int)
+    for key, val in layout.items():
+        if isinstance(key, tuple):
+            logical_to_physical[reg_idx[regint[key[0]]]+key[1]] = val
+
+    physical_to_logical = -1*np.zeros(num_qubits, dtype=int)
+    physical_to_logical[logical_to_physical] = np.arange(
+        num_logical_qubits, dtype=int)
+    L = NLayout(num_logical_qubits, num_qubits)
+    L.logical_to_physical = logical_to_physical
+    L.physical_to_logical = physical_to_logical
+    L.is_set = True
+
+    return L
+
+
+def numeric_to_layout(numeric, dag):
+    out = Layout()
+    main_idx = 0
+    for qreg in dag.qregs.values():
+        for idx in range(qreg.size):
+            out[(qreg, idx)] = int(numeric.logical_to_physical[main_idx])
+            main_idx += 1
+    return out
