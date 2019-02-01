@@ -51,12 +51,6 @@ class Layout(dict):
         for key, value in enumerate(input_list):
             self[key] = value
 
-    def __getitem__(self, item):
-        # N.B. Layout.__len__ is O(layout size). Short circuit early when possible.
-        if isinstance(item, int) and item not in self and item < len(self):
-            return None
-        return dict.__getitem__(self, item)
-
     def __setitem__(self, key, value):
         Layout._checktype(key)
         Layout._checktype(value)

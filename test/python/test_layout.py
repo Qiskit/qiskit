@@ -126,6 +126,14 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 1)
         self.assertEqual(layout[(QuantumRegister(1, 'q1'), 0)], 2)
 
+    def test_physical_keyerror(self):
+        """When asking for an unexistant physical qubit, KeyError"""
+        layout = Layout()
+        layout[(self.qr, 0)] = 1
+
+        with self.assertRaises(KeyError):
+            layout[0]
+
     def test_layout_swap(self):
         """swap() method"""
         layout = Layout()
