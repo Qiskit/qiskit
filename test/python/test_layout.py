@@ -79,24 +79,18 @@ class LayoutTest(QiskitTestCase):
         """Length of the layout is the amount of physical bits"""
         layout = Layout()
         self.assertEqual(len(layout), 0)
-        layout.add((self.qr, 0))
+        layout.add((self.qr, 2))
         self.assertEqual(len(layout), 1)
         layout.add((self.qr, 1), 3)
-        self.assertEqual(len(layout), 4)
-
-    def test_layout_set_len(self):
-        """Length setter"""
-        layout = Layout()
-        layout.add((self.qr, 1), 3)
-        layout.set_length(4)
-        self.assertEqual(len(layout), 4)
+        self.assertEqual(len(layout), 2)
 
     def test_layout_idle_physical_bits(self):
         """Get physical_bits that are not mapped"""
         layout = Layout()
         layout.add((self.qr, 1), 2)
-        layout.set_length(4)
-        self.assertEqual(layout.idle_physical_bits(), [0, 1, 3])
+        layout.add(None, 4)
+        layout.add(None, 6)
+        self.assertEqual(layout.idle_physical_bits(), [4, 6])
 
     def test_layout_get_bits(self):
         """Get the map from the (qu)bits view"""
@@ -172,6 +166,14 @@ class LayoutTest(QiskitTestCase):
 
         edge_map = layout.combine_into_edge_map(another_layout)
         self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
+
+    def test_set_virtual_without_physical(self):
+        """When adding a virtual without care in which physical is going"""
+        layout = Layout()
+        layout.add((self.qr, 1), 2)
+        layout.add((self.qr, 0))
+
+        self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 2})
 
     def test_layout_combine_smaller(self):
         """combine_into_edge_map() method with another_layout is smaller and raises an Error"""

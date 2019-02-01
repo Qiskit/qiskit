@@ -91,7 +91,7 @@ class Layout(dict):
             'The element %s should be a (Register, integer) tuple or an integer' % (thing,))
 
     def __len__(self):
-        return max([key for key in self.keys() if isinstance(key, int)], default=-1) + 1
+        return dict.__len__(self) // 2
 
     # Override dict's built-in copy method which would return a dict instead of a Layout.
     def copy(self):
@@ -116,7 +116,10 @@ class Layout(dict):
             physical_bit (int): A physical bit. For example, 3.
         """
         if physical_bit is None:
-            physical_bit = len(self)
+            physical_candidate = len(self)
+            while self.get(physical_candidate) is not None:
+                physical_candidate += 1
+            physical_bit = physical_candidate
         self[virtual_bit] = physical_bit
 
     def add_register(self, reg):
@@ -136,29 +139,12 @@ class Layout(dict):
         """
         return list(self.get_virtual_bits().keys())
 
-    def set_length(self, amount_of_physical_bits):
-        """
-        Extends the layout length to `amount_of_physical_bits`.
-        Args:
-            amount_of_physical_bits (int): The amount of physical_qubits to
-            set in the layout.
-        Raises:
-            LayoutError: If amount_of_physical_bits is used to reduced the
-            length instead of extending it.
-        """
-        current_length = len(self)
-        if amount_of_physical_bits < current_length:
-            raise LayoutError('Lenght setting cannot be smaller than the current amount of physical'
-                              ' (qu)bits.')
-        for new_physical_bit in range(current_length, amount_of_physical_bits):
-            self[new_physical_bit] = None
-
     def idle_physical_bits(self):
         """
         Returns a list of physical (qu)bits that are not mapped to a virtual (qu)bit.
         """
         idle_physical_bit_list = []
-        for physical_bit in range(self.__len__()):
+        for physical_bit in self.get_physical_bits():
             if self[physical_bit] is None:
                 idle_physical_bit_list.append(physical_bit)
         return idle_physical_bit_list
