@@ -230,12 +230,12 @@ class StochasticSwap(TransformationPass):
                                 cost_reduced = True
                                 min_cost = new_cost
                                 optimal_layout = new_layout
-                                optimal_edge = [self.initial_layout[q] for q in edge]
+                                optimal_edge = (self.initial_layout[edge[0]],
+                                                self.initial_layout[edge[1]])
                                 optimal_qubits = qubits
                                 need_copy = True
                             else:
                                 new_layout.swap(edge[0], edge[1])
-
 
                     # Were there any good swap choices?
                     if cost_reduced:
