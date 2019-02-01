@@ -234,7 +234,7 @@ class StochasticSwap(TransformationPass):
                                 optimal_qubits = qubits
                                 need_copy = True
                             else:
-                                new_layout.swap(edge[1], edge[0])
+                                new_layout.swap(edge[0], edge[1])
 
 
                     # Were there any good swap choices?
