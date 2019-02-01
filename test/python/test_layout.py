@@ -134,6 +134,14 @@ class LayoutTest(QiskitTestCase):
         with self.assertRaises(KeyError):
             layout[0]
 
+    def test_virtual_keyerror(self):
+        """When asking for an unexistant virtual qubit, KeyError"""
+        layout = Layout()
+        layout[(self.qr, 0)] = 1
+
+        with self.assertRaises(KeyError):
+            layout[(self.qr, 1)]
+
     def test_layout_swap(self):
         """swap() method"""
         layout = Layout()
