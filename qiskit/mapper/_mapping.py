@@ -194,6 +194,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     best_d = sys.maxsize  # initialize best depth
     best_circ = None  # initialize best swap circuit
     best_layout = None  # initialize best final layout
+    QR = QuantumRegister(coupling.size(), "q")
     for trial in range(trials):
 
         logger.debug("layer_permutation: trial %s", trial)
@@ -201,16 +202,16 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         rev_trial_layout = rev_layout.copy()
         # SWAP circuit constructed this trial
         trial_circ = DAGCircuit()
-        trial_circ.add_qreg(QuantumRegister(coupling.size(), "q"))
+        trial_circ.add_qreg(QR)
 
         # Compute Sergey's randomized distance
         xi = {}
         for i in coupling.physical_qubits:
-            xi[(QuantumRegister(coupling.size(), 'q'), i)] = {}
+            xi[(QR, i)] = {}
         for i in coupling.physical_qubits:
-            i = (QuantumRegister(coupling.size(), 'q'), i)
+            i = (QR, i)
             for j in coupling.physical_qubits:
-                j = (QuantumRegister(coupling.size(), 'q'), j)
+                j = (QR, j)
                 scale = 1 + np.random.normal(0, 1 / n)
                 xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
                 xi[j][i] = xi[i][j]
@@ -219,7 +220,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         d = 1
         # Circuit for this swap slice
         circ = DAGCircuit()
-        circ.add_qreg(QuantumRegister(coupling.size(), "q"))
+        circ.add_qreg(QR)
         circ.add_basis_element("CX", 2)
         circ.add_basis_element("cx", 2)
         circ.add_basis_element("swap", 2)
@@ -227,8 +228,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         circ.add_gate_data("swap", swap_data)
 
         # Identity wire-map for composing the circuits
-        q = QuantumRegister(coupling.size(), 'q')
-        identity_wire_map = {(q, j): (q, j) for j in range(coupling.size())}
+        identity_wire_map = {(QR, j): (QR, j) for j in range(n)}
 
         while d < 2 * n + 1:
             # Set of available qubits
@@ -242,7 +242,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                 progress_made = False
                 # Loop over edges of coupling graph
                 for e in coupling.get_edges():
-                    e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
+                    e = [(QR, edge) for edge in e]
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
@@ -331,10 +331,10 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     """
     layout = best_layout
     dagcircuit_output = DAGCircuit()
-    dagcircuit_output.add_qreg(QuantumRegister(coupling_graph.size(), "q"))
+    QR = QuantumRegister(coupling_graph.size(), 'q')
+    dagcircuit_output.add_qreg(QR)
     # Identity wire-map for composing the circuits
-    q = QuantumRegister(coupling_graph.size(), 'q')
-    identity_wire_map = {(q, j): (q, j) for j in range(coupling_graph.size())}
+    identity_wire_map = {(QR, j): (QR, j) for j in range(coupling_graph.size())}
 
     # If this is the first layer with multi-qubit gates,
     # output all layers up to this point and ignore any
