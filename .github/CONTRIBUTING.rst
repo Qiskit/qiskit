@@ -260,6 +260,10 @@ The order of precedence in the options is right to left. For example,
 ``QISKIT_TESTS=skip_online,rec`` will set the options as
 ``skip_online == False`` and ``rec == True``.
 
+Alternatively, the ``make test_ci`` target can be used instead of ``make test``
+in order to run in a setup that replicates the configuration we used in our
+CI systems more closely.
+
 Style guide
 ~~~~~~~~~~~
 
