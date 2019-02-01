@@ -12,7 +12,6 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
-from copy import deepcopy
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
 
@@ -109,8 +108,9 @@ class Layout():
 
     def copy(self):
         layout_copy = type(self)()
-        layout_copy._p2v = deepcopy(self._p2v)
-        layout_copy._v2p = deepcopy(self._v2p)
+
+        layout_copy._p2v = self._p2v.copy()
+        layout_copy._v2p = self._v2p.copy()
 
         return layout_copy
 
