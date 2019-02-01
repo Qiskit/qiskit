@@ -56,6 +56,7 @@ class Layout():
 
     @staticmethod
     def is_virtual(value):
+        """Checks if value has the format of a virtual qubit """
         return value is None or isinstance(value, tuple) and \
                len(value) == 2 and \
                isinstance(value[0], Register) and isinstance(value[1], int)
@@ -107,6 +108,7 @@ class Layout():
         return len(self._p2v)
 
     def copy(self):
+        """Returns a copy of a Layout instance."""
         layout_copy = type(self)()
 
         layout_copy._p2v = self._p2v.copy()
