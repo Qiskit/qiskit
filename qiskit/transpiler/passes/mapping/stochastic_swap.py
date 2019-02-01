@@ -176,6 +176,7 @@ class StochasticSwap(TransformationPass):
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
         utri_idx = np.triu_indices(num_qubits)
+
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
             trial_layout = layout.copy()
@@ -209,12 +210,15 @@ class StochasticSwap(TransformationPass):
                     cost_reduced = False
 
                     # Loop over edges of coupling graph
+                    need_copy = True
                     for edge in coupling.get_edges():
-                        qubits = [trial_layout[e] for e in edge]
+                        qubits = (trial_layout[edge[0]], trial_layout[edge[1]])
                         # Are the qubits available?
                         if qubits[0] in qubit_set and qubits[1] in qubit_set:
                             # Try this edge to reduce the cost
-                            new_layout = trial_layout.copy()
+                            if need_copy:
+                                new_layout = trial_layout.copy()
+                                need_copy = False
                             new_layout.swap(edge[0], edge[1])
 
                             # Compute the objective function
@@ -228,6 +232,10 @@ class StochasticSwap(TransformationPass):
                                 optimal_layout = new_layout
                                 optimal_edge = [self.initial_layout[q] for q in edge]
                                 optimal_qubits = qubits
+                                need_copy = True
+                            else:
+                                new_layout.swap(edge[1], edge[0])
+
 
                     # Were there any good swap choices?
                     if cost_reduced:
