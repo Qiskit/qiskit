@@ -49,17 +49,22 @@ class Layout():
             input_list (list): For example,
             [(QuantumRegister(3, 'qr'), 0), None,
              (QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 3)]
+
+        Raises:
+            LayoutError: If the elements are not (Register, integer) or None
         """
         for physical, virtual in enumerate(input_list):
             if Layout.is_virtual(virtual):
                 self._set_type_checked_item(virtual, physical)
+            else:
+                raise LayoutError("The list should contain elements of the form"
+                                  " (Register, integer) or None")
 
     @staticmethod
     def is_virtual(value):
         """Checks if value has the format of a virtual qubit """
-        return value is None or isinstance(value, tuple) and \
-               len(value) == 2 and \
-               isinstance(value[0], Register) and isinstance(value[1], int)
+        return value is None or isinstance(value, tuple) and len(value) == 2 and isinstance(
+            value[0], Register) and isinstance(value[1], int)
 
     def __getitem__(self, item):
         if item in self._p2v:
@@ -82,10 +87,10 @@ class Layout():
         self._set_type_checked_item(virtual, physical)
 
     def _set_type_checked_item(self, virtual, physical):
-        if physical in self._p2v:
-            del self._p2v[physical]
-        if virtual in self._p2v:
-            del self._v2p[virtual]
+        old = self._v2p.pop(virtual, None)
+        self._p2v.pop(old, None)
+        old = self._p2v.pop(physical, None)
+        self._v2p.pop(old, None)
 
         self._p2v[physical] = virtual
         if virtual is not None:

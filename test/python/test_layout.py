@@ -75,6 +75,22 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(self.qr, 0)], 0)
         self.assertEqual(layout[0], (self.qr, 0))
 
+    def test_layout_avoid_dangling_physical(self):
+        """ No dangling pointers for physical qubits."""
+        layout = Layout({(self.qr, 0): 0})
+        self.assertEqual(layout[0], (self.qr, 0))
+        layout[(self.qr, 0)] = 1
+        with self.assertRaises(KeyError):
+            _ = layout[0]
+
+    def test_layout_avoid_dangling_virtual(self):
+        """ No dangling pointers for virtual qubits."""
+        layout = Layout({(self.qr, 0): 0})
+        self.assertEqual(layout[0], (self.qr, 0))
+        layout[0] = (self.qr, 1)
+        with self.assertRaises(KeyError):
+            print(layout[(self.qr, 0)])
+
     def test_layout_len(self):
         """Length of the layout is the amount of physical bits"""
         layout = Layout()
