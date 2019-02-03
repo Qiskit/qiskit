@@ -465,7 +465,8 @@ class StochasticSwap(TransformationPass):
                                               (i, j) + ", \"%s\"" %
                                               serial_layer["graph"].qasm(
                                                   no_decls=True,
-                                                  aliases=layout))
+                                                  aliases=layout.combine_into_edge_map(
+                                                      self.initial_layout)))
 
                     # If this layer is only single-qubit gates,
                     # and we have yet to see multi-qubit gates,

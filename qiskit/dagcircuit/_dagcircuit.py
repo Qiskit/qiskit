@@ -781,12 +781,7 @@ class DAGCircuit:
         # TODO: some of the input flags are not needed anymore
         # Rename qregs if necessary
         if aliases:
-            qregdata = OrderedDict()
-            for q in aliases.values():
-                if q[0] not in qregdata:
-                    qregdata[q[0]] = q[1] + 1
-                elif qregdata[q[0]] < q[1] + 1:
-                    qregdata[q[0]] = q[1] + 1
+            qregdata = OrderedDict([(reg[0].name, reg[0]) for reg in aliases.values()])
         else:
             qregdata = self.qregs
         # Write top matter
