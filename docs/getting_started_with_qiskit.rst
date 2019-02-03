@@ -5,24 +5,15 @@ Getting Started with Qiskit
 ===========================
 
 Here, we provide an overview of working with Qiskit. Qiskit provides the
-basic building blocks necessary to program quantum computers. The
-foundation of Qiskit is the Terra element. The basic concept of Qiskit
-Terra is an array of quantum circuits. A workflow using Terra consists
-of two stages: **Build** and **Execute**. **Build** allows you to make
-different quantum circuits that represent the problem you are solving,
-and **Execute** allows you to run them on different backends. After the
-jobs have been run, the data is collected. There are methods for putting
-this data together, depending on the program. This either gives you the
-answer you wanted, or allows you to make a better program for the next
-instance.
-
-**Contents**
-
-`Circuit basics <#circuit_basics>`__
-
-`Simulating circuits with Qiskit Aer <#aer_simulation>`__
-
-`Running circuits using the IBMQ provider <#ibmq_provider>`__
+basic building blocks necessary to program quantum computers. The basic
+concept of Qiskit is an array of quantum circuits. A workflow using
+Qiskit consists of two stages: **Build** and **Execute**. **Build**
+allows you to make different quantum circuits that represent the problem
+you are solving, and **Execute** allows you to run them on different
+backends. After the jobs have been run, the data is collected. There are
+methods for putting this data together, depending on the program. This
+either gives you the answer you wanted, or allows you to make a better
+program for the next instance.
 
 **Code imports**
 
@@ -49,35 +40,31 @@ and QuantumRegister.
     # Create a Quantum Circuit acting on the q register
     circ = QuantumCircuit(q)
 
-.. raw:: html
+.. note::
 
-   <div class="alert alert-block alert-info">
+   Naming the QuantumRegister is optional and not required.
 
-Note: Naming the QuantumRegister is optional and not required.
-
-.. raw:: html
-
-   </div>
 
 After you create the circuit with its registers, you can add gates
 (“operations”) to manipulate the registers. As you proceed through the
-documentation you will find more gates and circuits; below is an
+documentation you will find more gates and circuits; the below is an
 example of a quantum circuit that makes a three-qubit GHZ state
 
 .. math:: |\psi\rangle = \left(|000\rangle+|111\rangle\right)/\sqrt{2}.
 
 To create such a state, we start with a 3-qubit quantum register. By
 default, each qubit in the register is initialized to :math:`|0\rangle`.
-To make the GHZ state, we apply the following gates: \* A Hadamard gate
-:math:`H` on qubit 0, which puts it into a superposition state. \* A
-controlled-Not operation (:math:`C_{X}`) between qubit 0 and qubit 1. \*
-A controlled-Not operation between qubit 0 and qubit 2.
+To make the GHZ state, we apply the following gates: 
+
+- A Hadamard gate :math:`H` on qubit 0, which puts it into a superposition state. 
+- A controlled-Not operation (:math:`C_{X}`) between qubit 0 and qubit 1. 
+- A controlled-Not operation between qubit 0 and qubit 2.
 
 On an ideal quantum computer, the state produced by running this circuit
 would be the GHZ state above.
 
-In Qiskit Terra, operations can be added to the circuit one-by-one, as
-shown below.
+In Qiskit, operations can be added to the circuit one-by-one, as shown
+below.
 
 .. code:: ipython3
 
@@ -90,27 +77,15 @@ shown below.
     # the qubits in a GHZ state.
     circ.cx(q[0], q[2])
 
-
-
-
-.. parsed-literal::
-
-    <qiskit.extensions.standard.cx.CnotGate at 0xa20709128>
-
-
-
 Visualize Circuit
 -----------------
 
-You can visualize your circuit using Qiskit Terra
-``QuantumCircuit.draw()``, which plots circuit in the form found in many
-textbooks.
+You can visualize your circuit using Qiskit ``QuantumCircuit.draw()``,
+which plots circuit in the form found in many textbooks.
 
 .. code:: ipython3
 
     circ.draw()
-
-
 
 
 .. raw:: html
@@ -146,37 +121,32 @@ dimensions :math:`2^n` where :math:`n` is the number of qubits (so be
 careful using this as it will quickly get too large to run on your
 machine).
 
-.. raw:: html
+.. note::
 
-   <div class="alert alert-block alert-info">
+    When representing the state of a multi-qubit system, the tensor order
+    used in qiskit is different than that use in most physics textbooks.
+    Suppose there are :math:`n` qubits, and qubit :math:`j` is labeled as
+    :math:`Q_{j}`. In most textbooks (such as Nielsen and Chuang’s “Quantum
+    Computation and Information”), the basis vectors for the :math:`n`-qubit
+    state space would be labeled as
+    :math:`Q_{0}\otimes Q_{1} \otimes \cdots \otimes Q_{n}`. **This is not
+    the ordering used by qiskit!** Instead, qiskit uses an ordering in which
+    the :math:`n^{\mathrm{th}}` qubit is on the *left* side of the tesnsor
+    product, so that the basis vectors are labeled as
+    :math:`Q_n\otimes \cdots \otimes Q_1\otimes Q_0`.
 
-When representing the state of a multi-qubit system, the tensor order
-used in qiskit is different than that use in most physics textbooks.
-Suppose there are :math:`n` qubits, and qubit :math:`j` is labeled as
-:math:`Q_{j}`. In most textbooks (such as Nielsen and Chuang’s “Quantum
-Computation and Information”), the basis vectors for the :math:`n`-qubit
-state space would be labeled as
-:math:`Q_{0}\otimes Q_{1} \otimes \cdots \otimes Q_{n}`. **This is not
-the ordering used by qiskit!** Instead, qiskit uses an ordering in which
-the :math:`n^{\mathrm{th}}` qubit is on the *left* side of the tesnsor
-product, so that the basis vectors are labeled as
-:math:`Q_n\otimes \cdots \otimes Q_1\otimes Q_0`.
+    For example, if qubit zero is in state 0, qubit 1 is in state 0, and
+    qubit 2 is in state 1, qiskit would represent this state as
+    :math:`|100\rangle`, whereas most physics textbooks would represent it
+    as :math:`|001\rangle`.
 
-For example, if qubit zero is in state 0, qubit 1 is in state 0, and
-qubit 2 is in state 1, qiskit would represent this state as
-:math:`|100\rangle`, whereas most physics textbooks would represent it
-as :math:`|001\rangle`.
+    This difference in labeling affects the way multi-qubit operations are
+    represented as matrices. For example, qiskit represents a controlled-X
+    (:math:`C_{X}`) operation with qubit 0 being the control and qubit 1
+    being the target as
 
-This difference in labeling affects the way multi-qubit operations are
-represented as matrices. For example, qiskit represents a controlled-X
-(:math:`C_{X}`) operation with qubit 0 being the control and qubit 1
-being the target as
+    .. math:: C_X = \begin{pmatrix} 1 & 0 & 0 & 0 \\  0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\\end{pmatrix}.
 
-.. math:: C_X = \begin{pmatrix} 1 & 0 & 0 & 0 \\  0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\\end{pmatrix}.
-
-.. raw:: html
-
-   </div>
 
 To run the above circuit using the statevector simulator, first you need
 to import Aer and then set the backend to ``statevector_simulator``.
@@ -190,20 +160,9 @@ to import Aer and then set the backend to ``statevector_simulator``.
     backend = BasicAer.get_backend('statevector_simulator')
 
 Now we have chosen the backend it’s time to compile and run the quantum
-circuit. In Qiskit Terra we provide the ``execute`` function for this.
+circuit. In Qiskit we provide the ``execute`` function for this.
 ``execute`` returns a ``job`` object that encapsulates information about
 the job submitted to the backend.
-
-.. raw:: html
-
-   <div class="alert alert-block alert-info">
-
-Tip: You can obtain the above parameters in Jupyter. Simply place the
-text cursor on a function and press Shift+Tab.
-
-.. raw:: html
-
-   </div>
 
 .. code:: ipython3
 
@@ -214,25 +173,19 @@ When you run a program, a job object is made that has the following two
 useful methods: ``job.status()`` and ``job.result()`` which return the
 status of the job and a result object respectively.
 
-.. raw:: html
+.. note::
 
-   <div class="alert alert-block alert-info">
-
-Note: Jobs run asynchronously but when the result method is called it
-switches to synchronous and waits for it to finish before moving on to
-another task.
-
-.. raw:: html
-
-   </div>
+    Note: Jobs run asynchronously but when the result method is called it
+    switches to synchronous and waits for it to finish before moving on to
+    another task.
 
 .. code:: ipython3
 
     result = job.result()
 
-The results object contains the data and Qiskit Terra provides the
-method ``result.get_statevector(circ)`` to return the state vector for
-the quantum circuit.
+The results object contains the data and Qiskit provides the method
+``result.get_statevector(circ)`` to return the state vector for the
+quantum circuit.
 
 .. code:: ipython3
 
@@ -242,12 +195,11 @@ the quantum circuit.
 
 .. parsed-literal::
 
-    [0.707+0.j 0.   +0.j 0.   +0.j 0.   +0.j 0.   +0.j 0.   +0.j 0.   +0.j
-     0.707+0.j]
+    [0.707+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.707+0.j]
 
 
-Qiskit Terra also provides a visualization toolbox to allow you to view
-these results.
+Qiskit also provides a visualization toolbox to allow you to view these
+results.
 
 Below, we use the visualization function to plot the real and imaginary
 components of the state vector.
@@ -257,10 +209,7 @@ components of the state vector.
     from qiskit.tools.visualization import plot_state_city
     plot_state_city(outputstate)
 
-
-
-
-.. image:: getting_started_with_qiskit_terra_files/getting_started_with_qiskit_terra_21_0.png
+.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_21_0.png
 
 
 
@@ -285,22 +234,14 @@ the quantum circuit.
 
 .. parsed-literal::
 
-    [[ 0.707+0.j  0.707+0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j
-       0.   +0.j  0.   +0.j]
-     [ 0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j
-       0.707+0.j -0.707+0.j]
-     [ 0.   +0.j  0.   +0.j  0.707+0.j  0.707+0.j  0.   +0.j  0.   +0.j
-       0.   +0.j  0.   +0.j]
-     [ 0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.707+0.j -0.707+0.j
-       0.   +0.j  0.   +0.j]
-     [ 0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.707+0.j  0.707+0.j
-       0.   +0.j  0.   +0.j]
-     [ 0.   +0.j  0.   +0.j  0.707+0.j -0.707+0.j  0.   +0.j  0.   +0.j
-       0.   +0.j  0.   +0.j]
-     [ 0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j
-       0.707+0.j  0.707+0.j]
-     [ 0.707+0.j -0.707+0.j  0.   +0.j  0.   +0.j  0.   +0.j  0.   +0.j
-       0.   +0.j  0.   +0.j]]
+    [[ 0.707+0.j  0.707+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j 0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j 0.707+0.j -0.707+0.j]
+     [ 0.+0.j  0.+0.j  0.707+0.j  0.707+0.j  0.+0.j  0.+0.j 0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.707+0.j -0.707+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.707+0.j  0.707+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.707+0.j -0.707+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.707+0.j  0.707+0.j]
+     [ 0.707+0.j -0.707+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j 0.+0.j  0.+0.j]]
 
 
 OpenQASM backend
@@ -366,23 +307,20 @@ backend.
     #drawing the circuit
     qc.draw()
 
-
-
-
 .. raw:: html
 
-    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐           ░       ┌─┐
-    q_0: |0>┤ H ├──■────■───░───────┤M├
-            └───┘┌─┴─┐  │   ░    ┌─┐└╥┘
-    q_1: |0>─────┤ X ├──┼───░────┤M├─╫─
-                 └───┘┌─┴─┐ ░ ┌─┐└╥┘ ║ 
-    q_2: |0>──────────┤ X ├─░─┤M├─╫──╫─
-                      └───┘ ░ └╥┘ ║  ║ 
-     c_0: 0 ═══════════════════╬══╬══╩═
-                               ║  ║    
-     c_1: 0 ═══════════════════╬══╩════
-                               ║       
-     c_2: 0 ═══════════════════╩═══════
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐           ░ ┌─┐      
+    q_0: |0>┤ H ├──■────■───░─┤M├──────
+            └───┘┌─┴─┐  │   ░ └╥┘┌─┐   
+    q_1: |0>─────┤ X ├──┼───░──╫─┤M├───
+                 └───┘┌─┴─┐ ░  ║ └╥┘┌─┐
+    q_2: |0>──────────┤ X ├─░──╫──╫─┤M├
+                      └───┘ ░  ║  ║ └╥┘
+     c_0: 0 ═══════════════════╩══╬══╬═
+                                  ║  ║ 
+     c_1: 0 ══════════════════════╩══╬═
+                                     ║ 
+     c_2: 0 ═════════════════════════╩═
                                        </pre>
 
 
@@ -422,12 +360,12 @@ outcomes of the circuit you submitted.
 
 .. parsed-literal::
 
-    {'000': 497, '111': 527}
+    {'000': 526, '111': 498}
 
 
 Approximately 50 percent of the time the output bitstring is 000. Qiskit
-Terra also provides a function ``plot_histogram`` which allows you to
-view the outcomes.
+also provides a function ``plot_histogram`` which allows you to view the
+outcomes.
 
 .. code:: ipython3
 
@@ -437,7 +375,7 @@ view the outcomes.
 
 
 
-.. image:: getting_started_with_qiskit_terra_files/getting_started_with_qiskit_terra_33_0.png
+.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_33_0.png
 
 
 
@@ -492,16 +430,10 @@ available to you.
 
     Available backends:
 
-
-
-
-.. parsed-literal::
-
     [<IBMQBackend('ibmqx4') from IBMQ()>,
      <IBMQBackend('ibmq_16_melbourne') from IBMQ()>,
      <IBMQBackend('ibmq_qasm_simulator') from IBMQ()>,
-     <IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, research, yorktown)>,
-     <IBMQBackend('ibmq_qasm_simulator') from IBMQ(ibm-q-internal, research, yorktown)>]
+     <IBMQBackend('ibmq_20_tokyo') from IBMQ(ibm-q-internal, research, yorktown)>]
 
 
 
@@ -510,8 +442,7 @@ Running circuits on real devices
 
 Today’s quantum information processors are small and noisy, but are
 advancing at a fast pace. They provide a great opportunity to explore
-what `noisy, intermediate-scale quantum
-(NISQ) <https://arxiv.org/abs/1801.00862>`__ computers can do.
+what noisy quantum computers can do.
 
 The IBMQ provider uses a queue to allocate the devices to users. We now
 choose a device with the least busy queue which can support our program
@@ -521,8 +452,7 @@ choose a device with the least busy queue which can support our program
 
     from qiskit.providers.ibmq import least_busy
     
-    large_enough_devices = IBMQ.backends(filters=lambda x: x.configuration().n_qubits > 4 and
-                                                           not x.configuration().simulator)
+    large_enough_devices = IBMQ.backends(filters=lambda x: x.configuration().n_qubits > 3 and not x.configuration().simulator)
     backend = least_busy(large_enough_devices)
     print("The best backend is " + backend.name())
 
@@ -550,22 +480,15 @@ circuit. Then, we execute the circuit on the backend using the
 
 .. parsed-literal::
 
-    HTML(value="<p style='font-size:16px;'>Job Status: job is being initialized </p>")
+    Job Status: job is being initialized
 
 
 ``job_exp`` has a ``.result()`` method that lets us get the results from
 running our circuit.
 
-.. raw:: html
-
-   <div class="alert alert-block alert-info">
-
-Note: When the .result() method is called, the code block will wait
-until the job has finished before releasing the cell.
-
-.. raw:: html
-
-   </div>
+.. note::
+    When the .result() method is called, the code block will wait
+    until the job has finished before releasing the cell.
 
 .. code:: ipython3
 
@@ -582,7 +505,7 @@ Like before, the counts from the execution can be obtained using
 
 
 
-.. image:: getting_started_with_qiskit_terra_files/getting_started_with_qiskit_terra_49_0.png
+.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_49_0.png
 
 
 
@@ -617,7 +540,7 @@ backends.
 
 
 
-.. image:: getting_started_with_qiskit_terra_files/getting_started_with_qiskit_terra_54_0.png
+.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_54_0.png
 
 
 
@@ -638,7 +561,7 @@ ID:
 
 .. parsed-literal::
 
-    JOB ID: 5c1a2b4f39c21300575b61b0
+    JOB ID: 5c56667159faae0051bceb52
 
 
 Given a job ID, that job object can be later reconstructed from the
@@ -659,13 +582,14 @@ and then the results can be obtained from the new job object.
 
 .. parsed-literal::
 
-    {'000': 393,
-     '110': 32,
-     '111': 340,
-     '010': 43,
-     '101': 124,
-     '001': 14,
-     '011': 48,
-     '100': 30}
+    {'100': 33,
+     '110': 47,
+     '010': 21,
+     '111': 346,
+     '001': 21,
+     '101': 112,
+     '011': 32,
+     '000': 412}
+
 
 

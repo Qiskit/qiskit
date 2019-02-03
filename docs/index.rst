@@ -5,12 +5,17 @@ Welcome to Qiskit's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   overview
-   install
+   Overview <overview>
+   Installing Qiskit <install>
+   Getting Started with Qiskit <getting_started_with_qiskit>
+   Running on IBMQ Devices <the_ibmq_provider>
+   Visualization in Qiskit <plotting_data_in_qiskit>
    Qiskit Terra <terra/index>
    Qiskit Aqua <aqua/aqua>
-   roadmap
+   Qiskit 2019 Roadmap <roadmap>
    Qiskit Module reference <autodoc/qiskit>
+   License <license>
+
 
 Indices and tables
 ==================
