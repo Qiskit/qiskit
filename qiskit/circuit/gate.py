@@ -8,7 +8,6 @@
 """
 Unitary gate.
 """
-from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
@@ -20,28 +19,24 @@ class Gate(Instruction):
 
         name = instruction name string
         params = list of real parameters (will be converted to symbolic)
-        qargs = list of pairs (QuantumRegister, index)
-        circuit = QuantumCircuit or CompositeGate containing this gate
+        circuit = QuantumCircuit containing this gate
         """
-        self._is_multi_qubit = False
-        self._qubit_coupling = [qarg[1] for qarg in qargs]
-        self._is_multi_qubit = (len(qargs) > 1)
         self._decompositions = None
         self._matrix_rep = None
 
-        super().__init__(name, params, qargs, [], circuit)
+        super().__init__(name, params, circuit)
 
     def inverse(self):
         """Invert this gate."""
-        raise QiskitError("inverse not implemented")
+        raise NotImplementedError("inverse not implemented")
 
     def q_if(self, *qregs):
         """Add controls to this gate."""
         # pylint: disable=unused-argument
-        raise QiskitError("control not implemented")
+        raise NotImplementedError("control not implemented")
 
     def decompositions(self):
-        """ Returns a list of possible decompositions. """
+        """Returns a list of possible decompositions. """
         if self._decompositions is None:
             self._define_decompositions()
         return self._decompositions

@@ -191,13 +191,14 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
-    def _attach(self, instruction):
+    def _attach(self, instruction, qargs, cargs=None):
         """Attach an instruction."""
         # do some compatibility checks
         self._check_dups(instruction.qargs)
         self._check_qargs(instruction.qargs)
         self._check_cargs(instruction.cargs)
-        self.data.append(instruction)
+        instruction_context = (instruction, qargs, cargs)
+        self.data.append(instruction_context)
         return instruction
 
     def add_register(self, *regs):

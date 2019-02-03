@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class ZGate(Gate):
     """Pauli Z (phase-flip) gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new Z gate."""
-        super().__init__("z", [], [qubit], circ)
+        super().__init__("z", [], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -50,7 +50,7 @@ class ZGate(Gate):
 @_op_expand(1)
 def z(self, q):
     """Apply Z to q."""
-    return self._attach(ZGate(q, self))
+    return self._attach(ZGate(self), q)
 
 
 QuantumCircuit.z = z

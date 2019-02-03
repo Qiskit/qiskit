@@ -15,15 +15,14 @@ from .gate import Gate
 class CompositeGate(Gate):  # pylint: disable=abstract-method
     """Composite gate, a sequence of unitary gates."""
 
-    def __init__(self, name, params, qargs, circuit=None, inverse_name=None):
+    def __init__(self, name, params, circuit=None, inverse_name=None):
         """Create a new composite gate.
 
         name = instruction name string
         params = list of real parameters
-        qarg = list of pairs (QuantumRegister, index)
         circ = QuantumCircuit or CompositeGate containing this gate
         """
-        super().__init__(name, params, qargs, circuit)
+        super().__init__(name, params, circuit)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
         self.inverse_name = inverse_name or (name + 'dg')
@@ -62,10 +61,6 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
         """Raise exception if q is not an argument or not qreg in circuit."""
         self.check_circuit()
         self.circuit._check_qubit(qubit)
-        if (qubit[0].name, qubit[1]) not in map(
-                lambda x: (x[0].name, x[1]), self.qargs):
-            raise QiskitError("qubit '%s[%d]' not argument of gate"
-                              % (qubit[0].name, qubit[1]))
 
     def _check_dups(self, qubits):
         """Raise exception.

@@ -8,22 +8,20 @@
 """
 A generic quantum instruction.
 
-Instructions can be implementable on hardware (U, CX, etc.) or in simulation
+Instructions can be implementable on hardware (u, cx, etc.) or in simulation
 (snapshot, noise, etc.).
 
 Instructions can be unitary (a.k.a Gate) or non-unitary.
 
-Instructions are identified by the following fields, and are serialized as such in Qobj.
+Instructions are identified by the following fields.
 
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
 
     params: List of parameters to specialize a specific intruction instance.
 
-    qargs: List of qubits (QuantumRegister, index) that the instruction acts on.
-
-    cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
-
+Instructions do not have any context about where they are in a circuit (which qubits/clbits).
+The circuit itself keeps this context.
 """
 import sympy
 import numpy
@@ -35,13 +33,11 @@ from qiskit.exceptions import QiskitError
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, params, qargs, cargs, circuit=None):
+    def __init__(self, name, params, circuit=None):
         """Create a new instruction.
         Args:
             name (str): instruction name
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
-            qargs (list[(QuantumRegister, index)]): list of quantum args
-            cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit (QuantumCircuit or Instruction): where the instruction is attached
         Raises:
             QiskitError: when the register is not in the correct format.
@@ -73,8 +69,6 @@ class Instruction:
             else:
                 raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), name))
-        self.qargs = qargs
-        self.cargs = cargs
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
 
@@ -137,7 +131,4 @@ class Instruction:
             name_param = "%s(%s)" % (name_param,
                                      ",".join([str(i) for i in self.params]))
 
-        name_param_arg = "%s %s;" % (name_param,
-                                     ",".join(["%s[%d]" % (j[0].name, j[1])
-                                               for j in self.qargs + self.cargs]))
-        return self._qasmif(name_param_arg)
+        return self._qasmif(name_param)
