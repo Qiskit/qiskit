@@ -42,15 +42,11 @@ class ZGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.z(self.qargs[0]))
-
 
 @_op_expand(1)
 def z(self, q):
     """Apply Z to q."""
-    return self._attach(ZGate(self), q)
+    return self._attach(ZGate(self), [q], [])
 
 
 QuantumCircuit.z = z

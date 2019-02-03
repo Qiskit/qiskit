@@ -21,9 +21,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class RZZGate(Gate):
     """Two-qubit ZZ-rotation gate."""
 
-    def __init__(self, theta, ctl, tgt, circ=None):
+    def __init__(self, theta, circ=None):
         """Create new rzz gate."""
-        super().__init__("rzz", [theta], [ctl, tgt], circ)
+        super().__init__("rzz", [theta], circ)
 
     def _define_decompositions(self):
         """
@@ -47,15 +47,11 @@ class RZZGate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rzz(self.params[0], self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2, broadcastable=[False, False])
 def rzz(self, theta, qubit1, qubit2):
     """Apply RZZ to circuit."""
-    return self._attach(RZZGate(theta, qubit1, qubit2, self))
+    return self._attach(RZZGate(theta, self), [qubit1, qubit2], [])
 
 
 # Add to QuantumCircuit and CompositeGate classes

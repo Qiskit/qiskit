@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class RZGate(Gate):
     """rotation around the z-axis."""
 
-    def __init__(self, phi, qubit, circ=None):
+    def __init__(self, phi, circ=None):
         """Create new rz single qubit gate."""
-        super().__init__("rz", [phi], [qubit], circ)
+        super().__init__("rz", [phi], circ)
 
     def _define_decompositions(self):
         """
@@ -49,15 +49,11 @@ class RZGate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rz(self.params[0], self.qargs[0]))
-
 
 @_op_expand(1)
 def rz(self, phi, q):
     """Apply Rz to q."""
-    return self._attach(RZGate(phi, q, self))
+    return self._attach(RZGate(phi, self), [q], [])
 
 
 QuantumCircuit.rz = rz

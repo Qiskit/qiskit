@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class RXGate(Gate):
     """rotation around the x-axis."""
 
-    def __init__(self, theta, qubit, circ=None):
+    def __init__(self, theta, circ=None):
         """Create new rx single qubit gate."""
-        super().__init__("rx", [theta], [qubit], circ)
+        super().__init__("rx", [theta], circ)
 
     def _define_decompositions(self):
         """
@@ -50,15 +50,11 @@ class RXGate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rx(self.params[0], self.qargs[0]))
-
 
 @_op_expand(1)
 def rx(self, theta, q):
     """Apply Rx to q."""
-    return self._attach(RXGate(theta, q, self))
+    return self._attach(RXGate(theta, self), [q], [])
 
 
 QuantumCircuit.rx = rx

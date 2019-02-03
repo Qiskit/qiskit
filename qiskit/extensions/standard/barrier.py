@@ -17,24 +17,20 @@ from qiskit.circuit import Instruction
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, qubits, circ=None):
+    def __init__(self, circ=None):
         """Create new barrier instruction."""
-        super().__init__("barrier", [], list(qubits), [], circ)
+        super().__init__("barrier", [], circ)
 
     def inverse(self):
         """Special case. Return self."""
         return self
-
-    def reapply(self, circ):
-        """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.barrier(*self.qargs))
 
 
 def barrier(self, *qargs):
     """Apply barrier to circuit.
     If qargs is None, applies to all the qbits.
     Args is a list of QuantumRegister or single qubits.
-    For QuantumRegister, applies barrier to all the qbits in that register."""
+    For QuantumRegister, applies barrier to all the qubits in that register."""
     qubits = []
 
     if not qargs:  # None
@@ -51,7 +47,7 @@ def barrier(self, *qargs):
         else:
             qubits.append(qarg)
 
-    return self._attach(Barrier(qubits, self))
+    return self._attach(Barrier(self), qubits, [])
 
 
 QuantumCircuit.barrier = barrier

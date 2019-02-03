@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class TGate(Gate):
     """T Gate: pi/4 rotation around Z axis."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new T gate."""
-        super().__init__("t", [], [qubit], circ)
+        super().__init__("t", [], circ)
 
     def _define_decompositions(self):
         """
@@ -41,13 +41,9 @@ class TGate(Gate):
             decomposition.apply_operation_back(inst)
         self._decompositions = [decomposition]
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.t(self.qargs[0]))
-
     def inverse(self):
         """Invert this gate."""
-        inv = TdgGate(self.qargs[0])
+        inv = TdgGate()
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
@@ -55,9 +51,9 @@ class TGate(Gate):
 class TdgGate(Gate):
     """T Gate: -pi/4 rotation around Z axis."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new Tdg gate."""
-        super().__init__("tdg", [], [qubit], circ)
+        super().__init__("tdg", [], circ)
 
     def _define_decompositions(self):
         """
@@ -73,13 +69,9 @@ class TdgGate(Gate):
             decomposition.apply_operation_back(inst)
         self._decompositions = [decomposition]
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.tdg(self.qargs[0]))
-
     def inverse(self):
         """Invert this gate."""
-        inv = TGate(self.qargs[0])
+        inv = TGate()
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
@@ -87,13 +79,13 @@ class TdgGate(Gate):
 @_op_expand(1)
 def t(self, q):
     """Apply T to q."""
-    return self._attach(TGate(q, self))
+    return self._attach(TGate(self), [q], [])
 
 
 @_op_expand(1)
 def tdg(self, q):
     """Apply Tdg to q."""
-    return self._attach(TdgGate(q, self))
+    return self._attach(TdgGate(self), [q], [])
 
 
 QuantumCircuit.t = t

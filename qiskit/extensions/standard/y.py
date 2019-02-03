@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class YGate(Gate):
     """Pauli Y (bit-phase-flip) gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new Y gate."""
-        super().__init__("y", [], [qubit], circ)
+        super().__init__("y", [], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -42,15 +42,11 @@ class YGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circuit):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circuit.y(self.qargs[0]))
-
 
 @_op_expand(1)
 def y(self, q):
     """Apply Y to q."""
-    return self._attach(YGate(q, self))
+    return self._attach(YGate(self), [q], [])
 
 
 QuantumCircuit.y = y

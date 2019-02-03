@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class XGate(Gate):
     """Pauli X (bit-flip) gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new X gate."""
-        super().__init__("x", [], [qubit], circ)
+        super().__init__("x", [], circ)
 
     def _define_decompositions(self):
         """
@@ -47,15 +47,11 @@ class XGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.x(self.qargs[0]))
-
 
 @_op_expand(1)
 def x(self, q):
     """Apply X to q."""
-    return self._attach(XGate(q, self))
+    return self._attach(XGate(self), [q], [])
 
 
 QuantumCircuit.x = x

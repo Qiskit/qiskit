@@ -21,9 +21,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class Cu1Gate(Gate):
     """controlled-u1 gate."""
 
-    def __init__(self, theta, ctl, tgt, circ=None):
+    def __init__(self, theta, circ=None):
         """Create new cu1 gate."""
-        super().__init__("cu1", [theta], [ctl, tgt], circ)
+        super().__init__("cu1", [theta], circ)
 
     def _define_decompositions(self):
         """
@@ -53,15 +53,11 @@ class Cu1Gate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu1(self.params[0], self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2)
 def cu1(self, theta, ctl, tgt):
     """Apply cu1 from ctl to tgt with angle theta."""
-    return self._attach(Cu1Gate(theta, ctl, tgt, self))
+    return self._attach(Cu1Gate(theta, self), [ctl, tgt], [])
 
 
 QuantumCircuit.cu1 = cu1

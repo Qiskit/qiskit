@@ -23,9 +23,9 @@ from qiskit.extensions.standard.t import TdgGate
 class ToffoliGate(Gate):
     """Toffoli gate."""
 
-    def __init__(self, ctl1, ctl2, tgt, circ=None):
+    def __init__(self, circ=None):
         """Create new Toffoli gate."""
-        super().__init__("ccx", [], [ctl1, ctl2, tgt], circ)
+        super().__init__("ccx", [], circ)
 
     def _define_decompositions(self):
         """
@@ -64,15 +64,11 @@ class ToffoliGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ccx(self.qargs[0], self.qargs[1], self.qargs[2]))
-
 
 @_op_expand(3, broadcastable=[True, True, False])
 def ccx(self, ctl1, ctl2, tgt):
     """Apply Toffoli to from ctl1 and ctl2 to tgt."""
-    return self._attach(ToffoliGate(ctl1, ctl2, tgt, self))
+    return self._attach(ToffoliGate(self), [ctl1, ctl2, tgt], [])
 
 
 QuantumCircuit.ccx = ccx

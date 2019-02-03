@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class SGate(Gate):
     """S=diag(1,i) Clifford phase gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new S gate."""
-        super().__init__("s", [], [qubit], circ)
+        super().__init__("s", [], circ)
 
     def _define_decompositions(self):
         """
@@ -41,13 +41,9 @@ class SGate(Gate):
             decomposition.apply_operation_back(inst)
         self._decompositions = [decomposition]
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.s(self.qargs[0]))
-
     def inverse(self):
         """Invert this gate."""
-        inv = SdgGate(self.qargs[0])
+        inv = SdgGate()
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
@@ -55,9 +51,9 @@ class SGate(Gate):
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoin phase gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new Sdg gate."""
-        super().__init__("sdg", [], [qubit], circ)
+        super().__init__("sdg", [], circ)
 
     def _define_decompositions(self):
         """
@@ -73,13 +69,9 @@ class SdgGate(Gate):
             decomposition.apply_operation_back(inst)
         self._decompositions = [decomposition]
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.sdg(self.qargs[0]))
-
     def inverse(self):
         """Invert this gate."""
-        inv = SGate(self.qargs[0])
+        inv = SGate()
         self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
@@ -87,13 +79,13 @@ class SdgGate(Gate):
 @_op_expand(1)
 def s(self, q):
     """Apply S to q."""
-    return self._attach(SGate(q, self))
+    return self._attach(SGate(self), [q], [])
 
 
 @_op_expand(1)
 def sdg(self, q):
     """Apply Sdg to q."""
-    return self._attach(SdgGate(q, self))
+    return self._attach(SdgGate(self), [q], [])
 
 
 QuantumCircuit.s = s

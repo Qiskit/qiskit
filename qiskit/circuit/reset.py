@@ -17,23 +17,19 @@ from .quantumregister import QuantumRegister
 class Reset(Instruction):
     """Qubit reset."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new reset instruction."""
-        super().__init__("reset", [], [qubit], [], circ)
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.reset(self.qargs[0]))
+        super().__init__("reset", [], circ)
 
 
-def reset(self, quantum_register):
+def reset(self, qubit):
     """Reset q."""
-    if isinstance(quantum_register, QuantumRegister):
+    if isinstance(qubit, QuantumRegister):
         instructions = InstructionSet()
-        for sizes in range(quantum_register.size):
-            instructions.add(self.reset((quantum_register, sizes)))
+        for sizes in range(qubit.size):
+            instructions.add(self.reset((qubit, sizes)))
         return instructions
-    return self._attach(Reset(quantum_register, self))
+    return self._attach(Reset(self), [qubit], [])
 
 
 QuantumCircuit.reset = reset

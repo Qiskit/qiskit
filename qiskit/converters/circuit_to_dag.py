@@ -38,26 +38,32 @@ def circuit_to_dag(circuit):
         else:
             instruction_list.append(main_instruction)
 
-        for instruction in instruction_list:
+        for instruction_context in instruction_list:
+            # Add OpenQASM built-in gates on demand
+            instruction = instruction_context[0]
+            qargs = instruction_context[1]
+            cargs = instruction_context[2]
+            if instruction.name in builtins:
+                dagcircuit.add_basis_element(*builtins[instruction.name])
+            # Add simulator extension instructions
+            if instruction.name in simulator_instructions:
+                dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
             # Get arguments for classical control (if any)
             if instruction.control is None:
                 control = None
             else:
                 control = (instruction.control[0], instruction.control[1])
 
-            def duplicate_instruction(inst):
+            def duplicate_instruction(inst_ctx):
                 """Create a fresh instruction from an input instruction."""
-                if inst.name == 'barrier':
-                    params = [inst.qargs]
-                elif inst.name == 'snapshot':
-                    params = inst.params + [inst.qargs]
-                else:
-                    params = inst.params + inst.qargs + inst.cargs
-                new_inst = inst.__class__(*params)
+                inst = inst_ctx[0]
+                qargs = inst_ctx[1]
+                cargs = inst_ctx[2]
+                args = inst.params + [inst.circuit]
+                new_inst = inst.__class__(*args)
                 return new_inst
 
-            inst = duplicate_instruction(instruction)
-            dagcircuit.apply_operation_back(inst, inst.qargs,
-                                            inst.cargs, control)
+            inst = duplicate_instruction(instruction_context)
+            dagcircuit.apply_operation_back(inst, qargs, cargs, control)
 
     return dagcircuit

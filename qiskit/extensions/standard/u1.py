@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U1Gate(Gate):
     """Diagonal single-qubit gate."""
 
-    def __init__(self, theta, qubit, circ=None):
+    def __init__(self, theta, circ=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", [theta], [qubit], circ)
+        super().__init__("u1", [theta], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -43,15 +43,11 @@ class U1Gate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u1(self.params[0], self.qargs[0]))
-
 
 @_op_expand(1)
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
-    return self._attach(U1Gate(theta, q, self))
+    return self._attach(U1Gate(theta, self), [q], [])
 
 
 QuantumCircuit.u1 = u1

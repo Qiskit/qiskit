@@ -22,9 +22,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class SwapGate(Gate):
     """SWAP gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self, circ=None):
         """Create new SWAP gate."""
-        super().__init__("swap", [], [ctl, tgt], circ)
+        super().__init__("swap", [], circ)
 
     def _define_decompositions(self):
         """
@@ -46,15 +46,11 @@ class SwapGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2, broadcastable=[False, False])
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""
-    return self._attach(SwapGate(qubit1, qubit2, self))
+    return self._attach(SwapGate(self), [qubit1, qubit2], [])
 
 
 QuantumCircuit.swap = swap

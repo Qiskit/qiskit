@@ -22,9 +22,9 @@ from qiskit.extensions.standard.ubase import UBase
 class U0Gate(Gate):
     """Wait gate."""
 
-    def __init__(self, m, qubit, circ=None):
+    def __init__(self, m, circ=None):
         """Create new u0 gate."""
-        super().__init__("u0", [m], [qubit], circ)
+        super().__init__("u0", [m], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -41,15 +41,11 @@ class U0Gate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u0(self.params[0], self.qargs[0]))
-
 
 @_op_expand(1)
 def u0(self, m, q):
     """Apply u0 with length m to q."""
-    return self._attach(U0Gate(m, q, self))
+    return self._attach(U0Gate(m, self), [q], [])
 
 
 QuantumCircuit.u0 = u0

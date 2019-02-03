@@ -21,9 +21,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CrzGate(Gate):
     """controlled-rz gate."""
 
-    def __init__(self, theta, ctl, tgt, circ=None):
+    def __init__(self, theta, circ=None):
         """Create new crz gate."""
-        super().__init__("crz", [theta], [ctl, tgt], circ)
+        super().__init__("crz", [theta], circ)
 
     def _define_decompositions(self):
         """
@@ -51,15 +51,11 @@ class CrzGate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.crz(self.params[0], self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2)
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    return self._attach(CrzGate(theta, ctl, tgt, self))
+    return self._attach(CrzGate(theta, self), [ctl, tgt], [])
 
 
 QuantumCircuit.crz = crz

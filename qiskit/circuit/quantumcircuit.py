@@ -57,7 +57,8 @@ class QuantumCircuit:
 
         self.name = name
 
-        # Data contains a list of instructions in the order they were applied.
+        # Data contains a list of instructions and their contexts,
+        # in the order they were applied.
         self.data = []
 
         # This is a map of registers bound to this circuit, by name.
@@ -138,8 +139,8 @@ class QuantumCircuit:
             if element not in self.cregs:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
-        for gate in itertools.chain(self.data, rhs.data):
-            gate.reapply(circuit)
+        for gate_context in itertools.chain(self.data, rhs.data):
+            circuit._attach(gate_context)
         return circuit
 
     def extend(self, rhs):
@@ -171,8 +172,8 @@ class QuantumCircuit:
                 self.cregs.append(element)
 
         # Add new gates
-        for gate in rhs.data:
-            gate.reapply(self)
+        for gate_context in rhs.data:
+            self._attach(gate_context)
         return self
 
     def __add__(self, rhs):
@@ -191,7 +192,7 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
-    def _attach(self, instruction, qargs, cargs=None):
+    def _attach(self, instruction, qargs, cargs):
         """Attach an instruction."""
         # do some compatibility checks
         self._check_dups(instruction.qargs)
@@ -260,8 +261,13 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
-        for instruction in self.data:
-            string_temp += instruction.qasm() + "\n"
+        for instruction_context in self.data:
+            instruction = instruction_context[0]
+            qargs = instruction_context[1]
+            cargs = instruction_context[2]
+            string_temp += "%s %s;\n" % (instruction.qasm(),
+                                         ",".join(["%s[%d]" % (j[0].name, j[1])
+                                                   for j in qargs + cargs]))
         return string_temp
 
     def draw(self, scale=0.7, filename=None, style=None, output='text',

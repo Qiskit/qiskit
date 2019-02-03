@@ -24,9 +24,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CyGate(Gate):
     """controlled-Y gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self, circ=None):
         """Create new CY gate."""
-        super().__init__("cy", [], [ctl, tgt], circ)
+        super().__init__("cy", [], circ)
 
     def _define_decompositions(self):
         """
@@ -48,15 +48,11 @@ class CyGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cy(self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2)
 def cy(self, ctl, tgt):
     """Apply CY to circuit."""
-    return self._attach(CyGate(ctl, tgt, self))
+    return self._attach(CyGate(self), [ctl, tgt], [])
 
 
 QuantumCircuit.cy = cy

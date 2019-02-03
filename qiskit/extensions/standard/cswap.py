@@ -21,9 +21,9 @@ from qiskit.extensions.standard.ccx import ToffoliGate
 class FredkinGate(Gate):
     """Fredkin gate."""
 
-    def __init__(self, ctl, tgt1, tgt2, circ=None):
+    def __init__(self, circ=None):
         """Create new Fredkin gate."""
-        super().__init__("cswap", [], [ctl, tgt1, tgt2], circ)
+        super().__init__("cswap", [], circ)
 
     def _define_decompositions(self):
         """
@@ -49,15 +49,11 @@ class FredkinGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
-
 
 @_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-    return self._attach(FredkinGate(ctl, tgt1, tgt2, self))
+    return self._attach(FredkinGate(self), [ctl, tgt1, tgt2], [])
 
 
 QuantumCircuit.cswap = cswap

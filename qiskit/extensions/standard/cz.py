@@ -23,9 +23,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CzGate(Gate):
     """controlled-Z gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self, circ=None):
         """Create new CZ gate."""
-        super().__init__("cz", [], [ctl, tgt], circ)
+        super().__init__("cz", [], circ)
 
     def _define_decompositions(self):
         """
@@ -47,15 +47,11 @@ class CzGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cz(self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2)
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
-    return self._attach(CzGate(ctl, tgt, self))
+    return self._attach(CzGate(self), [ctl, tgt], [])
 
 
 QuantumCircuit.cz = cz

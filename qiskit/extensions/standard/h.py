@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u2 import U2Gate
 class HGate(Gate):
     """Hadamard gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new Hadamard gate."""
-        super().__init__("h", [], [qubit], circ)
+        super().__init__("h", [], circ)
 
     def _define_decompositions(self):
         """
@@ -45,15 +45,11 @@ class HGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.h(self.qargs[0]))
-
 
 @_op_expand(1)
 def h(self, q):
     """Apply H to q."""
-    return self._attach(HGate(q, self))
+    return self._attach(HGate(self), [q], [])
 
 
 QuantumCircuit.h = h

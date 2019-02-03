@@ -22,9 +22,9 @@ from qiskit.extensions.standard.ubase import UBase
 class IdGate(Gate):
     """Identity gate."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, circ=None):
         """Create new Identity gate."""
-        super().__init__("id", [], [qubit], circ)
+        super().__init__("id", [], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()
@@ -41,15 +41,11 @@ class IdGate(Gate):
         """Invert this gate."""
         return self  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.iden(self.qargs[0]))
-
 
 @_op_expand(1)
 def iden(self, q):
     """Apply Identity to q."""
-    return self._attach(IdGate(q, self))
+    return self._attach(IdGate(self), [q], [])
 
 
 QuantumCircuit.iden = iden

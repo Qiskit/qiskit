@@ -22,9 +22,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class Cu3Gate(Gate):
     """controlled-u3 gate."""
 
-    def __init__(self, theta, phi, lam, ctl, tgt, circ=None):
+    def __init__(self, theta, phi, lam, circ=None):
         """Create new cu3 gate."""
-        super().__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
+        super().__init__("cu3", [theta, phi, lam], circ)
 
     def _define_decompositions(self):
         """
@@ -57,16 +57,11 @@ class Cu3Gate(Gate):
         self._decompositions = None
         return self
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu3(self.params[0], self.params[1],
-                                 self.params[2], self.qargs[0], self.qargs[1]))
-
 
 @_op_expand(2)
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
-    return self._attach(Cu3Gate(theta, phi, lam, ctl, tgt, self))
+    return self._attach(Cu3Gate(theta, phi, lam, self), [ctl, tgt], [])
 
 
 QuantumCircuit.cu3 = cu3

@@ -16,9 +16,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self, qubit, bit, circuit=None):
+    def __init__(self, circuit=None):
         """Create new measurement instruction."""
-        super().__init__("measure", [], [qubit], [bit], circuit)
+        super().__init__("measure", [], circuit)
 
     def qasm(self):
         """Return OPENQASM string."""
@@ -28,10 +28,6 @@ class Measure(Instruction):
                                                            qubit[1],
                                                            bit[0].name,
                                                            bit[1]))
-
-    def reapply(self, circuit):
-        """Reapply this gate to corresponding qubits."""
-        self._modifiers(circuit.measure(self.qargs[0], self.cargs[0]))
 
 
 @_op_expand(2, broadcastable=[True, False])
@@ -49,7 +45,7 @@ def measure(self, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    return self._attach(Measure(qubit, cbit, self))
+    return self._attach(Measure(self), [qubit], [cbit])
 
 
 QuantumCircuit.measure = measure
