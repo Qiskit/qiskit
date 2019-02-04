@@ -277,3 +277,11 @@ class QuantumInstance:
     @property
     def has_circuit_caching(self):
         return self._circuit_cache is not None
+
+    @property
+    def skip_qobj_validation(self):
+        return self._skip_qobj_validation
+
+    @skip_qobj_validation.setter
+    def skip_qobj_validation(self, new_value):
+        self._skip_qobj_validation = new_value
