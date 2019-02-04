@@ -12,7 +12,7 @@ from marshmallow.validate import Length, Range
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Complex, Integer, List, Nested, Number,
-                                      Raw, String)
+                                      String)
 
 
 class PulseLibraryItemSchema(BaseSchema):
@@ -29,7 +29,7 @@ class MeasurementKernelSchema(BaseSchema):
 
     # Optional properties.
     name = String()
-    params = List(Raw())
+    params = Nested(ObjSchema, many=True)
 
 
 class DiscriminatorSchema(BaseSchema):
@@ -37,7 +37,7 @@ class DiscriminatorSchema(BaseSchema):
 
     # Optional properties.
     name = String()
-    params = List(Raw())
+    params = Nested(ObjSchema, many=True)
 
 
 class PulseCommandSchema(BaseSchema):
