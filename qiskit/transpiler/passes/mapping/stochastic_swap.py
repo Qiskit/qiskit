@@ -538,7 +538,7 @@ class StochasticSwap(TransformationPass):
         return dagcircuit_output
 
 
-class NLayout(object):
+class NLayout():
     """A numerical representation of a Layout object.
     """
     def __init__(self):
