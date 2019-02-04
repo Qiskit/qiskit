@@ -138,7 +138,7 @@ class Optimize1qGates(TransformationPass):
                 # exact and approximate rewriting.
 
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
-                if np.mod(right_parameters[0],  (2 * np.pi)) == 0 \
+                if np.mod(right_parameters[0], (2 * np.pi)) == 0 \
                         and right_name != "u1":
                     right_name = "u1"
                     right_parameters = (0, 0, right_parameters[1] +
