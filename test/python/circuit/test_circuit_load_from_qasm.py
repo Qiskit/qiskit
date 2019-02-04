@@ -147,6 +147,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(len(q_circuit.qregs), 2)
 
     def test_qasm_qas_string_order(self):
+        """ Test that gates are returned in qasm in ascending order"""
         expected_qasm = '\n'.join(["OPENQASM 2.0;",
                                    "include \"qelib1.inc\";",
                                    "qreg q[3];",
