@@ -181,7 +181,6 @@ class StochasticSwap(TransformationPass):
         int_qubit_subset = regtuple_to_numeric(qubit_subset, self.dag)
         int_gates = gates_to_idx(gates, self.dag)
         int_layout = layout_to_numeric(layout, self.dag, coupling.size())
-        
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
             trial_layout = int_layout.copy()
@@ -220,7 +219,6 @@ class StochasticSwap(TransformationPass):
                     for edge in coupling.get_edges():
                         qubits = (trial_layout.physical_to_logical[edge[0]],
                                   trial_layout.physical_to_logical[edge[1]])
-                        
                         # Are the qubits available?
                         if qubits[0] in qubit_set and qubits[1] in qubit_set:
                             # Try this edge to reduce the cost
@@ -228,7 +226,6 @@ class StochasticSwap(TransformationPass):
                                 new_layout = trial_layout.copy()
                                 need_copy = False
                             new_layout.swap(edge[0], edge[1])
-
                             # Compute the objective function
                             new_cost = sum(xi[new_layout.logical_to_physical[int_gates[0]],
                                               new_layout.logical_to_physical[int_gates[1]]])
@@ -280,8 +277,8 @@ class StochasticSwap(TransformationPass):
 
             # Either we have succeeded at some depth d < dmax or failed
             dist = sum(coupling._dist_matrix[trial_layout.logical_to_physical[int_gates[0]],
-                                            trial_layout.logical_to_physical[int_gates[1]]])
-            
+                                             trial_layout.logical_to_physical[int_gates[1]]])
+
             logger.debug("layer_permutation: final distance for this trial = %s", dist)
             if dist == len(gates):
                 if depth_step < best_depth:
@@ -542,40 +539,46 @@ class StochasticSwap(TransformationPass):
 
 
 class NLayout(object):
-    def __init__(self, num_logic, num_phys):
-        if num_logic > num_phys:
-            raise Exception('Too many qubits')
-        self._num_logical = num_logic
-        self._num_physical = num_phys
+    """A numerical representation of a Layout object.
+    """
+    def __init__(self):
         self.logical_to_physical = None
         self.physical_to_logical = None
-        self.is_set = False
-        self.orig_logical = None
-        self.orig_physical = None
 
     def copy(self):
-        out = NLayout(self._num_logical, self._num_physical)
-        if self.is_set:
-            out.logical_to_physical = np.empty_like(self.logical_to_physical)
-            out.logical_to_physical = self.logical_to_physical[:]
-            out.physical_to_logical = np.empty_like(self.physical_to_logical)
-            out.physical_to_logical = self.physical_to_logical[:]
-            out.is_set = True
-        
+        """Makes a copy.
+        """
+        out = NLayout()
+        out.logical_to_physical = np.empty_like(self.logical_to_physical)
+        out.logical_to_physical[:] = self.logical_to_physical[:]
+        out.physical_to_logical = np.empty_like(self.physical_to_logical)
+        out.physical_to_logical[:] = self.physical_to_logical[:]
         return out
 
-    def swap(self, a, b):
-        if self.is_set:
-            self.logical_to_physical[a], self.logical_to_physical[b] = \
-                self.logical_to_physical[b], self.logical_to_physical[a]
+    def swap(self, idx1, idx2):
+        """Swaps left and right
 
-            self.physical_to_logical[a], self.physical_to_logical[b] = \
-                self.physical_to_logical[b], self.physical_to_logical[a]
-        else:
-            raise Exception('NLayout is not set.')
+        Args:
+            idx1 (int): Index one.
+            idx2 (int): Index two.
+        """
+        self.physical_to_logical[[idx1, idx2]] = self.physical_to_logical[[idx2, idx1]]
+        self.logical_to_physical[self.physical_to_logical[idx1]] = idx1
+        self.logical_to_physical[self.physical_to_logical[idx2]] = idx2
 
 
 def regtuple_to_numeric(items, dag):
+    """Takes (QuantumRegister, int) tuples and converts
+    them into an integer array.
+
+    Args:
+        items (list): List of tuples of (QuantumRegister, int)
+                      to convert.
+        dag (DAGCircuit): Input DAG circuit.
+    Returns:
+        ndarray: Array of integers.
+
+    """
     sizes = [qr.size for qr in dag.qregs.values()]
     reg_idx = np.cumsum([0]+sizes)
     regint = {}
@@ -588,6 +591,16 @@ def regtuple_to_numeric(items, dag):
 
 
 def gates_to_idx(gates, dag):
+    """Converts gate tuples into a nested list of integers.
+
+    Args:
+        gates (list): List of (QuantumRegister, int) pairs
+                      representing gates.
+        dag (DAGCircuit): Input DAG circuit.
+
+    Returns:
+        list: Nested list of integers for gates.
+    """
     sizes = [qr.size for qr in dag.qregs.values()]
     reg_idx = np.cumsum([0]+sizes)
     regint = {}
@@ -601,6 +614,17 @@ def gates_to_idx(gates, dag):
 
 
 def layout_to_numeric(layout, dag, num_qubits):
+    """Converts a Layout object to a numerical
+    representation of one.
+
+    Args:
+        layout (Layout): Input Layout object.
+        dag (DAGCircuit): DAG input to swap mapper.
+        num_qubits (int): Number of qubits in coupling_map.
+
+    Returns:
+        NLayout: Numerical layout instance
+    """
     sizes = [qr.size for qr in dag.qregs.values()]
     reg_idx = np.cumsum([0]+sizes)
     num_logical_qubits = sum(sizes)
@@ -608,22 +632,30 @@ def layout_to_numeric(layout, dag, num_qubits):
     for ind, qreg in enumerate(dag.qregs.values()):
         regint[qreg] = ind
     logical_to_physical = np.zeros(num_logical_qubits, dtype=int)
+    physical_to_logical = np.zeros(num_qubits, dtype=int)
     for key, val in layout.items():
         if isinstance(key, tuple):
             logical_to_physical[reg_idx[regint[key[0]]]+key[1]] = val
+        else:
+            physical_to_logical[key] = reg_idx[regint[val[0]]]+val[1]
 
-    physical_to_logical = -1*np.zeros(num_qubits, dtype=int)
-    physical_to_logical[logical_to_physical] = np.arange(
-        num_logical_qubits, dtype=int)
-    L = NLayout(num_logical_qubits, num_qubits)
-    L.logical_to_physical = logical_to_physical
-    L.physical_to_logical = physical_to_logical
-    L.is_set = True
-
-    return L
+    nlay = NLayout()
+    nlay.logical_to_physical = logical_to_physical
+    nlay.physical_to_logical = physical_to_logical
+    return nlay
 
 
 def numeric_to_layout(numeric, dag):
+    """Convert NLayout back to Layout.
+
+    Args:
+        numeric (NLayout): Input numeric layout.
+        dag (DAGCircuit): DAG input to swap mapper.
+
+    Returns:
+        Layout: A Layout object.
+
+    """
     out = Layout()
     main_idx = 0
     for qreg in dag.qregs.values():
