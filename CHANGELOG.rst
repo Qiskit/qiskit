@@ -32,6 +32,8 @@ Added
 - Added support for register slicing when applying operations to a register (#1643).
 - Added in new parameter ``justify`` to the text circuit drawer to say how the
   circuit should be aligned. (#1725)
+- Added function for purity of a mixed state in ``qiskit.quantum_information``
+  (#1733)
 
 Changed
 -------
@@ -55,6 +57,8 @@ Changed
   ``ModelValidationError`` (#1695).
 - The default transpile pipeline will now add a barrier before the set of
   final measurements when compiling for both simulators and devices (#1591).
+- Purity function in ``qiskit.tools.qi.qi`` calls new version in
+  ``qiskit.quantum_information`` and issues deprecation warning (#1733)
 
 Fixed
 -----

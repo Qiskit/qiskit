@@ -113,4 +113,4 @@ class Register:
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        return hash(str(type(self)) + self.name + str(self.size))
+        return hash((type(self), self.name, self.size))

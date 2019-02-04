@@ -222,11 +222,13 @@ class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length):
+    def __init__(self, label, input_length, bot_connect='─'):
         super().__init__(label)
         self.top_format = "│ %s │"
+        self.top_pad = " "
+        self.bot_connect = bot_connect
 
-        self.mid_content = self.bot_connect = self.top_connect = ""
+        self.mid_content = self.top_connect = ""
         if input_length <= 2:
             self.top_connect = label
 
