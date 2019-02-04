@@ -50,10 +50,9 @@ class VariationalForm(Pluggable):
 
         # We pass on num_qubits to initial state since we know our dependent needs this
         init_state_params = params.get(Pluggable.SECTION_KEY_INITIAL_STATE)
-        if init_state_params is not None:
-            init_state_params['num_qubits'] = var_form_params['num_qubits']
-            args['initial_state'] = get_pluggable_class(PluggableType.INITIAL_STATE,
-                                                        init_state_params['name']).init_params(params)
+        init_state_params['num_qubits'] = var_form_params['num_qubits']
+        args['initial_state'] = get_pluggable_class(PluggableType.INITIAL_STATE,
+                                                    init_state_params['name']).init_params(params)
 
         return cls(**args)
 
