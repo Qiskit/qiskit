@@ -86,8 +86,9 @@ class Optimizer(Pluggable):
         Args:
             params (dict): configuration dict
         """
-        logger.debug('init_params: {}'.format(params))
-        args = {k: v for k, v in params.items() if k != 'name'}
+        opt_params = params.get(Pluggable.SECTION_KEY_OPTIMIZER)
+        logger.debug('init_params: {}'.format(opt_params))
+        args = {k: v for k, v in opt_params.items() if k != 'name'}
         optimizer = cls(**args)
         return optimizer
 
