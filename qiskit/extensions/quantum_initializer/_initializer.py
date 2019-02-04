@@ -20,6 +20,9 @@ from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.x import XGate
+
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -68,8 +71,9 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
 
         super().__init__("init", params, qargs, circ)
 
-        # call to generate the circuit that takes the desired vector to zero
-        self.gates_to_uncompute()
+        # call to generate the circuit that takes the desired vector to zero (up to global phase, which is returned)
+        self.global_phase = self.gates_to_uncompute().conjugate()
+        
         # remove zero rotations and double cnots
         self.optimize_gates()
         # invert the circuit to create the desired vector from zero (assuming
@@ -78,6 +82,9 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
         # do not set the inverse flag, as this is the actual initialize gate
         # we just used inverse() as a method to obtain it
         self.inverse_flag = False
+
+    def _get_unachieved_global_phase(self):
+        return self.global_phase
 
     def nth_qubit_from_least_sig_qubit(self, nth):
         """
@@ -116,6 +123,8 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
             # shorter amplitude vector to peel away)
             self._attach(self._multiplex(RZGate, i, phis))
             self._attach(self._multiplex(RYGate, i, thetas))
+
+        return remaining_param[0] # Returns global phase
 
     @staticmethod
     def _rotations_to_disentangle(local_param):
@@ -440,3 +449,40 @@ def initialize(self, params, qubits):
 
 QuantumCircuit.initialize = initialize
 CompositeGate.initialize = initialize
+
+
+class GlobalPhaseGate(CompositeGate):
+    
+    """Simple Composite Gate that adjusts the global phase of the quantum state. Global phase, has no measurable significance, but it may be useful for automated simulation checking of the full statevector. 
+    """
+    
+    def __init__(self, params, qargs, circ=None):
+        """Create new Global Phase composite gate."""
+        
+        if len(qargs) == 0:
+            raise QiskitError("Need at least one qubit.")
+
+        if len(params) != 1:
+            raise QiskitError("Global Phase takes a list of one and only one parameter.")
+
+        # Check if phase is of unit amplitude
+        if not math.isclose(np.absolute(params[0]), 1.0,
+                            abs_tol=_EPS):
+            raise QiskitError("Phase not of unit length")
+
+        super().__init__("init", params, qargs, circ)
+
+        phase = np.angle(params[0])
+        self._attach(U3Gate(np.pi,phase,np.pi+phase,qargs[0]))
+        self._attach(XGate(qargs[0]))
+
+def globalphase_composite_gate(self, phase):
+    """Apply GlobalPhaseGate to CompositeGate. Takes a single complex number of norm 1. """
+    return self._attach(GlobalPhaseGate([phase], self.qargs))
+
+def globalphase_circuit(self, phase):
+    """Apply GlobalPhaseGate to circuit. Takes a single complex number of norm 1. """
+    return self._attach(GlobalPhaseGate([phase], [(self.qregs[0],0)], self))
+
+QuantumCircuit.globalphase = globalphase_circuit
+CompositeGate.globalphase = globalphase_composite_gate
