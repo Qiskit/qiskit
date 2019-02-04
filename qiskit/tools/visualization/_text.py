@@ -411,7 +411,7 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True,
-                 line_length=None, justify=None, reversebits=False):
+                 line_length=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -420,13 +420,6 @@ class TextDrawing():
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
-
-        if justify:
-            justify.lower()
-        # default to left
-        self.justify = justify if justify in ('right', 'none') else 'left'
-
-        self.reverse_bits = reversebits
 
     def __str__(self):
         return self.single_string()
@@ -530,7 +523,6 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-
             lines += TextDrawing.draw_wires(wires)
 
         return lines
@@ -570,7 +562,6 @@ class TextDrawing():
         lines = []
         bot_line = None
         for wire in wires:
-
             # TOP
             top_line = ''
             for instruction in wire:
@@ -628,7 +619,6 @@ class TextDrawing():
             str: The merge of both lines.
         """
         ret = ""
-
         for topc, botc in zip(top, bot):
             if topc == botc:
                 ret += topc
@@ -660,7 +650,6 @@ class TextDrawing():
                 ret += "┤"
             else:
                 ret += botc
-
         return ret
 
     @staticmethod
@@ -770,9 +759,9 @@ class TextDrawing():
             layer.set_qubit(instruction['qargs'][0],
                             BoxOnQuWire(TextDrawing.label_for_box(instruction)))
 
-        elif len(instruction['qubits']) >= 2 and not instruction['cargs']:
+        elif len(instruction['qargs']) >= 2 and not instruction['cargs']:
             # multiple qubit gate
-            layer.set_qu_multibox(instruction['qubits'], TextDrawing.label_for_box(instruction))
+            layer.set_qu_multibox(instruction['qargs'], TextDrawing.label_for_box(instruction))
 
         else:
             raise VisualizationError(
@@ -813,13 +802,12 @@ class TextDrawing():
 class Layer:
     """ A layer is the "column" of the circuit. """
 
-    def __init__(self, qregs, cregs, reversebits=False):
+    def __init__(self, qregs, cregs):
         self.qregs = qregs
         self.cregs = cregs
         self.qubit_layer = [None] * len(qregs)
         self.connections = []
         self.clbit_layer = [None] * len(cregs)
-        self.reversebits = reversebits
 
     @property
     def full_layer(self):
