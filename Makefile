@@ -44,6 +44,4 @@ coverage:
 coverage_erase:
 	coverage erase
 
-clean: coverage_erase
-	rm -f test/python/test_latex_drawer.tex test/python/test_qasm_python_simulator.pdf \
-		test/python/test_save.json test/python/test_teleport.tex
+clean: coverage_erase ;
