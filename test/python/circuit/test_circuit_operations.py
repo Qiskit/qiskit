@@ -135,3 +135,14 @@ class TestCircuitOperations(QiskitTestCase):
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
                          'qubit and cbit should have the same length if lists')
+
+    def test_copy_circuit(self):
+        """ Test copy method makes a copy"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        self.assertEqual(qc, qc.copy())

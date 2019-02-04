@@ -423,13 +423,13 @@ class QCircuitImage:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     start = self.img_regs[start_bit]
                     span = len(op['qargs']) - 1
-                    for i in range(start, span + 1):
+                    for i in range(start, start + span + 1):
                         if is_occupied[i] is False:
                             is_occupied[i] = True
                         else:
                             columns += 1
                             is_occupied = [False] * self.img_width
-                            for j in range(start, span + 1):
+                            for j in range(start, start + span + 1):
                                 is_occupied[j] = True
                             break
                     # update current column width
@@ -936,13 +936,13 @@ class QCircuitImage:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     start = self.img_regs[start_bit]
                     span = len(op['qargs']) - 1
-                    for i in range(start, span + 1):
+                    for i in range(start, start + span + 1):
                         if is_occupied[i] is False:
                             is_occupied[i] = True
                         else:
                             columns += 1
                             is_occupied = [False] * self.img_width
-                            for j in range(start, span + 1):
+                            for j in range(start, start + span + 1):
                                 is_occupied[j] = True
                             break
                     self._latex[start][columns] = "\\qw \\barrier{" + str(
