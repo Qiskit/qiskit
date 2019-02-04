@@ -652,21 +652,17 @@ class DAGCircuit:
                       'qasm() on the obtained QuantumCircuit instance.',
                       DeprecationWarning, 2)
 
-    def _check_wires_list(self, wires, op, input_circuit, condition=None):
-        """Check that a list of wires satisfies some conditions.
+    def _check_wires_list(self, wires, node):
+        """Check that a list of wires is compatible with a node to be replaced.
 
         - no duplicate names
         - correct length for operation
-        - elements are wires of input_circuit
         Raise an exception otherwise.
 
         Args:
             wires (list[register, index]): gives an order for (qu)bits
-                in the input_circuit that is replacing the operation.
-            op (Instruction): operation
-            input_circuit (DAGCircuit): replacement circuit for operation
-            condition (tuple or None): if this instance of the
-                operation is classically controlled by a (ClassicalRegister, int)
+                in the input circuit that is replacing the node.
+            node (dict): a node in the dag
 
         Raises:
             DAGCircuitError: if check doesn't pass.
@@ -674,18 +670,13 @@ class DAGCircuit:
         if len(set(wires)) != len(wires):
             raise DAGCircuitError("duplicate wires")
 
-        wire_tot = len(op.qargs) + len(op.cargs)
-        if condition is not None:
-            wire_tot += condition[0].size
+        wire_tot = len(node['qargs']) + len(node['cargs'])
+        if node['condition'] is not None:
+            wire_tot += node['condition'][0].size
 
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
                                   % (wire_tot, len(wires)))
-
-        for w in wires:
-            if w not in input_circuit.wires:
-                raise DAGCircuitError("wire (%s,%d) not in input circuit"
-                                      % (w[0], w[1]))
 
     def _make_pred_succ_maps(self, node):
         """Return predecessor and successor dictionaries.
@@ -766,99 +757,6 @@ class DAGCircuit:
         """
         return nx.lexicographical_topological_sort(self.multi_graph, key=lambda x: str(x.qargs))
 
-    def substitute_circuit_all(self, op, input_circuit, wires=None):
-        """Replace every occurrence of operation op with input_circuit.
-
-        Args:
-            op (Instruction): operation type to substitute across the dag.
-            input_circuit (DAGCircuit): what to replace with
-            wires (list[register, index]): gives an order for (qu)bits
-                in the input_circuit that is replacing the operation.
-
-        Raises:
-            DAGCircuitError: if met with unexpected predecessor/successors
-        """
-        # TODO: rewrite this method to call substitute_node_with_dag
-        wires = wires or []
-
-        self._check_wires_list(wires, op, input_circuit)
-
-        # Create a proxy wire_map to identify fragments and duplicates
-        # and determine what registers need to be added to self
-        proxy_map = {w: (QuantumRegister(1, 'proxy'), 0) for w in wires}
-        add_qregs = self._check_edgemap_registers(proxy_map,
-                                                  input_circuit.qregs,
-                                                  {}, False)
-        for qreg in add_qregs:
-            self.add_qreg(qreg)
-
-        add_cregs = self._check_edgemap_registers(proxy_map,
-                                                  input_circuit.cregs,
-                                                  {}, False)
-        for creg in add_cregs:
-            self.add_creg(creg)
-
-        # Iterate through the nodes of self and replace the selected nodes
-        # by iterating through the input_circuit, constructing and
-        # checking the validity of the wire_map for each replacement
-        # NOTE: We do not replace conditioned gates. One way to implement
-        #       this later is to add or update the conditions of each gate
-        #       that we add from the input_circuit.
-        for nd in self.nodes_in_topological_order():
-            if nd.type == "op" and nd.op == op:
-                if nd.condition is None:
-                    wire_map = {k: v for k, v in zip(wires,
-                                                     [i for s in [nd.qargs, nd.cargs]
-                                                      for i in s])}
-                    self._check_wiremap_validity(wire_map, wires,
-                                                 self.input_map)
-                    pred_map, succ_map = self._make_pred_succ_maps(nd)
-                    full_pred_map, full_succ_map = \
-                        self._full_pred_succ_maps(pred_map, succ_map,
-                                                  input_circuit, wire_map)
-                    # Now that we know the connections, delete node
-                    self.multi_graph.remove_node(nd)
-                    # Iterate over nodes of input_circuit
-                    for m in nx.topological_sort(input_circuit.multi_graph):
-                        md = input_circuit.multi_graph.node[m]
-                        if md.type == "op":
-                            # Insert a new node
-                            condition = self._map_condition(wire_map,
-                                                            md.condition)
-                            m_qargs = [wire_map.get(x, x) for x in md["qargs0"]]
-                            m_cargs = [wire_map.get(x, x) for x in md["cargs0"]]
-                            self._add_op_node(md["op"], m_qargs, m_cargs, condition)
-                            # Add edges from predecessor nodes to new node
-                            # and update predecessor nodes that change
-                            all_cbits = self._bits_in_condition(condition)
-                            all_cbits.extend(m_cargs)
-                            al = [m_qargs, all_cbits]
-                            for q in itertools.chain(*al):
-                                self.multi_graph.add_edge(full_pred_map[q],
-                                                          self._id_to_node[self._max_node_id],
-                                                          name="%s[%s]" % (q[0].name, q[1]),
-                                                          wire=q)
-                                full_pred_map[q] = copy.copy(self._id_to_node[self._max_node_id])
-                    # Connect all predecessors and successors, and remove
-                    # residual edges between input and output nodes
-                    for w in full_pred_map:
-                        self.multi_graph.add_edge(full_pred_map[w],
-                                                  full_succ_map[w],
-                                                  name="%s[%s]" % (w[0].name, w[1]),
-                                                  wire=w)
-                        o_pred = list(self.multi_graph.predecessors(
-                            self.output_map[w]))
-                        if len(o_pred) > 1:
-                            if len(o_pred) != 2:
-                                raise DAGCircuitError("expected 2 predecessors here")
-
-                            p = [x for x in o_pred if x != full_pred_map[w]]
-                            if len(p) != 1:
-                                raise DAGCircuitError("expected 1 predecessor to pass filter")
-
-                            self.multi_graph.remove_edge(
-                                p[0], self.output_map[w])
-
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
 
@@ -872,7 +770,6 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
-
         if isinstance(node, int):
             warnings.warn('Calling substitute_node_with_dag() with a node id is deprecated,'
                           ' use a DAGNode instead',
@@ -881,7 +778,7 @@ class DAGCircuit:
             node = self._id_to_node[node]
 
         condition = node.condition
-        # the decomposition rule must be amended if used in a
+        # the dag must be ammended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:
@@ -902,7 +799,7 @@ class DAGCircuit:
             cwires = [w for w in input_dag.wires if isinstance(w[0], ClassicalRegister)]
             wires = qwires + cwires
 
-        self._check_wires_list(wires, node.op, input_dag, node.condition)
+        self._check_wires_list(wires, nd)
 
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self

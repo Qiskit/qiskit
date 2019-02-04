@@ -31,10 +31,10 @@ class U0Gate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            UBase(0, 0, 0, q[0])
+            UBase(0, 0, 0)
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
+            decomposition.apply_operation_back(inst, [q[0]], [])
         self._decompositions = [decomposition]
 
     def inverse(self):

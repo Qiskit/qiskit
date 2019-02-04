@@ -14,7 +14,7 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, params, qargs, circuit=None):
+    def __init__(self, name, params, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string

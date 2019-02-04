@@ -32,10 +32,10 @@ class YGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            U3Gate(pi, pi/2, pi/2, q[0])
+            U3Gate(pi, pi/2, pi/2)
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
+            decomposition.apply_operation_back(inst, [q[0]], [])
         self._decompositions = [decomposition]
 
     def inverse(self):
