@@ -10,6 +10,7 @@
 """
 Single qubit gate cycle idle.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -55,3 +56,4 @@ def u0(self, m, q):
 
 
 QuantumCircuit.u0 = u0
+CompositeGate.u0 = u0

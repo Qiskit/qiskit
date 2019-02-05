@@ -10,6 +10,7 @@
 """
 controlled-Phase gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -64,3 +65,4 @@ def cz(self, ctl, tgt):
 
 
 QuantumCircuit.cz = cz
+CompositeGate.cz = cz
