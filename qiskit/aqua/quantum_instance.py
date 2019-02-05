@@ -18,11 +18,10 @@
 import logging
 
 from qiskit import __version__ as terra_version
-from qiskit.providers.ibmq import IBMQProvider
 from qiskit.qobj import RunConfig
-
 from qiskit.aqua.utils import compile_and_run_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
+                                             is_ibmq_provider,
                                              is_statevector_backend,
                                              is_simulator_backend,
                                              is_local_backend)
@@ -121,7 +120,7 @@ class QuantumInstance:
 
         # setup backend options for run
         self._backend_options = {}
-        if isinstance(self._backend.provider(), IBMQProvider):
+        if is_ibmq_provider(self._backend):
             logger.info("backend_options can not used with the backends in IBMQ provider.")
         else:
             self._backend_options = {} if backend_options is None \
@@ -182,7 +181,7 @@ class QuantumInstance:
             elif k in QuantumInstance.BACKEND_CONFIG:
                 self._backend_config[k] = v
             elif k in QuantumInstance.BACKEND_OPTIONS:
-                if isinstance(self._backend.provider(), IBMQProvider):
+                if is_ibmq_provider(self._backend):
                     logger.info("backend_options can not used with the backends in IBMQ provider.")
                 else:
                     if k in QuantumInstance.BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
