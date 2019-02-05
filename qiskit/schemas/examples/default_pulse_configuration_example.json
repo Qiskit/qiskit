@@ -76,7 +76,7 @@
         {"name": "pulse_0", "samples": [[0.5,0],[1.0,0],[0.5,0]]},
         {"name": "square_1", "samples": [[0.5,0],[0.5,0],[0.5,0],[0.5,0],[0.5,0],[0.5,0]]}
         ],
-    "meas_kernel": {"name": "boxcar", "params": []},
-    "discriminator": {"name": "max_1Q_fidelity", "params": []},
+    "meas_kernel": {"name": "boxcar", "params": {}},
+    "discriminator": {"name": "max_1Q_fidelity", "params": {}},
     "buffer": 2
 }
