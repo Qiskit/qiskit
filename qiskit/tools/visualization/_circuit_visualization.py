@@ -191,7 +191,8 @@ def circuit_drawer(circuit,
         image = _matplotlib_circuit_drawer(circuit, scale=scale,
                                            filename=filename, style=style,
                                            plot_barriers=plot_barriers,
-                                           reverse_bits=reverse_bits)
+                                           reverse_bits=reverse_bits,
+                                           justify=justify)
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
@@ -429,7 +430,8 @@ def _matplotlib_circuit_drawer(circuit,
                                filename=None,
                                style=None,
                                plot_barriers=True,
-                               reverse_bits=False):
+                               reverse_bits=False,
+                               justify=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -450,6 +452,6 @@ def _matplotlib_circuit_drawer(circuit,
     """
     qcd = _matplotlib.MatplotlibDrawer(scale=scale, style=style,
                                        plot_barriers=plot_barriers,
-                                       reverse_bits=reverse_bits)
+                                       reverse_bits=reverse_bits, justify=justify)
     qcd.parse_circuit(circuit)
     return qcd.draw(filename, verbose=True)
