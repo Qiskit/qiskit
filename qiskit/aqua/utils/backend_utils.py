@@ -20,11 +20,9 @@ import importlib
 import logging
 
 try:
-    from qiskit import IBMQ
-    from qiskit.providers.ibmq.credentials import Credentials
     from qiskit.providers.ibmq import IBMQProvider
     HAS_IBMQ = True
-except:
+except ImportError:
     HAS_IBMQ = False
     pass
 try:
@@ -34,13 +32,18 @@ except ImportError:
     HAS_AER = False
     pass
 
-from qiskit_aqua_cmd import Preferences
-
-
 logger = logging.getLogger(__name__)
 
 
 _UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
+
+
+def has_ibmq():
+    return HAS_IBMQ
+
+
+def has_aer():
+    return HAS_AER
 
 
 def is_aer_provider(backend):
@@ -51,7 +54,7 @@ def is_aer_provider(backend):
     Returns:
         bool: True is statevector
     """
-    if HAS_AER:
+    if has_aer():
         return isinstance(backend.provider(), AerProvider)
     else:
         return False
@@ -113,7 +116,7 @@ def is_ibmq_provider(backend):
     Returns:
         bool: True is statevector
     """
-    if HAS_IBMQ:
+    if has_ibmq():
         return isinstance(backend.provider(), IBMQProvider)
     else:
         return False
@@ -142,7 +145,8 @@ def get_backends_from_provider(provider_name):
         ImportError: Invalid provider name or failed to find provider
     """
     provider_object = _load_provider(provider_name)
-    if provider_object == IBMQ:
+    if has_ibmq() and isinstance(provider_object, IBMQProvider):
+        from qiskit_aqua_cmd import Preferences
         preferences = Preferences()
         url = preferences.get_url()
         token = preferences.get_token()
@@ -181,7 +185,8 @@ def get_backend_from_provider(provider_name, backend_name):
     """
     backend = None
     provider_object = _load_provider(provider_name)
-    if provider_object == IBMQ:
+    if has_ibmq() and isinstance(provider_object, IBMQProvider):
+        from qiskit_aqua_cmd import Preferences
         preferences = Preferences()
         url = preferences.get_url()
         token = preferences.get_token()
@@ -223,7 +228,8 @@ def get_local_providers():
 def register_ibmq_and_get_known_providers():
     """Gets known local providers and registers IBMQ."""
     providers = get_local_providers()
-    providers.update(_get_ibmq_provider())
+    if has_ibmq():
+        providers.update(_get_ibmq_provider())
     return providers
 
 
@@ -265,8 +271,9 @@ def _load_provider(provider_name):
     if provider_object is None:
         raise ImportError("Failed to import provider '{}'".format(provider_name))
 
-    if provider_object == IBMQ:
+    if has_ibmq() and isinstance(provider_object, IBMQProvider):
         # enable IBMQ account
+        from qiskit_aqua_cmd import Preferences
         preferences = Preferences()
         enable_ibmq_account(preferences.get_url(), preferences.get_token(), preferences.get_proxies({}))
 
@@ -277,11 +284,15 @@ def enable_ibmq_account(url, token, proxies):
     """
     Enable IBMQ account, if not alreay enabled.
     """
+    if not has_ibmq():
+        return
     try:
         url = url or ''
         token = token or ''
         proxies = proxies or {}
         if url != '' and token != '':
+            from qiskit import IBMQ
+            from qiskit.providers.ibmq.credentials import Credentials
             credentials = Credentials(token, url, proxies=proxies)
             unique_id = credentials.unique_id()
             if unique_id in IBMQ._accounts:
@@ -301,11 +312,15 @@ def enable_ibmq_account(url, token, proxies):
 
 def disable_ibmq_account(url, token, proxies):
     """Disable IBMQ account."""
+    if not has_ibmq():
+        return
     try:
         url = url or ''
         token = token or ''
         proxies = proxies or {}
         if url != '' and token != '':
+            from qiskit import IBMQ
+            from qiskit.providers.ibmq.credentials import Credentials
             credentials = Credentials(token, url, proxies=proxies)
             unique_id = credentials.unique_id()
             if unique_id in IBMQ._accounts:
