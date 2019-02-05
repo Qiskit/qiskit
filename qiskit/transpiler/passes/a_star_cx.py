@@ -11,6 +11,25 @@
 # Competition winning entry
 from qiskit.transpiler._basepasses import TransformationPass
 
+def JAGcoupling_list2dict(couplinglist):
+    """Convert coupling map list into dictionary.
+
+    Example list format: [[0, 1], [0, 2], [1, 2]]
+    Example dictionary format: {0: [1, 2], 1: [2]}
+
+    We do not do any checking of the input.
+
+    Return coupling map in dict format.
+    """
+    if not couplinglist:
+        return None
+    couplingdict = {}
+    for pair in couplinglist:
+        if pair[0] in couplingdict:
+            couplingdict[pair[0]].append(pair[1])
+        else:
+            couplingdict[pair[0]] = [pair[1]]
+    return couplingdict
 
 class AStarCX(TransformationPass):
     """Find cheapest cost (local optimization with lookahead) for CX gates.
@@ -54,13 +73,17 @@ class AStarCX(TransformationPass):
         from qiskit.transpiler.passes.a_star_mapper import a_star_mapper
         from qiskit.transpiler.passes.post_mapping_optimization import optimize_gate_groups
         from qiskit.dagcircuit import DAGCircuit
-        from qiskit._quantumregister import QuantumRegister
-        from qiskit._classicalregister import ClassicalRegister
+        from qiskit.circuit import QuantumRegister
+        from qiskit.circuit import ClassicalRegister
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler.passes.mapping.unroller import Unroller
+        from qiskit.converters import circuit_to_dag
+        from qiskit.mapper import CouplingMap, Layout
 
         # import time
 
         import copy
-        from qiskit.mapper import Coupling, coupling_list2dict
+        #JAG from qiskit.mapper import Coupling, coupling_list2dict
         from qiskit import qasm, unroll
         # import networkx as nx
 
@@ -93,15 +116,21 @@ class AStarCX(TransformationPass):
             + "u2(0.1,0.4) q[0]\n;"
             + "u1(0.1) q[0];\n"
         )
-        unrolled = unroll.Unroller(
-            qasm.Qasm(data=tmp_qasm).parse(),
-            unroll.DAGBackend(["cx", "u3", "u2", "u1"]),
-        )
-        tmp_circuit = unrolled.execute()
+        qc1 = QuantumCircuit.from_qasm_str(tmp_qasm)
+        dag1 = circuit_to_dag(qc1)
+        tmp_circuit = Unroller(['cx','u3','u2','u1']).run(dag1)
+#        unrolled = unroll.Unroller(
+#            qasm.Qasm(data=tmp_qasm).parse(),
+#            unroll.DAGBackend(["cx", "u3", "u2", "u1"]),
+#        )
+#        tmp_circuit = unrolled.execute()
 
         # prepare empty circuit for the result
         empty_dag = DAGCircuit()
-        coupling = Coupling(coupling_list2dict(self.coupling_map))
+        print(self.coupling_map)
+#        coupling = Coupling(coupling_list2dict(self.coupling_map))
+        coupling = CouplingMap(self.coupling_map)
+        print(coupling)
         # Note: Works with a single register named 'q' (not with 'q0' for example)
         empty_dag.add_qreg(QuantumRegister(coupling.size(), "q"))
         for k, v in sorted(compiled_dag.cregs.items()):
@@ -112,11 +141,12 @@ class AStarCX(TransformationPass):
         grouped_gates = group_gates(compiled_dag)
         # call mapper (based on an A* search) to satisfy the constraints for CNOTs
         # given by the coupling_map
+        print(JAGcoupling_list2dict(self.coupling_map))
         compiled_dag = a_star_mapper.a_star_mapper(
             copy.deepcopy(grouped_gates),
-            coupling_list2dict(self.coupling_map),
+            JAGcoupling_list2dict(self.coupling_map),
             coupling.size(),
-            copy.deepcopy(empty_dag),
+            copy.deepcopy(empty_dag)
         )
         grouped_gates_compiled = group_gates(compiled_dag)
 
@@ -146,9 +176,9 @@ class AStarCX(TransformationPass):
         for _ in range(reps):
             result = a_star_mapper.a_star_mapper(
                 copy.deepcopy(grouped_gates),
-                coupling_list2dict(self.coupling_map),
+                JAGcoupling_list2dict(self.coupling_map),
                 coupling.size(),
-                copy.deepcopy(empty_dag),
+                copy.deepcopy(empty_dag)
             )
             grouped_gates_result = group_gates(result)
 

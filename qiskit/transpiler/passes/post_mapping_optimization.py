@@ -13,7 +13,7 @@
 # import math
 import numpy as np
 
-from qiskit.backends.aer._simulatortools import single_gate_matrix
+from qiskit.providers.builtinsimulators._simulatortools import single_gate_matrix
 from qiskit.mapper._compiling import euler_angles_1q, simplify_U, two_qubit_kak
 from qiskit.mapper._mapping import MapperError
 
