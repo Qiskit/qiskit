@@ -445,6 +445,8 @@ def _matplotlib_circuit_drawer(circuit,
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+            the circuit should be justified.
 
 
     Returns:

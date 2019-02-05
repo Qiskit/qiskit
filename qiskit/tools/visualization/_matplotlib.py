@@ -525,14 +525,11 @@ class MatplotlibDrawer:
                     this_anc, gw) for jj in q_list]
                 if all(locs):
                     for ii in q_list:
-                        if op['name'] in [
-                            'barrier', 'snapshot', 'load', 'save',
-                            'noise'] and not self.plot_barriers:
+                        if op['name'] in ['barrier', 'snapshot', 'load', 'save', 'noise'] \
+                           and not self.plot_barriers:
                             q_anchors[ii].set_index(this_anc - 1, gw)
                         else:
                             q_anchors[ii].set_index(this_anc, gw)
-                else:
-                    this_anc += 1
 
                 # qreg coordinate
                 q_xy = [q_anchors[ii].plot_coord(this_anc, gw) for ii in q_idxs]
@@ -588,20 +585,15 @@ class MatplotlibDrawer:
                     self._measure(q_xy[0], c_xy[0], vv)
                 elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
                                     'noise']:
-
-                    # Go over all indices to add barriers across
+                    _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
                         q_group = self._qreg_dict[qbit]['group']
 
                         if q_group not in _barriers['group']:
                             _barriers['group'].append(q_group)
                         _barriers['coord'].append(q_xy[index])
-
-                    else:
-                        if self.plot_barriers:
-                            self._barrier(_barriers, this_anc)
-                        _barriers['group'].clear()
-                        _barriers['coord'].clear()
+                    if self.plot_barriers:
+                        self._barrier(_barriers, this_anc)
                 #
                 # draw single qubit gates
                 #
