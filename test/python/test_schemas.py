@@ -16,7 +16,7 @@ from marshmallow import ValidationError
 from qiskit.qobj._schema_validation import (validate_json_against_schema,
                                             _get_validator)
 from qiskit.providers.models import (BackendConfiguration, BackendProperties,
-                                     BackendStatus, JobStatus)
+                                     BackendStatus, JobStatus, PulseDefaults)
 from qiskit.result import Result
 from qiskit.test import QiskitTestCase, Path
 
@@ -81,7 +81,8 @@ class TestSchemaExamples(QiskitTestCase):
                                        'backend_configuration': BackendConfiguration,
                                        'backend_properties': BackendProperties,
                                        'backend_status': BackendStatus,
-                                       'job_status': JobStatus}
+                                       'job_status': JobStatus,
+                                       'default_pulse_configuration': PulseDefaults}
                             cls = obj_map.get(schema_name, None)
                             if cls and 'openpulse' not in example_schema:
                                 _ = cls.from_dict(example)
