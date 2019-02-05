@@ -26,8 +26,8 @@ Added
 
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
-- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614). 
-- Added a RunConfig object for configurations for run configurations to be used 
+- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
+- Added a RunConfig object for configurations for run configurations to be used
   in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
@@ -68,6 +68,7 @@ Fixed
 - Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
 - Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
   used in conditional operations (#1705).
+- Fixed a bug where the node counter on the DAG didn't update after transpilation (#1763)
 
 Removed
 -------
