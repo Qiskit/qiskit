@@ -91,8 +91,8 @@ class QasmSimulatorPy(BaseBackend):
             },
             {
                 'name': 'umatrix',
-                'parameters': ['a'],
-                'qasm_def': 'opaque umatrix a {}'
+                'parameters': ['matrix'],
+                'qasm_def': 'umatrix(matrix) q1, q2,...'
             }
         ]
     }

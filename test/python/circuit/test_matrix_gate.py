@@ -21,7 +21,8 @@ from qiskit import execute
 from qiskit import QiskitError
 from qiskit.circuit import Gate
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import transpile
+from qiskit.transpiler import transpile, PassManager
+from qiskit.transpiler.passes import BasicSwap, CXCancellation, Optimize1qGates
 from qiskit import BasicAer
 
 
@@ -36,5 +37,10 @@ class TestMatrixGate(QiskitTestCase):
         matrix = numpy.array([[1, 0], [0, 1]])
         qc.x(qr[0])
         qc.umatrix(matrix, qr[0])
-        qc2 = transpile(qc, backend)
+        pm = PassManager()
+        pm.append(CXCancellation())
+        qc2 = transpile(qc, backend, pass_manager=pm)
+        print(qc2.qasm())
+        print(qc2)
         import pdb;pdb.set_trace()
+        

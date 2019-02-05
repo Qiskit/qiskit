@@ -9,7 +9,9 @@
 
 
 from qiskit.circuit.compositegate import CompositeGate
+#from qiskit.circuit.opaquegate import OpaqueGate
 from qiskit.circuit.opaquegate import OpaqueGate
+from qiskit.extensions.standard import UnitaryMatrixGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 
 
@@ -65,8 +67,8 @@ def circuit_to_dag(circuit):
             # Add simulator extension instructions
             if instruction.name in simulator_instructions:
                 dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
-            if isinstance(instruction, OpaqueGate):
-                dagcircuit.add_basis_element('opaque', len(instruction.qargs),
+            if isinstance(instruction, UnitaryMatrixGate):
+                dagcircuit.add_basis_element('umatrix', len(instruction.qargs),
                                              number_classical=len(instruction.cargs),
                                              number_parameters=len(instruction.params))
                 gatedata = {
