@@ -57,6 +57,7 @@ Changed
   final measurements when compiling for both simulators and devices (#1591).
 - Purity function in ``qiskit.tools.qi.qi`` calls new version in
   ``qiskit.quantum_information`` and issues deprecation warning (#1733)
+- Updated `dag.node_counter` to return the current number of nodes (#1763)
 
 Fixed
 -----
@@ -68,7 +69,6 @@ Fixed
 - Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
 - Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
   used in conditional operations (#1705).
-- Fixed a bug where the node counter on the DAG didn't update after transpilation (#1763)
 
 Removed
 -------

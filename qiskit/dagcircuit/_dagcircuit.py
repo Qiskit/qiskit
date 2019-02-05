@@ -57,7 +57,7 @@ class DAGCircuit:
         self.output_map = OrderedDict()
 
         # Running count of the total number of nodes
-        self.node_counter = 0
+        self._node_counter = 0
 
         # Map of user defined gates to ast nodes defining them
         self.gates = OrderedDict()
@@ -96,6 +96,11 @@ class DAGCircuit:
     def get_bits(self):
         """Return a list of bits as (ClassicalRegister, index) pairs."""
         return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
+
+    @property
+    def node_counter(self):
+        """ Returns the number of nodes in the DAG"""
+        return len(self.multi_graph.nodes())
 
     # TODO: unused function. is it needed?
     def rename_register(self, regname, newname):
@@ -183,10 +188,10 @@ class DAGCircuit:
         """
         if wire not in self.wires:
             self.wires.append(wire)
-            self.node_counter += 1
-            self.input_map[wire] = self.node_counter
-            self.node_counter += 1
-            self.output_map[wire] = self.node_counter
+            self._node_counter += 1
+            self.input_map[wire] = self._node_counter
+            self._node_counter += 1
+            self.output_map[wire] = self._node_counter
             in_node = self.input_map[wire]
             out_node = self.output_map[wire]
             self.multi_graph.add_edge(in_node, out_node)
@@ -331,18 +336,18 @@ class DAGCircuit:
             condition (tuple or None): optional condition (ClassicalRegister, int)
         """
         # Add a new operation node to the graph
-        self.node_counter += 1
-        self.multi_graph.add_node(self.node_counter)
+        self._node_counter += 1
+        self.multi_graph.add_node(self._node_counter)
         # Update the operation itself. TODO: remove after qargs not connected to op
         op.qargs = qargs
         op.cargs = cargs
         # Update that operation node's data
-        self.multi_graph.node[self.node_counter]["type"] = "op"
-        self.multi_graph.node[self.node_counter]["op"] = op
-        self.multi_graph.node[self.node_counter]["name"] = op.name
-        self.multi_graph.node[self.node_counter]["qargs"] = qargs
-        self.multi_graph.node[self.node_counter]["cargs"] = cargs
-        self.multi_graph.node[self.node_counter]["condition"] = condition
+        self.multi_graph.node[self._node_counter]["type"] = "op"
+        self.multi_graph.node[self._node_counter]["op"] = op
+        self.multi_graph.node[self._node_counter]["name"] = op.name
+        self.multi_graph.node[self._node_counter]["qargs"] = qargs
+        self.multi_graph.node[self._node_counter]["cargs"] = cargs
+        self.multi_graph.node[self._node_counter]["condition"] = condition
 
     def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
@@ -378,10 +383,10 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise DAGCircuitError("output node has multiple in-edges")
 
-            self.multi_graph.add_edge(ie[0], self.node_counter,
+            self.multi_graph.add_edge(ie[0], self._node_counter,
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
-            self.multi_graph.add_edge(self.node_counter, self.output_map[q],
+            self.multi_graph.add_edge(self._node_counter, self.output_map[q],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
     def apply_operation_front(self, op, qargs=None, cargs=None, condition=None):
@@ -416,10 +421,10 @@ class DAGCircuit:
             ie = list(self.multi_graph.successors(self.input_map[q]))
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
-            self.multi_graph.add_edge(self.node_counter, ie[0],
+            self.multi_graph.add_edge(self._node_counter, ie[0],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
-            self.multi_graph.add_edge(self.input_map[q], self.node_counter,
+            self.multi_graph.add_edge(self.input_map[q], self._node_counter,
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
     def _make_union_basis(self, input_circuit):
@@ -1076,10 +1081,10 @@ class DAGCircuit:
                             al = [m_qargs, all_cbits]
                             for q in itertools.chain(*al):
                                 self.multi_graph.add_edge(full_pred_map[q],
-                                                          self.node_counter,
+                                                          self._node_counter,
                                                           name="%s[%s]" % (q[0].name, q[1]),
                                                           wire=q)
-                                full_pred_map[q] = copy.copy(self.node_counter)
+                                full_pred_map[q] = copy.copy(self._node_counter)
                     # Connect all predecessors and successors, and remove
                     # residual edges between input and output nodes
                     for w in full_pred_map:
@@ -1198,10 +1203,10 @@ class DAGCircuit:
                 al = [m_qargs, all_cbits]
                 for q in itertools.chain(*al):
                     self.multi_graph.add_edge(full_pred_map[q],
-                                              self.node_counter,
+                                              self._node_counter,
                                               name="%s[%s]" % (q[0].name, q[1]),
                                               wire=q)
-                    full_pred_map[q] = copy.copy(self.node_counter)
+                    full_pred_map[q] = copy.copy(self._node_counter)
         # Connect all predecessors and successors, and remove
         # residual edges between input and output nodes
         for w in full_pred_map:

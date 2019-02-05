@@ -216,5 +216,5 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
             logger.info("post-mapping properties: %s",
                         dag.properties())
         dag.name = name
-    dag.node_counter = len(dag.multi_graph.nodes())
+
     return dag
