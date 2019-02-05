@@ -47,7 +47,10 @@ class Unroller(TransformationPass):
             decomposition_rules = current_node["op"].decompositions()
 
             # TODO: allow choosing other possible decompositions
-            decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
+            try:
+                decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
+            except Exception as err:
+                import pdb;pdb.set_trace()
 
             dag.substitute_node_with_dag(node, decomposition_dag)
         return dag

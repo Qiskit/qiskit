@@ -9,6 +9,7 @@
 
 
 from qiskit.circuit.compositegate import CompositeGate
+from qiskit.circuit.opaquegate import OpaqueGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 
 
@@ -64,6 +65,18 @@ def circuit_to_dag(circuit):
             # Add simulator extension instructions
             if instruction.name in simulator_instructions:
                 dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
+            if isinstance(instruction, OpaqueGate):
+                dagcircuit.add_basis_element('opaque', len(instruction.qargs),
+                                             number_classical=len(instruction.cargs),
+                                             number_parameters=len(instruction.params))
+                gatedata = {
+                    'print': False,
+                    'opaque': True,
+                    'n_args': len(instruction.params),
+                    'n_bits': len(instruction.qargs),
+                    'args': instruction.params,
+                    'body': None}
+                dagcircuit.add_gate_data(instruction.name, gatedata)
             # Get arguments for classical control (if any)
             if instruction.control is None:
                 control = None

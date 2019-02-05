@@ -8,7 +8,6 @@
 """
 Quantum circuit object.
 """
-
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
@@ -17,6 +16,7 @@ import multiprocessing as mp
 
 from qiskit.qasm import _qasm
 from qiskit.exceptions import QiskitError
+from .instruction import Instruction
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -130,6 +130,12 @@ class QuantumCircuit:
 
         Return self + rhs as a new object.
         """
+        if isinstance(rhs, Instruction):
+            qregs = set([qubit[0] for qubit in rhs.qargs])
+            cregs = set([cbit[0] for bit in rhs.cargs])
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -159,6 +165,12 @@ class QuantumCircuit:
 
         Modify and return self.
         """
+        if isinstance(rhs, Instruction):
+            qregs = set([qubit[0] for qubit in rhs.qargs])
+            cregs = set([cbit[0] for bit in rhs.cargs])
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -172,6 +184,7 @@ class QuantumCircuit:
 
         # Add new gates
         for gate in rhs.data:
+            import pdb;pdb.set_trace()
             gate.reapply(self)
         return self
 
