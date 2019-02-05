@@ -21,7 +21,6 @@ from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
-
 logger = getLogger(__name__)
 
 
@@ -84,6 +83,10 @@ class StochasticSwap(TransformationPass):
 
         Returns:
             DAGCircuit: A mapped DAG.
+
+        Raises:
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
 
         if self.initial_layout is None:
@@ -91,6 +94,13 @@ class StochasticSwap(TransformationPass):
                 self.initial_layout = self.property_set["layout"]
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
+        if len(dag.get_qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+
+        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         self.input_layout = self.initial_layout.copy()
 
