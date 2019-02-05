@@ -29,7 +29,7 @@ class MeasurementKernelSchema(BaseSchema):
 
     # Optional properties.
     name = String()
-    params = Nested(ObjSchema, many=True)
+    params = Nested(ObjSchema)
 
 
 class DiscriminatorSchema(BaseSchema):
@@ -37,7 +37,7 @@ class DiscriminatorSchema(BaseSchema):
 
     # Optional properties.
     name = String()
-    params = Nested(ObjSchema, many=True)
+    params = Nested(ObjSchema)
 
 
 class PulseCommandSchema(BaseSchema):
