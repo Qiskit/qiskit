@@ -61,7 +61,6 @@ class TestCheckMapCX(QiskitTestCase):
 
         self.assertFalse(pass_.property_set['requires_swap'])
 
-
     def test_requires_true(self):
         """ Needs [0]-[1] in a [0]--[2]--[1]
          qr0:--(+)--
