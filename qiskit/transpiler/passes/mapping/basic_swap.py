@@ -62,7 +62,7 @@ class BasicSwap(TransformationPass):
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        if len(dag.get_qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) != len(self.initial_layout):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
@@ -74,7 +74,7 @@ class BasicSwap(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for gate in subdag.get_2q_nodes():
+            for gate in subdag.twoQ_nodes():
                 physical_q0 = current_layout[gate['qargs'][0]]
                 physical_q1 = current_layout[gate['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:

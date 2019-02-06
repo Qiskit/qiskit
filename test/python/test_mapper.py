@@ -213,7 +213,7 @@ class TestMapper(QiskitTestCase):
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
         out_dag = transpile_dag(dag_circuit, initial_layout=lay,
                                 coupling_map=cmap)
-        meas_nodes = out_dag.get_named_nodes('measure')
+        meas_nodes = out_dag.named_nodes('measure')
         for n in meas_nodes:
             is_last_measure = all([after_measure in out_dag.output_map.values()
                                    for after_measure in out_dag.quantum_successors(n)])
