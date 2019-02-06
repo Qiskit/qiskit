@@ -68,6 +68,8 @@ Fixed
 - Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
 - Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
   used in conditional operations (#1705).
+- Fixed a bug that with transpile ignoring initial layout when
+  coupling map is provided (#1711).
 
 Removed
 -------
