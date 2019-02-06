@@ -13,7 +13,6 @@ It checks that all 2-qubit interactions are laid out to be physically close.
 
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
-from qiskit.extensions.standard.swap import SwapGate
 
 
 class CheckMap(AnalysisPass):
