@@ -45,7 +45,7 @@ $ python
 In this case, the output will be:
 
 ```python
-{'counts': {'00': 513, '11': 511}}
+{'00': 513, '11': 511}
 ```
 
 A script is available [here](examples/python/hello_quantum.py), where we also show how to
@@ -109,10 +109,10 @@ For questions that are more suited for a forum, we use the **Qiskit** tag in [St
 Now you're set up and ready to check out some of the other examples from our
 [Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials) repository.
 
-## Authors
+## Authors and Citation
 
 Qiskit Terra is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
-to the project at different levels.
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTex file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
 
 ## License
 

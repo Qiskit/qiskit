@@ -377,6 +377,10 @@ class QuantumCircuit:
         dag = circuit_to_dag(self)
         return dag.num_tensor_factors()
 
+    def copy(self):
+        """ Returns a deepcopy of the circuit"""
+        return deepcopy(self)
+
     @staticmethod
     def from_qasm_file(path):
         """Take in a QASM file and generate a QuantumCircuit object.
