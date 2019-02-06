@@ -40,17 +40,10 @@ class Unroller(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.get_gate_nodes():
             current_node = dag.multi_graph.node[node]
-
             if current_node["op"].name in self.basis:  # If already a base, ignore.
                 continue
-
             decomposition_rules = current_node["op"].decompositions()
-
             # TODO: allow choosing other possible decompositions
-            try:
-                decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
-            except Exception as err:
-                import pdb;pdb.set_trace()
-
+            decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
             dag.substitute_node_with_dag(node, decomposition_dag)
         return dag

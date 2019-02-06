@@ -62,7 +62,7 @@ class QasmSimulatorPy(BaseBackend):
         'memory': True,
         'max_shots': 65536,
         'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'umatrix'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -90,9 +90,9 @@ class QasmSimulatorPy(BaseBackend):
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
             {
-                'name': 'umatrix',
+                'name': 'unitary',
                 'parameters': ['matrix'],
-                'qasm_def': 'umatrix(matrix) q1, q2,...'
+                'qasm_def': 'unitary(matrix) q1, q2,...'
             }
         ]
     }

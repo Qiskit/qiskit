@@ -184,7 +184,6 @@ class QuantumCircuit:
 
         # Add new gates
         for gate in rhs.data:
-            import pdb;pdb.set_trace()
             gate.reapply(self)
         return self
 

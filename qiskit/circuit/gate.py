@@ -57,4 +57,5 @@ class Gate(Instruction):
 
     @representation.setter
     def representation(self, matrix):
+        """Set matrix representation"""
         self._representation = matrix

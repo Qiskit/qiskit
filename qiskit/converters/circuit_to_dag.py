@@ -68,7 +68,7 @@ def circuit_to_dag(circuit):
             if instruction.name in simulator_instructions:
                 dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
             if isinstance(instruction, UnitaryMatrixGate):
-                dagcircuit.add_basis_element('umatrix', len(instruction.qargs),
+                dagcircuit.add_basis_element('unitary', len(instruction.qargs),
                                              number_classical=len(instruction.cargs),
                                              number_parameters=len(instruction.params))
                 gatedata = {
