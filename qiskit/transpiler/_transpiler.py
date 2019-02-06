@@ -101,7 +101,7 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     # pick a trivial layout if the circuit already satisfies the coupling constraints
     # else layout on the most densely connected physical qubit subset
     # FIXME: this should be simplified once it is ported to a PassManager
-    if coupling_map:
+    if coupling_map and initial_layout is None:
         check_map = CheckMap(CouplingMap(coupling_map))
         check_map.run(dag)
         if check_map.property_set['is_direction_mapped']:
