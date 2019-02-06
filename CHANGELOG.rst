@@ -58,6 +58,12 @@ Changed
 - Purity function in ``qiskit.tools.qi.qi`` calls new version in
   ``qiskit.quantum_information`` and issues deprecation warning (#1733)
 
+Deprecated
+----------
+
+- The methods prefixed by `_get` in the DAGCircuit object are being renamed
+  without that prefix (see #1346)
+
 Fixed
 -----
 
