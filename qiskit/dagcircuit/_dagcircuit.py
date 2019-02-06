@@ -21,6 +21,7 @@ import re
 from collections import OrderedDict
 import copy
 import itertools
+import warnings
 import networkx as nx
 
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -90,10 +91,22 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
     def get_qubits(self):
+        """ Deprecated. Use qubits()."""
+        warnings.warn('The method get_qubits() is being replaced by qubits()',
+                      DeprecationWarning)
+        return self.qubits()
+
+    def qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
     def get_bits(self):
+        """ Deprecated. Use clbits()."""
+        warnings.warn('The method get_bits() is being replaced by clbits()',
+                      DeprecationWarning)
+        return self.clbits()
+
+    def clbits(self):
         """Return a list of bits as (ClassicalRegister, index) pairs."""
         return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
 
@@ -148,7 +161,7 @@ class DAGCircuit:
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
-        for n in self.get_named_nodes(opname):
+        for n in self.named_nodes(opname):
             self._remove_op_node(n)
 
     def add_qreg(self, qreg):
@@ -914,7 +927,7 @@ class DAGCircuit:
             n (int): reference to self.multi_graph node id
 
         Returns:
-            set(dict): set({predecessor_map, successor_map})
+            tuple(dict): tuple(predecessor_map, successor_map)
                 These map from wire (Register, int) to predecessor (successor)
                 nodes of n.
         """
@@ -975,6 +988,15 @@ class DAGCircuit:
         """
         copy_node1 = {k: v for (k, v) in node1.items()}
         copy_node2 = {k: v for (k, v) in node2.items()}
+
+        # For barriers, qarg order is not significant so compare as sets
+        if 'barrier' == copy_node1['name'] == copy_node2['name']:
+            node1_qargs = set(copy_node1.pop('qargs', []))
+            node2_qargs = set(copy_node2.pop('qargs', []))
+
+            if node1_qargs != node2_qargs:
+                return False
+
         return copy_node1 == copy_node2
 
     def __eq__(self, other):
@@ -988,7 +1010,7 @@ class DAGCircuit:
         Returns:
             list: The list of node numbers in topological order
         """
-        return nx.topological_sort(self.multi_graph)
+        return nx.lexicographical_topological_sort(self.multi_graph)
 
     def substitute_circuit_all(self, op, input_circuit, wires=None):
         """Replace every occurrence of operation op with input_circuit.
@@ -1118,7 +1140,7 @@ class DAGCircuit:
                 if n["type"] == "op":
                     n["op"].control = condition
                     to_replay.append(n)
-            for n in input_dag.get_op_nodes():
+            for n in input_dag.op_nodes():
                 input_dag._remove_op_node(n)
             for n in to_replay:
                 input_dag.apply_operation_back(n["op"], condition=condition)
@@ -1212,6 +1234,12 @@ class DAGCircuit:
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_op_nodes(self, op=None, data=False):
+        """ Deprecated. Use op_nodes()."""
+        warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',
+                      DeprecationWarning)
+        return self.op_nodes(op, data)
+
+    def op_nodes(self, op=None, data=False):
         """Get the list of "op" nodes in the dag.
 
         Args:
@@ -1233,6 +1261,12 @@ class DAGCircuit:
         return nodes
 
     def get_gate_nodes(self, data=False):
+        """ Deprecated. Use gate_nodes()."""
+        warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes()',
+                      DeprecationWarning)
+        return self.gate_nodes(data)
+
+    def gate_nodes(self, data=False):
         """Get the list of gate nodes in the dag.
 
         Args:
@@ -1243,7 +1277,7 @@ class DAGCircuit:
             list: the list of node ids that represent gates.
         """
         nodes = []
-        for node_id, node_data in self.get_op_nodes(data=True):
+        for node_id, node_data in self.op_nodes(data=True):
             if isinstance(node_data['op'], Gate):
                 nodes.append((node_id, node_data))
         if not data:
@@ -1251,6 +1285,12 @@ class DAGCircuit:
         return nodes
 
     def get_named_nodes(self, *names):
+        """ Deprecated. Use named_nodes()."""
+        warnings.warn('The method get_named_nodes() is being replaced by named_nodes()',
+                      DeprecationWarning)
+        return self.named_nodes(*names)
+
+    def named_nodes(self, *names):
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
@@ -1259,6 +1299,12 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
+        """ Deprecated. Use twoQ_nodes()."""
+        warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
+                      DeprecationWarning)
+        return self.twoQ_nodes()
+
+    def twoQ_nodes(self):
         """Get list of 2-qubit nodes."""
         two_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
@@ -1267,6 +1313,12 @@ class DAGCircuit:
         return two_q_nodes
 
     def get_3q_or_more_nodes(self):
+        """ Deprecated. Use threeQ_or_more_nodes()."""
+        warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
+                      ' threeQ_or_more_nodes()', DeprecationWarning)
+        return self.threeQ_or_more_nodes()
+
+    def threeQ_or_more_nodes(self):
         """Get list of 3-or-more-qubit nodes: (id, data)."""
         three_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
@@ -1277,6 +1329,14 @@ class DAGCircuit:
     def successors(self, node):
         """Returns the successors of a node."""
         return self.multi_graph.successors(node)
+
+    def ancestors(self, node):
+        """Returns the ancestors of a node."""
+        return nx.ancestors(self.multi_graph, node)
+
+    def descendants(self, node):
+        """Returns the descendants of a node."""
+        return nx.descendants(self.multi_graph, node)
 
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""
