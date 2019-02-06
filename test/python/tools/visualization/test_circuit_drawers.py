@@ -227,8 +227,7 @@ class TestDrawingMethods(DrawingTestCase):
         # (consequently, all the following test should be successful). Uncomment to use it.
         # for circuit_type in self.circuits:
         #     for draw_method in self.draw_methods:
-        #         references_dir = self._get_resource_path(os.path.join(_version_to_str(),
-        #                                                               circuit_type),
+        #         references_dir = self._get_resource_path(os.path.join(circuit_type),
         #                                                  path=Path.CIRCUIT_DRAWERS_REFERENCES)
         #
         #         references_dir = os.path.join(references_dir)
