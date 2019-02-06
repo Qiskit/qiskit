@@ -430,7 +430,7 @@ class StochasticSwap(TransformationPass):
         identity_wire_map = {}
         for qubit in circuit_graph.qubits():
             identity_wire_map[qubit] = qubit
-        for bit in circuit_graph.get_bits():
+        for bit in circuit_graph.clbits():
             identity_wire_map[bit] = bit
 
         first_layer = True  # True until first layer is output
