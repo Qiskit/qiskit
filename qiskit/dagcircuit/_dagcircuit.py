@@ -1120,6 +1120,10 @@ class DAGCircuit:
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:
+            # NOTE(mtreinish): Make a duplicate of the decomposition dag so
+            # we never modify the input_dag object, which may be global and
+            # shared.
+            input_dag = copy.deepcopy(input_dag)
             input_dag.add_creg(condition[0])
             to_replay = []
             for n_it in nx.topological_sort(input_dag.multi_graph):
