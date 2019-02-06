@@ -14,6 +14,7 @@ compatible.
 """
 
 from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
@@ -48,6 +49,10 @@ class BasicSwap(TransformationPass):
 
         Returns:
             DAGCircuit: A mapped DAG.
+
+        Raises:
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
         new_dag = DAGCircuit()
 
@@ -56,6 +61,13 @@ class BasicSwap(TransformationPass):
                 self.initial_layout = self.property_set["layout"]
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
+        if len(dag.get_qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+
+        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         current_layout = self.initial_layout.copy()
 
