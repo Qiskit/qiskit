@@ -40,14 +40,11 @@ class TestMatrixGate(QiskitTestCase):
         matrix = numpy.array([[1, 0], [0, 1]])
         qc.x(qr[0])
         qc.unitary(matrix, qr[0])
-        pm = PassManager()
-        pm.append(CXCancellation())
-        qc2 = transpile(qc, backend, pass_manager=pm)
         # test of qasm output
-        self.log.info(qc2.qasm())
+        self.log.info(qc.qasm())
         # test of text drawer
-        self.log.info(qc2)
-        dag = circuit_to_dag(qc2)
+        self.log.info(qc)
+        dag = circuit_to_dag(qc)
         node_ids = dag.get_named_nodes('unitary')
         self.assertTrue(len(node_ids) == 1)
         dnode = dag.multi_graph.node[node_ids[0]]
@@ -74,7 +71,7 @@ class TestMatrixGate(QiskitTestCase):
         self.log.info(qc2.qasm())
         # test of text drawer
         self.log.info(qc2)
-        dag = circuit_to_dag(qc2)
+        dag = circuit_to_dag(qc)
         nodes = dag.get_2q_nodes()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
@@ -122,5 +119,5 @@ class TestMatrixGate(QiskitTestCase):
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, 'unitary')
         self.assertTrue(numpy.allclose(
-            numpy.array(instr.params[0]).astype(numpy.float64),
+            numpy.array(instr.params[0]).astype(numpy.complex64),
             matrix))
