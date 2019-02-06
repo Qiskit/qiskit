@@ -215,6 +215,14 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual([1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 4, 14, 2, 15, 6],
                          [i for i in named_nodes])
 
+    def test_dag_has_edge(self):
+        """ Test that existance of edges between nodes is correctly identified"""
+        self.assertTrue(self.dag.has_edge(1, 2))
+        self.assertTrue(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 0)))
+
+        self.assertFalse(self.dag.has_edge(1, 3))
+        self.assertFalse(self.dag.has_edge(1, 3, (QuantumRegister(3, 'qr'), 0)))
+
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
