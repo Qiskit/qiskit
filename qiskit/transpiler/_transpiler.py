@@ -20,7 +20,6 @@ from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
 from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
-from .passes.mapping.check_map import CheckMap
 from .passes.mapping.check_cnot_direction import CheckCnotDirection
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
