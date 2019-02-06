@@ -93,7 +93,7 @@ class DAGCircuit:
     def get_qubits(self):
         """ Deprecated. Use qubits()."""
         warnings.warn('The method get_qubits() is being replaced by qubits()',
-                      DeprecationWarning)
+                      DeprecationWarning, 2)
         return self.qubits()
 
     def qubits(self):
@@ -103,7 +103,7 @@ class DAGCircuit:
     def get_bits(self):
         """ Deprecated. Use clbits()."""
         warnings.warn('The method get_bits() is being replaced by clbits()',
-                      DeprecationWarning)
+                      DeprecationWarning, 2)
         return self.clbits()
 
     def clbits(self):
@@ -1236,7 +1236,7 @@ class DAGCircuit:
     def get_op_nodes(self, op=None, data=False):
         """ Deprecated. Use op_nodes()."""
         warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',
-                      DeprecationWarning)
+                      DeprecationWarning, 2)
         return self.op_nodes(op, data)
 
     def op_nodes(self, op=None, data=False):
@@ -1263,7 +1263,7 @@ class DAGCircuit:
     def get_gate_nodes(self, data=False):
         """ Deprecated. Use gate_nodes()."""
         warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes()',
-                      DeprecationWarning)
+                      DeprecationWarning, 2)
         return self.gate_nodes(data)
 
     def gate_nodes(self, data=False):
@@ -1287,7 +1287,7 @@ class DAGCircuit:
     def get_named_nodes(self, *names):
         """ Deprecated. Use named_nodes()."""
         warnings.warn('The method get_named_nodes() is being replaced by named_nodes()',
-                      DeprecationWarning)
+                      DeprecationWarning, 2)
         return self.named_nodes(*names)
 
     def named_nodes(self, *names):
@@ -1301,7 +1301,7 @@ class DAGCircuit:
     def get_2q_nodes(self):
         """ Deprecated. Use twoQ_nodes()."""
         warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
-                      DeprecationWarning)
+                      DeprecationWarning, 2)
         return self.twoQ_nodes()
 
     def twoQ_nodes(self):
@@ -1315,7 +1315,7 @@ class DAGCircuit:
     def get_3q_or_more_nodes(self):
         """ Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
-                      ' threeQ_or_more_nodes()', DeprecationWarning)
+                      ' threeQ_or_more_nodes()', DeprecationWarning, 2)
         return self.threeQ_or_more_nodes()
 
     def threeQ_or_more_nodes(self):
