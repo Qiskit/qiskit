@@ -342,6 +342,27 @@ class TestCompiler(QiskitTestCase):
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
+    def test_compile_with_initial_layout(self):
+        """Test compile with an initial layout.
+        Regression test for #1711
+        """
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr)
+        qc.u1(3.14, qr[0])
+        qc.cx(qr[1], qr[0])
+        qc.barrier(qr)
+        qc.measure(qr, cr)
+        backend = FakeRueschlikon()
+        initial_layout = {0: (qr, 1), 2: (qr, 0), 15: (qr, 2)}
+
+        qobj = compile(qc, backend, seed=42, initial_layout=initial_layout)
+
+        compiled_ops = qobj.experiments[0].instructions
+        for operation in compiled_ops:
+            if operation.name == 'cx':
+                self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                self.assertIn(operation.qubits, [[15,0], [15,2]])
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

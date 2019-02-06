@@ -21,6 +21,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import _node as node
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.swap import SwapGate
+from qiskit.mapper import Layout
 
 from .exceptions import MapperError
 
@@ -394,6 +395,11 @@ def swap_mapper(circuit_graph, coupling_graph,
     if initial_layout is not None:
         # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
         # to an expected dict{(reg,idx): (reg,idx)}
+
+        if isinstance(initial_layout, Layout):
+            initial_layout = { (virtual[0].name,virtual[1]):('q',physical) for virtual, physical
+                               in initial_layout.get_virtual_bits().items()}
+
         device_register = QuantumRegister(coupling_graph.size(), 'q')
         initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
                           for k, v in initial_layout.items()}
