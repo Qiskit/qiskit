@@ -1365,7 +1365,8 @@ class DAGCircuit:
                 self.multi_graph.remove_edge(node1, node2, index)
                 return
 
-        raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist" % (node1, node2, str(wire)))
+        raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist"
+                              % (node1, node2, str(wire)))
 
     def has_edge(self, node1, node2, wire=None):
         """
@@ -1385,8 +1386,6 @@ class DAGCircuit:
             if node_dict['wire'] == wire:
                 return True
         return False
-
-
 
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
