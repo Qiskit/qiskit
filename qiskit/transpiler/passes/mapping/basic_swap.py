@@ -13,8 +13,6 @@ a cx is not in the coupling map possibilities, it inserts one or more swaps in f
 compatible.
 """
 
-from copy import copy
-
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
@@ -71,7 +69,7 @@ class BasicSwap(TransformationPass):
             raise TranspilerError(
                 "Mappers require to have the layout to be the same size as the coupling map")
 
-        current_layout = copy(self.initial_layout)
+        current_layout = self.initial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
