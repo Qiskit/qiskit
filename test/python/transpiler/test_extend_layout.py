@@ -9,10 +9,9 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import ExtendLayout
-from qiskit.converters import circuit_to_dag
 from qiskit.mapper import Layout
 from qiskit.test import QiskitTestCase
 
