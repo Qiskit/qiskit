@@ -34,7 +34,7 @@ from .ch import ch
 from .crz import crz
 from .cu3 import cu3
 from .rzz import rzz
-from .unitary_matrix import umatrix
+from .unitary_matrix import unitary
 
 from .barrier import Barrier
 from .ccx import ToffoliGate
