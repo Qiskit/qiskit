@@ -3,7 +3,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-.PHONY: env lint test doc test_record test_mock
+.PHONY: env lint test doc test_record test_mock test_ci
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -24,21 +24,23 @@ style:
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	stestr run --concurrency 2
+	python3 -m unittest discover -s test -v
 
 test_mock:
-	env QISKIT_TESTS=mock_online stestr run --concurrency 2
+	env QISKIT_TESTS=mock_online python3 -m unittest discover -s test -v
 
 test_recording:
 	-rm test/cassettes/*
-	env QISKIT_TESTS=rec stestr run --concurrency 2
+	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
+
+test_ci:
+	stestr run --concurrency 2
 
 profile:
-	stestr run "profile*" --concurrency 2
+	python3 -m unittest discover -p "profile*.py" -v
 
 coverage:
-	PYTHON="coverage3 run --source qiskit --parallel-mode" stestr run --concurrency 2
-	coverage3 combine
+	coverage3 run --source qiskit -m unittest discover -s test -q
 	coverage3 report
 
 doc:

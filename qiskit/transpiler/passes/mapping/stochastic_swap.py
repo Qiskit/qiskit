@@ -21,7 +21,6 @@ from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
-
 logger = getLogger(__name__)
 
 
@@ -84,6 +83,10 @@ class StochasticSwap(TransformationPass):
 
         Returns:
             DAGCircuit: A mapped DAG.
+
+        Raises:
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
 
         if self.initial_layout is None:
@@ -91,6 +94,13 @@ class StochasticSwap(TransformationPass):
                 self.initial_layout = self.property_set["layout"]
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
+        if len(dag.get_qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+
+        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         self.input_layout = self.initial_layout.copy()
 
@@ -171,6 +181,12 @@ class StochasticSwap(TransformationPass):
         best_depth = inf  # initialize best depth
         best_circuit = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
+
+        cdist2 = coupling._dist_matrix**2
+        # Scaling matrix
+        scale = np.zeros((num_qubits, num_qubits))
+        utri_idx = np.triu_indices(num_qubits)
+
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
             trial_layout = layout.copy()
@@ -180,14 +196,10 @@ class StochasticSwap(TransformationPass):
                     trial_circuit.add_qreg(register[0])
 
             # Compute randomized distance
-            xi = {}  # pylint: disable=invalid-name
-            for i in range(num_qubits):
-                xi[i] = {}
-            for i in range(num_qubits):
-                for j in range(i, num_qubits):
-                    scale = 1 + np.random.normal(0, 1 / num_qubits)
-                    xi[i][j] = scale * coupling.distance(i, j) ** 2
-                    xi[j][i] = xi[i][j]
+            data = 1 + np.random.normal(0, 1/num_qubits,
+                                        size=num_qubits*(num_qubits+1)//2)
+            scale[utri_idx] = data
+            xi = (scale+scale.T)*cdist2  # pylint: disable=invalid-name
 
             slice_circuit = DAGCircuit()  # circuit for this swap slice
             for register in trial_layout.get_virtual_bits().keys():
@@ -203,21 +215,24 @@ class StochasticSwap(TransformationPass):
                 # While there are still qubits available
                 while qubit_set:
                     # Compute the objective function
-                    min_cost = sum([xi[trial_layout[g[0]]][trial_layout[g[1]]] for g in gates])
+                    min_cost = sum(xi[trial_layout[g[0]]][trial_layout[g[1]]] for g in gates)
                     # Try to decrease objective function
                     cost_reduced = False
 
                     # Loop over edges of coupling graph
+                    need_copy = True
                     for edge in coupling.get_edges():
-                        qubits = [trial_layout[e] for e in edge]
+                        qubits = (trial_layout[edge[0]], trial_layout[edge[1]])
                         # Are the qubits available?
                         if qubits[0] in qubit_set and qubits[1] in qubit_set:
                             # Try this edge to reduce the cost
-                            new_layout = trial_layout.copy()
+                            if need_copy:
+                                new_layout = trial_layout.copy()
+                                need_copy = False
                             new_layout.swap(edge[0], edge[1])
 
                             # Compute the objective function
-                            new_cost = sum([xi[new_layout[g[0]]][new_layout[g[1]]] for g in gates])
+                            new_cost = sum(xi[new_layout[g[0]]][new_layout[g[1]]] for g in gates)
                             # Record progress if we succceed
                             if new_cost < min_cost:
                                 logger.debug("layer_permutation: min_cost "
@@ -225,12 +240,17 @@ class StochasticSwap(TransformationPass):
                                 cost_reduced = True
                                 min_cost = new_cost
                                 optimal_layout = new_layout
-                                optimal_edge = qubits
+                                optimal_edge = (self.initial_layout[edge[0]],
+                                                self.initial_layout[edge[1]])
+                                optimal_qubits = qubits
+                                need_copy = True
+                            else:
+                                new_layout.swap(edge[0], edge[1])
 
                     # Were there any good swap choices?
                     if cost_reduced:
-                        qubit_set.remove(optimal_edge[0])
-                        qubit_set.remove(optimal_edge[1])
+                        qubit_set.remove(optimal_qubits[0])
+                        qubit_set.remove(optimal_qubits[1])
                         trial_layout = optimal_layout
                         slice_circuit.apply_operation_back(
                             SwapGate(optimal_edge[0],
@@ -244,9 +264,9 @@ class StochasticSwap(TransformationPass):
                 # failed to improve the cost.
 
                 # Compute the coupling graph distance
-                dist = sum([coupling.distance(trial_layout[g[0]],
-                                              trial_layout[g[1]])
-                            for g in gates])
+                dist = sum(coupling.distance(trial_layout[g[0]],
+                                             trial_layout[g[1]])
+                           for g in gates)
                 logger.debug("layer_permutation: new swap distance = %s", dist)
                 # If all gates can be applied now, we are finished.
                 # Otherwise we need to consider a deeper swap circuit
@@ -261,9 +281,9 @@ class StochasticSwap(TransformationPass):
                 logger.debug("layer_permutation: increment depth to %s", depth_step)
 
             # Either we have succeeded at some depth d < dmax or failed
-            dist = sum([coupling.distance(trial_layout[g[0]],
-                                          trial_layout[g[1]])
-                        for g in gates])
+            dist = sum(coupling.distance(trial_layout[g[0]],
+                                         trial_layout[g[1]])
+                       for g in gates)
             logger.debug("layer_permutation: final distance for this trial = %s", dist)
             if dist == len(gates):
                 if depth_step < best_depth:
