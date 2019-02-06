@@ -1351,6 +1351,25 @@ class DAGCircuit:
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
+    def has_edge(self, node1, node2, wire=None):
+        """
+        Check to see if edge exists between 2 DAG nodes, and optionally
+        if there is a connection on a specific wire
+
+        Returns :
+            boolean: True when an edge meeting the criteria exists
+        """
+
+        in_multi_graph = self.multi_graph.has_edge(node1, node2)
+
+        if not wire or not in_multi_graph:
+            return in_multi_graph
+
+        for _, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                return True
+        return False
+
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
