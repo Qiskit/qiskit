@@ -194,7 +194,7 @@ class TestDagOperations(QiskitTestCase):
 
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
-        named_nodes = self.dag.get_named_nodes('cx')
+        named_nodes = self.dag.named_nodes('cx')
         node_qargs = {tuple(self.dag.multi_graph.node[node_id]["op"].qargs)
                       for node_id in named_nodes}
         expected_qargs = {
