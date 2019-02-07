@@ -16,7 +16,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 
-
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
@@ -184,7 +183,10 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
     if basis_gates is None:
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
     if isinstance(basis_gates, str):
-        warnings.warn('The parameter basis_gates is now a list of strings.', DeprecationWarning, 2)
+        warnings.warn("The parameter basis_gates is now a list of strings. "
+                      "For example, this basis ['u1','u2','u3','cx'] should be used "
+                      "instead of 'u1,u2,u3,cx'. The string format will be "
+                      "removed after 0.9", DeprecationWarning, 2)
         basis_gates = basis_gates.split(',')
 
     if pass_manager:
