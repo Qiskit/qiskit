@@ -38,7 +38,7 @@ class Unroller(TransformationPass):
             DAGCircuit: output unrolled dag
         """
         # Walk through the DAG and expand each non-basis node
-        for node in dag.get_gate_nodes():
+        for node in dag.gate_nodes():
             current_node = dag.multi_graph.node[node]
 
             if current_node["op"].name in self.basis:  # If already a base, ignore.
