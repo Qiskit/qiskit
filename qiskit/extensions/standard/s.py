@@ -75,7 +75,7 @@ class SGate(Gate):
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoin phase gate."""
 
-    _decompositions = _define_decompositions_sdggate
+    _decompositions = _define_decompositions_sdggate()
 
     def __init__(self, qubit, circ=None):
         """Create new Sdg gate."""
