@@ -256,7 +256,10 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[2], cr[2])
         shots = 2048
         coupling_map = [[0, 1], [1, 2]]
-        initial_layout = {(qr, 0): 0, (qr, 1): 1, (qr, 2): 2}
+        # TODO (luciano): this initial_layout should be replaced by
+        #  {(qr, 0): 0, (qr, 1): 1, (qr, 2): 2} after 0.8
+        initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
+                          ("qr", 2): ("q", 2)}
         qobj = compile(qc, backend=backend, shots=shots,
                        coupling_map=coupling_map,
                        initial_layout=initial_layout, seed=88)
