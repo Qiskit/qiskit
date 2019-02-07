@@ -216,7 +216,8 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
             if circuit_cache.qobjs is None:
                 qobj = q_compile([circuits[0]], backend, **backend_config,
                                  **compile_config, **run_config.to_dict())
-                qobj = _maybe_add_aer_expectation_instruction(qobj, [circuits[0]], kwargs)
+                if is_aer_provider(backend):
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
 
     qobjs = []
@@ -229,7 +230,7 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
             try:
                 qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
                 if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
             # cache miss, fail gracefully
             except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
                 circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
@@ -242,14 +243,14 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
                 qobj = q_compile(sub_circuits, backend, **backend_config,
                                  **compile_config, **run_config.to_dict())
                 if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, sub_circuits, i)
 
         else:
             qobj = q_compile(sub_circuits, backend, **backend_config,
                              **compile_config, **run_config.to_dict())
             if is_aer_provider(backend):
-                qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
+                qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
 
         # assure get job ids
         while True:
