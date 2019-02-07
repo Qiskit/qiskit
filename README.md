@@ -45,7 +45,7 @@ $ python
 In this case, the output will be:
 
 ```python
-{'counts': {'00': 513, '11': 511}}
+{'00': 513, '11': 511}
 ```
 
 A script is available [here](examples/python/hello_quantum.py), where we also show how to
