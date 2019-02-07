@@ -93,7 +93,7 @@ class LookaheadSwap(TransformationPass):
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        if len(dag.get_qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) != len(self.initial_layout):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         if len(self._coupling_map.physical_qubits) != len(self.initial_layout):
