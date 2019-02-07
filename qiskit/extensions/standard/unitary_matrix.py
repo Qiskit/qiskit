@@ -13,7 +13,6 @@ Matrix gate
 import numpy
 import sympy
 from qiskit.circuit import Gate
-from qiskit.circuit import OpaqueGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit

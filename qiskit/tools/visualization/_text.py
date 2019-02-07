@@ -11,7 +11,7 @@ A module for drawing circuits in ascii art or some other text representation
 
 from shutil import get_terminal_size
 import sys
-import numbers
+import numpy
 
 from .exceptions import VisualizationError
 
@@ -594,7 +594,7 @@ class TextDrawing():
         """Get the params and format them to add them to a label. None if there are no params."""
         if 'op' in instruction and hasattr(instruction['op'], 'params'):
             return ['%.5g' % i for i in instruction['op'].params
-                    if isinstance(i, numbers.Number)]
+                    if not isinstance(i, numpy.ndarray)]
         return None
 
     @staticmethod
