@@ -24,7 +24,7 @@ class Unroll3qOrMore(TransformationPass):
         Returns:
             DAGCircuit: output dag with maximum node degrees of 2
         """
-        for node_id, node_data in dag.get_3q_or_more_nodes():
+        for node_id, node_data in dag.threeQ_or_more_nodes():
             decomposition_rules = node_data["op"].decompositions()
 
             # TODO: allow choosing other possible decompositions
