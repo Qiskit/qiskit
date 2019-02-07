@@ -127,24 +127,26 @@ def _combine_result_objects(results):
     return new_result
 
 
-def _maybe_add_aer_expectation_instruction(qobj, sub_circuits, options):
+def _maybe_add_aer_expectation_instruction(qobj, options):
 
     if 'expectation' in options:
-        from qiskit.providers.aer.utils.qobj_utils import snapshot_instr, append_instr
+        from qiskit.providers.aer.utils.qobj_utils import snapshot_instr, append_instr, get_instr_pos
         # add others, how to derive the correct used number of qubits?
         # the compiled qobj could be wrong if coupling map is used.
         # if mulitple params are provided, we assume that each circuit is corresponding one param
         # otherwise, params are used for all circuits.
         params = options['expectation']['params']
         num_qubits = options['expectation']['num_qubits']
-        if len(params) == 1:
-            new_ins = snapshot_instr('expectation_value_pauli', 'test', range(num_qubits), params=params[0])
-            for ii in range(len(sub_circuits)):
-                qobj = append_instr(qobj, ii, new_ins)
-        else:
-            for ii in range(len(sub_circuits)):
-                new_ins = snapshot_instr('expectation_value_pauli', 'test', range(num_qubits), params=params[ii])
-                qobj = append_instr(qobj, ii, new_ins)
+
+        for idx in range(len(qobj.experiments)):
+            snapshot_pos = get_instr_pos(qobj, idx, 'snapshot')
+            if len(snapshot_pos) == 0:  # does not append the instruction yet.
+                new_ins = snapshot_instr('expectation_value_pauli', 'test', range(num_qubits), params=params[idx])
+                qobj = append_instr(qobj, idx, new_ins)
+            else:
+                for i in snapshot_pos:  # update all expectation_value_snapshot
+                    if qobj.experiments[idx].instructions[i].type == 'expectation_value_pauli':
+                        qobj.experiments[idx].instructions[i].params = params[idx]
     return qobj
 
 
@@ -214,7 +216,7 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
             if circuit_cache.qobjs is None:
                 qobj = q_compile([circuits[0]], backend, **backend_config,
                                  **compile_config, **run_config.to_dict())
-                # TODO: put _maybe_add_aer_expectation_instruction here?
+                qobj = _maybe_add_aer_expectation_instruction(qobj, [circuits[0]], kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
 
     qobjs = []
@@ -226,6 +228,8 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
         if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
             try:
                 qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
+                if is_aer_provider(backend):
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
             # cache miss, fail gracefully
             except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
                 circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
@@ -237,16 +241,15 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
                 circuit_cache.clear_cache()
                 qobj = q_compile(sub_circuits, backend, **backend_config,
                                  **compile_config, **run_config.to_dict())
+                if is_aer_provider(backend):
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
                 circuit_cache.cache_circuit(qobj, sub_circuits, i)
+
         else:
             qobj = q_compile(sub_circuits, backend, **backend_config,
                              **compile_config, **run_config.to_dict())
-
-        # It seems that cache can not handle snapshot instruction.
-        if is_aer_provider(backend):
-            if circuit_cache is not None and circuit_cache.skip_qobj_deepcopy:
-                qobj = copy.deepcopy(qobj)
-            qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
+            if is_aer_provider(backend):
+                qobj = _maybe_add_aer_expectation_instruction(qobj, sub_circuits, kwargs)
 
         # assure get job ids
         while True:
