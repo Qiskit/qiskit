@@ -17,7 +17,7 @@ program for the next instance.
 
 **Code imports**
 
-.. code:: ipython3
+.. code:: python
 
     import numpy as np
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
@@ -32,7 +32,7 @@ Building the circuit
 The basic elements needed for your first program are the QuantumCircuit,
 and QuantumRegister.
 
-.. code:: ipython3
+.. code:: python
 
     # Create a Quantum Register with 3 qubits.
     q = QuantumRegister(3, 'q')
@@ -66,7 +66,7 @@ would be the GHZ state above.
 In Qiskit, operations can be added to the circuit one-by-one, as shown
 below.
 
-.. code:: ipython3
+.. code:: python
 
     # Add a H gate on qubit 0, putting this qubit in superposition.
     circ.h(q[0])
@@ -83,7 +83,7 @@ Visualize Circuit
 You can visualize your circuit using Qiskit ``QuantumCircuit.draw()``,
 which plots circuit in the form found in many textbooks.
 
-.. code:: ipython3
+.. code:: python
 
     circ.draw()
 
@@ -151,7 +151,7 @@ machine).
 To run the above circuit using the statevector simulator, first you need
 to import Aer and then set the backend to ``statevector_simulator``.
 
-.. code:: ipython3
+.. code:: python
 
     # Import Aer
     from qiskit import BasicAer
@@ -164,7 +164,7 @@ circuit. In Qiskit we provide the ``execute`` function for this.
 ``execute`` returns a ``job`` object that encapsulates information about
 the job submitted to the backend.
 
-.. code:: ipython3
+.. code:: python
 
     # Create a Quantum Program for execution 
     job = execute(circ, backend)
@@ -179,7 +179,7 @@ status of the job and a result object respectively.
     switches to synchronous and waits for it to finish before moving on to
     another task.
 
-.. code:: ipython3
+.. code:: python
 
     result = job.result()
 
@@ -187,7 +187,7 @@ The results object contains the data and Qiskit provides the method
 ``result.get_statevector(circ)`` to return the state vector for the
 quantum circuit.
 
-.. code:: ipython3
+.. code:: python
 
     outputstate = result.get_statevector(circ, decimals=3)
     print(outputstate)
@@ -204,12 +204,12 @@ results.
 Below, we use the visualization function to plot the real and imaginary
 components of the state vector.
 
-.. code:: ipython3
+.. code:: python
 
     from qiskit.tools.visualization import plot_state_city
     plot_state_city(outputstate)
 
-.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_21_0.png
+.. image:: images/figures/getting_started_with_qiskit_21_0.png
 
 
 
@@ -221,7 +221,7 @@ all the elements in the circuit are unitary operations*. This backend
 calculates the :math:`2^n \times 2^n` matrix representing the gates in
 the quantum circuit.
 
-.. code:: ipython3
+.. code:: python
 
     # Run the quantum circuit on a unitary simulator backend
     backend = BasicAer.get_backend('unitary_simulator')
@@ -290,7 +290,7 @@ To simulate a circuit that includes measurement, we need to add
 measurements to the original circuit above, and use a different Aer
 backend.
 
-.. code:: ipython3
+.. code:: python
 
     # Create a Classical Register with 3 bits.
     c = ClassicalRegister(3, 'c')
@@ -335,7 +335,7 @@ estimate :math:`\mathrm{Pr}(000)`), we need to repeat the circuit many
 times. The number of times the circuit is repeated can be specified in
 the ``execute`` function, via the ``shots`` keyword.
 
-.. code:: ipython3
+.. code:: python
 
     # Use Aer's qasm_simulator
     backend_sim = BasicAer.get_backend('qasm_simulator')
@@ -352,7 +352,7 @@ Once you have a result object, you can access the counts via the
 function ``get_counts(circuit)``. This gives you the *aggregated* binary
 outcomes of the circuit you submitted.
 
-.. code:: ipython3
+.. code:: python
 
     counts = result_sim.get_counts(qc)
     print(counts)
@@ -367,7 +367,7 @@ Approximately 50 percent of the time the output bitstring is 000. Qiskit
 also provides a function ``plot_histogram`` which allows you to view the
 outcomes.
 
-.. code:: ipython3
+.. code:: python
 
     from qiskit.tools.visualization import plot_histogram
     plot_histogram(counts)
@@ -375,7 +375,7 @@ outcomes.
 
 
 
-.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_33_0.png
+.. image:: images/figures/getting_started_with_qiskit_33_0.png
 
 
 
@@ -401,7 +401,7 @@ HPC simulator. Currently, this provider exists within Qiskit, and can be
 imported as shown below. For details on the provider, see `The IBMQ
 Provider <the_ibmq_provider.ipynb>`__.
 
-.. code:: ipython3
+.. code:: python
 
     from qiskit import IBMQ
 
@@ -413,14 +413,14 @@ This will store your IBMQ credentials in a local file. Unless your
 registration information has changed, you only need to do this once. You
 may now load your accounts by calling,
 
-.. code:: ipython3
+.. code:: python
 
     IBMQ.load_accounts()
 
 Once your account has been loaded, you can view the list of backends
 available to you.
 
-.. code:: ipython3
+.. code:: python
 
     print("Available backends:")
     IBMQ.backends()
@@ -448,7 +448,7 @@ The IBMQ provider uses a queue to allocate the devices to users. We now
 choose a device with the least busy queue which can support our program
 (has at least 3 qubits).
 
-.. code:: ipython3
+.. code:: python
 
     from qiskit.providers.ibmq import least_busy
     
@@ -467,7 +467,7 @@ shots and the number of credits we are willing to spend to run the
 circuit. Then, we execute the circuit on the backend using the
 ``execute`` function.
 
-.. code:: ipython3
+.. code:: python
 
     from qiskit.tools.monitor import job_monitor
     shots = 1024           # Number of shots to run the program (experiment); maximum is 8192 shots.
@@ -490,14 +490,14 @@ running our circuit.
     When the .result() method is called, the code block will wait
     until the job has finished before releasing the cell.
 
-.. code:: ipython3
+.. code:: python
 
     result_exp = job_exp.result()
 
 Like before, the counts from the execution can be obtained using
 ``get_counts(qc)``
 
-.. code:: ipython3
+.. code:: python
 
     counts_exp = result_exp.get_counts(qc)
     plot_histogram([counts_exp,counts])
@@ -505,7 +505,7 @@ Like before, the counts from the execution can be obtained using
 
 
 
-.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_49_0.png
+.. image:: images/figures/getting_started_with_qiskit_49_0.png
 
 
 
@@ -517,22 +517,22 @@ The IBMQ provider also comes with a remote optimized simulator called
 up to 32 qubits. It can be used the same way as the remote real
 backends.
 
-.. code:: ipython3
+.. code:: python
 
     backend = IBMQ.get_backend('ibmq_qasm_simulator', hub=None)
 
-.. code:: ipython3
+.. code:: python
 
     shots = 1024           # Number of shots to run the program (experiment); maximum is 8192 shots.
     max_credits = 3        # Maximum number of credits to spend on executions. 
     
     job_hpc = execute(qc, backend=backend, shots=shots, max_credits=max_credits)
 
-.. code:: ipython3
+.. code:: python
 
     result_hpc = job_hpc.result()
 
-.. code:: ipython3
+.. code:: python
 
     counts_hpc = result_hpc.get_counts(qc)
     plot_histogram(counts_hpc)
@@ -540,7 +540,7 @@ backends.
 
 
 
-.. image:: getting_started_with_qiskit_files/getting_started_with_qiskit_54_0.png
+.. image:: images/figures/getting_started_with_qiskit_54_0.png
 
 
 
@@ -552,7 +552,7 @@ around, or if you simply want to retrieve old jobs back, the IBMQ
 backends allow you to do that. First you would need to note your job’s
 ID:
 
-.. code:: ipython3
+.. code:: python
 
     jobID = job_exp.job_id()
     
@@ -567,13 +567,13 @@ ID:
 Given a job ID, that job object can be later reconstructed from the
 backend using retrieve_job:
 
-.. code:: ipython3
+.. code:: python
 
     job_get=backend.retrieve_job(jobID)
 
 and then the results can be obtained from the new job object.
 
-.. code:: ipython3
+.. code:: python
 
     job_get.result().get_counts(qc)
 
