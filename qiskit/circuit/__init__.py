@@ -15,4 +15,3 @@ from .instructionset import InstructionSet
 from .measure import Measure
 from .reset import Reset
 from .compositegate import CompositeGate
-from .opaquegate import OpaqueGate

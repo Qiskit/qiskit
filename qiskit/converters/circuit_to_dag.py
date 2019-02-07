@@ -9,8 +9,6 @@
 
 
 from qiskit.circuit.compositegate import CompositeGate
-#from qiskit.circuit.opaquegate import OpaqueGate
-from qiskit.circuit.opaquegate import OpaqueGate
 from qiskit.extensions.standard import UnitaryMatrixGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 
@@ -49,7 +47,6 @@ def circuit_to_dag(circuit):
         "load": ["load", -1, 0, 1],
         "noise": ["noise", -1, 0, 1]
     }
-
     for main_instruction in circuit.data:
         # TODO: generate definitions and nodes for CompositeGates,
         # for now simply drop their instructions into the DAG

@@ -73,7 +73,7 @@ class Instruction:
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self.params.append(single_param)
-            # example: sympy.Matrix([[1, 0], [0, 1]])                
+            # example: sympy.Matrix([[1, 0], [0, 1]])
             elif isinstance(single_param, sympy.Matrix):
                 self.params.append(single_param)
             else:
