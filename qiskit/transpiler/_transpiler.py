@@ -14,6 +14,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
+from qiskit.mapper import Layout
 
 
 from .passes.cx_cancellation import CXCancellation
@@ -112,8 +113,10 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
             dense_layout = DenseLayout(CouplingMap(coupling_map))
             dense_layout.run(dag)
             initial_layout = dense_layout.property_set['layout']
-        # temporarily build old-style layout dict
-        # (FIXME: remove after transition to StochasticSwap pass)
+
+    # temporarily build old-style layout dict
+    # (TODO: remove after transition to StochasticSwap pass)
+    if isinstance(initial_layout, Layout):
         layout = initial_layout.copy()
         virtual_qubits = layout.get_virtual_bits()
         initial_layout = {(v[0].name, v[1]): ('q', layout[v]) for v in virtual_qubits}

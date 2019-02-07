@@ -51,7 +51,7 @@ def compile(circuits, backend,
         warnings.warn('The `config` argument is deprecated and '
                       'does not do anything', DeprecationWarning)
 
-    if not isinstance(initial_layout, Layout):
+    if initial_layout is not None and not isinstance(initial_layout, Layout):
         initial_layout = Layout(initial_layout)
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,

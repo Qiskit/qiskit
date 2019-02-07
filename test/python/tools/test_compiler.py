@@ -256,8 +256,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[2], cr[2])
         shots = 2048
         coupling_map = [[0, 1], [1, 2]]
-        initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
-                          ("qr", 2): ("q", 2)}
+        initial_layout = {(qr, 0): 0, (qr, 1): 1, (qr, 2): 2}
         qobj = compile(qc, backend=backend, shots=shots,
                        coupling_map=coupling_map,
                        initial_layout=initial_layout, seed=88)
@@ -362,7 +361,8 @@ class TestCompiler(QiskitTestCase):
         for operation in compiled_ops:
             if operation.name == 'cx':
                 self.assertIn(operation.qubits, backend.configuration().coupling_map)
-                self.assertIn(operation.qubits, [[15,0], [15,2]])
+                self.assertIn(operation.qubits, [[15, 0], [15, 2]])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -38,8 +38,9 @@ class Layout():
              (QuantumRegister(3, 'qr'), 2): 2}
         """
         for key, value in input_dict.items():
-            self._v2p[key] = value
-            self._p2v[value] = key
+            virtual, physical = Layout.order_based_on_type(key, value)
+            self._v2p[virtual] = physical
+            self._p2v[physical] = virtual
 
     def from_list(self, input_list):
         """
@@ -61,6 +62,21 @@ class Layout():
                                   " (Register, integer) or None")
 
     @staticmethod
+    def order_based_on_type(value1, value2):
+        """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
+        if isinstance(value1, int) and Layout.is_virtual(value2):
+            physical = value1
+            virtual = value2
+        elif isinstance(value2, int) and Layout.is_virtual(value1):
+            physical = value2
+            virtual = value1
+        else:
+            print(value1, value2)
+            raise LayoutError('The map (%s -> %s) has to be a ((Register, integer) -> integer)'
+                              ' or the other way around.' % (type(value1), type(value2)))
+        return virtual, physical
+
+    @staticmethod
     def is_virtual(value):
         """Checks if value has the format of a virtual qubit """
         return value is None or isinstance(value, tuple) and len(value) == 2 and isinstance(
@@ -74,16 +90,7 @@ class Layout():
         raise KeyError('The item %s does not exist in the Layout' % (item,))
 
     def __setitem__(self, key, value):
-        if isinstance(key, int) and Layout.is_virtual(value):
-            physical = key
-            virtual = value
-        elif isinstance(value, int) and Layout.is_virtual(key):
-            physical = value
-            virtual = key
-        else:
-            raise LayoutError('The map (%s -> %s) has to be a ((Register, integer) -> integer)'
-                              ' or the other way around.' % (key, value))
-
+        virtual, physical = Layout.order_based_on_type(key, value)
         self._set_type_checked_item(virtual, physical)
 
     def _set_type_checked_item(self, virtual, physical):
