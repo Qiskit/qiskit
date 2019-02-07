@@ -27,7 +27,7 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(['u2'])
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.get_op_nodes(data=True)
+        op_nodes = unrolled_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 1)
         self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
 
@@ -41,7 +41,7 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller()
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.get_op_nodes(data=True)
+        op_nodes = unrolled_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
             op = node[1]["op"]
@@ -57,7 +57,7 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(['h', 't', 'tdg', 'cx'])
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.get_op_nodes(data=True)
+        op_nodes = unrolled_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             op = node[1]["op"]
