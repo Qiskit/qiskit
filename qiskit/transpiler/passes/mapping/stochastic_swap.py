@@ -95,7 +95,7 @@ class StochasticSwap(TransformationPass):
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        if len(dag.get_qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) != len(self.initial_layout):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
@@ -342,7 +342,7 @@ class StochasticSwap(TransformationPass):
             for j in range(i + 1):
                 # Make qubit edge map and extend by classical bits
                 edge_map = layout.combine_into_edge_map(self.initial_layout)
-                for bit in dagcircuit_output.get_bits():
+                for bit in dagcircuit_output.clbits():
                     edge_map[bit] = bit
                 dagcircuit_output.compose_back(layer_list[j]["graph"], edge_map)
         # Otherwise, we output the current layer and the associated swap gates.
@@ -356,7 +356,7 @@ class StochasticSwap(TransformationPass):
                 logger.debug("layer_update: there are no swaps in this layer")
             # Make qubit edge map and extend by classical bits
             edge_map = layout.combine_into_edge_map(self.initial_layout)
-            for bit in dagcircuit_output.get_bits():
+            for bit in dagcircuit_output.clbits():
                 edge_map[bit] = bit
             # Output this layer
             dagcircuit_output.compose_back(layer_list[i]["graph"], edge_map)
@@ -428,9 +428,9 @@ class StochasticSwap(TransformationPass):
         # Make a trivial wire mapping between the subcircuits
         # returned by _layer_update and the circuit we build
         identity_wire_map = {}
-        for qubit in circuit_graph.get_qubits():
+        for qubit in circuit_graph.qubits():
             identity_wire_map[qubit] = qubit
-        for bit in circuit_graph.get_bits():
+        for bit in circuit_graph.clbits():
             identity_wire_map[bit] = bit
 
         first_layer = True  # True until first layer is output
