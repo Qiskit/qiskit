@@ -364,6 +364,9 @@ class TestCompiler(QiskitTestCase):
                 self.assertIn(operation.qubits, [[15, 0], [15, 2]])
 
     def test_execute_with_initial_layout(self):
+        """ Test execute with initial layout
+        Regression test for #1637
+        """
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         qc = QuantumCircuit(qr, cr)
