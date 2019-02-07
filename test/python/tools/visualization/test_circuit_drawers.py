@@ -223,7 +223,7 @@ class TestDrawingMethods(DrawingTestCase):
 
         # Create a temporary folder to store all the outputs produced during testing
         cls.tmp_dir = tempfile.mkdtemp()
-            
+
     @staticmethod
     def regenerate_references():
         """Generates new references for all circuit types just at set up procedure
@@ -231,8 +231,8 @@ class TestDrawingMethods(DrawingTestCase):
         """
         for circuit_type in TestDrawingMethods.circuits:
             for draw_method in TestDrawingMethods.draw_methods:
-                references_dir = TestDrawingMethods._get_resource_path(os.path.join(circuit_type),
-                                                                       path=Path.CIRCUIT_DRAWERS_REFERENCES)
+                references_dir = super()._get_resource_path(os.path.join(circuit_type),
+                                                            path=Path.CIRCUIT_DRAWERS_REFERENCES)
 
                 references_dir = os.path.join(references_dir)
                 if not os.path.exists(references_dir):
