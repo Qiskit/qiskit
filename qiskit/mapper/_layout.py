@@ -14,7 +14,7 @@ Physical (qu)bits are numbers.
 """
 import warnings
 
-from qiskit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
 
