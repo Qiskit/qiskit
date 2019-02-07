@@ -70,7 +70,7 @@ def circuit_to_dag(circuit):
                                              number_parameters=len(instruction.params))
                 gatedata = {
                     'print': False,
-                    'opaque': True,
+                    'opaque': False,
                     'n_args': len(instruction.params),
                     'n_bits': len(instruction.qargs),
                     'args': instruction.params,

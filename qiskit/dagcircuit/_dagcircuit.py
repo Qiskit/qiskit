@@ -270,8 +270,7 @@ class DAGCircuit:
             DAGCircuitError: If the check fails.
         """
         # Check that we have this operation
-        if (op.name not in self.basis
-                and (isinstance(op, OpaqueGate) and 'opaque' not in self.basis)):
+        if op.name not in self.basis:
             raise DAGCircuitError("%s is not in the list of basis operations" % op.name)
         # Check the number of arguments matches the signature
         if op.name in ["barrier"]:
