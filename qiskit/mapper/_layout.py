@@ -12,10 +12,11 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
 Physical (qu)bits are numbers.
 """
+import warnings
+
 from qiskit import QuantumRegister
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
-import warnings
 
 
 class Layout():
@@ -45,7 +46,7 @@ class Layout():
         if len(input_dict) >= 1:
             key = list(input_dict.keys())[0]
             value = input_dict[key]
-            if (isinstance(key, tuple) and
+            if (isinstance(key, tuple) and  # pylint: disable=too-many-boolean-expressions
                     len(key) == 2 and
                     isinstance(key[0], str) and
                     isinstance(key[1], int) and
@@ -54,17 +55,17 @@ class Layout():
                     isinstance(key[0], str) and
                     isinstance(key[1], int)):
                 warnings.warn("This form of dictionary (i.e. {(\"%s\",%s):(\"%s\",%s), ...} is "
-                              "going to be deprecated after 0.8." % (key+value),
+                              "going to be deprecated after 0.8." % (key + value),
                               DeprecationWarning)
-                qreg_names = set([qubit[0] for qubit in input_dict.keys()])
+                qreg_names = {qubit[0] for qubit in input_dict.keys()}
                 qregs = {}
                 for qreg_name in qreg_names:
                     qregs[qreg_name] = QuantumRegister(
-                        max([qubit[1] for qubit in input_dict.keys() if qubit[0] == qreg_name])+1,
+                        max([qubit[1] for qubit in input_dict.keys() if qubit[0] == qreg_name]) + 1,
                         qreg_name)
                 new_input_dict = {}
                 for key, value in input_dict.items():
-                    new_input_dict[value[1]]=(qregs[key[0]], key[1])
+                    new_input_dict[value[1]] = (qregs[key[0]], key[1])
                 input_dict = new_input_dict
 
         for key, value in input_dict.items():

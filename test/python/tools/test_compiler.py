@@ -18,7 +18,7 @@ from qiskit import compile, execute
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
-from qiskit.mapper import Layout
+
 
 class TestCompiler(QiskitTestCase):
     """Qiskit Compiler Tests."""
@@ -363,6 +363,7 @@ class TestCompiler(QiskitTestCase):
             if operation.name == 'cx':
                 self.assertIn(operation.qubits, backend.configuration().coupling_map)
                 self.assertIn(operation.qubits, [[15, 0], [15, 2]])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
