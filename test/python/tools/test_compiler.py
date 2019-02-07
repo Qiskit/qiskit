@@ -364,25 +364,5 @@ class TestCompiler(QiskitTestCase):
                 self.assertIn(operation.qubits, backend.configuration().coupling_map)
                 self.assertIn(operation.qubits, [[15, 0], [15, 2]])
 
-    def test_execute_with_initial_layout(self):
-        """ Test execute with initial layout
-        Regression test for #1637
-        """
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
-        qc = QuantumCircuit(qr, cr)
-        qc.u1(3.14, qr[0])
-        qc.cx(qr[1], qr[0])
-        qc.barrier(qr)
-        qc.measure(qr, cr)
-        backend = BasicAer.get_backend('qasm_simulator')
-
-        layout_dict = {}
-        for qreg in qc.qregs:
-            for i in range(qreg.size):
-                layout_dict[(qreg, i)] = i
-        layout = Layout(layout_dict)
-        execute(qc, backend=backend, initial_layout=layout, shots=1024)
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)
