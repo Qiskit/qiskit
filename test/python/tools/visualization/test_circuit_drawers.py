@@ -199,47 +199,51 @@ class TestDrawingMethods(DrawingTestCase):
     a great test which combines all tests for both different circuit types and circuit drawers.
 
     """
-    def setUp(self):
-        super(TestDrawingMethods, self).setUp()
+    # Output formats which define a draw method
+    draw_methods = ('text', 'latex', 'latex_source', 'mpl')
 
-        # Specify output formats which define a draw method
-        self.draw_methods = ('text', 'latex', 'latex_source', 'mpl')
+    # Extensions of the file obtained during the draw methods invocation
+    extensions = {'mpl': '.png'}
 
-        # Specify extensions of the file obtained during the draw methods invocation
-        self.extensions = {'mpl': '.png'}
+    # Draw methods which produce file or image as an output
+    file_output_methods = ('text', 'latex_source')
+    image_output_methods = ('latex', 'mpl')
 
-        # Specify draw methods which produce file or image as output
-        self.file_output_methods = ('text', 'latex_source')
-        self.image_output_methods = ('latex', 'mpl')
+    # Correspondence between a circuit type and a function to be invoked
+    circuits = {
+        'small': _small_circuit,
+        'medium': _medium_circuit,
+        'large': _large_circuit,
+        'deep': _deep_circuit,
+    }
 
-        # Set correspondence between a circuit type and a function to be invoked
-        self.circuits = {
-            'small': _small_circuit,
-            'medium': _medium_circuit,
-            'large': _large_circuit,
-            'deep': _deep_circuit,
-        }
+    @classmethod
+    def setUpClass(cls):
+        super(TestDrawingMethods, cls).setUpClass()
 
         # Create a temporary folder to store all the outputs produced during testing
-        self.tmp_dir = tempfile.mkdtemp()
+        cls.tmp_dir = tempfile.mkdtemp()
+            
+    @staticmethod
+    def regenerate_references():
+        """Generates new references for all circuit types just at set up procedure
+        (consequently, all the following test should be successful).
+        """
+        for circuit_type in TestDrawingMethods.circuits:
+            for draw_method in TestDrawingMethods.draw_methods:
+                references_dir = TestDrawingMethods._get_resource_path(os.path.join(circuit_type),
+                                                                       path=Path.CIRCUIT_DRAWERS_REFERENCES)
 
-        # This piece of code allows one to easily generate new references just at set up procedure
-        # (consequently, all the following test should be successful). Uncomment to use it.
-        # for circuit_type in self.circuits:
-        #     for draw_method in self.draw_methods:
-        #         references_dir = self._get_resource_path(os.path.join(circuit_type),
-        #                                                  path=Path.CIRCUIT_DRAWERS_REFERENCES)
-        #
-        #         references_dir = os.path.join(references_dir)
-        #         if not os.path.exists(references_dir):
-        #             os.makedirs(references_dir)
-        #
-        #         reference_output = os.path.join(references_dir, draw_method)
-        #
-        #         # Make underlying circuit drawer to draw chosen circuit
-        #         circuit_drawer(self.circuits[circuit_type](),
-        #                        output=draw_method,
-        #                        filename=reference_output)
+                references_dir = os.path.join(references_dir)
+                if not os.path.exists(references_dir):
+                    os.makedirs(references_dir)
+
+                reference_output = os.path.join(references_dir, draw_method)
+
+                # Make underlying circuit drawer to draw chosen circuit
+                circuit_drawer(TestDrawingMethods.circuits[circuit_type](),
+                               output=draw_method,
+                               filename=reference_output)
 
     def test_small_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a small circuit equal
@@ -357,11 +361,12 @@ class TestDrawingMethods(DrawingTestCase):
         if draw_method in self.image_output_methods:
             self.assertImagesAreEqual(test_output, reference_output)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         # Mercilessly delete a temporary folder
-        shutil.rmtree(self.tmp_dir)
+        shutil.rmtree(cls.tmp_dir)
 
-        super(TestDrawingMethods, self).tearDown()
+        super(TestDrawingMethods, cls).tearDownClass()
 
 
 class TestCircuitDrawer(QiskitTestCase):
@@ -375,49 +380,47 @@ class TestCircuitDrawer(QiskitTestCase):
 
     Also, this test case checks how `interactive=True` is handled.
     """
+    # Correspondence between output format and called circuit drawer function
+    draw_methods = {
+        'text': '_text_circuit_drawer',
+        'latex': '_latex_circuit_drawer',
+        'latex_source': '_generate_latex_source',
+        'mpl': '_matplotlib_circuit_drawer'
+    }
 
-    def setUp(self):
-        # Specify correspondence between output format and called circuit drawer function
-        self.draw_methods = {
-            'text': '_text_circuit_drawer',
-            'latex': '_latex_circuit_drawer',
-            'latex_source': '_generate_latex_source',
-            'mpl': '_matplotlib_circuit_drawer'
-        }
+    # Methods which imply testing of the interactive mode
+    interactive_draw_methods = ('latex', 'mpl')
 
-        # Specify methods which imply testing of the interactive mode
-        self.interactive_draw_methods = ('latex', 'mpl')
-
-        # Specify which arguments shall be passed to the mocked call of corresponding draw method
-        self.calls = {
-            'text': {
-                'filename': None,
-                'line_length': None,
-                'reversebits': False,
-                'plotbarriers': True,
-            },
-            'latex': {
-                'scale': 0.7,
-                'filename': None,
-                'style': None,
-                'plot_barriers': True,
-                'reverse_bits': False
-            },
-            'latex_source': {
-                'scale': 0.7,
-                'filename': None,
-                'style': None,
-                'plot_barriers': True,
-                'reverse_bits': False
-            },
-            'mpl': {
-                'scale': 0.7,
-                'filename': None,
-                'style': None,
-                'plot_barriers': True,
-                'reverse_bits': False
-            },
-        }
+    # Arguments that shall be passed to the mocked call of corresponding draw method
+    calls = {
+        'text': {
+            'filename': None,
+            'line_length': None,
+            'reversebits': False,
+            'plotbarriers': True,
+        },
+        'latex': {
+            'scale': 0.7,
+            'filename': None,
+            'style': None,
+            'plot_barriers': True,
+            'reverse_bits': False
+        },
+        'latex_source': {
+            'scale': 0.7,
+            'filename': None,
+            'style': None,
+            'plot_barriers': True,
+            'reverse_bits': False
+        },
+        'mpl': {
+            'scale': 0.7,
+            'filename': None,
+            'style': None,
+            'plot_barriers': True,
+            'reverse_bits': False
+        },
+    }
 
     def test_correct_output_provided(self):
         """Tests how correctly specified output circuit drawer is called.
@@ -469,4 +472,5 @@ class TestCircuitDrawer(QiskitTestCase):
 
 
 if __name__ == '__main__':
+    TestDrawingMethods.regenerate_references()
     unittest.main()
