@@ -351,12 +351,10 @@ class TestCompiler(QiskitTestCase):
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         qc = QuantumCircuit(qr, cr)
-        qc.u1(3.14, qr[0])
-        qc.cx(qr[1], qr[0])
-        qc.barrier(qr)
-        qc.measure(qr, cr)
-        backend = FakeRueschlikon()
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[0])
         initial_layout = {0: (qr, 1), 2: (qr, 0), 15: (qr, 2)}
+        backend = FakeRueschlikon()
 
         qobj = compile(qc, backend, seed=42, initial_layout=initial_layout)
 
