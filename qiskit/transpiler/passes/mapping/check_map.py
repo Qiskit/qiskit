@@ -48,7 +48,7 @@ class CheckMap(AnalysisPass):
 
         self.property_set['requires_swap'] = False
 
-        for gate in dag.get_2q_nodes():
+        for gate in dag.twoQ_nodes():
             physical_q0 = self.layout[gate['qargs'][0]]
             physical_q1 = self.layout[gate['qargs'][1]]
 
