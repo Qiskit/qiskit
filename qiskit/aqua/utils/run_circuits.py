@@ -127,6 +127,31 @@ def _combine_result_objects(results):
     return new_result
 
 
+def _maybe_add_aer_expectation_instruction(qobj, options):
+
+    if 'expectation' in options:
+        from qiskit.providers.aer.utils.qobj_utils import snapshot_instr, append_instr, get_instr_pos
+        # add others, how to derive the correct used number of qubits?
+        # the compiled qobj could be wrong if coupling map is used.
+        params = options['expectation']['params']
+        num_qubits = options['expectation']['num_qubits']
+
+        for idx in range(len(qobj.experiments)):
+            # if mulitple params are provided, we assume that each circuit is corresponding one param
+            # otherwise, params are used for all circuits.
+            param_idx = idx if len(params) > 1 else 0
+            snapshot_pos = get_instr_pos(qobj, idx, 'snapshot')
+            if len(snapshot_pos) == 0:  # does not append the instruction yet.
+                new_ins = snapshot_instr('expectation_value_pauli', 'test',
+                                         range(num_qubits), params=params[param_idx])
+                qobj = append_instr(qobj, idx, new_ins)
+            else:
+                for i in snapshot_pos:  # update all expectation_value_snapshot
+                    if qobj.experiments[idx].instructions[i].type == 'expectation_value_pauli':
+                        qobj.experiments[idx].instructions[i].params = params[param_idx]
+    return qobj
+
+
 def compile_and_run_circuits(circuits, backend, backend_config, compile_config, run_config,
                              qjob_config=None, backend_options=None,
                              noise_config=None, show_circuit_summary=False,
@@ -184,13 +209,17 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
             max_circuits_per_job = backend.configuration().max_experiments
 
     if circuit_cache is not None and circuit_cache.try_reusing_qobjs:
-        # Check if all circuits are the same length. If not, don't try to use the same qobj.experiment for all of them.
+        # Check if all circuits are the same length.
+        # If not, don't try to use the same qobj.experiment for all of them.
         if len(set([len(circ.data) for circ in circuits])) > 1:
             circuit_cache.try_reusing_qobjs = False
         else:  # Try setting up the reusable qobj
             # Compile and cache first circuit if cache is empty. The load method will try to reuse it
-            if circuit_cache.try_reusing_qobjs and circuit_cache.qobjs is None:
-                qobj = q_compile([circuits[0]], backend, **execute_config)
+            if circuit_cache.qobjs is None:
+                qobj = q_compile([circuits[0]], backend, **backend_config,
+                                 **compile_config, **run_config.to_dict())
+                if is_aer_provider(backend):
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
 
     qobjs = []
@@ -202,40 +231,29 @@ def compile_and_run_circuits(circuits, backend, backend_config, compile_config, 
         if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
             try:
                 qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
+                if is_aer_provider(backend):
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
             # cache miss, fail gracefully
             except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
                 circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
                 if len(circuit_cache.qobjs) > 0:
                     logger.info('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
-                    # Uncomment for easier debugging
-                    # print('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
                     circuit_cache.misses += 1
                 else:
                     logger.info('Circuit cache is empty, compiling from scratch.')
                 circuit_cache.clear_cache()
                 qobj = q_compile(sub_circuits, backend, **backend_config,
                                  **compile_config, **run_config.to_dict())
+                if is_aer_provider(backend):
+                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, sub_circuits, i)
+
         else:
             qobj = q_compile(sub_circuits, backend, **backend_config,
                              **compile_config, **run_config.to_dict())
+            if is_aer_provider(backend):
+                qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
 
-        if 'expectation' in kwargs:
-            from qiskit.providers.aer.utils.qobj_utils import snapshot_instr, append_instr
-            # add others, how to derive the correct used number of qubits?
-            # the compiled qobj could be wrong if coupling map is used.
-            # if mulitple params are provided, we assume that each circuit is corresponding one param
-            # otherwise, params are used for all circuits.
-            params = kwargs['expectation']['params']
-            num_qubits = kwargs['expectation']['num_qubits']
-            if len(params) == 1:
-                new_ins = snapshot_instr('expectation_value_pauli', 'test', range(num_qubits), params=params[0])
-                for ii in range(len(sub_circuits)):
-                    qobj = append_instr(qobj, ii, new_ins)
-            else:
-                for ii in range(len(sub_circuits)):
-                    new_ins = snapshot_instr('expectation_value_pauli', 'test', range(num_qubits), params=params[ii])
-                    qobj = append_instr(qobj, ii, new_ins)
         # assure get job ids
         while True:
             job = run_on_backend(backend, qobj, backend_options=backend_options, noise_config=noise_config,
