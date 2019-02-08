@@ -7,6 +7,7 @@
 
 """Tools for compiling a batch of quantum circuits."""
 import logging
+import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.mapper import CouplingMap, swap_mapper
@@ -15,7 +16,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
-
 
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
@@ -39,7 +39,8 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
         backend (BaseBackend): a backend to compile for
-        basis_gates (str): comma-separated basis gate set to compile to
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
         seed_mapper (int): random seed for the swap_mapper
@@ -57,7 +58,7 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         return_form_is_single = True
 
     # Check for valid parameters for the experiments.
-    basis_gates = basis_gates or ','.join(backend.configuration().basis_gates)
+    basis_gates = basis_gates or backend.configuration().basis_gates
     coupling_map = coupling_map or getattr(backend.configuration(),
                                            'coupling_map', None)
 
@@ -82,7 +83,8 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
     Args:
         circuit (QuantumCircuit): A circuit to transpile.
-        basis_gates (str): comma-separated basis gate set to compile to
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
         seed_mapper (int): random seed for the swap_mapper
@@ -133,14 +135,15 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
 
 # pylint: disable=redefined-builtin
-def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
+def transpile_dag(dag, basis_gates=None, coupling_map=None,
                   initial_layout=None, seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
     Args:
         dag (DAGCircuit): dag circuit to transform via transpilation
-        basis_gates (str): a comma separated string for the target basis gates
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): A graph of coupling::
 
             [
@@ -180,7 +183,14 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     if num_qubits == 1 or coupling_map == "all-to-all":
         coupling_map = None
 
-    final_layout = None
+    if basis_gates is None:
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+    if isinstance(basis_gates, str):
+        warnings.warn("The parameter basis_gates is now a list of strings. "
+                      "For example, this basis ['u1','u2','u3','cx'] should be used "
+                      "instead of 'u1,u2,u3,cx'. The string format will be "
+                      "removed after 0.9", DeprecationWarning, 2)
+        basis_gates = basis_gates.split(',')
 
     if pass_manager:
         # run the passes specified by the pass manager
@@ -189,10 +199,9 @@ def transpile_dag(dag, basis_gates='u1,u2,u3,cx,id', coupling_map=None,
     else:
         # default set of passes
         # TODO: move each step here to a pass, and use a default passmanager below
-        basis = basis_gates.split(',') if basis_gates else []
         name = dag.name
 
-        dag = Unroller(basis).run(dag)
+        dag = Unroller(basis_gates).run(dag)
         dag = BarrierBeforeFinalMeasurements().run(dag)
 
         # if a coupling map is given compile to the map

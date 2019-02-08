@@ -57,6 +57,10 @@ Changed
   final measurements when compiling for both simulators and devices (#1591).
 - Purity function in ``qiskit.tools.qi.qi`` calls new version in
   ``qiskit.quantum_information`` and issues deprecation warning (#1733)
+- The argument ``basis_gates`` used in ``compile``, ``execute``, and ``transpile``
+  is not longer a comma-separated string but a list of strings. For example,
+  this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
+  (#1333)
 
 Deprecated
 ----------

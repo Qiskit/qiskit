@@ -30,7 +30,8 @@ def compile(circuits, backend,
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
         backend (BaseBackend): a backend to compile for
         config (dict): dictionary of parameters (e.g. noise) used by runner
-        basis_gates (str): comma-separated basis gate set to compile to
+        basis_gates (list[str]): list of basis gates names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
         shots (int): number of repetitions of each circuit, for sampling
@@ -84,7 +85,8 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): a backend to execute the circuits on
         config (dict): dictionary of parameters (e.g. noise) used by runner
-        basis_gates (str): comma-separated basis gate set to compile to
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): coupling map (perhaps custom) to target in mapping
         initial_layout (list): initial layout of qubits in mapping
         shots (int): number of repetitions of each circuit, for sampling
