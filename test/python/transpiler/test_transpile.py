@@ -60,7 +60,7 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         coupling_map = [[1, 0]]
-        basis_gates = 'u1,u2,u3,cx,id'
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
 
         backend = BasicAer.get_backend('qasm_simulator')
         circuit2 = transpile(circuit, backend, coupling_map=coupling_map, basis_gates=basis_gates,
