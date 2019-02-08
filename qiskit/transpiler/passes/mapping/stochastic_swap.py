@@ -73,7 +73,7 @@ class StochasticSwap(TransformationPass):
         self.trials = trials
         self.seed = seed
         self.requires.append(BarrierBeforeFinalMeasurements())
-        self.dag = None
+        self.qregs = None
 
     def run(self, dag):
         """
@@ -104,7 +104,7 @@ class StochasticSwap(TransformationPass):
                 "Mappers require to have the layout to be the same size as the coupling map")
 
         self.input_layout = self.initial_layout.copy()
-        self.dag = dag
+        self.qregs = dag.qregs
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, seed=self.seed)
         # self.property_set["layout"] = self.initial_layout
         return new_dag
@@ -188,9 +188,9 @@ class StochasticSwap(TransformationPass):
         scale = np.zeros((num_qubits, num_qubits))
         utri_idx = np.triu_indices(num_qubits)
 
-        int_qubit_subset = regtuple_to_numeric(qubit_subset, self.dag)
-        int_gates = gates_to_idx(gates, self.dag)
-        int_layout = layout_to_numeric(layout, self.dag, coupling.size())
+        int_qubit_subset = regtuple_to_numeric(qubit_subset, self.qregs)
+        int_gates = gates_to_idx(gates, self.qregs)
+        int_layout = layout_to_numeric(layout, self.qregs, coupling.size())
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
             trial_layout = int_layout.copy()
@@ -311,7 +311,7 @@ class StochasticSwap(TransformationPass):
 
         # Otherwise, we return our result for this layer
         logger.debug("layer_permutation: success!")
-        best_lay = numeric_to_layout(best_layout, self.dag)
+        best_lay = numeric_to_layout(best_layout, self.qregs)
         return True, best_circuit, best_depth, best_lay, False
 
     def _layer_update(self, i, first_layer, best_layout, best_depth,
@@ -577,7 +577,7 @@ class NLayout():
         self.logical_to_physical[self.physical_to_logical[idx2]] = idx2
 
 
-def regtuple_to_numeric(items, dag):
+def regtuple_to_numeric(items, qregs):
     """Takes (QuantumRegister, int) tuples and converts
     them into an integer array.
 
@@ -589,10 +589,10 @@ def regtuple_to_numeric(items, dag):
         ndarray: Array of integers.
 
     """
-    sizes = [qr.size for qr in dag.qregs.values()]
+    sizes = [qr.size for qr in qregs.values()]
     reg_idx = np.cumsum([0]+sizes)
     regint = {}
-    for ind, qreg in enumerate(dag.qregs.values()):
+    for ind, qreg in enumerate(qregs.values()):
         regint[qreg] = ind
     out = np.zeros(len(items), dtype=int)
     for idx, val in enumerate(items):
@@ -600,7 +600,7 @@ def regtuple_to_numeric(items, dag):
     return out
 
 
-def gates_to_idx(gates, dag):
+def gates_to_idx(gates, qregs):
     """Converts gate tuples into a nested list of integers.
 
     Args:
@@ -611,10 +611,10 @@ def gates_to_idx(gates, dag):
     Returns:
         list: Nested list of integers for gates.
     """
-    sizes = [qr.size for qr in dag.qregs.values()]
+    sizes = [qr.size for qr in qregs.values()]
     reg_idx = np.cumsum([0]+sizes)
     regint = {}
-    for ind, qreg in enumerate(dag.qregs.values()):
+    for ind, qreg in enumerate(qregs.values()):
         regint[qreg] = ind
     out = [[], []]
     for gate in gates:
@@ -623,7 +623,7 @@ def gates_to_idx(gates, dag):
     return out
 
 
-def layout_to_numeric(layout, dag, num_qubits):
+def layout_to_numeric(layout, qregs, num_qubits):
     """Converts a Layout object to a numerical
     representation of one.
 
@@ -635,11 +635,11 @@ def layout_to_numeric(layout, dag, num_qubits):
     Returns:
         NLayout: Numerical layout instance
     """
-    sizes = [qr.size for qr in dag.qregs.values()]
+    sizes = [qr.size for qr in qregs.values()]
     reg_idx = np.cumsum([0]+sizes)
     num_logical_qubits = sum(sizes)
     regint = {}
-    for ind, qreg in enumerate(dag.qregs.values()):
+    for ind, qreg in enumerate(qregs.values()):
         regint[qreg] = ind
     logical_to_physical = np.zeros(num_logical_qubits, dtype=int)
     physical_to_logical = np.zeros(num_qubits, dtype=int)
@@ -655,7 +655,7 @@ def layout_to_numeric(layout, dag, num_qubits):
     return nlay
 
 
-def numeric_to_layout(numeric, dag):
+def numeric_to_layout(numeric, qregs):
     """Convert NLayout back to Layout.
 
     Args:
@@ -668,7 +668,7 @@ def numeric_to_layout(numeric, dag):
     """
     out = Layout()
     main_idx = 0
-    for qreg in dag.qregs.values():
+    for qreg in qregs.values():
         for idx in range(qreg.size):
             out[(qreg, idx)] = int(numeric.logical_to_physical[main_idx])
             main_idx += 1
