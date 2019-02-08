@@ -6,4 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Models and schemas for Terra."""
-from .base import BaseModel, BaseSchema, bind_schema
+
+from .base import BaseModel, BaseSchema, bind_schema, ModelTypeValidator
+from .exceptions import ModelValidationError

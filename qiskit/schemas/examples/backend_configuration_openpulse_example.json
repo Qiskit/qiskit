@@ -30,6 +30,8 @@
     "local": false,
     "simulator": false,
     "conditional": true,
+    "memory": true,
+    "max_shots": 8192,
     "n_registers": 2,
     "register_map": [[1,1],[1,1],[0,1]],
     "open_pulse": true,

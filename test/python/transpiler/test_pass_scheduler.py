@@ -13,13 +13,16 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import PassManager, transpile_dag, TranspilerAccessError, TranspilerError, \
-    FlowController
-from qiskit.transpiler._passmanager import DoWhileController, ConditionalController
-from ._dummy_passes import PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA, \
-    PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property, \
-    PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn, PassK_check_fixed_point_property
-from ..common import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.transpiler import transpile_dag
+from qiskit.transpiler import TranspilerAccessError, TranspilerError
+from qiskit.transpiler._passmanager import DoWhileController, ConditionalController, FlowController
+from qiskit.converters import circuit_to_dag
+from qiskit.test import QiskitTestCase
+from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
+                            PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
+                            PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
+                            PassK_check_fixed_point_property)
 
 logger = "LocalLogger"
 
@@ -55,20 +58,40 @@ class SchedulerTestCase(QiskitTestCase):
         self.assertEqual([record.message for record in cm.records], expected)
 
 
+class TestPassManagerInit(SchedulerTestCase):
+    """ The pass manager sets things at init time."""
+
+    def test_passes(self):
+        """ A single chain of passes, with Requests and Preserves, at __init__ time"""
+        dag = circuit_to_dag(QuantumCircuit(QuantumRegister(1)))
+        passmanager = PassManager(passes=[
+            PassC_TP_RA_PA(),  # Request: PassA / Preserves: PassA
+            PassB_TP_RA_PA(),  # Request: PassA / Preserves: PassA
+            PassD_TP_NR_NP(argument1=[1, 2]),  # Requires: {}/ Preserves: {}
+            PassB_TP_RA_PA()])
+        self.assertScheduler(dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
+                                                'run transformation pass PassC_TP_RA_PA',
+                                                'run transformation pass PassB_TP_RA_PA',
+                                                'run transformation pass PassD_TP_NR_NP',
+                                                'argument [1, 2]',
+                                                'run transformation pass PassA_TP_NR_NP',
+                                                'run transformation pass PassB_TP_RA_PA'])
+
+
 class TestUseCases(SchedulerTestCase):
     """ The pass manager schedules passes in, sometimes, tricky ways. These tests combine passes in
      many ways, and checks that passes are ran in the right order. """
 
     def setUp(self):
-        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
+        self.dag = circuit_to_dag(QuantumCircuit(QuantumRegister(1)))
         self.passmanager = PassManager()
 
     def test_chain(self):
         """ A single chain of passes, with Requests and Preserves."""
-        self.passmanager.add_passes(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        self.passmanager.add_passes(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        self.passmanager.add_passes(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {}/ Preserves: {}
-        self.passmanager.add_passes(PassB_TP_RA_PA())
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {}/ Preserves: {}
+        self.passmanager.append(PassB_TP_RA_PA())
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassC_TP_RA_PA',
                                                           'run transformation pass PassB_TP_RA_PA',
@@ -79,25 +102,25 @@ class TestUseCases(SchedulerTestCase):
 
     def test_conditional_passes_true(self):
         """ A pass set with a conditional parameter. The callable is True. """
-        self.passmanager.add_passes(PassE_AP_NR_NP(True))
-        self.passmanager.add_passes(PassA_TP_NR_NP(),
-                                    condition=lambda property_set: property_set['property'])
+        self.passmanager.append(PassE_AP_NR_NP(True))
+        self.passmanager.append(PassA_TP_NR_NP(),
+                                condition=lambda property_set: property_set['property'])
         self.assertScheduler(self.dag, self.passmanager, ['run analysis pass PassE_AP_NR_NP',
                                                           'set property as True',
                                                           'run transformation pass PassA_TP_NR_NP'])
 
     def test_conditional_passes_false(self):
         """ A pass set with a conditional parameter. The callable is False. """
-        self.passmanager.add_passes(PassE_AP_NR_NP(False))
-        self.passmanager.add_passes(PassA_TP_NR_NP(),
-                                    condition=lambda property_set: property_set['property'])
+        self.passmanager.append(PassE_AP_NR_NP(False))
+        self.passmanager.append(PassA_TP_NR_NP(),
+                                condition=lambda property_set: property_set['property'])
         self.assertScheduler(self.dag, self.passmanager, ['run analysis pass PassE_AP_NR_NP',
                                                           'set property as False'])
 
     def test_conditional_and_loop(self):
         """ Run a conditional first, then a loop"""
-        self.passmanager.add_passes(PassE_AP_NR_NP(True))
-        self.passmanager.add_passes(
+        self.passmanager.append(PassE_AP_NR_NP(True))
+        self.passmanager.append(
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
@@ -154,8 +177,8 @@ class TestUseCases(SchedulerTestCase):
         FlowController.remove_flow_controller('condition')
         FlowController.add_flow_controller('condition', ConditionalController)
 
-        self.passmanager.add_passes(PassK_check_fixed_point_property())
-        self.passmanager.add_passes(
+        self.passmanager.append(PassK_check_fixed_point_property())
+        self.passmanager.append(
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
@@ -208,22 +231,22 @@ class TestUseCases(SchedulerTestCase):
     def test_do_not_repeat_based_on_preservation(self):
         """ When a pass is still a valid pass (because following passes preserved it), it should not
         run again"""
-        self.passmanager.add_passes([PassB_TP_RA_PA(), PassA_TP_NR_NP(), PassB_TP_RA_PA()])
+        self.passmanager.append([PassB_TP_RA_PA(), PassA_TP_NR_NP(), PassB_TP_RA_PA()])
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassB_TP_RA_PA'])
 
     def test_do_not_repeat_based_on_idempotence(self):
         """ Repetition can be optimized to a single execution when the pass is idempotent"""
-        self.passmanager.add_passes(PassA_TP_NR_NP())
-        self.passmanager.add_passes([PassA_TP_NR_NP(), PassA_TP_NR_NP()])
-        self.passmanager.add_passes(PassA_TP_NR_NP())
+        self.passmanager.append(PassA_TP_NR_NP())
+        self.passmanager.append([PassA_TP_NR_NP(), PassA_TP_NR_NP()])
+        self.passmanager.append(PassA_TP_NR_NP())
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP'])
 
     def test_non_idempotent_pass(self):
         """ Two or more runs of a non-idempotent pass cannot be optimized. """
-        self.passmanager.add_passes(PassF_reduce_dag_property())
-        self.passmanager.add_passes([PassF_reduce_dag_property(), PassF_reduce_dag_property()])
-        self.passmanager.add_passes(PassF_reduce_dag_property())
+        self.passmanager.append(PassF_reduce_dag_property())
+        self.passmanager.append([PassF_reduce_dag_property(), PassF_reduce_dag_property()])
+        self.passmanager.append(PassF_reduce_dag_property())
         self.assertScheduler(self.dag, self.passmanager,
                              ['run transformation pass PassF_reduce_dag_property',
                               'dag property = 6',
@@ -236,7 +259,7 @@ class TestUseCases(SchedulerTestCase):
 
     def test_fenced_property_set(self):
         """ Transformation passes are not allowed to modified the property set. """
-        self.passmanager.add_passes(PassH_Bad_TP())
+        self.passmanager.append(PassH_Bad_TP())
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassH_Bad_TP'],
                                    TranspilerAccessError)
@@ -250,9 +273,9 @@ class TestUseCases(SchedulerTestCase):
         circ.cx(qr[0], qr[1])
         circ.cx(qr[1], qr[0])
         circ.cx(qr[1], qr[0])
-        dag = DAGCircuit.fromQuantumCircuit(circ)
+        dag = circuit_to_dag(circ)
 
-        self.passmanager.add_passes(PassI_Bad_AP())
+        self.passmanager.append(PassI_Bad_AP())
         self.assertSchedulerRaises(dag, self.passmanager,
                                    ['run analysis pass PassI_Bad_AP',
                                     'cx_runs: {(5, 6, 7, 8)}'],
@@ -262,10 +285,10 @@ class TestUseCases(SchedulerTestCase):
         """ A pass manager that ignores requests does not run the passes decleared in the 'requests'
         field of the passes."""
         passmanager = PassManager(ignore_requires=True)
-        passmanager.add_passes(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        passmanager.add_passes(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        passmanager.add_passes(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
-        passmanager.add_passes(PassB_TP_RA_PA())
+        passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.append(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
+        passmanager.append(PassB_TP_RA_PA())
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassC_TP_RA_PA',
                                                      'run transformation pass PassB_TP_RA_PA',
                                                      'run transformation pass PassD_TP_NR_NP',
@@ -276,10 +299,10 @@ class TestUseCases(SchedulerTestCase):
         """ A pass manager that ignores preserves does not record the passes decleared in the
         'preserves' field of the passes as valid passes."""
         passmanager = PassManager(ignore_preserves=True)
-        passmanager.add_passes(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        passmanager.add_passes(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
-        passmanager.add_passes(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
-        passmanager.add_passes(PassB_TP_RA_PA())
+        passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        passmanager.append(PassD_TP_NR_NP(argument1=[1, 2]))  # Requires: {} / Preserves: {}
+        passmanager.append(PassB_TP_RA_PA())
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassC_TP_RA_PA',
                                                      'run transformation pass PassA_TP_NR_NP',
@@ -293,9 +316,9 @@ class TestUseCases(SchedulerTestCase):
         """ A pass manager that considers every pass as not idempotent, allows the immediate
         repetition of a pass"""
         passmanager = PassManager(ignore_preserves=True)
-        passmanager.add_passes(PassA_TP_NR_NP())
-        passmanager.add_passes(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
-        passmanager.add_passes(PassB_TP_RA_PA())  # Normally required is ignored for optimization,
+        passmanager.append(PassA_TP_NR_NP())
+        passmanager.append(PassA_TP_NR_NP())  # Normally removed for optimization, not here.
+        passmanager.append(PassB_TP_RA_PA())  # Normally required is ignored for optimization,
         # not here
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
@@ -305,7 +328,7 @@ class TestUseCases(SchedulerTestCase):
     def test_pass_non_idempotence_passset(self):
         """ A pass set that is not idempotent. """
         passmanager = PassManager()
-        passmanager.add_passes([PassA_TP_NR_NP(), PassB_TP_RA_PA()], ignore_preserves=True)
+        passmanager.append([PassA_TP_NR_NP(), PassB_TP_RA_PA()], ignore_preserves=True)
         self.assertScheduler(self.dag, passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassA_TP_NR_NP',
                                                      'run transformation pass PassB_TP_RA_PA'])
@@ -313,8 +336,8 @@ class TestUseCases(SchedulerTestCase):
     def test_analysis_pass_is_idempotent(self):
         """ Analysis passes are idempotent. """
         passmanager = PassManager()
-        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
-        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
+        passmanager.append(PassE_AP_NR_NP(argument1=1))
+        passmanager.append(PassE_AP_NR_NP(argument1=1))
         self.assertScheduler(self.dag, passmanager, ['run analysis pass PassE_AP_NR_NP',
                                                      'set property as 1'])
 
@@ -322,9 +345,9 @@ class TestUseCases(SchedulerTestCase):
         """ A default transformation does not preserves anything and analysis passes
         need to be re-run"""
         passmanager = PassManager()
-        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
-        passmanager.add_passes(PassA_TP_NR_NP())
-        passmanager.add_passes(PassE_AP_NR_NP(argument1=1))
+        passmanager.append(PassE_AP_NR_NP(argument1=1))
+        passmanager.append(PassA_TP_NR_NP())
+        passmanager.append(PassE_AP_NR_NP(argument1=1))
         self.assertScheduler(self.dag, passmanager, ['run analysis pass PassE_AP_NR_NP',
                                                      'set property as 1',
                                                      'run transformation pass PassA_TP_NR_NP',
@@ -339,20 +362,20 @@ class TestUseCases(SchedulerTestCase):
         """
         passmanager = PassManager(ignore_preserves=False, ignore_requires=True)
         tp_pass = PassA_TP_NR_NP()
-        passmanager.add_passes(tp_pass, ignore_preserves=True)
+        passmanager.append(tp_pass, ignore_preserves=True)
         the_pass_in_the_workinglist = next(iter(passmanager.working_list))
         self.assertTrue(the_pass_in_the_workinglist.options['ignore_preserves'])
         self.assertTrue(the_pass_in_the_workinglist.options['ignore_requires'])
 
     def test_pass_no_return_a_dag(self):
         """ Passes instances with same arguments (independently of the order) are the same. """
-        self.passmanager.add_passes(PassJ_Bad_NoReturn())
+        self.passmanager.append(PassJ_Bad_NoReturn())
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassJ_Bad_NoReturn'], TranspilerError)
 
     def test_fixed_point_pass(self):
         """ A pass set with a do_while parameter that checks for a fixed point. """
-        self.passmanager.add_passes(
+        self.passmanager.append(
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
@@ -403,7 +426,7 @@ class TestUseCases(SchedulerTestCase):
 
     def test_fixed_point_pass_max_iteration(self):
         """ A pass set with a do_while parameter that checks that the max_iteration is raised. """
-        self.passmanager.add_passes(
+        self.passmanager.append(
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
@@ -442,12 +465,12 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def setUp(self):
         self.passmanager = PassManager()
-        self.dag = DAGCircuit.fromQuantumCircuit(QuantumCircuit(QuantumRegister(1)))
+        self.dag = circuit_to_dag(QuantumCircuit(QuantumRegister(1)))
 
     def test_control_flow_plugin(self):
         """ Adds a control flow plugin with a single parameter and runs it. """
         FlowController.add_flow_controller('do_x_times', DoXTimesController)
-        self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+        self.passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertScheduler(self.dag, self.passmanager, ['run transformation pass PassA_TP_NR_NP',
                                                           'run transformation pass PassB_TP_RA_PA',
                                                           'run transformation pass PassC_TP_RA_PA',
@@ -463,8 +486,8 @@ class TestControlFlowPlugin(SchedulerTestCase):
         self.assertEqual(controllers_length - 1, len(FlowController.registered_controllers))
         FlowController.add_flow_controller('do_while', DoWhileController)
         self.assertEqual(controllers_length, len(FlowController.registered_controllers))
-        self.passmanager.add_passes([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
-                                    do_while=lambda property_set: True, max_iteration=2)
+        self.passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
+                                do_while=lambda property_set: True, max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run transformation pass PassA_TP_NR_NP',
                                     'run transformation pass PassB_TP_RA_PA',

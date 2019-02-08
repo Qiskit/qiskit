@@ -4,43 +4,40 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=too-many-ancestors,broad-except
-
-"""Common utilities for QISKit."""
+"""Common utilities for Qiskit."""
 
 import logging
-import re
-import sys
 import platform
-import warnings
+import re
 import socket
+import sys
+import warnings
+
 import psutil
+from marshmallow.warnings import ChangedInMarshmallow3Warning
 
 logger = logging.getLogger(__name__)
 
-FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
-ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
-
 
 def _check_python_version():
-    """Check for Python version 3.5+
-    """
+    """Check for Python version 3.5+."""
     if sys.version_info < (3, 5):
-        raise Exception('QISKit requires Python version 3.5 or greater.')
+        raise Exception('Qiskit requires Python version 3.5 or greater.')
 
 
-def _enable_deprecation_warnings():
-    """
+def _filter_deprecation_warnings():
+    """Apply filters to deprecation warnings.
+
     Force the `DeprecationWarning` warnings to be displayed for the qiskit
     module, overriding the system configuration as they are ignored by default
-    [1] for end-users.
+    [1] for end-users. Additionally, silence the `ChangedInMarshmallow3Warning`
+    messages.
 
     TODO: on Python 3.7, this might not be needed due to PEP-0565 [2].
 
     [1] https://docs.python.org/3/library/warnings.html#default-warning-filters
     [2] https://www.python.org/dev/peps/pep-0565/
     """
-    # pylint: disable=invalid-name
     deprecation_filter = ('always', None, DeprecationWarning,
                           re.compile(r'^qiskit\.*', re.UNICODE), 0)
 
@@ -53,22 +50,14 @@ def _enable_deprecation_warnings():
         # ._add_filter is internal and not available in some Python versions.
         pass
 
-
-def _camel_case_to_snake_case(identifier):
-    """Return a `snake_case` string from a `camelCase` string.
-
-    Args:
-        identifier (str): a `camelCase` string.
-
-    Returns:
-        str: a `snake_case` string.
-    """
-    string_1 = FIRST_CAP_RE.sub(r'\1_\2', identifier)
-    return ALL_CAP_RE.sub(r'\1_\2', string_1).lower()
+    # Add a filter for ignoring ChangedInMarshmallow3Warning, as we depend on
+    # marhsmallow 2 explicitly. 2.17.0 introduced new deprecation warnings that
+    # are useful for eventually migrating, but too verbose for our purposes.
+    warnings.simplefilter('ignore', category=ChangedInMarshmallow3Warning)
 
 
 _check_python_version()
-_enable_deprecation_warnings()
+_filter_deprecation_warnings()
 
 
 def local_hardware_info():
@@ -79,17 +68,17 @@ def local_hardware_info():
 
     Returns:
         dict: The hardware information.
-
     """
-    results = {'os': platform.system()}
-    results['memory'] = psutil.virtual_memory().total / (1024**3)
-    results['cpus'] = psutil.cpu_count(logical=False) or 1
+    results = {
+        'os': platform.system(),
+        'memory': psutil.virtual_memory().total / (1024 ** 3),
+        'cpus': psutil.cpu_count(logical=False) or 1
+    }
     return results
 
 
 def _has_connection(hostname, port):
-    """Checks to see if internet connection exists to host
-    via specified port
+    """Checks if internet connection exists to host via specified port.
 
     If any exception is raised while trying to open a socket this will return
     false.
@@ -106,5 +95,5 @@ def _has_connection(hostname, port):
         host = socket.gethostbyname(hostname)
         socket.create_connection((host, port), 2)
         return True
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         return False

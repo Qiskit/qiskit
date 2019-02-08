@@ -6,8 +6,5 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Instructions usable by simulator backends."""
-from .load import load
-from .noise import noise
-from .save import save
+
 from .snapshot import snapshot
-from .wait import wait

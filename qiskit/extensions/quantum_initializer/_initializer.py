@@ -13,10 +13,10 @@ import math
 import numpy as np
 import scipy
 
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import QISKitError
-from qiskit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import CompositeGate
+from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -24,7 +24,7 @@ from qiskit.extensions.standard.rz import RZGate
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(CompositeGate):
+class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -42,31 +42,31 @@ class InitializeGate(CompositeGate):
     gate does. Therefore self.data is the list of gates (in order) that must
     be applied to implement this meta-gate.
 
-    param = list of complex amplitudes
+    params = list of complex amplitudes
     qargs = list of qubits
     circ = QuantumCircuit or CompositeGate containing this gate
     """
-    def __init__(self, param, qargs, circ=None):
+    def __init__(self, params, qargs, circ=None):
         """Create new initialize composite gate."""
-        num_qubits = math.log2(len(param))
+        num_qubits = math.log2(len(params))
 
         # Check if param is a power of 2
         if num_qubits == 0 or not num_qubits.is_integer():
-            raise QISKitError("Desired vector not a positive power of 2.")
+            raise QiskitError("Desired vector not a positive power of 2.")
 
         self.num_qubits = int(num_qubits)
 
         # Check if number of desired qubits agrees with available qubits
         if len(qargs) != self.num_qubits:
-            raise QISKitError("Number of complex amplitudes do not correspond "
+            raise QiskitError("Number of complex amplitudes do not correspond "
                               "to the number of qubits.")
 
         # Check if probabilities (amplitudes squared) sum to 1
-        if not math.isclose(sum(np.absolute(param) ** 2), 1.0,
+        if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
                             abs_tol=_EPS):
-            raise QISKitError("Sum of amplitudes-squared does not equal one.")
+            raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
-        super().__init__("init", param, qargs, circ)
+        super().__init__("init", params, qargs, circ)
 
         # call to generate the circuit that takes the desired vector to zero
         self.gates_to_uncompute()
@@ -94,7 +94,7 @@ class InitializeGate(CompositeGate):
 
     def reapply(self, circ):
         """Reapply this gate to the corresponding qubits in circ."""
-        self._modifiers(circ.initialize(self.param, self.qargs))
+        self._modifiers(circ.initialize(self.params, self.qargs))
 
     def gates_to_uncompute(self):
         """
@@ -102,7 +102,7 @@ class InitializeGate(CompositeGate):
         desired vector to zero.
         """
         # kick start the peeling loop
-        remaining_param = self.param
+        remaining_param = self.params
 
         for i in range(self.num_qubits):
             # work out which rotations must be done to disentangle the LSB
@@ -251,7 +251,7 @@ class InitializeGate(CompositeGate):
 
 # ###############################################################
 # Add needed functionality to other classes (it feels
-# weird following the QISKit convention of adding functionality to other
+# weird following the Qiskit convention of adding functionality to other
 # classes like this ;),
 #  TODO: multiple inheritance might be better?)
 
@@ -307,7 +307,7 @@ def remove_zero_rotations(self):
             if ((not isinstance(gate, Gate)) or
                     (not (gate.name == "rz" or gate.name == "ry" or
                           gate.name == "rx") or
-                     (InitializeGate.chop_num(gate.param[0]) != 0))):
+                     (InitializeGate.chop_num(gate.params[0]) != 0))):
                 new_data.append(gate)
             else:
                 zero_rotation_removed = True

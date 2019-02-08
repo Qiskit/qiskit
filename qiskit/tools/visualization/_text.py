@@ -10,8 +10,9 @@ A module for drawing circuits in ascii art or some other text representation
 """
 
 from shutil import get_terminal_size
+import sys
 
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 
 
 class DrawElement():
@@ -214,11 +215,13 @@ class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length):
+    def __init__(self, label, input_length, bot_connect='─'):
         super().__init__(label)
         self.top_format = "│ %s │"
+        self.top_pad = " "
+        self.bot_connect = bot_connect
 
-        self.mid_content = self.bot_connect = self.top_connect = ""
+        self.mid_content = self.top_connect = ""
         if input_length <= 2:
             self.top_connect = label
 
@@ -412,18 +415,20 @@ class TextDrawing():
         return self.single_string()
 
     def _repr_html_(self):
-        return '<pre style="line-height: 15px;">%s</pre>' % self.single_string()
+        return '<pre style="word-wrap: normal;' \
+               'white-space: pre;' \
+               'line-height: 15px;">%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0], qubit[1]))
+            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0], clbit[1]))
+            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
         return clbits
 
     def single_string(self):
@@ -460,7 +465,10 @@ class TextDrawing():
         if line_length is None:
             line_length = self.line_length
         if line_length is None:
-            line_length, _ = get_terminal_size()
+            if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+                line_length = 80
+            else:
+                line_length, _ = get_terminal_size()
 
         noqubits = len(self.qregs)
         layers = self.build_layers()
@@ -582,9 +590,9 @@ class TextDrawing():
 
     @staticmethod
     def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None of there is no param."""
-        if 'params' in instruction and instruction['params']:
-            return ['%.5g' % i for i in instruction['params']]
+        """Get the params and format them to add them to a label. None if there are no params."""
+        if 'op' in instruction and hasattr(instruction['op'], 'params'):
+            return ['%.5g' % i for i in instruction['op'].params]
         return None
 
     @staticmethod
@@ -749,9 +757,9 @@ class TextDrawing():
                 layer.set_qubit(instruction['qargs'][0],
                                 BoxOnQuWire(TextDrawing.label_for_box(instruction)))
 
-            elif len(instruction['qubits']) >= 2 and not instruction['cargs']:
+            elif len(instruction['qargs']) >= 2 and not instruction['cargs']:
                 # multiple qubit gate
-                layer.set_qu_multibox(instruction['qubits'], TextDrawing.label_for_box(instruction))
+                layer.set_qu_multibox(instruction['qargs'], TextDrawing.label_for_box(instruction))
 
             else:
                 raise VisualizationError(
@@ -870,7 +878,8 @@ class Layer:
         affected_bits[0].connect(wire_char, ['bot'])
         for affected_bit in affected_bits[1:-1]:
             affected_bit.connect(wire_char, ['bot', 'top'])
-        affected_bits[-1].connect(wire_char, ['top'], label)
+        if not isinstance(affected_bits[-1], MultiBox):
+            affected_bits[-1].connect(wire_char, ['top'], label)
 
         if label:
             for affected_bit in affected_bits:

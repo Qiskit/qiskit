@@ -12,12 +12,18 @@ import threading
 from IPython.display import display                              # pylint: disable=import-error
 from IPython.core import magic_arguments                         # pylint: disable=import-error
 from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
-import ipywidgets as widgets                                     # pylint: disable=import-error
+try:
+    import ipywidgets as widgets           # pylint: disable=import-error
+except ImportError:
+    raise ImportError('These functions  need ipywidgets. '
+                      'Run "pip install ipywidgets" before.')
 import qiskit
-from .progressbar import HTMLProgressBar, TextProgressBar
+from qiskit.tools.events.progressbar import TextProgressBar
+from .progressbar import HTMLProgressBar
 
 
-def _html_checker(job_var, interval, status, header):
+def _html_checker(job_var, interval, status, header,
+                  _interval_set=False):
     """Internal function that updates the status
     of a HTML job monitor.
 
@@ -26,6 +32,7 @@ def _html_checker(job_var, interval, status, header):
         interval (int): The status check interval
         status (widget): HTML ipywidget for output ot screen
         header (str): String representing HTML code for status.
+        _interval_set (bool): Was interval set by user?
     """
     job_status = job_var.status()
     job_status_name = job_status.name
@@ -40,7 +47,12 @@ def _html_checker(job_var, interval, status, header):
             break
         else:
             if job_status_name == 'QUEUED':
-                job_status_msg += ' (%s)' % job_var._queue_position
+                job_status_msg += ' (%s)' % job_var.queue_position()
+                if not _interval_set:
+                    interval = max(job_var.queue_position(), 2)
+            else:
+                if not _interval_set:
+                    interval = 2
             status.value = header % (job_status_msg)
 
     status.value = header % (job_status_msg)
@@ -56,13 +68,20 @@ class StatusMagic(Magics):
         '-i',
         '--interval',
         type=float,
-        default=2,
+        default=None,
         help='Interval for status check.'
     )
     def qiskit_job_status(self, line='', cell=None):
         """A Jupyter magic function to check the status of a Qiskit job instance.
         """
         args = magic_arguments.parse_argstring(self.qiskit_job_status, line)
+
+        if args.interval is None:
+            args.interval = 2
+            _interval_set = False
+        else:
+            _interval_set = True
+
         # Split cell lines to get LHS variables
         cell_lines = cell.split('\n')
         line_vars = []
@@ -91,11 +110,11 @@ class StatusMagic(Magics):
 
                 if iter_var:
                     for item in self.shell.user_ns[var]:
-                        if isinstance(item, qiskit.backends.basejob.BaseJob):
+                        if isinstance(item, qiskit.providers.basejob.BaseJob):
                             jobs.append(item)
                 else:
                     if isinstance(self.shell.user_ns[var],
-                                  qiskit.backends.basejob.BaseJob):
+                                  qiskit.providers.basejob.BaseJob):
                         jobs.append(self.shell.user_ns[var])
 
         # Must have one job class
@@ -122,7 +141,8 @@ class StatusMagic(Magics):
                 value=header % job_var.status().value)
 
             thread = threading.Thread(target=_html_checker, args=(job_var, args.interval,
-                                                                  status, header))
+                                                                  status, header,
+                                                                  _interval_set))
             thread.start()
             job_checkers.append(status)
 
@@ -153,6 +173,6 @@ class ProgressBarMagic(Magics):
         elif args.type == 'text':
             TextProgressBar()
         else:
-            raise qiskit.QISKitError('Invalid progress bar type.')
+            raise qiskit.QiskitError('Invalid progress bar type.')
 
         self.shell.ex(cell)

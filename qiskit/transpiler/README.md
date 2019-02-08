@@ -11,7 +11,7 @@ The main goal of Qiskit Terra's transpiler is to provide an extensible infrastru
 ### Pass Manager
 - A `PassManager` instance determines the schedule for running registered passes.
 - The pass manager is in charge of deciding the next pass to run, not the pass itself.
-- Registering passes in the pass manager pipeline is done by the `add_passes` method.
+- Registering passes in the pass manager pipeline is done by the `append` method.
 - While registering, you can specify basic control primitives over each pass (conditionals and loops).
 - Options to control the scheduler:
 	- Passes can have arguments at init time that can affect their scheduling. If you want to set properties related to how the pass is run, you can do so by accessing these properties (e.g. pass_.max_iteration = 10).
@@ -50,7 +50,7 @@ self.passmanager.add_flow_controller('do_x_times', DoXTimesController)
 This allows to use the parameter `do_x_times`, which needs to be a callable. In this case, this is used to parametrized the plugin, so it will for-loop 3 times.
 
 ```
-self.passmanager.add_passes([Pass()], do_x_times=lambda x : 3)
+self.passmanager.append([Pass()], do_x_times=lambda x : 3)
 ```
 
 
@@ -60,10 +60,10 @@ The `CxCancellation` requires and preserves `ToffoliDecompose`. Same for `Rotati
 
 ```
 pm = PassManager()
-pm.add_passes(CxCancellation()) # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_passes(RotationMerge())  # requires: ToffoliDecompose / preserves: ToffoliDecompose
-pm.add_passes(Mapper(coupling_map=coupling_map))         # requires: [] / preserves: []
-pm.add_passes(CxCancellation())
+pm.append(CxCancellation()) # requires: ToffoliDecompose / preserves: ToffoliDecompose
+pm.append(RotationMerge())  # requires: ToffoliDecompose / preserves: ToffoliDecompose
+pm.append(Mapper(coupling_map=coupling_map))         # requires: [] / preserves: []
+pm.append(CxCancellation())
 ```
 
 Given the above, the pass manager executes the following sequence of passes:
@@ -79,9 +79,9 @@ Given the above, the pass manager executes the following sequence of passes:
 A pass behavior can be heavily influenced by its parameters. For example, unrolling using some basis gates is totally different than unrolling to different gates. And a PassManager might use both.
 
 ```
-pm.add_passes(Unroller(basis_gates=['id','u1','u2','u3','cx']))
-pm.add_passes(...)
-pm.add_passes(Unroller(basis_gates=['U','CX']))
+pm.append(Unroller(basis_gates=['id','u1','u2','u3','cx']))
+pm.append(...)
+pm.append(Unroller(basis_gates=['U','CX']))
 ```
 
 where (from `qelib1.inc`):
@@ -101,7 +101,7 @@ There are cases when one or more passes have to be run repeatedly, until a condi
 
 ```
 pm = PassManager()
-pm.add_passes([CxCancellation(), RotationMerge(), CalculateDepth()],
+pm.append([CxCancellation(), RotationMerge(), CalculateDepth()],
               do_while=lambda property_set: not property_set['fixed_point']['depth'])
 ```
 The control argument `do_while` will run these passes until the callable returns `False`. The callable always takes in one argument, the pass manager's property set. In this example, `CalculateDepth` is an analysis pass that updates the property `depth` in the property set.
@@ -110,13 +110,13 @@ The control argument `do_while` will run these passes until the callable returns
 The pass manager developer can avoid one or more passes by making them conditional (on a property in the property set):
 
 ```
-pm.add_passes(LayoutMapper(coupling_map))
-pm.add_passes(CheckIfMapped(coupling_map))
-pm.add_passes(SwapMapper(coupling_map),
-              condition=lambda property_set: not property_set['is_mapped'])
+pm.append(BasicLayout(coupling_map))
+pm.append(CheckMap(coupling_map))
+pm.append(BasicSwap(coupling_map),
+              condition=lambda property_set: not property_set['is_swap_mapped'])
 ``` 
 
-The `CheckIfMapped` is an analysis pass that updates the property `is_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
+The `CheckMap` is an analysis pass that updates the property `is_swap_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
 
 
 ### Idempotent passes

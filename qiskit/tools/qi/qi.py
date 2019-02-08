@@ -22,9 +22,9 @@ import scipy.linalg as la
 from scipy.stats import unitary_group
 
 
-from qiskit import QISKitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
-from qiskit.quantum_info import state_fidelity as new_state_fidelity
+from qiskit.quantum_info import purity as new_purity
 
 
 ###############################################################
@@ -199,9 +199,9 @@ def vectorize(density_matrix, method='col'):
         if len(density_matrix) != 2**num:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
-            pgroup = pauli_group(num, case=0)
+            pgroup = pauli_group(num, case='weight')
         else:
-            pgroup = pauli_group(num, case=1)
+            pgroup = pauli_group(num, case='tensor')
         vals = [np.trace(np.dot(p.to_matrix(), density_matrix))
                 for p in pgroup]
         return np.array(vals)
@@ -239,9 +239,9 @@ def devectorize(vectorized_mat, method='col'):
         if dimension != 2 ** num_qubits:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
-            pgroup = pauli_group(num_qubits, case=0)
+            pgroup = pauli_group(num_qubits, case='weight')
         else:
-            pgroup = pauli_group(num_qubits, case=1)
+            pgroup = pauli_group(num_qubits, case='tensor')
         pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num_qubits
         return np.tensordot(vectorized_mat, pbasis, axes=1)
     return None
@@ -272,6 +272,11 @@ def choi_to_rauli(choi, order=1):
     Returns:
         np.array: A superoperator in the Pauli basis.
     """
+    if order == 0:
+        order = 'weight'
+    elif order == 1:
+        order = 'tensor'
+
     # get number of qubits'
     num_qubits = int(np.log2(np.sqrt(len(choi))))
     pgp = pauli_group(num_qubits, case=order)
@@ -357,14 +362,14 @@ def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
     Returns:
         ndarray: rho (length, length) a density matrix.
     Raises:
-        QISKitError: if the method is not valid.
+        QiskitError: if the method is not valid.
     """
     if method == 'Hilbert-Schmidt':
         return __random_density_hs(length, rank)
     elif method == 'Bures':
         return __random_density_bures(length, rank)
     else:
-        raise QISKitError('Error: unrecognized method {}'.format(method))
+        raise QiskitError('Error: unrecognized method {}'.format(method))
 
 
 def __ginibre_matrix(nrow, ncol=None):
@@ -424,26 +429,6 @@ def __random_density_bures(N, rank=None):
 ###############################################################
 
 
-def state_fidelity(state1, state2):
-    """Return the state fidelity between two quantum states.
-
-    Either input may be a state vector, or a density matrix. The state
-    fidelity (F) for two density matrices is defined as:
-        F(rho1, rho2) = Tr[sqrt(sqrt(rho1).rho2.sqrt(rho1))] ^ 2
-    For two pure states the fidelity is given by
-        F(|psi1>, |psi2>) = |<psi1|psi2>|^2
-
-    Args:
-        state1 (array_like): a quantum state vector or density matrix.
-        state2 (array_like): a quantum state vector or density matrix.
-
-    Returns:
-        array_like: The state fidelity F(state1, state2).
-    """
-    warnings.warn('The state_fidelity() function has moved to states not qi', DeprecationWarning)
-    return new_state_fidelity(state1, state2)
-
-
 def purity(state):
     """Calculate the purity of a quantum state.
 
@@ -452,10 +437,11 @@ def purity(state):
     Returns:
         float: purity.
     """
-    rho = np.array(state)
-    if rho.ndim == 1:
-        rho = outer(rho)
-    return np.real(np.trace(rho.dot(rho)))
+    warnings.warn('The purity() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the purity() function in qiskit.quantum_info',
+                  DeprecationWarning)
+    return new_purity(state)
 
 
 def concurrence(state):

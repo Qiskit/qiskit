@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name
 
 """Quick program to test the qi tools modules."""
 
@@ -14,7 +14,7 @@ from copy import deepcopy
 import numpy as np
 
 from qiskit.quantum_info import Pauli, pauli_group
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestPauli(QiskitTestCase):

@@ -7,14 +7,14 @@
         "backend_name": "ibmqx2"},
     "config": {
         "shots": 1024,
-        "memory_slots": 3
+        "memory_slots": 1
         },
     "experiments": [
         {
         "header": {
-            "memory_slots": 3,
+            "memory_slots": 1,
             "n_qubits": 3,
-            "clbit_labels": [["c1", 0],null,null],
+            "clbit_labels": [["c1", 0]],
             "qubit_labels": [null,["q", 0],["q",1]]
             },
         "config": {},
@@ -33,7 +33,7 @@
         "header": {
             "memory_slots": 3,
             "n_qubits": 3,
-            "clbit_labels": [["c1", 0],null,null],
+            "clbit_labels": [["c1", 0]],
             "qubit_labels": [null,["q", 0],["q",1]]
             },
         "config": {},

@@ -15,7 +15,7 @@ import math
 import numpy as np
 import scipy.linalg as la
 
-from ._mappererror import MapperError
+from .exceptions import MapperError
 
 
 def euler_angles_1q(unitary_matrix):

@@ -10,11 +10,14 @@
 """
 S=diag(1,i) Clifford phase gate or its inverse.
 """
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _1q_gate
+from qiskit.qasm import pi
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.standard.u1 import U1Gate
 
 
 class SGate(Gate):
@@ -24,6 +27,21 @@ class SGate(Gate):
         """Create new S gate."""
         super().__init__("s", [], [qubit], circ)
 
+    def _define_decompositions(self):
+        """
+        gate s a { u1(pi/2) a; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        rule = [
+            U1Gate(pi/2, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
+
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.s(self.qargs[0]))
@@ -31,7 +49,7 @@ class SGate(Gate):
     def inverse(self):
         """Invert this gate."""
         inv = SdgGate(self.qargs[0])
-        self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
+        self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
 
@@ -42,6 +60,21 @@ class SdgGate(Gate):
         """Create new Sdg gate."""
         super().__init__("sdg", [], [qubit], circ)
 
+    def _define_decompositions(self):
+        """
+        gate sdg a { u1(-pi/2) a; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(1, "q")
+        decomposition.add_qreg(q)
+        decomposition.add_basis_element("u1", 1, 0, 1)
+        rule = [
+            U1Gate(-pi/2, q[0])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
+
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.sdg(self.qargs[0]))
@@ -49,30 +82,20 @@ class SdgGate(Gate):
     def inverse(self):
         """Invert this gate."""
         inv = SGate(self.qargs[0])
-        self.circuit.data[self.circuit.data.index(self)] = inv  # replaces the gate with the inverse
+        self.circuit.data[-1] = inv  # replaces the gate with the inverse
         return inv
 
 
+@_1q_gate
 def s(self, q):
     """Apply S to q."""
-    if isinstance(q, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.s((q, j)))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(SGate(q, self))
 
 
+@_1q_gate
 def sdg(self, q):
     """Apply Sdg to q."""
-    if isinstance(q, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.sdg((q, j)))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(SdgGate(q, self))
 

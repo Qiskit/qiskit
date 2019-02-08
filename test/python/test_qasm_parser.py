@@ -5,8 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-
 """Test for the QASM parser"""
 
 import unittest
@@ -14,8 +12,7 @@ import ply
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm._node._node import Node
-
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase, Path
 
 
 def parse(file_path, prec=15):
@@ -31,11 +28,11 @@ def parse(file_path, prec=15):
 class TestParser(QiskitTestCase):
     """QasmParser"""
     def setUp(self):
-        self.qasm_file_path = self._get_resource_path('qasm/example.qasm')
+        self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
         self.qasm_file_path_fail = self._get_resource_path(
-            'qasm/example_fail.qasm')
+            'example_fail.qasm', Path.QASMS)
         self.qasm_file_path_if = self._get_resource_path(
-            'qasm/example_if.qasm')
+            'example_if.qasm', Path.QASMS)
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
@@ -57,6 +54,7 @@ class TestParser(QiskitTestCase):
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
         def inspect(node):
+            """Inspect node children."""
             for child in node.children:
                 self.assertTrue(isinstance(child, Node))
                 inspect(child)

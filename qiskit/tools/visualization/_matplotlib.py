@@ -25,14 +25,14 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.tools.visualization import _error
+from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
 from qiskit.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)
 
-Register = collections.namedtuple('Register', 'name index')
+Register = collections.namedtuple('Register', 'reg index')
 
 WID = 0.65
 HIG = 0.65
@@ -137,13 +137,12 @@ class MatplotlibDrawer:
         self._ops = ops
 
     def _registers(self, creg, qreg):
-        # NOTE: formats of clbit and qubit are different!
         self._creg = []
         for e in creg:
-            self._creg.append(Register(name=e[0], index=e[1]))
+            self._creg.append(Register(reg=e[0], index=e[1]))
         self._qreg = []
         for e in qreg:
-            self._qreg.append(Register(name=e[0], index=e[1]))
+            self._qreg.append(Register(reg=e[0], index=e[1]))
 
     @property
     def ast(self):
@@ -363,15 +362,15 @@ class MatplotlibDrawer:
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
-                label = '${}_{{{}}}$'.format(reg.name, reg.index)
+                label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
             else:
-                label = '${}$'.format(reg.name)
+                label = '${}$'.format(reg.reg.name)
             pos = -ii
             self._qreg_dict[ii] = {
                 'y': pos,
                 'label': label,
                 'index': reg.index,
-                'group': reg.name
+                'group': reg.reg
             }
             self._cond['n_lines'] += 1
         # classical register
@@ -384,22 +383,22 @@ class MatplotlibDrawer:
                     self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
-                    label = '${}$'.format(reg.name)
+                    label = '${}$'.format(reg.reg.name)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.name
+                        'group': reg.reg
                     }
-                    if not (not nreg or reg.name != nreg.name):
+                    if not (not nreg or reg.reg != nreg.reg):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.name
+                        'group': reg.reg
                     }
                 self._cond['n_lines'] += 1
                 idx += 1
@@ -550,8 +549,8 @@ class MatplotlibDrawer:
                 print(i, op)
 
             # rotation parameter
-            if 'params' in op.keys():
-                param = self.param_parse(op['params'], self._style.pimode)
+            if 'op' in op.keys() and hasattr(op['op'], 'param'):
+                param = self.param_parse(op['op'].params, self._style.pimode)
             else:
                 param = None
             # conditional gate
@@ -560,7 +559,7 @@ class MatplotlibDrawer:
                         ii in self._creg_dict]
                 mask = 0
                 for index, cbit in enumerate(self._creg):
-                    if cbit.name == op['condition'][0]:
+                    if cbit.reg == op['condition'][0]:
                         mask |= (1 << index)
                 val = op['condition'][1]
                 # cbit list to consider
@@ -593,10 +592,15 @@ class MatplotlibDrawer:
                 self._measure(q_xy[0], c_xy[0], vv)
             elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
                                 'noise']:
-                q_group = self._qreg_dict[q_idxs[0]]['group']
-                if q_group not in _barriers['group']:
-                    _barriers['group'].append(q_group)
-                _barriers['coord'].append(q_xy[0])
+
+                # Go over all indices to add barriers across
+                for index, qbit in enumerate(q_idxs):
+                    q_group = self._qreg_dict[qbit]['group']
+
+                    if q_group not in _barriers['group']:
+                        _barriers['group'].append(q_group)
+                    _barriers['coord'].append(q_xy[index])
+
                 if op_next and op_next['name'] == 'barrier':
                     continue
                 else:
@@ -674,7 +678,7 @@ class MatplotlibDrawer:
                 self._line(qreg_b, qreg_t)
             else:
                 logger.critical('Invalid gate %s', op)
-                raise _error.VisualizationError('invalid gate {}'.format(op))
+                raise exceptions.VisualizationError('invalid gate {}'.format(op))
         #
         # adjust window size and draw horizontal lines
         #

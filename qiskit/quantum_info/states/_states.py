@@ -14,7 +14,7 @@ A collection of useful quantum information functions for states.
 """
 
 import numpy as np
-from qiskit import QISKitError
+from qiskit.exceptions import QiskitError
 
 
 def basis_state(str_state, num):
@@ -27,7 +27,7 @@ def basis_state(str_state, num):
     Returns:
         ndarray:  state(2**num) a quantum state with basis basis state.
      Raises:
-        QISKitError: if the dimensions is wrong
+        QiskitError: if the dimensions is wrong
     """
     n = int(str_state, 2)
     if num >= len(str_state):
@@ -35,7 +35,7 @@ def basis_state(str_state, num):
         state[n] = 1
         return state
     else:
-        raise QISKitError('size of bitstring is greater than num.')
+        raise QiskitError('size of bitstring is greater than num.')
 
 
 def random_state(num):
@@ -72,3 +72,17 @@ def projector(state, flatten=False):
     if flatten:
         return density_matrix.flatten(order='F')
     return density_matrix
+
+
+def purity(state):
+    """Calculate the purity of a quantum state.
+
+    Args:
+        state (ndarray): a quantum state
+    Returns:
+        float: purity.
+    """
+    rho = np.array(state)
+    if rho.ndim == 1:
+        return 1.0
+    return np.real(np.trace(rho.dot(rho)))

@@ -12,17 +12,22 @@ from qiskit.dagcircuit import DAGCircuit
 from ._propertyset import PropertySet
 from ._basepasses import BasePass
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
-from ._transpilererror import TranspilerError
+from .exceptions import TranspilerError
 
 
 class PassManager():
     """ A PassManager schedules the passes """
 
-    def __init__(self, ignore_requires=None, ignore_preserves=None, max_iteration=None):
+    def __init__(self, passes=None,
+                 ignore_requires=None,
+                 ignore_preserves=None,
+                 max_iteration=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
+            passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
+                None.
             ignore_requires (bool): The schedule ignores the requires field in the passes. The
                 default setting in the pass is False.
             ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
@@ -31,7 +36,7 @@ class PassManager():
                 max_iteration is reached.
         """
         # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.add_passes().
+        # Populated via PassManager.append().
         self.working_list = []
 
         # global property set is the context of the circuit held by the pass manager
@@ -47,10 +52,12 @@ class PassManager():
         self.passmanager_options = {'ignore_requires': ignore_requires,
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
+        if passes is not None:
+            self.append(passes)
 
     def _join_options(self, passset_options):
         """ Set the options of each passset, based on precedence rules:
-        passset options (set via ``PassManager.add_passes()``) override
+        passset options (set via ``PassManager.append()``) override
         passmanager options (set via ``PassManager.__init__()``), which override Default.
         .
         """
@@ -62,8 +69,8 @@ class PassManager():
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
         return {**default, **passmanager_level, **passset_level}
 
-    def add_passes(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-                   **flow_controller_conditions):
+    def append(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
+               **flow_controller_conditions):
         """
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
@@ -71,13 +78,16 @@ class PassManager():
             ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
-                control flow plugins. Default:
-                do_while (callable property_set -> boolean): The passes repeat until the
-                   callable returns False.
-                   Default: lambda x: False # i.e. passes run once
-                condition (callable property_set -> boolean): The passes run only if the
-                   callable returns True.
-                   Default: lambda x: True # i.e. passes run
+            control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
+
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
@@ -208,11 +218,12 @@ class FlowController():
     def controller_factory(cls, passes, options, **partial_controller):
         """
         Constructs a flow controller based on the partially evaluated controller arguments.
+
         Args:
             passes (list[BasePass]): passes to add to the flow controller.
             options (dict): PassManager options.
             **partial_controller (dict): Partially evaluated controller arguments in the form
-                                         {name:partial}
+                `{name:partial}`
 
         Raises:
             TranspilerError: When partial_controller is not well-formed.

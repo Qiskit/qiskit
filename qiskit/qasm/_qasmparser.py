@@ -16,11 +16,11 @@ import ply.yacc as yacc
 import sympy
 
 from . import _node as node
-from ._qasmerror import QasmError
+from .exceptions import QasmError
 from ._qasmlexer import QasmLexer
 
 
-class QasmParser(object):
+class QasmParser:
     """OPENQASM Parser."""
 
     # pylint: disable=unused-argument,missing-docstring,invalid-name

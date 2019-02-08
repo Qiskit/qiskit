@@ -15,5 +15,5 @@ scenarios and flows: for more advanced usage, it is encouraged to instead
 refer to the documentation of each component and use them separately.
 """
 
-from ._compiler import (compile, execute)
-from ._monitor import job_monitor
+from .parallel import parallel_map
+from .compiler import (compile, execute)

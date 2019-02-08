@@ -14,12 +14,12 @@ import tempfile
 import unittest
 
 import qiskit.extensions.simulator
-from qiskit import Aer
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -36,7 +36,7 @@ class TestCircuitQasm(QiskitTestCase):
         qc.u2(0.2, 0.1, qr2[0])
         qc.u3(0.3, 0.2, 0.1, qr2[1])
         qc.s(qr2[1])
-        qc.s(qr2[1]).inverse()
+        qc.sdg(qr2[1])
         qc.cx(qr1[0], qr2[1])
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])

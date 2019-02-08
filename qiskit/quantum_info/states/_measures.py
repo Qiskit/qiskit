@@ -21,11 +21,16 @@ def state_fidelity(state1, state2):
     """Return the state fidelity between two quantum states.
 
     Either input may be a state vector, or a density matrix. The state
-    fidelity (F) for two density matrices is defined as:
+    fidelity (F) for two density matrices is defined as::
+
         F(rho1, rho2) = Tr[sqrt(sqrt(rho1).rho2.sqrt(rho1))] ^ 2
-    For a pure state and mixed state the fidelity is given by
+
+    For a pure state and mixed state the fidelity is given by::
+
         F(|psi1>, rho2) = <psi1|rho2|psi1>
-    For two pure states the fidelity is given by
+
+    For two pure states the fidelity is given by::
+
         F(|psi1>, |psi2>) = |<psi1|psi2>|^2
 
     Args:
