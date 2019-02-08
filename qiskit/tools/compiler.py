@@ -13,6 +13,7 @@ from qiskit import transpiler
 from qiskit.converters import circuits_to_qobj
 from qiskit.qobj import RunConfig
 from qiskit.qobj import QobjHeader
+from qiskit.mapper import Layout
 
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,9 @@ def compile(circuits, backend,
     if config:
         warnings.warn('The `config` argument is deprecated and '
                       'does not do anything', DeprecationWarning)
+
+    if initial_layout is not None and not isinstance(initial_layout, Layout):
+        initial_layout = Layout(initial_layout)
 
     circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
                                     seed_mapper, pass_manager)
