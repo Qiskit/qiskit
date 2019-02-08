@@ -410,7 +410,7 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True,
+    def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None):
         self.qregs = qregs
         self.cregs = cregs

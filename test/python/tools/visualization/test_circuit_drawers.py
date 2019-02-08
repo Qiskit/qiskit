@@ -400,7 +400,7 @@ class TestCircuitDrawer(QiskitTestCase):
             'line_length': None,
             'reversebits': False,
             'plotbarriers': True,
-            'justify' : None
+            'justify': None
         },
         'latex': {
             'scale': 0.7,
