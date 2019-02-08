@@ -24,7 +24,6 @@ from qiskit.extensions.standard.swap import SwapGate
 
 from .exceptions import MapperError
 
-
 logger = logging.getLogger(__name__)
 
 # Notes:
@@ -394,11 +393,12 @@ def swap_mapper(circuit_graph, coupling_graph,
     if initial_layout is not None:
         # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
         # to an expected dict{(reg,idx): (reg,idx)}
+
         device_register = QuantumRegister(coupling_graph.size(), 'q')
         initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
                           for k, v in initial_layout.items()}
         # Check the input layout
-        circ_qubits = circuit_graph.get_qubits()
+        circ_qubits = circuit_graph.qubits()
         coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
                        coupling_graph.physical_qubits]
         qubit_subset = []
@@ -415,7 +415,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         qubit_subset = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
                         coupling_graph.physical_qubits]
         qubit_subset = qubit_subset[0:circuit_graph.width()]
-        initial_layout = {a: b for a, b in zip(circuit_graph.get_qubits(), qubit_subset)}
+        initial_layout = {a: b for a, b in zip(circuit_graph.qubits(), qubit_subset)}
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()

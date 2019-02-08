@@ -608,7 +608,7 @@ class TestStochasticSwap(QiskitTestCase):
         valid_couplings = [set([layout[a], layout[b]])
                            for (a, b) in coupling.get_edges()]
 
-        for _2q_node in after.get_2q_nodes():
+        for _2q_node in after.twoQ_nodes():
             self.assertIn(set(_2q_node['qargs']), valid_couplings)
 
     def test_len_coupling_vs_dag(self):
