@@ -13,7 +13,7 @@ SWAP gate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _2q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
@@ -52,7 +52,7 @@ class SwapGate(Gate):
         self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
 
 
-@_2q_gate
+@_op_expand(2, broadcastable=[False, False])
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""
     self._check_qubit(qubit1)
