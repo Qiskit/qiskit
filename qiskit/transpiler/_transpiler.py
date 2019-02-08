@@ -15,6 +15,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
+from qiskit.mapper import Layout
 
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
@@ -103,7 +104,7 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     # pick a trivial layout if the circuit already satisfies the coupling constraints
     # else layout on the most densely connected physical qubit subset
     # FIXME: this should be simplified once it is ported to a PassManager
-    if coupling_map:
+    if coupling_map and initial_layout is None:
         check_map = CheckMap(CouplingMap(coupling_map))
         check_map.run(dag)
         if check_map.property_set['is_direction_mapped']:
@@ -114,8 +115,10 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
             dense_layout = DenseLayout(CouplingMap(coupling_map))
             dense_layout.run(dag)
             initial_layout = dense_layout.property_set['layout']
-        # temporarily build old-style layout dict
-        # (FIXME: remove after transition to StochasticSwap pass)
+
+    # temporarily build old-style layout dict
+    # (TODO: remove after transition to StochasticSwap pass)
+    if isinstance(initial_layout, Layout):
         layout = initial_layout.copy()
         virtual_qubits = layout.get_virtual_bits()
         initial_layout = {(v[0].name, v[1]): ('q', layout[v]) for v in virtual_qubits}
