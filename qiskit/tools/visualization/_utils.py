@@ -91,7 +91,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
             layers = []
             current_layer = []
 
-            dag_nodes = dag_layer['graph'].get_op_nodes(data=True)
+            dag_nodes = dag_layer['graph'].op_nodes(data=True)
             dag_nodes.sort(key=lambda tup: tup[0])
             dag_nodes = [v for k, v in dag_nodes]
 

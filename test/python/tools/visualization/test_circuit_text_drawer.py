@@ -703,7 +703,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         """ Drawing with right justify """
         expected = '\n'.join(['              ┌───┐',
                               'q1_0: |0>─────┤ X ├',
-                              '         ┌───┐└┌─┐┘',
+                              '         ┌───┐└┬─┬┘',
                               'q1_1: |0>┤ H ├─┤M├─',
                               '         └───┘ └╥┘ ',
                               ' c1_0: 0 ═══════╬══',
@@ -828,7 +828,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         """ Measure gate can resize if necessary"""
         expected = '\n'.join(['         ┌───┐',
                               'q1_0: |0>┤ X ├',
-                              '         └┌─┐┘',
+                              '         └┬─┬┘',
                               'q1_1: |0>─┤M├─',
                               '          └╥┘ ',
                               ' c1_0: 0 ══╬══',

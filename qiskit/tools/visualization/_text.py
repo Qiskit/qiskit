@@ -416,8 +416,6 @@ class TextDrawing():
         self.cregs = cregs
         self.instructions = instructions
 
-        self.circuit = circuit
-
         self.plotbarriers = plotbarriers
         self.line_length = line_length
 
@@ -648,6 +646,8 @@ class TextDrawing():
                 ret += "├"
             elif topc == '┘' and botc == "┐":
                 ret += "┤"
+            elif botc in "┐┌":
+                ret += "┬"
             else:
                 ret += botc
         return ret
