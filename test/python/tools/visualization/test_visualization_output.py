@@ -14,10 +14,11 @@ import os
 import unittest
 from codecs import encode
 from math import pi
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
+from test.python.tools.visualization._drawing_test_case import DrawingTestCase
+
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
-from qiskit.test import QiskitTestCase
 
 
 def _path_to_diagram_reference(filename):
@@ -28,7 +29,7 @@ def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-class TestVisualizationImplementation(QiskitTestCase):
+class TestVisualizationImplementation(DrawingTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
     latex_reference = _path_to_diagram_reference('latex_ref.png')
@@ -107,39 +108,6 @@ class TestVisualizationImplementation(QiskitTestCase):
             encode(str(output), encoding='cp437')
         except UnicodeEncodeError:
             self.fail("_text_circuit_drawer() should only use extended ascii (aka code page 437).")
-
-    def assertFilesAreEqual(self, current, expected):
-        """Checks if both file are the same."""
-        self.assertTrue(os.path.exists(current))
-        self.assertTrue(os.path.exists(expected))
-        with open(current, "r", encoding='cp437') as cur, \
-                open(expected, "r", encoding='cp437') as exp:
-            self.assertEqual(cur.read(), exp.read())
-
-    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
-        """Checks if both images are similar enough to be considered equal.
-        Similarity is controlled by the ```diff_tolerance``` argument."""
-        from PIL import Image, ImageChops
-
-        if isinstance(current, str):
-            current = Image.open(current)
-        if isinstance(expected, str):
-            expected = Image.open(expected)
-
-        diff = ImageChops.difference(expected, current)
-        black_pixels = _get_black_pixels(diff)
-        total_pixels = diff.size[0] * diff.size[1]
-        similarity_ratio = black_pixels / total_pixels
-        self.assertTrue(
-            1 - similarity_ratio < diff_tolerance,
-            'The images are different by more than a {}%'
-            .format(diff_tolerance * 100))
-
-
-def _get_black_pixels(image):
-    black_and_white_version = image.convert('1')
-    black_pixels = black_and_white_version.histogram()[0]
-    return black_pixels
 
 
 if __name__ == '__main__':
