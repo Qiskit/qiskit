@@ -584,7 +584,7 @@ def regtuple_to_numeric(items, qregs):
     Args:
         items (list): List of tuples of (QuantumRegister, int)
                       to convert.
-        dag (DAGCircuit): Input DAG circuit.
+        qregs (dict): List of )QuantumRegister, int) tuples.
     Returns:
         ndarray: Array of integers.
 
@@ -606,7 +606,7 @@ def gates_to_idx(gates, qregs):
     Args:
         gates (list): List of (QuantumRegister, int) pairs
                       representing gates.
-        dag (DAGCircuit): Input DAG circuit.
+        qregs (dict): List of )QuantumRegister, int) tuples.
 
     Returns:
         list: Nested list of integers for gates.
@@ -629,7 +629,7 @@ def layout_to_numeric(layout, qregs, num_qubits):
 
     Args:
         layout (Layout): Input Layout object.
-        dag (DAGCircuit): DAG input to swap mapper.
+        qregs (dict): List of )QuantumRegister, int) tuples.
         num_qubits (int): Number of qubits in coupling_map.
 
     Returns:
@@ -661,7 +661,7 @@ def numeric_to_layout(numeric, qregs):
 
     Args:
         numeric (NLayout): Input numeric layout.
-        dag (DAGCircuit): DAG input to swap mapper.
+        qregs (dict): List of )QuantumRegister, int) tuples.
 
     Returns:
         Layout: A Layout object.
