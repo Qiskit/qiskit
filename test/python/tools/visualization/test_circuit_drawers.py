@@ -243,7 +243,7 @@ class TestDrawingMethods(DrawingTestCase):
                 # Make underlying circuit drawer to draw chosen circuit
                 circuit_drawer(TestDrawingMethods.circuits[circuit_type](),
                                output=draw_method,
-                               filename=reference_output)
+                               filename=reference_output, line_length=-1, justify='none')
 
     def test_small_circuit(self):
         """Tests whether outputs of different circuit drawers upon drawing a small circuit equal
@@ -315,7 +315,9 @@ class TestDrawingMethods(DrawingTestCase):
                     # Make underlying circuit drawer to draw chosen circuit
                     circuit_drawer(self.circuits[circuit_type](),
                                    output=draw_method,
-                                   filename=test_output)
+                                   filename=test_output,
+                                   justify='none',
+                                   line_length=-1)
 
                     # Check if produced output equals the reference one
                     self.assertOutputsAreEqual(draw_method,
@@ -398,6 +400,7 @@ class TestCircuitDrawer(QiskitTestCase):
             'line_length': None,
             'reversebits': False,
             'plotbarriers': True,
+            'justify' : None
         },
         'latex': {
             'scale': 0.7,
