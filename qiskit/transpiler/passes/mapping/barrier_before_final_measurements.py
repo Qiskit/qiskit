@@ -28,7 +28,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # Collect DAG nodes which are followed only by barriers or other measures.
         final_op_types = ['measure', 'barrier']
         final_ops = []
-        for candidate_op in dag.get_named_nodes(*final_op_types):
+        for candidate_op in dag.named_nodes(*final_op_types):
             is_final_op = True
             for _, child_successors in dag.bfs_successors(candidate_op):
                 if any(dag.multi_graph.node[suc]['type'] == 'op' and
@@ -74,7 +74,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         our_descendants = barrier_layer.descendants(new_barrier_id)
         our_qubits = final_qubits
 
-        existing_barriers = barrier_layer.get_named_nodes('barrier')
+        existing_barriers = barrier_layer.named_nodes('barrier')
         existing_barriers.remove(new_barrier_id)
 
         for candidate_barrier in existing_barriers:
