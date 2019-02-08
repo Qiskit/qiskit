@@ -37,7 +37,6 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.top_pad)
-
         return ret
 
     @property
@@ -60,7 +59,6 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.bot_pad)
-
         return ret
 
     @property
@@ -411,7 +409,7 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True,
-                 line_length=None):
+                line_length=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -563,7 +561,7 @@ class TextDrawing():
         bot_line = None
         for wire in wires:
             # TOP
-            top_line = ''
+            top_line = ""
             for instruction in wire:
                 top_line += instruction.top
 
@@ -706,7 +704,6 @@ class TextDrawing():
             layer.set_qubit(instruction['qargs'][0], Reset())
 
         elif instruction['condition'] is not None:
-            # TODO this hasn't been updated
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
             qulabel = TextDrawing.label_for_box(instruction)
@@ -792,8 +789,10 @@ class TextDrawing():
                 layer, current_connections, connection_label = \
                     self._instruction_to_gate(instruction, layer)
 
-                layer.connections.append((connection_label, current_connections))
-                layer.connect_with("│")
+                if current_connections:
+                    layer.connections.append((connection_label, current_connections))
+
+                layer.connect_with("││")
             layers.append(layer.full_layer)
 
         return layers
