@@ -133,20 +133,22 @@ def _maybe_add_aer_expectation_instruction(qobj, options):
         from qiskit.providers.aer.utils.qobj_utils import snapshot_instr, append_instr, get_instr_pos
         # add others, how to derive the correct used number of qubits?
         # the compiled qobj could be wrong if coupling map is used.
-        # if mulitple params are provided, we assume that each circuit is corresponding one param
-        # otherwise, params are used for all circuits.
         params = options['expectation']['params']
         num_qubits = options['expectation']['num_qubits']
 
         for idx in range(len(qobj.experiments)):
+            # if mulitple params are provided, we assume that each circuit is corresponding one param
+            # otherwise, params are used for all circuits.
+            param_idx = idx if len(params) > 1 else 0
             snapshot_pos = get_instr_pos(qobj, idx, 'snapshot')
             if len(snapshot_pos) == 0:  # does not append the instruction yet.
-                new_ins = snapshot_instr('expectation_value_pauli', 'test', range(num_qubits), params=params[idx])
+                new_ins = snapshot_instr('expectation_value_pauli', 'test',
+                                         range(num_qubits), params=params[param_idx])
                 qobj = append_instr(qobj, idx, new_ins)
             else:
                 for i in snapshot_pos:  # update all expectation_value_snapshot
                     if qobj.experiments[idx].instructions[i].type == 'expectation_value_pauli':
-                        qobj.experiments[idx].instructions[i].params = params[idx]
+                        qobj.experiments[idx].instructions[i].params = params[param_idx]
     return qobj
 
 
