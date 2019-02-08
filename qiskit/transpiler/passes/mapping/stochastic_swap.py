@@ -643,7 +643,8 @@ def layout_to_numeric(layout, qregs, num_qubits):
         regint[qreg] = ind
     logical_to_physical = np.zeros(num_logical_qubits, dtype=int)
     physical_to_logical = np.zeros(num_qubits, dtype=int)
-    for key, val in layout.items():
+    merged_dict = {**layout._p2v, **layout._v2p}
+    for key, val in merged_dict.items():
         if isinstance(key, tuple):
             logical_to_physical[reg_idx[regint[key[0]]]+key[1]] = val
         else:
