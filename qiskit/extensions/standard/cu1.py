@@ -36,8 +36,6 @@ class Cu1Gate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             U1Gate(self.params[0]/2, q[0]),
             CnotGate(q[0], q[1]),

@@ -39,12 +39,6 @@ class ToffoliGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(3, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("t", 1, 0, 0)
-        decomposition.add_basis_element("tdg", 1, 0, 0)
-        decomposition.add_basis_element("s", 1, 0, 0)
-        decomposition.add_basis_element("sdg", 1, 0, 0)
         rule = [
             HGate(q[2]),
             CnotGate(q[1], q[2]),

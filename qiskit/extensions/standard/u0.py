@@ -30,7 +30,6 @@ class U0Gate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("U", 1, 0, 3)
         rule = [
             UBase(0, 0, 0, q[0])
         ]

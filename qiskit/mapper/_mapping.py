@@ -35,97 +35,6 @@ logger = logging.getLogger(__name__)
 # It can happen that initial swaps can be removed or partly simplified
 # because the initial state is zero. We don't do this.
 
-cx_data = {
-    "opaque": False,
-    "n_args": 0,
-    "n_bits": 2,
-    "args": [],
-    "bits": ["c", "t"],
-    # gate cx c,t { CX c,t; }
-    "body": node.GateBody([
-        node.Cnot([
-            node.Id("c", 0, ""),
-            node.Id("t", 0, "")
-        ])
-    ])
-}
-
-swap_data = {
-    "opaque": False,
-    "n_args": 0,
-    "n_bits": 2,
-    "args": [],
-    "bits": ["a", "b"],
-    # gate swap a,b { cx a,b; cx b,a; cx a,b; }
-    "body": node.GateBody([
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("a", 0, ""),
-                node.Id("b", 0, "")
-            ])
-        ]),
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("b", 0, ""),
-                node.Id("a", 0, "")
-            ])
-        ]),
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("a", 0, ""),
-                node.Id("b", 0, "")
-            ])
-        ])
-    ])
-}
-
-u2_data = {
-    "opaque": False,
-    "n_args": 2,
-    "n_bits": 1,
-    "args": ["phi", "lambda"],
-    "bits": ["q"],
-    # gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }
-    "body": node.GateBody([
-        node.UniversalUnitary([
-            node.ExpressionList([
-                node.BinaryOp([
-                    node.BinaryOperator('/'),
-                    node.Real(sympy.pi),
-                    node.Int(2)
-                ]),
-                node.Id("phi", 0, ""),
-                node.Id("lambda", 0, "")
-            ]),
-            node.Id("q", 0, "")
-        ])
-    ])
-}
-
-h_data = {
-    "opaque": False,
-    "n_args": 0,
-    "n_bits": 1,
-    "args": [],
-    "bits": ["a"],
-    # gate h a { u2(0,pi) a; }
-    "body": node.GateBody([
-        node.CustomUnitary([
-            node.Id("u2", 0, ""),
-            node.ExpressionList([
-                node.Int(0),
-                node.Real(sympy.pi)
-            ]),
-            node.PrimaryList([
-                node.Id("a", 0, "")
-            ])
-        ])
-    ])
-}
-
 
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                       seed=None):
@@ -181,11 +90,6 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         logger.debug("layer_permutation: ----- exit -----")
         circ = DAGCircuit()
         circ.add_qreg(QuantumRegister(coupling.size(), "q"))
-        circ.add_basis_element("CX", 2)
-        circ.add_basis_element("cx", 2)
-        circ.add_basis_element("swap", 2)
-        circ.add_gate_data("cx", cx_data)
-        circ.add_gate_data("swap", swap_data)
         return True, circ, 0, layout, bool(gates)
 
     # Begin loop over trials of randomized algorithm
@@ -220,11 +124,6 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         # Circuit for this swap slice
         circ = DAGCircuit()
         circ.add_qreg(QR)
-        circ.add_basis_element("CX", 2)
-        circ.add_basis_element("cx", 2)
-        circ.add_basis_element("swap", 2)
-        circ.add_gate_data("cx", cx_data)
-        circ.add_gate_data("swap", swap_data)
 
         # Identity wire-map for composing the circuits
         identity_wire_map = {(QR, j): (QR, j) for j in range(n)}

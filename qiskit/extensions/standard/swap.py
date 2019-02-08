@@ -33,7 +33,6 @@ class SwapGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             CnotGate(q[0], q[1]),
             CnotGate(q[1], q[0]),

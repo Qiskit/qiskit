@@ -34,7 +34,6 @@ class HGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u2", 1, 0, 2)
         rule = [
             U2Gate(0, pi, q[0])
         ]

@@ -49,12 +49,6 @@ class CHGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("x", 1, 0, 0)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("t", 1, 0, 0)
-        decomposition.add_basis_element("s", 1, 0, 0)
-        decomposition.add_basis_element("sdg", 1, 0, 0)
         rule = [
             HGate(q[1]),
             SdgGate(q[1]),

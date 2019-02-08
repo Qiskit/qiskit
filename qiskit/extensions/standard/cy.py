@@ -35,9 +35,6 @@ class CyGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("s", 1, 0, 0)
-        decomposition.add_basis_element("sdg", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             SdgGate(q[1]),
             CnotGate(q[0], q[1]),

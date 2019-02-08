@@ -32,8 +32,6 @@ class RZZGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             CnotGate(q[0], q[1]),
             U1Gate(self.params[0], q[0]),

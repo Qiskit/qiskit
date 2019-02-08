@@ -36,8 +36,6 @@ class FredkinGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(3, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("ccx", 3, 0, 0)
         rule = [
             CnotGate(q[2], q[1]),
             ToffoliGate(q[0], q[1], q[2]),

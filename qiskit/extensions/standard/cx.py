@@ -33,7 +33,6 @@ class CnotGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("CX", 2, 0, 0)
         rule = [
             CXBase(q[0], q[1])
         ]

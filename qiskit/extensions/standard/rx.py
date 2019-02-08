@@ -34,7 +34,6 @@ class RXGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u3", 1, 0, 3)
         rule = [
             U3Gate(self.params[0], -pi/2, pi/2, q[0])
         ]
