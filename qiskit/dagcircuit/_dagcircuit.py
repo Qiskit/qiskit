@@ -74,7 +74,7 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
     def get_qubits(self):
-        """ Deprecated. Use qubits()."""
+        """Deprecated. Use qubits()."""
         warnings.warn('The method get_qubits() is being replaced by qubits()',
                       DeprecationWarning, 2)
         return self.qubits()
@@ -84,7 +84,7 @@ class DAGCircuit:
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
     def get_bits(self):
-        """ Deprecated. Use clbits()."""
+        """Deprecated. Use clbits()."""
         warnings.warn('The method get_bits() is being replaced by clbits()',
                       DeprecationWarning, 2)
         return self.clbits()
@@ -611,137 +611,17 @@ class DAGCircuit:
         """Compute how many components the circuit can decompose into."""
         return nx.number_weakly_connected_components(self.multi_graph)
 
-    def _gate_string(self, name):
-        """Return a QASM string for the named gate."""
-        out = ""
-        if self.gates[name]["opaque"]:
-            out = "opaque " + name
-        else:
-            out = "gate " + name
-        if self.gates[name]["n_args"] > 0:
-            out += "(" + ",".join(self.gates[name]["args"]) + ")"
-        out += " " + ",".join(self.gates[name]["bits"])
-        if self.gates[name]["opaque"]:
-            out += ";"
-        else:
-            out += "\n{\n" + self.gates[name]["body"].qasm() + "}"
-        return out
-
-    def qasm(self, no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
-        """Return a string containing QASM for this circuit.
-
-        Args:
-            qeflag (bool): if True, add a line to include "qelib1.inc"
-                and only generate gate code for gates not in qelib1.
-
-            eval_symbols (bool): if True, evaluate all symbolic
-                expressions to their floating point representation.
-
-            no_decls (bool): if True, only print the instructions.
-
-            aliases (dict): if not None, aliases contains a dict mapping
-                the current qubits in the circuit to new qubit names.
-                We will deduce the register names and sizes from aliases.
-
-        Returns:
-            str: OpenQASM representation of the DAG
-
-        Raises:
-            DAGCircuitError: if dag nodes not in expected format
+    def qasm(self):
+        """Deprecated. use qiskit.converters.dag_to_circuit() then call
+        qasm() on the obtained QuantumCircuit instance.
         """
-        # TODO: some of the input flags are not needed anymore
-        # Rename qregs if necessary
-        if aliases:
-            qregdata = OrderedDict()
-            for q in aliases.values():
-                if q[0] not in qregdata:
-                    qregdata[q[0]] = q[1] + 1
-                elif qregdata[q[0]] < q[1] + 1:
-                    qregdata[q[0]] = q[1] + 1
-        else:
-            qregdata = self.qregs
-        # Write top matter
-        if no_decls:
-            out = ""
-        else:
-            printed_gates = []
-            out = "OPENQASM 2.0;\n"
-            if qeflag:
-                out += "include \"qelib1.inc\";\n"
-            for k, v in qregdata.items():
-                out += "qreg %s[%d];\n" % (k, v.size)
-            for k, v in self.cregs.items():
-                out += "creg %s[%d];\n" % (k, v.size)
-            omit = ["U", "CX", "measure", "reset", "barrier"]
-            # TODO: dagcircuit shouldn't know about extensions
-            if qeflag:
-                qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
-                         "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3", "swap", "cswap", "u0", "rx", "ry", "rz",
-                         "ch", "crz", "rzz"]
-                omit.extend(qelib)
-                printed_gates.extend(qelib)
-            simulator_instructions = ["snapshot", "save", "load", "noise", "wait"]
-            omit.extend(simulator_instructions)
-            for k in self.basis.keys():
-                if k not in omit:
-                    if not self.gates[k]["opaque"]:
-                        calls = self.gates[k]["body"].calls()
-                        for c in calls:
-                            if c not in printed_gates:
-                                out += self._gate_string(c) + "\n"
-                                printed_gates.append(c)
-                    if k not in printed_gates:
-                        out += self._gate_string(k) + "\n"
-                        printed_gates.append(k)
-        # Write the instructions
-        for n in nx.lexicographical_topological_sort(
-                self.multi_graph, key=lambda x: (self.multi_graph.nodes[x]["type"],
-                                                 self.multi_graph.nodes[x]["name"])):
-            nd = self.multi_graph.node[n]
-            if nd["type"] == "op":
-                if nd["condition"] is not None:
-                    out += "if(%s==%d) " \
-                           % (nd["condition"][0], nd["condition"][1])
-                if not nd["cargs"]:
-                    nm = nd["op"].name
-                    if aliases:
-                        qarglist = map(lambda x: aliases[x], nd["qargs"])
-                    else:
-                        qarglist = nd["qargs"]
-                    qarg = ",".join(map(lambda x: "%s[%d]" % (x[0].name, x[1]),
-                                        qarglist))
-                    if nd["op"].params:
-                        if eval_symbols:
-                            param = ",".join(map(lambda x: str(x.evalf()),
-                                                 nd["op"].params))
-                        else:
-                            param = ",".join(map(lambda x: x.replace("**", "^"),
-                                                 map(str, nd["op"].params)))
-                        out += "%s(%s) %s;\n" % (nm, param, qarg)
-                    else:
-                        out += "%s %s;\n" % (nm, qarg)
-                else:
-                    if nd["op"].name == "measure":
-                        if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
-                                or nd["op"].param:
-                            raise DAGCircuitError("bad node data")
+        warnings.warn('printing qasm() from DAGCircuit is deprecated. '
+                      'use qiskit.converters.dag_to_circuit() then call '
+                      'qasm() on the obtained QuantumCircuit instance.',
+                      DeprecationWarning, 2)
+        from qiskit.converters import dag_to_circuit
+        dag_to_circuit(self).qasm()
 
-                        qname = nd["qargs"][0][0].name
-                        qindex = nd["qargs"][0][1]
-                        if aliases:
-                            newq = aliases[(qname, qindex)]
-                            qname = newq[0]
-                            qindex = newq[1]
-                        out += "measure %s[%d] -> %s[%d];\n" \
-                               % (qname,
-                                  qindex,
-                                  nd["cargs"][0][0].name,
-                                  nd["cargs"][0][1])
-                    else:
-                        raise DAGCircuitError("bad node data")
-
-        return out
 
     def _check_wires_list(self, wires, op, input_circuit, condition=None):
         """Check that a list of wires satisfies some conditions.
@@ -1080,7 +960,7 @@ class DAGCircuit:
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_op_nodes(self, op=None, data=False):
-        """ Deprecated. Use op_nodes()."""
+        """Deprecated. Use op_nodes()."""
         warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',
                       DeprecationWarning, 2)
         return self.op_nodes(op, data)
@@ -1107,7 +987,7 @@ class DAGCircuit:
         return nodes
 
     def get_gate_nodes(self, data=False):
-        """ Deprecated. Use gate_nodes()."""
+        """Deprecated. Use gate_nodes()."""
         warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes()',
                       DeprecationWarning, 2)
         return self.gate_nodes(data)
@@ -1131,7 +1011,7 @@ class DAGCircuit:
         return nodes
 
     def get_named_nodes(self, *names):
-        """ Deprecated. Use named_nodes()."""
+        """Deprecated. Use named_nodes()."""
         warnings.warn('The method get_named_nodes() is being replaced by named_nodes()',
                       DeprecationWarning, 2)
         return self.named_nodes(*names)
@@ -1145,7 +1025,7 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
-        """ Deprecated. Use twoQ_nodes()."""
+        """Deprecated. Use twoQ_nodes()."""
         warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
                       DeprecationWarning, 2)
         return self.twoQ_nodes()
@@ -1159,7 +1039,7 @@ class DAGCircuit:
         return two_q_nodes
 
     def get_3q_or_more_nodes(self):
-        """ Deprecated. Use threeQ_or_more_nodes()."""
+        """Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
                       ' threeQ_or_more_nodes()', DeprecationWarning, 2)
         return self.threeQ_or_more_nodes()
