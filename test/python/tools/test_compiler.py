@@ -256,6 +256,8 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[2], cr[2])
         shots = 2048
         coupling_map = [[0, 1], [1, 2]]
+        # TODO (luciano): this initial_layout should be replaced by
+        #  {(qr, 0): 0, (qr, 1): 1, (qr, 2): 2} after 0.8
         initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
                           ("qr", 2): ("q", 2)}
         qobj = compile(qc, backend=backend, shots=shots,
@@ -341,6 +343,26 @@ class TestCompiler(QiskitTestCase):
         qrfalse = compile(qc, backend, seed=42, pass_manager=PassManager())
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
+
+    def test_compile_with_initial_layout(self):
+        """Test compile with an initial layout.
+        Regression test for #1711
+        """
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[0])
+        initial_layout = {0: (qr, 1), 2: (qr, 0), 15: (qr, 2)}
+        backend = FakeRueschlikon()
+
+        qobj = compile(qc, backend, seed=42, initial_layout=initial_layout)
+
+        compiled_ops = qobj.experiments[0].instructions
+        for operation in compiled_ops:
+            if operation.name == 'cx':
+                self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                self.assertIn(operation.qubits, [[15, 0], [15, 2]])
 
 
 if __name__ == '__main__':
