@@ -59,6 +59,16 @@ Changed
   final measurements when compiling for both simulators and devices (#1591).
 - Purity function in ``qiskit.tools.qi.qi`` calls new version in
   ``qiskit.quantum_information`` and issues deprecation warning (#1733)
+- The argument ``basis_gates`` used in ``compile``, ``execute``, and ``transpile``
+  is not longer a comma-separated string but a list of strings. For example,
+  this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
+  (#1333)
+
+Deprecated
+----------
+
+- The methods prefixed by `_get` in the DAGCircuit object are being renamed
+  without that prefix (see #1346)
 
 Fixed
 -----
@@ -70,6 +80,8 @@ Fixed
 - Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
 - Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
   used in conditional operations (#1705).
+- Fixed a bug that with transpile ignoring initial layout when
+  coupling map is provided (#1711).
 
 Removed
 -------

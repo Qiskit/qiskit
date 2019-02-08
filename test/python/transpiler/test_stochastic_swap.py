@@ -10,6 +10,7 @@
 import unittest
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -592,8 +593,48 @@ class TestStochasticSwap(QiskitTestCase):
         valid_couplings = [set([layout[a], layout[b]])
                            for (a, b) in coupling.get_edges()]
 
-        for _2q_node in after.get_2q_nodes():
+        for _2q_node in after.twoQ_nodes():
             self.assertIn(set(_2q_node['qargs']), valid_couplings)
+
+    def test_len_coupling_vs_dag(self):
+        """Test error if coupling map and dag are not the same size."""
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+
+        pass_ = StochasticSwap(coupling)
+        with self.assertRaises(TranspilerError):
+            _ = pass_.run(dag)
+
+    def test_len_layout_vs_dag(self):
+        """Test error if the layout and dag are not the same size."""
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+
+        layout = Layout([(QuantumRegister(4, 'q'), 0),
+                         (QuantumRegister(4, 'q'), 1),
+                         (QuantumRegister(4, 'q'), 2)])
+
+        pass_ = StochasticSwap(coupling, layout)
+        with self.assertRaises(TranspilerError):
+            _ = pass_.run(dag)
 
 
 if __name__ == '__main__':

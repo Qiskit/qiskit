@@ -32,7 +32,7 @@ stage_generic: &stage_generic
     - pip install qiskit-ibmq-provider
   script:
     # Compile the executables and run the tests.
-    - make test
+    - make test_ci
 
 stage_linux: &stage_linux
   <<: *stage_generic
