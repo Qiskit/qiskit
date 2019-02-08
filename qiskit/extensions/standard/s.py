@@ -35,16 +35,18 @@ class SGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            U1Gate(pi/2)
+            (U1Gate(pi/2), [q[0]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst, [q[0]], [])
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
         inv = SdgGate()
-        self.circuit.data[-1] = inv  # replaces the gate with the inverse
+        qargs = self.circuit.data[-1].qargs
+        cargs = self.circuit.data[-1].cargs
+        self.circuit.data[-1] = (inv, qargs, cargs)
         return inv
 
 
@@ -63,16 +65,18 @@ class SdgGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            U1Gate(-pi/2)
+            (U1Gate(-pi/2), q[0], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst, [q[0]], [])
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
         inv = SGate()
-        self.circuit.data[-1] = inv  # replaces the gate with the inverse
+        qargs = self.circuit.data[-1].qargs
+        cargs = self.circuit.data[-1].cargs
+        self.circuit.data[-1] = (inv, qargs, cargs)
         return inv
 
 

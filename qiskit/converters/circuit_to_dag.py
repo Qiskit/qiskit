@@ -38,11 +38,8 @@ def circuit_to_dag(circuit):
         else:
             instruction_list.append(main_instruction)
 
-        for instruction_context in instruction_list:
+        for instruction, qargs, cargs in instruction_list:
             # Add OpenQASM built-in gates on demand
-            instruction = instruction_context[0]
-            qargs = instruction_context[1]
-            cargs = instruction_context[2]
             if instruction.name in builtins:
                 dagcircuit.add_basis_element(*builtins[instruction.name])
             # Add simulator extension instructions
@@ -54,16 +51,13 @@ def circuit_to_dag(circuit):
             else:
                 control = (instruction.control[0], instruction.control[1])
 
-            def duplicate_instruction(inst_ctx):
+            def duplicate_instruction(instruction):
                 """Create a fresh instruction from an input instruction."""
-                inst = inst_ctx[0]
-                qargs = inst_ctx[1]
-                cargs = inst_ctx[2]
-                args = inst.params + [inst.circuit]
-                new_inst = inst.__class__(*args)
-                return new_inst
+                args = instruction.params + [instruction.circuit]
+                new_instruction = instruction.__class__(*args)
+                return new_instruction
 
-            inst = duplicate_instruction(instruction_context)
-            dagcircuit.apply_operation_back(inst, qargs, cargs, control)
+            instruction = duplicate_instruction(instruction)
+            dagcircuit.apply_operation_back(instruction, qargs, cargs, control)
 
     return dagcircuit

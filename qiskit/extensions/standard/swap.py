@@ -34,12 +34,12 @@ class SwapGate(Gate):
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
         rule = [
-            CnotGate(q[0], q[1]),
-            CnotGate(q[1], q[0]),
-            CnotGate(q[0], q[1])
+            (CnotGate(), [q[0], q[1]], []),
+            (CnotGate(), [q[1], q[0]], []),
+            (CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):

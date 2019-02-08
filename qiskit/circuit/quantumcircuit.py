@@ -139,8 +139,8 @@ class QuantumCircuit:
             if element not in self.cregs:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
-        for gate_context in itertools.chain(self.data, rhs.data):
-            circuit._attach(*gate_context)
+        for instruction_context in itertools.chain(self.data, rhs.data):
+            circuit._attach(*instruction_context)
         return circuit
 
     def extend(self, rhs):
@@ -172,8 +172,8 @@ class QuantumCircuit:
                 self.cregs.append(element)
 
         # Add new gates
-        for gate_context in rhs.data:
-            self._attach(*gate_context)
+        for instruction_context in rhs.data:
+            self._attach(*instruction_context)
         return self
 
     def __add__(self, rhs):
@@ -198,7 +198,7 @@ class QuantumCircuit:
         self._check_dups(instruction.qargs)
         self._check_qargs(instruction.qargs)
         self._check_cargs(instruction.cargs)
-        instruction_context = (instruction, qargs, cargs)
+        instruction_context = instruction, qargs, cargs
         self.data.append(instruction_context)
         return instruction
 
@@ -261,10 +261,7 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
-        for instruction_context in self.data:
-            instruction = instruction_context[0]
-            qargs = instruction_context[1]
-            cargs = instruction_context[2]
+        for instruction, qargs, cargs in self.data:
             string_temp += "%s %s;\n" % (instruction.qasm(),
                                          ",".join(["%s[%d]" % (j[0].name, j[1])
                                                    for j in qargs + cargs]))
