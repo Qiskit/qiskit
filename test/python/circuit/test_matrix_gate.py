@@ -15,9 +15,9 @@ import unittest
 import numpy
 
 import qiskit.extensions.simulator
-from qiskit import BasicAer
+from qiskit import BasicAer, Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
+from qiskit import execute, compile
 from qiskit import QiskitError
 from qiskit.circuit import Gate
 from qiskit.test import QiskitTestCase
@@ -45,7 +45,7 @@ class TestMatrixGate(QiskitTestCase):
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
-        node_ids = dag.get_named_nodes('unitary')
+        node_ids = dag.named_nodes('unitary')
         self.assertTrue(len(node_ids) == 1)
         dnode = dag.multi_graph.node[node_ids[0]]
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
@@ -72,7 +72,7 @@ class TestMatrixGate(QiskitTestCase):
         # test of text drawer
         self.log.info(qc2)
         dag = circuit_to_dag(qc)
-        nodes = dag.get_2q_nodes()
+        nodes = dag.twoQ_nodes()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
@@ -96,7 +96,7 @@ class TestMatrixGate(QiskitTestCase):
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
-        nodes = dag.get_3q_or_more_nodes()
+        nodes = dag.threeQ_or_more_nodes()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0][1]
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
@@ -119,5 +119,25 @@ class TestMatrixGate(QiskitTestCase):
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, 'unitary')
         self.assertTrue(numpy.allclose(
-            numpy.array(instr.params[0]).astype(numpy.complex64),
+            numpy.array(instr.params).astype(numpy.complex64),
             matrix))
+
+    def test_aer(self):
+        backend = Aer.get_backend('unitary_simulator')
+        qr = QuantumRegister(4)
+        qc1 = QuantumCircuit(qr)
+        σx = numpy.array([[0, 1], [1, 0]])
+        σy = numpy.array([[0, -1j], [1j, 0]])
+        matrix1 = numpy.kron(σx, numpy.kron(σx, σy))
+        qc1.unitary(matrix1, qr[0], qr[1], qr[3])
+
+        qc2 = QuantumCircuit(qr)
+        qc2.y(qr[0])
+        qc2.x(qr[1])
+        qc2.x(qr[3])
+
+        results = execute([qc1, qc2], backend).result()
+        result1 = results.get_unitary(0)
+        result2 = results.get_unitary(1)
+        self.assertTrue(numpy.array_equal(result1, result2))
+
