@@ -665,8 +665,6 @@ class MatplotlibDrawer:
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
-
-
             #
             # adjust window size and draw horizontal lines
             #

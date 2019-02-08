@@ -409,7 +409,7 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, circuit, plotbarriers=True,
-                line_length=None):
+                 line_length=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -792,7 +792,7 @@ class TextDrawing():
                 if current_connections:
                     layer.connections.append((connection_label, current_connections))
 
-                layer.connect_with("││")
+                layer.connect_with("│")
             layers.append(layer.full_layer)
 
         return layers
