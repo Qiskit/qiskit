@@ -706,7 +706,6 @@ class TextDrawing():
             layer.set_qubit(instruction['qargs'][0], Reset())
 
         elif instruction['condition'] is not None:
-            # TODO this hasn't been updated
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
             qulabel = TextDrawing.label_for_box(instruction)
