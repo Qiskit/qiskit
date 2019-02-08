@@ -11,7 +11,7 @@ two-qubit ZZ-rotation gate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _2q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.u1 import U1Gate
@@ -54,7 +54,7 @@ class RZZGate(Gate):
         self._modifiers(circ.rzz(self.params[0], self.qargs[0], self.qargs[1]))
 
 
-@_2q_gate
+@_op_expand(2, broadcastable=[False, False])
 def rzz(self, theta, qubit1, qubit2):
     """Apply RZZ to circuit."""
     self._check_qubit(qubit1)
