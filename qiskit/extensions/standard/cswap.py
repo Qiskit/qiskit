@@ -13,7 +13,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
 
@@ -36,8 +35,6 @@ class FredkinGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(3, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("ccx", 3, 0, 0)
         rule = [
             CnotGate(q[2], q[1]),
             ToffoliGate(q[0], q[1], q[2]),

@@ -16,7 +16,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u3 import U3Gate
 
 
@@ -34,7 +33,6 @@ class RXGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u3", 1, 0, 3)
         rule = [
             U3Gate(self.params[0], -pi/2, pi/2, q[0])
         ]

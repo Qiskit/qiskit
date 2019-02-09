@@ -85,7 +85,6 @@ class CXDirection(TransformationPass):
                         subdag.add_qreg(target[0])
 
                     # Add H gates around
-                    subdag.add_basis_element('h', 1, 0, 0)
                     subdag.apply_operation_back(HGate(target))
                     subdag.apply_operation_back(HGate(control))
                     subdag.apply_operation_front(HGate(target))

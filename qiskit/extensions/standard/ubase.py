@@ -13,7 +13,6 @@ Element of SU(2).
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.decorators import _op_expand
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class UBase(Gate):  # pylint: disable=abstract-method
