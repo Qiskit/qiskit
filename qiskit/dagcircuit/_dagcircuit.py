@@ -619,9 +619,6 @@ class DAGCircuit:
                       'use qiskit.converters.dag_to_circuit() then call '
                       'qasm() on the obtained QuantumCircuit instance.',
                       DeprecationWarning, 2)
-        from qiskit.converters import dag_to_circuit
-        dag_to_circuit(self).qasm()
-
 
     def _check_wires_list(self, wires, op, input_circuit, condition=None):
         """Check that a list of wires satisfies some conditions.

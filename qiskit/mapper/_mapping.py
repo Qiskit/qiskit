@@ -15,10 +15,8 @@ import pprint
 import sys
 
 import numpy as np
-import sympy
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import _node as node
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.swap import SwapGate
 
@@ -373,11 +371,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                 # Give up if we fail again
                 if not success_flag:
                     raise MapperError("swap_mapper failed: " +
-                                      "layer %d, sublayer %d" % (i, j) +
-                                      ", \"%s\"" %
-                                      serial_layer["graph"].qasm(
-                                          no_decls=True,
-                                          aliases=layout))
+                                      "layer %d, sublayer %d" % (i, j))
 
                 # If this layer is only single-qubit gates,
                 # and we have yet to see multi-qubit gates,

@@ -468,12 +468,8 @@ class StochasticSwap(TransformationPass):
 
                     # Give up if we fail again
                     if not success_flag:
-                        raise TranspilerError("mapper failed: " +
-                                              "layer %d, sublayer %d" %
-                                              (i, j) + ", \"%s\"" %
-                                              serial_layer["graph"].qasm(
-                                                  no_decls=True,
-                                                  aliases=layout))
+                        raise TranspilerError("swap mapper failed: " +
+                                              "layer %d, sublayer %d" % (i, j))
 
                     # If this layer is only single-qubit gates,
                     # and we have yet to see multi-qubit gates,

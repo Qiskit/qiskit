@@ -16,7 +16,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import pi
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 
 
