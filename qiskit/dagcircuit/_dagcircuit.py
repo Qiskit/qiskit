@@ -1338,6 +1338,10 @@ class DAGCircuit:
         """Returns the descendants of a node."""
         return nx.descendants(self.multi_graph, node)
 
+    def bfs_successors(self, node):
+        """Returns successors of a node in BFS order"""
+        return nx.bfs_successors(self.multi_graph, node)
+
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""
         successors = []
