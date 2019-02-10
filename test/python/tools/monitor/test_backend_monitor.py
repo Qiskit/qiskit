@@ -8,6 +8,9 @@
 """Tests for the wrapper functionality."""
 
 import unittest
+from unittest.mock import patch
+from io import StringIO
+
 from qiskit.tools.monitor import backend_overview, backend_monitor
 from qiskit.test import QiskitTestCase, requires_qe_access
 
@@ -20,7 +23,11 @@ class TestBackendOverview(QiskitTestCase):
         """Test backend_overview"""
         from qiskit import IBMQ  # pylint: disable: import-error
         IBMQ.enable_account(qe_token, qe_url)
-        backend_overview()
+
+        with patch('sys.stdout', new=StringIO()) as fake_stout:
+            backend_overview()
+
+        self.assertEqual(11, len(fake_stout.getvalue().splitlines()))
 
     @requires_qe_access
     def test_backend_monitor(self, qe_token, qe_url):
@@ -31,7 +38,10 @@ class TestBackendOverview(QiskitTestCase):
             if not back.configuration().simulator:
                 backend = back
                 break
-        backend_monitor(backend)
+        with patch('sys.stdout', new=StringIO()) as fake_stout:
+            backend_monitor(backend)
+
+        self.assertEqual(43, len(fake_stout.getvalue().splitlines()))
 
 
 if __name__ == '__main__':
