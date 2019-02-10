@@ -84,8 +84,8 @@ class QuantumInstance:
         coupling_map = getattr(backend.configuration(), 'coupling_map', None)
         # TODO: basis gates will be [str] rather than comma-separated str
         basis_gates = backend.configuration().basis_gates
-        if isinstance(basis_gates, list):
-            basis_gates = ','.join(basis_gates)
+        if isinstance(basis_gates, str):
+            basis_gates = basis_gates.split(',')
 
         self._backend_config = {
             'basis_gates': basis_gates,
