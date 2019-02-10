@@ -20,15 +20,6 @@ class Measure(Instruction):
         """Create new measurement instruction."""
         super().__init__("measure", [], circuit)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.qargs[0]
-        bit = self.cargs[0]
-        return self._qasmif("measure %s[%d] -> %s[%d];" % (qubit[0].name,
-                                                           qubit[1],
-                                                           bit[0].name,
-                                                           bit[1]))
-
 
 @_op_expand(2, broadcastable=[True, False])
 def measure(self, qubit, cbit):

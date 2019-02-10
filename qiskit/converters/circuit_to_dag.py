@@ -39,12 +39,6 @@ def circuit_to_dag(circuit):
             instruction_list.append(main_instruction)
 
         for instruction, qargs, cargs in instruction_list:
-            # Add OpenQASM built-in gates on demand
-            if instruction.name in builtins:
-                dagcircuit.add_basis_element(*builtins[instruction.name])
-            # Add simulator extension instructions
-            if instruction.name in simulator_instructions:
-                dagcircuit.add_basis_element(*simulator_instructions[instruction.name])
             # Get arguments for classical control (if any)
             if instruction.control is None:
                 control = None

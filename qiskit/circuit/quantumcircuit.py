@@ -254,7 +254,7 @@ class QuantumCircuit:
                         raise QiskitError("circuits are not compatible")
 
     def qasm(self):
-        """Return OPENQASM string."""
+        """Return OpenQASM string."""
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
@@ -262,9 +262,16 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
         for instruction, qargs, cargs in self.data:
-            string_temp += "%s %s;\n" % (instruction.qasm(),
-                                         ",".join(["%s[%d]" % (j[0].name, j[1])
-                                                   for j in qargs + cargs]))
+            if instruction.name == 'measure':
+                qubit = qargs[0]
+                clbit = cargs[0]
+                string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
+                                                           qubit[0].name, qubit[1],
+                                                           clbit[0].name, clbit[1])
+            else:
+                string_temp += "%s %s;\n" % (instruction.qasm(),
+                                             ",".join(["%s[%d]" % (j[0].name, j[1])
+                                                       for j in qargs + cargs]))                                         
         return string_temp
 
     def draw(self, scale=0.7, filename=None, style=None, output='text',
