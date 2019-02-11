@@ -18,18 +18,18 @@ directory):
 To make a new swapper pass throw all the common tests, create a new class inside the file
 `path/to/test_mappers.py` that:
     * the class name should start with `Tests...`.
-    * inheriting from ``CommonTestCases, QiskitTestCase``
+    * inheriting from ``SwapperCommonTestCases, QiskitTestCase``
     * overwrite the required attribute ``pass_class``
 
 For example::
 
-    class TestsSomeSwap(CommonTestCases, QiskitTestCase):
+    class TestsSomeSwap(SwapperCommonTestCases, QiskitTestCase):
         pass_class = SomeSwap           # The pass class
         additional_args = {'seed': 42}  # In case SomeSwap.__init__ requires
                                         # additional arguments
 
 To **add a test for all the swappers**: add a new method ``test_foo``to the
-``CommonTestCases`` class:
+``SwapperCommonTestCases`` class:
     * defining the following required ``self`` attributes: ``self.count``,
       ``self.shots``, ``self.delta``. They are required for the regeneration of the
       ground truth.
@@ -135,7 +135,7 @@ class CommonUtilitiesMixin:
         self.assertEqual(result, expected)
 
 
-class CommonTestCases(CommonUtilitiesMixin):
+class SwapperCommonTestCases(CommonUtilitiesMixin):
     """Tests that are run in several mappers.
 
     The tests here will be run in several mappers. When adding a test, please
@@ -260,18 +260,18 @@ class CommonTestCases(CommonUtilitiesMixin):
         self.assertResult(result, circuit.name)
 
 
-class TestsBasicSwap(CommonTestCases, QiskitTestCase):
-    """Test CommonTestCases using BasicSwap."""
+class TestsBasicSwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using BasicSwap."""
     pass_class = BasicSwap
 
 
-class TestsLookaheadSwap(CommonTestCases, QiskitTestCase):
-    """Test CommonTestCases using LookaheadSwap."""
+class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using LookaheadSwap."""
     pass_class = LookaheadSwap
 
 
-class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
-    """Test CommonTestCases using StochasticSwap."""
+class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using StochasticSwap."""
     pass_class = StochasticSwap
     additional_args = {'seed': 0}
 
