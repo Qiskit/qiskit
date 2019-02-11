@@ -33,6 +33,8 @@ stage_generic: &stage_generic
   script:
     # Compile the executables and run the tests.
     - make test_ci
+  after_failure:
+    - python tools/report_ci_failure.py
 
 stage_linux: &stage_linux
   <<: *stage_generic
