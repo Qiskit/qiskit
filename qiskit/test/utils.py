@@ -30,11 +30,6 @@ class Path(Enum):
     CASSETTES = os.path.normpath(os.path.join(TEST, '..', 'cassettes'))
     # Sample QASMs path: qiskit/test/python/qasm
     QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
-    # Circuit drawers references path: qiskit/test/python/tools/visualization/references
-    CIRCUIT_DRAWERS_REFERENCES = os.path.normpath(os.path.join(TEST,
-                                                               'tools',
-                                                               'visualization',
-                                                               'references'))
 
 
 def setup_test_logging(logger, log_level, filename):

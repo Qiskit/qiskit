@@ -15,7 +15,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cxbase import CXBase
 
 
@@ -33,7 +32,6 @@ class CnotGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("CX", 2, 0, 0)
         rule = [
             CXBase(q[0], q[1])
         ]

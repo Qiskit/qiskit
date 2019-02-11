@@ -16,7 +16,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 
 
@@ -34,7 +33,6 @@ class SGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
         rule = [
             U1Gate(pi/2, q[0])
         ]
@@ -67,7 +65,6 @@ class SdgGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
         rule = [
             U1Gate(-pi/2, q[0])
         ]

@@ -11,7 +11,6 @@ Fundamental controlled-NOT gate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.decorators import _op_expand
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class CXBase(Gate):  # pylint: disable=abstract-method
