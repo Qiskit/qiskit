@@ -100,6 +100,7 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
         return circuit
 
     dag = circuit_to_dag(circuit)
+    del circuit
 
     # pick a trivial layout if the circuit already satisfies the coupling constraints
     # else layout on the most densely connected physical qubit subset
