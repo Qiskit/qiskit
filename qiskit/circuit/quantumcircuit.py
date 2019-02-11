@@ -132,8 +132,8 @@ class QuantumCircuit:
         Return self + rhs as a new object.
         """
         if isinstance(rhs, Instruction):
-            qregs = set([qubit[0] for qubit in rhs.qargs])
-            cregs = set([cbit[0] for bit in rhs.cargs])
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
             qc = QuantumCircuit(*qregs, *cregs)
             qc._attach(rhs)
             rhs = qc
@@ -167,8 +167,8 @@ class QuantumCircuit:
         Modify and return self.
         """
         if isinstance(rhs, Instruction):
-            qregs = set([qubit[0] for qubit in rhs.qargs])
-            cregs = set([cbit[0] for bit in rhs.cargs])
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
             qc = QuantumCircuit(*qregs, *cregs)
             qc._attach(rhs)
             rhs = qc

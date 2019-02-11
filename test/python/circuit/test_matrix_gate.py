@@ -50,7 +50,7 @@ class TestMatrixGate(QiskitTestCase):
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
         for qubit in dnode['qargs']:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode['op'].representation,
+        self.assertTrue(numpy.allclose(dnode['op'].matrix_rep,
                                        matrix))
 
     def test_2q_unitary(self):
@@ -78,7 +78,7 @@ class TestMatrixGate(QiskitTestCase):
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
         for qubit in dnode['qargs']:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode['op'].representation,
+        self.assertTrue(numpy.allclose(dnode['op'].matrix_rep,
                                        matrix))
 
     def test_3q_unitary(self):
@@ -102,7 +102,7 @@ class TestMatrixGate(QiskitTestCase):
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
         for qubit in dnode['qargs']:
             self.assertTrue(qubit[1] in [0, 1, 3])
-        self.assertTrue(numpy.allclose(dnode['op'].representation,
+        self.assertTrue(numpy.allclose(dnode['op'].matrix_rep,
                                        matrix))
 
     def test_qobj_with_unitary_matrix(self):
@@ -121,23 +121,3 @@ class TestMatrixGate(QiskitTestCase):
         self.assertTrue(numpy.allclose(
             numpy.array(instr.params).astype(numpy.complex64),
             matrix))
-
-    def test_aer(self):
-        """test aer simulation with unitary matrix"""
-        backend = Aer.get_backend('unitary_simulator')
-        qr = QuantumRegister(4)
-        qc1 = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix1 = numpy.kron(sigmax, numpy.kron(sigmax, sigmay))
-        qc1.unitary(matrix1, qr[0], qr[1], qr[3])
-
-        qc2 = QuantumCircuit(qr)
-        qc2.y(qr[0])
-        qc2.x(qr[1])
-        qc2.x(qr[3])
-
-        results = execute([qc1, qc2], backend).result()
-        result1 = results.get_unitary(0)
-        result2 = results.get_unitary(1)
-        self.assertTrue(numpy.array_equal(result1, result2))

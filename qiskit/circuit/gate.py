@@ -27,7 +27,7 @@ class Gate(Instruction):
         self._qubit_coupling = [qarg[1] for qarg in qargs]
         self._is_multi_qubit = (len(qargs) > 1)
         self._decompositions = None
-        self._representation = None
+        self._matrix_rep = None
 
         super().__init__(name, params, qargs, [], circuit)
 
@@ -51,11 +51,11 @@ class Gate(Instruction):
         raise NotImplementedError("No decomposition rules defined for ", self.name)
 
     @property
-    def representation(self):
+    def matrix_rep(self):
         """Return matrix representation if it exists else None"""
-        return self._representation
+        return self._matrix_rep
 
-    @representation.setter
-    def representation(self, matrix):
+    @matrix_rep.setter
+    def matrix_rep(self, matrix):
         """Set matrix representation"""
-        self._representation = matrix
+        self._matrix_rep = matrix

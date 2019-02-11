@@ -25,7 +25,7 @@ class UnitaryMatrixGate(Gate):
                               numpy.identity(2**len(qargs))):
             raise QiskitError('non-unitary matrix')
         super().__init__('unitary', [sympy.Matrix(umatrix)], list(qargs), circuit=circuit)
-        self.representation = umatrix
+        self.matrix_rep = umatrix
 
     def _define_decompositions(self):
         self._decompositions = None
