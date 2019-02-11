@@ -45,7 +45,7 @@
                         "items": {"type": "integer", "minimum": 1}},
                         {"type": "integer"}],
                     "description": "The starting and ending shot for this data. If there is only one shot to the experiment this is [1,1]"
-                },                        
+                },
                 "success": {
                     "type": "boolean",
                     "description": "If true, we can trust results for this experiment."
@@ -66,7 +66,7 @@
                 "header": {
                     "type": "object",
                     "properties": {},
-                    "description": "Header passed through from the qobj with experiment metadata"},                       
+                    "description": "Header passed through from the qobj with experiment metadata"},
                 "data": {
                     "type": "object",
                     "properties": {
@@ -78,7 +78,7 @@
                                 "minimum": 0 }
                             },
                             "additionalProperties": false
-                        }, 
+                        },
                         "snapshots": {
                             "description": "collection of all snapshots of simulator state",
                             "type": "object"
@@ -87,22 +87,17 @@
                             "$ref": "#/definitions/memory"
                         },
                         "statevector": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/complex_array"
-                            }
+                            "$ref": "#/definitions/complex_array"
                         },
                         "unitary": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/complex_matrix"
-                            }
+                            "$ref": "#/definitions/complex_matrix"
                         }
+
                     }
                 }
             }
         }
-    },                            
+    },
     "type": "object",
     "required": ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"],
     "properties": {
@@ -139,7 +134,7 @@
         "header": {
             "type": "object",
             "properties": {},
-            "description": "Header passed through from the qobj with job metadata"}, 
+            "description": "Header passed through from the qobj with job metadata"},
         "results": {
             "type": "array",
             "description": "Corresponding results for array of experiments of the input qobj",

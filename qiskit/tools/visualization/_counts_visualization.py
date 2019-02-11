@@ -5,55 +5,51 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,import-error
 
 """
 Visualization functions for measurement counts.
 """
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import functools
-import warnings
-
 import numpy as np
-import matplotlib.pyplot as plt
+from ._matplotlib import HAS_MATPLOTLIB
+from .exceptions import VisualizationError
 
-from ._error import VisualizationError
+if HAS_MATPLOTLIB:
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
 
 
-def plot_histogram(data, number_to_keep=None, legend=None, options=None):
+def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
+                   sort='asc', legend=None, bar_labels=True, title=None):
     """Plot a histogram of data.
 
     Args:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex {'001': 130})
-        number_to_keep (int): DEPRECATED the number of terms to plot and rest
-            is made into a single bar called other values
+        figsize (tuple): Figure size in inches.
+        color (list or str): String or list of strings for histogram bar colors.
+        number_to_keep (int): The number of terms to plot and rest
+            is made into a single bar called 'rest'.
+        sort (string): Could be 'asc' or 'desc'
         legend(list): A list of strings to use for labels of the data.
-            The number of entries must match the lenght of data (if data is a
+            The number of entries must match the length of data (if data is a
             list or 1 if it's a dict)
-        options (dict): Representation settings containing
-            - width (integer): graph horizontal size, must be specified with
-              height to have an effect
-            - height (integer): graph vertical size, must be specified with
-              width to have an effect
-            - number_to_keep (integer): groups max values
-            - show_legend (bool): show legend of graph content
-            - sort (string): Could be 'asc' or 'desc'
+        bar_labels (bool): Label each bar in histogram with probability value.
+        title (str): A string to use for the plot title
+
+    Returns:
+        matplotlib.Figure: A figure for the rendered histogram.
+
     Raises:
+        ImportError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
     """
-    if options is None:
-        options = {}
-
-    if number_to_keep is not None:
-        warnings.warn("number_to_keep has been deprecated, use the options "
-                      "dictionary and set a number_to_keep key instead",
-                      DeprecationWarning)
-
-    if 'number_to_keep' in options and options['number_to_keep']:
-        number_to_keep = options['number_to_keep']
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
 
     if isinstance(data, dict):
         data = [data]
@@ -63,13 +59,21 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None):
                                  "number of input executions: %s" %
                                  (len(legend), len(data)))
 
-    if 'height' in options and 'width' in options:
-        _, ax = plt.subplots(figsize=(options['width'], options['height']))
-    else:
-        _, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=figsize)
+    labels = list(sorted(
+        functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
+    if number_to_keep is not None:
+        labels.append('rest')
 
-    labels = sorted(
-        functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
+    labels_dict = OrderedDict()
+
+    # Set bar colors
+    if color is None:
+        color = ['#648fff', '#dc267f', '#785ef0', '#ffb000', '#fe6100']
+    elif isinstance(color, str):
+        color = [color]
+
+    all_pvalues = []
     for item, execution in enumerate(data):
         if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
@@ -78,41 +82,68 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None):
         values = []
         for key in labels:
             if key not in execution:
-                values.append(0)
+                if number_to_keep is None:
+                    labels_dict[key] = 1
+                    values.append(0)
+                else:
+                    values.append(-1)
             else:
+                labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
-        pvalues = values / sum(values)
-        numelem = len(values)
+        where_idx = np.where(values >= 0)[0]
+        pvalues = values[where_idx] / sum(values[where_idx])
+        for value in pvalues:
+            all_pvalues.append(value)
+        numelem = len(values[where_idx])
         ind = np.arange(numelem)  # the x locations for the groups
-        width = 0.35  # the width of the bars
-        label = None
-        if legend:
-            label = legend[item]
-        adj = width * item
-        rects = ax.bar(ind+adj, pvalues, width, label=label)
-        # add some text for labels, title, and axes ticks
-        ax.set_ylabel('Probabilities', fontsize=12)
+        width = 1/(len(data)+1)  # the width of the bars
+        rects = []
+        for idx, val in enumerate(pvalues):
+            label = None
+            if not idx and legend:
+                label = legend[item]
+            if val >= 0:
+                rects.append(ax.bar(idx+item*width, val, width, label=label,
+                                    color=color[item % len(color)],
+                                    zorder=2))
         ax.set_xticks(ind)
-        ax.set_xticklabels(labels, fontsize=12, rotation=70)
-        ax.set_ylim([0., min([1.2, max([1.2 * val for val in pvalues])])])
+        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
         # attach some text labels
-        for rect in rects:
-            height = rect.get_height()
-            ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                    '%.3f' % float(height),
-                    ha='center', va='bottom')
-    if legend and (
-            'show_legend' not in options or options['show_legend'] is True):
-        plt.legend()
-    if 'sort' in options:
-        if options['sort'] == 'asc':
-            pass
-        elif options['sort'] == 'desc':
-            ax.invert_xaxis()
-        else:
-            raise VisualizationError("Value of sort option, %s, isn't a "
-                                     "valid choice. Must be 'asc' or "
-                                     "'desc'")
+        if bar_labels:
+            for rect in rects:
+                for rec in rect:
+                    height = rec.get_height()
+                    if height >= 1e-3:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '%.3f' % float(height),
+                                ha='center', va='bottom', zorder=3)
+                    else:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '0',
+                                ha='center', va='bottom', zorder=3)
 
-    plt.show()
+    # add some text for labels, title, and axes ticks
+    ax.set_ylabel('Probabilities', fontsize=14)
+    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_pvalues])])])
+    if sort == 'desc':
+        ax.invert_xaxis()
+    elif sort != 'asc':
+        raise VisualizationError("Value of sort option, %s, isn't a "
+                                 "valid choice. Must be 'asc' or "
+                                 "'desc'")
+
+    ax.yaxis.set_major_locator(MaxNLocator(5))
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(14)
+    ax.set_facecolor('#eeeeee')
+    plt.grid(which='major', axis='y', zorder=0, linestyle='--')
+    if title:
+        plt.title(title)
+
+    if legend:
+        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
+                  borderaxespad=0, frameon=True, fontsize=12)
+    if fig:
+        plt.close(fig)
+    return fig

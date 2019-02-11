@@ -11,7 +11,7 @@
     "results": [
         {
         "header": {
-            "exp_descrip": "Bell state",
+            "name": "Bell state",
             "memory_slots": 2,
             "n_qubits": 2,
             "clbit_labels": [["c1", 0],["c1", 1]],
@@ -30,7 +30,7 @@
         },
         {
         "header": {
-            "exp_descrip": "Bell state XY",
+            "name": "Bell state XY",
             "memory_slots": 2,
             "n_qubits": 2,
             "clbit_labels": [["c1", 0],["c1", 1]],

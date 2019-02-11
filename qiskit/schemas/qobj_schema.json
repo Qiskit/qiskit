@@ -251,15 +251,15 @@
         },
         "openqasm_instructions": {
             "oneOf": [
-                { 
+                {
                     "properties": {
                         "name": {"not": {
-                            "enum": ["u3", "U", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z", 
-                            "u1", "u0", "rx", "ry", "rz", "u2", "cx", "CX", "cy", "cz", "ch", 
-                            "swap", "cu1", "crz", "rzz", "cu3", "ccx", "cswap", "snapshot", 
+                            "enum": ["u3", "U", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z",
+                            "u1", "u0", "rx", "ry", "rz", "u2", "cx", "CX", "cy", "cz", "ch",
+                            "swap", "cu1", "crz", "rzz", "cu3", "ccx", "cswap", "snapshot",
                             "reset", "barrier", "bfunc", "copy", "measure"]
                             },
-                            "type": "string"                            
+                            "type": "string"
                             }
                     }
                 },
@@ -690,7 +690,18 @@
             "properties": {
                 "config": {
                     "description": "Configuration options that apply to specific experiments in this qobj. Overwrites qobj level configuration.",
-                    "properties": {},
+                    "properties": {
+                        "memory_slots": {
+                            "description": "Total number of (slow) measurement slots used in this experiment.",
+                            "minimum": 0,
+                            "type": "integer"
+                        },
+                        "n_qubits": {
+                            "description": "Total number of qubits used in this experiment.",
+                            "minimum": 1,
+                            "type": "integer"
+                        }                        
+                    },
                     "title": "Experiment level configuration",
                     "type": "object"
                 },
@@ -701,45 +712,72 @@
                             "description": "Experiment name.",
                             "type": "string"
                         },
-                        "n_qubits": {
-                            "description": "Number of backend qubits for converting back to OpenQasm registers",
-                            "type": "number"
-                        },
                         "memory_slots": {
-                            "description": "Number of backend memory slots",
-                            "type": "number"
+                            "description": "Total number of (slow) measurement slots used in this experiment.",
+                            "minimum": 0,
+                            "type": "integer"
+                        },                        
+                        "n_qubits": {
+                            "description": "Total number of qubits used in this experiment.",
+                            "minimum": 1,                            
+                            "type": "integer"
                         },
-                        "clbit_labels": {
-                            "description": "A list of length memory_slots (from backend.configuration or in this header), where each element is either [creg_name, n] to identify the corresponding memory slot as the n-th element of creg creg_name, or null to identify that the corresponding memory slot has no corresponding creg",
-                            "items": [
-                                {
-                                    "items": [
-                                        {
-                                            "minLength": 1,
-                                            "title": "clreg",
-                                            "type": "string"
-                                        },
-                                        {
-                                            "description": "The register slot of the clreg",
-                                            "minimum": 0,
-                                            "title": "size",
-                                            "type": "integer"
-                                        }
-                                    ],
-                                    "maxItems": 2,
-                                    "minItems": 2,
-                                    "type": [
-                                        "array",
-                                        "null"
-                                    ]
-                                }
-                            ],
+                        "qreg_sizes": {
+                            "description": "A list of [qreg_name, size], to identify the QASM quantum registers and their size, where the most significant register appears first, and the least significant register last.",
+                            "items":
+                            {
+                                "items": [
+                                    {
+                                        "minLength": 1,
+                                        "title": "qreg",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "description": "size of corresponding quantum register",
+                                        "minimum": 1,
+                                        "title": "qreg size",
+                                        "type": "integer"
+                                    }
+                                ],
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": [
+                                    "array"
+                                ]
+                            },
+                            "minItems": 1,
+                            "title": "List of quantum registers and their sizes.",
+                            "type": "array"
+                        },
+                        "creg_sizes": {
+                            "description": "A list of [creg_name, size], to identify the QASM classical registers and their size, where the most significant register appears first, and the least significant register last.",
+                            "items":
+                            {
+                                "items": [
+                                    {
+                                        "minLength": 1,
+                                        "title": "creg",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "description": "size of corresponding classical register",
+                                        "minimum": 1,
+                                        "title": "creg size",
+                                        "type": "integer"
+                                    }
+                                ],
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": [
+                                    "array"
+                                ]
+                            },
                             "minItems": 0,
-                            "title": "Map physical clbits to register_slots (for QASM)",
+                            "title": "List of classical registers and their sizes.",
                             "type": "array"
                         },
                         "qubit_labels": {
-                            "description": "A list of length n_qubits (from backend.configuration or in this header), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
+                            "description": "A list of length total physical qubits (from backend.configuration), where each element is either [qreg_name, n] to identify the corresponding physical qubit as the n-th qubit of qreg qreg_name, or null to identify that the corresponding physical qubit has no corresponding qreg",
                             "items": {
                                 "items": [
                                     {
@@ -748,9 +786,9 @@
                                         "type": "string"
                                     },
                                     {
-                                        "description": "The qubit number within the qreg",
+                                        "description": "The qubit index within the qreg",
                                         "minimum": 0,
-                                        "title": "qubit number",
+                                        "title": "qubit index",
                                         "type": "integer"
                                     }
                                 ],
@@ -761,12 +799,44 @@
                                     "null"
                                 ]
                             },
-                            "minItems": 0,
+                            "minItems": 1,
                             "title": "Map physical qubits to qregs (for QASM)",
+                            "type": "array"
+                        },
+                        "clbit_labels": {
+                            "description": "A list of length memory_slots, where each element is [creg_name, n] to identify the corresponding memory slot as the n-th element of creg creg_name.",
+                            "items": [
+                                {
+                                    "items": [
+                                        {
+                                            "minLength": 1,
+                                            "title": "creg",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "description": "The clbit index within creg",
+                                            "minimum": 0,
+                                            "title": "clbit index",
+                                            "type": "integer"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": [
+                                        "array"
+                                    ]
+                                }
+                            ],
+                            "minItems": 0,
+                            "title": "Map physical clbits to register_slots (for QASM)",
                             "type": "array"
                         }
                     },
-                    "type": "object"
+                    "type": "object",
+                    "_constraints": [
+                        "sum(x[1] for x in qreg_sizes) == n_qubits",
+                        "sum(x[1] for x in creg_sizes) == memory_slots"
+                    ]
                 },
                 "instructions": {
                     "description": "List of experiment instructions.",
@@ -798,10 +868,15 @@
                             "type": "integer"
                         },
                         "memory_slots": {
-                            "description": "The number of measurement slots in the classical memory on the backend.",
+                            "description": "The number of (slow) measurement slots requested on the backend, equivalent to the max of memory_slot requested by individual experiments.",
                             "minimum": 0,
                             "type": "integer"
                         },
+                        "n_qubits": {
+                            "description": "The number of qubits requested on the backend, equivalent to the max of n_qubits requested by individual experiments.",
+                            "minimum": 1,
+                            "type": "integer"
+                        },                        
                         "seed": {
                             "default": 1,
                             "type": "integer"
@@ -810,12 +885,8 @@
                             "description": "Number of repetitions of each experiment",
                             "minimum": 1,
                             "type": "integer"
-                        }
+                        }                        
                     },
-                    "required": [
-                        "shots",
-                        "memory_slots"
-                    ],
                     "title": "Qobj-level configuration",
                     "type": "object"
                 },

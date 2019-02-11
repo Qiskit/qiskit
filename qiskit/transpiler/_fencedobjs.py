@@ -7,7 +7,7 @@
 
 """ Fenced objects are wraps for raising TranspilerAccessError when they are modified."""
 
-from ._transpilererror import TranspilerAccessError
+from .exceptions import TranspilerAccessError
 
 
 class FencedObject():
@@ -33,7 +33,7 @@ class FencedObject():
     def _check_if_fenced(self, name):
         """
         Checks if the attribute name is in the list of attributes to protect. If so, raises
-        TranpilerAccessError.
+        TranspilerAccessError.
 
         Args:
             name (string): the attribute name to check

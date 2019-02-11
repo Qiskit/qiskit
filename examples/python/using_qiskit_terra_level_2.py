@@ -16,14 +16,13 @@ as making a pass manager and telling it to start with CXCancellation.
 """
 
 # choose a remote device
-from qiskit import IBMQ, qobj_to_circuits
+from qiskit import IBMQ
 
 try:
-    import Qconfig
-    IBMQ.enable_account(Qconfig.APItoken, Qconfig.config['url'])
+    IBMQ.load_accounts()
 except:
     print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a Qconfig.py file with your personal token?
+             Have you initialized a file with your personal token?
              For now, there's only access to local simulator backends...""")
 
 
@@ -41,18 +40,19 @@ circ.cx(q[0], q[1])
 circ.measure(q, c)
 
 # draw circuit
-print(circ.qasm())
+print("orginal circuit")
+print(circ.draw())
 
 # 1. standard compile -- standard qiskit passes, when no PassManager given
 from qiskit import transpiler
-qobj_standard = transpiler.compile(circ, backend_device)
-[compiled_standard] = qobj_to_circuits(qobj_standard)
-print(compiled_standard.qasm())
+circuit1 = transpiler.transpile(circ, backend_device)
+print("circuit after standard pass manager")
+print(circuit1.draw())
 
 # 2. custom compile -- customize PassManager to run specific circuit transformations
 from qiskit.transpiler.passes import CXCancellation
 pm = transpiler.PassManager()
-pm.add_passes(CXCancellation())
-qobj_custom = transpiler.compile(circ, backend_device, pass_manager=pm)
-[compiled_custom] = qobj_to_circuits(qobj_custom)
-print(compiled_custom.qasm())
+pm.append(CXCancellation())
+circuit2 = transpiler.transpile(circ, backend_device, pass_manager=pm)
+print("circuit after custom pass manager")
+print(circuit2.draw())

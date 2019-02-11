@@ -65,7 +65,7 @@
                     "type": "string"
                 },
                 "params": {
-                    "type": "array"
+                    "type": "object"
                 }
             },
             "type": "object"
@@ -77,7 +77,7 @@
                     "type": "string"
                 },
                 "params": {
-                    "type": "array"
+                    "type": "object"
                 }
             },
             "type": "object"

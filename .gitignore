@@ -12,6 +12,7 @@ qiskit/qasm/parser.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -58,6 +59,7 @@ coverage.xml
 test/python/*.log
 test/python/*.pdf
 test/python/*.prof
+.stestr/
 
 # Translations
 *.mo
@@ -129,8 +131,8 @@ test/python/*.tex
 out/*
 
 # CMake generates this file on the fly
-qiskit/backends/local/qasm_simulator_cpp
-qiskit/backends/aer/qasm_simulator_cpp
+qiskit/providers/local/qasm_simulator_cpp
+qiskit/providers/legacysimulators/qasm_simulator_cpp
 
 src/qasm-simulator-cpp/test/qubit_vector_tests
 

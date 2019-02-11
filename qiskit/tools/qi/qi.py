@@ -15,13 +15,16 @@ over time.
 """
 
 import math
+import warnings
 
 import numpy as np
 import scipy.linalg as la
 from scipy.stats import unitary_group
 
-from qiskit import QISKitError
-from qiskit.tools.qi.pauli import pauli_group
+
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import pauli_group
+from qiskit.quantum_info import purity as new_purity
 
 
 ###############################################################
@@ -61,7 +64,7 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        matrix_like: A density matrix with the appropriate subsytems traced
+        matrix_like: A density matrix with the appropriate subsystems traced
             over.
     Raises:
         Exception: if input is not a multi-qubit state.
@@ -73,7 +76,7 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
         dimensions = [2 for _ in range(num_qubits)]
         if len(state) != 2 ** num_qubits:
             raise Exception("Input is not a multi-qubit state, "
-                            "specifify input state dims")
+                            "specify input state dims")
     else:
         dimensions = list(dimensions)
 
@@ -106,7 +109,7 @@ def __partial_trace_vec(vec, trace_systems, dimensions, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        ndarray: A density matrix with the appropriate subsytems traced over.
+        ndarray: A density matrix with the appropriate subsystems traced over.
     """
 
     # trace sys positions
@@ -139,12 +142,12 @@ def __partial_trace_mat(mat, trace_systems, dimensions, reverse=True):
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        ndarray: A density matrix with the appropriate subsytems traced over.
+        ndarray: A density matrix with the appropriate subsystems traced over.
     """
 
     trace_systems = sorted(trace_systems, reverse=True)
     for j in trace_systems:
-        # Partition subsytem dimensions
+        # Partition subsystem dimensions
         dimension_trace = int(dimensions[j])  # traced out system
         if reverse:
             left_dimensions = dimensions[j + 1:]
@@ -196,9 +199,9 @@ def vectorize(density_matrix, method='col'):
         if len(density_matrix) != 2**num:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
-            pgroup = pauli_group(num, case=0)
+            pgroup = pauli_group(num, case='weight')
         else:
-            pgroup = pauli_group(num, case=1)
+            pgroup = pauli_group(num, case='tensor')
         vals = [np.trace(np.dot(p.to_matrix(), density_matrix))
                 for p in pgroup]
         return np.array(vals)
@@ -236,9 +239,9 @@ def devectorize(vectorized_mat, method='col'):
         if dimension != 2 ** num_qubits:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
-            pgroup = pauli_group(num_qubits, case=0)
+            pgroup = pauli_group(num_qubits, case='weight')
         else:
-            pgroup = pauli_group(num_qubits, case=1)
+            pgroup = pauli_group(num_qubits, case='tensor')
         pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num_qubits
         return np.tensordot(vectorized_mat, pbasis, axes=1)
     return None
@@ -249,7 +252,7 @@ def choi_to_rauli(choi, order=1):
     Convert a Choi-matrix to a Pauli-basis superoperator.
 
     Note that this function assumes that the Choi-matrix
-    is defined in the standard column-stacking converntion
+    is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
     is defined as: choi = (I \\otimes E)(bell_state).
 
@@ -269,6 +272,11 @@ def choi_to_rauli(choi, order=1):
     Returns:
         np.array: A superoperator in the Pauli basis.
     """
+    if order == 0:
+        order = 'weight'
+    elif order == 1:
+        order = 'tensor'
+
     # get number of qubits'
     num_qubits = int(np.log2(np.sqrt(len(choi))))
     pgp = pauli_group(num_qubits, case=order)
@@ -354,19 +362,19 @@ def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
     Returns:
         ndarray: rho (length, length) a density matrix.
     Raises:
-        QISKitError: if the method is not valid.
+        QiskitError: if the method is not valid.
     """
     if method == 'Hilbert-Schmidt':
         return __random_density_hs(length, rank)
     elif method == 'Bures':
         return __random_density_bures(length, rank)
     else:
-        raise QISKitError('Error: unrecognized method {}'.format(method))
+        raise QiskitError('Error: unrecognized method {}'.format(method))
 
 
 def __ginibre_matrix(nrow, ncol=None):
     """
-    Return a normaly distributed complex random matrix.
+    Return a normally distributed complex random matrix.
 
     Args:
         nrow (int): number of rows in output matrix.
@@ -420,57 +428,6 @@ def __random_density_bures(N, rank=None):
 # Measures.
 ###############################################################
 
-def funm_svd(a, func):
-    """Apply real scalar function to singular values of a matrix.
-
-    Args:
-        a (array_like): (N, N) Matrix at which to evaluate the function.
-        func (callable): Callable object that evaluates a scalar function f.
-
-    Returns:
-        ndarray: funm (N, N) Value of the matrix function specified by func
-        evaluated at `A`.
-    """
-    U, s, Vh = la.svd(a, lapack_driver='gesvd')
-    S = np.diag(func(s))
-    return U.dot(S).dot(Vh)
-
-
-def state_fidelity(state1, state2):
-    """Return the state fidelity between two quantum states.
-
-    Either input may be a state vector, or a density matrix. The state
-    fidelity (F) for two density matrices is defined as:
-        F(rho1, rho2) = Tr[sqrt(sqrt(rho1).rho2.sqrt(rho1))] ^ 2
-    For two pure states the fidelity is given by
-        F(|psi1>, |psi2>) = |<psi1|psi2>|^2
-
-    Args:
-        state1 (array_like): a quantum state vector or density matrix.
-        state2 (array_like): a quantum state vector or density matrix.
-
-    Returns:
-        array_like: The state fidelity F(state1, state2).
-    """
-    # convert input to numpy arrays
-    s1 = np.array(state1)
-    s2 = np.array(state2)
-
-    # fidelity of two state vectors
-    if s1.ndim == 1 and s2.ndim == 1:
-        return np.abs(s2.conj().dot(s1)) ** 2
-    # fidelity of vector and density matrix
-    elif s1.ndim == 1:
-        # psi = s1, rho = s2
-        return np.abs(s1.conj().dot(s2).dot(s1))
-    elif s2.ndim == 1:
-        # psi = s2, rho = s1
-        return np.abs(s2.conj().dot(s1).dot(s2))
-    # fidelity of two density matrices
-    s1sq = funm_svd(s1, np.sqrt)
-    s2sq = funm_svd(s2, np.sqrt)
-    return np.linalg.norm(s1sq.dot(s2sq), ord='nuc') ** 2
-
 
 def purity(state):
     """Calculate the purity of a quantum state.
@@ -480,10 +437,11 @@ def purity(state):
     Returns:
         float: purity.
     """
-    rho = np.array(state)
-    if rho.ndim == 1:
-        rho = outer(rho)
-    return np.real(np.trace(rho.dot(rho)))
+    warnings.warn('The purity() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the purity() function in qiskit.quantum_info',
+                  DeprecationWarning)
+    return new_purity(state)
 
 
 def concurrence(state):
@@ -501,7 +459,7 @@ def concurrence(state):
     if rho.ndim == 1:
         rho = outer(state)
     if len(state) != 4:
-        raise Exception("Concurence is only defined for more than two qubits")
+        raise Exception("Concurrence is only defined for more than two qubits")
 
     YY = np.fliplr(np.diag([-1, 1, 1, -1]))
     A = rho.dot(YY).dot(rho.conj()).dot(YY)

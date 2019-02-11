@@ -13,13 +13,18 @@ Visualization function for DAG circuit representation.
 
 import sys
 import copy
-import nxpd
-from ._error import VisualizationError
+from .exceptions import VisualizationError
 
 
 def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
+
+    Note this function leverages
+    `pydot <https://github.com/erocarrera/pydot>`_ (via
+    `nxpd <https://github.com/chebee7i/nxpd`_) to generate the graph, which
+    means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
+    system is required for this to work.
 
     Args:
         dag (DAGCircuit): The dag to draw.
@@ -34,7 +39,15 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
     Raises:
         VisualizationError: when style is not recognized.
+        ImportError: when nxpd or pydot not installed.
     """
+    try:
+        import nxpd
+        import pydot  # pylint: disable=unused-import
+    except ImportError:
+        raise ImportError("dag_drawer requires nxpd, pydot, and Graphviz. "
+                          "Run 'pip install nxpd pydot', and install graphviz")
+
     G = copy.deepcopy(dag.multi_graph)  # don't modify the original graph attributes
     G.graph['dpi'] = 100 * scale
 
@@ -44,22 +57,22 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         for node in G.nodes:
             n = G.nodes[node]
             if n['type'] == 'op':
-                n['label'] = str(n['name'])
+                n['label'] = n['name']
                 n['color'] = 'blue'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'lightblue'
             if n['type'] == 'in':
-                n['label'] = n['name'][0] + '[' + str(n['name'][1]) + ']'
+                n['label'] = n['name']
                 n['color'] = 'black'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'green'
             if n['type'] == 'out':
-                n['label'] = n['name'][0] + '[' + str(n['name'][1]) + ']'
+                n['label'] = n['name']
                 n['color'] = 'black'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'red'
         for e in G.edges(data=True):
-            e[2]['label'] = e[2]['name'][0] + "[" + str(e[2]['name'][1]) + "]"
+            e[2]['label'] = e[2]['name']
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 

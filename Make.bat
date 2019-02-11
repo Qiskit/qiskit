@@ -15,17 +15,15 @@ IF "%target%"=="run" GOTO :run
 IF "%target%"=="lint" GOTO :lint
 IF "%target%"=="test" GOTO :test
 IF "%target%"=="profile" GOTO :profile
-IF "%target%"=="doc" GOTO :doc
 IF "%target%"=="clean" GOTO :clean
 :usage
 ECHO.
 ECHO.Usage:
 ECHO.    .\make env     Switches to a Python virtual environment
 ECHO.    .\make run     Runs Jupyter tutorials
-ECHO.    .\make lint    Runs Pyhton source code analisys tool
+ECHO.    .\make lint    Runs Python source code analisys tool
 ECHO.    .\make test    Runs tests
 ECHO.    .\make prfile  Runs profiling tests
-ECHO.    .\make doc     Creates documentation
 ECHO.    .\make clean   Cleans previoulsy generated documentation
 ECHO.
 GOTO :end
@@ -40,12 +38,6 @@ IF "%QISKIT_ENV_FOUND%"=="No" (
 )
 IF errorlevel 9009 GOTO :error
 activate QISKitenv & pip install -r requirements.txt
-IF errorlevel 9009 GOTO :error
-GOTO :next
-
-:run
-cd examples\jupyter
-jupyter notebook
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
@@ -66,17 +58,7 @@ python -m unittest discover -p "profile*.py" -v
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
-:doc
-SET PYTHONPATH=$(PWD)
-sphinx-apidoc -f -o doc\_autodoc -d 5 -P -e qiskit
-IF errorlevel 9009 GOTO :error
-cd doc
-make.bat html
-GOTO :next
-
 :clean
-cd doc
-make.bat clean
 GOTO :next
 
 :error

@@ -8,13 +8,19 @@
 """
 Qsphere visualization
 """
-from functools import reduce
-from string import Template
+
+import re
 import sys
 import time
-import re
+from functools import reduce
+from string import Template
+
 import numpy as np
 from scipy import linalg
+from qiskit.tools.visualization._utils import _validate_input_state
+from qiskit.tools.visualization.exceptions import VisualizationError
+
+
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -22,17 +28,15 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_qsphere(rho, options=None):
+def iplot_state_qsphere(rho, figsize=None):
     """ Create a Q sphere representation.
 
         Graphical representation of the input array, using a Q sphere for each
         eigenvalue.
 
         Args:
-            rho (array): Density matrix (complex array)
-            options (dict): Representation settings containing
-                    - width (integer): graph horizontal size
-                    - height (integer): graph vertical size
+            rho (array): State vector or density matrix.
+            figsize (tuple): Figure size in pixels.
     """
 
     # HTML
@@ -62,15 +66,17 @@ def iplot_qsphere(rho, options=None):
     </script>
 
     """)
-
-    if not options:
+    rho = _validate_input_state(rho)
+    if figsize is None:
         options = {}
+    else:
+        options = {'width': figsize[0], 'height': figsize[1]}
 
     qspheres_data = []
     # Process data and execute
     num = int(np.log2(len(rho)))
 
-    # get the eigenvectors and egivenvalues
+    # get the eigenvectors and eigenvalues
     weig, stateall = linalg.eigh(rho)
 
     for _ in range(2**num):
@@ -170,7 +176,8 @@ def bit_string_index(text):
     """Return the index of a string of 0s and 1s."""
     n = len(text)
     k = text.count("1")
-    assert text.count("0") == n - k, "s must be a string of 0 and 1"
+    if text.count("0") != n - k:
+        raise VisualizationError("s must be a string of 0 and 1")
     ones = [pos for pos, char in enumerate(text) if char == "1"]
     return lex_index(n, k, ones)
 
@@ -186,8 +193,11 @@ def lex_index(n, k, lst):
     Returns:
         int: returns int index for lex order
 
+    Raises:
+        VisualizationError: if length of list is not equal to k
     """
-    assert len(lst) == k, "list should have length k"
+    if len(lst) != k:
+        raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
     dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
     return int(dualm)

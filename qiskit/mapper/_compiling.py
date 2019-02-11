@@ -15,7 +15,7 @@ import math
 import numpy as np
 import scipy.linalg as la
 
-from ._mappererror import MapperError
+from .exceptions import MapperError
 
 
 def euler_angles_1q(unitary_matrix):
@@ -147,7 +147,7 @@ def two_qubit_kak(unitary_matrix, verify_gate_sequence=False):
     which achieves this is explained well in Drury and Love, 0806.4015.
 
     Args:
-        unitary_matrix (ndaray): 4x4 unitary matrix.
+        unitary_matrix (ndarray): 4x4 unitary matrix.
         verify_gate_sequence (bool): Verify the decomposition via circuit
                                      gate sequence, optional.
 

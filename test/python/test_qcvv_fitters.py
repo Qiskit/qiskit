@@ -7,24 +7,12 @@
 
 """Test qiskit.tools.qcvv.fitters."""
 
-import unittest
-
 import numpy as np
 
-from .common import QiskitTestCase
-
-try:
-    from qiskit.tools.qcvv import fitters
-    VALID_MATPLOTLIB = True
-except (RuntimeError, ImportError):
-    # Under some combinations (travis osx vms, or headless configurations)
-    # matplotlib might not be fully, raising:
-    # RuntimeError: Python is not installed as a framework.
-    # when importing. If that is the case, the full test is skipped.
-    VALID_MATPLOTLIB = False
+from qiskit.tools.qcvv import fitters
+from qiskit.test import QiskitTestCase
 
 
-@unittest.skipUnless(VALID_MATPLOTLIB, 'osx matplotlib backend not avaiable')
 class TestQCVVFitters(QiskitTestCase):
     """Tests for functions in qiskit.tools.qcvv.fitters."""
 
@@ -60,7 +48,7 @@ class TestQCVVFitters(QiskitTestCase):
     def test_shape_rb_data(self):
         """Test randomized benchmark data shaping function."""
         raw_data = np.zeros((2, 2, 2))
-        # TODO(mtreinish): Come up with a more realistic input data set instead
+        # TODO: Come up with a more realistic input data set instead
         # of this synthetic example
         for i in range(2):
             raw_data[i][i][i] = i + 1

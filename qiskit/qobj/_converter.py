@@ -8,9 +8,9 @@
 """Qobj conversion helpers."""
 import logging
 
-from qiskit import QISKitError
-from ._qobj import QOBJ_VERSION
-from ._qobj import QobjItem
+from qiskit.exceptions import QiskitError
+from .qobj import QOBJ_VERSION
+from .qobj import QobjItem
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def qobj_to_dict(qobj, version=QOBJ_VERSION):
         dict: dictionary representing the qobj for the specified schema version.
 
     Raises:
-        QISKitError: if the target version is not supported.
+        QiskitError: if the target version is not supported.
     """
     if version == QOBJ_VERSION:
         return qobj_to_dict_current_version(qobj)
@@ -37,7 +37,7 @@ def qobj_to_dict(qobj, version=QOBJ_VERSION):
         return {key: QobjItem._expand_item(value) for key, value
                 in return_dict.items()}
     else:
-        raise QISKitError('Invalid target version for conversion.')
+        raise QiskitError('Invalid target version for conversion.')
 
 
 def qobj_to_dict_current_version(qobj):
@@ -94,8 +94,6 @@ def qobj_to_dict_previous_version(qobj):
                 'operations': [instruction.as_dict() for instruction in
                                experiment.instructions]
             },
-            'compiled_circuit_qasm': getattr(experiment.header,
-                                             'compiled_circuit_qasm', None)
         }
 
         converted['circuits'].append(circuit)

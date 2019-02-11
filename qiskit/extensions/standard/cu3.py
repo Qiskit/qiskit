@@ -8,12 +8,14 @@
 """
 controlled-u3 gate.
 """
-from qiskit import CompositeGate
-from qiskit import Gate
-from qiskit import QuantumCircuit
-from qiskit._instructionset import InstructionSet
-from qiskit._quantumregister import QuantumRegister
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _op_expand
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class Cu3Gate(Gate):
@@ -23,52 +25,46 @@ class Cu3Gate(Gate):
         """Create new cu3 gate."""
         super().__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        theta = self.param[0]
-        phi = self.param[1]
-        lam = self.param[2]
-        return self._qasmif("cu3(%s,%s,%s) %s[%d],%s[%d];" % (theta, phi, lam,
-                                                              ctl[0].name, ctl[1],
-                                                              tgt[0].name, tgt[1]))
+    def _define_decompositions(self):
+        """
+        gate cu3(theta,phi,lambda) c, t
+        { u1((lambda-phi)/2) t; cx c,t;
+          u3(-theta/2,0,-(phi+lambda)/2) t; cx c,t;
+          u3(theta/2,phi,0) t;
+        }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        rule = [
+            U1Gate((self.params[2] - self.params[1])/2, q[1]),
+            CnotGate(q[0], q[1]),
+            U3Gate(-self.params[0]/2, 0, -(self.params[1]+self.params[2])/2, q[1]),
+            CnotGate(q[0], q[1]),
+            U3Gate(self.params[0]/2, self.params[1], 0, q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
+        self.params[0] = -self.params[0]
+        phi = self.params[1]
+        self.params[1] = -self.params[2]
+        self.params[2] = -phi
+        self._decompositions = None
         return self
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu3(self.param[0], self.param[1],
-                                 self.param[2], self.arg[0], self.arg[1]))
+        self._modifiers(circ.cu3(self.params[0], self.params[1],
+                                 self.params[2], self.qargs[0], self.qargs[1]))
 
 
+@_op_expand(2)
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
-    if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        instructions = InstructionSet()
-        for i in range(ctl.size):
-            instructions.add(self.cu3(theta, phi, lam, (ctl, i), (tgt, i)))
-        return instructions
-
-    if isinstance(ctl, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(ctl.size):
-            instructions.add(self.cu3(theta, phi, lam, (ctl, j), tgt))
-        return instructions
-
-    if isinstance(tgt, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(tgt.size):
-            instructions.add(self.cu3(theta, phi, lam, ctl, (tgt, j)))
-        return instructions
-
     self._check_qubit(ctl)
     self._check_qubit(tgt)
     self._check_dups([ctl, tgt])
@@ -76,4 +72,3 @@ def cu3(self, theta, phi, lam, ctl, tgt):
 
 
 QuantumCircuit.cu3 = cu3
-CompositeGate.cu3 = cu3

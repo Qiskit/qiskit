@@ -5,122 +5,111 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-docstring,redefined-builtin
 
 import unittest
+from unittest.mock import patch
 
-import qiskit.wrapper
-from qiskit import load_qasm_string, mapper, qasm, unroll
+from qiskit import compile, execute
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import BasicAer
 from qiskit.qobj import Qobj
-from qiskit.transpiler._transpiler import transpile
-from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.transpiler._transpiler import transpile_dag
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper._compiling import two_qubit_kak
 from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper._mapping import remove_last_measurements, MapperError
-from .common import QiskitTestCase
+from qiskit.mapper._mapping import MapperError
+from qiskit.converters import circuit_to_dag
+from qiskit.test import QiskitTestCase, Path
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 
-class FakeQX4BackEnd(object):
-    """A fake QX4 backend.
-    """
-
-    def configuration(self):
-        qx4_cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
-        return {
-            'name': 'fake_qx4', 'basis_gates': 'u1,u2,u3,cx,id',
-            'simulator': False, 'n_qubits': 5,
-            'coupling_map': qx4_cmap
-        }
-
-
-class FakeQX5BackEnd(object):
-    """A fake QX5 backend.
-    """
-
-    def configuration(self):
-        qx5_cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                    [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
-                    [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
-                    [13, 14], [15, 0], [15, 2], [15, 14]]
-        return {
-            'name': 'fake_qx5', 'basis_gates': 'u1,u2,u3,cx,id',
-            'simulator': False, 'n_qubits': 16,
-            'coupling_map': qx5_cmap
-        }
-
-
-class MapperTest(QiskitTestCase):
+class TestMapper(QiskitTestCase):
     """Test the mapper."""
 
     def setUp(self):
         self.seed = 42
+        self.backend = BasicAer.get_backend("qasm_simulator")
 
     def test_mapper_overoptimization(self):
-        """Check mapper overoptimization
+        """Check mapper overoptimization.
 
-        The mapper should not change the semantics of the input. An overoptimization introduced
-        the issue #81: https://github.com/QISKit/qiskit-terra/issues/81
+        The mapper should not change the semantics of the input.
+        An overoptimization introduced issue #81:
+        https://github.com/Qiskit/qiskit-terra/issues/81
         """
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/overoptimization.qasm'))
+        # -X-.-----
+        # -Y-+-S-.-
+        # -Z-.-T-+-
+        # ---+-H---
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circ = QuantumCircuit(qr, cr)
+        circ.x(qr[0])
+        circ.y(qr[1])
+        circ.z(qr[2])
+        circ.cx(qr[0], qr[1])
+        circ.cx(qr[2], qr[3])
+        circ.s(qr[1])
+        circ.t(qr[2])
+        circ.h(qr[3])
+        circ.cx(qr[1], qr[2])
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(qr[2], cr[2])
+        circ.measure(qr[3], cr[3])
+
         coupling_map = [[0, 2], [1, 2], [2, 3]]
-        result1 = qiskit.execute(circ, backend="qasm_simulator",
-                                 coupling_map=coupling_map, seed=self.seed)
+        shots = 1000
+
+        result1 = execute(circ, backend=self.backend,
+                          coupling_map=coupling_map, seed=self.seed, shots=shots)
         count1 = result1.result().get_counts()
-        result2 = qiskit.execute(circ, backend="qasm_simulator", coupling_map=None,
-                                 seed=self.seed)
+        result2 = execute(circ, backend=self.backend,
+                          coupling_map=None, seed=self.seed, shots=shots)
         count2 = result2.result().get_counts()
-        self.assertEqual(count1.keys(), count2.keys(), )
+        self.assertDictAlmostEqual(count1, count2, shots*0.02)
 
     def test_math_domain_error(self):
         """Check for floating point errors.
 
-        The math library operates over floats and introduce floating point errors that should be
-        avoided.
-        See: https://github.com/QISKit/qiskit-terra/issues/111
+        The math library operates over floats and introduces floating point
+        errors that should be avoided.
+        See: https://github.com/Qiskit/qiskit-terra/issues/111
         """
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/math_domain_error.qasm'))
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circ = QuantumCircuit(qr, cr)
+        circ.y(qr[0])
+        circ.z(qr[2])
+        circ.h(qr[2])
+        circ.cx(qr[1], qr[0])
+        circ.y(qr[2])
+        circ.t(qr[2])
+        circ.z(qr[2])
+        circ.cx(qr[1], qr[2])
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(qr[2], cr[2])
+        circ.measure(qr[3], cr[3])
+
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
-        qobj = qiskit.execute(circ, backend="qasm_simulator",
-                              coupling_map=coupling_map,
-                              seed=self.seed, shots=shots)
-        counts = qobj.result().get_counts()
-        target = {'0001': shots / 2, '0101':  shots / 2}
+        job = execute(circ, backend=self.backend,
+                      coupling_map=coupling_map, seed=self.seed, shots=shots)
+        counts = job.result().get_counts()
+        target = {'0001': shots / 2, '0101': shots / 2}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_optimize_1q_gates_issue159(self):
-        """optimize_1q_gates that removes u1(2*pi) rotations.
-        See: https://github.com/QISKit/qiskit-terra/issues/159
-        """
-        qr = qiskit.QuantumRegister(2, 'qr')
-        cr = qiskit.ClassicalRegister(2, 'cr')
-        qc = qiskit.QuantumCircuit(qr, cr)
-        qc.h(qr[0])
-        qc.cx(qr[1], qr[0])
-        qc.cx(qr[1], qr[0])
-        qc.cx(qr[1], qr[0])
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
-        backend = 'qasm_simulator'
-        coupling_map = [[1, 0], [2, 0], [2, 1], [2, 4], [3, 2], [3, 4]]
-        initial_layout = {('qr', 0): ('q', 1), ('qr', 1): ('q', 0)}
-        qobj = qiskit.compile(qc, backend=backend,
-                              initial_layout=initial_layout,
-                              coupling_map=coupling_map)
-
-        comp_qasm = qobj.experiments[0].header.compiled_circuit_qasm
-
-        self.assertEqual(comp_qasm, EXPECTED_QASM_1Q_GATES_3_5)
-
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/random_n5_d5.qasm'))
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('random_n5_d5.qasm', Path.QASMS))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
-        qobj = qiskit.execute(circ, backend="qasm_simulator",
-                              coupling_map=coupling_map, shots=shots,
-                              seed=self.seed)
+        qobj = execute(circ, backend=self.backend,
+                       coupling_map=coupling_map, shots=shots, seed=self.seed)
         counts = qobj.result().get_counts()
         expected_probs = {
             '00000': 0.079239867254200971,
@@ -160,62 +149,15 @@ class MapperTest(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_symbolic_unary(self):
-        """SymPy with a prefix.
-
-        See: https://github.com/QISKit/qiskit-terra/issues/172
-        """
-        ast = qasm.Qasm(filename=self._get_resource_path(
-            'qasm/issue172_unary.qasm')).parse()
-        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
-        unr.execute()
-        circ = mapper.optimize_1q_gates(unr.backend.circuit)
-        self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_UNARY)
-
-    def test_symbolic_binary(self):
-        """SymPy binary operation.
-
-        See: https://github.com/QISKit/qiskit-terra/issues/172
-        """
-        ast = qasm.Qasm(filename=self._get_resource_path(
-            'qasm/issue172_binary.qasm')).parse()
-
-        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
-        unr.execute()
-        circ = mapper.optimize_1q_gates(unr.backend.circuit)
-        self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_BINARY)
-
-    def test_symbolic_extern(self):
-        """SymPy with external function.
-
-        See: https://github.com/QISKit/qiskit-terra/issues/172
-        """
-        ast = qasm.Qasm(filename=self._get_resource_path(
-            'qasm/issue172_extern.qasm')).parse()
-        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
-        unr.execute()
-        circ = mapper.optimize_1q_gates(unr.backend.circuit)
-        self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_EXTERN)
-
-    def test_symbolic_power(self):
-        """SymPy with a power (^).
-
-        See: https://github.com/QISKit/qiskit-terra/issues/172
-        """
-        ast = qasm.Qasm(data=QASM_SYMBOLIC_POWER).parse()
-        unr = unroll.Unroller(ast, backend=unroll.DAGBackend(["cx", "u1", "u2", "u3"]))
-        unr.execute()
-        circ = mapper.optimize_1q_gates(unr.backend.circuit)
-        self.assertEqual(circ.qasm(qeflag=True), EXPECTED_QASM_SYMBOLIC_POWER)
-
     def test_already_mapped(self):
         """Circuit not remapped if matches topology.
 
-        See: https://github.com/QISKit/qiskit-terra/issues/342
+        See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        qr = qiskit.QuantumRegister(16, 'qr')
-        cr = qiskit.ClassicalRegister(16, 'cr')
-        qc = qiskit.QuantumCircuit(qr, cr)
+        backend = FakeRueschlikon()
+        qr = QuantumRegister(16, 'qr')
+        cr = ClassicalRegister(16, 'cr')
+        qc = QuantumCircuit(qr, cr)
         qc.cx(qr[3], qr[14])
         qc.cx(qr[5], qr[4])
         qc.h(qr[9])
@@ -226,48 +168,56 @@ class MapperTest(QiskitTestCase):
         qc.cx(qr[13], qr[4])
         for j in range(16):
             qc.measure(qr[j], cr[j])
-        backend = 'qasm_simulator'
-        coupling_map = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4],
-                        [6, 5], [6, 7], [6, 11], [7, 10], [8, 7], [9, 8],
-                        [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
-                        [13, 4], [13, 14], [15, 0], [15, 2], [15, 14]]
-        qobj = qiskit.compile(qc, backend=backend, coupling_map=coupling_map)
+        qobj = compile(qc, backend=backend)
         cx_qubits = [x.qubits
                      for x in qobj.experiments[0].instructions
                      if x.name == "cx"]
 
-        self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
+        self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4],
+                                             [9, 8], [12, 11], [13, 4]])
 
     def test_yzy_zyz_cases(self):
         """yzy_to_zyz works in previously failed cases.
 
-        See: https://github.com/QISKit/qiskit-terra/issues/607
+        See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
-        backend = FakeQX4BackEnd()
-        circ1 = load_qasm_string(YZY_ZYZ_1)
-        qobj1 = qiskit.wrapper.compile(circ1, backend)
+        backend = FakeTenerife()
+        qr = QuantumRegister(2)
+        circ1 = QuantumCircuit(qr)
+        circ1.cx(qr[0], qr[1])
+        circ1.rz(0.7, qr[1])
+        circ1.rx(1.570796, qr[1])
+        qobj1 = compile(circ1, backend)
         self.assertIsInstance(qobj1, Qobj)
-        circ2 = load_qasm_string(YZY_ZYZ_2)
-        qobj2 = qiskit.wrapper.compile(circ2, backend)
+
+        circ2 = QuantumCircuit(qr)
+        circ2.y(qr[0])
+        circ2.h(qr[0])
+        circ2.s(qr[0])
+        circ2.h(qr[0])
+        qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, Qobj)
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.
         """
-        backend = FakeQX5BackEnd()
-        cmap = backend.configuration()['coupling_map']
-        circ = qiskit.load_qasm_file(self._get_resource_path('qasm/move_measurements.qasm'),
-                                     name='move')
-        dag_circuit = DAGCircuit.fromQuantumCircuit(circ)
+        backend = FakeRueschlikon()
+        cmap = backend.configuration().coupling_map
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('move_measurements.qasm', Path.QASMS))
+
+        dag_circuit = circuit_to_dag(circ)
         lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
-        out_dag = transpile(dag_circuit, initial_layout=lay,
-                            coupling_map=cmap, format='dag')
-        moved_meas = remove_last_measurements(out_dag, perform_remove=False)
-        meas_nodes = out_dag.get_named_nodes('measure')
-        self.assertEqual(len(moved_meas), len(meas_nodes))
+        out_dag = transpile_dag(dag_circuit, initial_layout=lay,
+                                coupling_map=cmap)
+        meas_nodes = out_dag.named_nodes('measure')
+        for n in meas_nodes:
+            is_last_measure = all([after_measure in out_dag.output_map.values()
+                                   for after_measure in out_dag.quantum_successors(n)])
+            self.assertTrue(is_last_measure)
 
     def test_kak_decomposition(self):
         """Verify KAK decomposition for random Haar unitaries.
@@ -280,88 +230,26 @@ class MapperTest(QiskitTestCase):
                 except MapperError as ex:
                     self.fail(str(ex))
 
+    barrier_pass = BarrierBeforeFinalMeasurements()
 
-# QASMs expected by the tests.
-EXPECTED_QASM_SYMBOLIC_BINARY = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[1];
-creg cr[1];
-u1(-0.1 + 0.55*pi) qr[0];
-measure qr[0] -> cr[0];\n"""
+    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
+    def test_final_measurement_barrier_for_devices(self, mock_pass):
+        """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
 
-EXPECTED_QASM_SYMBOLIC_EXTERN = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[1];
-creg cr[1];
-u1(-0.479425538604203) qr[0];
-measure qr[0] -> cr[0];\n"""
+        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        dag_circuit = circuit_to_dag(circ)
+        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map)
 
-EXPECTED_QASM_SYMBOLIC_POWER = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[1];
-creg cr[1];
-u1(pi + (-pi + 0.3)^2.0) qr[0];
-measure qr[0] -> cr[0];\n"""
+        self.assertTrue(mock_pass.called)
 
-EXPECTED_QASM_SYMBOLIC_UNARY = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[1];
-creg cr[1];
-u1(-1.5*pi) qr[0];
-measure qr[0] -> cr[0];\n"""
+    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
+    def test_final_measurement_barrier_for_simulators(self, mock_pass):
+        """Verify BarrierBeforeFinalMeasurements pass is in default pipeline for simulators."""
+        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        dag_circuit = circuit_to_dag(circ)
+        transpile_dag(dag_circuit)
 
-EXPECTED_QASM_1Q_GATES = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg q[2];
-creg cr[2];
-u2(0,3.14159265358979) q[0];
-cx q[1],q[0];
-cx q[1],q[0];
-cx q[1],q[0];
-u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];
-u2(0,3.14159265358979) q[0];
-measure q[0] -> cr[1];\n"""
-
-# This QASM is the same as EXPECTED_QASM_1Q_GATES, with the u2-measure lines
-# swapped.
-EXPECTED_QASM_1Q_GATES_3_5 = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg q[2];
-creg cr[2];
-u2(0,3.14159265358979) q[0];
-cx q[1],q[0];
-cx q[1],q[0];
-cx q[1],q[0];
-u2(0,3.14159265358979) q[0];
-u2(0,3.14159265358979) q[1];
-measure q[1] -> cr[0];
-measure q[0] -> cr[1];\n"""
-
-QASM_SYMBOLIC_POWER = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[1];
-creg cr[1];
-u1(pi) qr[0];
-u1((0.3+(-pi))^2) qr[0];
-measure qr[0] -> cr[0];"""
-
-YZY_ZYZ_1 = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[2];
-cx qr[0],qr[1];
-rz(0.7) qr[1];
-rx(1.570796) qr[1];
-"""
-
-YZY_ZYZ_2 = """OPENQASM 2.0;
-include "qelib1.inc";
-qreg qr[2];
-y qr[0];
-h qr[0];
-s qr[0];
-h qr[0];
-"""
+        self.assertTrue(mock_pass.called)
 
 
 if __name__ == '__main__':

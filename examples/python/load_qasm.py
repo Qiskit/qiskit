@@ -1,26 +1,26 @@
 """
-Example on how to use: load_qasm_file
+Example on how to load a file into a QuantumCircuit
 
 """
-from qiskit.wrapper import load_qasm_file
-from qiskit import QISKitError, execute, Aer
+from qiskit import QuantumCircuit
+from qiskit import QiskitError, execute, BasicAer
 
 try:
-    qc = load_qasm_file("examples/qasm/entangled_registers.qasm")
+    circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
+    print(circ.draw())
 
-    # See a list of available local simulators
-    print("Aer backends: ", Aer.backends())
-    sim_backend = Aer.get_backend('qasm_simulator')
+    # See the backend
+    sim_backend = BasicAer.get_backend('qasm_simulator')
 
 
     # Compile and run the Quantum circuit on a local simulator backend
-    job_sim = execute(qc, sim_backend)
+    job_sim = execute(circ, sim_backend)
     sim_result = job_sim.result()
 
     # Show the results
     print("simulation: ", sim_result)
-    print(sim_result.get_counts(qc))
+    print(sim_result.get_counts(circ))
 
-except QISKitError as ex:
+except QiskitError as ex:
     print('There was an internal Qiskit error. Error = {}'.format(ex))
 

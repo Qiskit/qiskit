@@ -13,13 +13,13 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, Aer
+from qiskit import compile, BasicAer
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-backend = Aer.get_backend("qasm_simulator")
+backend = BasicAer.get_backend("qasm_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.
@@ -47,6 +47,7 @@ qc.measure(q[0], c0[0])
 qc.measure(q[1], c1[0])
 
 # Apply a correction
+qc.barrier(q)
 qc.z(q[2]).c_if(c0, 1)
 qc.x(q[2]).c_if(c1, 1)
 qc.measure(q[2], c2[0])
@@ -57,18 +58,20 @@ qc.measure(q[2], c2[0])
 ###############################################################
 
 # First version: not mapped
-qobj = compile(qc, backend=backend, coupling_map=None, shots=1024)
+initial_layout = {("q", 0): ("q", 0), ("q", 1): ("q", 1),
+                          ("q", 2): ("q", 2)}
+qobj = compile(qc, backend=backend, coupling_map=None, shots=1024, initial_layout=initial_layout)
 job = backend.run(qobj)
+qobj_exp = qobj.experiments[0]
+
 result = job.result()
-print(result)
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
-qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024)
+qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024,initial_layout=initial_layout)
+qobj_exp = qobj.experiments[0]
+qobj_exp.header.compiled_circuit_qasm = ""
 job = backend.run(qobj)
 result = job.result()
-
-print(result)
 print(result.get_counts(qc))
-
 # Both versions should give the same distribution

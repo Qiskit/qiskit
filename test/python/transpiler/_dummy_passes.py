@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name,super-init-not-called
 
-"""Dummy passes used by Tranpiler testing"""
+"""Dummy passes used by Transpiler testing"""
 
 import logging
 from qiskit.transpiler.passes import FixedPoint

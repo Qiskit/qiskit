@@ -16,11 +16,11 @@ import ply.yacc as yacc
 import sympy
 
 from . import _node as node
-from ._qasmerror import QasmError
+from .exceptions import QasmError
 from ._qasmlexer import QasmLexer
 
 
-class QasmParser(object):
+class QasmParser:
     """OPENQASM Parser."""
 
     # pylint: disable=unused-argument,missing-docstring,invalid-name
@@ -69,7 +69,7 @@ class QasmParser(object):
             raise QasmError("Duplicate declaration for", obj.type + " '"
                             + obj.name + "' at line", str(obj.line)
                             + ', file', obj.file
-                            + '.\nPrevious occurence at line',
+                            + '.\nPrevious occurrence at line',
                             str(prev.line) + ', file', prev.file)
         self.current_symtab[obj.name] = obj
 
@@ -189,7 +189,8 @@ class QasmParser(object):
 
     def id_tuple_list(self, id_node):
         """Return a list of (name, index) tuples for this id node."""
-        assert id_node.type == "id", "internal error, id_tuple_list"
+        if id_node.type != "id":
+            raise QasmError("internal error, id_tuple_list")
         bit_list = []
         try:
             g_sym = self.current_symtab[id_node.name]
@@ -243,7 +244,7 @@ class QasmParser(object):
                     line_number = child.line
                     filename = child.file
             else:
-                assert False, "internal error, verify_distinct"
+                raise QasmError("internal error, verify_distinct")
         if len(bit_list) != len(set(bit_list)):
             raise QasmError("duplicate identifiers at line %d file %s"
                             % (line_number, filename))
@@ -599,7 +600,7 @@ class QasmParser(object):
     #
     # unitary_op : U '(' exp_list ')'  primary
     #            | CX                  primary ',' primary
-    #            | id                  pirmary_list
+    #            | id                  primary_list
     #            | id '(' ')'          primary_list
     #            | id '(' exp_list ')' primary_list
     #
@@ -780,7 +781,7 @@ class QasmParser(object):
     #        | OPAQUE id gate_scope '(' ')'              bit_list
     #        | OPAQUE id gate_scope '(' gate_id_list ')' bit_list
     #
-    # These are like gate declaratons only wihtout a body.
+    # These are like gate declarations only wihtout a body.
     # ----------------------------------------
     def p_opaque_0(self, program):
         """
