@@ -277,7 +277,7 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) >=2 and sys.argv[1] == 'regenerate':
+    if len(sys.argv) >= 2 and sys.argv[1] == 'regenerate':
         CommonUtilitiesMixin.regenerate_expected = True
         del sys.argv[1]
     unittest.main()
