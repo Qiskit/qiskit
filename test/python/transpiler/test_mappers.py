@@ -65,6 +65,7 @@ For example::
 
 import unittest
 import pickle
+import sys
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, compile
 from qiskit.transpiler import PassManager, transpile
@@ -276,5 +277,7 @@ class TestsStochasticSwap(CommonTestCases, QiskitTestCase):
 
 
 if __name__ == '__main__':
-    CommonUtilitiesMixin.regenerate_expected = True
+    if len(sys.argv) >=2 and sys.argv[1] == 'regenerate':
+        CommonUtilitiesMixin.regenerate_expected = True
+        del sys.argv[1]
     unittest.main()
