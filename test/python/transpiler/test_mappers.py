@@ -15,10 +15,11 @@ directory):
 
 > python -m  test.python.transpiler.test_mappers
 
-To **add a swapper**: add a new class to this file:
-
-* inheriting from ``CommonTestCases, QiskitTestCase``
-* overwrite the required attribute ``pass_class``
+To make a new swapper pass throw all the common tests, create a new class inside the file
+`path/to/test_mappers.py` that:
+    * the class name should start with `Tests...`.
+    * inheriting from ``CommonTestCases, QiskitTestCase``
+    * overwrite the required attribute ``pass_class``
 
 For example::
 
@@ -29,14 +30,13 @@ For example::
 
 To **add a test for all the swappers**: add a new method ``test_foo``to the
 ``CommonTestCase`` class:
-
-* defining the following required ``self`` attributes: ``self.count``,
-  ``self.shots``, ``self.delta``. They are required for the regeneration of the
-  ground truth.
-* use the ``self.assertResult`` assertion for comparing for regeneration of the
-  ground truth.
-* explicitly set a unique ``name`` of the ``QuantumCircuit``, as it it used
-  for the name of the pickle file of the ground truth.
+    * defining the following required ``self`` attributes: ``self.count``,
+      ``self.shots``, ``self.delta``. They are required for the regeneration of the
+      ground truth.
+    * use the ``self.assertResult`` assertion for comparing for regeneration of the
+      ground truth.
+    * explicitly set a unique ``name`` of the ``QuantumCircuit``, as it it used
+      for the name of the pickle file of the ground truth.
 
 For example::
 
