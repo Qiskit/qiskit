@@ -26,8 +26,10 @@ class TestBackendOverview(QiskitTestCase):
 
         with patch('sys.stdout', new=StringIO()) as fake_stout:
             backend_overview()
-
-        self.assertEqual(11, len(fake_stout.getvalue().splitlines()))
+        stdout = fake_stout.getvalue()
+        self.assertIn('Operational:', stdout)
+        self.assertIn('Avg. T1:', stdout)
+        self.assertIn('Num. Qubits:', stdout)
 
     @requires_qe_access
     def test_backend_monitor(self, qe_token, qe_url):
@@ -41,7 +43,11 @@ class TestBackendOverview(QiskitTestCase):
         with patch('sys.stdout', new=StringIO()) as fake_stout:
             backend_monitor(backend)
 
-        self.assertEqual(43, len(fake_stout.getvalue().splitlines()))
+        stdout = fake_stout.getvalue()
+        self.assertIn('Configuration', stdout)
+        self.assertIn('Qubits [Name / Freq / T1 / T2 / U1 err / U2 err / U3 err / Readout err]',
+                      stdout)
+        self.assertIn('Multi-Qubit Gates [Name / Type / Gate Error]', stdout)
 
 
 if __name__ == '__main__':
