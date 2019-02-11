@@ -77,7 +77,7 @@ def _op_expand(n_bits, func=None, broadcastable=None):
                 if all(rargs):
                     instructions = InstructionSet()
                     for irargs in zip(*rargs):
-                        instructions.add(func(self, *params, *irargs))
+                        instructions.add(func(self, *params, *irargs), irargs)
                     return instructions
                 else:
                     raise QiskitError('empty control or target argument')

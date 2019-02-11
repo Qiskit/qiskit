@@ -43,9 +43,9 @@ class TGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
+        print(self.circuit.data[-1])
         inv = TdgGate()
-        qargs = self.circuit.data[-1].qargs
-        cargs = self.circuit.data[-1].cargs
+        _, qargs, cargs = self.circuit.data[-1]
         self.circuit.data[-1] = (inv, qargs, cargs)
         return inv
 
@@ -74,8 +74,7 @@ class TdgGate(Gate):
     def inverse(self):
         """Invert this gate."""
         inv = TGate()
-        qargs = self.circuit.data[-1].qargs
-        cargs = self.circuit.data[-1].cargs
+        _, qargs, cargs = self.circuit.data[-1]
         self.circuit.data[-1] = (inv, qargs, cargs)
         return inv
 
