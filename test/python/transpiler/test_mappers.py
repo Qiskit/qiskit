@@ -103,7 +103,7 @@ class CommonUtilitiesMixin:
         """Returns a Backend."""
         return BasicAer.get_backend('qasm_simulator')
 
-    def generate_expected(self, transpiled_result, filename):
+    def generate_ground_truth(self, transpiled_result, filename):
         """Generates the expected result into a file.
 
         Checks if transpiled_result matches self.counts by running in a backend
@@ -127,7 +127,7 @@ class CommonUtilitiesMixin:
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
-            self.generate_expected(result, filename)
+            self.generate_ground_truth(result, filename)
 
         with open(filename, "rb") as input_file:
             expected = pickle.load(input_file)
