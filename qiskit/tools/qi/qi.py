@@ -15,6 +15,7 @@ over time.
 """
 
 import math
+import warnings
 
 import numpy as np
 import scipy.linalg as la
@@ -23,6 +24,7 @@ from scipy.stats import unitary_group
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
+from qiskit.quantum_info import purity as new_purity
 
 
 ###############################################################
@@ -435,10 +437,11 @@ def purity(state):
     Returns:
         float: purity.
     """
-    rho = np.array(state)
-    if rho.ndim == 1:
-        rho = outer(rho)
-    return np.real(np.trace(rho.dot(rho)))
+    warnings.warn('The purity() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the purity() function in qiskit.quantum_info',
+                  DeprecationWarning)
+    return new_purity(state)
 
 
 def concurrence(state):

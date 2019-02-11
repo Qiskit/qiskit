@@ -64,7 +64,7 @@ class CXDirection(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for cnot_id in subdag.get_named_nodes('cx', 'CX'):
+            for cnot_id in subdag.named_nodes('cx', 'CX'):
                 cnot_node = subdag.multi_graph.nodes[cnot_id]
                 control = cnot_node['op'].qargs[0]
                 target = cnot_node['op'].qargs[1]
@@ -85,7 +85,6 @@ class CXDirection(TransformationPass):
                         subdag.add_qreg(target[0])
 
                     # Add H gates around
-                    subdag.add_basis_element('h', 1, 0, 0)
                     subdag.apply_operation_back(HGate(target))
                     subdag.apply_operation_back(HGate(control))
                     subdag.apply_operation_front(HGate(target))

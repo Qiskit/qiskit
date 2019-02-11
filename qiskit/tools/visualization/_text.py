@@ -215,11 +215,13 @@ class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length):
+    def __init__(self, label, input_length, bot_connect='─'):
         super().__init__(label)
         self.top_format = "│ %s │"
+        self.top_pad = " "
+        self.bot_connect = bot_connect
 
-        self.mid_content = self.bot_connect = self.top_connect = ""
+        self.mid_content = self.top_connect = ""
         if input_length <= 2:
             self.top_connect = label
 
@@ -755,9 +757,9 @@ class TextDrawing():
                 layer.set_qubit(instruction['qargs'][0],
                                 BoxOnQuWire(TextDrawing.label_for_box(instruction)))
 
-            elif len(instruction['qubits']) >= 2 and not instruction['cargs']:
+            elif len(instruction['qargs']) >= 2 and not instruction['cargs']:
                 # multiple qubit gate
-                layer.set_qu_multibox(instruction['qubits'], TextDrawing.label_for_box(instruction))
+                layer.set_qu_multibox(instruction['qargs'], TextDrawing.label_for_box(instruction))
 
             else:
                 raise VisualizationError(
@@ -876,7 +878,8 @@ class Layer:
         affected_bits[0].connect(wire_char, ['bot'])
         for affected_bit in affected_bits[1:-1]:
             affected_bit.connect(wire_char, ['bot', 'top'])
-        affected_bits[-1].connect(wire_char, ['top'], label)
+        if not isinstance(affected_bits[-1], MultiBox):
+            affected_bits[-1].connect(wire_char, ['top'], label)
 
         if label:
             for affected_bit in affected_bits:

@@ -37,7 +37,6 @@ class TestTomography(QiskitTestCase):
             [0], meas_basis='Pauli', prep_basis='SIC')
         self.assertEqual(tomo_set['circuits'], default_set['circuits'])
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_state_tomography_1qubit(self):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0])
@@ -67,7 +66,6 @@ class TestTomography(QiskitTestCase):
             _tomography_test_fit(rho, [1 / np.sqrt(2), -1j / np.sqrt(2)],
                                  threshold))
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_state_tomography_2qubit(self):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0, 1])
@@ -83,7 +81,6 @@ class TestTomography(QiskitTestCase):
         rho = _tomography_test_data(circuits['X1Id0'], qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [0, 0, 1, 0], threshold))
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_process_tomography_1qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0])
@@ -100,7 +97,6 @@ class TestTomography(QiskitTestCase):
         self.assertTrue(
             _tomography_test_fit(choi, [0.5, 0.5, 0.5, -0.5], threshold))
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_process_tomography_2qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0, 1])

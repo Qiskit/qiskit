@@ -12,7 +12,6 @@ from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile_dag
 from qiskit.test import QiskitTestCase
 
 
@@ -35,15 +34,11 @@ class TestLookaheadSwap(QiskitTestCase):
         # Create coupling map which contains all two-qubit gates in the circuit.
         coupling_map = CouplingMap([[0, 1], [0, 2]])
 
-        pass_manager = PassManager()
-        pass_manager.append(LookaheadSwap(coupling_map))
-        mapped_dag = transpile_dag(original_dag, pass_manager=pass_manager)
+        mapped_dag = LookaheadSwap(coupling_map).run(original_dag)
 
         self.assertEqual(original_dag, mapped_dag)
 
-        second_pass_manager = PassManager()
-        second_pass_manager.append(LookaheadSwap(coupling_map))
-        remapped_dag = transpile_dag(mapped_dag, pass_manager=second_pass_manager)
+        remapped_dag = LookaheadSwap(coupling_map).run(mapped_dag)
 
         self.assertEqual(mapped_dag, remapped_dag)
 
@@ -61,9 +56,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         coupling_map = CouplingMap([[0, 1], [1, 2]])
 
-        pass_manager = PassManager()
-        pass_manager.append([LookaheadSwap(coupling_map)])
-        mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
+        mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         self.assertEqual(mapped_dag.count_ops().get('swap', 0),
                          dag_circuit.count_ops().get('swap', 0) + 1)
@@ -89,9 +82,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         coupling_map = CouplingMap([[0, 1], [1, 2]])
 
-        pass_manager = PassManager()
-        pass_manager.append([LookaheadSwap(coupling_map)])
-        mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
+        mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         self.assertEqual(mapped_dag.count_ops().get('swap', 0),
                          dag_circuit.count_ops().get('swap', 0) + 1)
@@ -118,9 +109,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         coupling_map = CouplingMap([[0, 1], [1, 2]])
 
-        pass_manager = PassManager()
-        pass_manager.append([LookaheadSwap(coupling_map)])
-        mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
+        mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         mapped_measure_qargs = set(mapped_dag.multi_graph.nodes(data=True)[op]['qargs'][0]
                                    for op in mapped_dag.get_named_nodes('measure'))
@@ -150,9 +139,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         coupling_map = CouplingMap([[0, 1], [1, 2]])
 
-        pass_manager = PassManager()
-        pass_manager.append([LookaheadSwap(coupling_map)])
-        mapped_dag = transpile_dag(dag_circuit, pass_manager=pass_manager)
+        mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         mapped_barrier_qargs = [set(mapped_dag.multi_graph.nodes(data=True)[op]['qargs'])
                                 for op in mapped_dag.get_named_nodes('barrier')][0]

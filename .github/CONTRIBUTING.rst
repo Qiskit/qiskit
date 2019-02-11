@@ -260,6 +260,10 @@ The order of precedence in the options is right to left. For example,
 ``QISKIT_TESTS=skip_online,rec`` will set the options as
 ``skip_online == False`` and ``rec == True``.
 
+Alternatively, the ``make test_ci`` target can be used instead of ``make test``
+in order to run in a setup that replicates the configuration we used in our
+CI systems more closely.
+
 Style guide
 ~~~~~~~~~~~
 
@@ -281,22 +285,13 @@ All platforms:
 Documentation
 -------------
 
-The documentation Qiskit Terra is in the ``doc`` directory. The
-documentation is auto-generated from python
-docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
-documentation. Please follow `Google's Python Style
+The documentation for Qiskit Terra is in the ``docs`` directory of `Qiskit repository <https://github.com/Qiskit/qiskit/tree/master/docs>`_. See this repository for more information, however, the reference 
+documentation is auto-generated from the python
+docstrings throughout the code using `Sphinx <http://www.sphinx-doc.org>`_. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
 for docstrings. A good example of the style can also be found with
 `sphinx's napolean converter
 documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
-You can see the rendered documentation for the stable version of Qiskit Terra at
-the `landing page <https://qiskit.org/terra>`_.
-
-All platforms:
-
-.. code:: sh
-
-    $> make doc
 
 
 Development cycle

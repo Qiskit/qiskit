@@ -67,7 +67,7 @@ class Register:
     def __getitem__(self, key):
         """
         Arg:
-            key (int): index of the bit/qubit to be retrieved.
+            key (int|slice|list): index of the bit/qubit to be retrieved.
 
         Returns:
             tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
@@ -78,11 +78,16 @@ class Register:
             QiskitIndexError: if the `key` is not in the range
                 `(0, self.size)`.
         """
-        if not isinstance(key, (int, slice)):
+        if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
         self.check_range(key)
         if isinstance(key, slice):
             return [(self, ind) for ind in range(*key.indices(len(self)))]
+        elif isinstance(key, list):  # list of qubit indices
+            if max(key) < len(self):
+                return [(self, ind) for ind in key]
+            else:
+                raise QiskitError('register index out of range')
         else:
             return self, key
 
@@ -113,4 +118,4 @@ class Register:
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        return hash(str(type(self)) + self.name + str(self.size))
+        return hash((type(self), self.name, self.size))

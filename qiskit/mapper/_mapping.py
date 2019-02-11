@@ -15,15 +15,12 @@ import pprint
 import sys
 
 import numpy as np
-import sympy
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import _node as node
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.swap import SwapGate
 
 from .exceptions import MapperError
-
 
 logger = logging.getLogger(__name__)
 
@@ -35,97 +32,6 @@ logger = logging.getLogger(__name__)
 # qubits in the layout. We don't do this.
 # It can happen that initial swaps can be removed or partly simplified
 # because the initial state is zero. We don't do this.
-
-cx_data = {
-    "opaque": False,
-    "n_args": 0,
-    "n_bits": 2,
-    "args": [],
-    "bits": ["c", "t"],
-    # gate cx c,t { CX c,t; }
-    "body": node.GateBody([
-        node.Cnot([
-            node.Id("c", 0, ""),
-            node.Id("t", 0, "")
-        ])
-    ])
-}
-
-swap_data = {
-    "opaque": False,
-    "n_args": 0,
-    "n_bits": 2,
-    "args": [],
-    "bits": ["a", "b"],
-    # gate swap a,b { cx a,b; cx b,a; cx a,b; }
-    "body": node.GateBody([
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("a", 0, ""),
-                node.Id("b", 0, "")
-            ])
-        ]),
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("b", 0, ""),
-                node.Id("a", 0, "")
-            ])
-        ]),
-        node.CustomUnitary([
-            node.Id("cx", 0, ""),
-            node.PrimaryList([
-                node.Id("a", 0, ""),
-                node.Id("b", 0, "")
-            ])
-        ])
-    ])
-}
-
-u2_data = {
-    "opaque": False,
-    "n_args": 2,
-    "n_bits": 1,
-    "args": ["phi", "lambda"],
-    "bits": ["q"],
-    # gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }
-    "body": node.GateBody([
-        node.UniversalUnitary([
-            node.ExpressionList([
-                node.BinaryOp([
-                    node.BinaryOperator('/'),
-                    node.Real(sympy.pi),
-                    node.Int(2)
-                ]),
-                node.Id("phi", 0, ""),
-                node.Id("lambda", 0, "")
-            ]),
-            node.Id("q", 0, "")
-        ])
-    ])
-}
-
-h_data = {
-    "opaque": False,
-    "n_args": 0,
-    "n_bits": 1,
-    "args": [],
-    "bits": ["a"],
-    # gate h a { u2(0,pi) a; }
-    "body": node.GateBody([
-        node.CustomUnitary([
-            node.Id("u2", 0, ""),
-            node.ExpressionList([
-                node.Int(0),
-                node.Real(sympy.pi)
-            ]),
-            node.PrimaryList([
-                node.Id("a", 0, "")
-            ])
-        ])
-    ])
-}
 
 
 def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
@@ -182,11 +88,6 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         logger.debug("layer_permutation: ----- exit -----")
         circ = DAGCircuit()
         circ.add_qreg(QuantumRegister(coupling.size(), "q"))
-        circ.add_basis_element("CX", 2)
-        circ.add_basis_element("cx", 2)
-        circ.add_basis_element("swap", 2)
-        circ.add_gate_data("cx", cx_data)
-        circ.add_gate_data("swap", swap_data)
         return True, circ, 0, layout, bool(gates)
 
     # Begin loop over trials of randomized algorithm
@@ -194,6 +95,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     best_d = sys.maxsize  # initialize best depth
     best_circ = None  # initialize best swap circuit
     best_layout = None  # initialize best final layout
+    QR = QuantumRegister(coupling.size(), "q")
     for trial in range(trials):
 
         logger.debug("layer_permutation: trial %s", trial)
@@ -201,16 +103,16 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         rev_trial_layout = rev_layout.copy()
         # SWAP circuit constructed this trial
         trial_circ = DAGCircuit()
-        trial_circ.add_qreg(QuantumRegister(coupling.size(), "q"))
+        trial_circ.add_qreg(QR)
 
         # Compute Sergey's randomized distance
         xi = {}
         for i in coupling.physical_qubits:
-            xi[(QuantumRegister(coupling.size(), 'q'), i)] = {}
+            xi[(QR, i)] = {}
         for i in coupling.physical_qubits:
-            i = (QuantumRegister(coupling.size(), 'q'), i)
+            i = (QR, i)
             for j in coupling.physical_qubits:
-                j = (QuantumRegister(coupling.size(), 'q'), j)
+                j = (QR, j)
                 scale = 1 + np.random.normal(0, 1 / n)
                 xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
                 xi[j][i] = xi[i][j]
@@ -219,16 +121,10 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
         d = 1
         # Circuit for this swap slice
         circ = DAGCircuit()
-        circ.add_qreg(QuantumRegister(coupling.size(), "q"))
-        circ.add_basis_element("CX", 2)
-        circ.add_basis_element("cx", 2)
-        circ.add_basis_element("swap", 2)
-        circ.add_gate_data("cx", cx_data)
-        circ.add_gate_data("swap", swap_data)
+        circ.add_qreg(QR)
 
         # Identity wire-map for composing the circuits
-        q = QuantumRegister(coupling.size(), 'q')
-        identity_wire_map = {(q, j): (q, j) for j in range(coupling.size())}
+        identity_wire_map = {(QR, j): (QR, j) for j in range(n)}
 
         while d < 2 * n + 1:
             # Set of available qubits
@@ -242,7 +138,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                 progress_made = False
                 # Loop over edges of coupling graph
                 for e in coupling.get_edges():
-                    e = [(QuantumRegister(coupling.size(), 'q'), edge) for edge in e]
+                    e = [(QR, edge) for edge in e]
                     # Are the qubits available?
                     if e[0] in qubit_set and e[1] in qubit_set:
                         # Try this edge to reduce the cost
@@ -331,10 +227,10 @@ def swap_mapper_layer_update(i, first_layer, best_layout, best_d,
     """
     layout = best_layout
     dagcircuit_output = DAGCircuit()
-    dagcircuit_output.add_qreg(QuantumRegister(coupling_graph.size(), "q"))
+    QR = QuantumRegister(coupling_graph.size(), 'q')
+    dagcircuit_output.add_qreg(QR)
     # Identity wire-map for composing the circuits
-    q = QuantumRegister(coupling_graph.size(), 'q')
-    identity_wire_map = {(q, j): (q, j) for j in range(coupling_graph.size())}
+    identity_wire_map = {(QR, j): (QR, j) for j in range(coupling_graph.size())}
 
     # If this is the first layer with multi-qubit gates,
     # output all layers up to this point and ignore any
@@ -394,11 +290,12 @@ def swap_mapper(circuit_graph, coupling_graph,
     if initial_layout is not None:
         # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
         # to an expected dict{(reg,idx): (reg,idx)}
+
         device_register = QuantumRegister(coupling_graph.size(), 'q')
         initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
                           for k, v in initial_layout.items()}
         # Check the input layout
-        circ_qubits = circuit_graph.get_qubits()
+        circ_qubits = circuit_graph.qubits()
         coup_qubits = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
                        coupling_graph.physical_qubits]
         qubit_subset = []
@@ -415,7 +312,7 @@ def swap_mapper(circuit_graph, coupling_graph,
         qubit_subset = [(QuantumRegister(coupling_graph.size(), 'q'), wire) for wire in
                         coupling_graph.physical_qubits]
         qubit_subset = qubit_subset[0:circuit_graph.width()]
-        initial_layout = {a: b for a, b in zip(circuit_graph.get_qubits(), qubit_subset)}
+        initial_layout = {a: b for a, b in zip(circuit_graph.qubits(), qubit_subset)}
 
     # Find swap circuit to preceed to each layer of input circuit
     layout = initial_layout.copy()
@@ -474,11 +371,7 @@ def swap_mapper(circuit_graph, coupling_graph,
                 # Give up if we fail again
                 if not success_flag:
                     raise MapperError("swap_mapper failed: " +
-                                      "layer %d, sublayer %d" % (i, j) +
-                                      ", \"%s\"" %
-                                      serial_layer["graph"].qasm(
-                                          no_decls=True,
-                                          aliases=layout))
+                                      "layer %d, sublayer %d" % (i, j))
 
                 # If this layer is only single-qubit gates,
                 # and we have yet to see multi-qubit gates,

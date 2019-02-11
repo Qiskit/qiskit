@@ -7,7 +7,6 @@
 
 """Helper function for converting a dag to a circuit"""
 import collections
-import networkx as nx
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ClassicalRegister
@@ -36,7 +35,7 @@ def dag_to_circuit(dag):
     circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
 
     graph = dag.multi_graph
-    for node in nx.topological_sort(graph):
+    for node in dag.node_nums_in_topological_order():
         n = graph.nodes[node]
         if n['type'] == 'op':
             if n['op'].name == 'U':

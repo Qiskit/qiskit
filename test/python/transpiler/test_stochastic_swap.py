@@ -10,6 +10,7 @@
 import unittest
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -349,63 +350,67 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.measure(qr[2], cr[2])
         circuit.measure(qr[3], cr[3])
         dag = circuit_to_dag(circuit)
-        #                                     ┌───┐     ┌─┐
-        # q_0: |0>────────────────────────────┤ X ├──■──┤M├────────────────
-        #                                ┌───┐└───┘┌─┴─┐└╥┘┌───┐        ┌─┐
-        # q_1: |0>───────────────────────┤ Y ├─────┤ X ├─╫─┤ S ├──■─────┤M├
-        #         ┌───┐             ┌───┐└───┘     └───┘ ║ └───┘┌─┴─┐┌─┐└╥┘
-        # q_2: |0>┤ Z ├──■──────────┤ T ├────────────────╫──────┤ X ├┤M├─╫─
-        #         └───┘┌─┴─┐┌───┐┌─┐└───┘                ║      └───┘└╥┘ ║
-        # q_3: |0>─────┤ X ├┤ H ├┤M├─────────────────────╫────────────╫──╫─
-        #              └───┘└───┘└╥┘                     ║            ║  ║
-        # c_0: 0  ════════════════╬══════════════════════╩════════════╬══╬═
-        #                         ║                                   ║  ║
-        # c_1: 0  ════════════════╬═══════════════════════════════════╬══╩═
-        #                         ║                                   ║
-        # c_2: 0  ════════════════╬═══════════════════════════════════╩════
-        #                         ║
-        # c_3: 0  ════════════════╩════════════════════════════════════════
+        #           ┌───┐                                        ┌─┐
+        # q_0: | 0 >┤ X ├────────────■───────────────────────────┤M├─────────
+        #           └───┘┌───┐     ┌─┴─┐     ┌───┐               └╥┘┌─┐
+        # q_1: | 0 >─────┤ Y ├─────┤ X ├─────┤ S ├────────────■───╫─┤M├──────
+        #                └───┘┌───┐└───┘     └───┘┌───┐     ┌─┴─┐ ║ └╥┘┌─┐
+        # q_2: | 0 >──────────┤ Z ├───────■───────┤ T ├─────┤ X ├─╫──╫─┤M├───
+        #                     └───┘     ┌─┴─┐     └───┘┌───┐└───┘ ║  ║ └╥┘┌─┐
+        # q_3: | 0 >────────────────────┤ X ├──────────┤ H ├──────╫──╫──╫─┤M├
+        #                               └───┘          └───┘      ║  ║  ║ └╥┘
+        # c_0: 0    ══════════════════════════════════════════════╩══╬══╬══╬═
+        #                                                            ║  ║  ║
+        #  c_1: 0   ═════════════════════════════════════════════════╩══╬══╬═
+        #                                                               ║  ║
+        #  c_2: 0   ════════════════════════════════════════════════════╩══╬═
+        #                                                                  ║
+        #  c_3: 0   ═══════════════════════════════════════════════════════╩═
         #
         expected = QuantumCircuit(qr, cr)
         expected.x(qr[0])
         expected.y(qr[1])
         expected.z(qr[2])
-        expected.cx(qr[2], qr[3])
-        expected.h(qr[3])
-        expected.measure(qr[3], cr[3])
         expected.swap(qr[1], qr[2])
         expected.cx(qr[0], qr[2])
         expected.measure(qr[0], cr[0])
-        expected.s(qr[2])
+        expected.swap(qr[2], qr[3])
+        expected.s(qr[3])
+        expected.cx(qr[1], qr[2])
         expected.t(qr[1])
+        expected.h(qr[2])
+        expected.swap(qr[2], qr[3])
         expected.cx(qr[2], qr[1])
-        expected.measure(qr[2], cr[1])
         expected.measure(qr[1], cr[2])
+        expected.measure(qr[2], cr[1])
+        expected.measure(qr[3], cr[3])
         expected_dag = circuit_to_dag(expected)
-        #                                        ┌───┐                     ┌─┐
-        # q_0: |0>───────────────────────────────┤ X ├──■──────────────────┤M├
-        #                           ┌───┐   ┌───┐└───┘  │       ┌───┐┌─┐   └╥┘
-        # q_1: |0>──────────────────┤ Y ├─X─┤ T ├───────┼───────┤ X ├┤M├────╫─
-        #         ┌───┐             └───┘ │ └───┘     ┌─┴─┐┌───┐└─┬─┘└╥┘┌─┐ ║
-        # q_2: |0>┤ Z ├──■────────────────X───────────┤ X ├┤ S ├──■───╫─┤M├─╫─
-        #         └───┘┌─┴─┐┌───┐┌─┐                  └───┘└───┘      ║ └╥┘ ║
-        # q_3: |0>─────┤ X ├┤ H ├┤M├──────────────────────────────────╫──╫──╫─
-        #              └───┘└───┘└╥┘                                  ║  ║  ║
-        # c_0: 0  ════════════════╬═══════════════════════════════════╬══╬══╩═
-        #                         ║                                   ║  ║
-        # c_1: 0  ════════════════╬═══════════════════════════════════╬══╩════
-        #                         ║                                   ║
-        # c_2: 0  ════════════════╬═══════════════════════════════════╩═══════
-        #                         ║
-        # c_3: 0  ════════════════╩═══════════════════════════════════════════
+        #                      ┌───┐     ┌─┐
+        # q_0: |0>─────────────┤ X ├──■──┤M├────────────────────────────────────────
+        #              ┌───┐   └───┘  │  └╥┘             ┌───┐        ┌───┐┌─┐
+        # q_1: |0>─────┤ Y ├─X────────┼───╫───────────■──┤ T ├────────┤ X ├┤M├──────
+        #         ┌───┐└───┘ │      ┌─┴─┐ ║         ┌─┴─┐└───┘┌───┐   └─┬─┘└╥┘┌─┐
+        # q_2: |0>┤ Z ├──────X──────┤ X ├─╫──X──────┤ X ├─────┤ H ├─X───■───╫─┤M├───
+        #         └───┘             └───┘ ║  │ ┌───┐└───┘     └───┘ │       ║ └╥┘┌─┐
+        # q_3: |0>────────────────────────╫──X─┤ S ├────────────────X───────╫──╫─┤M├
+        #                                 ║    └───┘                        ║  ║ └╥┘
+        #  c_0: 0 ════════════════════════╩═════════════════════════════════╬══╬══╬═
+        #                                                                   ║  ║  ║
+        #  c_1: 0 ══════════════════════════════════════════════════════════╬══╩══╬═
+        #                                                                   ║     ║
+        #  c_2: 0 ══════════════════════════════════════════════════════════╩═════╬═
+        #                                                                         ║
+        #  c_3: 0 ════════════════════════════════════════════════════════════════╩═
+
         #
         # Layout --
         #  (QuantumRegister(4, 'q'), 0): 0,
-        #  (QuantumRegister(4, 'q'), 1): 2,
-        #  (QuantumRegister(4, 'q'), 2): 1,
+        #  (QuantumRegister(4, 'q'), 1): 1,
+        #  (QuantumRegister(4, 'q'), 2): 2,
         #  (QuantumRegister(4, 'q'), 3): 3}
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
+
         self.assertEqual(expected_dag, after)
 
     def test_already_mapped(self):
@@ -533,7 +538,7 @@ class TestStochasticSwap(QiskitTestCase):
         expected.measure(qr[0], cr[0])
         expected.h(qr[0])
         expected.measure(ar[0], cr[2])
-        expected.swap(ar[1], qr[1])
+        expected.swap(qr[1], ar[1])
         expected.cx(qr[0], qr[1])
         expected.measure(ar[1], cr[3])
         expected.measure(qr[1], cr[1])
@@ -577,6 +582,74 @@ class TestStochasticSwap(QiskitTestCase):
         pass_ = StochasticSwap(coupling, layout, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(dag, after)
+
+    def test_only_output_cx_and_swaps_in_coupling_map(self):
+        """Test that output DAG contains only 2q gates from the the coupling map."""
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+
+        layout = Layout([(QuantumRegister(4, 'q'), 0),
+                         (QuantumRegister(4, 'q'), 1),
+                         (QuantumRegister(4, 'q'), 2),
+                         (QuantumRegister(4, 'q'), 3)])
+
+        pass_ = StochasticSwap(coupling, layout, 20, 5)
+        after = pass_.run(dag)
+
+        valid_couplings = [set([layout[a], layout[b]])
+                           for (a, b) in coupling.get_edges()]
+
+        for _2q_node in after.twoQ_nodes():
+            self.assertIn(set(_2q_node['qargs']), valid_couplings)
+
+    def test_len_coupling_vs_dag(self):
+        """Test error if coupling map and dag are not the same size."""
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+
+        pass_ = StochasticSwap(coupling)
+        with self.assertRaises(TranspilerError):
+            _ = pass_.run(dag)
+
+    def test_len_layout_vs_dag(self):
+        """Test error if the layout and dag are not the same size."""
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.measure(qr, cr)
+        dag = circuit_to_dag(circuit)
+
+        layout = Layout([(QuantumRegister(4, 'q'), 0),
+                         (QuantumRegister(4, 'q'), 1),
+                         (QuantumRegister(4, 'q'), 2)])
+
+        pass_ = StochasticSwap(coupling, layout)
+        with self.assertRaises(TranspilerError):
+            _ = pass_.run(dag)
 
 
 if __name__ == '__main__':

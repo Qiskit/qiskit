@@ -13,9 +13,8 @@ a cx is not in the coupling map possibilities, it inserts one or more swaps in f
 compatible.
 """
 
-from copy import copy
-
 from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
 from qiskit.extensions.standard import SwapGate
@@ -50,6 +49,10 @@ class BasicSwap(TransformationPass):
 
         Returns:
             DAGCircuit: A mapped DAG.
+
+        Raises:
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
         new_dag = DAGCircuit()
 
@@ -59,12 +62,19 @@ class BasicSwap(TransformationPass):
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        current_layout = copy(self.initial_layout)
+        if len(dag.qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+
+        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
+
+        current_layout = self.initial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for gate in subdag.get_2q_nodes():
+            for gate in subdag.twoQ_nodes():
                 physical_q0 = current_layout[gate['qargs'][0]]
                 physical_q1 = current_layout[gate['qargs'][1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
@@ -85,7 +95,6 @@ class BasicSwap(TransformationPass):
                                 swap_layer.add_qreg(qreg[0])
 
                         # create the swap operation
-                        swap_layer.add_basis_element('swap', 2, 0, 0)
                         swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
                                                         qargs=[qubit_1, qubit_2])
 
