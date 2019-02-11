@@ -17,7 +17,7 @@ class CIFailureReporter:
         key_label (str): the label that identifies CI failures reports.
     """
 
-    key_label = 'master is failing'
+    key_label = 'master failing'
 
     def __init__(self, repository, token):
         """
