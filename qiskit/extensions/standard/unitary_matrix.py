@@ -14,13 +14,11 @@ import numpy
 import sympy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
 
 class UnitaryMatrixGate(Gate):
-
+    """user specified unitary matrix gate class"""
     def __init__(self, unitary_matrix, *qargs, circuit=None):
         umatrix = numpy.array(unitary_matrix).astype(numpy.complex64)
         if not numpy.allclose(umatrix.dot(umatrix.T.conj()),
@@ -33,11 +31,11 @@ class UnitaryMatrixGate(Gate):
         self._decompositions = None
 
     def reapply(self, circ):
+        """Reapply this gate to corresponding qubits in circ."""
         self._modifiers(circ.unitary(self.params[0], *self.qargs))
 
     def qasm(self):
-        """Return a default OpenQASM string for the instruction.
-        """
+        """Return a default OpenQASM string for the instruction."""
         name_param = self.name
         if self.params:
             name_param = "%s(%s)" % (name_param,
@@ -47,11 +45,13 @@ class UnitaryMatrixGate(Gate):
                                      ",".join(["%s[%d]" % (j[0].name, j[1])
                                                for j in self.qargs + self.cargs]))
         return self._qasmif(name_param_arg)
-        
+
 
 def unitary(self, unitary_matrix, *qargs):
+    """Apply unitary matrix to specified qubits."""
     for qubit in qargs:
         self._check_qubit(qubit)
     return self._attach(UnitaryMatrixGate(unitary_matrix, *qargs, circuit=self))
+
 
 QuantumCircuit.unitary = unitary

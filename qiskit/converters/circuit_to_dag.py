@@ -9,7 +9,6 @@
 
 
 from qiskit.circuit.compositegate import CompositeGate
-from qiskit.extensions.standard import UnitaryMatrixGate
 from qiskit.dagcircuit._dagcircuit import DAGCircuit
 
 

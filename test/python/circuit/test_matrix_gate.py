@@ -17,13 +17,12 @@ import numpy
 import qiskit.extensions.simulator
 from qiskit import BasicAer, Aer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, compile
+from qiskit import execute
 from qiskit import QiskitError
 from qiskit.circuit import Gate
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import transpile, PassManager
 from qiskit.transpiler.passes import BasicSwap, CXCancellation, Optimize1qGates
-from qiskit import BasicAer
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import circuits_to_qobj
 from qiskit.extensions.standard.unitary_matrix import UnitaryMatrixGate
@@ -33,7 +32,7 @@ class TestMatrixGate(QiskitTestCase):
     """Matrix gate tests."""
 
     def test_1q_unitary(self):
-        backend = BasicAer.get_backend('qasm_simulator')
+        """test 1 qubit unitary matrix"""
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
@@ -55,18 +54,19 @@ class TestMatrixGate(QiskitTestCase):
                                        matrix))
 
     def test_2q_unitary(self):
+        """test 2 qubit unitary matrix"""
         backend = BasicAer.get_backend('qasm_simulator')
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
-        σx = numpy.array([[0, 1], [1, 0]])
-        σy = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(σx, σy)
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmay = numpy.array([[0, -1j], [1j, 0]])
+        matrix = numpy.kron(sigmax, sigmay)
         qc.x(qr[0])
         qc.unitary(matrix, qr[0], qr[1])
-        pm = PassManager()
-        pm.append(CXCancellation())
-        qc2 = transpile(qc, backend, pass_manager=pm)
+        passman = PassManager()
+        passman.append(CXCancellation())
+        qc2 = transpile(qc, backend, pass_manager=passman)
         # test of qasm output
         self.log.info(qc2.qasm())
         # test of text drawer
@@ -82,12 +82,12 @@ class TestMatrixGate(QiskitTestCase):
                                        matrix))
 
     def test_3q_unitary(self):
-        backend = BasicAer.get_backend('qasm_simulator')
+        """test 3 qubit unitary matrix on non-consecutive bits"""
         qr = QuantumRegister(4)
         qc = QuantumCircuit(qr)
-        σx = numpy.array([[0, 1], [1, 0]])
-        σy = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(σy, numpy.kron(σx, σy))
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmay = numpy.array([[0, -1j], [1j, 0]])
+        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
         qc.x(qr[0])
         qc.unitary(matrix, qr[0], qr[1], qr[3])
         qc.cx(qr[3], qr[2])
@@ -106,12 +106,12 @@ class TestMatrixGate(QiskitTestCase):
                                        matrix))
 
     def test_qobj_with_unitary_matrix(self):
-        backend = BasicAer.get_backend('qasm_simulator')
+        """test qobj output with unitary matrix"""
         qr = QuantumRegister(4)
         qc = QuantumCircuit(qr)
-        σx = numpy.array([[0, 1], [1, 0]])
-        σy = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(σy, numpy.kron(σx, σy))
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmay = numpy.array([[0, -1j], [1j, 0]])
+        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
         qc.x(qr[0])
         qc.unitary(matrix, qr[0], qr[1], qr[3])
         qc.cx(qr[3], qr[2])
@@ -123,12 +123,13 @@ class TestMatrixGate(QiskitTestCase):
             matrix))
 
     def test_aer(self):
+        """test aer simulation with unitary matrix"""
         backend = Aer.get_backend('unitary_simulator')
         qr = QuantumRegister(4)
         qc1 = QuantumCircuit(qr)
-        σx = numpy.array([[0, 1], [1, 0]])
-        σy = numpy.array([[0, -1j], [1j, 0]])
-        matrix1 = numpy.kron(σx, numpy.kron(σx, σy))
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmay = numpy.array([[0, -1j], [1j, 0]])
+        matrix1 = numpy.kron(sigmax, numpy.kron(sigmax, sigmay))
         qc1.unitary(matrix1, qr[0], qr[1], qr[3])
 
         qc2 = QuantumCircuit(qr)
@@ -140,4 +141,3 @@ class TestMatrixGate(QiskitTestCase):
         result1 = results.get_unitary(0)
         result2 = results.get_unitary(1)
         self.assertTrue(numpy.array_equal(result1, result2))
-
