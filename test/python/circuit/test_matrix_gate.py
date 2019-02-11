@@ -15,7 +15,7 @@ import unittest
 import numpy
 
 import qiskit.extensions.simulator
-from qiskit import BasicAer, Aer
+from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
