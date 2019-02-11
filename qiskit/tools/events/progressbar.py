@@ -110,24 +110,15 @@ class TextProgressBar(BaseProgressBar):
     """
     A simple text-based progress bar.
 
-    output_handler : where the progress bar should be written to, default
-                     is sys.stdout. Can pass in the output handler itself
-                     or a string such as 'err' to represent the desired
-                     handler.
+    output_handler : the handler the progress bar should be written to, default
+                     is sys.stdout, another option is sys.stderr
     """
 
     def __init__(self, output_handler=None):
         super().__init__()
         self._init_subscriber()
 
-        self.output_handler = sys.stdout
-
-        if isinstance(output_handler, str):
-            if output_handler in ('err', 'ERR', 'stderr'):
-                self.output_handler = sys.stderr
-
-        elif output_handler:
-            self.output_handler = output_handler
+        self.output_handler = output_handler if output_handler else sys.stdout
 
     def _init_subscriber(self):
         def _initialize_progress_bar(num_tasks):
