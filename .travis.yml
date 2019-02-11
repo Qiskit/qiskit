@@ -46,23 +46,23 @@ stage_osx: &stage_osx
   os: osx
   osx_image: xcode9.2
   language: generic
-  env: MPLBACKEND=ps
   cache:
     pip: true
     directories:
-      - ~/.pyenv
+      - ~/python-interpreters/
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
     |
     if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      if [[ ! -d ~/.pyenv ]]; then
-        curl https://pyenv.run | bash
-        pyenv install 3.5.6
-        pyenv install 3.6.5
-        pyenv install 3.7.2
+      if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
+        git clone git://github.com/pyenv/pyenv.git
+        cd pyenv/plugins/python-build
+        ./install.sh
+        cd ../../..
+        python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
       fi
-      virtualenv --python ~/.pyenv/versions/3.5.6/bin/python venv
+      virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
       source venv/bin/activate
     fi
 
@@ -81,77 +81,62 @@ stages:
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
-    # "lint and and pure python test" stage
-    ###########################################################################
-    # Linter and style check (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      <<: *stage_linux
-      script: make style && make lint
+    # # "lint and and pure python test" stage
+    # ###########################################################################
+    # # Linter and style check (GNU/Linux, Python 3.5)
+    # - stage: lint and pure python test
+    #   <<: *stage_linux
+    #   script: make style && make lint
 
-    # Run the tests against without compilation (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      <<: *stage_linux
+    # # Run the tests against without compilation (GNU/Linux, Python 3.5)
+    # - stage: lint and pure python test
+    #   <<: *stage_linux
 
-    # "test" stage
-    ###########################################################################
+    # # "test" stage
+    # ###########################################################################
 
-    # GNU/Linux, Python 3.6
-    - stage: test
-      <<: *stage_linux
-      python: 3.6
+    # # GNU/Linux, Python 3.6
+    # - stage: test
+    #   <<: *stage_linux
+    #   python: 3.6
 
-    # GNU/Linux, Python 3.7
-    - stage: test
-      <<: *stage_linux
-      # Compiling Python 3.7 requires an Ubuntu Xenial distribution
-      # and sudo set to true
-      # Fix when this is solved:
-      # https://github.com/travis-ci/travis-ci/issues/9815
-      dist: xenial
-      python: 3.7
-      sudo: true
+    # # GNU/Linux, Python 3.7
+    # - stage: test
+    #   <<: *stage_linux
+    #   # Compiling Python 3.7 requires an Ubuntu Xenial distribution
+    #   # and sudo set to true
+    #   # Fix when this is solved:
+    #   # https://github.com/travis-ci/travis-ci/issues/9815
+    #   dist: xenial
+    #   python: 3.7
+    #   sudo: true
 
     # OSX, Python 3.5.6 (via pyenv)
     - stage: test
       <<: *stage_osx
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.5.6
 
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
       <<: *stage_osx
-      before_install:
-        |
-        if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-          if [[ ! -d ~/.pyenv ]]; then
-            curl https://pyenv.run | bash
-            pyenv install 3.5.6
-            pyenv install 3.6.5
-            pyenv install 3.7.2
-          fi
-          virtualenv --python ~/.pyenv/versions/3.6.5/bin/python venv
-          source venv/bin/activate
-        fi
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.6.5
 
-    # OSX, Python 3.7 (via pyenv)
+    # OSX, Python 3.7.2 (via pyenv)
     - stage: test
       <<: *stage_osx
-      before_install:
-        |
-        if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-          if [[ ! -d ~/.pyenv ]]; then
-            curl https://pyenv.run | bash
-            pyenv install 3.5.6
-            pyenv install 3.6.5
-            pyenv install 3.7.2
-          fi
-          virtualenv --python ~/.pyenv/versions/3.7.2/bin/python venv
-          source venv/bin/activate
-        fi
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.7.2
 
-    # "ibmq" stage
-    ###########################################################################
-    # GNU/Linux, Python 3.6, against IBM Q
-    - stage: ibmq
-      <<: *stage_linux
-      if: branch = master and repo = Qiskit/qiskit-terra and type = push
-      python: 3.6
-      env: USE_ALTERNATE_ENV_CREDENTIALS=True
+    # # "ibmq" stage
+    # ###########################################################################
+    # # GNU/Linux, Python 3.6, against IBM Q
+    # - stage: ibmq
+    #   <<: *stage_linux
+    #   if: branch = master and repo = Qiskit/qiskit-terra and type = push
+    #   python: 3.6
+    #   env: USE_ALTERNATE_ENV_CREDENTIALS=True
