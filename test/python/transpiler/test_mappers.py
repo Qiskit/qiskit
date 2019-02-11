@@ -29,7 +29,7 @@ For example::
                                         # additional arguments
 
 To **add a test for all the swappers**: add a new method ``test_foo``to the
-``CommonTestCase`` class:
+``CommonTestCases`` class:
     * defining the following required ``self`` attributes: ``self.count``,
       ``self.shots``, ``self.delta``. They are required for the regeneration of the
       ground truth.
