@@ -9,8 +9,6 @@
 Object to represent a quantum circuit as a directed acyclic graph.
 
 The nodes in the graph are either input/output nodes or operation nodes.
-The operation nodes are elements of a basis that is part of the circuit.
-The QASM definitions of the basis elements are carried with the circuit.
 The edges correspond to qubits or bits in the circuit. A directed edge
 from node A to node B means that the (qu)bit passes from the output of A
 to the input of B. The object's methods allow circuits to be constructed,
@@ -60,21 +58,6 @@ class DAGCircuit:
         # Running count of the total number of nodes
         self.node_counter = 0
 
-        # Map of user defined gates to ast nodes defining them
-        self.gates = OrderedDict()
-
-        # Map of named operations in this circuit and their signatures.
-        # The signature is an integer tuple (nq,nc,np) specifying the
-        # number of input qubits, input bits, and real parameters.
-        # The definition is external to the circuit object.
-        self.basis = OrderedDict()
-        self.add_basis_element(name="U", number_qubits=1,
-                               number_classical=0, number_parameters=3)
-        self.add_basis_element("CX", 2, 0, 0)
-        self.add_basis_element("measure", 1, 1, 0)
-        self.add_basis_element("reset", 1, 0, 0)
-        self.add_basis_element("barrier", -1)
-
         # Directed multigraph whose nodes are inputs, outputs, or operations.
         # Operation nodes have equal in- and out-degrees and carry
         # additional data about the operation, including the argument order
@@ -91,7 +74,7 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
     def get_qubits(self):
-        """ Deprecated. Use qubits()."""
+        """Deprecated. Use qubits()."""
         warnings.warn('The method get_qubits() is being replaced by qubits()',
                       DeprecationWarning, 2)
         return self.qubits()
@@ -101,7 +84,7 @@ class DAGCircuit:
         return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
     def get_bits(self):
-        """ Deprecated. Use clbits()."""
+        """Deprecated. Use clbits()."""
         warnings.warn('The method get_bits() is being replaced by clbits()',
                       DeprecationWarning, 2)
         return self.clbits()
@@ -214,81 +197,6 @@ class DAGCircuit:
         else:
             raise DAGCircuitError("duplicate wire %s" % (wire,))
 
-    def add_basis_element(self, name, number_qubits,
-                          number_classical=0, number_parameters=0):
-        """Add an operation to the basis.
-
-        name is string label for operation
-        number_qubits is number of qubit arguments
-        number_classical is number of bit arguments
-        number_parameters is number of real parameters
-
-        The parameters (nq,nc,np) are ignored for the special case
-        when name = "barrier". The barrier instruction has a variable
-        number of qubit arguments.
-        """
-        if name not in self.basis:
-            self.basis[name] = (
-                number_qubits,
-                number_classical,
-                number_parameters)
-        if name in self.gates:
-            if self.gates[name]["n_args"] != number_parameters or \
-                    self.gates[name]["n_bits"] != number_qubits or number_classical != 0:
-                raise DAGCircuitError("gate data does not match "
-                                      + "basis element specification")
-
-    def add_gate_data(self, name, gatedata):
-        """Add the definition of a gate.
-
-        gatedata is dict with fields:
-        "print" = True or False
-        "opaque" = True or False
-        "n_args" = number of real parameters
-        "n_bits" = number of qubits
-        "args"   = list of parameter names
-        "bits"   = list of qubit names
-        "body"   = GateBody AST node
-        """
-        if name not in self.gates:
-            self.gates[name] = gatedata
-            if name in self.basis:
-                if self.basis[name][0] != self.gates[name]["n_bits"] or \
-                        self.basis[name][1] != 0 or \
-                        self.basis[name][2] != self.gates[name]["n_args"]:
-                    raise DAGCircuitError("gate data does not match "
-                                          + "basis element specification")
-
-    def _check_basis_data(self, op, qargs, cargs):
-        """Check the arguments against the data for this operation.
-
-        Args:
-            op (Instruction): a quantum operation
-            qargs (list[tuple]): qubits that op will be applied to
-            cargs (list[tuple]): cbits that op will be applied to
-        Raises:
-            DAGCircuitError: If the check fails.
-        """
-        # Check that we have this operation
-        if op.name not in self.basis:
-            raise DAGCircuitError("%s is not in the list of basis operations" % op.name)
-        # Check the number of arguments matches the signature
-        if op.name in ["barrier"]:
-            if not qargs:
-                raise DAGCircuitError("incorrect number of qubits for %s" % op.name)
-            if cargs:
-                raise DAGCircuitError("incorrect number of bits for %s" % op.name)
-        elif op.name in ["snapshot", "noise", "save", "load"]:
-            if not qargs:
-                raise DAGCircuitError("incorrect number of qubits for %s" % op.name)
-            if cargs:
-                raise DAGCircuitError("incorrect number of bits for %s" % op.name)
-        else:
-            if len(qargs) != self.basis[op.name][0]:
-                raise DAGCircuitError("incorrect number of qubits for %s" % op.name)
-            if len(cargs) != self.basis[op.name][1]:
-                raise DAGCircuitError("incorrect number of bits for %s" % op.name)
-
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
 
@@ -375,7 +283,6 @@ class DAGCircuit:
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(cargs)
 
-        self._check_basis_data(op, qargs, cargs)
         self._check_condition(op.name, condition)
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
@@ -415,7 +322,6 @@ class DAGCircuit:
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(cargs)
 
-        self._check_basis_data(op, qargs, cargs)
         self._check_condition(op.name, condition)
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
@@ -434,46 +340,6 @@ class DAGCircuit:
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(self.input_map[q], self.node_counter,
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
-
-    def _make_union_basis(self, input_circuit):
-        """Return a new basis map.
-
-        The new basis is a copy of self.basis with
-        new elements of input_circuit.basis added.
-        input_circuit is a DAGCircuit
-        """
-        union_basis = self.basis.copy()
-        for g in input_circuit.basis:
-            if g not in union_basis:
-                union_basis[g] = input_circuit.basis[g]
-            if union_basis[g] != input_circuit.basis[g]:
-                raise DAGCircuitError("incompatible basis")
-        return union_basis
-
-    def _make_union_gates(self, input_circuit):
-        """Return a new gates map.
-
-        The new gates are a copy of self.gates with
-        new elements of input_circuit.gates added.
-        input_circuit is a DAGCircuit
-
-        NOTE: gates in input_circuit that are also in self must
-        be *identical* to the gates in self
-        """
-        union_gates = {}
-        for k, v in self.gates.items():
-            union_gates[k] = v
-        for k, v in input_circuit.gates.items():
-            if k not in union_gates:
-                union_gates[k] = v
-            if union_gates[k]["opaque"] != input_circuit.gates[k]["opaque"] or \
-                    union_gates[k]["n_args"] != input_circuit.gates[k]["n_args"] or \
-                    union_gates[k]["n_bits"] != input_circuit.gates[k]["n_bits"] or \
-                    union_gates[k]["args"] != input_circuit.gates[k]["args"] or \
-                    union_gates[k]["bits"] != input_circuit.gates[k]["bits"]:
-                raise DAGCircuitError("inequivalent gate definitions for %s"
-                                      % k)
-        return union_gates
 
     def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
@@ -606,8 +472,6 @@ class DAGCircuit:
             DAGCircuitError: if missing, duplicate or incosistent wire
         """
         edge_map = edge_map or {}
-        union_basis = self._make_union_basis(input_circuit)
-        union_gates = self._make_union_gates(input_circuit)
 
         # Check the wire map for duplicate values
         if len(set(edge_map.values())) != len(edge_map):
@@ -629,8 +493,6 @@ class DAGCircuit:
                                      self.output_map)
 
         # Compose
-        self.basis = union_basis
-        self.gates = union_gates
         for node in nx.topological_sort(input_circuit.multi_graph):
             nd = input_circuit.multi_graph.node[node]
             if nd["type"] == "in":
@@ -674,8 +536,6 @@ class DAGCircuit:
             DAGCircuitError: missing, duplicate or inconsistent wire
         """
         wire_map = wire_map or {}
-        union_basis = self._make_union_basis(input_circuit)
-        union_gates = self._make_union_gates(input_circuit)
 
         # Check the wire map
         if len(set(wire_map.values())) != len(wire_map):
@@ -697,8 +557,6 @@ class DAGCircuit:
                                      self.input_map)
 
         # Compose
-        self.basis = union_basis
-        self.gates = union_gates
         for n in reversed(list(nx.topological_sort(input_circuit.multi_graph))):
             nd = input_circuit.multi_graph.node[n]
             if nd["type"] == "out":
@@ -753,137 +611,14 @@ class DAGCircuit:
         """Compute how many components the circuit can decompose into."""
         return nx.number_weakly_connected_components(self.multi_graph)
 
-    def _gate_string(self, name):
-        """Return a QASM string for the named gate."""
-        out = ""
-        if self.gates[name]["opaque"]:
-            out = "opaque " + name
-        else:
-            out = "gate " + name
-        if self.gates[name]["n_args"] > 0:
-            out += "(" + ",".join(self.gates[name]["args"]) + ")"
-        out += " " + ",".join(self.gates[name]["bits"])
-        if self.gates[name]["opaque"]:
-            out += ";"
-        else:
-            out += "\n{\n" + self.gates[name]["body"].qasm() + "}"
-        return out
-
-    def qasm(self, no_decls=False, qeflag=False, aliases=None, eval_symbols=False):
-        """Return a string containing QASM for this circuit.
-
-        Args:
-            qeflag (bool): if True, add a line to include "qelib1.inc"
-                and only generate gate code for gates not in qelib1.
-
-            eval_symbols (bool): if True, evaluate all symbolic
-                expressions to their floating point representation.
-
-            no_decls (bool): if True, only print the instructions.
-
-            aliases (dict): if not None, aliases contains a dict mapping
-                the current qubits in the circuit to new qubit names.
-                We will deduce the register names and sizes from aliases.
-
-        Returns:
-            str: OpenQASM representation of the DAG
-
-        Raises:
-            DAGCircuitError: if dag nodes not in expected format
+    def qasm(self):
+        """Deprecated. use qiskit.converters.dag_to_circuit() then call
+        qasm() on the obtained QuantumCircuit instance.
         """
-        # TODO: some of the input flags are not needed anymore
-        # Rename qregs if necessary
-        if aliases:
-            qregdata = OrderedDict()
-            for q in aliases.values():
-                if q[0] not in qregdata:
-                    qregdata[q[0]] = q[1] + 1
-                elif qregdata[q[0]] < q[1] + 1:
-                    qregdata[q[0]] = q[1] + 1
-        else:
-            qregdata = self.qregs
-        # Write top matter
-        if no_decls:
-            out = ""
-        else:
-            printed_gates = []
-            out = "OPENQASM 2.0;\n"
-            if qeflag:
-                out += "include \"qelib1.inc\";\n"
-            for k, v in qregdata.items():
-                out += "qreg %s[%d];\n" % (k, v.size)
-            for k, v in self.cregs.items():
-                out += "creg %s[%d];\n" % (k, v.size)
-            omit = ["U", "CX", "measure", "reset", "barrier"]
-            # TODO: dagcircuit shouldn't know about extensions
-            if qeflag:
-                qelib = ["u3", "u2", "u1", "cx", "id", "x", "y", "z", "h",
-                         "s", "sdg", "t", "tdg", "cz", "cy", "ccx", "cu1",
-                         "cu3", "swap", "cswap", "u0", "rx", "ry", "rz",
-                         "ch", "crz", "rzz"]
-                omit.extend(qelib)
-                printed_gates.extend(qelib)
-            simulator_instructions = ["snapshot", "save", "load", "noise", "wait"]
-            omit.extend(simulator_instructions)
-            for k in self.basis.keys():
-                if k not in omit:
-                    if not self.gates[k]["opaque"]:
-                        calls = self.gates[k]["body"].calls()
-                        for c in calls:
-                            if c not in printed_gates:
-                                out += self._gate_string(c) + "\n"
-                                printed_gates.append(c)
-                    if k not in printed_gates:
-                        out += self._gate_string(k) + "\n"
-                        printed_gates.append(k)
-        # Write the instructions
-        for n in nx.lexicographical_topological_sort(
-                self.multi_graph, key=lambda x: (self.multi_graph.nodes[x]["type"],
-                                                 self.multi_graph.nodes[x]["name"])):
-            nd = self.multi_graph.node[n]
-            if nd["type"] == "op":
-                if nd["condition"] is not None:
-                    out += "if(%s==%d) " \
-                           % (nd["condition"][0], nd["condition"][1])
-                if not nd["cargs"]:
-                    nm = nd["op"].name
-                    if aliases:
-                        qarglist = map(lambda x: aliases[x], nd["qargs"])
-                    else:
-                        qarglist = nd["qargs"]
-                    qarg = ",".join(map(lambda x: "%s[%d]" % (x[0].name, x[1]),
-                                        qarglist))
-                    if nd["op"].params:
-                        if eval_symbols:
-                            param = ",".join(map(lambda x: str(x.evalf()),
-                                                 nd["op"].params))
-                        else:
-                            param = ",".join(map(lambda x: x.replace("**", "^"),
-                                                 map(str, nd["op"].params)))
-                        out += "%s(%s) %s;\n" % (nm, param, qarg)
-                    else:
-                        out += "%s %s;\n" % (nm, qarg)
-                else:
-                    if nd["op"].name == "measure":
-                        if len(nd["cargs"]) != 1 or len(nd["qargs"]) != 1 \
-                                or nd["op"].param:
-                            raise DAGCircuitError("bad node data")
-
-                        qname = nd["qargs"][0][0].name
-                        qindex = nd["qargs"][0][1]
-                        if aliases:
-                            newq = aliases[(qname, qindex)]
-                            qname = newq[0]
-                            qindex = newq[1]
-                        out += "measure %s[%d] -> %s[%d];\n" \
-                               % (qname,
-                                  qindex,
-                                  nd["cargs"][0][0].name,
-                                  nd["cargs"][0][1])
-                    else:
-                        raise DAGCircuitError("bad node data")
-
-        return out
+        warnings.warn('printing qasm() from DAGCircuit is deprecated. '
+                      'use qiskit.converters.dag_to_circuit() then call '
+                      'qasm() on the obtained QuantumCircuit instance.',
+                      DeprecationWarning, 2)
 
     def _check_wires_list(self, wires, op, input_circuit, condition=None):
         """Check that a list of wires satisfies some conditions.
@@ -1026,13 +761,8 @@ class DAGCircuit:
         """
         # TODO: rewrite this method to call substitute_node_with_dag
         wires = wires or []
-        if op.name not in self.basis:
-            raise DAGCircuitError("%s is not in the list of basis operations"
-                                  % op.name)
 
         self._check_wires_list(wires, op, input_circuit)
-        union_basis = self._make_union_basis(input_circuit)
-        union_gates = self._make_union_gates(input_circuit)
 
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self
@@ -1055,8 +785,6 @@ class DAGCircuit:
         # NOTE: We do not replace conditioned gates. One way to implement
         #       this later is to add or update the conditions of each gate
         #       that we add from the input_circuit.
-        self.basis = union_basis
-        self.gates = union_gates
         for n in self.node_nums_in_topological_order():
             nd = self.multi_graph.node[n]
             if nd["type"] == "op" and nd["op"] == op:
@@ -1151,8 +879,6 @@ class DAGCircuit:
             wires = qwires + cwires
 
         self._check_wires_list(wires, nd["op"], input_dag, nd["condition"])
-        union_basis = self._make_union_basis(input_dag)
-        union_gates = self._make_union_gates(input_dag)
 
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self
@@ -1173,9 +899,6 @@ class DAGCircuit:
         # Constructing and checking the validity of the wire_map.
         # If a gate is conditioned, we expect the replacement subcircuit
         # to depend on those control bits as well.
-        self.basis = union_basis
-        self.gates = union_gates
-
         if nd["type"] != "op":
             raise DAGCircuitError("expected node type \"op\", got %s"
                                   % nd["type"])
@@ -1234,7 +957,7 @@ class DAGCircuit:
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
     def get_op_nodes(self, op=None, data=False):
-        """ Deprecated. Use op_nodes()."""
+        """Deprecated. Use op_nodes()."""
         warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',
                       DeprecationWarning, 2)
         return self.op_nodes(op, data)
@@ -1261,7 +984,7 @@ class DAGCircuit:
         return nodes
 
     def get_gate_nodes(self, data=False):
-        """ Deprecated. Use gate_nodes()."""
+        """Deprecated. Use gate_nodes()."""
         warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes()',
                       DeprecationWarning, 2)
         return self.gate_nodes(data)
@@ -1285,7 +1008,7 @@ class DAGCircuit:
         return nodes
 
     def get_named_nodes(self, *names):
-        """ Deprecated. Use named_nodes()."""
+        """Deprecated. Use named_nodes()."""
         warnings.warn('The method get_named_nodes() is being replaced by named_nodes()',
                       DeprecationWarning, 2)
         return self.named_nodes(*names)
@@ -1299,7 +1022,7 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
-        """ Deprecated. Use twoQ_nodes()."""
+        """Deprecated. Use twoQ_nodes()."""
         warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
                       DeprecationWarning, 2)
         return self.twoQ_nodes()
@@ -1313,7 +1036,7 @@ class DAGCircuit:
         return two_q_nodes
 
     def get_3q_or_more_nodes(self):
-        """ Deprecated. Use threeQ_or_more_nodes()."""
+        """Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
                       ' threeQ_or_more_nodes()', DeprecationWarning, 2)
         return self.threeQ_or_more_nodes()
@@ -1337,6 +1060,10 @@ class DAGCircuit:
     def descendants(self, node):
         """Returns the descendants of a node."""
         return nx.descendants(self.multi_graph, node)
+
+    def bfs_successors(self, node):
+        """Returns successors of a node in BFS order"""
+        return nx.bfs_successors(self.multi_graph, node)
 
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""
@@ -1507,8 +1234,6 @@ class DAGCircuit:
                     new_layer.add_qreg(qreg)
                 for creg in self.cregs.values():
                     new_layer.add_creg(creg)
-                new_layer.basis = self.basis.copy()
-                new_layer.gates = self.gates.copy()
                 # Save the support of the operation we add to the layer
                 support_list = []
                 # Operation data

@@ -91,12 +91,6 @@ class TestDagOperations(QiskitTestCase):
         creg = ClassicalRegister(2, 'cr')
         self.dag.add_qreg(qreg)
         self.dag.add_creg(creg)
-        self.dag.add_basis_element(name='h', number_qubits=1,
-                                   number_classical=0, number_parameters=0)
-        self.dag.add_basis_element('cx', 2, 0, 0)
-        self.dag.add_basis_element('x', 1, 0, 0)
-        self.dag.add_basis_element('measure', 1, 1, 0)
-        self.dag.add_basis_element('reset', 1, 0, 0)
 
         self.qubit0 = qreg[0]
         self.qubit1 = qreg[1]
@@ -257,10 +251,6 @@ class TestDagLayers(QiskitTestCase):
         clbit1 = creg[1]
         condition = (creg, 3)
         dag = DAGCircuit()
-        dag.add_basis_element('h', 1, 0, 0)
-        dag.add_basis_element('cx', 2, 0, 0)
-        dag.add_basis_element('x', 1, 0, 0)
-        dag.add_basis_element('measure', 1, 1, 0)
         dag.add_qreg(qreg)
         dag.add_creg(creg)
         dag.apply_operation_back(HGate(qubit0))
@@ -402,12 +392,6 @@ class TestDagSubstitute(QiskitTestCase):
         creg = ClassicalRegister(2, 'cr')
         self.dag.add_qreg(qreg)
         self.dag.add_creg(creg)
-        self.dag.add_basis_element(name='h', number_qubits=1,
-                                   number_classical=0, number_parameters=0)
-        self.dag.add_basis_element('cx', 2, 0, 0)
-        self.dag.add_basis_element('x', 1, 0, 0)
-        self.dag.add_basis_element('measure', 1, 1, 0)
-        self.dag.add_basis_element('reset', 1, 0, 0)
 
         self.qubit0 = qreg[0]
         self.qubit1 = qreg[1]
@@ -427,8 +411,6 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit = DAGCircuit()
         v = QuantumRegister(2, "v")
         flipped_cx_circuit.add_qreg(v)
-        flipped_cx_circuit.add_basis_element("cx", 2)
-        flipped_cx_circuit.add_basis_element("h", 1)
         flipped_cx_circuit.apply_operation_back(HGate(v[0]))
         flipped_cx_circuit.apply_operation_back(HGate(v[1]))
         flipped_cx_circuit.apply_operation_back(CnotGate(v[1], v[0]))

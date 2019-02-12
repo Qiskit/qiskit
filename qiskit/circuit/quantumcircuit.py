@@ -28,6 +28,7 @@ class QuantumCircuit:
 
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
+    extension_lib = "include \"qelib1.inc\";"
 
     # Class variable with gate definitions
     # This is a dict whose values are dicts with the
@@ -276,9 +277,7 @@ class QuantumCircuit:
     def qasm(self):
         """Return OPENQASM string."""
         string_temp = self.header + "\n"
-        for gate_name in self.definitions:
-            if self.definitions[gate_name]["print"]:
-                string_temp += self._gate_string(gate_name)
+        string_temp += self.extension_lib + "\n"
         for register in self.qregs:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:

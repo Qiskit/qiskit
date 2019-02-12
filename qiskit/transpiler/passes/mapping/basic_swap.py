@@ -95,7 +95,6 @@ class BasicSwap(TransformationPass):
                                 swap_layer.add_qreg(qreg[0])
 
                         # create the swap operation
-                        swap_layer.add_basis_element('swap', 2, 0, 0)
                         swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
                                                         qargs=[qubit_1, qubit_2])
 
