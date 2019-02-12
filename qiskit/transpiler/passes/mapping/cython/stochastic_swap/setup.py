@@ -1,49 +1,57 @@
+# -*- coding: utf-8 -*-
+#!python
+#cython: language_level = 3
+#distutils: language = c++
 
-import distutils.sysconfig
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
 import os
 import sys
-import numpy as np
+import distutils.sysconfig
 from setuptools import setup, Extension
 from Cython.Build import cythonize
-from Cython.Distutils import build_ext
+
+
+
+# Add Cython extensions here
+CYTHON_EXTS = ['utils', '_swap_trial']
 
 INCLUDE_DIRS = []
-# Add Cython extensions here
-cython_exts = ['utils', '_swap_trial']
-
-
 # Extra link args
-_link_flags = []
+LINK_FLAGS = []
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
         and os.environ.get('MSYSTEM') is None):
-    _compiler_flags = ['/w', '/Ox']
+    COMPILER_FLAGS = ['/w', '/Ox', '/std:c++11']
 # Everything else
 else:
-    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops', '-std=c++11']
+    COMPILER_FLAGS = ['-w', '-O3', '-march=native', '-funroll-loops', '-std=c++11']
     if sys.platform == 'darwin':
         # These are needed for compiling on OSX 10.14+
-        _compiler_flags.append('-mmacosx-version-min=10.9')
-        _link_flags.append('-mmacosx-version-min=10.9')
+        COMPILER_FLAGS.append('-mmacosx-version-min=10.9')
+        LINK_FLAGS.append('-mmacosx-version-min=10.9')
 
 # Remove -Wstrict-prototypes from cflags
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+CFG_VARS = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in CFG_VARS:
+    CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
 
 
 EXT_MODULES = []
 # Add Cython files from qutip/cy
-for ext in cython_exts:
-    _mod = Extension(ext,
+for ext in CYTHON_EXTS:
+    mod = Extension(ext,
                      sources=[ext+'.pyx'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags,
-                     extra_link_args=_link_flags,
+                     include_dirs=INCLUDE_DIRS,
+                     extra_compile_args=COMPILER_FLAGS,
+                     extra_link_args=LINK_FLAGS,
                      language='c++')
-    EXT_MODULES.append(_mod)
+    EXT_MODULES.append(mod)
 
 
-setup(name='Qiskit_cython',
+setup(name='Qiskit_Cython',
       ext_modules=cythonize(EXT_MODULES)
      )
