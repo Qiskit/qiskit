@@ -27,7 +27,6 @@ except ImportError:
 
 from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
-from qiskit.tools.visualization import _utils
 
 
 logger = logging.getLogger(__name__)
@@ -90,9 +89,9 @@ class Anchor:
 
 
 class MatplotlibDrawer:
-    def __init__(self,
+    def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, justify=None):
+                 reverse_bits=False):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -102,7 +101,9 @@ class MatplotlibDrawer:
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
-        self._ops = []
+        self._registers(cregs, qregs)
+        self._ops = ops
+
         self._qreg_dict = collections.OrderedDict()
         self._creg_dict = collections.OrderedDict()
         self._cond = {
@@ -129,17 +130,6 @@ class MatplotlibDrawer:
         self.ax.set_aspect('equal')
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
-
-        if justify:
-            justify.lower()
-            # default to left
-        self.justify = justify if justify in ('right', 'none') else 'left'
-
-    def parse_circuit(self, circuit):
-        qregs, cregs, ops = _utils._get_layered_instructions(
-            circuit, reversebits=self.reverse_bits, justify=self.justify)
-        self._registers(cregs, qregs)
-        self._ops = ops
 
     def _registers(self, creg, qreg):
         self._creg = []
