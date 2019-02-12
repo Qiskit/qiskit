@@ -9,6 +9,7 @@
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister
 from .quantumregister import QuantumRegister
+from .register import Register
 from .gate import Gate
 from .instruction import Instruction
 from .instructionset import InstructionSet
