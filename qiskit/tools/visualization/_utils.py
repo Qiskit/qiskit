@@ -132,7 +132,6 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
         layer_dicts = [{}]
 
         for dag_layer in dag_layers:
-
             dag_instructions = dag_layer['graph'].op_nodes(data=True)
 
             # sort into the order they were input

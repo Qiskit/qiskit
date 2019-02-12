@@ -301,7 +301,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
     qregs, cregs, ops = _utils._get_layered_instructions(circuit,
                                                          reversebits=reversebits,
                                                          justify=justify)
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, circuit)
+
+    text_drawing = _text.TextDrawing(qregs, cregs, ops)
 
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
