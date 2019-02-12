@@ -13,9 +13,8 @@ controlled-Phase gate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _control_target_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 
@@ -34,8 +33,6 @@ class CzGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             HGate(q[1]),
             CnotGate(q[0], q[1]),
@@ -54,7 +51,7 @@ class CzGate(Gate):
         self._modifiers(circ.cz(self.qargs[0], self.qargs[1]))
 
 
-@_control_target_gate
+@_op_expand(2)
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
     self._check_qubit(ctl)
