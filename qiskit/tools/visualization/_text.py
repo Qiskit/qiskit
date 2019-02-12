@@ -39,6 +39,7 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.top_pad)
+
         return ret
 
     @property
@@ -61,11 +62,13 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.bot_pad)
+
         return ret
 
     @property
     def length(self):
         """ Returns the length of the element, including the box around."""
+
         return max(len(self.top), len(self.mid), len(self.bot))
 
     @length.setter
@@ -93,6 +96,7 @@ class DrawElement():
             where (list["top", "bot"]): Where the connector should be set.
             label (string): Some connectors have a label (see cu1, for example).
         """
+
         if 'top' in where and self.top_connector:
             self.top_connect = self.top_connector[wire_char]
 
@@ -169,6 +173,9 @@ class MeasureFrom(BoxOnQuWire):
         self.top_connect = "┌─┐"
         self.mid_content = "┤M├"
         self.bot_connect = "└╥┘"
+
+        self.top_pad = self.bot_pad = " "
+        self._mid_padding = '─'
 
 
 class MultiBox(DrawElement):
@@ -323,7 +330,7 @@ class Bullet(DirectOnQuWire):
     bot:  │      │
     """
 
-    def __init__(self, top_connect=" ", bot_connect=" "):
+    def __init__(self, top_connect="", bot_connect=""):
         super().__init__('■')
         self.top_connect = top_connect
         self.bot_connect = bot_connect
@@ -405,7 +412,8 @@ class InputWire(DrawElement):
 class TextDrawing():
     """ The text drawing"""
 
-    def __init__(self, qregs, cregs, instructions, plotbarriers=True, line_length=None):
+    def __init__(self, qregs, cregs, instructions, plotbarriers=True,
+                 line_length=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -435,7 +443,7 @@ class TextDrawing():
 
     def single_string(self):
         """
-        Creates a loong string with the ascii art
+        Creates a long string with the ascii art
         Returns:
             str: The lines joined by '\n'
         """
@@ -473,14 +481,8 @@ class TextDrawing():
                 line_length, _ = get_terminal_size()
 
         noqubits = len(self.qregs)
-        layers = self.build_layers()
 
-        # TODO compress layers
-        # -| H |----------
-        # --------| H |---
-        # should be
-        # -| H |---
-        # -| H |---
+        layers = self.build_layers()
 
         if not line_length:
             line_length = self.line_length
@@ -561,7 +563,7 @@ class TextDrawing():
         bot_line = None
         for wire in wires:
             # TOP
-            top_line = ""
+            top_line = ''
             for instruction in wire:
                 top_line += instruction.top
 
@@ -574,7 +576,6 @@ class TextDrawing():
             mid_line = ""
             for instruction in wire:
                 mid_line += instruction.mid
-
             lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="bot"))
 
             # BOT
@@ -648,6 +649,8 @@ class TextDrawing():
                 ret += "├"
             elif topc == '┘' and botc == "┐":
                 ret += "┤"
+            elif botc in "┐┌":
+                ret += "┬"
             else:
                 ret += botc
         return ret
@@ -664,6 +667,115 @@ class TextDrawing():
         for instruction in instructions:
             instruction.length = longest
 
+    def _instruction_to_gate(self, instruction, layer):
+        """ Convert an instruction into its corresponding Gate object, and establish
+        any connections it introduces between qubits"""
+
+        current_cons = []
+        connection_label = None
+
+        # add in a gate that operates over multiple qubits
+        def add_connected_gate(instruction, gates, layer, current_cons):
+            for i, gate in enumerate(gates):
+                layer.set_qubit(instruction['qargs'][i], gate)
+                actual_index = self.qregs.index(instruction['qargs'][i])
+                current_cons.append((actual_index, gate))
+
+        if instruction['name'] == 'measure':
+            gate = MeasureFrom()
+            layer.set_qubit(instruction['qargs'][0], gate)
+            layer.set_clbit(instruction['cargs'][0], MeasureTo())
+
+        elif instruction['name'] in ['barrier', 'snapshot', 'save', 'load',
+                                     'noise']:
+            # barrier
+            if not self.plotbarriers:
+                return layer, current_cons, connection_label
+
+            for qubit in instruction['qargs']:
+                layer.set_qubit(qubit, Barrier())
+
+        elif instruction['name'] == 'swap':
+            # swap
+            gates = [Ex() for _ in range(len(instruction['qargs']))]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'cswap':
+            # cswap
+            gates = [Bullet(), Ex(), Ex()]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'reset':
+            layer.set_qubit(instruction['qargs'][0], Reset())
+
+        elif instruction['condition'] is not None:
+            # conditional
+            cllabel = TextDrawing.label_for_conditional(instruction)
+            qulabel = TextDrawing.label_for_box(instruction)
+
+            layer.set_cl_multibox(instruction['condition'][0], cllabel, top_connect='┴')
+            layer.set_qubit(instruction['qargs'][0], BoxOnQuWire(qulabel, bot_connect='┬'))
+
+        elif instruction['name'] in ['cx', 'CX', 'ccx']:
+            # cx/ccx
+            gates = [Bullet() for _ in range(len(instruction['qargs']) - 1)]
+            gates.append(BoxOnQuWire('X'))
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'cy':
+            # cy
+            gates = [Bullet(), BoxOnQuWire('Y')]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'cz':
+            # cz
+            gates = [Bullet(), Bullet()]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'ch':
+            # ch
+            gates = [Bullet(), BoxOnQuWire('H')]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'cu1':
+            # cu1
+            connection_label = TextDrawing.params_for_label(instruction)[0]
+            gates = [Bullet(), Bullet()]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'cu3':
+            # cu3
+            params = TextDrawing.params_for_label(instruction)
+            gates = [Bullet(), BoxOnQuWire("U3(%s)" % ','.join(params))]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif instruction['name'] == 'crz':
+            # crz
+            label = "Rz(%s)" % TextDrawing.params_for_label(instruction)[0]
+
+            gates = [Bullet(), BoxOnQuWire(label)]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
+        elif len(instruction['qargs']) == 1 and not instruction['cargs']:
+            # unitary gate
+            layer.set_qubit(instruction['qargs'][0],
+                            BoxOnQuWire(TextDrawing.label_for_box(instruction)))
+
+        elif len(instruction['qargs']) >= 2 and not instruction['cargs']:
+            # multiple qubit gate
+            layer.set_qu_multibox(instruction['qargs'], TextDrawing.label_for_box(instruction))
+
+        else:
+            raise VisualizationError(
+                "Text visualizer does not know how to handle this instruction", instruction)
+
+        # sort into the order they were declared in
+        # this ensures that connected boxes have lines in the right direction
+        current_cons.sort(key=lambda tup: tup[0])
+        current_cons = [g for q, g in current_cons]
+
+        return layer, current_cons, connection_label
+
     def build_layers(self):
         """
         Constructs layers.
@@ -672,104 +784,18 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        layers = []
 
-        layers.append(InputWire.fillup_layer(self.wire_names(with_initial_value=True)))
+        layers = [InputWire.fillup_layer(self.wire_names(with_initial_value=True))]
 
-        for instruction in self.instructions:
+        for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)
-            connector_label = None
 
-            if instruction['name'] == 'measure':
-                layer.set_qubit(instruction['qargs'][0], MeasureFrom())
-                layer.set_clbit(instruction['cargs'][0], MeasureTo())
+            for instruction in instruction_layer:
+                layer, current_connections, connection_label = \
+                    self._instruction_to_gate(instruction, layer)
 
-            elif instruction['name'] in ['barrier', 'snapshot', 'save', 'load',
-                                         'noise']:
-                # barrier
-                if not self.plotbarriers:
-                    continue
-
-                for qubit in instruction['qargs']:
-                    layer.set_qubit(qubit, Barrier())
-
-            elif instruction['name'] == 'swap':
-                # swap
-                for qubit in instruction['qargs']:
-                    layer.set_qubit(qubit, Ex())
-
-            elif instruction['name'] == 'cswap':
-                # cswap
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1], Ex())
-                layer.set_qubit(instruction['qargs'][2], Ex())
-
-            elif instruction['name'] == 'reset':
-                layer.set_qubit(instruction['qargs'][0], Reset())
-
-            elif instruction['condition'] is not None:
-                # conditional
-                cllabel = TextDrawing.label_for_conditional(instruction)
-                qulabel = TextDrawing.label_for_box(instruction)
-
-                layer.set_cl_multibox(instruction['condition'][0], cllabel, top_connect='┴')
-                layer.set_qubit(instruction['qargs'][0], BoxOnQuWire(qulabel, bot_connect='┬'))
-
-            elif instruction['name'] in ['cx', 'CX', 'ccx']:
-                # cx/ccx
-                for qubit in [qubit for qubit in instruction['qargs'][:-1]]:
-                    layer.set_qubit(qubit, Bullet())
-                layer.set_qubit(instruction['qargs'][-1], BoxOnQuWire('X'))
-
-            elif instruction['name'] == 'cy':
-                # cy
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1], BoxOnQuWire('Y'))
-
-            elif instruction['name'] == 'cz':
-                # cz
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1], Bullet())
-
-            elif instruction['name'] == 'ch':
-                # ch
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1], BoxOnQuWire('H'))
-
-            elif instruction['name'] == 'cu1':
-                # cu1
-                connector_label = TextDrawing.params_for_label(instruction)[0]
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1], Bullet())
-
-            elif instruction['name'] == 'cu3':
-                # cu3
-                params = TextDrawing.params_for_label(instruction)
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1],
-                                BoxOnQuWire("U3(%s)" % ','.join(params)))
-
-            elif instruction['name'] == 'crz':
-                # crz
-                label = "Rz(%s)" % TextDrawing.params_for_label(instruction)[0]
-                layer.set_qubit(instruction['qargs'][0], Bullet())
-                layer.set_qubit(instruction['qargs'][1], BoxOnQuWire(label))
-
-            elif len(instruction['qargs']) == 1 and not instruction['cargs']:
-                # unitary gate
-                layer.set_qubit(instruction['qargs'][0],
-                                BoxOnQuWire(TextDrawing.label_for_box(instruction)))
-
-            elif len(instruction['qargs']) >= 2 and not instruction['cargs']:
-                # multiple qubit gate
-                layer.set_qu_multibox(instruction['qargs'], TextDrawing.label_for_box(instruction))
-
-            else:
-                raise VisualizationError(
-                    "Text visualizer does not know how to handle this instruction", instruction)
-
-            layer.connect_with("│", connector_label)
-
+                layer.connections.append((connection_label, current_connections))
+                layer.connect_with("│")
             layers.append(layer.full_layer)
 
         return layers
@@ -782,6 +808,7 @@ class Layer:
         self.qregs = qregs
         self.cregs = cregs
         self.qubit_layer = [None] * len(qregs)
+        self.connections = []
         self.clbit_layer = [None] * len(cregs)
 
     @property
@@ -865,25 +892,28 @@ class Layer:
         """
         self._set_multibox("qu", bits, label)
 
-    def connect_with(self, wire_char, label=None):
+    def connect_with(self, wire_char):
         """
         Connects the elements in the layer using wire_char.
         Args:
             wire_char (char): For example '║' or '│'.
-            label (string): Some connectors have a label (see cu1, for example).
         """
-        affected_bits = [bit for bit in self.full_layer if bit is not None]
 
         if len([qbit for qbit in self.qubit_layer if qbit is not None]) == 1:
             # Nothing to connect
             return
 
-        affected_bits[0].connect(wire_char, ['bot'])
-        for affected_bit in affected_bits[1:-1]:
-            affected_bit.connect(wire_char, ['bot', 'top'])
-        if not isinstance(affected_bits[-1], MultiBox):
+        for label, affected_bits in self.connections:
+
+            if not affected_bits:
+                continue
+
+            affected_bits[0].connect(wire_char, ['bot'])
+            for affected_bit in affected_bits[1:-1]:
+                affected_bit.connect(wire_char, ['bot', 'top'])
+
             affected_bits[-1].connect(wire_char, ['top'], label)
 
-        if label:
-            for affected_bit in affected_bits:
-                affected_bit.right_fill = len(label) + len(affected_bit.mid)
+            if label:
+                for affected_bit in affected_bits:
+                    affected_bit.right_fill = len(label) + len(affected_bit.mid)
