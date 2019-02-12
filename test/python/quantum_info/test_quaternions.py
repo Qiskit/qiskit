@@ -20,7 +20,7 @@ class TestQuaternions(QiskitTestCase):
 
     def setUp(self):
         axes = ['x', 'y', 'z']
-        rnd = np.array([-0.92545003, -2.19985357,  6.01761209])
+        rnd = np.array([-0.92545003, -2.19985357, 6.01761209])
         idx = np.array([0, 2, 1])
         self.mat1 = rotation_matrix(rnd[0], axes[idx[0]]).dot(
             rotation_matrix(rnd[1], axes[idx[1]]).dot(
@@ -45,9 +45,9 @@ class TestQuaternions(QiskitTestCase):
         """Different Euler rotations give same quaternion, up to sign."""
         # Check if euler angles from to_zyz return same quaternion
         # up to a sign (2pi rotation)
-        rot = ['xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz',  'zyx', 'zyz']
+        rot = ['xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz', 'zyx', 'zyz']
         for value in rot:
-            rnd = np.array([-1.57657536,  5.66384302,  2.91532185])
+            rnd = np.array([-1.57657536, 5.66384302, 2.91532185])
             quat1 = quaternion_from_euler(rnd, value)
             euler = quat1.to_zyz()
             quat2 = quaternion_from_euler(euler, 'zyz')
