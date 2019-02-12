@@ -11,7 +11,7 @@ Welcome to Qiskit's documentation!
    Running on IBMQ Devices <the_ibmq_provider>
    Visualization in Qiskit <plotting_data_in_qiskit>
    Qiskit Terra <terra/index>
-   Qiskit Aqua <aqua/aqua>
+   Qiskit Aqua <aqua/index>
    Qiskit 2019 Roadmap <roadmap>
    Qiskit Module reference <autodoc/qiskit>
    License <license>
