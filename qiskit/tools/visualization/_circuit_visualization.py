@@ -452,4 +452,4 @@ def _matplotlib_circuit_drawer(circuit,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)
     qcd.parse_circuit(circuit)
-    return qcd.draw(filename, verbose=True)
+    return qcd.draw(filename)
