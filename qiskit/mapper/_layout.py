@@ -189,7 +189,7 @@ class Layout():
         Returns:
             List: A list of Register in the layout
         """
-        return list(self.get_virtual_bits().keys())
+        return set([reg for reg, idx in self.get_virtual_bits().keys()])
 
     def idle_physical_bits(self):
         """
