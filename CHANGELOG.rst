@@ -30,8 +30,12 @@ Added
 - Added a RunConfig object for configurations for run configurations to be used
   in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
+- Added in new parameter ``justify`` to the text circuit drawer to say how the
+  circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
+- Added parameter to the TextProgressBar to allow the output to be sent to a
+  different output stream 
 
 Changed
 -------
