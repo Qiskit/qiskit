@@ -177,6 +177,19 @@ class CouplingMap:
             raise CouplingError(
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
 
+    def undirected_neighbors(self, physical_qubit):
+        """List up neighbors of the physical_qubit in the undirected coupling graph.
+
+        Args:
+            physical_qubit:
+
+        Returns:
+            List: The neighbors of the physical_qubit
+        """
+        neighbors = self.graph.to_undirected().neighbors(physical_qubit)
+        return [r for r in neighbors]
+
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
