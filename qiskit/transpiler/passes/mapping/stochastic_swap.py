@@ -173,7 +173,6 @@ class StochasticSwap(TransformationPass):
             for register in layout.get_virtual_bits().keys():
                 if register[0] not in circ.qregs.values():
                     circ.add_qreg(register[0])
-            circ.add_basis_element("swap", 2)
             return True, circ, 0, layout, (not bool(gates))
 
         # Begin loop over trials of randomized algorithm
@@ -205,7 +204,6 @@ class StochasticSwap(TransformationPass):
             for register in trial_layout.get_virtual_bits().keys():
                 if register[0] not in slice_circuit.qregs.values():
                     slice_circuit.add_qreg(register[0])
-            slice_circuit.add_basis_element("swap", 2)
 
             # Loop over depths from 1 up to a maximum depth
             depth_step = 1
@@ -470,12 +468,8 @@ class StochasticSwap(TransformationPass):
 
                     # Give up if we fail again
                     if not success_flag:
-                        raise TranspilerError("mapper failed: " +
-                                              "layer %d, sublayer %d" %
-                                              (i, j) + ", \"%s\"" %
-                                              serial_layer["graph"].qasm(
-                                                  no_decls=True,
-                                                  aliases=layout))
+                        raise TranspilerError("swap mapper failed: " +
+                                              "layer %d, sublayer %d" % (i, j))
 
                     # If this layer is only single-qubit gates,
                     # and we have yet to see multi-qubit gates,

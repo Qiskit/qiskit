@@ -63,8 +63,6 @@ def ast_to_dag(ast):
         QiskitError: if the AST is malformed.
     """
     dag = DAGCircuit()
-    # default_basis = set(['U', 'CX', 'measure', 'reset', 'barrier',
-    #                      'snapshot', 'noise', 'save', 'load'])
     AstInterpreter(dag)._process_node(ast)
 
     return dag
@@ -172,7 +170,6 @@ class AstInterpreter:
             de_gate["body"] = None
         else:
             de_gate["body"] = node.body
-        self.dag.add_gate_data(node.name, de_gate)
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""
@@ -316,7 +313,7 @@ class AstInterpreter:
             qargs (list(QuantumRegister, int)): qubits to attach to
 
         Raises:
-            QiskitError: if encountering a non-basis opaque gate
+            QiskitError: if encountering an unknown gate
         """
         if name == "u0":
             op_class = U0Gate
@@ -377,5 +374,4 @@ class AstInterpreter:
 
         op = op_class(*params, *qargs)
 
-        self.dag.add_basis_element(name, len(qargs), 0, len(params))
         self.dag.apply_operation_back(op, condition=self.condition)
