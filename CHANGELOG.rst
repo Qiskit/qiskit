@@ -34,6 +34,8 @@ Added
   circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
+- Added parameter to the TextProgressBar to allow the output to be sent to a
+  different output stream 
 
 Changed
 -------
