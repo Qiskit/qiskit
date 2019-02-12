@@ -39,6 +39,7 @@ class TestMatrixGate(QiskitTestCase):
         matrix = numpy.array([[1, 0], [0, 1]])
         qc.x(qr[0])
         qc.unitary(matrix, qr[0])
+        print(qc)
         # test of qasm output
         self.log.info(qc.qasm())
         # test of text drawer
