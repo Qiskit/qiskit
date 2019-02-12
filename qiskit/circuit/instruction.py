@@ -26,6 +26,7 @@ Instructions are identified by the following fields, and are serialized as such 
 
 """
 import sympy
+import numpy
 
 from qiskit.qasm._node import _node
 from qiskit.exceptions import QiskitError
@@ -40,7 +41,7 @@ class Instruction:
         """Create a new instruction.
         Args:
             name (str): instruction name
-            params (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
+            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit (QuantumCircuit or Instruction): where the instruction is attached
@@ -52,7 +53,7 @@ class Instruction:
         if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
             raise QiskitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
-        self.params = []  # a list of gate params stored as sympy objects
+        self.params = []  # a list of gate params stored
         for single_param in params:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, sympy.Basic):
@@ -69,6 +70,12 @@ class Instruction:
             # example: snapshot('label')
             elif isinstance(single_param, str):
                 self.params.append(sympy.Symbol(single_param))
+            # example: numpy.array([[1, 0], [0, 1]])
+            elif isinstance(single_param, numpy.ndarray):
+                self.params.append(single_param)
+            # example: sympy.Matrix([[1, 0], [0, 1]])
+            elif isinstance(single_param, sympy.Matrix):
+                self.params.append(single_param)
             else:
                 raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), name))
