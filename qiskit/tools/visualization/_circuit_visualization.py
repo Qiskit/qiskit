@@ -41,7 +41,8 @@ def circuit_drawer(circuit,
                    interactive=False,
                    line_length=None,
                    plot_barriers=True,
-                   reverse_bits=False):
+                   reverse_bits=False,
+                   justify=None):
     """Draw a quantum circuit to different formats (set by output parameter):
     0. text: ASCII art TextDrawing that can be printed in the console.
     1. latex: high-quality images, but heavy external software dependencies
@@ -76,6 +77,11 @@ def circuit_drawer(circuit,
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
+        justify (string): Options are `left`, `right` or `none`, if anything
+            else is supplied it defaults to left justified. It refers to where
+            gates should be placed in the output circuit if there is an option.
+            `none` results in each gate being placed in its own column. Currently
+            only supported by text drawer.
 
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
@@ -168,7 +174,8 @@ def circuit_drawer(circuit,
         return _text_circuit_drawer(circuit, filename=filename,
                                     line_length=line_length,
                                     reversebits=reverse_bits,
-                                    plotbarriers=plot_barriers)
+                                    plotbarriers=plot_barriers,
+                                    justify=justify)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
@@ -272,7 +279,7 @@ def qx_color_scheme():
 
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=False,
-                         plotbarriers=True):
+                         plotbarriers=True, justify=None):
     """
     Draws a circuit using ascii art.
     Args:
@@ -285,10 +292,14 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
                    at all, set line_length=-1.
         reversebits (bool): Rearrange the bits in reverse order.
         plotbarriers (bool): Draws the barriers when they are there.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+                        the circuit should be justified.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
-    qregs, cregs, ops = _utils._get_instructions(circuit, reversebits=reversebits)
+    qregs, cregs, ops = _utils._get_layered_instructions(circuit,
+                                                         reversebits=reversebits,
+                                                         justify=justify)
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
