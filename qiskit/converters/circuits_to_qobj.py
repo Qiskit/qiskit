@@ -8,6 +8,8 @@
 """Compile function for converting a list of circuits to the qobj"""
 import uuid
 import warnings
+import sympy
+import numpy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader
@@ -118,8 +120,13 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
 
             if opt.params:
                 params = list(map(lambda x: x.evalf(), opt.params))
+                params = [sympy.matrix2numpy(x, dtype=complex)
+                          if isinstance(x, sympy.Matrix) else x for x in params]
+                if len(params) == 1 and isinstance(params[0], numpy.ndarray):
+                    # TODO: Aer expects list of rows for unitary instruction params;
+                    # change to matrix in Aer.
+                    params = params[0]
                 current_instruction.params = params
-
             # TODO: I really dont like this for snapshot. I also think we should change
             # type to snap_type
             if opt.name == "snapshot":
