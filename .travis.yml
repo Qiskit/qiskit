@@ -81,35 +81,35 @@ stages:
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
-    # # "lint and and pure python test" stage
-    # ###########################################################################
-    # # Linter and style check (GNU/Linux, Python 3.5)
-    # - stage: lint and pure python test
-    #   <<: *stage_linux
-    #   script: make style && make lint
+    # "lint and and pure python test" stage
+    ###########################################################################
+    # Linter and style check (GNU/Linux, Python 3.5)
+    - stage: lint and pure python test
+      <<: *stage_linux
+      script: make style && make lint
 
-    # # Run the tests against without compilation (GNU/Linux, Python 3.5)
-    # - stage: lint and pure python test
-    #   <<: *stage_linux
+    # Run the tests against without compilation (GNU/Linux, Python 3.5)
+    - stage: lint and pure python test
+      <<: *stage_linux
 
-    # # "test" stage
-    # ###########################################################################
+    # "test" stage
+    ###########################################################################
 
-    # # GNU/Linux, Python 3.6
-    # - stage: test
-    #   <<: *stage_linux
-    #   python: 3.6
+    # GNU/Linux, Python 3.6
+    - stage: test
+      <<: *stage_linux
+      python: 3.6
 
-    # # GNU/Linux, Python 3.7
-    # - stage: test
-    #   <<: *stage_linux
-    #   # Compiling Python 3.7 requires an Ubuntu Xenial distribution
-    #   # and sudo set to true
-    #   # Fix when this is solved:
-    #   # https://github.com/travis-ci/travis-ci/issues/9815
-    #   dist: xenial
-    #   python: 3.7
-    #   sudo: true
+    # GNU/Linux, Python 3.7
+    - stage: test
+      <<: *stage_linux
+      # Compiling Python 3.7 requires an Ubuntu Xenial distribution
+      # and sudo set to true
+      # Fix when this is solved:
+      # https://github.com/travis-ci/travis-ci/issues/9815
+      dist: xenial
+      python: 3.7
+      sudo: true
 
     # OSX, Python 3.5.6 (via pyenv)
     - stage: test
@@ -132,11 +132,11 @@ jobs:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
 
-    # # "ibmq" stage
-    # ###########################################################################
-    # # GNU/Linux, Python 3.6, against IBM Q
-    # - stage: ibmq
-    #   <<: *stage_linux
-    #   if: branch = master and repo = Qiskit/qiskit-terra and type = push
-    #   python: 3.6
-    #   env: USE_ALTERNATE_ENV_CREDENTIALS=True
+    # "ibmq" stage
+    ###########################################################################
+    # GNU/Linux, Python 3.6, against IBM Q
+    - stage: ibmq
+      <<: *stage_linux
+      if: branch = master and repo = Qiskit/qiskit-terra and type = push
+      python: 3.6
+      env: USE_ALTERNATE_ENV_CREDENTIALS=True
