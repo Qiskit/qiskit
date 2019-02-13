@@ -437,13 +437,12 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
         for register in layout.get_virtual_bits().keys():
             if register[0] not in circ.qregs.values():
                 circ.add_qreg(register[0])
-        #circ.add_basis_element("swap", 2)
         return True, circ, 0, layout, (not bool(gates))
 
     # Begin loop over trials of randomized algorithm
     num_qubits = len(layout)
     best_depth = inf  # initialize best depth
-    best_edges = None # best edges found
+    best_edges = None  # best edges found
     best_circuit = None  # initialize best swap circuit
     best_layout = None  # initialize best final layout
 
@@ -464,7 +463,6 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
     for register in layout.get_virtual_bits().keys():
         if register[0] not in slice_circuit.qregs.values():
             slice_circuit.add_qreg(register[0])
-    #slice_circuit.add_basis_element("swap", 2)
     edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
     cdist = coupling._dist_matrix
     for trial in range(trials):

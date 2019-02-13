@@ -25,7 +25,8 @@ REQUIREMENTS = [
     "requests>=2.19",
     "requests-ntlm>=1.1.0",
     "scipy>=0.19,!=0.19.1",
-    "sympy>=1.3"
+    "sympy>=1.3",
+    "cython>=0.27.1"
 ]
 
 # Add Cython extensions here
