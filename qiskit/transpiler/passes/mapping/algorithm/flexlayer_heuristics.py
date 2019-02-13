@@ -321,7 +321,7 @@ class GateCostEstimator:
         if priority is None:
             priority = ['dependent_cost']
 
-        Cost = collections.namedtuple('Cost', priority)
+        Cost = collections.namedtuple('Cost', priority)  # pylint: disable=invalid-name
 
         path_i = self.paths[gate]
 
@@ -374,7 +374,8 @@ class EdgeCostEstimator:
         if priority is None:
             priority = ['lookahead_cost', 'immediate_cost']
 
-        Cost = collections.namedtuple('Cost', priority)
+        Cost = collections.namedtuple('Cost', priority)  # pylint: disable=invalid-name
+
         lookahead_cost = 0
         immediate_cost = 0
         for (source, target), dist in self.care_ends_list:

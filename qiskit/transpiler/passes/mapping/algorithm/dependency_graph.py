@@ -77,6 +77,7 @@ class DependencyGraph:
         for n in self._graph.nodes():
             if self._gates[n].name in x_gates:
                 [b] = self._gates[n].qargs
+                # pylint: disable=unbalanced-tuple-unpacking
                 [pgow] = self._prior_gates_on_wire(self._gates, n)
                 z_flag = False
                 for m in pgow:
@@ -96,6 +97,7 @@ class DependencyGraph:
                         raise TranspilerError("Unknown gate: " + gate.name)
             elif self._gates[n].name in z_gates:
                 [b] = self._gates[n].qargs
+                # pylint: disable=unbalanced-tuple-unpacking
                 [pgow] = self._prior_gates_on_wire(self._gates, n)
                 x_flag = False
                 for m in pgow:
@@ -115,6 +117,7 @@ class DependencyGraph:
                         raise TranspilerError("Unknown gate: " + gate.name)
             elif self._gates[n].name == "cx":
                 cbit, tbit = self._gates[n].qargs
+                # pylint: disable=unbalanced-tuple-unpacking
                 [cpgow, tpgow] = self._prior_gates_on_wire(self._gates, n)
 
                 z_flag = False
