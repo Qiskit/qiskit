@@ -4,7 +4,6 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
-# pylint: disable=invalid-name,missing-docstring,missing-param-doc
 
 """
 Super class of command group.
@@ -32,4 +31,4 @@ class PulseCommand:
         else:
             raise QiskitError('Pulse duration should be integer.')
 
-        self.id = str(uuid.uuid4())
+        self.pulse_id = str(uuid.uuid4())

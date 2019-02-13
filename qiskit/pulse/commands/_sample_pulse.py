@@ -5,8 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring,missing-param-doc
-
 """
 Sample pulse.
 """
@@ -30,10 +28,14 @@ class SamplePulse(PulseCommand):
 
     @property
     def sample(self):
+        """ Return sample
+        """
         return self.__sample
 
     @sample.setter
     def sample(self, sample):
+        """ Set sample
+        """
         self.__sample = sample
         self.duration = len(sample)
 
