@@ -53,8 +53,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         final_qubits = set(dag.multi_graph.node[final_op]['qargs'][0]
                            for final_op in final_ops)
 
-        barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
-        new_barrier_id = barrier_layer._max_node_id
+        new_barrier_id = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
 
         # Preserve order of final ops collected earlier from the original DAG.
         ordered_node_ids = [node_id for node_id in dag.node_nums_in_topological_order()
@@ -88,9 +87,8 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     and our_descendants.isdisjoint(their_ancestors)
             ):
                 merge_barrier = Barrier(qubits=(our_qubits | their_qubits))
-                barrier_layer.apply_operation_front(merge_barrier)
+                merge_barrier_id = barrier_layer.apply_operation_front(merge_barrier)
 
-                merge_barrier_id = barrier_layer._max_node_id
                 our_ancestors = our_ancestors | their_ancestors
                 our_descendants = our_descendants | their_descendants
 

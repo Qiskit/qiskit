@@ -309,6 +309,8 @@ class DAGCircuit:
             self.multi_graph.add_edge(self._max_node_id, self.output_map[q],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
+        return self._max_node_id
+
     def apply_operation_front(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the input of the circuit.
         TODO: make `qargs` and `cargs` mandatory, when they are dropped from op.
@@ -345,6 +347,8 @@ class DAGCircuit:
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
             self.multi_graph.add_edge(self.input_map[q], self._max_node_id,
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+
+        return self._max_node_id
 
     def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
