@@ -49,7 +49,7 @@ class FunctionalPulse:
         return FunctionalPulseComm(self.pulse, duration=duration, **kwargs)
 
 
-class FunctionalPulseComm(SamplePulse):
+class FunctionalPulseCommand(SamplePulse):
     """Functional pulse."""
 
     def __init__(self, pulse, duration, **kwargs):
