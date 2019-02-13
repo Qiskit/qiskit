@@ -32,6 +32,7 @@ stage_generic: &stage_generic
     - pip install qiskit-ibmq-provider
   script:
     # Compile the executables and run the tests.
+    - python setup.py build_ext --inplace
     - make test_ci
   after_failure:
     - python tools/report_ci_failure.py
