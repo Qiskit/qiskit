@@ -36,7 +36,7 @@ class Unroller(TransformationPass):
 
         Raises:
             QiskitError: if unable to unroll given the basis due to undefined
-            decomposition rules or excessive recursion.
+            decomposition rules (such as a bad basis) or excessive recursion.
 
         Returns:
             DAGCircuit: output unrolled dag
@@ -60,6 +60,12 @@ class Unroller(TransformationPass):
                                   + str(self.basis) +
                                   ", due to infinite recursion at node "
                                   + current_node["op"].name + ":" + str(self.basis))
+
+            if not decomposition_rules:
+                raise QiskitError("Cannot unroll the circuit to the given basis, "
+                                  + str(self.basis) + ". " +
+                                  current_node["op"].name +
+                                  " is defined in terms of an invalid basis.")
 
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
             dag.substitute_node_with_dag(node, decomposition_dag)
