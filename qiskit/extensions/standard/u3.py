@@ -25,17 +25,6 @@ class U3Gate(Gate):
         """Create new two-pulse single qubit gate."""
         super().__init__("u3", [theta, phi, lam], [qubit], circ)
 
-    def _define_decompositions(self):
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        rule = [
-            UBase(self.params[0], self.params[1], self.params[2], q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
-
     def inverse(self):
         """Invert this gate.
 

@@ -8,6 +8,7 @@
 """Pass for unrolling a circuit to a given basis."""
 
 from qiskit.transpiler._basepasses import TransformationPass
+from qiskit import QiskitError
 
 
 class Unroller(TransformationPass):
@@ -16,14 +17,13 @@ class Unroller(TransformationPass):
     to a desired basis, using decomposition rules defined for each instruction.
     """
 
-    def __init__(self, basis=None):
+    def __init__(self, basis):
         """
         Args:
             basis (list[qiskit.circuit.gate.Gate]): Target basis gates to unroll to.
         """
         super().__init__()
-        self.basis = basis or []
-        self.basis += ['U', 'CX']  # Add default basis.
+        self.basis = basis
 
     def run(self, dag):
         """Expand all op nodes to the given basis.
@@ -42,8 +42,17 @@ class Unroller(TransformationPass):
             current_node = dag.multi_graph.node[node]
             if current_node["op"].name in self.basis:  # If already a base, ignore.
                 continue
-            decomposition_rules = current_node["op"].decompositions()
+
             # TODO: allow choosing other possible decompositions
+            try:
+                decomposition_rules = current_node["op"].decompositions()
+            except NotImplementedError:
+                raise QiskitError("Cannot unroll the circuit to the given basis, " + str(self.basis) +
+                                  ". No decomposition rules defined for " + current_node["op"].name + ".")
+            except RecursionError:
+                raise QiskitError("Cannot unroll the circuit to the given basis, " + str(self.basis) + ", due to "
+                                  "infinite recursion at node " + current_node["op"].name + ":" + str(self.basis))
+
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
             dag.substitute_node_with_dag(node, decomposition_dag)
         return dag

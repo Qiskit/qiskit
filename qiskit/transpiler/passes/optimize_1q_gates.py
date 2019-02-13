@@ -23,7 +23,7 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from qiskit.transpiler.passes.mapping.unroller import Unroller
+from qiskit.transpiler.passes.unroller import Unroller
 
 
 _CHOP_THRESHOLD = 1e-15

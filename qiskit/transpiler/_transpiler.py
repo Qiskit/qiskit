@@ -25,7 +25,7 @@ from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
-from .passes.mapping.unroller import Unroller
+from qiskit.transpiler.passes.unroller import Unroller
 
 from .exceptions import TranspilerError
 

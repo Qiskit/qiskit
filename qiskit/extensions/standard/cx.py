@@ -25,20 +25,6 @@ class CnotGate(Gate):
         """Create new CNOT gate."""
         super().__init__("cx", [], [ctl, tgt], circ)
 
-    def _define_decompositions(self):
-        """
-        gate cx c,t { CX c,t; }
-        """
-        decomposition = DAGCircuit()
-        q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
-        rule = [
-            CXBase(q[0], q[1])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
-
     def inverse(self):
         """Invert this gate."""
         return self  # self-inverse

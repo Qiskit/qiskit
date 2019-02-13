@@ -25,17 +25,6 @@ class U1Gate(Gate):
         """Create new diagonal single-qubit gate."""
         super().__init__("u1", [theta], [qubit], circ)
 
-    def _define_decompositions(self):
-        decomposition = DAGCircuit()
-        q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
-        rule = [
-            UBase(0, 0, self.params[0], q[0])
-        ]
-        for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
-
     def inverse(self):
         """Invert this gate."""
         self.params[0] = -self.params[0]
