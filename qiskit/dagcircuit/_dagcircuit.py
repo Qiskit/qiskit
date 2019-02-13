@@ -95,7 +95,10 @@ class DAGCircuit:
 
     @property
     def node_counter(self):
-        """ Returns the number of nodes in the DAG"""
+        """Deprecated usage to return max node id, now returns size of DAG"""
+        warnings.warn('Usage of node_counter to return the maximum node id is deprecated,'
+                      ' it now returns the number of nodes in the current DAG',
+                      DeprecationWarning, 2)
         return len(self.multi_graph)
 
     # TODO: unused function. is it needed?
