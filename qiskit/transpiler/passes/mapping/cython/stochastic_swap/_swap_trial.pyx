@@ -11,7 +11,7 @@
 cimport cython
 from libc.stdlib cimport calloc, free
 from libcpp.set cimport set as cset
-from .utils cimport NLayout, EdgeCollection, SHIFTED_NORMAL_RNG
+from .utils cimport NLayout, EdgeCollection
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -63,7 +63,7 @@ cdef compute_random_scaling(double[:, ::1] scale, double[:, ::1] cdist2,
 @cython.wraparound(False)
 def swap_trial(int num_qubits, NLayout int_layout, int[::1] int_qubit_subset,
                int[::1] gates, double[:, ::1] cdist2, double[:, ::1] cdist, 
-               int[::1] edges, double[:, ::1] scale, SHIFTED_NORMAL_RNG rng):
+               int[::1] edges, double[:, ::1] scale, object rng):
     """ A single iteration of the tchastic swap mapping routine.
 
     Args:
@@ -78,7 +78,7 @@ def swap_trial(int num_qubits, NLayout int_layout, int[::1] int_qubit_subset,
         cdist (ndarray): Array of doubles that gives the distance graph.
         edges (ndarray): Int array of edges in coupling map.
         scale (ndarray): A double array that holds the perturbed cdist2 array.
-        rng (SHIFTED_NORMAL_RNG): An instance of the shifted RNG.
+        rng (RandomState): An instance of the NumPy RandomState.
 
     Returns:
         double: Best distance achieved in this trial.
@@ -103,12 +103,10 @@ def swap_trial(int num_qubits, NLayout int_layout, int[::1] int_qubit_subset,
     cdef size_t idx
     
     # Compute randomized distance
-    cdef double * rand = <double *>calloc(num_qubits*(num_qubits+1)//2, sizeof(double))
-    for idx in range(num_qubits*(num_qubits+1)//2):
-        rand[idx] = rng.rand()
-    compute_random_scaling(scale, cdist2, rand, num_qubits)
-    free(rand)
-    rand = NULL
+    cdef double[::1] rand = 1.0 + rng.normal(0.0, 1.0/num_qubits,
+                                             size=num_qubits*(num_qubits+1)//2)
+    
+    compute_random_scaling(scale, cdist2, &rand[0], num_qubits)
     
     # Convert int qubit array to c++ set
     cdef cset[unsigned int] qubit_set

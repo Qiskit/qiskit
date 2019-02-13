@@ -110,9 +110,7 @@ class StochasticSwap(TransformationPass):
         self.input_layout = self.initial_layout.copy()
 
         self.qregs = dag.qregs
-        if self.seed is None:
-            self.seed = np.random.randint(1, np.iinfo(np.int32).max-1)
-        self.rng = SHIFTED_NORMAL_RNG(self.seed, len(self.initial_layout))
+        self.rng = np.random.RandomState(self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         # self.property_set["layout"] = self.initial_layout
