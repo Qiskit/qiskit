@@ -27,6 +27,9 @@ class MetaPass(type):
         if hash_ not in cls._pass_cache:
             new_pass = type.__call__(cls, *args, **kwargs)
             cls._pass_cache[hash_] = new_pass
+        else:
+            # rerun init to "restart" the instance.
+            cls._pass_cache[hash_].__init__(*args, **kwargs)
         return cls._pass_cache[hash_]
 
     @staticmethod
