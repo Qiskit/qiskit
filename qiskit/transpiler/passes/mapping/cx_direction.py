@@ -64,8 +64,8 @@ class CXDirection(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for cnot_id in subdag.named_nodes('cx', 'CX'):
-                cnot_node = subdag.multi_graph.nodes[cnot_id]
+            for cnot_node in subdag.named_nodes('cx', 'CX'):
+                cnot_node = subdag.multi_graph.nodes[cnot_node.node_id]
                 control = cnot_node['op'].qargs[0]
                 target = cnot_node['op'].qargs[1]
 

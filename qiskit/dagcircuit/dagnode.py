@@ -12,22 +12,24 @@ class DAGNode:
         """ Create a node """
         self.node_id = node_id or None
 
+        self.type = data_dict['type'] or None
+        self.op = data_dict['op'] or None
+        self.name = data_dict['name'] or None
+        self.qargs = data_dict['qargs'] or []
+        self.cargs =  data_dict['cargs'] or []
+        self.condition = data_dict['condition'] or None
+
         self.data_dict = {
             'type': self.type,
             'op': self.op,
             'name': self.name,
             'qargs': self.qargs,
             'cargs': self.cargs,
-            'condtion': self.condition
+            'condition': self.condition
         }
 
-        if data_dict:
-            self.type = data_dict['type'] or None
-            self.op = data_dict['op'] or None
-            self.name = data_dict['name'] or None
-            self.qargs = data_dict['qargs'] or None
-            self.cargs =  data_dict['cargs'] or None
-            self.condition = data_dict['condition'] or None
+    #def __getitem__(self, key):
+     #   return self.data_dict[key]
 
-    def __getitem__(self, key):
-        return self.data_dict[key]
+    def to_tuple(self):
+        return (self.node_id, self.data_dict)

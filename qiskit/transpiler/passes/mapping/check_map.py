@@ -56,8 +56,8 @@ class CheckMap(AnalysisPass):
         self.property_set['is_direction_mapped'] = True
 
         for gate in dag.twoQ_nodes():
-            physical_q0 = self.layout[gate['qargs'][0]]
-            physical_q1 = self.layout[gate['qargs'][1]]
+            physical_q0 = self.layout[gate.qargs[0]]
+            physical_q1 = self.layout[gate.qargs[1]]
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                 self.property_set['is_swap_mapped'] = False
@@ -67,6 +67,6 @@ class CheckMap(AnalysisPass):
                 if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
                     self.property_set['is_direction_mapped'] = False
 
-            if isinstance(gate['op'], SwapGate):
+            if isinstance(gate.op, SwapGate):
                 if (physical_q1, physical_q0) not in self.coupling_map.get_edges():
                     self.property_set['is_direction_mapped'] = False

@@ -30,7 +30,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         final_ops = []
         for candidate_op in dag.named_nodes(*final_op_types):
             is_final_op = True
-            for _, child_successors in dag.bfs_successors(candidate_op):
+            for _, child_successors in dag.bfs_successors(candidate_op.node_id):
                 if any(dag.multi_graph.node[suc]['type'] == 'op' and
                        dag.multi_graph.node[suc]['op'].name not in final_op_types
                        for suc in child_successors):
@@ -38,7 +38,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     break
 
             if is_final_op:
-                final_ops.append(candidate_op)
+                final_ops.append(candidate_op.node_id)
 
         if not final_ops:
             return dag
@@ -75,9 +75,15 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         our_qubits = final_qubits
 
         existing_barriers = barrier_layer.named_nodes('barrier')
-        existing_barriers.remove(new_barrier_id)
+        # remove element from the list
+        for i, node in enumerate(existing_barriers):
+            if node.node_id == new_barrier_id:
+                del existing_barriers[i]
+                break
 
         for candidate_barrier in existing_barriers:
+            candidate_barrier = candidate_barrier.node_id
+
             their_ancestors = barrier_layer.ancestors(candidate_barrier)
             their_descendants = barrier_layer.descendants(candidate_barrier)
             their_qubits = set(barrier_layer.multi_graph.nodes[candidate_barrier]['op'].qargs)

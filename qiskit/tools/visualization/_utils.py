@@ -91,12 +91,11 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
             layers = []
             current_layer = []
 
-            dag_nodes = dag_layer['graph'].op_nodes(data=True)
-            dag_nodes.sort(key=lambda tup: tup[0])
-            dag_nodes = [v for k, v in dag_nodes]
+            dag_nodes = dag_layer['graph'].op_nodes()
+            dag_nodes.sort(key=lambda nd: nd.node_id)
 
             for node in dag_nodes:
-                multibit_gate = len(node['qargs']) + len(node['cargs']) > 1
+                multibit_gate = len(node.qargs) + len(node.cargs) > 1
 
                 if multibit_gate:
                     # need to see if it crosses over any other nodes
@@ -109,12 +108,12 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
 
                     if any(i in gate_span for i in all_indices):
                         # needs to be a new layer
-                        layers.append([node])
+                        layers.append([node.data_dict])
                     else:
                         # can be added
-                        current_layer.append(node)
+                        current_layer.append(node.data_dict)
                 else:
-                    current_layer.append(node)
+                    current_layer.append(node.data_dict)
 
             layers.append(current_layer)
             ops += layers
@@ -133,13 +132,13 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
 
         for dag_layer in dag_layers:
 
-            dag_instructions = dag_layer['graph'].get_op_nodes(data=True)
+            dag_instructions = dag_layer['graph'].op_nodes()
 
             # sort into the order they were input
-            dag_instructions.sort(key=lambda tup: tup[0])
-            for (_, instruction) in dag_instructions:
+            dag_instructions.sort(key=lambda nd: nd.node_id)
+            for instruction_node in dag_instructions:
 
-                gate_span = _get_gate_span(qregs, instruction)
+                gate_span = _get_gate_span(qregs, instruction_node)
 
                 added = False
                 for i in range(len(layer_dicts)):
@@ -153,18 +152,18 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
                             new_dict = {}
 
                             for index in gate_span:
-                                new_dict[index] = instruction
+                                new_dict[index] = instruction_node.data_dict
                             layer_dicts.append(new_dict)
                         else:
                             curr_dict = layer_dicts[-i]
                             for index in gate_span:
-                                curr_dict[index] = instruction
+                                curr_dict[index] = instruction_node.data_dict
 
                         break
 
                 if not added:
                     for index in gate_span:
-                        layer_dicts[0][index] = instruction
+                        layer_dicts[0][index] = instruction_node.data_dict
 
         # need to convert from dict format to layers
         layer_dicts.reverse()
@@ -217,7 +216,7 @@ def _get_gate_span(qregs, instruction):
 
     min_index = len(qregs)
     max_index = 0
-    for qreg in instruction['qargs']:
+    for qreg in instruction.qargs:
         index = qregs.index(qreg)
 
         if index < min_index:
@@ -225,7 +224,7 @@ def _get_gate_span(qregs, instruction):
         if index > max_index:
             max_index = index
 
-    if instruction['cargs']:
+    if instruction.cargs:
         return qregs[min_index:]
 
     return qregs[min_index:max_index + 1]

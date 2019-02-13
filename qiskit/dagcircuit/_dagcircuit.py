@@ -146,7 +146,7 @@ class DAGCircuit:
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
         for n in self.named_nodes(opname):
-            self._remove_op_node(n)
+            self._remove_op_node(n.node_id)
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -978,16 +978,16 @@ class DAGCircuit:
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data["type"] == "op":
                 if op is None or isinstance(node_data["op"], op):
-                    nodes.append(DAGNode(id=node_id, data_dict=node_data))
+                    nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
         return nodes
 
-    def get_gate_nodes(self, data=False):
+    def get_gate_nodes(self):
         """Deprecated. Use gate_nodes()."""
         warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes()',
                       DeprecationWarning, 2)
-        return self.gate_nodes(data)
+        return self.gate_nodes()
 
-    def gate_nodes(self, data=False):
+    def gate_nodes(self):
         """Get the list of gate nodes in the dag.
 
         Args:
@@ -1014,7 +1014,7 @@ class DAGCircuit:
         named_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and node_data['op'].name in names:
-                named_nodes.append(DAGNode(id=node_id, data_dict=node_data))
+                named_nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
         return named_nodes
 
     def get_2q_nodes(self):
@@ -1028,7 +1028,7 @@ class DAGCircuit:
         two_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
-                two_q_nodes.append(DAGNode(id=node_id, data_dict=node_data))
+                two_q_nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
         return two_q_nodes
 
     def get_3q_or_more_nodes(self):
@@ -1042,7 +1042,7 @@ class DAGCircuit:
         three_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and len(node_data['qargs']) >= 3:
-                three_q_nodes.append(DAGNode(id=node_id, data_dict=node_data))
+                three_q_nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
         return three_q_nodes
 
     def successors(self, node):

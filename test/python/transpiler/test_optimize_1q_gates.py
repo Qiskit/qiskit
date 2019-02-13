@@ -84,7 +84,7 @@ class TestMovedFromMapper(QiskitTestCase):
 
         dag = circuit_to_dag(qc)
         simplified_dag = Optimize1qGates().run(dag)
-        num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
+        num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 2)
 
     def test_optimize_1q_gates_symbolic(self):

@@ -33,12 +33,10 @@ class Decompose(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes(self.gate):
-            current_node = dag.multi_graph.node[node]
-
-            decomposition_rules = current_node["op"].decompositions()
+            decomposition_rules = node.op.decompositions()
 
             # TODO: allow choosing other possible decompositions
             decomposition_dag = decomposition_rules[0]
 
-            dag.substitute_node_with_dag(node, decomposition_dag)
+            dag.substitute_node_with_dag(node.node_id, decomposition_dag)
         return dag

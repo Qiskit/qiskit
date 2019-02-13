@@ -46,7 +46,7 @@ class TestMatrixGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         node_ids = dag.named_nodes('unitary')
         self.assertTrue(len(node_ids) == 1)
-        dnode = dag.multi_graph.node[node_ids[0]]
+        dnode = dag.multi_graph.node[node_ids[0].node_id]
         self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
         for qubit in dnode['qargs']:
             self.assertTrue(qubit[1] in [0, 1])
@@ -75,10 +75,10 @@ class TestMatrixGate(QiskitTestCase):
         nodes = dag.twoQ_nodes()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
-        self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
-        for qubit in dnode['qargs']:
+        self.assertIsInstance(dnode.op, UnitaryMatrixGate)
+        for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode['op'].matrix_rep,
+        self.assertTrue(numpy.allclose(dnode.op.matrix_rep,
                                        matrix))
 
     def test_3q_unitary(self):
@@ -98,11 +98,11 @@ class TestMatrixGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         nodes = dag.threeQ_or_more_nodes()
         self.assertTrue(len(nodes) == 1)
-        dnode = nodes[0][1]
-        self.assertIsInstance(dnode['op'], UnitaryMatrixGate)
-        for qubit in dnode['qargs']:
+        dnode = nodes[0]
+        self.assertIsInstance(dnode.op, UnitaryMatrixGate)
+        for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1, 3])
-        self.assertTrue(numpy.allclose(dnode['op'].matrix_rep,
+        self.assertTrue(numpy.allclose(dnode.op.matrix_rep,
                                        matrix))
 
     def test_qobj_with_unitary_matrix(self):

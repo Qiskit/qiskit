@@ -117,7 +117,7 @@ class TestDagOperations(QiskitTestCase):
         h_node = self.dag.op_nodes(op=HGate).pop()
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
-        self.assertIn(reset_node, set(self.dag.multi_graph.predecessors(h_node)))
+        self.assertIn(reset_node.node_id, set(self.dag.multi_graph.predecessors(h_node.node_id)))
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
@@ -129,7 +129,8 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
-            self.assertIsInstance(self.dag.multi_graph.nodes[node]["op"], Instruction)
+            self.assertIsInstance(self.dag.multi_graph.nodes[node.node_id]["op"], Instruction)
+            self.assertIsInstance(node.op, Instruction)
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
@@ -145,8 +146,10 @@ class TestDagOperations(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], HGate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
+        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1.node_id]["op"], HGate)
+        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2.node_id]["op"], HGate)
+        self.assertIsInstance(op_node_1.op, HGate)
+        self.assertIsInstance(op_node_2.op, HGate)
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
@@ -154,7 +157,7 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
-        successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop())
+        successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop().node_id)
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
         self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
@@ -175,8 +178,10 @@ class TestDagOperations(QiskitTestCase):
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
+        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1.node_id]["op"], Gate)
+        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2.node_id]["op"], Gate)
+        self.assertIsInstance(op_node_1.op, Gate)
+        self.assertIsInstance(op_node_2.op, Gate)
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""
@@ -189,8 +194,8 @@ class TestDagOperations(QiskitTestCase):
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
         named_nodes = self.dag.named_nodes('cx')
-        node_qargs = {tuple(self.dag.multi_graph.node[node_id]["op"].qargs)
-                      for node_id in named_nodes}
+        node_qargs = {tuple(node.qargs)
+                      for node in named_nodes}
         expected_qargs = {
             (self.qubit0, self.qubit1),
             (self.qubit2, self.qubit1),
@@ -389,7 +394,7 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(HGate(v[0]))
         flipped_cx_circuit.apply_operation_back(HGate(v[1]))
 
-        self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
+        self.dag.substitute_node_with_dag(cx_node.node_index, flipped_cx_circuit, wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()['h'], 5)
 
