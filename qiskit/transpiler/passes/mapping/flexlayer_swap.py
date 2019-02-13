@@ -8,8 +8,10 @@
 """
 A pass implementing the flexible-layer mapper.
 
-That is the swap mapper proposed in the paper [Itoko et. al. 2019].
-For the role of the swap mapper pass, see `lookahed_swap.py`.
+That is the swap mapper proposed in the paper:
+T. Itoko, R. Raymond, T. Imamichi, A. Matsuo, and A. W. Cross.
+Quantum circuit compilers using gate commutation rules.
+In Proceedings of ASP-DAC, pp. 191--196. ACM, 2019.
 
 This algorithm considers the *dependency graph* of a given circuit
 with less dependencies by considering commutativity of consecutive gates,
@@ -19,20 +21,7 @@ a current layout, and they can be seen as a kind of *flexible layer*
 in contrast to many other swap passes assumes fixed layers as their input.
 That's why this pass is named FlexlayerSwap pass.
 
-The outline of the algorithm is as follows.
-0. Assume an initial_layout is given and set it to `layout`.
-1. Initialize `blocking_gates` as gates without in-edge in dependency graph.
-2. Update `blocking_gates` by processing applicable gates for the `layout`.
-3. If it comes to no blocking gates, it terminates. Otherwise, it selects a qubit
-  pair (= an edge in the coupling graph) to be swapped based on its `cost`.
-4. Add the swap gate at the min-cost edge (= update `layout`).
-5. Go back to the step 2.
-Note: In the actual flow, there is an additional path for avoiding handling cyclic swaps in step 3.
-
-For more details on the algorithm, see [Itoko et. al. 2019]:
-T. Itoko, R. Raymond, T. Imamichi, A. Matsuo, and A. W. Cross.
-Quantum circuit compilers using gate commutation rules.
-In Proceedings of ASP-DAC, pp. 191--196. ACM, 2019.
+(For the general role of the swap mapper pass, see `lookahed_swap.py`.)
 """
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit

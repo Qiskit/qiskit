@@ -18,6 +18,7 @@ from typing import List, Set, Tuple
 import networkx as nx
 
 from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import Instruction
 from qiskit.mapper import Layout
 from qiskit.transpiler import TranspilerError
 
@@ -42,8 +43,7 @@ class DependencyGraph:
                 - "layer": fix layers and add dependencies between layers to `basic`.
 
         Raises:
-            TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            TranspilerError: if `graph_type` is not one of the types listed above.
         """
 
         self._gates = quantum_circuit.data
@@ -209,7 +209,8 @@ class DependencyGraph:
 
     def n_nodes(self) -> int:
         """Number of the nodes
-        Returns: Number of the nodes in this graph
+        Returns:
+            Number of the nodes in this graph.
         """
         return self._graph.__len__()
 
@@ -217,7 +218,8 @@ class DependencyGraph:
         """Qubit arguments of the gate
         Args:
             i: Index of the gate in the `self._gates`
-        Returns: List of qubit arguments
+        Returns:
+            List of qubit arguments.
         """
         return self._gates[i].qargs
 
@@ -225,7 +227,8 @@ class DependencyGraph:
         """Qubit and classical-bit arguments of the gate
         Args:
             i: Index of the gate in the `self._gates`
-        Returns: List of all arguments
+        Returns:
+            List of all arguments.
         """
         return self._gates[i].qargs + self._gates[i].cargs
 
@@ -233,13 +236,15 @@ class DependencyGraph:
         """Name of the gate
         Args:
             i: Index of the gate in the `self._gates`
-        Returns: Name of the gate
+        Returns:
+            Name of the gate.
         """
         return self._gates[i].name
 
     def head_gates(self) -> Set[int]:
         """Gates which can be applicable prior to the other gates
-        Returns: Set of indices of the gates
+        Returns:
+            Set of indices of the gates.
         """
         return frozenset([n for n in self._graph.nodes() if len(self._graph.in_edges(n)) == 0])
 
@@ -247,7 +252,8 @@ class DependencyGraph:
         """Successor gates in Gr (transitive reduction) of the gate
         Args:
             i: Index of the gate in the `self._gates`
-        Returns: Set of indices of the successor gates
+        Returns:
+            Set of indices of the successor gates.
         """
         return self._graph.successors(i)
 
@@ -255,7 +261,8 @@ class DependencyGraph:
         """Descendant gates of gate `i`
         Args:
             i: Index of the gate in the `self._gates`
-        Returns: Set of indices of the descendant gates
+        Returns:
+            Set of indices of the descendant gates.
         """
         return nx.descendants(self._graph, i)
 
@@ -263,24 +270,28 @@ class DependencyGraph:
         """Ancestor gates of gate `i`
         Args:
             i: Index of the gate in the `self._gates`
-        Returns: Set of indices of the ancestor gates
+        Returns:
+            Set of indices of the ancestor gates.
         """
         return nx.ancestors(self._graph, i)
 
-    def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister):
-        """Convert acting qubits of gate `g` from virtual qubits to physical ones.
+    def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister) -> Instruction:
+        """Convert acting qubits of gate `gidx` from virtual qubits to physical ones.
         Args:
             gidx: Index of the gate in the `self._gates`
             layout: Layout used in conversion
             physical_qreg: Register of physical qubit
-        Returns: Converted gate with physical qubit
+        Returns:
+            Converted gate with physical qubit.
+        Raises:
+            TranspilerError: if virtual qubit of the gate `gidx` is not found in the layout.
         """
         gate = copy.deepcopy(self._gates[gidx])
-        for i, logical_qubit in enumerate(gate.qargs):
-            if logical_qubit in layout.get_virtual_bits().keys():
-                gate.qargs[i] = (physical_qreg, layout[logical_qubit])
+        for i, virtual_qubit in enumerate(gate.qargs):
+            if virtual_qubit in layout.get_virtual_bits().keys():
+                gate.qargs[i] = (physical_qreg, layout[virtual_qubit])
             else:
-                raise TranspilerError("logical_qubit must be in layout")
+                raise TranspilerError("virtual_qubit must be in layout")
         return gate
 
     @staticmethod

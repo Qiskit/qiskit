@@ -22,11 +22,18 @@ class Ancestors:
     """
 
     def __init__(self, G: nx.DiGraph, max_depth=5):
-        self._G = G.reverse()
+        self._graph = G.reverse()
         self._max_depth = max_depth
         self._depth = 0
 
-    def ancestors(self, n):
+    def ancestors(self, n: int) -> set:
+        """
+        Ancestor nodes of the node `n`
+        Args:
+            n: Index of the node in the `self._graph`
+        Returns:
+            Set of indices of the ancestor nodes.
+        """
         self._depth = 0
         return self._ancestors_rec(n)
 
@@ -36,9 +43,9 @@ class Ancestors:
             return self._ancestors_loop(n)
         self._depth += 1
         ret = set()
-        for n2 in self._G.successors(n):
-            ret.add(n2)
-            ret.update(self._ancestors_rec(n2))
+        for n_succ in self._graph.successors(n):
+            ret.add(n_succ)
+            ret.update(self._ancestors_rec(n_succ))
         self._depth -= 1
         return ret
 
@@ -46,12 +53,12 @@ class Ancestors:
     def _ancestors_loop(self, n) -> set:
         ret = set()
         done = set()
-        cand = [n]
-        while cand:
-            u = cand.pop()
-            for v in self._G.successors(u):
+        cands = [n]
+        while cands:
+            node = cands.pop()
+            for v in self._graph.successors(node):
                 if v not in done:
                     ret.add(v)
-                    cand.append(v)
-            done.add(u)
+                    cands.append(v)
+            done.add(node)
         return ret
