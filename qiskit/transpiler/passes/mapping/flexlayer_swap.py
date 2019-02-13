@@ -82,14 +82,14 @@ class FlexlayerSwap(TransformationPass):
             self._initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         qc = dag_to_circuit(dag)
-        dg = DependencyGraph(qc, graph_type="xz_commute")
-        lh = FlexlayerHeuristics(qc=qc,
-                                 dependency_graph=dg,
-                                 coupling=self._coupling_map,
-                                 initial_layout=self._initial_layout,
-                                 lookahead_depth=self._lookahead_depth,
-                                 decay_rate=self._decay_rate)
-        res_dag, layout = lh.search()
+        dependency_graph = DependencyGraph(qc, graph_type="xz_commute")
+        algo = FlexlayerHeuristics(qc=qc,
+                                   dependency_graph=dependency_graph,
+                                   coupling=self._coupling_map,
+                                   initial_layout=self._initial_layout,
+                                   lookahead_depth=self._lookahead_depth,
+                                   decay_rate=self._decay_rate)
+        res_dag, layout = algo.search()
         res_dag = physical_to_virtual(res_dag, layout)
         return res_dag
 
@@ -98,8 +98,10 @@ def physical_to_virtual(dag: DAGCircuit, initial_layout: Layout) -> DAGCircuit:
     """
     Convert a physical circuit `dag` into the virtual circuit under a given `initial_layout`.
     Args:
-        dag: a physical circuit, assuming 'q' is the name of its physical qubit.
+        dag: a physical circuit, assuming 'q' is the register name of its physical qubits.
         initial_layout: given initial layout.
+    Returns:
+        A converted circuit with virtual qubits
     """
     layout = {}
     qubits = dag.qubits()

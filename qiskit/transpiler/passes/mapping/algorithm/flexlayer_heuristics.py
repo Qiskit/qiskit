@@ -51,7 +51,7 @@ class FlexlayerHeuristics:
         self._lookahead_depth = lookahead_depth
         self._decay_rate = decay_rate
 
-        self._ancestors = Ancestors(self._dg.G)  # for speed up
+        self._ancestors = Ancestors(self._dg._graph)  # for speed up
 
     def search(self) -> (DAGCircuit, Layout):
         """
@@ -157,7 +157,7 @@ class FlexlayerHeuristics:
             leadings = self._update_leading_gates(leadings, new_dones)
             new_dones = self._find_done_gates(leadings, layout)
 
-        assert (len(dones) == len(set(dones)))
+        assert len(dones) == len(set(dones))
         # dones must be list (order is essential!)
 
         return frozenset(leadings), dones
@@ -267,9 +267,9 @@ class FlexlayerHeuristics:
         for creg in self._qc.cregs:
             new_dag.add_creg(creg)
         # new_dag.add_basis_element('swap', 2, 0, 0)
-        for name, data in self._qc.definitions.items():
-            # new_dag.add_basis_element(name, data["n_bits"], 0, data["n_args"])
-            new_dag.add_gate_data(name, data)
+        # for name, data in self._qc.definitions.items():
+        #     new_dag.add_basis_element(name, data["n_bits"], 0, data["n_args"])
+        #     new_dag.add_gate_data(name, data)
         return new_dag
 
 

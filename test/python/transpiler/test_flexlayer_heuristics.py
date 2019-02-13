@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import unittest
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.mapper import CouplingMap, Layout
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 
-# from qiskit.transpiler.passes.algorithm import DependencyGraph
-from new_swappers.algorithm import FlexlayerHeuristics, remove_head_swaps, DependencyGraph
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler.passes.mapping.algorithm import DependencyGraph
+from qiskit.transpiler.passes.mapping.algorithm import FlexlayerHeuristics, remove_head_swaps
 
 
 class TestLookaheadHeuristics(unittest.TestCase):
@@ -101,7 +101,8 @@ class TestLookaheadHeuristics(unittest.TestCase):
         header = 'OPENQASM 2.0;include "qelib1.inc";qreg q[4];creg c[4];'
         expected_qasm = header + "cx q[0],q[1];u1(1) q[3];cx q[1],q[2];"
         expected_measure = ["measure q[%d] -> c[%d];" % (i, i) for i in range(4)]
-        expected_layout = {('q', 0): ('q', 0), ('q', 1): ('q', 1), ('q', 3): ('q', 2), ('q', 2): ('q', 3)}
+        expected_layout = {('q', 0): ('q', 0), ('q', 1): ('q', 1), ('q', 3): ('q', 2),
+                           ('q', 2): ('q', 3)}
         self.assertEqual(actual_qasm, expected_qasm)
         self.assertEqual(actual_measure, expected_measure)
         self.assertEqual(layout, expected_layout)
@@ -121,7 +122,8 @@ class TestLookaheadHeuristics(unittest.TestCase):
     #     qc = load_qasm_string(qasm_text, basis_gates="u1,u2,u3,cx,id")
     #     dg = DependencyGraph(qc, graph_type="basic")
     #     coupling = Coupling({1: [0], 2: [0, 1, 4], 3: [2, 4]})
-    #     initial_layout = {('q', 0): ('q', 1), ('q', 1): ('q', 0), ('q', 2): ('q', 2), ('q', 3): ('q', 4)}
+    #     initial_layout = {('q', 0): ('q', 1), ('q', 1): ('q', 0), ('q', 2): ('q', 2),
+    #                       ('q', 3): ('q', 4)}
     #     algo = FlexlayerHeuristics(qc, dg, coupling, initial_layout)
     #     dag, layout = algo.search()
 
@@ -145,9 +147,10 @@ class TestLookaheadHeuristics(unittest.TestCase):
         resqc, layout = remove_head_swaps(circuit, initial_layout)
         actual_qasm = ''.join([s for s in resqc.qasm().split('\n')])
         header = 'OPENQASM 2.0;include "qelib1.inc";qreg q[6];creg c[6];'
-        expected_qasm = header + "u1(1) q[5];h q[3];cx q[3],q[4];swap q[3],q[4];u1(1) q[0];h q[2];swap q[2],q[3];cx q[3],q[4];"
-        expected_layout = {('b', 0): ('q', 2), ('b', 1): ('q', 0), ('b', 2): ('q', 1), ('b', 3): ('q', 3),
-                           ('b', 4): ('q', 5), ('b', 5): ('q', 4)}
+        expected_qasm = header + "u1(1) q[5];h q[3];cx q[3],q[4];swap q[3],q[4];u1(1) q[0];" \
+                                 "h q[2];swap q[2],q[3];cx q[3],q[4];"
+        expected_layout = {('b', 0): ('q', 2), ('b', 1): ('q', 0), ('b', 2): ('q', 1),
+                           ('b', 3): ('q', 3), ('b', 4): ('q', 5), ('b', 5): ('q', 4)}
         self.assertEqual(actual_qasm, expected_qasm)
         self.assertEqual(layout, expected_layout)
 

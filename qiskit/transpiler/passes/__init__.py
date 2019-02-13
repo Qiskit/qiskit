@@ -23,4 +23,5 @@ from .mapping.dense_layout import DenseLayout
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap
+from .mapping.flexlayer_swap import FlexlayerSwap
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla

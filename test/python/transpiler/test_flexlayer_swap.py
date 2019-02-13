@@ -8,12 +8,11 @@
 """Test the FlexlayerSwap pass"""
 
 import unittest
-# from qiskit.transpiler.passes import FlexlayerSwap
-from new_swappers import FlexlayerSwap
-from qiskit.transpiler import PassManager, transpile_dag
+
+from qiskit.transpiler.passes import FlexlayerSwap
+from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.mapper import CouplingMap, Layout
-from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
 
@@ -284,7 +283,6 @@ class TestFlexlayerSwap(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
-
 
     # def test_flexlayer_swap_doesnt_modify_mapped_circuit(self):
     #     """Test that lookahead mapper is idempotent.

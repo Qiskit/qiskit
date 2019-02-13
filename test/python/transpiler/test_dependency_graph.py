@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-# from qiskit.transpiler.passes.algorithm import DependencyGraph
-from new_swappers.algorithm import DependencyGraph
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes.mapping.algorithm import DependencyGraph
 
 
 class TestDependencyGraph(QiskitTestCase):
@@ -58,7 +57,7 @@ class TestDependencyGraph(QiskitTestCase):
         circuit.cx(b[2], b[3])
         dg = DependencyGraph(circuit)
         expected = sorted([(0, 1), (1, 2), (1, 3)])
-        self.assertEqual(list(dg.G.edges()), expected)
+        self.assertEqual(list(dg._graph.edges()), expected)
 
     def test_measure(self):
         b = QuantumRegister(3, 'b')
@@ -71,7 +70,7 @@ class TestDependencyGraph(QiskitTestCase):
         circuit.measure(b[2], c[1])  # overwrite -> introduce dependency (2, 4)
         dg = DependencyGraph(circuit, graph_type="xz_commute")
         expected_edges = sorted([(0, 1), (1, 2), (1, 3), (2, 4), (3, 4)])
-        self.assertEqual(list(dg.G.edges()), expected_edges)
+        self.assertEqual(list(dg._graph.edges()), expected_edges)
 
     def test_h_gate_in_the_middle(self):
         q = QuantumRegister(4, 'q')
@@ -84,7 +83,7 @@ class TestDependencyGraph(QiskitTestCase):
         circuit.cx(q[1], q[0])
         dg = DependencyGraph(circuit, graph_type="xz_commute")
         expected = sorted([(0, 2), (1, 2), (2, 3), (3, 4)])
-        self.assertEqual(list(dg.G.edges()), expected)
+        self.assertEqual(list(dg._graph.edges()), expected)
 
     def test_rz_gate_in_the_middle(self):
         q = QuantumRegister(4, 'q')
@@ -97,7 +96,7 @@ class TestDependencyGraph(QiskitTestCase):
         circuit.cx(q[1], q[0])
         dg = DependencyGraph(circuit, graph_type="xz_commute")
         expected = sorted([(0, 2), (1, 2), (0, 3), (0, 4)])
-        self.assertEqual(list(dg.G.edges()), expected)
+        self.assertEqual(list(dg._graph.edges()), expected)
 
     def test_rz_gate_in_the_middle_blg(self):
         q = QuantumRegister(4, 'q')
@@ -110,7 +109,7 @@ class TestDependencyGraph(QiskitTestCase):
         circuit.cx(q[1], q[0])
         dg = DependencyGraph(circuit, graph_type="basic")
         expected = sorted([(0, 2), (1, 2), (2, 3), (3, 4)])
-        self.assertEqual(list(dg.G.edges()), expected)
+        self.assertEqual(list(dg._graph.edges()), expected)
 
 
 if __name__ == "__main__":
