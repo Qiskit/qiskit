@@ -16,6 +16,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
+from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
@@ -25,7 +26,6 @@ from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
-from qiskit.transpiler.passes.unroller import Unroller
 
 from .exceptions import TranspilerError
 

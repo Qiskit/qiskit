@@ -7,6 +7,7 @@
 
 """Module containing transpiler pass."""
 
+from qiskit.transpiler.passes.unroller import Unroller
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .optimize_1q_gates import Optimize1qGates
@@ -17,7 +18,6 @@ from .commutation_transformation import CommutationTransformation
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.cx_direction import CXDirection
-from qiskit.transpiler.passes.unroller import Unroller
 from .mapping.trivial_layout import TrivialLayout
 from .mapping.dense_layout import DenseLayout
 from .mapping.basic_swap import BasicSwap

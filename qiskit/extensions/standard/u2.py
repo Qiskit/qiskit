@@ -12,11 +12,8 @@ One-pulse single-qubit gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import pi
-from qiskit.extensions.standard.ubase import UBase
 
 
 class U2Gate(Gate):
@@ -25,6 +22,10 @@ class U2Gate(Gate):
     def __init__(self, phi, lam, qubit, circ=None):
         """Create new one-pulse single-qubit gate."""
         super().__init__("u2", [phi, lam], [qubit], circ)
+
+    def _define_decompositions(self):
+        """No decomposition as U is not a valid basis."""
+        self._decompositions = None
 
     def inverse(self):
         """Invert this gate.
