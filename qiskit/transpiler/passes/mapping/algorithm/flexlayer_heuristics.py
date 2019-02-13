@@ -6,24 +6,20 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-A .
-
+A core algorithm for 'FlexlayerSwap'.
 """
 import collections
 import copy
 import logging
 import pprint
-from typing import Dict, Tuple
 
-import networkx as nx
-
-from .ancestors import Ancestors
-from .dependency_graph import DependencyGraph
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import MapperError, CouplingMap, Layout
+from .ancestors import Ancestors
+from .dependency_graph import DependencyGraph
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +94,6 @@ class FlexlayerHeuristics:
             costs = [ece.cost(e, alpha=self._decay_rate) for e in ece.cand_edges]
 
             min_cost, e = min(zip(costs, ece.cand_edges))
-            # logger.debug("top3 edges = %s", pprint.pformat(sorted(zip(costs, ece.cand_edges))[:3]))
 
             if min_cost.immediate_cost < 0:
                 # usual case
@@ -121,8 +116,10 @@ class FlexlayerHeuristics:
                                             dg=self._dg,
                                             max_depth=self._lookahead_depth)
 
-                    costs = [ece.cost(e, priority=['immediate_cost',
-                                                   'lookahead_cost'], alpha=self._decay_rate) for e in ece.cand_edges]
+                    costs = [ece.cost(e,
+                                      priority=['immediate_cost', 'lookahead_cost'],
+                                      alpha=self._decay_rate)
+                             for e in ece.cand_edges]
 
                     min_cost, e = min(zip(costs, ece.cand_edges))
 
@@ -238,11 +235,11 @@ class FlexlayerHeuristics:
         physical_qubits = list(self._coupling.physical_qubits)
 
         if len(virtual_qubits) > len(physical_qubits):
-            raise MapperError("Not enough qubits in CouplingMap")
+            raise MapperError("Not enough qubits in _coupling")
 
-        for q in self._initial_layout.get_physical_bits().keys():
+        for q in self._initial_layout.get_physical_bits():
             if q not in physical_qubits:
-                raise MapperError("%s is not in CouplingMap but in initial_layout" % pprint.pformat(q))
+                raise MapperError("%s isn't in _coupling but in initial_layout" % pprint.pformat(q))
 
     def _add_ancilla_qubits(self):
         virtual_qubits = sorted(self._dg.qubits)
@@ -261,8 +258,8 @@ class FlexlayerHeuristics:
                 virtual_qubits.append((anc_qreg, i))
                 self._initial_layout[(anc_qreg, i)] = aq
 
-        assert len(physical_qubits) == len(virtual_qubits), "physical_qubits=%d, virtual_qubits=%d" % (
-            len(physical_qubits), len(virtual_qubits))
+        assert len(physical_qubits) == len(virtual_qubits), \
+            "physical_qubits=%d, virtual_qubits=%d" % (len(physical_qubits), len(virtual_qubits))
 
     def _create_empty_dagcircuit(self, physical_qreg):
         new_dag = DAGCircuit()
@@ -395,7 +392,7 @@ def _qargs(gate):
 
 
 def remove_head_swaps(qc: QuantumCircuit,
-                      initial_layout: dict) -> (QuantumCircuit, Dict[Tuple[str, int], Tuple[str, int]]):
+                      initial_layout: Layout) -> (QuantumCircuit, Layout):
     """remove unnecessary swap gates from qc by changing initial_layout
     assume all of the gates in qc are expanded to one-qubit gate, cx, swap
     """
@@ -409,8 +406,8 @@ def remove_head_swaps(qc: QuantumCircuit,
             if gate.name == "swap":
                 if (not cx_seen[qargs[0]]) and (not cx_seen[qargs[1]]):
                     # swap before the first cx -> update rev_layout and do not output swap to qasm
-                    rev_new_layout[qargs[0]], rev_new_layout[qargs[1]] = rev_new_layout[qargs[1]], rev_new_layout[
-                        qargs[0]]
+                    rev_new_layout[qargs[0]], rev_new_layout[qargs[1]] = rev_new_layout[qargs[1]], \
+                                                                         rev_new_layout[qargs[0]]
                     to_be_removed.append(i)
                 else:
                     # must change flag! because left swap = cx
@@ -432,10 +429,11 @@ def remove_head_swaps(qc: QuantumCircuit,
         for i, gate in enumerate(resqc.data[:1 + to_be_removed[-1]]):
             qargs = _qargs(gate)
             if gate.name == "swap":
-                rev_org_layout[qargs[0]], rev_org_layout[qargs[1]] = rev_org_layout[qargs[1]], rev_org_layout[qargs[0]]
+                rev_org_layout[qargs[0]], rev_org_layout[qargs[1]] = rev_org_layout[qargs[1]], \
+                                                                     rev_org_layout[qargs[0]]
                 if i not in to_be_removed:
-                    rev_new_layout[qargs[0]], rev_new_layout[qargs[1]] = rev_new_layout[qargs[1]], rev_new_layout[
-                        qargs[0]]
+                    rev_new_layout[qargs[0]], rev_new_layout[qargs[1]] = rev_new_layout[qargs[1]], \
+                                                                         rev_new_layout[qargs[0]]
                     new_layout = {v: k for k, v in rev_new_layout.items()}
             else:
                 _change_qargs(gate, rev_org_layout, new_layout, qregs)

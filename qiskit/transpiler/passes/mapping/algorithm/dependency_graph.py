@@ -6,7 +6,10 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Dependency graph
+A dependency graph represents precedence relations of the gates in a quantum circuit considering
+commutation rules. Each node represents gates in the circuit. Each directed edge represents
+dependency of two gates. For example, gate g1 must be applied before gate g2 if and only if
+there exists a path from g1 to g2.
 """
 import copy
 from collections import defaultdict
@@ -20,13 +23,23 @@ from qiskit.mapper import MapperError
 
 class DependencyGraph:
     """
-    A Dependency graph expresses precedence relations of gates in a quantum circuit considering commutation rules.
-
+    Create a dependency graph of a quantum circuit with a chosen commutation rule.
     """
 
     def __init__(self,
                  quantum_circuit: QuantumCircuit,
                  graph_type: str = "basic"):
+        """
+        Construct the dependency graph of `quantum_circuit` considering commutations/dependencies
+        specified by `graph_type`.
+
+        Args:
+            quantum_circuit: A quantum circuit whose dependency graph to be constructed.
+            graph_type: Which type of dependency is considered.
+                - "xz_commute": consider four commutation rules proposed in [Itoko et. al. 2019].
+                - "basic": consider only the commutation between gates without sharing qubits.
+                - "layer": fix layers and add dependencies between layers to `basic`.
+        """
 
         self.L = quantum_circuit.data
 
