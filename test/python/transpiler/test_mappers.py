@@ -121,9 +121,10 @@ class CommonUtilitiesMixin:
         with open(filename, "wb") as output_file:
             pickle.dump(transpiled_result, output_file)
 
-    def assertResult(self, result, testname):
-        """Fetches the pickle in testname file and compares it with result."""
-        filename = self._get_resource_path('pickles/%s_%s.pickle' % (type(self).__name__, testname))
+    def assertResult(self, result, circuit):
+        """Fetches the pickle in circuit.name file and compares it with result."""
+        filename = self._get_resource_path(
+            'pickles/%s_%s.pickle' % (type(self).__name__, circuit.name))
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
@@ -181,7 +182,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
-        self.assertResult(result, circuit.name)
+        self.assertResult(result, circuit)
 
     def test_initial_layout(self):
         """Using a non-trivial initial_layout.
@@ -218,7 +219,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map, layout))
-        self.assertResult(result, circuit.name)
+        self.assertResult(result, circuit)
 
     def test_handle_measurement(self):
         """Handle measurement correctly.
@@ -257,7 +258,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
-        self.assertResult(result, circuit.name)
+        self.assertResult(result, circuit)
 
 
 class TestsBasicSwap(SwapperCommonTestCases, QiskitTestCase):
