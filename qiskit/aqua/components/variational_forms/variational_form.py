@@ -19,8 +19,9 @@ This module contains the definition of a base class for
 variational forms. Several types of commonly used ansatz.
 """
 
-from qiskit.aqua import Pluggable, PluggableType, get_pluggable_class
 from abc import abstractmethod
+
+from qiskit.aqua import Pluggable, PluggableType, get_pluggable_class
 from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 
 
