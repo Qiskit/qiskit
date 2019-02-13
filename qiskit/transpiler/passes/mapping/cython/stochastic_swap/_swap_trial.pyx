@@ -11,7 +11,7 @@
 cimport cython
 from libc.stdlib cimport calloc, free
 from libcpp.set cimport set as cset
-from utils cimport NLayout, EdgeCollection, SHIFTED_NORMAL_RNG
+from .utils cimport NLayout, EdgeCollection, SHIFTED_NORMAL_RNG
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
