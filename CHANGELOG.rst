@@ -26,12 +26,16 @@ Added
 
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
-- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614). 
-- Added a RunConfig object for configurations for run configurations to be used 
+- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
+- Added a RunConfig object for configurations for run configurations to be used
   in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
+- Added in new parameter ``justify`` to the text circuit drawer to say how the
+  circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
+- Added parameter to the TextProgressBar to allow the output to be sent to a
+  different output stream 
 
 Changed
 -------
@@ -57,6 +61,7 @@ Changed
   final measurements when compiling for both simulators and devices (#1591).
 - Purity function in ``qiskit.tools.qi.qi`` calls new version in
   ``qiskit.quantum_information`` and issues deprecation warning (#1733)
+- Updated `dag.node_counter` to return the current number of nodes (#1763)
 - The argument ``basis_gates`` used in ``compile``, ``execute``, and ``transpile``
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
