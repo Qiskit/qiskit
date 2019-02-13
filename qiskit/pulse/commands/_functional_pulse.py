@@ -46,7 +46,7 @@ class FunctionalPulse:
     def __call__(self, duration, **kwargs):
         """Create new functional pulse.
         """
-        return FunctionalPulseComm(self.pulse, duration=duration, **kwargs)
+        return FunctionalPulseCommand(self.pulse, duration=duration, **kwargs)
 
 
 class FunctionalPulseCommand(SamplePulse):
@@ -60,7 +60,7 @@ class FunctionalPulseCommand(SamplePulse):
             duration (int): duration of pulse
         """
 
-        super(FunctionalPulseComm, self).__init__(duration)
+        super(FunctionalPulseCommand, self).__init__(duration)
 
         self.pulse = pulse
         self._params = kwargs
