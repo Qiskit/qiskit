@@ -356,7 +356,7 @@ class EdgeCostEstimator:
         nodes = set(gates)
         dic = collections.defaultdict(int)  # approximate max path length from gates to the key gate
         for d in range(max_depth):
-            nexts = set([s for n in nodes for s in dg.gr_successors(n)])
+            nexts = {s for n in nodes for s in dg.gr_successors(n)}
             for n in nexts:
                 if len(dg.qargs(n)) == 2:
                     dic[n] = d + 1

@@ -189,7 +189,6 @@ class CouplingMap:
         neighbors = self.graph.to_undirected().neighbors(physical_qubit)
         return [r for r in neighbors]
 
-
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
