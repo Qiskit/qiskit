@@ -15,42 +15,6 @@ from libcpp.vector cimport vector
 
 from qiskit.mapper._layout import Layout
 
-cdef extern from "<random>" namespace "std":
-    cdef cppclass mt19937:
-        mt19937() # 32-bit Mersenne Twister 19937 generator
-        mt19937(unsigned int seed)
-
-    cdef cppclass normal_distribution[T]:
-        normal_distribution()
-        normal_distribution(T a, T b)
-        T operator()(mt19937 rnd_gen)
-
-
-cdef class SHIFTED_NORMAL_RNG:
-    """ Draws random numbers from a normal distribution with stddev
-        1/num_qubits and shifted by a value of 1.0.
-
-        Uses the Mersenne Twister method from the C++ random lib,
-        thus requiring -std=c++11.
-    """
-    def __cinit__(self, unsigned int seed, unsigned int num_qubits):
-        """ Init the generator.
-
-        Args:
-            seed (int): The seed for the generator.
-            num_qubits (int): Number of qubits that determined stddev.
-        """
-        self.rnd_gen = mt19937(seed)
-        self.distro = normal_distribution[double](0.0,1.0/num_qubits)
-
-    cpdef double rand(self):
-        """ Draw a single random number from shifted distrobution.
-        
-        Returns:
-            float: A single random number.
-        """
-        return 1.0+self.distro(self.rnd_gen)
-
 
 cdef class EdgeCollection:
     """ A simple contain that contains a C++ vector
@@ -86,6 +50,7 @@ cdef class EdgeCollection:
         for kk in range(self._edges.size()):
             out[kk] = self._edges[kk]
         return out
+
 
 cdef class NLayout:
     """ A Numeric representation of a Qiskit Layout object.
