@@ -193,3 +193,19 @@ class PassK_check_fixed_point_property(DummyAP, FixedPoint):
     def run(self, dag):
         for base in PassK_check_fixed_point_property.__bases__:
             base.run(self, dag)
+
+class PassM_AP_NR_NP(DummyAP):
+    """ A dummy analysis pass that modifies self argument.
+    AP: Analysis Pass
+    NR: No Requires
+    NP: No Preserves
+    """
+
+    def __init__(self, argument=None):
+        super().__init__()
+        self.argument = argument
+
+    def run(self, dag):
+        super().run(dag)
+        self.argument = 'bar'
+        return dag

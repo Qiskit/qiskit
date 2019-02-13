@@ -11,7 +11,8 @@
 
 import unittest.mock
 from qiskit.test import QiskitTestCase
-from ._dummy_passes import DummyAP, DummyTP, PassA_TP_NR_NP, PassD_TP_NR_NP, PassE_AP_NR_NP
+from ._dummy_passes import DummyAP, DummyTP, PassA_TP_NR_NP, PassD_TP_NR_NP, PassE_AP_NR_NP, \
+    PassM_AP_NR_NP
 
 
 class TestGenericPass(QiskitTestCase):
@@ -68,6 +69,17 @@ class TestGenericPass(QiskitTestCase):
         """ True is 1. They are not the same parameter."""
         self.assertNotEqual(PassE_AP_NR_NP(True), PassE_AP_NR_NP(1))
 
+    def test_self_mofication_is_erased(self):
+        """A new instance should be clean in the attributes set at __init__ time."""
+        pass_one = PassM_AP_NR_NP(argument='foo')
+        self.assertEqual(pass_one.argument, 'foo')
+
+        pass_one.run(None) # modifies self.argument='bar'
+        self.assertEqual(pass_one.argument, 'bar')
+
+        pass_two = PassM_AP_NR_NP(argument='foo')
+        self.assertEqual(pass_one, pass_two)
+        self.assertEqual(pass_two.argument, 'foo')
 
 if __name__ == '__main__':
     unittest.main()
