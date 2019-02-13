@@ -280,6 +280,9 @@ class DAGCircuit:
             cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
+        Returns :
+            int : the current max node id
+
         Raises:
             DAGCircuitError: if a leaf node is connected to multiple outputs
         """
@@ -320,6 +323,9 @@ class DAGCircuit:
             qargs (list[tuple]): qubits that op will be applied to
             cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
+
+        Returns :
+            int : the current max node id
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
