@@ -22,12 +22,21 @@ class DAGNode:
         """ Create a node """
         self.node_id = node_id
 
-        self.type = data_dict['type'] if 'type' in data_dict else None
-        self.op = data_dict['op'] if 'op' in data_dict else None
-        self.name = data_dict['name'] if 'name' in data_dict else None
-        self.qargs = data_dict['qargs'] if 'qargs' in data_dict else []
-        self.cargs = data_dict['cargs'] if 'cargs' in data_dict else []
-        self.condition = data_dict['condition'] if 'condition' in data_dict else None
+        # TODO can this be refactored?
+        self.type = None
+        self.op = None
+        self.name = None
+        self.qargs = []
+        self.cargs = []
+        self.condition = None
+
+        if data_dict :
+            self.type = data_dict['type'] if 'type' in data_dict else None
+            self.op = data_dict['op'] if 'op' in data_dict else None
+            self.name = data_dict['name'] if 'name' in data_dict else None
+            self.qargs = data_dict['qargs'] if 'qargs' in data_dict else []
+            self.cargs = data_dict['cargs'] if 'cargs' in data_dict else []
+            self.condition = data_dict['condition'] if 'condition' in data_dict else None
 
         self.data_dict = {
             'type': self.type,

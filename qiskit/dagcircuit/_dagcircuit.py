@@ -1020,7 +1020,7 @@ class DAGCircuit:
 
     def successors(self, node):
         """Returns the successors of a node."""
-        return self.multi_graph.successors(node)
+        return self.multi_graph.successors(node.node_id)
 
     def ancestors(self, node):
         """Returns the ancestors of a node."""
@@ -1038,9 +1038,9 @@ class DAGCircuit:
         """Returns the successors of a node that are connected by a quantum edge"""
         successors = []
         for successor in self.successors(node):
-            if isinstance(self.multi_graph.get_edge_data(node, successor, key=0)['wire'][0],
+            if isinstance(self.multi_graph.get_edge_data(node.node_id, successor, key=0)['wire'][0],
                           QuantumRegister):
-                successors.append(successor)
+                successors.append(DAGNode(node_id=successor, data_dict=self.multi_graph.node[successor]))
         return successors
 
     def _remove_op_node(self, n):

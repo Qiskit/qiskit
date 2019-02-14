@@ -215,8 +215,8 @@ class TestMapper(QiskitTestCase):
                                 coupling_map=cmap)
         meas_nodes = out_dag.named_nodes('measure')
         for n in meas_nodes:
-            is_last_measure = all([after_measure in out_dag.output_map.values()
-                                   for after_measure in out_dag.quantum_successors(n.node_id)])
+            is_last_measure = all([after_measure_node.node_id in out_dag.output_map.values()
+                                   for after_measure_node in out_dag.quantum_successors(n)])
             self.assertTrue(is_last_measure)
 
     def test_kak_decomposition(self):

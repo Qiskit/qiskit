@@ -155,15 +155,15 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(Reset(self.qubit0))
 
         successor_measure = self.dag.quantum_successors(
-            self.dag.named_nodes('measure').pop().node_id)
+            self.dag.named_nodes('measure').pop())
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
-        self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
+        self.assertIsInstance(cnot_node.op, CnotGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
         self.assertEqual(len(successor_cnot), 2)
-        self.assertEqual(self.dag.multi_graph.nodes[successor_cnot[0]]["type"], 'out')
-        self.assertIsInstance(self.dag.multi_graph.nodes[successor_cnot[1]]["op"], Reset)
+        self.assertEqual(successor_cnot[0].type, 'out')
+        self.assertIsInstance(successor_cnot[1].op, Reset)
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
