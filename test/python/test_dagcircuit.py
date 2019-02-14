@@ -390,7 +390,7 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(HGate(v[0]))
         flipped_cx_circuit.apply_operation_back(HGate(v[1]))
 
-        self.dag.substitute_node_with_dag(cx_node.node_id, flipped_cx_circuit, wires=[v[0], v[1]])
+        self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()['h'], 5)
 
