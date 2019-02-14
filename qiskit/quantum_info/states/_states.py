@@ -38,16 +38,20 @@ def basis_state(str_state, num):
         raise QiskitError('size of bitstring is greater than num.')
 
 
-def random_state(num):
+def random_state(num, seed=None):
     """
     Return a random quantum state from the uniform (Haar) measure on
     state space.
 
     Args:
         num (int): the number of qubits
+        seed (int): Optional. To set a random seed.
+
     Returns:
         ndarray:  state(2**num) a random quantum state.
     """
+    if seed is not None:
+        np.random.seed(seed)
     # Random array over interval (0, 1]
     x = np.random.random(1 << num)
     x += x == 0
