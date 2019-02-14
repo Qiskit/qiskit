@@ -30,7 +30,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         final_ops = []
         for candidate_op in dag.named_nodes(*final_op_types):
             is_final_op = True
-            for _, child_successors in dag.bfs_successors(candidate_op.node_id):
+            for _, child_successors in dag.bfs_successors(candidate_op):
                 if any(dag.multi_graph.node[suc]['type'] == 'op' and
                        dag.multi_graph.node[suc]['op'].name not in final_op_types
                        for suc in child_successors):

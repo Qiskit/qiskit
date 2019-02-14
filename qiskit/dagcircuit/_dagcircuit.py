@@ -146,7 +146,7 @@ class DAGCircuit:
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
         for n in self.named_nodes(opname):
-            self._remove_op_node(n.node_id)
+            self._remove_op_node(n)
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -848,8 +848,8 @@ class DAGCircuit:
                 if n["type"] == "op":
                     n["op"].control = condition
                     to_replay.append(n)
-            for n_id in input_dag.op_nodes():
-                input_dag._remove_op_node(n_id.node_id)
+            for input_node in input_dag.op_nodes():
+                input_dag._remove_op_node(input_node)
             for n in to_replay:
                 input_dag.apply_operation_back(n["op"], condition=condition)
 
@@ -1020,18 +1020,26 @@ class DAGCircuit:
 
     def successors(self, node):
         """Returns the successors of a node."""
-        return self.multi_graph.successors(node.node_id)
+        if isinstance(node, DAGNode):
+            node = node.node_id
+        return self.multi_graph.successors(node)
 
     def ancestors(self, node):
         """Returns the ancestors of a node."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
         return nx.ancestors(self.multi_graph, node)
 
     def descendants(self, node):
         """Returns the descendants of a node."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
         return nx.descendants(self.multi_graph, node)
 
     def bfs_successors(self, node):
         """Returns successors of a node in BFS order"""
+        if isinstance(node, DAGNode):
+            node = node.node_id
         return nx.bfs_successors(self.multi_graph, node)
 
     def quantum_successors(self, node):
@@ -1048,6 +1056,8 @@ class DAGCircuit:
 
         Add edges from predecessors to successors.
         """
+        if isinstance(n, DAGNode):
+            n = n.node_id
         pred_map, succ_map = self._make_pred_succ_maps(n)
         self.multi_graph.remove_node(n)
         for w in pred_map.keys():
@@ -1056,6 +1066,9 @@ class DAGCircuit:
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
+
         anc = nx.ancestors(self.multi_graph, node)
         # TODO: probably better to do all at once using
         # multi_graph.remove_nodes_from; same for related functions ...
@@ -1066,6 +1079,9 @@ class DAGCircuit:
 
     def remove_descendants_of(self, node):
         """Remove all of the descendant operation nodes of node."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
+
         dec = nx.descendants(self.multi_graph, node)
         for n in dec:
             nd = self.multi_graph.node[n]
@@ -1074,6 +1090,9 @@ class DAGCircuit:
 
     def remove_nonancestors_of(self, node):
         """Remove all of the non-ancestors operation nodes of node."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
+
         anc = nx.ancestors(self.multi_graph, node)
         comp = list(set(self.multi_graph.nodes()) - set(anc))
         for n in comp:
@@ -1083,6 +1102,9 @@ class DAGCircuit:
 
     def remove_nondescendants_of(self, node):
         """Remove all of the non-descendants operation nodes of node."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
+
         dec = nx.descendants(self.multi_graph, node)
         comp = list(set(self.multi_graph.nodes()) - set(dec))
         for n in comp:
