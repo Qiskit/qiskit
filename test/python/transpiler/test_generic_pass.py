@@ -74,12 +74,13 @@ class TestGenericPass(QiskitTestCase):
         pass_one = PassM_AP_NR_NP(argument='foo')
         self.assertEqual(pass_one.argument, 'foo')
 
-        pass_one.run(None) # modifies self.argument='bar'
+        pass_one.run(None)  # modifies self.argument='bar'
         self.assertEqual(pass_one.argument, 'bar')
 
         pass_two = PassM_AP_NR_NP(argument='foo')
         self.assertEqual(pass_one, pass_two)
         self.assertEqual(pass_two.argument, 'foo')
+
 
 if __name__ == '__main__':
     unittest.main()
