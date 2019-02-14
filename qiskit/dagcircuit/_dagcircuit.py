@@ -710,33 +710,10 @@ class DAGCircuit:
                                           "output node" % (w[0], w[1]))
         return full_pred_map, full_succ_map
 
-    @staticmethod
-    def _match_dag_nodes(node1, node2):
-        """
-        Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
-        Args:
-            node1 (dict): A node to compare.
-            node2 (dict): The other node to compare.
-
-        Returns:
-            Bool: If node1 == node2
-        """
-        copy_node1 = {k: v for (k, v) in node1.items()}
-        copy_node2 = {k: v for (k, v) in node2.items()}
-
-        # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == copy_node1['name'] == copy_node2['name']:
-            node1_qargs = set(copy_node1.pop('qargs', []))
-            node2_qargs = set(copy_node2.pop('qargs', []))
-
-            if node1_qargs != node2_qargs:
-                return False
-
-        return copy_node1 == copy_node2
-
     def __eq__(self, other):
         return nx.is_isomorphic(self.multi_graph, other.multi_graph,
-                                node_match=DAGCircuit._match_dag_nodes)
+                                node_match=lambda x, y:
+                                DAGNode(data_dict=x) == DAGNode(data_dict=y))
 
     def node_nums_in_topological_order(self):
         """
@@ -854,6 +831,10 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
+
+        if not isinstance(node, DAGNode):
+            node = self.multi_graph.node[node]
+            # TODO add deprecation warning for calling with number?
 
         condition = node.condition
         # the decomposition rule must be amended if used in a
