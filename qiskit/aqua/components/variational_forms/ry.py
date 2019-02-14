@@ -117,12 +117,11 @@ class RY(VariationalForm):
 
         for block in range(self._depth):
             circuit.barrier(q)
-            for node in self._entangler_map:
-                for target in self._entangler_map[node]:
-                    circuit.u2(0.0, np.pi, q[target])  # h
-                    circuit.cx(q[node], q[target])
-                    circuit.u2(0.0, np.pi, q[target])  # h
-                    # circuit.cz(q[node], q[target])
+            for src, targ in self._entangler_map:
+                circuit.u2(0.0, np.pi, q[targ])  # h
+                circuit.cx(q[src], q[targ])
+                circuit.u2(0.0, np.pi, q[targ])  # h
+                # circuit.cz(q[node], q[target])
             for qubit in range(self._num_qubits):
                 circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])
                 # circuit.ry(parameters[param_idx, q[qubit])

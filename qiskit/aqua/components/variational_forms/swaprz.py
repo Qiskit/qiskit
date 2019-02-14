@@ -83,7 +83,7 @@ class SwapRZ(VariationalForm):
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
         self._initial_state = initial_state
         self._num_parameters = num_qubits + depth * \
-            (num_qubits + sum([len(v) for k, v in self._entangler_map.items()]))
+            (num_qubits + len(self._entangler_map))
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
 
     def construct_circuit(self, parameters, q=None):
@@ -116,25 +116,24 @@ class SwapRZ(VariationalForm):
             param_idx += 1
         for block in range(self._depth):
             circuit.barrier(q)
-            for node in self._entangler_map:
-                for target in self._entangler_map[node]:
-                    # XX
-                    circuit.u2(0, np.pi, q[node])
-                    circuit.u2(0, np.pi, q[target])
-                    circuit.cx(q[node], q[target])
-                    circuit.u1(parameters[param_idx], q[target])
-                    circuit.cx(q[node], q[target])
-                    circuit.u2(0, np.pi, q[node])
-                    circuit.u2(0, np.pi, q[target])
-                    # YY
-                    circuit.u3(np.pi / 2, -np.pi / 2, np.pi / 2, q[node])
-                    circuit.u3(np.pi / 2, -np.pi / 2, np.pi / 2, q[target])
-                    circuit.cx(q[node], q[target])
-                    circuit.u1(parameters[param_idx], q[target])
-                    circuit.cx(q[node], q[target])
-                    circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[node])
-                    circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[target])
-                    param_idx += 1
+            for src, targ in self._entangler_map:
+                # XX
+                circuit.u2(0, np.pi, q[src])
+                circuit.u2(0, np.pi, q[targ])
+                circuit.cx(q[src], q[targ])
+                circuit.u1(parameters[param_idx], q[targ])
+                circuit.cx(q[src], q[targ])
+                circuit.u2(0, np.pi, q[src])
+                circuit.u2(0, np.pi, q[targ])
+                # YY
+                circuit.u3(np.pi / 2, -np.pi / 2, np.pi / 2, q[src])
+                circuit.u3(np.pi / 2, -np.pi / 2, np.pi / 2, q[targ])
+                circuit.cx(q[src], q[targ])
+                circuit.u1(parameters[param_idx], q[targ])
+                circuit.cx(q[src], q[targ])
+                circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[src])
+                circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[targ])
+                param_idx += 1
             for qubit in range(self._num_qubits):
                 circuit.u1(parameters[param_idx], q[qubit])  # rz
                 param_idx += 1
