@@ -335,19 +335,22 @@ def outer(vector1, vector2=None):
 # Random Matrices.
 ###############################################################
 
-def random_unitary_matrix(length):
+def random_unitary_matrix(length, seed=None):
     """
     Return a random unitary ndarray.
 
     Args:
         length (int): the length of the returned unitary.
+        seed (int): Optional. To set a random seed.
     Returns:
         ndarray: U (length, length) unitary ndarray.
     """
+    if seed is not None:
+        np.random.seed(seed)
     return unitary_group.rvs(length)
 
 
-def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
+def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):
     """
     Generate a random density matrix rho.
 
@@ -358,40 +361,42 @@ def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
         method (string): the method to use.
             'Hilbert-Schmidt': sample rho from the Hilbert-Schmidt metric.
             'Bures': sample rho from the Bures metric.
-
+        seed (int): Optional. To set a random seed.
     Returns:
         ndarray: rho (length, length) a density matrix.
     Raises:
         QiskitError: if the method is not valid.
     """
     if method == 'Hilbert-Schmidt':
-        return __random_density_hs(length, rank)
+        return __random_density_hs(length, rank, seed)
     elif method == 'Bures':
-        return __random_density_bures(length, rank)
+        return __random_density_bures(length, rank, seed)
     else:
         raise QiskitError('Error: unrecognized method {}'.format(method))
 
 
-def __ginibre_matrix(nrow, ncol=None):
+def __ginibre_matrix(nrow, ncol=None, seed=None):
     """
     Return a normally distributed complex random matrix.
 
     Args:
         nrow (int): number of rows in output matrix.
         ncol (int): number of columns in output matrix.
-
+        seed (int): Optional. To set a random seed.
     Returns:
         ndarray: A complex rectangular matrix where each real and imaginary
             entry is sampled from the normal distribution.
     """
     if ncol is None:
         ncol = nrow
+    if seed is not None:
+        np.random.seed(seed)
     G = np.random.normal(size=(nrow, ncol)) + \
         np.random.normal(size=(nrow, ncol)) * 1j
     return G
 
 
-def __random_density_hs(N, rank=None):
+def __random_density_hs(N, rank=None, seed=None):
     """
     Generate a random density matrix from the Hilbert-Schmidt metric.
 
@@ -399,15 +404,16 @@ def __random_density_hs(N, rank=None):
         N (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
+        seed (int): Optional. To set a random seed.
     Returns:
         ndarray: rho (N,N  a density matrix.
     """
-    G = __ginibre_matrix(N, rank)
+    G = __ginibre_matrix(N, rank, seed)
     G = G.dot(G.conj().T)
     return G / np.trace(G)
 
 
-def __random_density_bures(N, rank=None):
+def __random_density_bures(N, rank=None, seed=None):
     """
     Generate a random density matrix from the Bures metric.
 
@@ -415,11 +421,12 @@ def __random_density_bures(N, rank=None):
         N (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
+        seed (int): Optional. To set a random seed.
     Returns:
         ndarray: rho (N,N) a density matrix.
     """
     P = np.eye(N) + random_unitary_matrix(N)
-    G = P.dot(__ginibre_matrix(N, rank))
+    G = P.dot(__ginibre_matrix(N, rank, seed))
     G = G.dot(G.conj().T)
     return G / np.trace(G)
 
