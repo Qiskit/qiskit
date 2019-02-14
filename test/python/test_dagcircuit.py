@@ -129,7 +129,6 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
-            self.assertIsInstance(self.dag.multi_graph.nodes[node.node_id]["op"], Instruction)
             self.assertIsInstance(node.op, Instruction)
 
     def test_get_op_nodes_particular(self):
@@ -146,8 +145,6 @@ class TestDagOperations(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1.node_id]["op"], HGate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2.node_id]["op"], HGate)
         self.assertIsInstance(op_node_1.op, HGate)
         self.assertIsInstance(op_node_2.op, HGate)
 
@@ -179,8 +176,6 @@ class TestDagOperations(QiskitTestCase):
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1.node_id]["op"], Gate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2.node_id]["op"], Gate)
         self.assertIsInstance(op_node_1.op, Gate)
         self.assertIsInstance(op_node_2.op, Gate)
 
