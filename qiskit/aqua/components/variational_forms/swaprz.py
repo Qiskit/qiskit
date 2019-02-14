@@ -68,9 +68,10 @@ class SwapRZ(VariationalForm):
         Args:
             num_qubits (int) : number of qubits
             depth (int) : number of rotation layers
-            entangler_map (list[list]): describe the connectivity of qubits,
-                                        each list describes [source, target],
-                                        or None for full entanglement.
+            entangler_map (list[list]): describe the connectivity of qubits, each list describes
+                                        [source, target], or None for full entanglement.
+                                        Note that the order is the list is the order of
+                                        applying the two-qubit gate.
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
         """
