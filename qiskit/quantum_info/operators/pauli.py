@@ -424,15 +424,17 @@ class Pauli:
         return self
 
     @classmethod
-    def random(cls, num_qubits):
+    def random(cls, num_qubits, seed=None):
         """Return a random Pauli on number of qubits.
 
         Args:
             num_qubits (int): the number of qubits
-
+            seed (int): Optional. To set a random seed.
         Returns:
             Pauli: the random pauli
         """
+        if seed is not None:
+            np.random.seed(seed)
         z = np.random.randint(2, size=num_qubits).astype(np.bool)
         x = np.random.randint(2, size=num_qubits).astype(np.bool)
         return cls(z, x)
