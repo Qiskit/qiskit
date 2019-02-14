@@ -27,7 +27,7 @@ class TestUnroll3qOrMore(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.get_op_nodes(data=True)
+        op_nodes = after_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             op = node[1]["op"]
@@ -43,7 +43,7 @@ class TestUnroll3qOrMore(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.get_op_nodes(data=True)
+        op_nodes = after_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 17)
         for node in op_nodes:
             op = node[1]["op"]
@@ -59,7 +59,7 @@ class TestUnroll3qOrMore(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.get_op_nodes(data=True)
+        op_nodes = after_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             op = node[1]["op"]

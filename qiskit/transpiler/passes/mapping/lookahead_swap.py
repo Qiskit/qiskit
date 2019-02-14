@@ -93,7 +93,7 @@ class LookaheadSwap(TransformationPass):
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        if len(dag.get_qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) != len(self.initial_layout):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         if len(self._coupling_map.physical_qubits) != len(self.initial_layout):
@@ -271,12 +271,6 @@ def _copy_circuit_metadata(source_dag, coupling_map):
 
     device_qreg = QuantumRegister(len(coupling_map.physical_qubits), 'q')
     target_dag.add_qreg(device_qreg)
-
-    for name, (num_qbits, num_cbits, num_params) in source_dag.basis.items():
-        target_dag.add_basis_element(name, num_qbits, num_cbits, num_params)
-
-    for name, gate_data in source_dag.gates.items():
-        target_dag.add_gate_data(name, gate_data)
 
     return target_dag
 

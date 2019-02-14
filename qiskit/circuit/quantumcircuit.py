@@ -8,7 +8,6 @@
 """
 Quantum circuit object.
 """
-
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
@@ -17,6 +16,7 @@ import multiprocessing as mp
 
 from qiskit.qasm import _qasm
 from qiskit.exceptions import QiskitError
+from .instruction import Instruction
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -28,6 +28,7 @@ class QuantumCircuit:
 
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
+    extension_lib = "include \"qelib1.inc\";"
 
     # Class variable with gate definitions
     # This is a dict whose values are dicts with the
@@ -130,6 +131,12 @@ class QuantumCircuit:
 
         Return self + rhs as a new object.
         """
+        if isinstance(rhs, Instruction):
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -159,6 +166,12 @@ class QuantumCircuit:
 
         Modify and return self.
         """
+        if isinstance(rhs, Instruction):
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -276,9 +289,7 @@ class QuantumCircuit:
     def qasm(self):
         """Return OPENQASM string."""
         string_temp = self.header + "\n"
-        for gate_name in self.definitions:
-            if self.definitions[gate_name]["print"]:
-                string_temp += self._gate_string(gate_name)
+        string_temp += self.extension_lib + "\n"
         for register in self.qregs:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
