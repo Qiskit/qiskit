@@ -44,7 +44,7 @@ class TestDependencyGraph(QiskitTestCase):
         self.assertEqual(dep_graph.head_gates(), set([0, 1]))
 
     def test_gr_successors(self):
-        """ Test for successors of qrs.
+        """ Test for successor gates of Gr (transitive reduction).
         """
         qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(4, 'c')

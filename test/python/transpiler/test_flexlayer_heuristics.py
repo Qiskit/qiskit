@@ -15,7 +15,8 @@ from qiskit.mapper import CouplingMap, Layout
 from qiskit.transpiler.passes.mapping.algorithm import DependencyGraph
 from qiskit.transpiler.passes.mapping.algorithm import FlexlayerHeuristics, remove_head_swaps
 
-class TestLookaheadHeuristics(unittest.TestCase):
+
+class TestFlexlayerHeuristics(unittest.TestCase):
     """Tests for FlexlayerHeuristics."""
 
     @unittest.skip("due to a bug in DAGCircuit.__eq__()")
@@ -141,9 +142,8 @@ class TestLookaheadHeuristics(unittest.TestCase):
     #     dag, layout = algo.search()
 
     @unittest.skip("TODO: Change to use DAGCircuit and Layout")
-    def test_remove_head_swaps_and_leave_middle_swaps(self):
-        """Test for removing unnecessary swap gates from qc by changing initial_layout,
-        and test for middle swaps are left.
+    def test_remove_head_swaps_and_remain_middle_swaps(self):
+        """Test for only head swaps are removed, and middle swaps are remained properly.
         """
         qr = QuantumRegister(6, 'q')
         cr = ClassicalRegister(6, 'c')
