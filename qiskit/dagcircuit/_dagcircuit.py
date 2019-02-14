@@ -841,11 +841,11 @@ class DAGCircuit:
                             self.multi_graph.remove_edge(
                                 p[0], self.output_map[w])
 
-    def substitute_node_with_dag(self, node, input_dag, wires=None):
+    def substitute_node_with_dag(self, node_id, input_dag, wires=None):
         """Replace one node with dag.
 
         Args:
-            node (int): node of self.multi_graph (of type "op") to substitute
+            node_id (int): node of self.multi_graph (of type "op") to substitute
             input_dag (DAGCircuit): circuit that will substitute the node
             wires (list[(Register, index)]): gives an order for (qu)bits
                 in the input circuit. This order gets matched to the node wires
@@ -854,7 +854,7 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
-        nd = self.multi_graph.node[node]
+        nd = self.multi_graph.node[node_id]
 
         condition = nd["condition"]
         # the decomposition rule must be amended if used in a
@@ -868,8 +868,8 @@ class DAGCircuit:
                 if n["type"] == "op":
                     n["op"].control = condition
                     to_replay.append(n)
-            for node in input_dag.op_nodes():
-                input_dag._remove_op_node(node.node_id)
+            for n_id in input_dag.op_nodes():
+                input_dag._remove_op_node(n_id.node_id)
             for n in to_replay:
                 input_dag.apply_operation_back(n["op"], condition=condition)
 
@@ -911,11 +911,11 @@ class DAGCircuit:
                                                       condition_bit_list]
                                           for i in s])}
         self._check_wiremap_validity(wire_map, wires, self.input_map)
-        pred_map, succ_map = self._make_pred_succ_maps(node)
+        pred_map, succ_map = self._make_pred_succ_maps(node_id)
         full_pred_map, full_succ_map = self._full_pred_succ_maps(pred_map, succ_map,
                                                                  input_dag, wire_map)
         # Now that we know the connections, delete node
-        self.multi_graph.remove_node(node)
+        self.multi_graph.remove_node(node_id)
         # Iterate over nodes of input_circuit
         for m in nx.topological_sort(input_dag.multi_graph):
             md = input_dag.multi_graph.node[m]
@@ -968,9 +968,6 @@ class DAGCircuit:
         Args:
             op (Type): Instruction subclass op nodes to return. if op=None, return
                 all op nodes.
-            data (bool): Default: False. If True, return a list of tuple
-                (node_id, node_data). If False, return a list of int (node_id)
-
         Returns:
             list: the list of node ids containing the given op.
         """
@@ -989,10 +986,6 @@ class DAGCircuit:
 
     def gate_nodes(self):
         """Get the list of gate nodes in the dag.
-
-        Args:
-            data (bool): Default: False. If True, return a list of tuple
-                (node_id, node_data). If False, return a list of int (node_id)
 
         Returns:
             list: the list of node ids that represent gates.

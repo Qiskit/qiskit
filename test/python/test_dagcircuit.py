@@ -157,7 +157,8 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
-        successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop().node_id)
+        successor_measure = self.dag.quantum_successors(
+            self.dag.named_nodes('measure').pop().node_id)
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
         self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
@@ -394,7 +395,7 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(HGate(v[0]))
         flipped_cx_circuit.apply_operation_back(HGate(v[1]))
 
-        self.dag.substitute_node_with_dag(cx_node.node_index, flipped_cx_circuit, wires=[v[0], v[1]])
+        self.dag.substitute_node_with_dag(cx_node.node_id, flipped_cx_circuit, wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()['h'], 5)
 

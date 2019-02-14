@@ -44,5 +44,5 @@ class Unroller(TransformationPass):
             decomposition_rules = node.op.decompositions()
             # TODO: allow choosing other possible decompositions
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
-            dag.substitute_node_with_dag(node.node_id, decomposition_dag)
+            dag.substitute_node_with_dag(node_id=node.node_id, input_dag=decomposition_dag)
         return dag
