@@ -78,7 +78,6 @@ stage_osx: &stage_osx
 stages:
   - lint and pure python test
   - test
-  - ibmq
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -134,12 +133,3 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
-
-    # "ibmq" stage
-    ###########################################################################
-    # GNU/Linux, Python 3.6, against IBM Q
-    - stage: ibmq
-      <<: *stage_linux
-      if: branch = master and repo = Qiskit/qiskit-terra and type = push
-      python: 3.6
-      env: USE_ALTERNATE_ENV_CREDENTIALS=True
