@@ -15,7 +15,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit import BasicAer
 from qiskit.transpiler import PassManager, transpile
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class TestUnroller(QiskitTestCase):

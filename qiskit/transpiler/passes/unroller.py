@@ -8,7 +8,7 @@
 """Pass for unrolling a circuit to a given basis."""
 
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class Unroller(TransformationPass):
