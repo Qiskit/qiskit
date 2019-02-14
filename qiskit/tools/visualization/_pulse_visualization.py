@@ -23,20 +23,19 @@ def pulse_drawer(samples, duration, dt=None, interp_method='None',
     """Plot the interpolated envelope of pulse
 
     Args:
-        samples (ndarray): data points of complex pulse envelope
-        duration (int): pulse length (number of points)
-        dt (float): time interval of samples
-        interp_method (str): method of interpolation
-            (set `None` for turn off the interpolation)
-        filename (str): name required to save pulse image
-        interactive (bool): when set true show the circuit in a new window
-            (for `mpl` this depends on the matplotlib backend being used
-            supporting this).
-        dpi (int): resolution of saved image
-        nop (int): data points for interpolation
-        size (tuple): size of figure
+        samples (ndarray): Data points of complex pulse envelope.
+        duration (int): Pulse length (number of points).
+        dt (float): Time interval of samples.
+        interp_method (str): Method of interpolation
+            (set `None` for turn off the interpolation).
+        filename (str): Name required to save pulse image.
+        interactive (bool): When set true show the circuit in a new window
+            (this depends on the matplotlib backend being used supporting this).
+        dpi (int): Resolution of saved image.
+        nop (int): Data points for interpolation.
+        size (tuple): Size of figure.
     Returns:
-        matplotlib.figure: a matplotlib figure object for the pulse envelope
+        matplotlib.figure: A matplotlib figure object for the pulse envelope.
     Raises:
         ImportError: when the output methods requieres non-installed libraries.
         QiskitError: when invalid interpolation method is specified.

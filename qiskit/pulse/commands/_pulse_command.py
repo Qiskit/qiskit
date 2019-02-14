@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Super class of command group.
+Base command.
 """
 
 import uuid
@@ -18,12 +18,12 @@ class PulseCommand:
     """Super class of command group."""
 
     def __init__(self, duration):
-        """create new pulse commands.
+        """Create new pulse commands.
 
         Args:
-            duration (int): duration of pulse
+            duration (int): Duration of pulse.
         Raises:
-            QiskitError: when duration is not number of points
+            QiskitError: when duration is not number of points.
         """
 
         if isinstance(duration, int):

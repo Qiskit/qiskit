@@ -15,45 +15,45 @@ from qiskit.pulse.commands._pulse_command import PulseCommand
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    def __init__(self, duration):
-        """create new sample pulse command.
+    def __init__(self, duration, samples):
+        """Create new sample pulse command.
 
         Args:
-            duration (int): duration of pulse
+            duration (int): Duration of pulse.
+            samples (ndarray): Complex array of pulse envelope.
         """
 
         super(SamplePulse, self).__init__(duration)
 
-        self.__sample = []
+        self._samples = samples
 
     @property
-    def sample(self):
-        """ Return sample
+    def samples(self):
+        """Return sample.
         """
-        return self.__sample
+        return self._samples
 
-    @sample.setter
-    def sample(self, sample):
-        """ Set sample
+    @samples.setter
+    def samples(self, samples):
+        """Set sample.
         """
-        self.__sample = sample
-        self.duration = len(sample)
+        self._samples = samples
+        self.duration = len(samples)
 
     def draw(self, **kwargs):
-        """Plot the interpolated envelope of pulse
+        """Plot the interpolated envelope of pulse.
 
         Keyword Args:
-            dt (float): time interval of samples
-            interp_method (str): method of interpolation
-                (set `None` for turn off the interpolation)
-            filename (str): name required to save pulse image
-            interactive (bool): when set true show the circuit in a new window
-                (for `mpl` this depends on the matplotlib backend being used
-                supporting this).
-            dpi (int): resolution of saved image
-            nop (int): data points for interpolation
-            size (tuple): size of figure
+            dt (float): Time interval of samples.
+            interp_method (str): Method of interpolation
+                (set `None` for turn off the interpolation).
+            filename (str): Name required to save pulse image.
+            interactive (bool): When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this).
+            dpi (int): Resolution of saved image.
+            nop (int): Data points for interpolation.
+            size (tuple): Size of figure.
         """
         from qiskit.tools import visualization
 
-        return visualization.pulse_drawer(self.sample, self.duration, **kwargs)
+        return visualization.pulse_drawer(self.samples, self.duration, **kwargs)

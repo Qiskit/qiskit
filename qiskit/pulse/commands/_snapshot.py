@@ -16,7 +16,7 @@ class Snapshot(PulseCommand):
     """Snapshot."""
 
     def __init__(self, label):
-        """create new snapshot command
+        """Create new snapshot command.
 
         Args:
             label (str): Snapshot label which is used to identify the snapshot in the output.

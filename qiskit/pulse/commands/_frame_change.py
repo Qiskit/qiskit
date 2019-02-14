@@ -13,14 +13,14 @@ from qiskit.pulse.commands._pulse_command import PulseCommand
 
 
 class FrameChange(PulseCommand):
-    """Frame change pulse"""
+    """Frame change pulse."""
 
     def __init__(self, phase):
-        """create new frame change pulse
+        """Create new frame change pulse.
 
         Args:
-            phase (double): frame change phase in radians.
-                the allowable precision is device specific.
+            phase (float): Frame change phase in radians.
+                The allowable precision is device specific.
         """
 
         super(FrameChange, self).__init__(0)

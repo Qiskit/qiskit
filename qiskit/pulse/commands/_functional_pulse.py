@@ -11,9 +11,6 @@
 Functional pulse.
 """
 
-import warnings
-from inspect import signature
-
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -23,93 +20,83 @@ from qiskit.pulse.commands._sample_pulse import SamplePulse
 class FunctionalPulse:
     """Decorator of pulse envelope function."""
 
-    def __init__(self, pulse):
+    def __init__(self, pulse_fun):
         """Create new pulse envelope function.
 
         Args:
-            pulse (callable): a function describing pulse envelope.
-            pulse function must contain argument "duration".
+            pulse_fun (callable): A function describing pulse envelope.
+            Pulse function must contain argument "duration".
 
         Raises:
-            QiskitError: when incorrect envelope function is specified
+            QiskitError: when incorrect envelope function is specified.
         """
 
-        if callable(pulse):
-            sig = signature(pulse)
-            if 'duration' in sig.parameters:
-                self.pulse = pulse
-            else:
-                raise QiskitError('Pulse function requires "duration" argument.')
+        if callable(pulse_fun):
+            self.pulse_fun = pulse_fun
         else:
             raise QiskitError('Pulse function is not callable.')
 
-    def __call__(self, duration, **kwargs):
+    def __call__(self, duration, **params):
         """Create new functional pulse.
         """
-        return FunctionalPulseCommand(self.pulse, duration=duration, **kwargs)
+        return FunctionalPulseCommand(self.pulse_fun, duration=duration, **params)
 
 
 class FunctionalPulseCommand(SamplePulse):
     """Functional pulse."""
 
-    def __init__(self, pulse, duration, **kwargs):
-        """ Generate new pulse instance.
+    def __init__(self, pulse_fun, duration, **params):
+        """Generate new pulse instance.
 
         Args:
-            pulse (callable): a function describing pulse envelope
-            duration (int): duration of pulse
+            pulse_fun (callable): A function describing pulse envelope.
+            duration (int): Duration of pulse.
+        Raises:
+            QiskitError: when first argument of pulse function is not duration.
         """
 
-        super(FunctionalPulseCommand, self).__init__(duration)
+        if isinstance(duration, int) and duration > 0:
+            super(FunctionalPulseCommand, self).__init__(duration, None)
 
-        self.pulse = pulse
-        self._params = kwargs
+            self.pulse_fun = pulse_fun
+            self._params = params
+        else:
+            raise QiskitError('The first argument of pulse function must be duration.')
 
     @property
     def params(self):
-        """Get parameters for describing pulse envelope
+        """Get parameters for describing pulse envelope.
 
         Returns:
-            dict: pulse parameters
+            dict: Pulse parameters.
         """
         return self._params
 
-    @params.setter
-    def params(self, params_new):
-        """Set parameters for describing pulse envelope
-
-        Args:
-            params_new (dict): dictionary of parameters
-        Raises:
-            QiskitError: when pulse parameter is not in the correct format.
+    def update_params(self, **params):
+        """Set parameters for describing pulse envelope.
         """
-        if isinstance(params_new, dict):
-            for key, val in self._params.items():
-                self._params[key] = params_new.get(key, val)
-        else:
-            raise QiskitError('Pulse parameter should be dictionary.')
+        self._params.update(params)
 
     @property
-    def sample(self):
-        """Output pulse envelope as a list of complex values
+    def samples(self):
+        """Output pulse envelope as a list of complex values.
 
         Returns:
-            list: complex pulse envelope at each sampling point
+            ndarray: Complex array of pulse envelope.
         Raises:
-            QiskitError: when invalid pulse data is generated
+            QiskitError: when invalid pulse data is generated.
         """
-        samples = self.pulse(self.duration, **self._params)
+        samples = self.pulse_fun(self.duration, **self.params)
 
-        if not isinstance(samples, (list, np.ndarray)):
+        if isinstance(samples, (list, np.ndarray)):
+            _samples = np.asarray(samples)
+        else:
             raise QiskitError('Output from pulse function is not array.')
 
-        if len(samples) != self.duration:
+        if len(_samples) != self.duration:
             raise QiskitError('Number of Data point is not consistent with duration.')
 
-        if any(abs(samples) > 1):
-            warnings.warn("Absolute value of pulse amplitude exceeds 1.")
-            _samples = np.where(abs(samples) > 1, samples/abs(samples), samples)
-        else:
-            _samples = samples
+        if np.any(np.abs(_samples) > 1):
+            raise QiskitError('Absolute value of pulse amplitude exceeds 1.')
 
         return _samples
