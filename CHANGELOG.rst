@@ -35,7 +35,13 @@ Added
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
-  different output stream 
+  different output stream
+- Added ``GlobalPhaseGate`` class to add gates (to circuits and CompositeGates) that
+  change the global phase by a specified unital complex number.
+- Added @property getter: ``get_hypothetical_left_over_global_phase()`` to return
+  theoretical unachieved global phase of initialization circuit.
+- Added ``global_phase.py`` to demonstrate usage of ``GlobalPhaseGate`` and
+  ``get_hypothetical_left_over_global_phase``
 
 Changed
 -------

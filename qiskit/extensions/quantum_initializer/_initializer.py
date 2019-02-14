@@ -23,9 +23,7 @@ from qiskit.extensions.standard.rz import RZGate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.x import XGate
 
-
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
-
 
 class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
     """Complex amplitude initialization.
@@ -71,7 +69,10 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
 
         super().__init__("init", params, qargs, circ)
 
-        # call to generate the circuit that takes the desired vector to zero (up to global phase, which is returned)
+        # call to generate the circuit that takes the desired vector to zero (up
+        # to global phase, which is returned and conjugated, giving the
+        # hypothetical left over global phase if zero vector and
+        # all gates were perfect)
         self.global_phase = self.gates_to_uncompute().conjugate()
         
         # remove zero rotations and double cnots
@@ -83,7 +84,14 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
         # we just used inverse() as a method to obtain it
         self.inverse_flag = False
 
-    def _get_unachieved_global_phase(self):
+    @property 
+    def get_hypothetical_left_over_global_phase(self):
+        """
+        Return the hypothetical left over global phase shortfall, between what 
+        the initialization circuit produces and what was asked for, assuming that
+        the initial vector was perfectly zero and that all sub-gates do not
+        introduce unaccounted for global phases.
+        """
         return self.global_phase
 
     def nth_qubit_from_least_sig_qubit(self, nth):
@@ -483,6 +491,7 @@ def globalphase_composite_gate(self, phase):
 def globalphase_circuit(self, phase):
     """Apply GlobalPhaseGate to circuit. Takes a single complex number of norm 1. """
     return self._attach(GlobalPhaseGate([phase], [(self.qregs[0],0)], self))
+
 
 QuantumCircuit.globalphase = globalphase_circuit
 CompositeGate.globalphase = globalphase_composite_gate
