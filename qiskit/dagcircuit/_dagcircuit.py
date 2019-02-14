@@ -26,7 +26,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
-from .dagnode import DAGNode
+from ._dagnode import DAGNode
 
 
 class DAGCircuit:
@@ -1134,11 +1134,26 @@ class DAGCircuit:
 
         def nodes_data(nodes):
             """Construct full nodes from just node ids."""
+            return (DAGNode(node_id=node_id, data_dict=self.multi_graph.nodes[node_id]) for node_id in nodes)
+
+        def nodes_data_o(nodes):
+            """Construct full nodes from just node ids."""
+            #return node_tuples(DAGNode(node_id=node_id, data_dict=self.multi_graph.nodes[node_id]) for node_id in nodes)
+            #for node_id in nodes:
+                #print(self.multi_graph.nodes[node_id])
+
             return ((node_id, self.multi_graph.nodes[node_id]) for node_id in nodes)
+
+        def node_tuples(nodes):
+            return ((n.node_id, n.data_dict) for n in nodes)
+
+        def add_nodes_from(layer, nodes):
+            layer.multi_graph.add_nodes_from(node_tuples(nodes))
+
 
         for graph_layer in graph_layers:
             # Get the op nodes from the layer, removing any input and output nodes.
-            op_nodes = [node for node in nodes_data(graph_layer) if node[1]["type"] == "op"]
+            op_nodes = [node for node in nodes_data(graph_layer) if node.type == "op"]
 
             # Stop yielding once there are no more op_nodes in a layer.
             if not op_nodes:
@@ -1148,28 +1163,28 @@ class DAGCircuit:
             new_layer = copy.copy(self)
             new_layer.multi_graph = nx.MultiDiGraph()
 
-            new_layer.multi_graph.add_nodes_from(nodes_data(self.input_map.values()))
-            new_layer.multi_graph.add_nodes_from(nodes_data(self.output_map.values()))
+            add_nodes_from(new_layer, nodes_data(self.input_map.values()))
+            add_nodes_from(new_layer, nodes_data(self.output_map.values()))
 
             # The quantum registers that have an operation in this layer.
             support_list = [
-                op_node[1]["qargs"]
+                op_node.qargs
                 for op_node in op_nodes
-                if op_node[1]["op"].name not in {"barrier", "snapshot", "save", "load", "noise"}
+                if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
-            new_layer.multi_graph.add_nodes_from(op_nodes)
 
+            add_nodes_from(new_layer, op_nodes)
             # Now add the edges to the multi_graph
             # By default we just wire inputs to the outputs.
             wires = {self.input_map[wire]: self.output_map[wire]
                      for wire in self.wires}
             # Wire inputs to op nodes, and op nodes to outputs.
             for op_node in op_nodes:
-                args = self._bits_in_condition(op_node[1]["condition"]) \
-                       + op_node[1]["cargs"] + op_node[1]["qargs"]
+                args = self._bits_in_condition(op_node.condition) \
+                       + op_node.cargs + op_node.qargs
                 arg_ids = (self.input_map[(arg[0], arg[1])] for arg in args)
                 for arg_id in arg_ids:
-                    wires[arg_id], wires[op_node[0]] = op_node[0], wires[arg_id]
+                    wires[arg_id], wires[op_node.node_id] = op_node.node_id, wires[arg_id]
 
             # Add wiring to/from the operations and between unused inputs & outputs.
             new_layer.multi_graph.add_edges_from(wires.items())

@@ -22,30 +22,51 @@ class DAGNode:
         """ Create a node """
         self.node_id = node_id
 
-        # TODO can this be refactored?
+        # TODO can this be refactored? Why do we store them separately?
+        # Could make them all @property so can be accessed with dot
         self.type = None
         self.op = None
         self.name = None
         self.qargs = []
         self.cargs = []
         self.condition = None
+        self.wire = None
 
-        if data_dict :
+        self.data_dict = data_dict
+
+        if data_dict:
             self.type = data_dict['type'] if 'type' in data_dict else None
             self.op = data_dict['op'] if 'op' in data_dict else None
             self.name = data_dict['name'] if 'name' in data_dict else None
             self.qargs = data_dict['qargs'] if 'qargs' in data_dict else []
             self.cargs = data_dict['cargs'] if 'cargs' in data_dict else []
             self.condition = data_dict['condition'] if 'condition' in data_dict else None
+            self.wire = data_dict['wire'] if 'wire' in data_dict else None
 
-        self.data_dict = {
+        """
+        
+            
+            
+        params_dict = {
             'type': self.type,
             'op': self.op,
             'name': self.name,
             'qargs': self.qargs,
             'cargs': self.cargs,
-            'condition': self.condition
+            'condition': self.condition,
+            'wire': self.wire
         }
+
+        for key in data_dict.keys():
+            # issue is that this does not update self.name
+            #params_dict[key] = data_dict[key]
+            to_update = params_dict[key]
+            print('to update ', to_update)
+            to_update = data_dict[key]
+            print('adding in ', data_dict[key], ' to ', key)
+
+        
+        """
 
     def __eq__(self, other):
 
@@ -64,3 +85,11 @@ class DAGNode:
             return copy_self == copy_other
 
         return self.data_dict == other.data_dict
+
+    def to_tuple(self):
+        """
+        Return a tuple of the node_id and data_dict
+        Required when adding nodes to a multigraph
+
+        """
+        return self.node_id, self.data_dict
