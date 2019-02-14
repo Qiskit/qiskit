@@ -38,12 +38,12 @@ PACKAGE_DATA = {}
 INCLUDE_DIRS = []
 # Extra link args
 LINK_FLAGS = []
-# If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
+# If on Win and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
-    COMPILER_FLAGS = ['/w', '/O2', '/std:c++11']
+    COMPILER_FLAGS = ['/O2', '/std:c++11']
 # Everything else
 else:
-    COMPILER_FLAGS = ['-w', '-O2', '-funroll-loops', '-std=c++11']
+    COMPILER_FLAGS = ['-O2', '-funroll-loops', '-std=c++11']
     if sys.platform == 'darwin':
         # These are needed for compiling on OSX 10.14+
         COMPILER_FLAGS.append('-mmacosx-version-min=10.9')

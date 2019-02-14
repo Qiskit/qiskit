@@ -403,7 +403,7 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
             stochastic mapper.
         trials (int): Number of attempts the randomized algorithm makes.
         qregs (OrderedDict): Ordered dict of registers from input DAG.
-        rng (SHIFTED_NORMAL_RNG): Random number generator.
+        rng (RandomState): Random number generator.
 
     Returns:
         Tuple: success_flag, best_circuit, best_depth, best_layout, trivial_flag
