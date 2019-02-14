@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+
+# Copyright 2019, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""Tests for FlexlayerHeuristics."""
+
 import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -7,42 +15,43 @@ from qiskit.mapper import CouplingMap, Layout
 from qiskit.transpiler.passes.mapping.algorithm import DependencyGraph
 from qiskit.transpiler.passes.mapping.algorithm import FlexlayerHeuristics, remove_head_swaps
 
-
 class TestLookaheadHeuristics(unittest.TestCase):
-    """Tests for dependency_graph.py"""
+    """Tests for FlexlayerHeuristics."""
 
     @unittest.skip("due to a bug in DAGCircuit.__eq__()")
-    def test_search_n4cx4h1(self):
-        q = QuantumRegister(4, 'q')
-        c = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(q, c)
-        circuit.cx(q[0], q[1])
-        circuit.cx(q[2], q[3])
-        circuit.cx(q[1], q[2])
-        circuit.h(q[1])
-        circuit.cx(q[1], q[0])
+    def test_search_4qcx4h1(self):
+        """Test for 4 cx gates and 1 h gate in a 4q circuit.
+        """
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[2], qr[3])
+        circuit.cx(qr[1], qr[2])
+        circuit.h(qr[1])
+        circuit.cx(qr[1], qr[0])
         circuit.barrier()
         for i in range(4):
-            circuit.measure(q[i], c[i])
-        dg = DependencyGraph(circuit, graph_type="basic")
+            circuit.measure(qr[i], cr[i])
+        dep_graph = DependencyGraph(circuit, graph_type="basic")
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])  # {0: [1], 1: [2, 3]}
-        initial_layout = Layout.generate_trivial_layout(q)
-        algo = FlexlayerHeuristics(circuit, dg, coupling, initial_layout)
+        initial_layout = Layout.generate_trivial_layout(qr)
+        algo = FlexlayerHeuristics(circuit, dep_graph, coupling, initial_layout)
         actual_dag, layout = algo.search()
 
-        expected = QuantumCircuit(q, c)
-        expected.cx(q[0], q[1])
-        expected.swap(q[1], q[2])
-        expected.cx(q[1], q[3])
-        expected.cx(q[2], q[1])
-        expected.h(q[2])
-        expected.swap(q[0], q[1])
-        expected.cx(q[2], q[1])
+        expected = QuantumCircuit(qr, cr)
+        expected.cx(qr[0], qr[1])
+        expected.swap(qr[1], qr[2])
+        expected.cx(qr[1], qr[3])
+        expected.cx(qr[2], qr[1])
+        expected.h(qr[2])
+        expected.swap(qr[0], qr[1])
+        expected.cx(qr[2], qr[1])
         expected.barrier()
-        expected.measure(q[1], c[0])
-        expected.measure(q[2], c[1])
-        expected.measure(q[0], c[2])
-        expected.measure(q[3], c[3])
+        expected.measure(qr[1], cr[0])
+        expected.measure(qr[2], cr[1])
+        expected.measure(qr[0], cr[2])
+        expected.measure(qr[3], cr[3])
         expected_layout = initial_layout
         from qiskit.tools.visualization import dag_drawer
         dag_drawer(actual_dag)
@@ -54,24 +63,26 @@ class TestLookaheadHeuristics(unittest.TestCase):
 
     @unittest.skip("TODO: Change to use DAGCircuit and Layout")
     def test_search_multi_creg(self):
-        b = QuantumRegister(4, 'b')
-        c = ClassicalRegister(2, 'c')
-        d = ClassicalRegister(2, 'd')
-        circuit = QuantumCircuit(b, c, d)
-        circuit.cx(b[0], b[1])
-        circuit.cx(b[2], b[3])
-        circuit.cx(b[1], b[2])
-        circuit.h(b[1])
-        circuit.cx(b[1], b[0])
-        circuit.barrier(b)
-        circuit.measure(b[0], c[0])
-        circuit.measure(b[1], c[1])
-        circuit.measure(b[2], d[0])
-        circuit.measure(b[3], d[1])
-        dg = DependencyGraph(circuit, graph_type="basic")
+        """Test for multiple ClassicalRegisters.
+        """
+        qr = QuantumRegister(4, 'b')
+        cr1 = ClassicalRegister(2, 'c')
+        cr2 = ClassicalRegister(2, 'd')
+        circuit = QuantumCircuit(qr, cr1, cr2)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[2], qr[3])
+        circuit.cx(qr[1], qr[2])
+        circuit.h(qr[1])
+        circuit.cx(qr[1], qr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr1[0])
+        circuit.measure(qr[1], cr1[1])
+        circuit.measure(qr[2], cr2[0])
+        circuit.measure(qr[3], cr2[1])
+        dep_graph = DependencyGraph(circuit, graph_type="basic")
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])  # {0: [1], 1: [2, 3]}
-        initial_layout = Layout.generate_trivial_layout(b)
-        algo = FlexlayerHeuristics(circuit, dg, coupling, initial_layout)
+        initial_layout = Layout.generate_trivial_layout(qr)
+        algo = FlexlayerHeuristics(circuit, dep_graph, coupling, initial_layout)
         qc, layout = algo.search()
         actual_measures = [s for s in qc.qasm().split('\n') if s.startswith("measure")]
         expected_measures = []
@@ -85,15 +96,17 @@ class TestLookaheadHeuristics(unittest.TestCase):
 
     @unittest.skip("TODO: Change to use DAGCircuit and Layout")
     def test_remove_head_swaps(self):
-        q = QuantumRegister(4, 'q')
-        c = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(q, c)
-        circuit.cx(q[0], q[1])
-        circuit.u1(1, q[2])
-        circuit.swap(q[2], q[3])
-        circuit.cx(q[1], q[2])
+        """Test for removing unnecessary swap gates from qc by changing initial_layout.
+        """
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[0], qr[1])
+        circuit.u1(1, qr[2])
+        circuit.swap(qr[2], qr[3])
+        circuit.cx(qr[1], qr[2])
         for i in range(4):
-            circuit.measure(q[i], c[i])
+            circuit.measure(qr[i], cr[i])
         initial_layout = {('q', i): ('q', i) for i in range(4)}
         resqc, layout = remove_head_swaps(circuit, initial_layout)
         actual_qasm = ''.join([s for s in resqc.qasm().split('\n') if not s.startswith("measure")])
@@ -128,21 +141,24 @@ class TestLookaheadHeuristics(unittest.TestCase):
     #     dag, layout = algo.search()
 
     @unittest.skip("TODO: Change to use DAGCircuit and Layout")
-    def test_remove_head_swaps2(self):
-        q = QuantumRegister(6, 'q')
-        c = ClassicalRegister(6, 'c')
-        circuit = QuantumCircuit(q, c)
-        circuit.u1(1, q[4])
-        circuit.h(q[3])
-        circuit.swap(q[4], q[5])
-        circuit.cx(q[3], q[4])
-        circuit.swap(q[3], q[4])
-        circuit.u1(1, q[1])
-        circuit.h(q[0])
-        circuit.swap(q[0], q[1])
-        circuit.swap(q[1], q[2])
-        circuit.swap(q[2], q[3])
-        circuit.cx(q[3], q[4])
+    def test_remove_head_swaps_and_leave_middle_swaps(self):
+        """Test for removing unnecessary swap gates from qc by changing initial_layout,
+        and test for middle swaps are left.
+        """
+        qr = QuantumRegister(6, 'q')
+        cr = ClassicalRegister(6, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.u1(1, qr[4])
+        circuit.h(qr[3])
+        circuit.swap(qr[4], qr[5])
+        circuit.cx(qr[3], qr[4])
+        circuit.swap(qr[3], qr[4])
+        circuit.u1(1, qr[1])
+        circuit.h(qr[0])
+        circuit.swap(qr[0], qr[1])
+        circuit.swap(qr[1], qr[2])
+        circuit.swap(qr[2], qr[3])
+        circuit.cx(qr[3], qr[4])
         initial_layout = {('b', i): ('q', i) for i in range(6)}
         resqc, layout = remove_head_swaps(circuit, initial_layout)
         actual_qasm = ''.join([s for s in resqc.qasm().split('\n')])
