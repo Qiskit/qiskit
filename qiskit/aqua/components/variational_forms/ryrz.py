@@ -44,18 +44,19 @@ class RYRZ(VariationalForm):
                     ]
                 },
                 'entangler_map': {
-                    'type': ['object', 'null'],
+                    'type': ['array', 'null'],
                     'default': None
                 }
             },
             'additionalProperties': False
         },
         'depends': [
-            {'pluggable_type': 'initial_state',
-             'default': {
-                     'name': 'ZERO',
+            {
+                'pluggable_type': 'initial_state',
+                'default': {
+                    'name': 'ZERO',
                 }
-             },
+            },
         ],
     }
 
@@ -66,9 +67,9 @@ class RYRZ(VariationalForm):
         Args:
             num_qubits (int) : number of qubits
             depth (int) : number of rotation layers
-            entangler_map (dict) : dictionary of entangling gates, in the format
-                                    { source : [list of targets] },
-                                    or None for full entanglement.
+            entangler_map (list[list]): describe the connectivity of qubits,
+                                        each list describes [source, target],
+                                        or None for full entanglement.
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
         """
