@@ -19,8 +19,9 @@ This module contains the definition of creating and validating entangler map
 based on the number of qubits.
 """
 
+
 def get_entangler_map(map_type, num_qubits):
-    """Utility method to get an entangler map among qubits
+    """Utility method to get an entangler map among qubits.
 
     Args:
         map_type (str): 'full' entangles each qubit with all the subsequent ones
@@ -29,42 +30,55 @@ def get_entangler_map(map_type, num_qubits):
 
     Returns:
         A map of qubit index to an array of indexes to which this should be entangled
+
+    Raises:
+        ValueError: if map_type is not valid.
     """
-    ret = {}
+    ret = []
     if num_qubits > 1:
-        if map_type is None or map_type == 'full':
-            ret = {i: [j for j in range(i, num_qubits) if j != i] for i in range(num_qubits-1)}
+        if map_type == 'full':
+            ret = [[i, j] for i in range(num_qubits) for j in range(i + 1, num_qubits)]
         elif map_type == 'linear':
-            ret = {i: [i + 1] for i in range(num_qubits-1)}
+            ret = [[i, i + 1] for i in range(num_qubits - 1)]
+        else:
+            raise ValueError("map_type only supports 'full' or 'linear' type.")
     return ret
 
+
 def validate_entangler_map(entangler_map, num_qubits, allow_double_entanglement=False):
-    """Validates a user supplied entangler map and converts entries to ints
+    """Validate a user supplied entangler map and converts entries to ints.
 
     Args:
-        entangler_map (dict) : An entangler map, keys are source qubit index (int), value is array
+        entangler_map (list[list]) : An entangler map, keys are source qubit index (int), value is array
                                of target qubit index(es) (int)
         num_qubits (int) : Number of qubits
-        allow_double_entanglement: If we allow in list x entangled to y and vice-versa or not
+        allow_double_entanglement: If we allow in two qubits can be entangled each other
+
     Returns:
         Validated/converted map
+
+    Raises:
+        TypeError: entangler map is not list type or list of list
+        ValueError: the index of entangler map is out of range
+        ValueError: the qubits are cross-entangled.
+
     """
-    if not isinstance(entangler_map, dict):
-        raise TypeError('Entangler map type dictionary expected')
-    for k, v in entangler_map.items():
-        if not isinstance(v, list):
-            raise TypeError('Entangle index list expected but got {}'.format(type(v)))
+    if not isinstance(entangler_map, list):
+        raise TypeError("Entangler map type 'list' expected")
 
-    ret_map = {}
-    for k, v in entangler_map.items():
-        ret_map[int(k)] = [int(x) for x in v]
+    for src_to_targ in entangler_map:
+        if not isinstance(src_to_targ, list):
+            raise TypeError('Entangle index list expected but got {}'.format(type(src_to_targ)))
 
-    for k, v in ret_map.items():
-        if k < 0 or k >= num_qubits:
-            raise ValueError('Qubit value {} invalid for {} qubits'.format(k, num_qubits))
-        for i in v:
-            if i < 0 or i >= num_qubits:
-                raise ValueError('Qubit entangle target value {} invalid for {} qubits'.format(i, num_qubits))
-            if allow_double_entanglement is False and i in ret_map and k in ret_map[i]:
-                raise ValueError('Qubit {} and {} cross-listed'.format(i, k))
+    ret_map = []
+    ret_map = [[int(src), int(targ)] for src, targ in entangler_map]
+
+    for src, targ in ret_map:
+        if src < 0 or src >= num_qubits:
+            raise ValueError('Qubit entangle source value {} invalid for {} qubits'.format(src, num_qubits))
+        if targ < 0 or targ >= num_qubits:
+            raise ValueError('Qubit entangle target value {} invalid for {} qubits'.format(targ, num_qubits))
+        if not allow_double_entanglement and [targ, src] in ret_map:
+            raise ValueError('Qubit {} and {} cross-entangled.'.format(src, targ))
+
     return ret_map
