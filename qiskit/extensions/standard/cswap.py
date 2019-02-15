@@ -8,6 +8,7 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -64,3 +65,4 @@ def cswap(self, ctl, tgt1, tgt2):
 
 
 QuantumCircuit.cswap = cswap
+CompositeGate.cswap = cswap
