@@ -10,6 +10,7 @@
 """
 controlled-H gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -84,3 +85,4 @@ def ch(self, ctl, tgt):
 
 
 QuantumCircuit.ch = ch
+CompositeGate.ch = ch
