@@ -1025,6 +1025,13 @@ class DAGCircuit:
         return [DAGNode(nid, data_dict=self.multi_graph.node[nid])
                 for nid in self.multi_graph.successors(node)]
 
+    def predecessors(self, node):
+        """Returns list of the successors of a node as DAGNodes."""
+        if isinstance(node, DAGNode):
+            node = node.node_id
+        return [DAGNode(nid, data_dict=self.multi_graph.node[nid])
+                for nid in self.multi_graph.predecessors(node)]
+
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
         if isinstance(node, DAGNode):

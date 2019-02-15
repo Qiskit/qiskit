@@ -117,7 +117,7 @@ class TestDagOperations(QiskitTestCase):
         h_node = self.dag.op_nodes(op=HGate).pop()
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
-        self.assertIn(reset_node.node_id, set(self.dag.multi_graph.predecessors(h_node.node_id)))
+        self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""

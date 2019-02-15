@@ -81,7 +81,6 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                 break
 
         for candidate_barrier in existing_barriers:
-
             their_ancestors = barrier_layer.ancestors(candidate_barrier)
             their_descendants = barrier_layer.descendants(candidate_barrier)
             their_qubits = set(candidate_barrier.qargs)

@@ -417,9 +417,6 @@ class TextDrawing():
         self.cregs = cregs
         self.instructions = instructions
 
-        print("instructions")
-        print(instructions)
-
         self.plotbarriers = plotbarriers
         self.line_length = line_length
 
