@@ -152,8 +152,8 @@ class TestCheckCNotDirection(QiskitTestCase):
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
 
-class TestCheckMapCZ(QiskitTestCase):
-    """ Tests the CheckMap pass with CZ gates"""
+class TestCheckCNotDirectionCZ(QiskitTestCase):
+    """ Tests the CheckCNotDirection pass with CZ gates"""
 
     def test_true_map(self):
         """ Mapped is easy to check
@@ -221,8 +221,8 @@ class TestCheckMapCZ(QiskitTestCase):
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
 
-class TestCheckMapSwap(QiskitTestCase):
-    """ Tests the CheckMap pass with Swap gates"""
+class TestCheckCNotDirectionSwap(QiskitTestCase):
+    """ Tests the CheckCNotDirection pass with Swap gates"""
 
     def test_true_map(self):
         """ Mapped is easy to check
@@ -311,6 +311,27 @@ class TestCheckMapSwap(QiskitTestCase):
         pass_.run(dag)
 
         self.assertFalse(pass_.property_set['is_direction_mapped'])
+
+class TestCheckCNotDirectionBarrier(QiskitTestCase):
+    """ Tests the CheckCNotDirection pass with Swap gates"""
+    def test_2q_barrier(self):
+        """ A 2q barrier should be ignored
+         qr0:--|--
+               |
+         qr1:--|--
+
+         CouplingMap map: None
+        """
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.barrier(qr[0], qr[1])
+        coupling = CouplingMap()
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CheckCnotDirection(coupling)
+        pass_.run(dag)
+
+        self.assertTrue(pass_.property_set['is_direction_mapped'])
 
 
 if __name__ == '__main__':

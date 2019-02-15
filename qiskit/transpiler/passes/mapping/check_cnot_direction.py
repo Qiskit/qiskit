@@ -13,6 +13,7 @@ direction with respect to thecoupling map.
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
 from qiskit.extensions.standard.swap import SwapGate
+from qiskit.extensions.standard.swap import SwapGate
 
 
 class CheckCnotDirection(AnalysisPass):
@@ -49,9 +50,12 @@ class CheckCnotDirection(AnalysisPass):
 
         self.property_set['is_direction_mapped'] = True
 
-        for gate in dag.get_2q_nodes():
+        for gate in dag.twoQ_nodes():
             physical_q0 = self.layout[gate['qargs'][0]]
             physical_q1 = self.layout[gate['qargs'][1]]
+
+            if gate['name'] not in ['swap', 'cx', 'CX', 'cz', 'CZ']:
+                continue
 
             if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
                 self.property_set['is_direction_mapped'] = False
