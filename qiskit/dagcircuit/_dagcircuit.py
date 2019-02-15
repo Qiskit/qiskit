@@ -1022,33 +1022,41 @@ class DAGCircuit:
         """Returns the successors of a node."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return self.multi_graph.successors(node)
+        return (DAGNode(nid, data_dict=self.multi_graph.node[nid]) for nid in self.multi_graph.successors(node))
 
     def ancestors(self, node):
         """Returns the ancestors of a node."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return nx.ancestors(self.multi_graph, node)
+
+        outp = set()
+        # returns a set - just need to convert and keep as a set
+        for nid in nx.ancestors(self.multi_graph, node):
+            outp.add(DAGNode(nid, data_dict=self.multi_graph.node[nid]))
+        return outp
 
     def descendants(self, node):
-        """Returns the descendants of a node."""
+        """Returns DAGNode descendants of a node."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return nx.descendants(self.multi_graph, node)
+        return (map(lambda d: DAGNode(data_dict=self.multi_graph.node[d]), desc)
+                for _, desc in nx.descendants(self.multi_graph, node))
 
     def bfs_successors(self, node):
-        """Returns successors of a node in BFS order"""
+        """Returns DAGNode successors of a node in BFS order"""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return nx.bfs_successors(self.multi_graph, node)
+
+        # convert from a list of numbers to a list of DAGNodes
+        return (map(lambda s: DAGNode(data_dict=self.multi_graph.node[s]), succs)
+                for _, succs in nx.bfs_successors(self.multi_graph, node))
 
     def quantum_successors(self, node):
         """Returns the successors of a node that are connected by a quantum edge"""
         successors = []
         for successor in self.successors(node):
-            if isinstance(self.multi_graph.get_edge_data(node.node_id, successor, key=0)['wire'][0],
-                          QuantumRegister):
-                successors.append(DAGNode(node_id=successor, data_dict=self.multi_graph.node[successor]))
+            if isinstance(successor.wire, QuantumRegister):
+                successors.append(successor)
         return successors
 
     def _remove_op_node(self, n):
@@ -1136,20 +1144,9 @@ class DAGCircuit:
             """Construct full nodes from just node ids."""
             return (DAGNode(node_id=node_id, data_dict=self.multi_graph.nodes[node_id]) for node_id in nodes)
 
-        def nodes_data_o(nodes):
-            """Construct full nodes from just node ids."""
-            #return node_tuples(DAGNode(node_id=node_id, data_dict=self.multi_graph.nodes[node_id]) for node_id in nodes)
-            #for node_id in nodes:
-                #print(self.multi_graph.nodes[node_id])
-
-            return ((node_id, self.multi_graph.nodes[node_id]) for node_id in nodes)
-
-        def node_tuples(nodes):
-            return ((n.node_id, n.data_dict) for n in nodes)
-
         def add_nodes_from(layer, nodes):
-            layer.multi_graph.add_nodes_from(node_tuples(nodes))
-
+            """ Convert DAGNodes into a format that can be added to a multigraph and then add to graph"""
+            layer.multi_graph.add_nodes_from([n.to_tuple() for n in nodes])
 
         for graph_layer in graph_layers:
             # Get the op nodes from the layer, removing any input and output nodes.
