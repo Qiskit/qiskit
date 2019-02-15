@@ -13,7 +13,7 @@ to be regenerated, the DAG candidate is compiled and run in a simulator and
 the count is checked before being saved. This happens with (in the root
 directory):
 
-> python -m  test.python.transpiler.test_mappers
+> python -m  test.python.transpiler.test_mappers regenerate
 
 To make a new swapper pass throw all the common tests, create a new class inside the file
 `path/to/test_mappers.py` that:
