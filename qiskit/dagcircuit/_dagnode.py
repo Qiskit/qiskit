@@ -71,6 +71,14 @@ class DAGNode:
         """Needed for ancestors function, which returns a set
         to be in a set requires the object to be hashable
         """
-        # issue is that dict contains items that are themselves unhashable
-        dict_tuple = tuple(sorted(self.data_dict.items()))
-        return hash((self.node_id, self.op))
+        return hash((self.node_id,
+                     self.type,
+                     str(self.op),
+                     self.name,
+                     tuple(self.qargs),
+                     tuple(self.cargs),
+                     self.condition,
+                     self.wire))
+
+    def __str__(self):
+        return str(self.data_dict)
