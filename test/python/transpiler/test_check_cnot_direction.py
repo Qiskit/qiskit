@@ -40,11 +40,11 @@ class TestCheckCNotDirection(QiskitTestCase):
 
     def test_true_direction(self):
         """ Mapped is easy to check
-         qr0:--(+)-[H]-(+)-
+         qr0:---.--[H]--.--
                 |       |
-         qr1:---.-------|--
+         qr1:--(+)------|--
                         |
-         qr2:-----------.--
+         qr2:----------(+)-
 
          CouplingMap map: [1]<-[0]->[2]
         """
