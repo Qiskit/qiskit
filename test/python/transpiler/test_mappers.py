@@ -28,7 +28,7 @@ For example::
         additional_args = {'seed': 42}  # In case SomeSwap.__init__ requires
                                         # additional arguments
 
-To **add a test for all the swappers**: add a new method ``test_foo``to the
+To **add a test for all the swappers**, add a new method ``test_foo``to the
 ``SwapperCommonTestCases`` class:
     * defining the following required ``self`` attributes: ``self.count``,
       ``self.shots``, ``self.delta``. They are required for the regeneration of the
