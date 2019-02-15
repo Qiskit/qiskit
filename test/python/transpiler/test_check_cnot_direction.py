@@ -293,8 +293,8 @@ class TestCheckCNotDirectionSwap(QiskitTestCase):
 
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
-    def test_false_map(self):
-        """ Needs [0]-[1] in a [0]--[2]--[1]
+    def test_single_direction(self):
+        """ Needs [0]<->[1] in a [0]->[1]
          qr0:--X--
                |
          qr1:--X--
