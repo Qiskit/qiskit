@@ -224,7 +224,7 @@ class TestCheckCNotDirectionCZ(QiskitTestCase):
 class TestCheckCNotDirectionSwap(QiskitTestCase):
     """ Tests the CheckCNotDirection pass with Swap gates"""
 
-    def test_true_map(self):
+    def test_false_map(self):
         """ Mapped is easy to check
 
          qr0:--X-[H]-X--
