@@ -12,7 +12,8 @@ direction with respect to thecoupling map.
 
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
-from qiskit.extensions.standard.cx import CXBase
+from qiskit.extensions.standard.cx import CXBase, CnotGate
+
 
 class CheckCnotDirection(AnalysisPass):
     """
@@ -53,6 +54,7 @@ class CheckCnotDirection(AnalysisPass):
             physical_q0 = self.layout[gate['qargs'][0]]
             physical_q1 = self.layout[gate['qargs'][1]]
 
-            if isinstance(gate['op'], CXBase) and (physical_q0, physical_q1) not in edges:
+            if isinstance(gate['op'], (CXBase, CnotGate)) and (
+            physical_q0, physical_q1) not in edges:
                 self.property_set['is_direction_mapped'] = False
                 return
