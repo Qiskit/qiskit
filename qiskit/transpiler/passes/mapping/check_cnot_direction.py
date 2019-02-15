@@ -55,6 +55,6 @@ class CheckCnotDirection(AnalysisPass):
             physical_q1 = self.layout[gate['qargs'][1]]
 
             if isinstance(gate['op'], (CXBase, CnotGate)) and (
-            physical_q0, physical_q1) not in edges:
+                    physical_q0, physical_q1) not in edges:
                 self.property_set['is_direction_mapped'] = False
                 return
