@@ -20,7 +20,6 @@ from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.simulator.snapshot import Snapshot
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -181,7 +180,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
 
-    def test_twoQ_gates(self):
+    def test_two_q_gates(self):
         """The method dag.twoQ_gates() returns all 2Q gate nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
