@@ -20,7 +20,7 @@ deprecation periods warning of any coming changes.
 There is also the introduction of the following new features:
 
 * A new ASCII art circuit drawing output mode
-* A new ciruit drawing interface off of QuantumCircuit objects. Now you can
+* A new circuit drawing interface off of QuantumCircuit objects. Now you can
   call ``circuit.draw()`` or ``print(circuit)`` and render a drawing of
   the circuit.
 * A visualizer for drawing the DAG representation of a circuit
