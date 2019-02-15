@@ -49,12 +49,11 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
         circuit.h(qr[0])
 
         expected = QuantumCircuit(qr)
-        expected.u2(0, sympy.pi, qr[0])
+        expected.u2(0, np.pi, qr[0])
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
-
         self.assertEqual(expected, result)
 
 
@@ -77,15 +76,15 @@ class TestMovedFromMapper(QiskitTestCase):
         qc.u1(sympy.pi, qr[0])  # to identity then
         qc.u1(sympy.pi / 2, qr[0])  # optimized away.
         qc.cx(qr[1], qr[0])
-        qc.u1(np.pi, qr[1])  # this doesn't become precisely 0, so should
-        qc.u1(np.pi, qr[1])  # combine but stay, until an approximate optimizer.
+        qc.u1(np.pi, qr[1])
+        qc.u1(np.pi, qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
         dag = circuit_to_dag(qc)
         simplified_dag = Optimize1qGates().run(dag)
         num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
-        self.assertEqual(num_u1_gates_remaining, 2)
+        self.assertEqual(num_u1_gates_remaining, 1)
 
     def test_optimize_1q_gates_symbolic(self):
         """optimizes single qubit gate sequences with symbolic params.
@@ -117,10 +116,10 @@ class TestMovedFromMapper(QiskitTestCase):
             if node['name'] == 'u1':
                 params.add(node['op'].params[0])
 
-        expected_params = {-3 * sympy.pi / 2,
-                           1.0 + 0.55 * sympy.pi,
-                           sympy.N(-0.479425538604203),
-                           0.3 + sympy.pi + sympy.pi ** 2}
+        expected_params = {sympy.Number(-3 * np.pi / 2),
+                           sympy.Number(1.0 + 0.55 * np.pi),
+                           sympy.Number(-0.479425538604203),
+                           sympy.Number(0.3 + np.pi + np.pi ** 2)}
 
         self.assertEqual(params, expected_params)
 
