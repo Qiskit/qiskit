@@ -312,8 +312,10 @@ class TestCheckCNotDirectionSwap(QiskitTestCase):
 
         self.assertFalse(pass_.property_set['is_direction_mapped'])
 
+
 class TestCheckCNotDirectionBarrier(QiskitTestCase):
     """ Tests the CheckCNotDirection pass with Swap gates"""
+
     def test_2q_barrier(self):
         """ A 2q barrier should be ignored
          qr0:--|--
