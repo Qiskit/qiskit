@@ -12,6 +12,7 @@ from .instruction import Instruction
 from .instructionset import InstructionSet
 from .quantumcircuit import QuantumCircuit
 from .quantumregister import QuantumRegister
+from .decorators import _op_expand
 
 
 class Reset(Instruction):
@@ -22,6 +23,7 @@ class Reset(Instruction):
         super().__init__("reset", [], circ)
 
 
+@_op_expand(1)
 def reset(self, qubit):
     """Reset q."""
     if isinstance(qubit, QuantumRegister):
