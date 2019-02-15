@@ -4,16 +4,7 @@
 Getting Started with Qiskit
 ===========================
 
-Here, we provide an overview of working with Qiskit. Qiskit provides the
-basic building blocks necessary to program quantum computers. The basic
-concept of Qiskit is an array of quantum circuits. A workflow using
-Qiskit consists of two stages: **Build** and **Execute**. **Build**
-allows you to make different quantum circuits that represent the problem
-you are solving, and **Execute** allows you to run them on different
-backends. After the jobs have been run, the data is collected. There are
-methods for putting this data together, depending on the program. This
-either gives you the answer you wanted, or allows you to make a better
-program for the next instance.
+Here, we provide an overview of working with Qiskit. Qiskit provides the basic building blocks necessary to program quantum computers. The basic concept of Qiskit is an array of quantum circuits. A workflow using Qiskit consists of two stages: **Build** and **Execute**. **Build** allows you to make different quantum circuits that represent the problem you are solving, and **Execute** allows you to run them on different *backends*, a term meant to encompass both devices and simulation frameworks. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted, or allows you to make a better program for the next instance.
 
 **Code imports**
 
@@ -23,7 +14,7 @@ program for the next instance.
     from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
     from qiskit import execute
 
-Circuit Basics 
+Circuit Basics
 ---------------
 
 Building the circuit
@@ -36,7 +27,7 @@ and QuantumRegister.
 
     # Create a Quantum Register with 3 qubits.
     q = QuantumRegister(3, 'q')
-    
+
     # Create a Quantum Circuit acting on the q register
     circ = QuantumCircuit(q)
 
@@ -54,10 +45,10 @@ example of a quantum circuit that makes a three-qubit GHZ state
 
 To create such a state, we start with a 3-qubit quantum register. By
 default, each qubit in the register is initialized to :math:`|0\rangle`.
-To make the GHZ state, we apply the following gates: 
+To make the GHZ state, we apply the following gates:
 
-- A Hadamard gate :math:`H` on qubit 0, which puts it into a superposition state. 
-- A controlled-Not operation (:math:`C_{X}`) between qubit 0 and qubit 1. 
+- A Hadamard gate :math:`H` on qubit 0, which puts it into a superposition state.
+- A controlled-Not operation (:math:`C_{X}`) between qubit 0 and qubit 1.
 - A controlled-Not operation between qubit 0 and qubit 2.
 
 On an ideal quantum computer, the state produced by running this circuit
@@ -90,9 +81,9 @@ which plots circuit in the form found in many textbooks.
 
 .. raw:: html
 
-    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐          
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐
     q_0: |0>┤ H ├──■────■──
-            └───┘┌─┴─┐  │  
+            └───┘┌─┴─┐  │
     q_1: |0>─────┤ X ├──┼──
                  └───┘┌─┴─┐
     q_2: |0>──────────┤ X ├
@@ -105,12 +96,10 @@ and qubit two at the bottom. The circuit is read left-to-right (meaning
 that gates which are applied earlier in the circuit show up further to
 the left).
 
-Simulating circuits using Qiskit Aer 
+Simulating Circuits using Qiskit Aer
 -------------------------------------
 
-Qiskit Aer is our package for simulating quantum circuits. It provides
-many different backends for doing a simulation. Here we use the basic
-python version.
+Qiskit Aer is our package for simulating quantum circuits. It provides many different backends for doing a simulation. Here we use the basic Python version.
 
 Statevector backend
 ~~~~~~~~~~~~~~~~~~~
@@ -155,7 +144,7 @@ to import Aer and then set the backend to ``statevector_simulator``.
 
     # Import Aer
     from qiskit import BasicAer
-    
+
     # Run the quantum circuit on a statevector simulator backend
     backend = BasicAer.get_backend('statevector_simulator')
 
@@ -166,7 +155,7 @@ the job submitted to the backend.
 
 .. code:: python
 
-    # Create a Quantum Program for execution 
+    # Create a Quantum Program for execution
     job = execute(circ, backend)
 
 When you run a program, a job object is made that has the following two
@@ -227,7 +216,7 @@ the quantum circuit.
     backend = BasicAer.get_backend('unitary_simulator')
     job = execute(circ, backend)
     result = job.result()
-    
+
     # Show the results
     print(result.get_unitary(circ, decimals=3))
 
@@ -299,27 +288,27 @@ backend.
     meas.barrier(q)
     # map the quantum measurement to the classical bits
     meas.measure(q,c)
-    
+
     # The Qiskit circuit object supports composition using
     # the addition operator.
     qc = circ+meas
-    
+
     #drawing the circuit
     qc.draw()
 
 .. raw:: html
 
-    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐           ░ ┌─┐      
+    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐           ░ ┌─┐
     q_0: |0>┤ H ├──■────■───░─┤M├──────
-            └───┘┌─┴─┐  │   ░ └╥┘┌─┐   
+            └───┘┌─┴─┐  │   ░ └╥┘┌─┐
     q_1: |0>─────┤ X ├──┼───░──╫─┤M├───
                  └───┘┌─┴─┐ ░  ║ └╥┘┌─┐
     q_2: |0>──────────┤ X ├─░──╫──╫─┤M├
                       └───┘ ░  ║  ║ └╥┘
      c_0: 0 ═══════════════════╩══╬══╬═
-                                  ║  ║ 
+                                  ║  ║
      c_1: 0 ══════════════════════╩══╬═
-                                     ║ 
+                                     ║
      c_2: 0 ═════════════════════════╩═
                                        </pre>
 
@@ -339,12 +328,12 @@ the ``execute`` function, via the ``shots`` keyword.
 
     # Use Aer's qasm_simulator
     backend_sim = BasicAer.get_backend('qasm_simulator')
-    
+
     # Execute the circuit on the qasm simulator.
     # We've set the number of repeats of the circuit
     # to be 1024, which is the default.
     job_sim = execute(qc, backend_sim, shots=1024)
-    
+
     # Grab the results from the job.
     result_sim = job_sim.result()
 
@@ -385,40 +374,18 @@ dividing by the number of shots (times the circuit was repeated). Try
 changing the ``shots`` keyword in the ``execute`` function and see how
 the estimated probabilities change.
 
-Running circuits using the IBMQ provider 
------------------------------------------
+Running Circuits on IBM Q Devices
+---------------------------------
 
-To faciliate access to real quantum computing hardware, we have provided
-a simple API interface. To access IBMQ devices, you’ll need an API
-token. For the public IBM Q devices, you can generate an API token
-`here <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`__
-(create an account if you don’t already have one). For Q Network
-devices, login to the q-console, click your hub, group, and project, and
-expand “Get Access” to generate your API token and access url.
+To follow along with this section, first be sure to set up an IBM Q account as explained in the :ref:`install_access_ibm_q_devices_label` section of the Qiskit installation instructions.
 
-Our IBMQ provider lets you run your circuit on real devices or on our
-HPC simulator. Currently, this provider exists within Qiskit, and can be
-imported as shown below. For details on the provider, see `The IBMQ
-Provider <the_ibmq_provider.ipynb>`__.
-
-.. code:: python
-
-    from qiskit import IBMQ
-
-After generating your API token, call,
-``IBMQ.save_account('MY_TOKEN')``. For Q Network users, you’ll also need
-to include your access url: ``IBMQ.save_account('MY_TOKEN', 'URL')``
-
-This will store your IBMQ credentials in a local file. Unless your
-registration information has changed, you only need to do this once. You
-may now load your accounts by calling,
+Load your IBM Q account credentials by calling
 
 .. code:: python
 
     IBMQ.load_accounts()
 
-Once your account has been loaded, you can view the list of backends
-available to you.
+Once your account has been loaded, you can view the list of devices available to you.
 
 .. code:: python
 
@@ -440,18 +407,14 @@ available to you.
 Running circuits on real devices
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Today’s quantum information processors are small and noisy, but are
-advancing at a fast pace. They provide a great opportunity to explore
-what noisy quantum computers can do.
+Today’s quantum information processors are small and noisy, but are advancing at a fast pace. They provide a great opportunity to explore what noisy quantum computers can do.
 
-The IBMQ provider uses a queue to allocate the devices to users. We now
-choose a device with the least busy queue which can support our program
-(has at least 3 qubits).
+The IBMQ provider uses a queue to allocate the devices to users. We now choose a device with the least busy queue which can support our program (has at least 3 qubits).
 
 .. code:: python
 
     from qiskit.providers.ibmq import least_busy
-    
+
     large_enough_devices = IBMQ.backends(filters=lambda x: x.configuration().n_qubits > 3 and not x.configuration().simulator)
     backend = least_busy(large_enough_devices)
     print("The best backend is " + backend.name())
@@ -471,8 +434,8 @@ circuit. Then, we execute the circuit on the backend using the
 
     from qiskit.tools.monitor import job_monitor
     shots = 1024           # Number of shots to run the program (experiment); maximum is 8192 shots.
-    max_credits = 3        # Maximum number of credits to spend on executions. 
-    
+    max_credits = 3        # Maximum number of credits to spend on executions.
+
     job_exp = execute(qc, backend=backend, shots=shots, max_credits=max_credits)
     job_monitor(job_exp)
 
@@ -524,8 +487,8 @@ backends.
 .. code:: python
 
     shots = 1024           # Number of shots to run the program (experiment); maximum is 8192 shots.
-    max_credits = 3        # Maximum number of credits to spend on executions. 
-    
+    max_credits = 3        # Maximum number of credits to spend on executions.
+
     job_hpc = execute(qc, backend=backend, shots=shots, max_credits=max_credits)
 
 .. code:: python
@@ -555,8 +518,8 @@ ID:
 .. code:: python
 
     jobID = job_exp.job_id()
-    
-    print('JOB ID: {}'.format(jobID))        
+
+    print('JOB ID: {}'.format(jobID))
 
 
 .. parsed-literal::
@@ -590,6 +553,3 @@ and then the results can be obtained from the new job object.
      '101': 112,
      '011': 32,
      '000': 412}
-
-
-
