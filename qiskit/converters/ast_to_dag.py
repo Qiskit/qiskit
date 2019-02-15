@@ -313,7 +313,7 @@ class AstInterpreter:
             qargs (list(QuantumRegister, int)): qubits to attach to
 
         Raises:
-            QiskitError: if encountering an unknown gate
+            QiskitError: if encountering a non-basis opaque gate
         """
         if name == "u0":
             op_class = U0Gate

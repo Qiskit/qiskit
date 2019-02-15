@@ -109,11 +109,16 @@ class BaseProgressBar(Subscriber):
 class TextProgressBar(BaseProgressBar):
     """
     A simple text-based progress bar.
+
+    output_handler : the handler the progress bar should be written to, default
+                     is sys.stdout, another option is sys.stderr
     """
 
-    def __init__(self):
+    def __init__(self, output_handler=None):
         super().__init__()
         self._init_subscriber()
+
+        self.output_handler = output_handler if output_handler else sys.stdout
 
     def _init_subscriber(self):
         def _initialize_progress_bar(num_tasks):
@@ -139,14 +144,14 @@ class TextProgressBar(BaseProgressBar):
         self.iter = int(iterations)
         self.t_start = time.time()
         pbar = '-' * 50
-        sys.stdout.write('\r|%s| %s%s%s [%s]' %
-                         (pbar, 0, '/', self.iter, ''))
+        self.output_handler.write('\r|%s| %s%s%s [%s]' %
+                                  (pbar, 0, '/', self.iter, ''))
 
     def update(self, n):
         filled_length = int(round(50 * n / self.iter))
         pbar = u'█' * filled_length + '-' * (50 - filled_length)
         time_left = self.time_remaining_est(n)
-        sys.stdout.write('\r|%s| %s%s%s [%s]' % (pbar, n, '/', self.iter, time_left))
+        self.output_handler.write('\r|%s| %s%s%s [%s]' % (pbar, n, '/', self.iter, time_left))
         if n == self.iter:
-            sys.stdout.write('\n')
-        sys.stdout.flush()
+            self.output_handler.write('\n')
+        self.output_handler.flush()

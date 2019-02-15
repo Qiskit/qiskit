@@ -57,9 +57,14 @@ class QobjItem(SimpleNamespace):
         if isinstance(obj, sympy.Symbol):
             return str(obj)
         if isinstance(obj, sympy.Basic):
-            return float(obj.evalf())
+            if obj.is_imaginary:
+                return [float(sympy.re(obj)), float(sympy.im(obj))]
+            else:
+                return float(obj.evalf())
         if isinstance(obj, numpy.ndarray):
             return cls._expand_item(obj.tolist())
+        if isinstance(obj, sympy.Matrix):
+            return cls._expand_item(sympy.matrix2numpy(obj, dtype=complex))
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
         if hasattr(obj, 'as_dict'):
