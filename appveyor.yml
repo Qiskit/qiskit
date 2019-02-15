@@ -52,3 +52,7 @@ on_finish:
     - ps: $wc = New-Object 'System.Net.WebClient'
 # TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test_results.xml))
+
+# Open an issue on failure
+on_failure:
+    - python tools/report_ci_failure.py
