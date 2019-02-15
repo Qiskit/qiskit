@@ -13,7 +13,6 @@ direction with respect to thecoupling map.
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
 from qiskit.extensions.standard.swap import SwapGate
-from qiskit.extensions.standard.swap import SwapGate
 
 
 class CheckCnotDirection(AnalysisPass):
