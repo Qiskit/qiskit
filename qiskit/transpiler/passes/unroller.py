@@ -20,7 +20,7 @@ class Unroller(TransformationPass):
     def __init__(self, basis):
         """
         Args:
-            basis (list[qiskit.circuit.gate.Gate]): Target basis gates to unroll to.
+            basis (list[str]): Target basis gate names to unroll to, e.g. `['U', 'CX']` .
         """
         super().__init__()
         self.basis = basis
