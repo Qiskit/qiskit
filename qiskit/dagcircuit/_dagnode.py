@@ -22,25 +22,43 @@ class DAGNode:
         """ Create a node """
         self.node_id = node_id
 
-        # TODO Could make them all @property so can be accessed with dot
-        self.type = None
-        self.op = None
-        self.name = None
-        self.qargs = []
-        self.cargs = []
-        self.condition = None
-        self.wire = None
-
         self.data_dict = data_dict
 
-        if data_dict:
-            self.type = data_dict['type'] if 'type' in data_dict else None
-            self.op = data_dict['op'] if 'op' in data_dict else None
-            self.name = data_dict['name'] if 'name' in data_dict else None
-            self.qargs = data_dict['qargs'] if 'qargs' in data_dict else []
-            self.cargs = data_dict['cargs'] if 'cargs' in data_dict else []
-            self.condition = data_dict['condition'] if 'condition' in data_dict else None
-            self.wire = data_dict['wire'] if 'wire' in data_dict else None
+    @property
+    def type(self):
+        """ Returns the type of the node else None"""
+        return self.data_dict['type'] if self.data_dict and'type' in self.data_dict else None
+
+    @property
+    def op(self):
+        """ Returns the op for the node else None"""
+        return self.data_dict['op'] if self.data_dict and 'op' in self.data_dict else None
+
+    @property
+    def name(self):
+        """ Returns the name of the node else None"""
+        return self.data_dict['name'] if self.data_dict and 'name' in self.data_dict else None
+
+    @property
+    def qargs(self):
+        """ Returns the qargs for the node else an empty list"""
+        return self.data_dict['qargs'] if self.data_dict and 'qargs' in self.data_dict else []
+
+    @property
+    def cargs(self):
+        """ Returns the cargs for the node else an empty list"""
+        return self.data_dict['cargs'] if self.data_dict and 'cargs' in self.data_dict else []
+
+    @property
+    def condition(self):
+        """ Returns the condition of the node else None"""
+        return self.data_dict['condition'] if self.data_dict and 'condition' in self.data_dict \
+            else None
+
+    @property
+    def wire(self):
+        """ Returns the wire of the node else None"""
+        return self.data_dict['wire'] if self.data_dict and 'wire' in self.data_dict else None
 
     def __eq__(self, other):
 
