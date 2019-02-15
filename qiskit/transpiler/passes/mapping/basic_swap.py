@@ -91,8 +91,8 @@ class BasicSwap(TransformationPass):
 
                         # create qregs
                         for qreg in current_layout.get_registers():
-                            if qreg[0] not in swap_layer.qregs.values():
-                                swap_layer.add_qreg(qreg[0])
+                            if qreg not in swap_layer.qregs.values():
+                                swap_layer.add_qreg(qreg)
 
                         # create the swap operation
                         swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
