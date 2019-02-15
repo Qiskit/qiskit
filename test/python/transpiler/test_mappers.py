@@ -57,7 +57,7 @@ For example::
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            pass_manager=self.create_passmanager(coupling_map))
-        self.assertResult(result, circuit.name)
+        self.assertResult(result, circuit)
 ```
 """
 
