@@ -1,13 +1,16 @@
-###############
 Release history
-###############
+===============
 
-*************
-Release notes
-*************
+Qiskit 0.7
+----------
 
-Qiskit Terra 0.7.0
-==================
+In Qiskit 0.7 we introduced Qiskit Aer and combined it with Terra
+
+Terra 0.7
+~~~~~~~~~
+
+New Features
+^^^^^^^^^^^^
 
 This release includes several new features and many bug fixes. With this
 release the interfaces for circuit diagram, histogram, bloch vectors,
@@ -47,15 +50,15 @@ There is also the introduction of the following new features:
   repeat-until control of passes.
 
 
-Upgrading to 0.7.0
-------------------
+Upgrades
+^^^^^^^^
 
 Please note that some backwards-incompatible changes have been made during this
 release. The following notes contain information on how to adapt to these
 changes.
 
 Changes to Result objects
-^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""
 
 As part of the rewrite of the Results object to be more consistent and a
 stable interface moving forward a few changes have been made to how you access
@@ -96,7 +99,7 @@ using ``Result.data()['snapshots']``.
 
 
 Changes to visualization
-^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""
 
 The biggest change made to visualization in the 0.7 release is the removal of
 Matplotlib and other visualization dependencies from the project requirements.
@@ -207,7 +210,7 @@ For example, ``iplot_state(rho, method='paulivec')`` is
 ``iplot_state_paulivec(rho)``.
 
 Changes to Backends
-^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""
 
 With the improvements made in the 0.7 release there are a few things related
 to backends to keep in mind when upgrading. The biggest change is the
@@ -234,7 +237,7 @@ results from those jobs. Instead you must call the ``result()`` method on the
 returned jobs objects.
 
 Changes to the compiler, transpiler, and unrollers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""""""""""""""""""
 
 As part of an effort to stabilize the compiler interfaces there have been
 several changes to be aware of when leveraging the compiler functions.
@@ -248,7 +251,7 @@ functions in ``qiskit.converters``.
 
 
 Deprecations
-------------
+^^^^^^^^^^^^
 
 As part of the part of the 0.7 release the following things have been
 deprecated and will either be removed or changed in a backwards incompatible
@@ -281,9 +284,34 @@ adjust for before the next release to avoid a breaking change.
 * The unrollers have been deprecated, moving forward only DAG to DAG unrolling
   will be supported.
 
+Aer 0.1
+~~~~~~~
 
-Qiskit Terra 0.6.0
-==================
+New Features
+^^^^^^^^^^^^
+
+Aer provides three simulator backends:
+  * ``QasmSimulator``: simulate experiments and return measurement outcomes.
+  * ``StatevectorSimulator``: return the final statevector for a quantum circuit acting on the all zero state
+  * ``UnitarySimulator``: return the unitary matrix for a quantum circuit
+
+``noise`` module: contains advanced noise modeling features for the ``QasmSimulator``
+  * ``NoiseModel``, ``QuantumError``, ``ReadoutError`` classes for simulating a Qiskit quantum circuit in the presence of errors
+  * ``errors`` submodule including functions for generating ``QuantumError`` objects for the following types of quantum errors: Kraus, mixed unitary, coherent unitary, Pauli, depolarizing, thermal relaxation, amplitude damping, phase damping, combined phase and amplitude damping.
+  * ``device`` submodule for automatically generating a noise model based on the ``BackendProperties`` of a device
+
+``utils`` module:
+  * ``qobj_utils`` provides functions for directly modifying a ``qobj`` to insert special simulator instructions not yet supported through the Qiskit Terra API
+
+
+Qiskit 0.6
+----------
+
+Terra 0.6
+~~~~~~~~~
+
+New Features
+^^^^^^^^^^^^
 
 This release includes a redesign of internal components centered around a new,
 formal communication format (`qobj`), along with long awaited features to
@@ -304,15 +332,15 @@ release, are:
   paralellization of the circuit compilation and numerous optimizations.
 
 
-Upgrading to 0.6.0
-------------------
+Upgrades
+^^^^^^^^
 
 Please note that some backwards-incompatible changes have been introduced
 during this release - the following notes contain information on how to adapt
 to the new changes.
 
 Removal of ``QuantumProgram``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""
 
 As hinted during the 0.5 release, the deprecation of the  ``QuantumProgram``
 class has now been completed and is no longer available, in favor of working
@@ -347,7 +375,7 @@ examples for details about the transition::
 
 
 IBM Q Authentication and ``Qconfig.py``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""
 
 The managing of credentials for authenticating when using the IBMQ backends has
 been expanded, and there are new options that can be used for convenience:
@@ -379,7 +407,7 @@ program folder and passing the credentials explicitly is still supported.
 .. _backends:
 
 Working with backends
-^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""
 
 A new mechanism has been introduced in Terra 0.6 as the recommended way for
 obtaining a backend, allowing for more powerful and unified filtering and
@@ -419,7 +447,7 @@ Qiskit Terra 0.5               Qiskit Terra 0.6
 
 
 Backend and Job API changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""
 
 * Jobs submitted to IBM Q backends have improved capabilities. It is possible
   to cancel them and replenish credits (``job.cancel()``), and to retrieve
@@ -464,7 +492,7 @@ job.done
 
 
 Better Jupyter tools
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 The new release contains improvements to the user experience while using
 Jupyter notebooks.
@@ -482,8 +510,14 @@ status of submitted jobs to IBMQ backends. Use ``%%qiskit_progress_bar`` to
 keep track of the progress of compilation/execution.
 
 
-Qiskit Terra 0.5.0
-==================
+Qiskit 0.5
+----------
+
+Terra 0.5
+~~~~~~~~~
+
+New Features
+^^^^^^^^^^^^
 
 This release brings a number of improvements to Qiskit, both for the user
 experience and under the hood. Please refer to the full changelog for a
@@ -500,8 +534,8 @@ detailed description of the changes - the highlights are:
   enhanced functionality (such as improved plotting of circuits).
 
 
-Upgrading to 0.5.0
-------------------
+Upgrades
+^^^^^^^^
 
 Please note that several backwards-incompatible changes have been introduced
 during this release as a result of the ongoing development. While some of these
@@ -513,7 +547,7 @@ for the new versions and take advantage of the new functionality.
 
 
 ``QuantumProgram`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""
 
 Several methods of the :class:`~qiskit.QuantumProgram` class are on their way
 to being deprecated:
@@ -571,7 +605,7 @@ update example in the Quickstart section, or the
 examples on the main repository.
 
 Backend name changes
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 In order to provide a more extensible framework for backends, there have been
 some design changes accordingly:
@@ -611,7 +645,7 @@ some design changes accordingly:
   back to the Python statevector simulator if not present.
 
 More flexible names and parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""
 
 Several functions of the SDK have been made more flexible and user-friendly:
 
@@ -643,4 +677,3 @@ Several functions of the SDK have been made more flexible and user-friendly:
     data = result.get_data('my_circuit')
     data = result.get_data(qc)
     data = result.get_data()
-
