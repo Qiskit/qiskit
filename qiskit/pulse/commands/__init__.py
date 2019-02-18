@@ -7,6 +7,9 @@
 
 """Command classes for pulse."""
 
+from ._pulse_command import PulseCommand
+from ._sample_pulse import SamplePulse
+
 from ._acquire import Acquire, Discriminator, Kernel
 from ._frame_change import FrameChange
 from ._persistent_value import PersistentValue

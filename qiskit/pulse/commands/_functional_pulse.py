@@ -14,7 +14,7 @@ Functional pulse.
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands._sample_pulse import SamplePulse
+from qiskit.pulse.commands import SamplePulse
 
 
 class FunctionalPulse:
