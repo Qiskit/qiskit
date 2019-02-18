@@ -10,6 +10,7 @@
 """
 T=sqrt(S) phase gate or its inverse.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -99,3 +100,5 @@ def tdg(self, q):
 
 QuantumCircuit.t = t
 QuantumCircuit.tdg = tdg
+CompositeGate.t = t
+CompositeGate.tdg = tdg

@@ -9,6 +9,7 @@
 Barrier instruction.
 """
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
 
@@ -57,3 +58,4 @@ def barrier(self, *qargs):
 
 
 QuantumCircuit.barrier = barrier
+CompositeGate.barrier = barrier
