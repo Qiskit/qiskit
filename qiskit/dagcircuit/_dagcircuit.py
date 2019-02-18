@@ -881,7 +881,7 @@ class DAGCircuit:
         if condition:
             input_dag.add_creg(condition[0])
             to_replay = []
-            for n_it in input_dag.multi_graph:
+            for n_it in nx.topological_sort(input_dag.multi_graph):
                 n = input_dag.multi_graph.nodes[n_it]
                 if n["type"] == "op":
                     n["op"].control = condition
