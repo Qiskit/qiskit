@@ -38,14 +38,14 @@ class Cu3Gate(Gate):
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
         rule = [
-            U1Gate((self.params[2] - self.params[1])/2, q[1]),
-            CnotGate(q[0], q[1]),
-            U3Gate(-self.params[0]/2, 0, -(self.params[1]+self.params[2])/2, q[1]),
-            CnotGate(q[0], q[1]),
-            U3Gate(self.params[0]/2, self.params[1], 0, q[1])
+            (U1Gate((self.params[2] - self.params[1])/2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0]/2, 0, -(self.params[1]+self.params[2])/2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0]/2, self.params[1], 0), [q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):

@@ -252,7 +252,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_iden(self):
         self.circuit.iden(self.qr[1])
-        op, qargs, _ = self.circuit[0]
+        op, _, _ = self.circuit[0]
         self.assertEqual(op.name, 'id')
         self.assertEqual(op.params, [])
 
@@ -278,7 +278,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_rx(self):
         self.circuit.rx(1, self.qr[1])
-        op, qargs, _ = self.circuit[0]
+        op, _, _ = self.circuit[0]
         self.assertEqual(op.name, 'rx')
         self.assertEqual(op.params, [1])
 
@@ -350,7 +350,7 @@ class TestStandard1Q(QiskitTestCase):
     def test_ry_pi(self):
         qc = self.circuit
         qc.ry(pi / 2, self.qr[1])
-        op, qargs, _ = self.circuit[0]
+        op, _, _ = self.circuit[0]
         self.assertEqual(op.name, 'ry')
         self.assertEqual(op.params, [pi / 2])
 

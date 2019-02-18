@@ -103,19 +103,19 @@ class TestDagOperations(QiskitTestCase):
 
     def test_apply_operation_back(self):
         """The apply_operation_back() method."""
-        self.dag.apply_operation_back(HGate(self.qubit0), condition=None)
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1), condition=None)
-        self.dag.apply_operation_back(Measure(self.qubit1, self.clbit1), condition=None)
-        self.dag.apply_operation_back(XGate(self.qubit1), condition=self.condition)
-        self.dag.apply_operation_back(Measure(self.qubit0, self.clbit0), condition=None)
-        self.dag.apply_operation_back(Measure(self.qubit1, self.clbit1), condition=None)
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [], condition=None)
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [], condition=self.condition)
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
         self.assertEqual(len(self.dag.multi_graph.nodes), 16)
         self.assertEqual(len(self.dag.multi_graph.edges), 17)
 
     def test_apply_operation_front(self):
         """The apply_operation_front() method"""
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_front(Reset(self.qubit0))
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_front(Reset(), [self.qubit0], [])
         h_node = self.dag.op_nodes(op=HGate).pop()
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
@@ -123,9 +123,9 @@ class TestDagOperations(QiskitTestCase):
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(Reset(self.qubit0))
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
         op_nodes = self.dag.op_nodes()
         self.assertEqual(len(op_nodes), 3)
@@ -135,11 +135,11 @@ class TestDagOperations(QiskitTestCase):
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(HGate(self.qubit1))
-        self.dag.apply_operation_back(Reset(self.qubit0))
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
 
         op_nodes = self.dag.op_nodes(op=HGate)
         self.assertEqual(len(op_nodes), 2)
@@ -152,9 +152,9 @@ class TestDagOperations(QiskitTestCase):
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
-        self.dag.apply_operation_back(Measure(self.qubit1, self.clbit1))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(Reset(self.qubit0))
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
         successor_measure = self.dag.quantum_successors(
             self.dag.named_nodes('measure').pop())
@@ -170,10 +170,9 @@ class TestDagOperations(QiskitTestCase):
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(Barrier((self.qubit0, self.qubit1)))
-        self.dag.apply_operation_back(Reset(self.qubit0))
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
         op_nodes = self.dag.gate_nodes()
         self.assertEqual(len(op_nodes), 2)
@@ -186,10 +185,10 @@ class TestDagOperations(QiskitTestCase):
 
     def test_two_q_gates(self):
         """The method dag.twoQ_gates() returns all 2Q gate nodes"""
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(Barrier((self.qubit0, self.qubit1)))
-        self.dag.apply_operation_back(Reset(self.qubit0))
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Barrier(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
         op_nodes = self.dag.twoQ_gates()
         self.assertEqual(len(op_nodes), 1)
@@ -200,11 +199,11 @@ class TestDagOperations(QiskitTestCase):
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(CnotGate(self.qubit2, self.qubit1))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit2))
-        self.dag.apply_operation_back(HGate(self.qubit2))
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
 
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
@@ -221,11 +220,11 @@ class TestDagOperations(QiskitTestCase):
 
     def test_nodes_in_topological_order(self):
         """ The node_nums_in_topological_order() method"""
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(CnotGate(self.qubit2, self.qubit1))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit2))
-        self.dag.apply_operation_back(HGate(self.qubit2))
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
 
         named_nodes = self.dag.nodes_in_topological_order()
 
@@ -281,12 +280,12 @@ class TestDagLayers(QiskitTestCase):
         dag = DAGCircuit()
         dag.add_qreg(qreg)
         dag.add_creg(creg)
-        dag.apply_operation_back(HGate(qubit0))
-        dag.apply_operation_back(CnotGate(qubit0, qubit1), condition=None)
-        dag.apply_operation_back(Measure(qubit1, clbit1), condition=None)
-        dag.apply_operation_back(XGate(qubit1), condition=condition)
-        dag.apply_operation_back(Measure(qubit0, clbit0), condition=None)
-        dag.apply_operation_back(Measure(qubit1, clbit1), condition=None)
+        dag.apply_operation_back(HGate(), [qubit0], [])
+        dag.apply_operation_back(CnotGate(), [qubit0, qubit1], [], condition=None)
+        dag.apply_operation_back(Measure(), [qubit1, clbit1], [], condition=None)
+        dag.apply_operation_back(XGate(), [qubit1], [], condition=condition)
+        dag.apply_operation_back(Measure(), [qubit0, clbit0], [], condition=None)
+        dag.apply_operation_back(Measure(), [qubit1, clbit1], [], condition=None)
 
         layers = list(dag.layers())
         self.assertEqual(5, len(layers))
@@ -447,9 +446,9 @@ class TestDagSubstitute(QiskitTestCase):
         self.clbit1 = creg[1]
         self.condition = (creg, 3)
 
-        self.dag.apply_operation_back(HGate(self.qubit0))
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(XGate(self.qubit1))
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [])
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
@@ -458,11 +457,11 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit = DAGCircuit()
         v = QuantumRegister(2, "v")
         flipped_cx_circuit.add_qreg(v)
-        flipped_cx_circuit.apply_operation_back(HGate(v[0]))
-        flipped_cx_circuit.apply_operation_back(HGate(v[1]))
-        flipped_cx_circuit.apply_operation_back(CnotGate(v[1], v[0]))
-        flipped_cx_circuit.apply_operation_back(HGate(v[0]))
-        flipped_cx_circuit.apply_operation_back(HGate(v[1]))
+        flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
+        flipped_cx_circuit.apply_operation_back(HGate(), [v[1]], [])
+        flipped_cx_circuit.apply_operation_back(CnotGate(), [v[1], v[0]], [])
+        flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
+        flipped_cx_circuit.apply_operation_back(HGate(), [v[1]], [])
 
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
 

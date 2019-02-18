@@ -9,7 +9,6 @@
 
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
@@ -22,8 +21,6 @@ class TestInstructions(QiskitTestCase):
     def test_instructions_equal(self):
         """Test equality of two instructions.
         """
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
         hop1 = Instruction('h', [])
         hop2 = Instruction('s', [])
         hop3 = Instruction('h', [])

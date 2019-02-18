@@ -37,12 +37,12 @@ class FredkinGate(Gate):
         q = QuantumRegister(3, "q")
         decomposition.add_qreg(q)
         rule = [
-            CnotGate(q[2], q[1]),
-            ToffoliGate(q[0], q[1], q[2]),
-            CnotGate(q[2], q[1])
+            (CnotGate(), [q[2], q[1]], []),
+            (ToffoliGate(), [q[0], q[1], q[2]], []),
+            (CnotGate(), [q[2], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):

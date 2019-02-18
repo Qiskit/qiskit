@@ -30,11 +30,6 @@ class Gate(Instruction):
         """Invert this gate."""
         raise NotImplementedError("inverse not implemented")
 
-    def q_if(self, *qregs):
-        """Add controls to this gate."""
-        # pylint: disable=unused-argument
-        raise NotImplementedError("control not implemented")
-
     def decompositions(self):
         """Returns a list of possible decompositions. """
         if self._decompositions is None:

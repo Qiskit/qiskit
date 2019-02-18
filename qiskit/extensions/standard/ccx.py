@@ -40,24 +40,24 @@ class ToffoliGate(Gate):
         q = QuantumRegister(3, "q")
         decomposition.add_qreg(q)
         rule = [
-            HGate(q[2]),
-            CnotGate(q[1], q[2]),
-            TdgGate(q[2]),
-            CnotGate(q[0], q[2]),
-            TGate(q[2]),
-            CnotGate(q[1], q[2]),
-            TdgGate(q[2]),
-            CnotGate(q[0], q[2]),
-            TGate(q[1]),
-            TGate(q[2]),
-            HGate(q[2]),
-            CnotGate(q[0], q[1]),
-            TGate(q[0]),
-            TdgGate(q[1]),
-            CnotGate(q[0], q[1])
+            (HGate(), [q[2]], []),
+            (CnotGate(), [q[1], q[2]], []),
+            (TdgGate(), [q[2]], []),
+            (CnotGate(), [q[0], q[2]], []),
+            (TGate(), [q[2]], []),
+            (CnotGate(), [q[1], q[2]], []),
+            (TdgGate(), [q[2]], []),
+            (CnotGate(), [q[0], q[2]], []),
+            (TGate(), [q[1]], []),
+            (TGate(), [q[2]], []),
+            (HGate(), [q[2]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (TGate(), [q[0]], []),
+            (TdgGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):

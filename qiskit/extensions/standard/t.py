@@ -64,7 +64,7 @@ class TdgGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            (U1Gate(-pi/4), q[0], [])
+            (U1Gate(-pi/4), [q[0]], [])
         ]
         for inst in rule:
             decomposition.apply_operation_back(*inst)

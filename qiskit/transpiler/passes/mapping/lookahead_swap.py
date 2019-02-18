@@ -298,5 +298,5 @@ def _swap_ops_from_edge(edge, layout):
 
     # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        DAGNode({'op': SwapGate(*qreg_edge), 'qargs': qreg_edge, 'type': 'op'})
+        DAGNode({'op': SwapGate(), 'qargs': qreg_edge, 'cargs': [], 'type': 'op'})
     ]

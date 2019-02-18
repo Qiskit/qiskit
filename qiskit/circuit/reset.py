@@ -9,9 +9,7 @@
 Qubit reset to computational zero.
 """
 from .instruction import Instruction
-from .instructionset import InstructionSet
 from .quantumcircuit import QuantumCircuit
-from .quantumregister import QuantumRegister
 from .decorators import _op_expand
 
 

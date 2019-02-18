@@ -251,7 +251,8 @@ class DAGCircuit:
         # Check for each wire
         for wire in args:
             if wire not in amap:
-                raise DAGCircuitError("(qu)bit %s[%d] not found" % (wire[0].name, wire[1]))
+                raise DAGCircuitError("(qu)bit %s[%d] not found" %
+                                      (wire[0].name, wire[1]))
 
     def _bits_in_condition(self, cond):
         """Return a list of bits in the given condition.
@@ -549,7 +550,7 @@ class DAGCircuit:
                 raise DAGCircuitError("bad node type %s" % nd.type)
 
     # FIXME: this does not work as expected. it is also not used anywhere
-    def compose_front(self, input_circuit, wire_map=None):
+    def compose_front(self, input_circuit, edge_map=None):
         """Apply the input circuit to the input of this circuit.
 
         The two bases must be "compatible" or an exception occurs.
@@ -558,40 +559,40 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            wire_map (dict): map {(Register, int): (Register, int)}
+            edge_map (dict): map {(Register, int): (Register, int)}
                 from the output wires of input_circuit to input wires
                 of self.
 
         Raises:
             DAGCircuitError: missing, duplicate or inconsistent wire
         """
-        wire_map = wire_map or {}
+        edge_map = edge_map or {}
 
         # Check the wire map
-        if len(set(wire_map.values())) != len(wire_map):
-            raise DAGCircuitError("duplicates in wire_map")
+        if len(set(edge_map.values())) != len(edge_map):
+            raise DAGCircuitError("duplicates in edge_map")
 
-        add_qregs = self._check_edgemap_registers(wire_map,
+        add_qregs = self._check_edgemap_registers(edge_map,
                                                   input_circuit.qregs,
                                                   self.qregs)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_edgemap_registers(wire_map,
+        add_cregs = self._check_edgemap_registers(edge_map,
                                                   input_circuit.cregs,
                                                   self.cregs)
         for creg in add_cregs:
             self.add_creg(creg)
 
-        self._check_wiremap_validity(wire_map, input_circuit.output_map,
+        self._check_wiremap_validity(edge_map, input_circuit.output_map,
                                      self.input_map)
 
         # Compose
         for n in reversed(list(nx.topological_sort(input_circuit.multi_graph))):
             nd = input_circuit.multi_graph.node[n]
             if nd.type == "out":
-                # if in wire_map, get new name, else use existing name
-                m_name = wire_map.get(nd.wire, nd.wire)
+                # if in edge_map, get new name, else use existing name
+                m_name = edge_map.get(nd.wire, nd.wire)
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
                     raise DAGCircuitError("wire %s[%d] not in self" % (m_name[0].name, m_name[1]))
@@ -605,9 +606,11 @@ class DAGCircuit:
                 # ignore input nodes
                 pass
             elif nd.type == "op":
-                condition = self._map_condition(wire_map, nd.condition)
+                condition = self._map_condition(edge_map, nd["condition"])
                 self._check_condition(nd.name, condition)
-                self.apply_operation_front(nd.op, condition)
+                m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
+                m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
+                self.apply_operation_front(nd.op, m_qargs, m_cargs, condition)
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
 

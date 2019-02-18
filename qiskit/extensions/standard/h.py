@@ -35,10 +35,10 @@ class HGate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            U2Gate(0, pi)
+            (U2Gate(0, pi), [q[0]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst, [q[0]], [])
+            decomposition.apply_operation_back(*inst)
         self._decompositions = [decomposition]
 
     def inverse(self):
