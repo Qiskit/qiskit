@@ -10,6 +10,7 @@
 """
 Two-pulse single-qubit gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -62,3 +63,4 @@ def u3(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u3 = u3
+CompositeGate.u3 = u3

@@ -10,6 +10,7 @@
 """
 Pauli Z (phase-flip) gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -54,3 +55,4 @@ def z(self, q):
 
 
 QuantumCircuit.z = z
+CompositeGate.z = z

@@ -9,6 +9,7 @@
 Simulator command to snapshot internal simulator representation.
 """
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
@@ -65,5 +66,6 @@ def snapshot(self, label, snap_type='statevector'):
     return self._attach(Snapshot(label, snap_type, qubits, self))
 
 
-# Add to QuantumCircuit class
+# Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.snapshot = snapshot
+CompositeGate.snapshot = snapshot
