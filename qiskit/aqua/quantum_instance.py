@@ -16,6 +16,7 @@
 # =============================================================================
 
 import logging
+import warnings
 
 from qiskit import __version__ as terra_version
 from qiskit.qobj import RunConfig
@@ -44,28 +45,54 @@ class QuantumInstance:
                        "max_parallel_experiments", "statevector_parallel_threshold",
                        "statevector_hpc_gate_opt"] + BACKEND_OPTIONS_QASM_ONLY
 
-    def __init__(self, backend, run_config=None, initial_layout=None, pass_manager=None, seed_mapper=None,
+    def __init__(self, backend, run_config=None, shots=None, seed=None, memory=None, max_credits=None,
+                 initial_layout=None, pass_manager=None, seed_mapper=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5, circuit_cache=None,
                  skip_qobj_validation=False):
         """Constructor.
 
         Args:
             backend (BaseBackend): instance of selected backend
-            run_config (RunConfig): the run config see https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/qobj/run_config.py
-            initial_layout (dict): initial layout of qubits in mapping
-            pass_manager (PassManager): pass manager to handle how to compile the circuits
-            seed_mapper (int): the random seed for circuit mapper
-            backend_options (dict): all config setting for backend
-            noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel): noise model for simulator
-            timeout (float or None): seconds to wait for job. If None, wait indefinitely.
-            wait (float): seconds between queries to result
-            circuit_cache (CircuitCache): A CircuitCache to use when calling compile_and_run_circuits
-            skip_qobj_validation (bool): Bypass Qobj validation to decrease submission time
+            run_config (RunConfig, optional): the run config see https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/qobj/run_config.py
+            shots (int, optional): Deprecated, number of repetitions of each circuit, for sampling
+            max_credits (int, optional): Deprecated, maximum credits to use
+            seed (int, optional): Deprecated, random seed for simulators
+            memory (bool, optional): Deprecated, if True, per-shot measurement bitstrings are returned as well
+            initial_layout (dict, optional): initial layout of qubits in mapping
+            pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
+            seed_mapper (int, optional): the random seed for circuit mapper
+            backend_options (dict, optional): all config setting for backend
+            noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model for simulator
+            timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
+            wait (float, optional): seconds between queries to result
+            circuit_cache (CircuitCache, optional): A CircuitCache to use when calling compile_and_run_circuits
+            skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
         """
         self._backend = backend
         # setup run config
+        if shots is not None:
+            warnings.warn("The `shots` argument is deprecated, "
+                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
+        if max_credits is not None:
+            warnings.warn("The `max_credits` argument is deprecated, "
+                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
+        if memory is not None:
+            warnings.warn("The `memory` argument is deprecated, "
+                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
+        if seed is not None:
+            warnings.warn("The `seed` argument is deprecated, "
+                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
+
         if run_config is None:
             run_config = RunConfig(shots=1024, max_credits=10, memory=False)
+            if shots:
+                run_config.shots = shots
+            if max_credits:
+                run_config.max_credits = max_credits
+            if memory:
+                run_config.memory = memory
+            if seed:
+                run_config.seed = seed
 
         if getattr(run_config, 'shots', None) is not None:
             if self.is_statevector and run_config.shots == 1:
