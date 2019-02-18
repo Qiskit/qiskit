@@ -66,6 +66,7 @@ For example::
 import unittest
 import pickle
 import sys
+import os
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, compile
 from qiskit.transpiler import PassManager, transpile
@@ -74,6 +75,7 @@ from qiskit.mapper import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
 
+DIRNAME = QiskitTestCase._get_resource_path('pickles')
 
 class CommonUtilitiesMixin:
     """Utilities for meta testing.
@@ -123,8 +125,8 @@ class CommonUtilitiesMixin:
 
     def assertResult(self, result, circuit):
         """Fetches the pickle in circuit.name file and compares it with result."""
-        filename = self._get_resource_path(
-            'pickles/%s_%s.pickle' % (type(self).__name__, circuit.name))
+        picklename = '%s_%s.pickle' % (type(self).__name__, circuit.name)
+        filename = os.path.join(DIRNAME, picklename)
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
@@ -134,7 +136,6 @@ class CommonUtilitiesMixin:
             expected = pickle.load(input_file)
 
         self.assertEqual(result, expected)
-
 
 class SwapperCommonTestCases(CommonUtilitiesMixin):
     """Tests that are run in several mappers.
@@ -280,5 +281,9 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
 if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == 'regenerate':
         CommonUtilitiesMixin.regenerate_expected = True
+
+        for picklefilename in os.listdir(DIRNAME):
+            os.remove(os.path.join(DIRNAME, picklefilename))
+
         del sys.argv[1]
     unittest.main()
