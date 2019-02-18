@@ -7,7 +7,7 @@ Welcome to Qiskit's documentation!
 
    Overview <overview>
    Installing Qiskit <install>
-   Getting Started <getting_started_with_qiskit>
+   Getting Started <getting_started>
    Visualizations <plotting_data_in_qiskit>
    Qiskit Terra <terra/index>
    Qiskit Aer <aer/index>

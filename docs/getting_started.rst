@@ -1,8 +1,8 @@
 
 
 
-Getting Started with Qiskit
-===========================
+Getting Started
+===============
 
 Here, we provide an overview of working with Qiskit. Qiskit provides the basic building blocks necessary to program quantum computers. The basic concept of Qiskit is an array of quantum circuits. A workflow using Qiskit consists of two stages: **Build** and **Execute**. **Build** allows you to make different quantum circuits that represent the problem you are solving, and **Execute** allows you to run them on different *backends*, a term meant to encompass both devices and simulation frameworks. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted, or allows you to make a better program for the next instance.
 
