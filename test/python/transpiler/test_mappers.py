@@ -77,6 +77,7 @@ from qiskit.test import QiskitTestCase
 
 DIRNAME = QiskitTestCase._get_resource_path('pickles')
 
+
 class CommonUtilitiesMixin:
     """Utilities for meta testing.
 
@@ -136,6 +137,7 @@ class CommonUtilitiesMixin:
             expected = pickle.load(input_file)
 
         self.assertEqual(result, expected)
+
 
 class SwapperCommonTestCases(CommonUtilitiesMixin):
     """Tests that are run in several mappers.
