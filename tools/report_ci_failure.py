@@ -101,7 +101,7 @@ def _master_is_failing_stamp(branch, commit):
     return '<!-- commit {}@{} -->'.format(commit, branch)
 
 
-_REPOSITORY = 'qiskit/qiskit-terra'
+_REPOSITORY = 'Qiskit/qiskit-terra'
 _GH_TOKEN = os.getenv('GH_TOKEN')
 
 
@@ -120,7 +120,7 @@ def _get_commit_hash():
 def _get_info_url():
     if os.getenv('TRAVIS'):
         job_id = os.getenv('TRAVIS_JOB_ID')
-        return 'https://travis-ci.org/{}/builds/{}'.format(_REPOSITORY, job_id)
+        return 'https://travis-ci.com/{}/jobs/{}'.format(_REPOSITORY, job_id)
 
     if os.getenv('APPVEYOR'):
         build_id = os.getenv('APPVEYOR_BUILD_ID')
