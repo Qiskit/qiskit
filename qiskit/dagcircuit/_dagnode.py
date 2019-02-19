@@ -18,7 +18,7 @@ class DAGNode:
     be supplied to functions that take a node.
 
     """
-    def __init__(self,  data_dict, node_id=None):
+    def __init__(self, data_dict, node_id=None):
         """ Create a node """
         self.data_dict = data_dict
         self.node_id = node_id
