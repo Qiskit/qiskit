@@ -10,12 +10,12 @@
 """
 controlled-H gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _control_target_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
@@ -49,12 +49,6 @@ class CHGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("x", 1, 0, 0)
-        decomposition.add_basis_element("h", 1, 0, 0)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("t", 1, 0, 0)
-        decomposition.add_basis_element("s", 1, 0, 0)
-        decomposition.add_basis_element("sdg", 1, 0, 0)
         rule = [
             HGate(q[1]),
             SdgGate(q[1]),
@@ -81,7 +75,7 @@ class CHGate(Gate):
         self._modifiers(circ.ch(self.qargs[0], self.qargs[1]))
 
 
-@_control_target_gate
+@_op_expand(2)
 def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
     self._check_qubit(ctl)
@@ -91,3 +85,4 @@ def ch(self, ctl, tgt):
 
 
 QuantumCircuit.ch = ch
+CompositeGate.ch = ch

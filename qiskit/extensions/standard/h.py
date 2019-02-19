@@ -10,13 +10,13 @@
 """
 Hadamard gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _1q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.qasm import pi
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u2 import U2Gate
 
 
@@ -34,7 +34,6 @@ class HGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u2", 1, 0, 2)
         rule = [
             U2Gate(0, pi, q[0])
         ]
@@ -51,7 +50,7 @@ class HGate(Gate):
         self._modifiers(circ.h(self.qargs[0]))
 
 
-@_1q_gate
+@_op_expand(1)
 def h(self, q):
     """Apply H to q."""
     self._check_qubit(q)
@@ -59,3 +58,4 @@ def h(self, q):
 
 
 QuantumCircuit.h = h
+CompositeGate.h = h

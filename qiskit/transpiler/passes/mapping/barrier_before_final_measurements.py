@@ -28,12 +28,14 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # Collect DAG nodes which are followed only by barriers or other measures.
         final_op_types = ['measure', 'barrier']
         final_ops = []
-        for candidate_op in dag.get_named_nodes(*final_op_types):
-            nodes_after_candidate = [dag.multi_graph.nodes[node_id]
-                                     for node_id in dag.descendants(candidate_op)]
-            is_final_op = all([node['type'] == 'out'
-                               or (node['type'] == 'op' and node['op'].name in final_op_types)
-                               for node in nodes_after_candidate])
+        for candidate_op in dag.named_nodes(*final_op_types):
+            is_final_op = True
+            for _, child_successors in dag.bfs_successors(candidate_op):
+                if any(dag.multi_graph.node[suc]['type'] == 'op' and
+                       dag.multi_graph.node[suc]['op'].name not in final_op_types
+                       for suc in child_successors):
+                    is_final_op = False
+                    break
 
             if is_final_op:
                 final_ops.append(candidate_op)
@@ -51,8 +53,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         final_qubits = set(dag.multi_graph.node[final_op]['qargs'][0]
                            for final_op in final_ops)
 
-        barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
-        new_barrier_id = barrier_layer.node_counter
+        new_barrier_id = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
 
         # Preserve order of final ops collected earlier from the original DAG.
         ordered_node_ids = [node_id for node_id in dag.node_nums_in_topological_order()
@@ -72,7 +73,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         our_descendants = barrier_layer.descendants(new_barrier_id)
         our_qubits = final_qubits
 
-        existing_barriers = barrier_layer.get_named_nodes('barrier')
+        existing_barriers = barrier_layer.named_nodes('barrier')
         existing_barriers.remove(new_barrier_id)
 
         for candidate_barrier in existing_barriers:
@@ -86,9 +87,8 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     and our_descendants.isdisjoint(their_ancestors)
             ):
                 merge_barrier = Barrier(qubits=(our_qubits | their_qubits))
-                barrier_layer.apply_operation_front(merge_barrier)
+                merge_barrier_id = barrier_layer.apply_operation_front(merge_barrier)
 
-                merge_barrier_id = barrier_layer.node_counter
                 our_ancestors = our_ancestors | their_ancestors
                 our_descendants = our_descendants | their_descendants
 

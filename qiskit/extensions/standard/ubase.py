@@ -10,10 +10,10 @@
 """
 Element of SU(2).
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.decorators import _1q_gate
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.circuit.decorators import _op_expand
 
 
 class UBase(Gate):  # pylint: disable=abstract-method
@@ -39,7 +39,7 @@ class UBase(Gate):  # pylint: disable=abstract-method
                                     self.qargs[0]))
 
 
-@_1q_gate
+@_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
     self._check_qubit(q)
@@ -47,3 +47,4 @@ def u_base(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u_base = u_base
+CompositeGate.u_base = u_base

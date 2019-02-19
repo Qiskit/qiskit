@@ -8,12 +8,12 @@
 """
 controlled-u3 gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _control_target_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cx import CnotGate
@@ -37,9 +37,6 @@ class Cu3Gate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
-        decomposition.add_basis_element("u3", 1, 0, 3)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             U1Gate((self.params[2] - self.params[1])/2, q[1]),
             CnotGate(q[0], q[1]),
@@ -66,7 +63,7 @@ class Cu3Gate(Gate):
                                  self.params[2], self.qargs[0], self.qargs[1]))
 
 
-@_control_target_gate
+@_op_expand(2)
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
     self._check_qubit(ctl)
@@ -76,3 +73,4 @@ def cu3(self, theta, phi, lam, ctl, tgt):
 
 
 QuantumCircuit.cu3 = cu3
+CompositeGate.cu3 = cu3

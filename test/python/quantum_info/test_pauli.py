@@ -113,7 +113,7 @@ class TestPauli(QiskitTestCase):
     def test_random_pauli(self):
         """Test random pauli creation."""
         length = 4
-        q = Pauli.random(length)
+        q = Pauli.random(length, seed=42)
         self.log.info(q)
         self.assertEqual(q.numberofqubits, length)
         self.assertEqual(len(q.z), length)

@@ -154,18 +154,6 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.qargs[1][1], i)
             self.assertEqual(gate.qargs[2][1], i)
 
-    def test_ccx_multicontrol_single_target(self):
-        """ccx with multi-qubit controls and single qubit target"""
-        qcontrol1 = QuantumRegister(5)
-        qcontrol2 = QuantumRegister(5)
-        qtarget = QuantumRegister(2)
-        qc = QuantumCircuit(qcontrol1, qcontrol2, qtarget)
-        qc.ccx(qcontrol1[0:2], qcontrol2[0:2], qtarget[0])
-        self.assertEqual(qc.data[0].qargs[-1], qc.data[1].qargs[-1])
-        qc.ccx(qcontrol1[0:2], qcontrol2[0:2], qtarget[0:2])
-        for i, gate in enumerate(qc.data[2:]):
-            self.assertEqual(gate.qargs[0][1], i)
-
     def test_cswap_on_slice(self):
         """test applying cswap to register slice"""
         qr1 = QuantumRegister(10)
@@ -265,3 +253,34 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(len(gate.cargs), 1)
             self.assertEqual(gate.qargs[0][1], ictrl)
             self.assertEqual(gate.cargs[0][1], itgt)
+
+    def test_measure_slice_raises(self):
+        """test raising exception for strange measures"""
+        qr = QuantumRegister(10)
+        cr = ClassicalRegister(10)
+        qc = QuantumCircuit(qr, cr)
+        with self.assertRaises(QiskitError):
+            qc.measure(qr[0:2], cr[2])
+        # this is ok
+        qc.measure(qr[0], cr[0:2])
+
+    def test_list_indexing(self):
+        """test list indexing"""
+        qr = QuantumRegister(10)
+        cr = QuantumRegister(10)
+        qc = QuantumCircuit(qr, cr)
+        ind = [0, 1, 8, 9]
+        qc.h(qr[ind])
+        self.assertEqual(len(qc.data), len(ind))
+        for gate, index in zip(qc.data, ind):
+            self.assertEqual(gate.name, 'h')
+            self.assertEqual(len(gate.qargs), 1)
+            self.assertEqual(gate.qargs[0][1], index)
+        qc = QuantumCircuit(qr, cr)
+        ind = [0, 1, 8, 9]
+        qc.cx(qr[ind], qr[2:6])
+        for gate, ind1, ind2 in zip(qc.data, ind, range(2, 6)):
+            self.assertEqual(gate.name, 'cx')
+            self.assertEqual(len(gate.qargs), 2)
+            self.assertEqual(gate.qargs[0][1], ind1)
+            self.assertEqual(gate.qargs[1][1], ind2)

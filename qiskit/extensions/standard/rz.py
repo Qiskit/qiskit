@@ -10,12 +10,12 @@
 """
 Rotation around the z-axis.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _1q_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import U1Gate
 
 
@@ -33,7 +33,6 @@ class RZGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u1", 1, 0, 1)
         rule = [
             U1Gate(self.params[0], q[0])
         ]
@@ -55,7 +54,7 @@ class RZGate(Gate):
         self._modifiers(circ.rz(self.params[0], self.qargs[0]))
 
 
-@_1q_gate
+@_op_expand(1)
 def rz(self, phi, q):
     """Apply Rz to q."""
     self._check_qubit(q)
@@ -63,3 +62,4 @@ def rz(self, phi, q):
 
 
 QuantumCircuit.rz = rz
+CompositeGate.rz = rz
