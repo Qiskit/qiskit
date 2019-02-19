@@ -21,7 +21,7 @@ class Gate(Instruction):
         name = instruction name string
         params = list of real parameters (will be converted to symbolic)
         qargs = list of pairs (QuantumRegister, index)
-        circuit = QuantumCircuit containing this gate
+        circuit = QuantumCircuit or CompositeGate containing this gate
         """
         self._is_multi_qubit = False
         self._qubit_coupling = [qarg[1] for qarg in qargs]
