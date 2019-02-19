@@ -10,9 +10,8 @@
 import unittest
 import numpy as np
 
-import qiskit
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit import compile
+from qiskit import compile, Aer
 from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
@@ -21,7 +20,7 @@ class AerUnitarySimulatorPyTest(QiskitTestCase):
     """Test Aer unitary simulator."""
 
     def setUp(self):
-        self.backend = qiskit.providers.aer.UnitarySimulator()
+        self.backend = Aer.get_backend('unitary_simulator')
 
     def test_aer_unitary_simulator_py(self):
         """Test unitary simulator."""

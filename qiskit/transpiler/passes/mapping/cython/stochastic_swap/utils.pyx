@@ -13,7 +13,7 @@ import numpy as np
 from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
-from qiskit.mapper._layout import Layout
+from qiskit.mapper.layout import Layout
 
 
 cdef class EdgeCollection:
