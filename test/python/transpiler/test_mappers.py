@@ -117,7 +117,8 @@ class CommonUtilitiesMixin:
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        qobj = compile(transpiled_result, sim_backend, seed=self.seed, shots=self.shots)
+        qobj = compile(transpiled_result, sim_backend, seed=self.seed, shots=self.shots,
+                       seed_mapper=42)
         job = sim_backend.run(qobj)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
@@ -184,7 +185,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           pass_manager=self.create_passmanager(coupling_map))
+                           seed_mapper=42, pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, circuit)
 
     def test_initial_layout(self):
@@ -221,6 +222,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         layout = [qr[3], qr[0], qr[1], qr[2]]
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
+                           seed_mapper=42,
                            pass_manager=self.create_passmanager(coupling_map, layout))
         self.assertResult(result, circuit)
 
@@ -260,6 +262,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
+                           seed_mapper=42,
                            pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, circuit)
 
