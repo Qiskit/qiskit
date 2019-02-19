@@ -34,7 +34,6 @@ from .ch import ch
 from .crz import crz
 from .cu3 import cu3
 from .rzz import rzz
-from .unitary_matrix import unitary
 
 from .barrier import Barrier
 from .ccx import ToffoliGate
@@ -66,4 +65,3 @@ from .ch import CHGate
 from .crz import CrzGate
 from .cu3 import Cu3Gate
 from .rzz import RZZGate
-from .unitary_matrix import UnitaryMatrixGate
