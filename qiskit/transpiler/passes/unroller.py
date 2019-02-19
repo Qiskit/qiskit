@@ -50,22 +50,16 @@ class Unroller(TransformationPass):
             # TODO: allow choosing other possible decompositions
             try:
                 decomposition_rules = current_node["op"].decompositions()
-            except NotImplementedError:
-                raise QiskitError("Cannot unroll the circuit to the given basis, "
-                                  + str(self.basis) +
-                                  ". No decomposition rules defined for "
-                                  + current_node["op"].name + ".")
             except RecursionError:
-                raise QiskitError("Cannot unroll the circuit to the given basis, "
-                                  + str(self.basis) +
-                                  ", due to infinite recursion at node "
-                                  + current_node["op"].name + ":" + str(self.basis))
+                raise QiskitError("Cannot unroll the circuit to the given basis, %s, "
+                                  "due to infinite recursion at node %s." %
+                                  (str(self.basis), current_node["op"].name))
 
             if not decomposition_rules:
-                raise QiskitError("Cannot unroll the circuit to the given basis, "
-                                  + str(self.basis) + ". " +
-                                  current_node["op"].name +
-                                  " is defined in terms of an invalid basis.")
+                raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
+                                  "The current node being expanded, %s, "
+                                  "is defined in terms of an invalid basis." %
+                                  (str(self.basis), current_node["op"].name))
 
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
             dag.substitute_node_with_dag(node, decomposition_dag)
