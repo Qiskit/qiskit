@@ -29,6 +29,8 @@ class BackendTestCase(QiskitTestCase):
     backend_cls = None
     circuit = ReferenceCircuits.bell()
 
+    __test__ = False
+
     def setUp(self):
         super().setUp()
         self.backend = self._get_backend()

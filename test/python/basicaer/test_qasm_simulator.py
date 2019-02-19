@@ -10,18 +10,24 @@
 import unittest
 
 import numpy as np
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile
-from qiskit import BasicAer
-from qiskit.test import QiskitTestCase, Path
+from qiskit.providers.builtinsimulators import QasmSimulatorPy
+from qiskit.test import Path
+from qiskit.test.providers import BackendTestCase
 
 
-class TestBasicAerQasmSimulator(QiskitTestCase):
+class TestBasicAerQasmSimulator(BackendTestCase):
     """Test the Basic qasm_simulator."""
 
+    __test__ = True
+    backend_cls = QasmSimulatorPy
+
     def setUp(self):
+        super(TestBasicAerQasmSimulator, self).setUp()
+
         self.seed = 88
-        self.backend = BasicAer.get_backend('qasm_simulator')
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         compiled_circuit.name = 'test'

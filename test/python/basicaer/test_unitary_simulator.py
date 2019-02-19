@@ -9,19 +9,21 @@
 # pylint: disable=redefined-builtin
 
 import unittest
+
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile
-from qiskit import BasicAer
-from qiskit.test import QiskitTestCase
+from qiskit.providers.builtinsimulators import UnitarySimulatorPy
+from qiskit.test import ReferenceCircuits
+from qiskit.test.providers import BackendTestCase
 
 
-class BasicAerUnitarySimulatorPyTest(QiskitTestCase):
+class BasicAerUnitarySimulatorPyTest(BackendTestCase):
     """Test BasicAer unitary simulator."""
-
-    def setUp(self):
-        self.backend = BasicAer.get_backend('unitary_simulator')
+    __test__ = True
+    backend_cls = UnitarySimulatorPy
+    circuit = ReferenceCircuits.bell_no_measure()
 
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""

@@ -26,6 +26,8 @@ class ProviderTestCase(QiskitTestCase):
     provider_cls = None
     backend_name = ''
 
+    __test__ = False
+
     def setUp(self):
         super().setUp()
         self.provider = self._get_provider()
