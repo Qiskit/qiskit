@@ -10,8 +10,9 @@
 import unittest
 import numpy as np
 
+import qiskit
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit import compile, Aer
+from qiskit import compile
 from qiskit.test import QiskitTestCase, requires_aer_provider, Path
 
 
@@ -21,7 +22,7 @@ class TestAerQasmSimulator(QiskitTestCase):
 
     def setUp(self):
         self.seed = 88
-        self.backend = Aer.get_backend('qasm_simulator')
+        self.backend = qiskit.providers.aer.QasmSimulator()
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         compiled_circuit.name = 'test'

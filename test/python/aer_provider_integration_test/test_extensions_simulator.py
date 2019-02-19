@@ -11,10 +11,11 @@
 
 import unittest
 
+import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.postprocess import format_statevector
-from qiskit import execute, Aer
+from qiskit import execute
 from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
@@ -37,7 +38,7 @@ class TestExtensionsSimulator(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[1])
 
-        sim = Aer.get_backend('statevector_simulator')
+        sim = qiskit.providers.aer.StatevectorSimulator()
         result = execute(circuit, sim, basis_gates=basis_gates).result()
         # TODO: rely on Result.get_statevector() postprocessing rather than manual
         snapshots = result.data(0)['snapshots']['statevector']['3']

@@ -10,9 +10,10 @@
 """Tests for checking qiskit interfaces to simulators."""
 
 import unittest
+import qiskit
 import qiskit.extensions.simulator
 from qiskit.quantum_info import state_fidelity
-from qiskit import execute, Aer
+from qiskit import execute
 from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
@@ -29,7 +30,7 @@ class TestCrossSimulation(QiskitTestCase):
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
 
-        sim_cpp = Aer.get_backend('statevector_simulator')
+        sim_cpp = qiskit.providers.aer.StatevectorSimulator()
         sim_py = qiskit.providers.builtinsimulators.StatevectorSimulatorPy()
         result_cpp = execute(circuit, sim_cpp).result()
         result_py = execute(circuit, sim_py).result()

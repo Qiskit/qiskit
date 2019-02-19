@@ -11,8 +11,9 @@
 
 import unittest
 
+import qiskit
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile, Aer
+from qiskit import compile
 from qiskit.qobj import QobjHeader
 from qiskit.test import QiskitTestCase, requires_aer_provider
 
@@ -32,7 +33,7 @@ class TestBasicAerQobj(QiskitTestCase):
     def test_qobj_headers_in_result(self):
         """Test that the qobj headers are passed onto the results."""
         custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
-        for backend in Aer.backends():
+        for backend in qiskit.providers.aer.Aer.backends():
             with self.subTest(backend=backend):
                 qobj = compile(self.qc1, backend)
 
@@ -49,7 +50,7 @@ class TestBasicAerQobj(QiskitTestCase):
     @unittest.skip("skipping as aer does not support. I made an issue")
     def test_job_qobj(self):
         """Test job.qobj()."""
-        for backend in Aer.backends():
+        for backend in qiskit.providers.aer.Aer.backends():
             with self.subTest(backend=backend):
                 qobj = compile(self.qc1, backend)
 
