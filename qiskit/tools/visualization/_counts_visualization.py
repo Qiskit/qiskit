@@ -74,6 +74,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         color = [color]
 
     all_pvalues = []
+    length = len(data)
     for item, execution in enumerate(data):
         if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
@@ -107,7 +108,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                 rects.append(ax.bar(idx+item*width, val, width, label=label,
                                     color=color[item % len(color)],
                                     zorder=2))
-        ax.set_xticks(ind)
+        bar_center = (width / 2) * (length - 1)
+        ax.set_xticks(ind + bar_center)
         ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
         # attach some text labels
         if bar_labels:
