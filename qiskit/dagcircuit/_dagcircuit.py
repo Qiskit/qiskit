@@ -189,10 +189,10 @@ class DAGCircuit:
             self.wires.append(wire)
             self._max_node_id += 1
             self.input_map[wire] = self._max_node_id
-            input_map_wire = self.input_map[wire]
+            input_map_wire = self._max_node_id
             self._max_node_id += 1
             self.output_map[wire] = self._max_node_id
-            output_map_wire = self.output_map[wire]
+            output_map_wire = self._max_node_id
             self.multi_graph.add_edge(input_map_wire,
                                       output_map_wire)
 
