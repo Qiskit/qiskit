@@ -18,47 +18,55 @@ class DAGNode:
     be supplied to functions that take a node.
 
     """
-    def __init__(self, node_id=None, data_dict=None):
+    def __init__(self,  data_dict, node_id=None):
         """ Create a node """
-        self.node_id = node_id
-
         self.data_dict = data_dict
+        self.node_id = node_id
 
     @property
     def type(self):
-        """ Returns the type of the node else None"""
-        return self.data_dict['type'] if self.data_dict and'type' in self.data_dict else None
+        """ Returns a str which is the type of the node else None"""
+        return self.data_dict.get('type')
 
     @property
     def op(self):
-        """ Returns the op for the node else None"""
-        return self.data_dict['op'] if self.data_dict and 'op' in self.data_dict else None
+        """ Returns the Gate object corresponding to the op for the node else None"""
+        return self.data_dict.get('op')
 
     @property
     def name(self):
-        """ Returns the name of the node else None"""
-        return self.data_dict['name'] if self.data_dict and 'name' in self.data_dict else None
+        """ Returns a str which is the name of the node else None"""
+        return self.data_dict.get('name')
 
     @property
     def qargs(self):
-        """ Returns the qargs for the node else an empty list"""
-        return self.data_dict['qargs'] if self.data_dict and 'qargs' in self.data_dict else []
+        """
+        Returns list of (QuantumRegister, int) tuples where the int is the index
+        of the qubit else an empty list
+        """
+        return self.data_dict.get('qargs', [])
 
     @property
     def cargs(self):
-        """ Returns the cargs for the node else an empty list"""
-        return self.data_dict['cargs'] if self.data_dict and 'cargs' in self.data_dict else []
+        """
+        Returns list of (ClassicalRegister, int) tuples where the int is the index
+        of the cbit else an empty list
+        """
+        return self.data_dict.get('cargs', [])
 
     @property
     def condition(self):
-        """ Returns the condition of the node else None"""
-        return self.data_dict['condition'] if self.data_dict and 'condition' in self.data_dict \
-            else None
+        """ Returns a tuple (ClassicalRegister, int) where the int is the
+        value of the condition else None"""
+        return self.data_dict.get('condition')
 
     @property
     def wire(self):
-        """ Returns the wire of the node else None"""
-        return self.data_dict['wire'] if self.data_dict and 'wire' in self.data_dict else None
+        """
+        Returns (Register, int) tuple where the int is the index of
+        the wire else None
+        """
+        return self.data_dict.get('wire')
 
     def __eq__(self, other):
 

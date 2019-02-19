@@ -974,7 +974,7 @@ class DAGCircuit:
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data["type"] == "op":
                 if op is None or isinstance(node_data["op"], op):
-                    nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
+                    nodes.append(DAGNode(data_dict=node_data, node_id=node_id))
         return nodes
 
     def get_gate_nodes(self):
@@ -1006,7 +1006,7 @@ class DAGCircuit:
         named_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and node_data['op'].name in names:
-                named_nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
+                named_nodes.append(DAGNode(data_dict=node_data, node_id=node_id))
         return named_nodes
 
     def get_2q_nodes(self):
@@ -1020,7 +1020,7 @@ class DAGCircuit:
         two_q_nodes = []
         for node_id, node_data in self.multi_graph.nodes(data=True):
             if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
-                two_q_nodes.append(DAGNode(node_id=node_id, data_dict=node_data))
+                two_q_nodes.append(DAGNode(data_dict=node_data, node_id=node_id))
         return two_q_nodes
 
     def get_3q_or_more_nodes(self):
@@ -1041,28 +1041,28 @@ class DAGCircuit:
         """Returns list of the successors of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return [DAGNode(nid, data_dict=self.multi_graph.node[nid])
+        return [DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in self.multi_graph.successors(node)]
 
     def predecessors(self, node):
         """Returns list of the successors of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return [DAGNode(nid, data_dict=self.multi_graph.node[nid])
+        return [DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in self.multi_graph.predecessors(node)]
 
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return {DAGNode(nid, data_dict=self.multi_graph.node[nid])
+        return {DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in nx.ancestors(self.multi_graph, node)}
 
     def descendants(self, node):
         """Returns set of the descendants of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
-        return {DAGNode(nid, data_dict=self.multi_graph.node[nid])
+        return {DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in nx.descendants(self.multi_graph, node)}
 
     def bfs_successors(self, node):
@@ -1168,7 +1168,7 @@ class DAGCircuit:
 
         def nodes_data(nodes):
             """Construct full nodes from just node ids."""
-            return (DAGNode(node_id=node_id, data_dict=self.multi_graph.nodes[node_id])
+            return (DAGNode(data_dict=self.multi_graph.nodes[node_id], node_id=node_id)
                     for node_id in nodes)
 
         def add_nodes_from(layer, nodes):
