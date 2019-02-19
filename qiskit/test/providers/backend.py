@@ -7,7 +7,7 @@
 
 """Base TestCase for testing backends."""
 
-from qiskit.tools import compile
+from qiskit.tools.compiler import compile  # pylint: disable=redefined-builtin
 
 from ..base import QiskitTestCase
 from ..reference_circuits import ReferenceCircuits
@@ -35,7 +35,7 @@ class BackendTestCase(QiskitTestCase):
 
     def _get_backend(self):
         """Return an instance of a Provider."""
-        return self.backend_cls()
+        return self.backend_cls()  # pylint: disable=not-callable
 
     def test_configuration(self):
         """Test backend.configuration()."""

@@ -32,7 +32,7 @@ class ProviderTestCase(QiskitTestCase):
 
     def _get_provider(self):
         """Return an instance of a Provider."""
-        return self.provider_cls()
+        return self.provider_cls()  # pylint: disable=not-callable
 
     def test_backends(self):
         """Test the provider has backends."""

@@ -11,6 +11,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 
 class ReferenceCircuits:
+    """Container for reference circuits used by the tests."""
 
     @staticmethod
     def bell():
