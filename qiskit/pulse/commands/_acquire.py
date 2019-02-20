@@ -18,22 +18,11 @@ from qiskit.pulse.commands import PulseCommand
 class Acquire(PulseCommand):
     """Acquire."""
 
-    def __init__(self, duration, memory_slot,
-                 register_slot=None, discriminator=None, kernel=None):
+    def __init__(self, duration, discriminator=None, kernel=None):
         """Create new acquire command.
 
         Args:
             duration (int): Duration of acquisition.
-            memory_slot (int): Index of the classical memory slots to store
-                the measurement results. The total number of memory slots is
-                specified through the Qobj memory slot numbering which starts at 0.
-                Memory slots can be overwritten if they are specified twice
-                in the same experiment (separate experiments have separate memories).
-            register_slot (int): Index of the classical register slots in which to
-                store the measurement results. The total number of register slots
-                is specified by the backend. This is only allowed if the backend
-                supports conditionals and the memory level is 2 (discriminated).
-                Registers can only accept bits.
             discriminator (Discriminator): Discriminators to be used
                 (from the list of available discriminator) if the measurement level is 2.
             kernel (Kernel): The data structures defining the measurement kernels
@@ -45,9 +34,6 @@ class Acquire(PulseCommand):
         """
 
         super(Acquire, self).__init__(duration)
-
-        self.memory_slot = memory_slot
-        self.register_slot = register_slot
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

@@ -26,11 +26,9 @@ class TestAcquire(QiskitTestCase):
     def test_default(self):
         """Test default discriminator and kernel.
         """
-        acq_comm = Acquire(duration=10, memory_slot=0, register_slot=0)
+        acq_comm = Acquire(duration=10)
 
         self.assertEqual(acq_comm.duration, 10)
-        self.assertEqual(acq_comm.memory_slot, 0)
-        self.assertEqual(acq_comm.register_slot, 0)
         self.assertEqual(acq_comm.discriminator.name, None)
         self.assertEqual(acq_comm.discriminator.params, {})
         self.assertEqual(acq_comm.kernel.name, None)
