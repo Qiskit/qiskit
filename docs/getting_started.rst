@@ -78,18 +78,11 @@ which plots circuit in the form found in many textbooks.
 
 .. code:: python
 
-    circ.draw()
+    circ.draw(output='mpl')
 
 
-.. raw:: html
+.. image:: images/figures/getting_started_with_qiskit_circuit_0.png
 
-    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐
-    q_0: |0>┤ H ├──■────■──
-            └───┘┌─┴─┐  │
-    q_1: |0>─────┤ X ├──┼──
-                 └───┘┌─┴─┐
-    q_2: |0>──────────┤ X ├
-                      └───┘</pre>
 
 
 
@@ -166,7 +159,7 @@ status of the job and a result object respectively.
 
 .. note::
 
-    Note: Jobs run asynchronously but when the result method is called it
+    Jobs run asynchronously but when the result method is called it
     switches to synchronous and waits for it to finish before moving on to
     another task.
 
@@ -248,7 +241,7 @@ Measurements cause the quantum system to collapse into classical bits.
 For example, suppose we make independent measurements on each qubit of
 the three-qubit GHZ state
 
-.. math:: |\psi\rangle = |000\rangle +|111\rangle)/\sqrt{2},
+.. math:: |\psi\rangle = (|000\rangle +|111\rangle)/\sqrt{2},
 
 and let :math:`xyz` denote the bitstring that results. Recall that,
 under the qubit labeling used by Qiskit, :math:`x` would correspond to
@@ -296,23 +289,10 @@ backend.
     qc = circ+meas
 
     #drawing the circuit
-    qc.draw()
+    qc.draw(output='mpl')
 
-.. raw:: html
+.. image:: images/figures/getting_started_with_qiskit_circuit_0.png
 
-    <pre style="word-wrap: normal;white-space: pre;line-height: 15px;">        ┌───┐           ░ ┌─┐
-    q_0: |0>┤ H ├──■────■───░─┤M├──────
-            └───┘┌─┴─┐  │   ░ └╥┘┌─┐
-    q_1: |0>─────┤ X ├──┼───░──╫─┤M├───
-                 └───┘┌─┴─┐ ░  ║ └╥┘┌─┐
-    q_2: |0>──────────┤ X ├─░──╫──╫─┤M├
-                      └───┘ ░  ║  ║ └╥┘
-     c_0: 0 ═══════════════════╩══╬══╬═
-                                  ║  ║
-     c_1: 0 ══════════════════════╩══╬═
-                                     ║
-     c_2: 0 ═════════════════════════╩═
-                                       </pre>
 
 
 
@@ -452,7 +432,7 @@ circuit. Then, we execute the circuit on the backend using the
 running our circuit.
 
 .. note::
-    When the .result() method is called, the code block will wait
+    When the ``.result()`` method is called, the code block will wait
     until the job has finished before releasing the cell.
 
 .. code:: python
