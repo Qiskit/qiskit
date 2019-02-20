@@ -10,11 +10,19 @@ import logging
 import platform
 import re
 import socket
+import os
 import sys
 import warnings
-
+import inspect
+import pkgutil
+import importlib
+from math import log2
 import psutil
+import numpy
+import scipy
+import networkx as nx
 from marshmallow.warnings import ChangedInMarshmallow3Warning
+import qiskit.providers
 
 logger = logging.getLogger(__name__)
 
@@ -97,3 +105,57 @@ def _has_connection(hostname, port):
         return True
     except Exception:  # pylint: disable=broad-except
         return False
+
+
+def about():
+    """ Returns information about the Qiskit installation.
+    """
+    hardware_info = local_hardware_info()
+    n_qubits = int(log2(local_hardware_info()['memory']*(1024**3)/16))
+
+    print("")
+    print("Qiskit Details")
+    print("==============")
+    print("Package         Version Number")
+    print("------------------------------")
+    print("Qiskit-terra:       %s" % qiskit.__version__)
+    print("Numpy:              %s" % numpy.__version__)
+    print("Scipy:              %s" % scipy.__version__)
+    print("Networkx:           %s" % nx.__version__)
+    print("Python:             %d.%d.%d" % sys.version_info[0:3])
+    print("")
+    print("Available Providers")
+    print("-------------------")
+    offset = 20
+    for pro in get_available_providers():
+        print(pro[0]+' '*(offset-len(pro[0]))+(pro[1] if pro[1] else ''))
+
+    print("")
+    print("Additional Information")
+    print("----------------------")
+    print("Memory:             %s GB [%s qubits]" % (hardware_info['memory'], n_qubits))
+    print("Number of CPUs:     %s" % hardware_info['cpus'])
+    print("Platform Info:      %s (%s)" % (platform.system(),
+                                           platform.machine()))
+    qiskit_install_path = os.path.dirname(inspect.getsourcefile(qiskit))
+    print("Install path:       %s" % qiskit_install_path)
+
+
+def get_available_providers():
+    """Returns a list of available providers and their
+    versioning (if any).
+
+    Returns:
+        list: List of (provider_name, version) tuples.
+    """
+    package = qiskit.providers
+    providers = []
+    for _, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        if ispkg and modname != 'models':
+            mod = importlib.import_module("qiskit.providers."+modname)
+            try:
+                version = mod.__version__
+            except AttributeError:
+                version = None
+            providers.append((modname, version))
+    return providers

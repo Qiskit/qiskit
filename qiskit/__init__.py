@@ -48,5 +48,5 @@ try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
     pass
-
+from ._util import about
 from .version import __version__
