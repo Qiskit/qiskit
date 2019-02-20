@@ -36,3 +36,5 @@ class PulseCommand:
             _name = str(self.__hash__())
 
         self.name = _name
+
+        self.t0 = 0
