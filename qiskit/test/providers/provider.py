@@ -22,6 +22,8 @@ class ProviderTestCase(QiskitTestCase):
             instantiation can be further customized by overriding the
             ``_get_provider`` function.
         backend_name (str): name of a backend provided by the provider.
+        __test__ (bool): flag for including the class in test discovery.
+            Subclasses should explicitly set it to `True`.
     """
     provider_cls = None
     backend_name = ''

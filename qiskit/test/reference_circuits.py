@@ -27,6 +27,7 @@ class ReferenceCircuits:
 
     @staticmethod
     def bell_no_measure():
+        """Return a Bell circuit."""
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr, name='bell_no_measure')
         qc.h(qr[0])
