@@ -11,7 +11,7 @@
 from qiskit.test.mock import FakeBackend
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-
+from qiskit.qiskiterror import QiskitError
 
 class AbstractBackend(FakeBackend):
     """An abstract backend instance for representing a
@@ -45,3 +45,7 @@ class AbstractBackend(FakeBackend):
             coupling_map=coupling_map
         )
         super().__init__(configuration)
+
+    def run(self, _):
+        """Run a Qobj on the the backend."""
+        raise QiskitError('Cannot execute on an AbstractBackend.')
