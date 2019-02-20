@@ -46,6 +46,7 @@ class AbstractBackend(FakeBackend):
         )
         super().__init__(configuration)
 
+
     def run(self, _):
         """Run a Qobj on the the backend."""
         raise QiskitError('Cannot execute on an AbstractBackend.')
