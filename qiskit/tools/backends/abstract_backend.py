@@ -14,7 +14,8 @@ from qiskit.providers.models.backendconfiguration import GateConfig
 
 
 class AbstractBackend(FakeBackend):
-    """An abstract backend instance."""
+    """An abstract backend instance for representing a
+    backend with an user defined coupling map."""
 
     def __init__(self, n_qubits, coupling_map,
                  basis_gates=None,
