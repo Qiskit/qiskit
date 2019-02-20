@@ -9,7 +9,7 @@
 Snapshot.
 """
 
-from qiskit.pulse.commands import PulseCommand
+from qiskit.pulse.commands.pulse_command import PulseCommand
 
 
 class Snapshot(PulseCommand):

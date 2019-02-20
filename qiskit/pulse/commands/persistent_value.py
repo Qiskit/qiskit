@@ -10,7 +10,7 @@ Persistent value.
 """
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import PulseCommand
+from qiskit.pulse.commands.pulse_command import PulseCommand
 
 
 class PersistentValue(PulseCommand):
