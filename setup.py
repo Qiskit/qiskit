@@ -89,7 +89,7 @@ setup(
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=['test*']),
     install_requires=REQUIREMENTS,
-    setup_requires=['Cython>=0.29.5'],
+    setup_requires=['Cython>=0.27.1'],
     package_data=PACKAGE_DATA,
     include_package_data=True,
     python_requires=">=3.5",
