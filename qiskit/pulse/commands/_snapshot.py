@@ -15,13 +15,14 @@ from qiskit.pulse.commands import PulseCommand
 class Snapshot(PulseCommand):
     """Snapshot."""
 
-    def __init__(self, label):
+    def __init__(self, label, name=None):
         """Create new snapshot command.
 
         Args:
             label (str): Snapshot label which is used to identify the snapshot in the output.
+            name (str): Unique name to identify the command object.
         """
 
-        super(Snapshot, self).__init__(0)
+        super(Snapshot, self).__init__(duration=0, name=name)
 
         self.label = label

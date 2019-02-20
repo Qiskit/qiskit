@@ -15,15 +15,16 @@ from qiskit.pulse.commands import PulseCommand
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    def __init__(self, duration, samples):
+    def __init__(self, duration, samples, name):
         """Create new sample pulse command.
 
         Args:
             duration (int): Duration of pulse.
             samples (ndarray): Complex array of pulse envelope.
+            name (str): Unique name to identify the pulse.
         """
 
-        super(SamplePulse, self).__init__(duration)
+        super(SamplePulse, self).__init__(duration=duration, name=name)
 
         self._samples = samples
 

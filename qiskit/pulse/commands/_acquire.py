@@ -18,11 +18,12 @@ from qiskit.pulse.commands import PulseCommand
 class Acquire(PulseCommand):
     """Acquire."""
 
-    def __init__(self, duration, discriminator=None, kernel=None):
+    def __init__(self, duration, name=None, discriminator=None, kernel=None):
         """Create new acquire command.
 
         Args:
             duration (int): Duration of acquisition.
+            name (str): Unique name to identify the command object.
             discriminator (Discriminator): Discriminators to be used
                 (from the list of available discriminator) if the measurement level is 2.
             kernel (Kernel): The data structures defining the measurement kernels
@@ -33,7 +34,7 @@ class Acquire(PulseCommand):
             QiskitError: when invalid discriminator or kernel object is input.
         """
 
-        super(Acquire, self).__init__(duration)
+        super(Acquire, self).__init__(duration=duration, name=name)
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

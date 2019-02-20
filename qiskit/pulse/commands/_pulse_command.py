@@ -9,19 +9,18 @@
 Base command.
 """
 
-import uuid
-
 from qiskit.exceptions import QiskitError
 
 
 class PulseCommand:
     """Super class of command group."""
 
-    def __init__(self, duration):
+    def __init__(self, duration, name=None):
         """Create new pulse commands.
 
         Args:
             duration (int): Duration of pulse.
+            name (str): Unique name to identify the command object.
         Raises:
             QiskitError: when duration is not number of points.
         """
@@ -31,4 +30,9 @@ class PulseCommand:
         else:
             raise QiskitError('Pulse duration should be integer.')
 
-        self.pulse_id = str(uuid.uuid4())
+        if name:
+            _name = name
+        else:
+            _name = str(self.__hash__())
+
+        self.name = _name

@@ -36,27 +36,30 @@ class FunctionalPulse:
         else:
             raise QiskitError('Pulse function is not callable.')
 
-    def __call__(self, duration, **params):
+    def __call__(self, duration, name=None, **params):
         """Create new functional pulse.
         """
-        return FunctionalPulseCommand(self.pulse_fun, duration=duration, **params)
+        return FunctionalPulseCommand(self.pulse_fun, duration=duration, name=name, **params)
 
 
 class FunctionalPulseCommand(SamplePulse):
     """Functional pulse."""
 
-    def __init__(self, pulse_fun, duration, **params):
+    def __init__(self, pulse_fun, duration, name, **params):
         """Generate new pulse instance.
 
         Args:
             pulse_fun (callable): A function describing pulse envelope.
             duration (int): Duration of pulse.
+            name (str): Unique name to identify the pulse.
         Raises:
             QiskitError: when first argument of pulse function is not duration.
         """
 
         if isinstance(duration, int) and duration > 0:
-            super(FunctionalPulseCommand, self).__init__(duration, None)
+            super(FunctionalPulseCommand, self).__init__(duration=duration,
+                                                         samples=None,
+                                                         name=name)
 
             self.pulse_fun = pulse_fun
             self._params = params

@@ -59,7 +59,7 @@ class TestFunctionalPulse(QiskitTestCase):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_instance = gaussian(10, amp=1, t0=5, sig=1)
+        pulse_instance = gaussian(10, name='gaussian', amp=1, t0=5, sig=1)
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
         self.assertListEqual(list(pulse_instance.samples), list(_y))
@@ -72,6 +72,9 @@ class TestFunctionalPulse(QiskitTestCase):
 
         # check duration
         self.assertEqual(pulse_instance.duration, 10)
+
+        # check name
+        self.assertEqual(pulse_instance.name, 'gaussian')
 
 
 class TestPersistentValue(QiskitTestCase):
