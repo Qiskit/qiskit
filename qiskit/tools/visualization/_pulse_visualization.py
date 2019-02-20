@@ -87,7 +87,7 @@ def pulse_drawer(samples, duration, dt=None, interp_method='None',
                      edgecolor='blue', linewidth=1.5,
                      label='imaginary part')
 
-    ax0.set_xlim(0, max(time))
+    ax0.set_xlim(0, duration * _dt)
     ax0.grid(b=True, linestyle='-')
     ax0.legend(bbox_to_anchor=(0.5, 1.00), loc='lower center',
                ncol=2, frameon=False, fontsize=14)
