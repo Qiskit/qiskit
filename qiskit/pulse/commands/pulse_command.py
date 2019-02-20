@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name
+
 """
 Base command.
 """
@@ -33,7 +35,7 @@ class PulseCommand:
         if name:
             _name = name
         else:
-            _name = str(self.__hash__())
+            _name = 'command_obj_' + str(self.__hash__())
 
         self.name = _name
 

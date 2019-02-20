@@ -91,10 +91,7 @@ class FunctionalPulseCommand(SamplePulse):
         """
         samples = self.pulse_fun(self.duration, **self.params)
 
-        if isinstance(samples, (list, np.ndarray)):
-            _samples = np.asarray(samples)
-        else:
-            raise QiskitError('Output from pulse function is not array.')
+        _samples = np.asarray(samples, dtype=np.complex128)
 
         if len(_samples) != self.duration:
             raise QiskitError('Number of Data point is not consistent with duration.')

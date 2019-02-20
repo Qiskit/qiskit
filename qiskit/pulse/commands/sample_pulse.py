@@ -55,6 +55,6 @@ class SamplePulse(PulseCommand):
             nop (int): Data points for interpolation.
             size (tuple): Size of figure.
         """
-        from qiskit.tools import visualization
+        from qiskit.tools.visualization import pulse_drawer
 
-        return visualization.pulse_drawer(self.samples, self.duration, **kwargs)
+        return pulse_drawer(self.samples, self.duration, **kwargs)
