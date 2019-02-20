@@ -113,10 +113,10 @@ The pass manager developer can avoid one or more passes by making them condition
 pm.append(BasicLayout(coupling_map))
 pm.append(CheckMap(coupling_map))
 pm.append(BasicSwap(coupling_map),
-              condition=lambda property_set: property_set['requires_swap'])
+              condition=lambda property_set: not property_set['is_swap_mapped'])
 ``` 
 
-The `CheckMap` is an analysis pass that updates the property `requires_swap`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
+The `CheckMap` is an analysis pass that updates the property `is_swap_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
 
 
 ### Idempotent passes

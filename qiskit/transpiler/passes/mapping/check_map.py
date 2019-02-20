@@ -17,7 +17,7 @@ from qiskit.mapper import Layout
 
 class CheckMap(AnalysisPass):
     """
-    Checks if a DAGCircuit is mapped to `coupling_map` setting `requires_swap` in
+    Checks if a DAGCircuit is mapped to `coupling_map` setting `is_swap_mapped` in
     the property set as False if mapped. True otherwise.
     """
 
@@ -35,7 +35,7 @@ class CheckMap(AnalysisPass):
     def run(self, dag):
         """
         If `dag` is mapped to `coupling_map`, the property
-        `requires_swap` is set to False (or to True otherwise).
+        `is_swap_mapped` is set to True (or to False otherwise).
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -46,12 +46,12 @@ class CheckMap(AnalysisPass):
             else:
                 self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        self.property_set['requires_swap'] = False
+        self.property_set['is_swap_mapped'] = True
 
         for gate in dag.twoQ_nodes():
             physical_q0 = self.layout[gate['qargs'][0]]
             physical_q1 = self.layout[gate['qargs'][1]]
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                self.property_set['requires_swap'] = True
+                self.property_set['is_swap_mapped'] = False
                 return

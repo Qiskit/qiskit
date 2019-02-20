@@ -36,9 +36,9 @@ class TestCheckMapCX(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
-        self.assertFalse(pass_.property_set['requires_swap'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
 
-    def test_requires_false(self):
+    def test_swap_mapped_true(self):
         """ Mapped is easy to check
          qr0:--(+)-[H]-(+)-
                 |       |
@@ -59,9 +59,9 @@ class TestCheckMapCX(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertFalse(pass_.property_set['requires_swap'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
 
-    def test_requires_true(self):
+    def test_swap_mapped_false(self):
         """ Needs [0]-[1] in a [0]--[2]--[1]
          qr0:--(+)--
                 |
@@ -78,7 +78,7 @@ class TestCheckMapCX(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['requires_swap'])
+        self.assertFalse(pass_.property_set['is_swap_mapped'])
 
 
 if __name__ == '__main__':
