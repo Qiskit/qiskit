@@ -188,22 +188,22 @@ class DAGCircuit:
         if wire not in self.wires:
             self.wires.append(wire)
             self._max_node_id += 1
-            self.input_map[wire] = self._max_node_id
-            input_map_wire = self._max_node_id
+            input_map_wire = self.input_map[wire] = self._max_node_id
+
             self._max_node_id += 1
-            self.output_map[wire] = self._max_node_id
-            output_map_wire = self._max_node_id
+            output_map_wire = self.output_map[wire] = self._max_node_id
+
             self.multi_graph.add_edge(input_map_wire,
                                       output_map_wire)
 
-            in_node = self.multi_graph.node[input_map_wire]
-            out_node = self.multi_graph.node[output_map_wire]
-            in_node["type"] = "in"
-            out_node["type"] = "out"
-            in_node["name"] = "%s[%s]" % (wire[0].name, wire[1])
-            out_node["name"] = "%s[%s]" % (wire[0].name, wire[1])
-            in_node["wire"] = wire
-            out_node["wire"] = wire
+            wire_name = "%s[%s]" % (wire[0].name, wire[1])
+
+            self.multi_graph.add_nodes_from([(input_map_wire, {'type': 'in'}),
+                                             (output_map_wire, {'type': 'out'})
+                                             ],
+                                            name=wire_name,
+                                            wire=wire,
+                                            )
             self.multi_graph.adj[input_map_wire][output_map_wire][0]["name"] \
                 = "%s[%s]" % (wire[0].name, wire[1])
             self.multi_graph.adj[input_map_wire][output_map_wire][0]["wire"] \
