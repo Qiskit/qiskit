@@ -291,7 +291,7 @@ backend.
     #drawing the circuit
     qc.draw(output='mpl')
 
-.. image:: images/figures/getting_started_with_qiskit_circuit_0.png
+.. image:: images/figures/getting_started_with_qiskit_circuit_1.png
 
 
 
