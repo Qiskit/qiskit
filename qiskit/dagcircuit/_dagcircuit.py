@@ -859,7 +859,8 @@ class DAGCircuit:
 
         if not isinstance(node, DAGNode):
             node = self.multi_graph.node[node]
-            # TODO add deprecation warning for calling with number?
+            warnings.warn('Calling substitute_node_with_dag() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
 
         condition = node.condition
         # the decomposition rule must be amended if used in a
@@ -1047,13 +1048,20 @@ class DAGCircuit:
         """Returns list of the successors of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling successors() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
+
         return [DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in self.multi_graph.successors(node)]
 
     def predecessors(self, node):
-        """Returns list of the successors of a node as DAGNodes."""
+        """Returns list of the predecessors of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling predecessors() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
         return [DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in self.multi_graph.predecessors(node)]
 
@@ -1061,6 +1069,9 @@ class DAGCircuit:
         """Returns set of the ancestors of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling ancestors() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
         return {DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in nx.ancestors(self.multi_graph, node)}
 
@@ -1068,6 +1079,9 @@ class DAGCircuit:
         """Returns set of the descendants of a node as DAGNodes."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling descendants() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
         return {DAGNode(data_dict=self.multi_graph.node[nid], node_id=nid)
                 for nid in nx.descendants(self.multi_graph, node)}
 
@@ -1075,6 +1089,9 @@ class DAGCircuit:
         """Returns generator of the successors of a node as DAGNodes in BFS order."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling bfs_successors() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
 
         # convert from a list of numbers to a list of DAGNodes
         return (map(lambda s: DAGNode(data_dict=self.multi_graph.node[s]), succs)
@@ -1083,6 +1100,10 @@ class DAGCircuit:
     def quantum_successors(self, node):
         """Returns list of the successors of a node that are
         connected by a quantum edge as DAGNodes."""
+        if not isinstance(node, DAGNode):
+            warnings.warn('Calling quantum_successors() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
+
         successors = []
         for successor in self.successors(node):
             if isinstance(self.multi_graph.get_edge_data(
@@ -1098,6 +1119,9 @@ class DAGCircuit:
         """
         if isinstance(n, DAGNode):
             n = n.node_id
+        else:
+            warnings.warn('Calling _remove_op_node() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
         pred_map, succ_map = self._make_pred_succ_maps(n)
         self.multi_graph.remove_node(n)
         for w in pred_map.keys():
@@ -1108,6 +1132,9 @@ class DAGCircuit:
         """Remove all of the ancestor operation nodes of node."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling remove_ancestors_of() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
 
         anc = nx.ancestors(self.multi_graph, node)
         # TODO: probably better to do all at once using
@@ -1121,6 +1148,9 @@ class DAGCircuit:
         """Remove all of the descendant operation nodes of node."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling remove_descendants_of() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
 
         dec = nx.descendants(self.multi_graph, node)
         for n in dec:
@@ -1132,6 +1162,9 @@ class DAGCircuit:
         """Remove all of the non-ancestors operation nodes of node."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling remove_nonancestors_of() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
 
         anc = nx.ancestors(self.multi_graph, node)
         comp = list(set(self.multi_graph.nodes()) - set(anc))
@@ -1144,6 +1177,9 @@ class DAGCircuit:
         """Remove all of the non-descendants operation nodes of node."""
         if isinstance(node, DAGNode):
             node = node.node_id
+        else:
+            warnings.warn('Calling remove_nondescendants_of() with a node id is deprecated, use a DAGNode instead',
+                          DeprecationWarning, 2)
 
         dec = nx.descendants(self.multi_graph, node)
         comp = list(set(self.multi_graph.nodes()) - set(dec))
