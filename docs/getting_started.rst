@@ -1,12 +1,15 @@
-
-
-
-===========================
-=======
+===============
 Getting Started
 ===============
 
-Here, we provide an overview of working with Qiskit. Qiskit provides the basic building blocks necessary to program quantum computers. The basic concept of Qiskit is an array of quantum circuits. A workflow using Qiskit consists of two stages: **Build** and **Execute**. **Build** allows you to make different quantum circuits that represent the problem you are solving, and **Execute** allows you to run them on different *backends*, a term meant to encompass both devices and simulation frameworks. After the jobs have been run, the data is collected. There are methods for putting this data together, depending on the program. This either gives you the answer you wanted, or allows you to make a better program for the next instance.
+Here, we provide an overview of working with Qiskit. Qiskit provides the basic building blocks
+necessary to program quantum computers. The basic concept of Qiskit is an array of quantum
+circuits. A workflow using Qiskit consists of two stages: **Build** and **Execute**. **Build**
+allows you to make different quantum circuits that represent the problem you are solving, and
+**Execute** allows you to run them on different *backends*, a term meant to encompass both
+devices and simulation frameworks. After the jobs have been run, the data is collected. There
+are methods for putting this data together, depending on the program. This either gives you the
+answer you wanted, or allows you to make a better program for the next instance.
 
 **Code imports**
 
@@ -92,9 +95,10 @@ that gates which are applied earlier in the circuit show up further to
 the left).
 
 Simulating Circuits using Qiskit Aer
--------------------------------------
+------------------------------------
 
-Qiskit Aer is our package for simulating quantum circuits. It provides many different backends for doing a simulation. Here we use the basic Python version.
+Qiskit Aer is our package for simulating quantum circuits. It provides many
+different backends for doing a simulation. Here we use the basic Python version.
 
 Statevector backend
 ~~~~~~~~~~~~~~~~~~~
@@ -359,7 +363,8 @@ the estimated probabilities change.
 Running Circuits on IBM Q Devices
 ---------------------------------
 
-To follow along with this section, first be sure to set up an IBM Q account as explained in the :ref:`install_access_ibm_q_devices_label` section of the Qiskit installation instructions.
+To follow along with this section, first be sure to set up an IBM Q account as explained in the
+:ref:`install_access_ibm_q_devices_label` section of the Qiskit installation instructions.
 
 Load your IBM Q account credentials by calling
 
@@ -389,9 +394,11 @@ Once your account has been loaded, you can view the list of devices available to
 Running circuits on real devices
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Today’s quantum information processors are small and noisy, but are advancing at a fast pace. They provide a great opportunity to explore what noisy quantum computers can do.
+Today’s quantum information processors are small and noisy, but are advancing at a fast pace.
+They provide a great opportunity to explore what noisy quantum computers can do.
 
-The IBMQ provider uses a queue to allocate the devices to users. We now choose a device with the least busy queue which can support our program (has at least 3 qubits).
+The IBMQ provider uses a queue to allocate the devices to users. We now choose a device with the
+least busy queue which can support our program (has at least 3 qubits).
 
 .. code:: python
 

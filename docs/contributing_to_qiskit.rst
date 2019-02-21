@@ -4,7 +4,8 @@
 Contributing to Qiskit
 ======================
 
-Qiskit is an open-source project committed to bringing quantum computing to people of all backgrounds. This page describes how you can join the Qiskit community in this goal.
+Qiskit is an open-source project committed to bringing quantum computing to people of all
+backgrounds. This page describes how you can join the Qiskit community in this goal.
 
 
 
