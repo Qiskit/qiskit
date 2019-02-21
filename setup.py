@@ -17,8 +17,6 @@ requirements = [
     "pillow>=4.2.1",
     "ply>=3.10",
     "psutil>=5",
-    "requests>=2.19",
-    "requests-ntlm>=1.1.0",
     "scipy>=0.19,!=0.19.1",
     "sympy>=1.3"
 ]

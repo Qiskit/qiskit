@@ -388,9 +388,18 @@ class QuantumCircuit:
         dag = circuit_to_dag(self)
         return dag.num_tensor_factors()
 
-    def copy(self):
-        """ Returns a deepcopy of the circuit"""
-        return deepcopy(self)
+    def copy(self, name=None):
+        """
+        Args:
+          name (str): name to be given to the copied circuit, if None then the name stays the same
+        Returns:
+          QuantumCircuit: a deepcopy of the current circuit, with the name updated if
+                          it was provided
+        """
+        cpy = deepcopy(self)
+        if name:
+            cpy.name = name
+        return cpy
 
     @staticmethod
     def from_qasm_file(path):
