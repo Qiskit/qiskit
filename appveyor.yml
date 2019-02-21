@@ -34,9 +34,11 @@ install:
     - pip.exe install vcrpy
     - pip.exe install jupyter
     - pip.exe install ipywidgets
+    - pip.exe install cython
     - pip.exe install stestr
     - pip.exe install qiskit-aer
     - pip.exe install qiskit-ibmq-provider
+    - python setup.py build_ext --inplace
 # TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
 
