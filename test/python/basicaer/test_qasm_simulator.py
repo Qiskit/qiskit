@@ -5,14 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring,redefined-builtin
+"""Test QASM simulator."""
 
 import unittest
 
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile
+from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.providers.builtinsimulators import QasmSimulatorPy
 from qiskit.test import Path
 from qiskit.test.providers import BackendTestCase
@@ -53,6 +53,7 @@ class TestBasicAerQasmSimulator(BackendTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_if_statement(self):
+        """Test if statements."""
         shots = 100
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')
@@ -85,7 +86,7 @@ class TestBasicAerQasmSimulator(BackendTestCase):
         self.assertEqual(counts_if_false, {'001': 100})
 
     def test_teleport(self):
-        """test teleportation as in tutorials"""
+        """Test teleportation as in tutorials"""
         self.log.info('test_teleport')
         pi = np.pi
         shots = 2000
@@ -131,6 +132,7 @@ class TestBasicAerQasmSimulator(BackendTestCase):
         self.assertLess(error, 0.05)
 
     def test_memory(self):
+        """Test memory."""
         qr = QuantumRegister(4, 'qr')
         cr0 = ClassicalRegister(2, 'cr0')
         cr1 = ClassicalRegister(2, 'cr1')

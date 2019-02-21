@@ -5,15 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-# pylint: disable=redefined-builtin
+"""Tests for unitary simulator."""
 
 import unittest
 
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile
+from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.providers.builtinsimulators import UnitarySimulatorPy
 from qiskit.test import ReferenceCircuits
 from qiskit.test.providers import BackendTestCase
