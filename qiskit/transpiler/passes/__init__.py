@@ -7,7 +7,7 @@
 
 """Module containing transpiler pass."""
 
-from qiskit.transpiler.passes.unroller import Unroller
+from .unroller import Unroller
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .optimize_1q_gates import Optimize1qGates

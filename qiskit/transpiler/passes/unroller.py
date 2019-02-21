@@ -48,12 +48,7 @@ class Unroller(TransformationPass):
                 continue
 
             # TODO: allow choosing other possible decompositions
-            try:
-                decomposition_rules = current_node["op"].decompositions()
-            except RecursionError:
-                raise QiskitError("Cannot unroll the circuit to the given basis, %s, "
-                                  "due to infinite recursion at node %s." %
-                                  (str(self.basis), current_node["op"].name))
+            decomposition_rules = current_node["op"].decompositions()
 
             if not decomposition_rules:
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
