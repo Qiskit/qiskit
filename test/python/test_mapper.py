@@ -68,7 +68,59 @@ class TestMapper(QiskitTestCase):
         result2 = execute(circ, backend=self.backend,
                           coupling_map=None, seed=self.seed, shots=shots)
         count2 = result2.result().get_counts()
-        self.assertDictAlmostEqual(count1, count2, shots*0.02)
+        self.assertDictAlmostEqual(count1, count2, shots * 0.02)
+
+    def test_grovers_circuit(self):
+        """Testing a circuit originated in the Grover algorithm"""
+        shots = 1000
+        coupling_map = None
+
+        # 6-qubit grovers
+        qr = QuantumRegister(6)
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr, name='grovers')
+
+        circuit.h(qr[0])
+        circuit.h(qr[1])
+        circuit.x(qr[2])
+        circuit.x(qr[3])
+        circuit.x(qr[0])
+        circuit.cx(qr[0], qr[2])
+        circuit.x(qr[0])
+        circuit.cx(qr[1], qr[3])
+        circuit.ccx(qr[2], qr[3], qr[4])
+        circuit.cx(qr[1], qr[3])
+        circuit.x(qr[0])
+        circuit.cx(qr[0], qr[2])
+        circuit.x(qr[0])
+        circuit.x(qr[1])
+        circuit.x(qr[4])
+        circuit.h(qr[4])
+        circuit.ccx(qr[0], qr[1], qr[4])
+        circuit.h(qr[4])
+        circuit.x(qr[0])
+        circuit.x(qr[1])
+        circuit.x(qr[4])
+        circuit.h(qr[0])
+        circuit.h(qr[1])
+        circuit.h(qr[4])
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+
+        result = execute(circuit, backend=self.backend,
+                          coupling_map=coupling_map, seed=self.seed, shots=shots)
+        counts = result.result().get_counts()
+
+        expected_probs = {'00': 0.64,
+                          '01': 0.117,
+                          '10': 0.113,
+                          '11': 0.13}
+
+        target = {key: shots * val for key, val in expected_probs.items()}
+        threshold = 0.04 * shots
+        self.assertDictAlmostEqual(counts, target, threshold)
+
 
     def test_math_domain_error(self):
         """Check for floating point errors.
