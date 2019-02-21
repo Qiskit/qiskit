@@ -109,7 +109,7 @@ class TestMapper(QiskitTestCase):
         circuit.measure(qr[1], cr[1])
 
         result = execute(circuit, backend=self.backend,
-                          coupling_map=coupling_map, seed=self.seed, shots=shots)
+                         coupling_map=coupling_map, seed=self.seed, shots=shots)
         counts = result.result().get_counts()
 
         expected_probs = {'00': 0.64,
@@ -120,7 +120,6 @@ class TestMapper(QiskitTestCase):
         target = {key: shots * val for key, val in expected_probs.items()}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
-
 
     def test_math_domain_error(self):
         """Check for floating point errors.
