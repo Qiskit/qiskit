@@ -28,7 +28,7 @@ class TestExtensionsSimulator(QiskitTestCase):
 
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
-        basis_gates = 'cx,u1,u2,u3,snapshot'
+        basis_gates = ['cx', 'u1', 'u2', 'u3', 'snapshot']
         qr = qiskit.QuantumRegister(2)
         cr = qiskit.ClassicalRegister(2)
         circuit = qiskit.QuantumCircuit(qr, cr)
