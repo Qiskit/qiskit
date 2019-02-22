@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,anomalous-backslash-in-string
+# pylint: disable=assignment-from-no-return
 
 """
 A collection of useful quantum information functions.
