@@ -8,6 +8,7 @@
 """
 Fundamental controlled-NOT gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.decorators import _op_expand
@@ -39,3 +40,4 @@ def cx_base(self, ctl, tgt):
 
 
 QuantumCircuit.cx_base = cx_base
+CompositeGate.cx_base = cx_base
