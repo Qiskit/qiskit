@@ -54,9 +54,9 @@ class QuantumInstance:
 
         Args:
             backend (BaseBackend): instance of selected backend
-            shots (int, optional): Deprecated, number of repetitions of each circuit, for sampling
-            seed (int, optional): Deprecated, random seed for simulators
-            max_credits (int, optional): Deprecated, maximum credits to use
+            shots (int, optional): number of repetitions of each circuit, for sampling
+            seed (int, optional): random seed for simulators
+            max_credits (int, optional): maximum credits to use
             basis_gates (list[str], optional): list of basis gate names supported by the
                                                 target. Default: ['u1','u2','u3','cx','id']
             coupling_map (list[list]): coupling map (perhaps custom) to target in mapping
@@ -77,7 +77,7 @@ class QuantumInstance:
             run_config.seed = seed
 
         if getattr(run_config, 'shots', None) is not None:
-            if self.is_statevector and run_config.shots == 1:
+            if self.is_statevector and run_config.shots != 1:
                 logger.info("statevector backend only works with shot=1, change "
                             "shots from {} to 1.".format(run_config.shots))
                 run_config.shots = 1
