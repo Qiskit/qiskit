@@ -16,10 +16,10 @@
 # =============================================================================
 
 import logging
-import warnings
 
 from qiskit import __version__ as terra_version
 from qiskit.qobj import RunConfig
+from qiskit.mapper import Layout
 from qiskit.aqua.utils import compile_and_run_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
                                              is_ibmq_provider,
@@ -45,19 +45,17 @@ class QuantumInstance:
                        "max_parallel_experiments", "statevector_parallel_threshold",
                        "statevector_hpc_gate_opt"] + BACKEND_OPTIONS_QASM_ONLY
 
-    def __init__(self, backend, run_config=None, shots=None, seed=None, memory=None, max_credits=None,
+    def __init__(self, backend, shots=1024, seed=None, max_credits=10,
                  initial_layout=None, pass_manager=None, seed_mapper=None,
-                 backend_options=None, noise_model=None, timeout=None, wait=5, circuit_cache=None,
-                 skip_qobj_validation=False):
+                 backend_options=None, noise_model=None, timeout=None, wait=5,
+                 circuit_cache=None, skip_qobj_validation=False):
         """Constructor.
 
         Args:
             backend (BaseBackend): instance of selected backend
-            run_config (RunConfig, optional): the run config see https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/qobj/run_config.py
             shots (int, optional): Deprecated, number of repetitions of each circuit, for sampling
-            max_credits (int, optional): Deprecated, maximum credits to use
             seed (int, optional): Deprecated, random seed for simulators
-            memory (bool, optional): Deprecated, if True, per-shot measurement bitstrings are returned as well
+            max_credits (int, optional): Deprecated, maximum credits to use
             initial_layout (dict, optional): initial layout of qubits in mapping
             pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
             seed_mapper (int, optional): the random seed for circuit mapper
@@ -70,29 +68,9 @@ class QuantumInstance:
         """
         self._backend = backend
         # setup run config
-        if shots is not None:
-            warnings.warn("The `shots` argument is deprecated, "
-                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
-        if max_credits is not None:
-            warnings.warn("The `max_credits` argument is deprecated, "
-                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
-        if memory is not None:
-            warnings.warn("The `memory` argument is deprecated, "
-                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
-        if seed is not None:
-            warnings.warn("The `seed` argument is deprecated, "
-                          "please use RunConfig from qiskit.qobj to setup.", DeprecationWarning)
-
-        if run_config is None:
-            run_config = RunConfig(shots=1024, max_credits=10, memory=False)
-            if shots:
-                run_config.shots = shots
-            if max_credits:
-                run_config.max_credits = max_credits
-            if memory:
-                run_config.memory = memory
-            if seed:
-                run_config.seed = seed
+        run_config = RunConfig(shots=shots, max_credits=max_credits)
+        if seed:
+            run_config.seed = seed
 
         if getattr(run_config, 'shots', None) is not None:
             if self.is_statevector and run_config.shots == 1:
@@ -100,11 +78,6 @@ class QuantumInstance:
                             "shots from {} to 1.".format(run_config.shots))
                 run_config.shots = 1
 
-        if getattr(run_config, 'memory', None) is not None:
-            if not self.is_simulator and run_config.memory is True:
-                logger.info("The memory flag only supports simulator rather than real device. "
-                            "Change it to from {} to False.".format(run_config.memory))
-                run_config.memory = False
         self._run_config = run_config
 
         # setup backend config
@@ -134,11 +107,12 @@ class QuantumInstance:
         self._noise_config = {} if noise_config is None else {'noise_model': noise_config}
 
         # setup compile config
+        if initial_layout is not None and not isinstance(initial_layout, Layout):
+            initial_layout = Layout(initial_layout)
         self._compile_config = {
             'pass_manager': pass_manager,
             'initial_layout': initial_layout,
-            'seed_mapper': seed_mapper,
-            'qobj_id': None
+            'seed_mapper': seed_mapper
         }
 
         # setup job config
@@ -182,7 +156,7 @@ class QuantumInstance:
         Returns:
             Result: Result object
         """
-        result = compile_and_run_circuits(circuits, self._backend, self._backend_config,
+        result = compile_and_run_circuits(circuits, self._backend,
                                           self._compile_config, self._run_config,
                                           self._qjob_config,
                                           backend_options=self._backend_options,
