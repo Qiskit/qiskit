@@ -17,6 +17,7 @@ from qiskit import BasicAer
 from qiskit.transpiler import PassManager, transpile
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate
+from qiskit.dagcircuit import DAGCircuit
 
 
 class TestUnroller(QiskitTestCase):
@@ -87,7 +88,6 @@ class TestUnroller(QiskitTestCase):
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
 
-    '''
     def test_unroll_no_basis(self):
         """Test no-basis unrolls all the way to U, CX.
         """
@@ -103,20 +103,15 @@ class TestUnroller(QiskitTestCase):
         for node in op_nodes:
             op = node[1]["op"]
             self.assertIn(op.name, ['U', 'CX'])
-    '''
 
     def test_no_gate_decomposition(self):
-        """Test when no decomposition rules are defined for a particular gate while unrolling.
+        """Test when a given gate has no decompositions.
         """
-        class DummyGate(Gate):
-            def _define_decompositions(self):
-                return None
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        dag = circuit_to_dag(circuit)
 
-        PassManager(Unroller(basis=[DummyGate]))
-
-        '''
-        simulator = BasicAer.get_backend('qasm_simulator')
-        pass_manager = PassManager(Unroller(basis=[gate]))
         with self.assertRaises(QiskitError):
-            transpile(gate.circuit, simulator, pass_manager=pass_manager)
-        '''
+            Unroller(basis=[]).run(dag)
