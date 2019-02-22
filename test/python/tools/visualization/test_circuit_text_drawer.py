@@ -54,6 +54,12 @@ class TestTextDrawerElement(QiskitTestCase):
                     "└╥┘"]
         self.assertEqualElement(expected, element)
 
+    def test_text_empty(self):
+        """ The empty circuit."""
+        expected = ''
+        circuit = QuantumCircuit()
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_pager(self):
         """ The pager breaks the circuit when the drawing does not fit in the console."""
         expected = '\n'.join(["        ┌───┐     »",
