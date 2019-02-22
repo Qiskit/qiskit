@@ -6,24 +6,25 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-This pass checks if a DAG is mapped to a coupling map.
-
-It checks that all 2-qubit interactions are laid out to be physically close.
+This pass checks if the CNOTs (or any other 2Q) in the DAG follow the right
+direction with respect to thecoupling map.
 """
 
 from qiskit.transpiler._basepasses import AnalysisPass
 from qiskit.mapper import Layout
+from qiskit.extensions.standard.cx import CXBase, CnotGate
 
 
-class CheckMap(AnalysisPass):
+class CheckCnotDirection(AnalysisPass):
     """
-    Checks if a DAGCircuit is mapped to `coupling_map` setting `is_swap_mapped` in
-    the property set as False if mapped. True otherwise.
+    checks if the CNOTs (or any other 2Q) in the DAG follow the right
+    direction with respect to thecoupling map
     """
 
     def __init__(self, coupling_map, initial_layout=None):
         """
-        Checks if a DAGCircuit is mapped to `coupling_map`.
+        Checks if the 2Q gates in DAGCircuit are in the allowed direction with
+        respect to `coupling_map`.
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             initial_layout (Layout): The initial layout of the DAG to analyze.
@@ -34,8 +35,8 @@ class CheckMap(AnalysisPass):
 
     def run(self, dag):
         """
-        If `dag` is mapped to `coupling_map`, the property
-        `is_swap_mapped` is set to True (or to False otherwise).
+        If `dag` is mapped and the direction is correct the property
+        `is_direction_mapped` is set to True (or to False otherwise).
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -46,12 +47,14 @@ class CheckMap(AnalysisPass):
             else:
                 self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        self.property_set['is_swap_mapped'] = True
+        self.property_set['is_direction_mapped'] = True
+        edges = self.coupling_map.get_edges()
 
-        for gate in dag.twoQ_nodes():
+        for gate in dag.twoQ_gates():
             physical_q0 = self.layout[gate['qargs'][0]]
             physical_q1 = self.layout[gate['qargs'][1]]
 
-            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                self.property_set['is_swap_mapped'] = False
+            if isinstance(gate['op'], (CXBase, CnotGate)) and (
+                    physical_q0, physical_q1) not in edges:
+                self.property_set['is_direction_mapped'] = False
                 return
