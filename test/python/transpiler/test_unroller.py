@@ -89,20 +89,10 @@ class TestUnroller(QiskitTestCase):
         self.assertEqual(unrolled_dag, ref_dag)
 
     def test_unroll_no_basis(self):
-        """Test no-basis unrolls all the way to U, CX.
+        """Test when the basis to unroll is not explicitly given.
         """
-        qr = QuantumRegister(2, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        dag = circuit_to_dag(circuit)
-        pass_ = Unroller()
-        unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.op_nodes(data=True)
-        self.assertEqual(len(op_nodes), 2)
-        for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['U', 'CX'])
+        with self.assertRaises(TypeError):
+            Unroller()
 
     def test_no_gate_decomposition(self):
         """Test when a given gate has no decompositions.
@@ -113,5 +103,5 @@ class TestUnroller(QiskitTestCase):
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(NotImplementedError):
             Unroller(basis=[]).run(dag)

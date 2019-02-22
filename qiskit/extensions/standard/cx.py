@@ -12,7 +12,10 @@ controlled-NOT gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.extensions.standard.cxbase import CXBase
 
 
 class CnotGate(Gate):
@@ -23,8 +26,18 @@ class CnotGate(Gate):
         super().__init__("cx", [], [ctl, tgt], circ)
 
     def _define_decompositions(self):
-        """No decomposition as CX is not a valid basis."""
-        self._decompositions = None
+        """
+        gate cx c,t { CX c,t; }
+        """
+        decomposition = DAGCircuit()
+        q = QuantumRegister(2, "q")
+        decomposition.add_qreg(q)
+        rule = [
+            CXBase(q[0], q[1])
+        ]
+        for inst in rule:
+            decomposition.apply_operation_back(inst)
+        self._decompositions = [decomposition]
 
     def inverse(self):
         """Invert this gate."""
