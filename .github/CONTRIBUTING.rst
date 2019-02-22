@@ -140,7 +140,7 @@ A good example:
 Installing Qiskit Terra from source
 -----------------------------------
 
-Please see the `Installing Qiskit Terra from Source<https://qiskit.org/documentation/install/terra.html>`_
+Please see the `Installing Qiskit Terra from Source <https://qiskit.org/documentation/install/terra.html>`_
 section of the Qiskit documentation.
 
 
