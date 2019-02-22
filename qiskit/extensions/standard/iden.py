@@ -10,6 +10,7 @@
 """
 Identity gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -53,3 +54,4 @@ def iden(self, q):
 
 
 QuantumCircuit.iden = iden
+CompositeGate.iden = iden

@@ -16,6 +16,7 @@ from .commutation_analysis import CommutationAnalysis
 from .commutation_transformation import CommutationTransformation
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
+from .mapping.check_cnot_direction import CheckCnotDirection
 from .mapping.cx_direction import CXDirection
 from .mapping.unroller import Unroller
 from .mapping.trivial_layout import TrivialLayout
