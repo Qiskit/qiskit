@@ -7,6 +7,8 @@
 
 """A collection of useful functions for post processing results."""
 
+import numpy as np
+
 
 def average_data(counts, observable):
     """Compute the mean value of an diagonal observable.
@@ -39,10 +41,20 @@ def make_dict_observable(matrix_observable):
     form. Can also handle a list sorted of the diagonal elements.
 
     Args:
-        observable (list): The observable to be converted to dicitonary form. As
+        observable (list): The observable to be converted to dicitonary form.
 
     Results:
         A dictionary with all observable states as keys, and corresponding
         values being the observed value for that state. 
     """
-    raise NotImplementedError
+    dict_observable = {}
+    observable = np.array(matrix_observable)
+    observable_size = len(observable)
+    observable_bits = int(np.ceil(np.log2(observable_size)))
+    binary_formater = '0{}b'.format(observable_bits)
+    if observable.ndim == 2:
+        observable = observable.diagonal()
+    for state_no in range(observable_size):
+        state_str = format(state_no, binary_formater)
+        dict_observable[state_str] = observable[state_no]
+    return dict_observable
