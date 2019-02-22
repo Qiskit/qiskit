@@ -23,7 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-
+- Core StochasticSwap routine implimented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).

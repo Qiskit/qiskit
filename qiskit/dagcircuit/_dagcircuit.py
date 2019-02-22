@@ -924,7 +924,7 @@ class DAGCircuit:
         # Now that we know the connections, delete node
         self.multi_graph.remove_node(node.node_id)
         # Iterate over nodes of input_circuit
-        for m in input_dag.multi_graph:
+        for m in nx.topological_sort(input_dag.multi_graph):
             md = input_dag.multi_graph.node[m]
             if md["type"] == "op":
                 # Insert a new node
