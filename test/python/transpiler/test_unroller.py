@@ -102,6 +102,7 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
+        pass_ = Unroller(basis=[])
 
         with self.assertRaises(NotImplementedError):
-            Unroller(basis=[]).run(dag)
+            pass_.run(dag)
