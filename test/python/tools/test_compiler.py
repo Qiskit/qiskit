@@ -644,5 +644,6 @@ class TestCompiler(QiskitTestCase):
 
         self.assertTrue(mock_pass.called)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
