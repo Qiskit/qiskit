@@ -34,7 +34,7 @@ class QuantumInstance:
     """Quantum Backend including execution setting."""
 
     BACKEND_CONFIG = ['basis_gates', 'coupling_map']
-    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_mapper', 'qobj_id']
+    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_mapper']
     RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed']
     QJOB_CONFIG = ['timeout', 'wait']
     NOISE_CONFIG = ['noise_model']
@@ -46,6 +46,7 @@ class QuantumInstance:
                        "statevector_hpc_gate_opt"] + BACKEND_OPTIONS_QASM_ONLY
 
     def __init__(self, backend, shots=1024, seed=None, max_credits=10,
+                 basis_gates=None, coupling_map=None,
                  initial_layout=None, pass_manager=None, seed_mapper=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
                  circuit_cache=None, skip_qobj_validation=False):
@@ -56,10 +57,13 @@ class QuantumInstance:
             shots (int, optional): Deprecated, number of repetitions of each circuit, for sampling
             seed (int, optional): Deprecated, random seed for simulators
             max_credits (int, optional): Deprecated, maximum credits to use
+            basis_gates (list[str], optional): list of basis gate names supported by the
+                                                target. Default: ['u1','u2','u3','cx','id']
+            coupling_map (list[list]): coupling map (perhaps custom) to target in mapping
             initial_layout (dict, optional): initial layout of qubits in mapping
             pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
             seed_mapper (int, optional): the random seed for circuit mapper
-            backend_options (dict, optional): all config setting for backend
+            backend_options (dict, optional): all running options for backend, please refer to the provider.
             noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model for simulator
             timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
             wait (float, optional): seconds between queries to result
@@ -81,12 +85,9 @@ class QuantumInstance:
         self._run_config = run_config
 
         # setup backend config
-        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-        # TODO: basis gates will be [str] rather than comma-separated str
-        basis_gates = backend.configuration().basis_gates
-        if isinstance(basis_gates, str):
-            basis_gates = basis_gates.split(',')
-
+        basis_gates = basis_gates or backend.configuration().basis_gates
+        coupling_map = coupling_map or getattr(backend.configuration(),
+                                               'coupling_map', None)
         self._backend_config = {
             'basis_gates': basis_gates,
             'coupling_map': coupling_map
@@ -157,8 +158,10 @@ class QuantumInstance:
             Result: Result object
         """
         result = compile_and_run_circuits(circuits, self._backend,
-                                          self._compile_config, self._run_config,
-                                          self._qjob_config,
+                                          backend_config=self._backend_config,
+                                          compile_config=self._compile_config,
+                                          run_config=self._run_config,
+                                          qjob_config=self._qjob_config,
                                           backend_options=self._backend_options,
                                           noise_config=self._noise_config,
                                           show_circuit_summary=self._circuit_summary,

@@ -32,7 +32,8 @@ from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
-                                             is_simulator_backend, is_ibmq_provider)
+                                             is_simulator_backend, is_ibmq_provider,
+                                             is_local_backend)
 
 MAX_CIRCUITS_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_CIRCUITS_PER_JOB', None)
 
@@ -76,7 +77,7 @@ def _avoid_empty_circuits(circuits):
     return new_circuits
 
 
-def _reuse_shared_circuits(circuits, backend, compile_config, run_config,
+def _reuse_shared_circuits(circuits, backend, backend_config, compile_config, run_config,
                            qjob_config=None, backend_options=None, show_circuit_summary=False):
     """Reuse the circuits with the shared head.
 
@@ -89,7 +90,7 @@ def _reuse_shared_circuits(circuits, backend, compile_config, run_config,
     backend_options = backend_options or {}
 
     shared_circuit = circuits[0]
-    shared_result = compile_and_run_circuits(shared_circuit, backend,
+    shared_result = compile_and_run_circuits(shared_circuit, backend, backend_config,
                                              compile_config, run_config, qjob_config,
                                              show_circuit_summary=show_circuit_summary)
 
@@ -104,7 +105,7 @@ def _reuse_shared_circuits(circuits, backend, compile_config, run_config,
     if 'backend_options' not in temp_backend_options:
         temp_backend_options['backend_options'] = {}
     temp_backend_options['backend_options']['initial_statevector'] = shared_quantum_state
-    diff_result = compile_and_run_circuits(circuits[1:], backend,
+    diff_result = compile_and_run_circuits(circuits[1:], backend, backend_config,
                                            compile_config, run_config, qjob_config,
                                            backend_options=temp_backend_options,
                                            show_circuit_summary=show_circuit_summary)
@@ -154,14 +155,15 @@ def _maybe_add_aer_expectation_instruction(qobj, options):
     return qobj
 
 
-def _compile_wrapper(circuits, backend, compile_config, run_config):
-    transpiled_circuits = transpiler.transpile(circuits, backend, **compile_config)
+def _compile_wrapper(circuits, backend, backend_config, compile_config, run_config):
+    transpiled_circuits = transpiler.transpile(circuits, backend, **backend_config, **compile_config)
     qobj = circuits_to_qobj(transpiled_circuits, user_qobj_header=QobjHeader(),
                             run_config=run_config, qobj_id=None)
     return qobj, transpiled_circuits
 
 
-def compile_and_run_circuits(circuits, backend, compile_config=None, run_config=None,
+def compile_and_run_circuits(circuits, backend, backend_config=None,
+                             compile_config=None, run_config=None,
                              qjob_config=None, backend_options=None,
                              noise_config=None, show_circuit_summary=False,
                              has_shared_circuits=False, circuit_cache=None,
@@ -175,6 +177,7 @@ def compile_and_run_circuits(circuits, backend, compile_config=None, run_config=
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): backend instance
+        backend_config (dict, optional): configuration for backend
         compile_config (dict, optional): configuration for compilation
         run_config (RunConfig, optional): configuration for running a circuit
         qjob_config (dict, optional): configuration for quantum job object
@@ -191,6 +194,9 @@ def compile_and_run_circuits(circuits, backend, compile_config=None, run_config=
     Raises:
         AquaError: Any error except for JobError raised by Qiskit Terra
     """
+    backend_config = backend_config or {}
+    compile_config = compile_config or {}
+    run_config = run_config or {}
     qjob_config = qjob_config or {}
     backend_options = backend_options or {}
     noise_config = noise_config or {}
@@ -201,19 +207,19 @@ def compile_and_run_circuits(circuits, backend, compile_config=None, run_config=
     if not isinstance(circuits, list):
         circuits = [circuits]
 
-    if 'statevector' in backend.name():
+    if is_simulator_backend(backend):
         circuits = _avoid_empty_circuits(circuits)
 
     if has_shared_circuits:
-        return _reuse_shared_circuits(circuits, backend, compile_config,
+        return _reuse_shared_circuits(circuits, backend, backend_config, compile_config,
                                       run_config, qjob_config, backend_options)
 
-    with_autorecover = False if backend.configuration().simulator else True
+    with_autorecover = False if is_simulator_backend(backend) else True
 
     if MAX_CIRCUITS_PER_JOB is not None:
         max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
     else:
-        if backend.configuration().local:
+        if is_local_backend(backend):
             max_circuits_per_job = sys.maxsize
         else:
             max_circuits_per_job = backend.configuration().max_experiments
@@ -226,7 +232,7 @@ def compile_and_run_circuits(circuits, backend, compile_config=None, run_config=
         else:  # Try setting up the reusable qobj
             # Compile and cache first circuit if cache is empty. The load method will try to reuse it
             if circuit_cache.qobjs is None:
-                qobj, _ = _compile_wrapper([circuits[0]], backend, compile_config, run_config)
+                qobj, _ = _compile_wrapper([circuits[0]], backend, backend_config, compile_config, run_config)
                 if is_aer_provider(backend):
                     qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
@@ -252,14 +258,14 @@ def compile_and_run_circuits(circuits, backend, compile_config=None, run_config=
                 else:
                     logger.info('Circuit cache is empty, compiling from scratch.')
                 circuit_cache.clear_cache()
-                qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, compile_config, run_config)
+                qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config, compile_config, run_config)
                 transpiled_circuits.extend(transpiled_sub_circuits)
                 if is_aer_provider(backend):
                     qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, sub_circuits, i)
 
         else:
-            qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, compile_config, run_config)
+            qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config, compile_config, run_config)
             transpiled_circuits.extend(transpiled_sub_circuits)
             if is_aer_provider(backend):
                 qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
