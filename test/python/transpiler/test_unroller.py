@@ -13,11 +13,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit import BasicAer
-from qiskit.transpiler import PassManager, transpile
-from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate
-from qiskit.dagcircuit import DAGCircuit
 
 
 class TestUnroller(QiskitTestCase):
@@ -89,12 +84,6 @@ class TestUnroller(QiskitTestCase):
         self.assertEqual(unrolled_dag, ref_dag)
 
     def test_unroll_no_basis(self):
-        """Test when the basis to unroll is not explicitly given.
-        """
-        with self.assertRaises(TypeError):
-            Unroller()
-
-    def test_no_gate_decomposition(self):
         """Test when a given gate has no decompositions.
         """
         qr = QuantumRegister(1, 'qr')
