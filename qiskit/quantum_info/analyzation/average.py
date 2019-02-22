@@ -41,11 +41,12 @@ def make_dict_observable(matrix_observable):
     form. Can also handle a list sorted of the diagonal elements.
 
     Args:
-        observable (list): The observable to be converted to dicitonary form.
+        matrix_observable (list): The observable to be converted to dictionary
+        form. Can be a matrix or just an ordered list of observed values
 
-    Results:
-        A dictionary with all observable states as keys, and corresponding
-        values being the observed value for that state. 
+    Returns:
+        Dict: A dictionary with all observable states as keys, and corresponding
+        values being the observed value for that state
     """
     dict_observable = {}
     observable = np.array(matrix_observable)
