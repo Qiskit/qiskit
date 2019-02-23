@@ -7,11 +7,8 @@
 
 # pylint: disable=invalid-name
 
-"""Contains functions used by the simulators.
+"""Contains functions used by the basic aer simulators.
 
-Functions
-    index2 -- Takes a bitstring k and inserts bits b1 as the i1th bit
-    and b2 as the i2th bit
 """
 
 from string import ascii_uppercase, ascii_lowercase

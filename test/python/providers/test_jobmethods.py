@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-"""SimulatorsJob creation and test suite."""
+"""BasicAerJob creation and test suite."""
 
 import uuid
 from contextlib import contextmanager
@@ -20,7 +20,7 @@ from qiskit.test.mock import new_fake_qobj, FakeRueschlikon
 
 
 class TestSimulatorsJob(QiskitTestCase):
-    """Test how backends create SimulatorsJob objects and the SimulatorsJob class."""
+    """Test how backends create BasicAerJob objects and the BasicAerJob class."""
 
     def test_multiple_execution(self):
         # Notice that it is Python responsibility to test the executors
@@ -53,8 +53,8 @@ class TestSimulatorsJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
         # pylint: disable=invalid-name,redefined-outer-name
-        with mocked_executor() as (SimulatorsJob, executor):
-            job = SimulatorsJob(backend, job_id, lambda: None, new_fake_qobj())
+        with mocked_executor() as (BasicAerJob, executor):
+            job = BasicAerJob(backend, job_id, lambda: None, new_fake_qobj())
             job.submit()
             job.cancel()
 
@@ -79,15 +79,15 @@ def mocked_executor():
 
     import importlib
     import concurrent.futures as futures
-    import qiskit.providers.builtinsimulators.simulatorsjob as simulatorsjob
+    import qiskit.providers.basicaer.basicaerjob as basicaerjob
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)
     mock_options = {'return_value': executor, 'autospec': True}
     with patch.object(futures, 'ProcessPoolExecutor', **mock_options),\
             patch.object(futures, 'ThreadPoolExecutor', **mock_options):
-        importlib.reload(simulatorsjob)
-        yield simulatorsjob.SimulatorsJob, executor
+        importlib.reload(basicaerjob)
+        yield basicaerjob.BasicAerJob, executor
 
 
 @contextmanager

@@ -36,7 +36,7 @@ import qiskit.circuit.reset
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
-from qiskit.providers.builtinsimulators import BasicAer
+from qiskit.providers.basicaer import BasicAer
 
 # Try to import the Aer provider if the Aer element is installed.
 try:

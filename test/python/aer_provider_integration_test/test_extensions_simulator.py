@@ -21,7 +21,7 @@ from qiskit.test import QiskitTestCase, requires_aer_provider
 
 @requires_aer_provider
 class TestExtensionsSimulator(QiskitTestCase):
-    """Test instruction extensions for builtinsimulators simulators:
+    """Test instruction extensions for basicaer simulators:
     save, load, noise, snapshot, wait
     """
     _desired_fidelity = 0.99
