@@ -12,7 +12,7 @@ import json
 import jsonschema
 
 from qiskit import BasicAer
-from qiskit.providers.builtinsimulators import SimulatorsProvider
+from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.test import Path, QiskitTestCase
 
@@ -20,10 +20,10 @@ from qiskit.test import Path, QiskitTestCase
 class TestBasicAerBackends(QiskitTestCase):
     """Qiskit BasicAer Backends (Object) Tests."""
 
-    def test_builtin_simulators_backends_exist(self):
+    def test_basicaer_backends_exist(self):
         """Test if there are local backends."""
-        builtin_simulators = SimulatorsProvider()
-        local = builtin_simulators.backends()
+        basicaer = BasicAerProvider()
+        local = basicaer.backends()
         self.assertTrue(len(local) > 0)
 
     def test_get_backend(self):
@@ -31,7 +31,7 @@ class TestBasicAerBackends(QiskitTestCase):
         backend = BasicAer.backends(name='qasm_simulator')[0]
         self.assertEqual(backend.name(), 'qasm_simulator')
 
-    def test_builtin_simulators_backend_status(self):
+    def test_basicaer_backend_status(self):
         """Test backend_status."""
         schema_path = self._get_resource_path(
             'backend_status_schema.json', path=Path.SCHEMAS)
@@ -42,19 +42,19 @@ class TestBasicAerBackends(QiskitTestCase):
             status = backend.status()
             jsonschema.validate(status.to_dict(), schema)
 
-    def test_builtin_simulators_backend_configuration(self):
+    def test_basicaer_backend_configuration(self):
         """Test backend configuration."""
         schema_path = self._get_resource_path(
             'backend_configuration_schema.json', path=Path.SCHEMAS)
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)
 
-        builtin_simulators = BasicAer.backends()
-        for backend in builtin_simulators:
+        basicaer = BasicAer.backends()
+        for backend in basicaer:
             configuration = backend.configuration()
             jsonschema.validate(configuration.to_dict(), schema)
 
-    def test_builtin_simulators_backend_properties(self):
+    def test_basicaer_backend_properties(self):
         """Test backend properties."""
         simulators = BasicAer.backends()
         for backend in simulators:
