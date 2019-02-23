@@ -16,7 +16,7 @@ the simulator. It is exponential in the number of qubits.
 
     UnitarySimulator().run(qobj)
 
-Where the input is a Qobj object and the output is a SimulatorsJob object, which can
+Where the input is a Qobj object and the output is a BasicAerJob object, which can
 later be queried for the Result object. The result will contain a 'unitary'
 data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
@@ -29,9 +29,9 @@ import numpy as np
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers import BaseBackend
-from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
+from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
-from .exceptions import SimulatorError
+from .exceptions import BasicAerError
 from ._simulatortools import single_gate_matrix
 from ._simulatortools import cx_gate_matrix
 from ._simulatortools import einsum_matmul_index
@@ -150,7 +150,7 @@ class UnitarySimulatorPy(BaseBackend):
         required_shape = (2 ** self._number_of_qubits,
                           2 ** self._number_of_qubits)
         if shape != required_shape:
-            raise SimulatorError('initial unitary is incorrect shape: ' +
+            raise BasicAerError('initial unitary is incorrect shape: ' +
                                  '{} != 2 ** {}'.format(shape, required_shape))
 
     def _set_options(self, qobj_config=None, backend_options=None):
@@ -173,13 +173,13 @@ class UnitarySimulatorPy(BaseBackend):
             # Check the initial unitary is actually unitary
             shape = np.shape(self._initial_unitary)
             if len(shape) != 2 or shape[0] != shape[1]:
-                raise SimulatorError("initial unitary is not a square matrix")
+                raise BasicAerError("initial unitary is not a square matrix")
             iden = np.eye(len(self._initial_unitary))
             u_dagger_u = np.dot(self._initial_unitary.T.conj(),
                                 self._initial_unitary)
             norm = np.linalg.norm(u_dagger_u - iden)
             if round(norm, 10) != 0:
-                raise SimulatorError("initial unitary is not unitary")
+                raise BasicAerError("initial unitary is not unitary")
             # Check the initial statevector is normalized
 
         # Check for custom chop threshold
@@ -219,7 +219,7 @@ class UnitarySimulatorPy(BaseBackend):
             backend_options (dict): backend options
 
         Returns:
-            SimulatorsJob: derived from BaseJob
+            BasicAerJob: derived from BaseJob
 
         Additional Information::
 
@@ -249,7 +249,7 @@ class UnitarySimulatorPy(BaseBackend):
         self._set_options(qobj_config=qobj.config,
                           backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job = BasicAerJob(self, job_id, self._run_job, qobj)
         job.submit()
         return job
 
@@ -305,7 +305,7 @@ class UnitarySimulatorPy(BaseBackend):
                 }
 
         Raises:
-            SimulatorError: if the number of qubits in the circuit is greater than 24.
+            BasicAerError: if the number of qubits in the circuit is greater than 24.
             Note that the practical qubit limit is much lower than 24.
         """
         start = time.time()
@@ -336,7 +336,7 @@ class UnitarySimulatorPy(BaseBackend):
             else:
                 backend = self.name()
                 err_msg = '{0} encountered unrecognized operation "{1}"'
-                raise SimulatorError(err_msg.format(backend, operation.name))
+                raise BasicAerError(err_msg.format(backend, operation.name))
         # Add final state to data
         data = {'unitary': self._get_unitary()}
         end = time.time()
@@ -357,7 +357,7 @@ class UnitarySimulatorPy(BaseBackend):
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise SimulatorError('Number of qubits {} '.format(n_qubits) +
+            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
                                  'is greater than maximum ({}) '.format(max_qubits) +
                                  'for "{}".'.format(self.name()))
         if qobj.config.shots != 1:
@@ -373,6 +373,6 @@ class UnitarySimulatorPy(BaseBackend):
                 experiment.config.shots = 1
             for operation in experiment.instructions:
                 if operation.name in ['measure', 'reset']:
-                    raise SimulatorError('Unsupported "%s" instruction "%s" ' +
+                    raise BasicAerError('Unsupported "%s" instruction "%s" ' +
                                          'in circuit "%s" ', self.name(),
                                          operation.name, name)
