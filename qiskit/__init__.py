@@ -21,7 +21,8 @@ from .exceptions import QiskitError
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
-from .tools.compiler import (compile, execute)
+from .tools.compiler import compile
+from qiskit.execute_wrapper import execute
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
