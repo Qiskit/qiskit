@@ -20,7 +20,7 @@ class Unroller(TransformationPass):
     def __init__(self, basis):
         """
         Args:
-            basis (list[str]): Target basis gate names to unroll to, e.g. `['U', 'CX']` .
+            basis (list[str]): Target basis gate names to unroll to, e.g. `['u3', 'cx']` .
         """
         super().__init__()
         self.basis = basis
@@ -28,8 +28,6 @@ class Unroller(TransformationPass):
     def run(self, dag):
         """Expand all op nodes to the given basis.
 
-        If self.basis is empty, the circuit is unrolled down to
-        fundamental (opaque) gates (U, CX).
 
         Args:
             dag(DAGCircuit): input dag
