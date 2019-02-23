@@ -19,6 +19,7 @@ import logging
 
 from qiskit import __version__ as terra_version
 from qiskit.qobj import RunConfig
+from qiskit.mapper import Layout
 from qiskit.aqua.utils import compile_and_run_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
                                              is_ibmq_provider,
@@ -33,7 +34,7 @@ class QuantumInstance:
     """Quantum Backend including execution setting."""
 
     BACKEND_CONFIG = ['basis_gates', 'coupling_map']
-    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_mapper', 'qobj_id']
+    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_mapper']
     RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed']
     QJOB_CONFIG = ['timeout', 'wait']
     NOISE_CONFIG = ['noise_model']
@@ -44,49 +45,49 @@ class QuantumInstance:
                        "max_parallel_experiments", "statevector_parallel_threshold",
                        "statevector_hpc_gate_opt"] + BACKEND_OPTIONS_QASM_ONLY
 
-    def __init__(self, backend, run_config=None, initial_layout=None, pass_manager=None, seed_mapper=None,
-                 backend_options=None, noise_model=None, timeout=None, wait=5, circuit_cache=None,
-                 skip_qobj_validation=False):
+    def __init__(self, backend, shots=1024, seed=None, max_credits=10,
+                 basis_gates=None, coupling_map=None,
+                 initial_layout=None, pass_manager=None, seed_mapper=None,
+                 backend_options=None, noise_model=None, timeout=None, wait=5,
+                 circuit_cache=None, skip_qobj_validation=False):
         """Constructor.
 
         Args:
             backend (BaseBackend): instance of selected backend
-            run_config (RunConfig): the run config see https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/qobj/run_config.py
-            initial_layout (dict): initial layout of qubits in mapping
-            pass_manager (PassManager): pass manager to handle how to compile the circuits
-            seed_mapper (int): the random seed for circuit mapper
-            backend_options (dict): all config setting for backend
-            noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel): noise model for simulator
-            timeout (float or None): seconds to wait for job. If None, wait indefinitely.
-            wait (float): seconds between queries to result
-            circuit_cache (CircuitCache): A CircuitCache to use when calling compile_and_run_circuits
-            skip_qobj_validation (bool): Bypass Qobj validation to decrease submission time
+            shots (int, optional): number of repetitions of each circuit, for sampling
+            seed (int, optional): random seed for simulators
+            max_credits (int, optional): maximum credits to use
+            basis_gates (list[str], optional): list of basis gate names supported by the
+                                                target. Default: ['u1','u2','u3','cx','id']
+            coupling_map (list[list]): coupling map (perhaps custom) to target in mapping
+            initial_layout (dict, optional): initial layout of qubits in mapping
+            pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
+            seed_mapper (int, optional): the random seed for circuit mapper
+            backend_options (dict, optional): all running options for backend, please refer to the provider.
+            noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model for simulator
+            timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
+            wait (float, optional): seconds between queries to result
+            circuit_cache (CircuitCache, optional): A CircuitCache to use when calling compile_and_run_circuits
+            skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
         """
         self._backend = backend
         # setup run config
-        if run_config is None:
-            run_config = RunConfig(shots=1024, max_credits=10, memory=False)
+        run_config = RunConfig(shots=shots, max_credits=max_credits)
+        if seed:
+            run_config.seed = seed
 
         if getattr(run_config, 'shots', None) is not None:
-            if self.is_statevector and run_config.shots == 1:
+            if self.is_statevector and run_config.shots != 1:
                 logger.info("statevector backend only works with shot=1, change "
                             "shots from {} to 1.".format(run_config.shots))
                 run_config.shots = 1
 
-        if getattr(run_config, 'memory', None) is not None:
-            if not self.is_simulator and run_config.memory is True:
-                logger.info("The memory flag only supports simulator rather than real device. "
-                            "Change it to from {} to False.".format(run_config.memory))
-                run_config.memory = False
         self._run_config = run_config
 
         # setup backend config
-        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-        # TODO: basis gates will be [str] rather than comma-separated str
-        basis_gates = backend.configuration().basis_gates
-        if isinstance(basis_gates, str):
-            basis_gates = basis_gates.split(',')
-
+        basis_gates = basis_gates or backend.configuration().basis_gates
+        coupling_map = coupling_map or getattr(backend.configuration(),
+                                               'coupling_map', None)
         self._backend_config = {
             'basis_gates': basis_gates,
             'coupling_map': coupling_map
@@ -107,11 +108,12 @@ class QuantumInstance:
         self._noise_config = {} if noise_config is None else {'noise_model': noise_config}
 
         # setup compile config
+        if initial_layout is not None and not isinstance(initial_layout, Layout):
+            initial_layout = Layout(initial_layout)
         self._compile_config = {
             'pass_manager': pass_manager,
             'initial_layout': initial_layout,
-            'seed_mapper': seed_mapper,
-            'qobj_id': None
+            'seed_mapper': seed_mapper
         }
 
         # setup job config
@@ -155,9 +157,11 @@ class QuantumInstance:
         Returns:
             Result: Result object
         """
-        result = compile_and_run_circuits(circuits, self._backend, self._backend_config,
-                                          self._compile_config, self._run_config,
-                                          self._qjob_config,
+        result = compile_and_run_circuits(circuits, self._backend,
+                                          backend_config=self._backend_config,
+                                          compile_config=self._compile_config,
+                                          run_config=self._run_config,
+                                          qjob_config=self._qjob_config,
                                           backend_options=self._backend_options,
                                           noise_config=self._noise_config,
                                           show_circuit_summary=self._circuit_summary,
