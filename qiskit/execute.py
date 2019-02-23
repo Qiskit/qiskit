@@ -52,6 +52,7 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         BaseJob: returns job instance derived from BaseJob
     """
 
+<<<<<<< HEAD
     transpile_config = TranspileConfig()
     run_config = RunConfig()
 
@@ -127,4 +128,11 @@ def execute_circuits(circuits, backend, qobj_header=None, run_config=None,
                              run_config=run_config)
 
     # executing the circuits on the backend and returning the job
+=======
+    qobj = compile(circuits, backend,
+                   config, basis_gates, coupling_map, initial_layout,
+                   shots, max_credits, seed, qobj_id, seed_mapper,
+                   pass_manager, memory)
+
+>>>>>>> Compiler redo
     return backend.run(qobj, **kwargs)

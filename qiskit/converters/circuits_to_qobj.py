@@ -70,6 +70,10 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
     if qobj_id:
         warnings.warn('qobj_id is not used anymore', DeprecationWarning)
 
+<<<<<<< HEAD
     qobj = assemble_circuits(circuits, qobj_header, run_config)
+=======
+    qobj = assemble(circuits, user_qobj_header, run_config, qobj_id)
+>>>>>>> Compiler redo
 
     return qobj
