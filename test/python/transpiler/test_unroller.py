@@ -31,22 +31,6 @@ class TestUnroller(QiskitTestCase):
         self.assertEqual(len(op_nodes), 1)
         self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
 
-    def test_unroll_no_basis(self):
-        """Test no-basis unrolls all the way to U, CX.
-        """
-        qr = QuantumRegister(2, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        dag = circuit_to_dag(circuit)
-        pass_ = Unroller()
-        unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.op_nodes(data=True)
-        self.assertEqual(len(op_nodes), 2)
-        for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['U', 'CX'])
-
     def test_unroll_toffoli(self):
         """Test unroll toffoli on multi regs to h, t, tdg, cx.
         """
@@ -98,3 +82,16 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u1(pi, qr[0]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_unroll_no_basis(self):
+        """Test when a given gate has no decompositions.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        dag = circuit_to_dag(circuit)
+        pass_ = Unroller(basis=[])
+
+        with self.assertRaises(NotImplementedError):
+            pass_.run(dag)
