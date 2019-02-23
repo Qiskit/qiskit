@@ -8,6 +8,7 @@
 """Pass for unrolling a circuit to a given basis."""
 
 from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.exceptions import QiskitError
 
 
 class Unroller(TransformationPass):
@@ -16,14 +17,13 @@ class Unroller(TransformationPass):
     to a desired basis, using decomposition rules defined for each instruction.
     """
 
-    def __init__(self, basis=None):
+    def __init__(self, basis):
         """
         Args:
-            basis (list[qiskit.circuit.gate.Gate]): Target basis gates to unroll to.
+            basis (list[str]): Target basis gate names to unroll to, e.g. `['U', 'CX']` .
         """
         super().__init__()
-        self.basis = basis or []
-        self.basis += ['U', 'CX']  # Add default basis.
+        self.basis = basis
 
     def run(self, dag):
         """Expand all op nodes to the given basis.
@@ -34,6 +34,10 @@ class Unroller(TransformationPass):
         Args:
             dag(DAGCircuit): input dag
 
+        Raises:
+            QiskitError: if unable to unroll given the basis due to undefined
+            decomposition rules (such as a bad basis) or excessive recursion.
+
         Returns:
             DAGCircuit: output unrolled dag
         """
@@ -42,8 +46,16 @@ class Unroller(TransformationPass):
             current_node = dag.multi_graph.node[node]
             if current_node["op"].name in self.basis:  # If already a base, ignore.
                 continue
-            decomposition_rules = current_node["op"].decompositions()
+
             # TODO: allow choosing other possible decompositions
+            decomposition_rules = current_node["op"].decompositions()
+
+            if not decomposition_rules:
+                raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
+                                  "The current node being expanded, %s, "
+                                  "is defined in terms of an invalid basis." %
+                                  (str(self.basis), current_node["op"].name))
+
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
             dag.substitute_node_with_dag(node, decomposition_dag)
         return dag
