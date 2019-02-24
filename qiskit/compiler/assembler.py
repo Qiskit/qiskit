@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Compile function for converting a list of circuits to the qobj"""
+"""Assemble function for converting a list of circuits into a qobj"""
 import uuid
 import sympy
 import numpy
@@ -16,7 +16,7 @@ from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditio
 from qiskit.compiler.run_config import RunConfig
 
 
-def assemble(circuits, user_qobj_header=None, run_config=None, qobj_id=None):
+def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:

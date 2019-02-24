@@ -11,7 +11,7 @@ import warnings
 
 from qiskit.qobj import QobjHeader
 from qiskit.compiler.run_config import RunConfig
-from qiskit.compiler import assemble
+from qiskit.compiler import assemble_qobj
 
 
 def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
@@ -25,8 +25,8 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
         user_qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
-        qobj_id (int): identifier for the generated qobj
 
+        qobj_id (int): TODO: identifier for the generated qobj
         backend_name (str): TODO: delete after qiskit-terra 0.8
         config (dict): TODO: delete after qiskit-terra 0.8
         shots (int): TODO: delete after qiskit-terra 0.8
@@ -40,7 +40,7 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
         Qobj: the Qobj to be run on the backends
     """
 
-    warnings.warn('circuits_to_qobj is not used anymore. Use qiskit.compiler.assemble',
+    warnings.warn('circuits_to_qobj is not used in 0.8. Use qiskit.compiler.assemble',
                   DeprecationWarning)
 
     user_qobj_header = user_qobj_header or QobjHeader()
@@ -68,7 +68,9 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
     if max_credits:
         warnings.warn('max_credits is not used anymore. Set it via run_config', DeprecationWarning)
         run_config.max_credits = max_credits
+    if qobj_id:
+        warnings.warn('qobj_id is not used anymore', DeprecationWarning)
 
-    qobj = assemble(circuits, user_qobj_header, run_config, qobj_id)
+    qobj = assemble_qobj(circuits, user_qobj_header, run_config)
 
     return qobj
