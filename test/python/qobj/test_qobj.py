@@ -17,7 +17,7 @@ from qiskit import compile, BasicAer
 from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
-from qiskit.providers.builtinsimulators import simulatorsjob
+from qiskit.providers.basicaer import basicaerjob
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
 
@@ -103,7 +103,7 @@ class TestQobj(QiskitTestCase):
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = simulatorsjob.SimulatorsJob(backend, job_id, _nop, self.bad_qobj)
+            job = basicaerjob.BasicAerJob(backend, job_id, _nop, self.bad_qobj)
             job.submit()
 
     def test_change_qobj_after_compile(self):
