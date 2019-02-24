@@ -23,7 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-
+- Core StochasticSwap routine implimented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
@@ -72,6 +72,10 @@ Deprecated
 
 - The methods prefixed by `_get` in the DAGCircuit object are being renamed
   without that prefix (see #1346)
+- Changed elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists
+  (#1666).
+- Unroller bases must now be explicit, and violation raises an informative
+  ``QiskitError`` (#1802).
 
 Fixed
 -----
@@ -110,7 +114,6 @@ Removed
 - Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
 - Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
 - Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
-- Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
 - Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
 - The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
   package (``pip install qiskit-ibmq-provider``). (#1700)

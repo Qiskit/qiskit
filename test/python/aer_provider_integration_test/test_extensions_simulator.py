@@ -21,14 +21,14 @@ from qiskit.test import QiskitTestCase, requires_aer_provider
 
 @requires_aer_provider
 class TestExtensionsSimulator(QiskitTestCase):
-    """Test instruction extensions for builtinsimulators simulators:
+    """Test instruction extensions for basicaer simulators:
     save, load, noise, snapshot, wait
     """
     _desired_fidelity = 0.99
 
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
-        basis_gates = 'cx,u1,u2,u3,snapshot'
+        basis_gates = ['cx', 'u1', 'u2', 'u3', 'snapshot']
         qr = qiskit.QuantumRegister(2)
         cr = qiskit.ClassicalRegister(2)
         circuit = qiskit.QuantumCircuit(qr, cr)

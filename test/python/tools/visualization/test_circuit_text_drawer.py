@@ -54,6 +54,12 @@ class TestTextDrawerElement(QiskitTestCase):
                     "└╥┘"]
         self.assertEqualElement(expected, element)
 
+    def test_text_empty(self):
+        """ The empty circuit."""
+        expected = ''
+        circuit = QuantumCircuit()
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_pager(self):
         """ The pager breaks the circuit when the drawing does not fit in the console."""
         expected = '\n'.join(["        ┌───┐     »",
@@ -842,38 +848,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.x(qr1[0])
         circuit.measure(qr1[1], cr1[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
-
-    def test_text_unitary_1q(self):
-        """Test unitary matrix gate on 1 qubit"""
-        qr = QuantumRegister(1, 'q')
-        cr = ClassicalRegister(1, 'c')
-        circuit = QuantumCircuit(qr, cr)
-        circuit.unitary([[1, 0], [0, 1]], qr[0])
-        actual = str(_text_circuit_drawer(circuit))
-        expected = '\n'.join(['        ┌─────────┐',
-                              'q_0: |0>┤ Unitary ├',
-                              '        └─────────┘',
-                              ' c_0: 0 ═══════════',
-                              '                   '])
-        self.assertEqual(actual, expected)
-
-    def test_text_unitary_2q(self):
-        """Test unitary matrix gate on 1 qubit"""
-        qr = QuantumRegister(3, 'q')
-        circuit = QuantumCircuit(qr)
-        circuit.unitary([[1, 0, 0, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 0, 1, 0]], qr[1], qr[2])
-        actual = str(_text_circuit_drawer(circuit))
-        expected = '\n'.join(['                   ',
-                              'q_0: |0>───────────',
-                              '        ┌─────────┐',
-                              'q_1: |0>┤         ├',
-                              '        │ Unitary │',
-                              'q_2: |0>┤         ├',
-                              '        └─────────┘'])
-        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':
