@@ -29,24 +29,23 @@ def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
         circuits (QuantumCircuit or list[QuantumCircuit]: the synthesized circuits
 
     """
-   
 
     # ------------
     try:
         initial_layout = transpile_config.initial_layout
-    except:
+    except AttributeError:
         initial_layout = None
     try:
         basis_gates = transpile_config.basis_gates
-    except:
+    except AttributeError:
         basis_gates = None
     try:
         coupling_map = transpile_config.coupling_map
-    except:
+    except AttributeError:
         coupling_map = None
     try:
         seed_mapper = transpile_config.seed_mapper
-    except:
+    except AttributeError:
         seed_mapper = None
 
     if initial_layout is not None and not isinstance(initial_layout, Layout):
@@ -54,7 +53,11 @@ def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
 
     # This is a HACK while we are still using the old transpiler.
     backend = transpile_config.backend
-    new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, 
+    new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
                                         initial_layout, seed_mapper, pass_manager)
     # ---------
+
+    # THE IDEAL CODE HERE WILL
+
+    # USING THE PASS MANAGER TO
     return new_circuits

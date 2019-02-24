@@ -50,7 +50,7 @@ def compile(circuits, backend,
     """
     warnings.warn('compile is replace with in 0.8 with synthesis and assemble',
                   DeprecationWarning)
-    
+
     transpile_config = TranspileConfig()
     run_config = RunConfig()
 
@@ -73,15 +73,14 @@ def compile(circuits, backend,
         run_config.seed = seed
     if memory:
         run_config.memory = memory
-    
+
     transpile_config.backend = backend
 
-    new_circuits = synthesize_circuits(circuits, transpile_config=transpile_config, 
+    new_circuits = synthesize_circuits(circuits, transpile_config=transpile_config,
                                        pass_manager=pass_manager)
 
     qobj = assemble_qobj(new_circuits, user_qobj_header=None, run_config=run_config,
                          qobj_id=qobj_id)
-
 
     return qobj
 
@@ -140,9 +139,9 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         run_config.seed = seed
     if memory:
         run_config.memory = memory
-    
-    job = run_circuits(circuits, backend, user_qobj_header=None, 
-                       run_config=run_config, transpile_config=transpile_config, 
+
+    job = run_circuits(circuits, backend, user_qobj_header=None,
+                       run_config=run_config, transpile_config=transpile_config,
                        pass_manager=pass_manager, **kwargs)
 
     return job

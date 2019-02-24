@@ -7,14 +7,14 @@
 
 """Helper module for simplified Qiskit usage.
 
-    This module includes 
+    This module includes
         run_circuits: runs a list of quantum circuits.
         run_schedule: (TODO) runs a schedule of pulses.
         run_algorithm: (TODO) runs a quantum algorithm from aqua.
         run_experiment: (TODO) runs a quantum ignis experiment
 
-    In general we recommend using the SDK functions directly. However, to get something 
-    running quickly we have provider this wrapper module. 
+    In general we recommend using the SDK functions directly. However, to get something
+    running quickly we have provider this wrapper module.
 """
 
 import logging
@@ -53,21 +53,21 @@ def run_circuits(circuits, backend, user_qobj_header=None, run_config=None,
     user_qobj_header = user_qobj_header or QobjHeader()
     user_qobj_header.backend_name = backend.name()
 
-    # default values 
+    # default values
     if not run_config:
-        # TODO remove max_credits from the default when it is not required by 
+        # TODO remove max_credits from the default when it is not required by
         # by the backend.
         run_config = RunConfig(shots=1024, max_credits=10, memory=False)
 
     # TODO add a default pass_manager which also sets the transpile_config
 
     # synthesizing the circuits using the transpiler and pass_manager
-    new_circuits = synthesize_circuits(circuits, transpile_config=transpile_config, 
+    new_circuits = synthesize_circuits(circuits, transpile_config=transpile_config,
                                        pass_manager=pass_manager)
 
     # assembling the circuits into a qobj to be run on the backend
-    qobj = assemble_qobj(new_circuits, user_qobj_header=user_qobj_header, 
+    qobj = assemble_qobj(new_circuits, user_qobj_header=user_qobj_header,
                          run_config=run_config)
-    
+
     # executing the circuits on the backend and returning the job
     return backend.run(qobj, **kwargs)

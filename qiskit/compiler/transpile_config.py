@@ -29,5 +29,5 @@ class TranspileConfig(BaseModel):
     full description of the model, please check ``TranspileConfigSchema``.
 
     Attributes:
-       
+
     """
