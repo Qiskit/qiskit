@@ -19,7 +19,7 @@ class TestAnalyzation(QiskitTestCase):
     """Test qiskit.Result API"""
 
     def test_average_data_dict_obverable(self):
-        """Test average_data."""
+        """Test average_data for dictionary observable input"""
         qr = qiskit.QuantumRegister(2)
         cr = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qr, cr, name="qc")
@@ -41,8 +41,8 @@ class TestAnalyzation(QiskitTestCase):
         self.assertAlmostEqual(mean_zi, 0, places=1)
         self.assertAlmostEqual(mean_iz, 0, places=1)
 
-    def test_average_data_array_obverable(self):
-        """Test average_data."""
+    def test_average_data_list_obverable(self):
+        """Test average_data for list observable input."""
         qr = qiskit.QuantumRegister(3)
         cr = qiskit.ClassicalRegister(3)
         qc = qiskit.QuantumCircuit(qr, cr, name="qc")
@@ -70,7 +70,7 @@ class TestAnalyzation(QiskitTestCase):
         self.assertAlmostEqual(mean_zzi, 1, places=1)
 
     def test_average_data_matrix_obverable(self):
-        """Test average_data."""
+        """Test average_data for matrix observable input."""
         qr = qiskit.QuantumRegister(2)
         cr = qiskit.ClassicalRegister(2)
         qc = qiskit.QuantumCircuit(qr, cr, name="qc")
