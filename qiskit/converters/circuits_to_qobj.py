@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Compile function for converting a list of circuits to the qobj"""
-import uuid
 import warnings
 
 from qiskit.qobj import QobjHeader

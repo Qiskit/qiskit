@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Circuit synthesize function """
-import warnings
 import logging
 
 from qiskit import transpiler
-from qiskit.compiler import TranspileConfig
 from qiskit.mapper import Layout
 
 
@@ -26,7 +24,7 @@ def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
         pass_manager (PassManager): a pass manger for the transpiler pipeline
 
     Returns:
-        circuits (QuantumCircuit or list[QuantumCircuit]: the synthesized circuits
+        circuits: the synthesized circuits
 
     """
 
@@ -57,7 +55,7 @@ def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
                                         initial_layout, seed_mapper, pass_manager)
     # ---------
 
-    # THE IDEAL CODE HERE WILL
-
-    # USING THE PASS MANAGER TO
+    # THE IDEAL CODE HERE WILL BE.
+    # 1 set up the pass_manager
+    # run the passes
     return new_circuits

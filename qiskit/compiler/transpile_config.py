@@ -6,10 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Models for TranspileConfig and its related components."""
-from marshmallow.validate import Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import Boolean, Integer
 
 
 class TranspileConfigSchema(BaseSchema):

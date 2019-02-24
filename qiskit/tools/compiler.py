@@ -9,10 +9,7 @@
 import warnings
 import logging
 
-from qiskit import transpiler
 from qiskit.compiler import assemble_qobj, RunConfig, TranspileConfig, synthesize_circuits
-from qiskit.qobj import QobjHeader
-from qiskit.mapper import Layout
 from qiskit.runner_wrapper import run_circuits
 
 
