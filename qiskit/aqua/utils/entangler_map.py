@@ -63,6 +63,10 @@ def validate_entangler_map(entangler_map, num_qubits, allow_double_entanglement=
         ValueError: the qubits are cross-entangled.
 
     """
+
+    if isinstance(entangler_map, dict):
+        raise TypeError("The type of entangler map is changed to list of list.")
+
     if not isinstance(entangler_map, list):
         raise TypeError("Entangler map type 'list' expected")
 
