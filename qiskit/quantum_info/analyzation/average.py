@@ -34,6 +34,7 @@ def average_data(counts, observable):
             temp += counts[key] * observable[key] / tot
     return temp
 
+
 def make_dict_observable(matrix_observable):
     """Convert an observable in matrix form to dictionary form.
 
