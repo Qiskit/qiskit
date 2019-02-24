@@ -43,26 +43,31 @@ class TestAnalyzation(QiskitTestCase):
 
     def test_average_data_array_obverable(self):
         """Test average_data."""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
+        qr = qiskit.QuantumRegister(3)
+        cr = qiskit.ClassicalRegister(3)
         qc = qiskit.QuantumCircuit(qr, cr, name="qc")
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
+        qc.cx(qr[0], qr[2])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
+        qc.measure(qr[2], cr[2])
         shots = 10000
         backend = BasicAer.get_backend('qasm_simulator')
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
-        observable = [1, -1, -1, 1]
-        mean_zz = average_data(counts=counts, observable=observable)
-        observable = [1, 1, -1, -1]
-        mean_zi = average_data(counts, observable)
-        observable = [1, -1, 1, -1]
-        mean_iz = average_data(counts, observable)
-        self.assertAlmostEqual(mean_zz, 1, places=1)
-        self.assertAlmostEqual(mean_zi, 0, places=1)
-        self.assertAlmostEqual(mean_iz, 0, places=1)
+        observable = [1, -1, -1, 1, -1, 1, 1, -1]
+        mean_zzz = average_data(counts=counts, observable=observable)
+        observable = [1, 1, 1, 1, -1, -1, -1, -1]
+        mean_zii = average_data(counts, observable)
+        observable = [1, 1, -1, -1, 1, 1, -1, -1]
+        mean_izi = average_data(counts, observable)
+        observable = [1, 1, -1, -1, -1, -1, 1, 1]
+        mean_zzi = average_data(counts, observable)
+        self.assertAlmostEqual(mean_zzz, 0, places=1)
+        self.assertAlmostEqual(mean_zii, 0, places=1)
+        self.assertAlmostEqual(mean_izi, 0, places=1)
+        self.assertAlmostEqual(mean_zzi, 1, places=1)
 
     def test_average_data_matrix_obverable(self):
         """Test average_data."""
