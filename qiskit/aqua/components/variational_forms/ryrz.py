@@ -46,6 +46,13 @@ class RYRZ(VariationalForm):
                 'entangler_map': {
                     'type': ['array', 'null'],
                     'default': None
+                },
+                'entanglement_gate': {
+                    'type': 'string',
+                    'default': 'cz',
+                    'oneOf': [
+                        {'enum': ['cz', 'cx']}
+                    ]
                 }
             },
             'additionalProperties': False
@@ -61,7 +68,8 @@ class RYRZ(VariationalForm):
     }
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
-                 entanglement='full', initial_state=None):
+                 entanglement='full', initial_state=None,
+                 entanglement_gate='cz'):
         """Constructor.
 
         Args:
@@ -73,6 +81,7 @@ class RYRZ(VariationalForm):
                                         applying the two-qubit gate.
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
+            entanglement_gate (str): cz or cx
         """
         self.validate(locals())
         super().__init__()
@@ -85,6 +94,7 @@ class RYRZ(VariationalForm):
         else:
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
         self._initial_state = initial_state
+        self._entanglement_gate = entanglement_gate
 
     def construct_circuit(self, parameters, q=None):
         """
@@ -119,10 +129,12 @@ class RYRZ(VariationalForm):
         for block in range(self._depth):
             circuit.barrier(q)
             for src, targ in self._entangler_map:
-                # cz
-                circuit.u2(0.0, np.pi, q[targ])  # h
-                circuit.cx(q[src], q[targ])
-                circuit.u2(0.0, np.pi, q[targ])  # h
+                if self._entanglement_gate == 'cz':
+                    circuit.u2(0.0, np.pi, q[targ])  # h
+                    circuit.cx(q[src], q[targ])
+                    circuit.u2(0.0, np.pi, q[targ])  # h
+                else:
+                    circuit.cx(q[src], q[targ])
             for qubit in range(self._num_qubits):
                 circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
                 circuit.u1(parameters[param_idx + 1], q[qubit])  # rz
