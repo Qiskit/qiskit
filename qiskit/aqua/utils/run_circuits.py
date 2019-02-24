@@ -27,7 +27,7 @@ from qiskit import transpiler
 from qiskit.converters import circuits_to_qobj
 from qiskit.qobj import QobjHeader
 from qiskit.providers import BaseBackend, JobStatus, JobError
-from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
+from qiskit.providers.basicaer import BasicAerJob
 
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
@@ -398,7 +398,7 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
                 job._future = job._executor.submit(job._fn, job._job_id, job._qobj, *job._args)
             else:
                 backend._set_options(qobj_config=qobj.config, **backend_options)
-                job = SimulatorsJob(backend, job_id, backend._run_job, qobj)
+                job = BasicAerJob(backend, job_id, backend._run_job, qobj)
                 job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
         elif is_ibmq_provider(backend):
             # TODO: IBMQJob performs validation during the constructor. the following lines deos not
