@@ -46,6 +46,13 @@ class RYRZ(VariationalForm):
                 'entangler_map': {
                     'type': ['array', 'null'],
                     'default': None
+                },
+                'entanglement_gate': {
+                    'type': 'string',
+                    'default': 'cz',
+                    'oneOf': [
+                        {'enum': ['cz', 'cx']}
+                    ]
                 }
             },
             'additionalProperties': False
@@ -87,9 +94,6 @@ class RYRZ(VariationalForm):
         else:
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
         self._initial_state = initial_state
-
-        if entanglement not in ['cz', 'cx']:
-            raise ValueError("Only support 'cz' or 'cx' as entanglement gate.")
         self._entanglement_gate = entanglement_gate
 
     def construct_circuit(self, parameters, q=None):
