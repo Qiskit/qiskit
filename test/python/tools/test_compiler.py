@@ -132,10 +132,8 @@ class TestCompiler(QiskitTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
 
-        try:
-            circuits = transpile(circuit, backend)
-        except QiskitError:
-            circuits = None
+        circuits = transpile(circuit, backend)
+
         self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_mapping_multi_qreg(self):
@@ -152,10 +150,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qr[1], qr3[2])
         qc.measure(qr, cr)
 
-        try:
-            circuits = transpile(qc, backend)
-        except QiskitError:
-            circuits = None
+        circuits = transpile(qc, backend)
+
         self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_mapping_already_satisfied(self):
