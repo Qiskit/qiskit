@@ -5,16 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
-
 """BasicAer provider integration tests (compile and run)."""
 
 import unittest
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, execute
+from qiskit import compile, execute  # pylint: disable=redefined-builtin
 from qiskit.result import Result
 from qiskit.test import QiskitTestCase
 
