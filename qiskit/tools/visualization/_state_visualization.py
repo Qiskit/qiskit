@@ -19,7 +19,6 @@ from qiskit.quantum_info import pauli_group, Pauli
 from ._matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
-    from matplotlib import cm
     from matplotlib.ticker import MaxNLocator
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
