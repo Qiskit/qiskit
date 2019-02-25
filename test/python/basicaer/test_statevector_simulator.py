@@ -11,10 +11,10 @@ import unittest
 
 from qiskit.providers.basicaer import StatevectorSimulatorPy
 from qiskit.test import ReferenceCircuits
-from qiskit.test.providers import BackendTestCase
+from qiskit.test import providers
 
 
-class StatevectorSimulatorTest(BackendTestCase):
+class StatevectorSimulatorTest(providers.BackendTestCase):
     """Test BasicAer statevector simulator."""
 
     backend_cls = StatevectorSimulatorPy

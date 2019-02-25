@@ -15,10 +15,10 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.test import ReferenceCircuits
-from qiskit.test.providers import BackendTestCase
+from qiskit.test import providers
 
 
-class BasicAerUnitarySimulatorPyTest(BackendTestCase):
+class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
     """Test BasicAer unitary simulator."""
 
     backend_cls = UnitarySimulatorPy

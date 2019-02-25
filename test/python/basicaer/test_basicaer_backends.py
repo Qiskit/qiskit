@@ -10,10 +10,10 @@
 from qiskit import BasicAer
 from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from qiskit.test.providers import ProviderTestCase
+from qiskit.test import providers
 
 
-class TestBasicAerBackends(ProviderTestCase):
+class TestBasicAerBackends(providers.ProviderTestCase):
     """Qiskit BasicAer Backends (Object) Tests."""
 
     provider_cls = BasicAerProvider

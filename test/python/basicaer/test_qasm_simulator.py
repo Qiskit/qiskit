@@ -15,10 +15,10 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import Path
-from qiskit.test.providers import BackendTestCase
+from qiskit.test import providers
 
 
-class TestBasicAerQasmSimulator(BackendTestCase):
+class TestBasicAerQasmSimulator(providers.BackendTestCase):
     """Test the Basic qasm_simulator."""
 
     backend_cls = QasmSimulatorPy
