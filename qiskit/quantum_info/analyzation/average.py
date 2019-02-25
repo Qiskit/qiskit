@@ -19,8 +19,11 @@ def average_data(counts, observable):
 
     Args:
         counts (dict): a dict of outcomes from an experiment
-        observable (dict or matrix): The observable to be averaged over. As an
-        example ZZ on qubits equals {"00": 1, "11": 1, "01": -1, "10": -1}
+        observable (dict or matrix or list): The observable to be averaged over.
+        As an example, ZZ on qubits can be given as:
+        * dict: {"00": 1, "11": 1, "01": -1, "10": -1}
+        * matrix: [[1, 0, 0, 0], [0, -1, 0, 0, ], [0, 0, -1, 0], [0, 0, 0, 1]]
+        * matrix diagonal (list): [1, -1, -1, 1]
 
     Returns:
         Double: Average of the observable
