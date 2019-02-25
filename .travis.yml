@@ -27,8 +27,8 @@ sudo: false
 stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
-    - pip install -U -r requirements.txt
-    - pip install -U -r requirements-dev.txt
+    - pip install -U -r requirements.txt -c constraints.txt
+    - pip install -U -r requirements-dev.txt -c constraints.txt
     # Create the basic cmake structure, setting out/ as the default dir.
     - mkdir out && cd out && cmake $CMAKE_FLAGS ..
   script:
