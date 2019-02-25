@@ -113,7 +113,7 @@ class StochasticSwap(TransformationPass):
         if self.seed is None:
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         self.rng = np.random.RandomState(self.seed)
-        logger.debug("swap_mapper RandomState seeded with seed=%s", self.seed)
+        logger.debug("StochasticSwap RandomState seeded with seed=%s", self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         # self.property_set["layout"] = self.initial_layout
