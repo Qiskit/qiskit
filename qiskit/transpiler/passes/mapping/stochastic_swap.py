@@ -111,7 +111,7 @@ class StochasticSwap(TransformationPass):
 
         self.qregs = dag.qregs
         if self.seed is None:
-            self.seed = np.random.randint(0, np.iinfo(np.int32).max)
+            self.seed = np.random.randint(0, np.iinfo(np.uint32).max)
         self.rng = np.random.RandomState(self.seed)
         logger.debug("StochasticSwap RandomState seeded with seed=%s", self.seed)
 

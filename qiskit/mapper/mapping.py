@@ -61,7 +61,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     has no multi-qubit gates.
     """
     if seed is None:
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        seed = np.random.randint(0, np.iinfo(np.uint32).max)
     rng = np.random.RandomState(seed)
     logger.debug("layer_permutation RandomState seeded with seed=%s", seed)
     logger.debug("layer_permutation: ----- enter -----")

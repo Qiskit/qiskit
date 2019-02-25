@@ -43,7 +43,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
         three_q_ops = "ccx"
 
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        seed = np.random.randint(0, np.iinfo(np.uint32).max)
         logger.debug("random_circuit RandomState seeded with seed=%s", seed)
         rng = np.random.RandomState(seed)
         # apply arbitrary random operations at every depth
