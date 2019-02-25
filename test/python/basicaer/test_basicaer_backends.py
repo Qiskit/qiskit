@@ -16,7 +16,6 @@ from qiskit.test.providers import ProviderTestCase
 class TestBasicAerBackends(ProviderTestCase):
     """Qiskit BasicAer Backends (Object) Tests."""
 
-    __test__ = True
     provider_cls = SimulatorsProvider
     backend_name = 'qasm_simulator'
 

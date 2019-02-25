@@ -21,7 +21,6 @@ from qiskit.test.providers import BackendTestCase
 class TestBasicAerQasmSimulator(BackendTestCase):
     """Test the Basic qasm_simulator."""
 
-    __test__ = True
     backend_cls = QasmSimulatorPy
 
     def setUp(self):

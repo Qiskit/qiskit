@@ -7,6 +7,8 @@
 
 """Base TestCase for testing Providers."""
 
+from unittest import SkipTest
+
 from ..base import QiskitTestCase
 
 
@@ -28,11 +30,15 @@ class ProviderTestCase(QiskitTestCase):
     provider_cls = None
     backend_name = ''
 
-    __test__ = False
-
     def setUp(self):
         super().setUp()
         self.provider = self._get_provider()
+
+    @classmethod
+    def setUpClass(cls):
+        if cls is ProviderTestCase:
+            raise SkipTest('Skipping base class tests')
+        super().setUpClass()
 
     def _get_provider(self):
         """Return an instance of a Provider."""

@@ -17,7 +17,6 @@ from qiskit.test.providers import BackendTestCase
 class StatevectorSimulatorTest(BackendTestCase):
     """Test BasicAer statevector simulator."""
 
-    __test__ = True
     backend_cls = StatevectorSimulatorPy
     circuit = ReferenceCircuits.bell_no_measure()
 

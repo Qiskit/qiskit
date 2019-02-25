@@ -20,7 +20,7 @@ from qiskit.test.providers import BackendTestCase
 
 class BasicAerUnitarySimulatorPyTest(BackendTestCase):
     """Test BasicAer unitary simulator."""
-    __test__ = True
+
     backend_cls = UnitarySimulatorPy
     circuit = ReferenceCircuits.bell_no_measure()
 

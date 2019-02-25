@@ -7,8 +7,9 @@
 
 """Base TestCase for testing backends."""
 
-from qiskit.tools.compiler import compile  # pylint: disable=redefined-builtin
+from unittest import SkipTest
 
+from qiskit.tools.compiler import compile  # pylint: disable=redefined-builtin
 from ..base import QiskitTestCase
 from ..reference_circuits import ReferenceCircuits
 
@@ -31,11 +32,15 @@ class BackendTestCase(QiskitTestCase):
     backend_cls = None
     circuit = ReferenceCircuits.bell()
 
-    __test__ = False
-
     def setUp(self):
         super().setUp()
         self.backend = self._get_backend()
+
+    @classmethod
+    def setUpClass(cls):
+        if cls is BackendTestCase:
+            raise SkipTest('Skipping base class tests')
+        super().setUpClass()
 
     def _get_backend(self):
         """Return an instance of a Provider."""
