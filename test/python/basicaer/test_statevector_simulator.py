@@ -9,7 +9,7 @@
 
 import unittest
 
-from qiskit.providers.builtinsimulators import StatevectorSimulatorPy
+from qiskit.providers.basicaer import StatevectorSimulatorPy
 from qiskit.test import ReferenceCircuits
 from qiskit.test.providers import BackendTestCase
 

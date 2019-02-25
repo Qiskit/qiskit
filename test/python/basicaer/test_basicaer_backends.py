@@ -16,7 +16,7 @@ from qiskit.test.providers import ProviderTestCase
 class TestBasicAerBackends(ProviderTestCase):
     """Qiskit BasicAer Backends (Object) Tests."""
 
-    provider_cls = SimulatorsProvider
+    provider_cls = BasicAerProvider
     backend_name = 'qasm_simulator'
 
     def test_deprecated(self):

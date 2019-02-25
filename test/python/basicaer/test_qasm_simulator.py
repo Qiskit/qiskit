@@ -13,7 +13,7 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import compile  # pylint: disable=redefined-builtin
-from qiskit.providers.builtinsimulators import QasmSimulatorPy
+from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import Path
 from qiskit.test.providers import BackendTestCase
 
