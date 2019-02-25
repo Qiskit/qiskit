@@ -16,7 +16,6 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile, transpile_dag
 from qiskit import compile, execute
-from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import Qobj
