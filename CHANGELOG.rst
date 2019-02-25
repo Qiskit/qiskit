@@ -40,6 +40,7 @@ Added
 Changed
 -------
 
+- Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
 - The ``QiskitTestCase`` and testing utilities are now included as part of
@@ -80,6 +81,7 @@ Deprecated
 Fixed
 -----
 
+- Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
 - Fixed a bug where barriers didn't plot over all qubits when using matplotlib (#1718).
