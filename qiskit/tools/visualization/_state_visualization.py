@@ -612,3 +612,158 @@ def plot_state(quantum_state, method='city', figsize=None):
     elif method == "hinton":
         fig = plot_state_hinton(rho, figsize=figsize)
     return fig
+
+
+def generate_facecolors(x, y, z, dx, dy, dz, color):
+    """Generates shaded facecolors for shaded bars.
+    This is here to work around a Matplotlib bug
+    where alpha does not work in Bar3D.
+    Args:
+        x (array_like): The x- coordinates of the anchor point of the bars.
+        y (array_like): The y- coordinates of the anchor point of the bars.
+        z (array_like): The z- coordinates of the anchor point of the bars.
+        dx (array_like): Width of bars.
+        dy (array_like): Depth of bars.
+        dz (array_like): Height of bars.
+        color (array_like): sequence of valid color specifications, optional
+    Returns:
+        list: Shaded colors for bars.
+    """
+    cuboid = np.array([
+        # -z
+        (
+            (0, 0, 0),
+            (0, 1, 0),
+            (1, 1, 0),
+            (1, 0, 0),
+        ),
+        # +z
+        (
+            (0, 0, 1),
+            (1, 0, 1),
+            (1, 1, 1),
+            (0, 1, 1),
+        ),
+        # -y
+        (
+            (0, 0, 0),
+            (1, 0, 0),
+            (1, 0, 1),
+            (0, 0, 1),
+        ),
+        # +y
+        (
+            (0, 1, 0),
+            (0, 1, 1),
+            (1, 1, 1),
+            (1, 1, 0),
+        ),
+        # -x
+        (
+            (0, 0, 0),
+            (0, 0, 1),
+            (0, 1, 1),
+            (0, 1, 0),
+        ),
+        # +x
+        (
+            (1, 0, 0),
+            (1, 1, 0),
+            (1, 1, 1),
+            (1, 0, 1),
+        ),
+    ])
+
+    # indexed by [bar, face, vertex, coord]
+    polys = np.empty(x.shape + cuboid.shape)
+    # handle each coordinate separately
+    for i, p, dp in [(0, x, dx), (1, y, dy), (2, z, dz)]:
+        p = p[..., np.newaxis, np.newaxis]
+        dp = dp[..., np.newaxis, np.newaxis]
+        polys[..., i] = p + dp * cuboid[..., i]
+
+    # collapse the first two axes
+    polys = polys.reshape((-1,) + polys.shape[2:])
+
+    facecolors = []
+    if len(color) == len(x):
+        # bar colors specified, need to expand to number of faces
+        for c in color:
+            facecolors.extend([c] * 6)
+    else:
+        # a single color specified, or face colors specified explicitly
+        facecolors = list(mcolors.to_rgba_array(color))
+        if len(facecolors) < len(x):
+            facecolors *= (6 * len(x))
+
+    normals = _generate_normals(polys)
+    return _shade_colors(facecolors, normals)
+
+
+def _generate_normals(polygons):
+    """
+    Takes a list of polygons and return an array of their normals.
+    Normals point towards the viewer for a face with its vertices in
+    counterclockwise order, following the right hand rule.
+    Uses three points equally spaced around the polygon.
+    This normal of course might not make sense for polygons with more than
+    three points not lying in a plane, but it's a plausible and fast
+    approximation.
+    Args:
+        polygons (list): list of (M_i, 3) array_like, or (..., M, 3) array_like
+            A sequence of polygons to compute normals for, which can have
+            varying numbers of vertices. If the polygons all have the same
+            number of vertices and array is passed, then the operation will
+            be vectorized.
+    Returns:
+        normals: (..., 3) array_like
+            A normal vector estimated for the polygon.
+    """
+    if isinstance(polygons, np.ndarray):
+        # optimization: polygons all have the same number of points, so can
+        # vectorize
+        n = polygons.shape[-2]
+        i1, i2, i3 = 0, n//3, 2*n//3
+        v1 = polygons[..., i1, :] - polygons[..., i2, :]
+        v2 = polygons[..., i2, :] - polygons[..., i3, :]
+    else:
+        # The subtraction doesn't vectorize because polygons is jagged.
+        v1 = np.empty((len(polygons), 3))
+        v2 = np.empty((len(polygons), 3))
+        for poly_i, ps in enumerate(polygons):
+            n = len(ps)
+            i1, i2, i3 = 0, n//3, 2*n//3
+            v1[poly_i, :] = ps[i1, :] - ps[i2, :]
+            v2[poly_i, :] = ps[i2, :] - ps[i3, :]
+
+    return np.cross(v1, v2)
+
+
+def _shade_colors(color, normals, lightsource=None):
+    """
+    Shade *color* using normal vectors given by *normals*.
+    *color* can also be an array of the same length as *normals*.
+    """
+    if lightsource is None:
+        # chosen for backwards-compatibility
+        lightsource = LightSource(azdeg=225, altdeg=19.4712)
+
+    shade = np.array([np.dot(n / proj3d.mod(n), lightsource.direction)
+                      if proj3d.mod(n) else np.nan
+                      for n in normals])
+    mask = ~np.isnan(shade)
+
+    if mask.any():
+        norm = Normalize(min(shade[mask]), max(shade[mask]))
+        shade[~mask] = min(shade[mask])
+        color = mcolors.to_rgba_array(color)
+        # shape of color should be (M, 4) (where M is number of faces)
+        # shape of shade should be (M,)
+        # colors should have final shape of (M, 4)
+        alpha = color[:, 3]
+        colors = (0.5 + norm(shade)[:, np.newaxis] * 0.5) * color
+        colors[:, 3] = alpha
+    else:
+        colors = np.asanyarray(color).copy()
+
+    return colors
