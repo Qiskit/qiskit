@@ -26,8 +26,6 @@ class BackendTestCase(QiskitTestCase):
             instantiation can be further customized by overriding the
             ``_get_backend`` function.
         circuit (QuantumCircuit): circuit to be used for the tests.
-        __test__ (bool): flag for including the class in test discovery.
-            Subclasses should explicitly set it to `True`.
     """
     backend_cls = None
     circuit = ReferenceCircuits.bell()
