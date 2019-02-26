@@ -38,5 +38,3 @@ class PulseCommand:
             _name = 'command_obj_' + str(self.__hash__())
 
         self.name = _name
-
-        self.t0 = 0
