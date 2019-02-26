@@ -44,7 +44,8 @@ Changed
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
 - The ``QiskitTestCase`` and testing utilities are now included as part of
-  ``qiskit.test`` and thus available for third-party implementations (#1616)
+  ``qiskit.test`` and thus available for third-party implementations, with
+  convenience test cases for providers and backends. (#1616, #1844)
 - The snapshot instruction now takes ``label`` and ``snap_type`` instead of
   ``slot`` (#1615).
 - The test folders have been reorganized to match the python modules (#1625)

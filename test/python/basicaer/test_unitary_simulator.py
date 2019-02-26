@@ -5,23 +5,24 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring
-# pylint: disable=redefined-builtin
+"""Tests for unitary simulator."""
 
 import unittest
+
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit import compile
-from qiskit import BasicAer
-from qiskit.test import QiskitTestCase
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import compile  # pylint: disable=redefined-builtin
+from qiskit.providers.basicaer import UnitarySimulatorPy
+from qiskit.test import ReferenceCircuits
+from qiskit.test import providers
 
 
-class BasicAerUnitarySimulatorPyTest(QiskitTestCase):
+class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
     """Test BasicAer unitary simulator."""
 
-    def setUp(self):
-        self.backend = BasicAer.get_backend('unitary_simulator')
+    backend_cls = UnitarySimulatorPy
+    circuit = ReferenceCircuits.bell_no_measure()
 
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""
