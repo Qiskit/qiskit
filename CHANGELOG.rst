@@ -122,6 +122,9 @@ Removed
   package (``pip install qiskit-ibmq-provider``). (#1700)
 - ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
   was part of the pre-qobj specification (#1715).
+- Removed the wigner plotting functions ``plot_wigner_function``,
+  ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
+  (#1860).
 
 `0.7.0`_ - 2018-12-19
 =====================
