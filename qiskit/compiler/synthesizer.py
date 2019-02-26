@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
-    """Compile a list of circuits into a qobj.
+    """Compile a list of circuits into a list of synthesized circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
