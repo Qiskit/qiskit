@@ -5,20 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-import
-# pylint: disable=redefined-builtin
-
 """Test Qiskit's QuantumCircuit class for multiple registers."""
 
-import os
-import tempfile
-import unittest
-
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import compile  # pylint: disable=redefined-builtin
+from qiskit.quantum_info import Pauli, basis_state, process_fidelity, state_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -26,8 +18,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
 
     def test_circuit_multi(self):
-        """Test circuit multi regs declared at start.
-        """
+        """Test circuit multi regs declared at start."""
         qreg0 = QuantumRegister(2, 'q0')
         creg0 = ClassicalRegister(2, 'c0')
         qreg1 = QuantumRegister(2, 'q1')
