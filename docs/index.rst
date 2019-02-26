@@ -18,6 +18,7 @@ Welcome to Qiskit's documentation!
   API References <autodoc/qiskit>
   Contributing to Qiskit <contributing_to_qiskit>
   Community Extensions <community>
+  Versioning <versioning>
   License <license>
 
 
