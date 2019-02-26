@@ -20,7 +20,7 @@ def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
-        circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
+        circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
         user_qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
         qobj_id (int): identifier for the generated qobj
