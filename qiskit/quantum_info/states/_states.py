@@ -53,7 +53,7 @@ def random_state(dim, seed=None):
         ndarray:  state(2**num) a random quantum state.
     """
     if seed is None:
-        seed = np.random.randint(0, np.iinfo(np.uint32).max)
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
     rng = np.random.RandomState(seed)
     logger.debug("random_state RandomState seeded with seed=%s", seed)
     # Random array over interval (0, 1]
