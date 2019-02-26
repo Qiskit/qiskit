@@ -688,7 +688,7 @@ class MatplotlibDrawer:
             max_anc = max(anchors)
         else:
             max_anc = 0
-        n_fold = (max_anc - 1) // self._style.fold
+        n_fold = max(0, max_anc - 1) // self._style.fold
         # window size
         if max_anc > self._style.fold > 0:
             self._cond['xmax'] = self._style.fold + 1
