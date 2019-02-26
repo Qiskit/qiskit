@@ -265,12 +265,12 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     verts = [list(zip(x, y, z))]
 
     fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
-    for idx in range(len(zpos)):  # pylint: disable=consider-using-enumerate
+    for idx, cur_zpos in enumerate(zpos):
         if dzr[idx] > 0:
             zorder = 2
         else:
             zorder = 0
-        b1 = ax1.bar3d(xpos[idx], ypos[idx], zpos[idx],
+        b1 = ax1.bar3d(xpos[idx], ypos[idx], cur_zpos,
                        dx[idx], dy[idx], dzr[idx],
                        alpha=alpha, zorder=zorder)
         b1.set_facecolors(fc1[6*idx:6*idx+6])
@@ -283,12 +283,12 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
     ax2 = fig.add_subplot(1, 2, 2, projection='3d')
     fc2 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzi, color[1])
-    for idx in range(len(zpos)):  # pylint: disable=consider-using-enumerate
+    for idx, cur_zpos in enumerate(zpos):
         if dzi[idx] > 0:
             zorder = 2
         else:
             zorder = 0
-        b2 = ax2.bar3d(xpos[idx], ypos[idx], zpos[idx],
+        b2 = ax2.bar3d(xpos[idx], ypos[idx], cur_zpos,
                        dx[idx], dy[idx], dzi[idx],
                        alpha=alpha, zorder=zorder)
         b2.set_facecolors(fc2[6*idx:6*idx+6])
@@ -298,10 +298,17 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
     if min(dzi) < 0 < max(dzi):
         ax2.add_collection3d(pc2)
-
     ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
     ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
-    ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
+    max_dzr = max(dzr)
+    min_dzr = min(dzr)
+    if max_dzr != min_dzr:
+        ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
+    else:
+        if min_dzr == 0:
+            ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
+        else:
+            ax1.axes.set_zlim3d(auto=True)
     ax1.zaxis.set_major_locator(MaxNLocator(5))
     ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
     ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
@@ -311,17 +318,21 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
     ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
     ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
-    if np.min(dzi) != np.max(dzi):
+    min_dzi = np.min(dzi)
+    max_dzi = np.max(dzi)
+    if min_dzi != max_dzi:
         eps = 0
         ax2.zaxis.set_major_locator(MaxNLocator(5))
+        ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
     else:
-        ax2.set_zticks([0])
-        eps = 1e-9
-    ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+        if min_dzi == 0:
+            ax2.set_zticks([0])
+            eps = 1e-9
+            ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+        else:
+            ax2.axes.set_zlim3d(auto=True)
     ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
     ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-    # ax2.set_xlabel('basis state', fontsize=12)
-    # ax2.set_ylabel('basis state', fontsize=12)
     ax2.set_zlabel("Imag[rho]", fontsize=14)
     for tick in ax2.zaxis.get_major_ticks():
         tick.label.set_fontsize(14)
