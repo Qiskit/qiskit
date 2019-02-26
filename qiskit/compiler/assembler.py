@@ -90,7 +90,7 @@ def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None
                     # change to matrix in Aer.
                     params = params[0]
                 current_instruction.params = params
-            # TODO: I really dont like this for snapshot. I also think we should change
+            # TODO (jay): I really dont like this for snapshot. I also think we should change
             # type to snap_type
             if opt.name == "snapshot":
                 current_instruction.label = str(opt.params[0])
