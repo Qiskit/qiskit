@@ -44,9 +44,12 @@ class TimedPulse(TimedPulseBlock):
     """TimedPulse = Pulse with start time context."""
 
     def __init__(self, pulse_command: PulseCommand, to_channel: PulseChannel, start_time: int):
-        self.command = pulse_command
-        self.channel = to_channel
-        self.start_time = start_time
+        if isinstance(pulse_command, to_channel.supported): #TODO: refactoring
+            self.command = pulse_command
+            self.channel = to_channel
+            self.start_time = start_time
+        else:
+            raise Exception("Not supported commands on the channel") #TODO need to make PulseException class
 
     def start_time(self) -> int:
         return self.start_time
@@ -57,8 +60,8 @@ class TimedPulse(TimedPulseBlock):
     def duration(self) -> int:
         return self.command.duration
 
-    def channels(self) -> Set[PulseChannel]:
-        return set([self.channel])
+    # def channels(self) -> Set[PulseChannel]:
+    #     return set([self.channel])
 
     def children(self) -> List[TimedPulseBlock]:
         return None
@@ -67,39 +70,30 @@ class TimedPulse(TimedPulseBlock):
 class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
-    def __init__(self, channels: List[PulseChannel]):
+    def __init__(self, config):
         """Create empty schedule.
         Args:
             channels:
         """
-        self._channels = channels
+        self._config = config   #TODO: refactring later
+        self._children = []
 
-    def add(self, timed_pulse: TimedPulse) -> bool:
-        """Add `pulse_command` to `to_channel` at `start_time`.
+    def add(self, timed_pulse: TimedPulseBlock) -> bool:
+        """Add `timed_pulse` (pulse command with channel and start time context).
         Args:
-            pulse_command:
-            to_channel:
-            start_time:
+            timed_pulse:
 
         Returns:
             An added pulse with channel and time context.
         """
-        raise NotImplementedError()
+        if self._is_occupied_time(timed_pulse):
+            return False    #TODO: or raise Exception?
+        else:
+            self._children.append(timed_pulse)
+            return True
 
-    # def add(self, pulse_command: PulseCommand, to_channel: Channel, start_time: int) -> TimedPulse:
-    #     """Add `pulse_command` to `to_channel` at `start_time`.
-    #     Args:
-    #         pulse_command:
-    #         to_channel:
-    #         start_time:
-    #
-    #     Returns:
-    #         An added pulse with channel and time context.
-    #     """
-    #     pass
-
-    def remove(self, timed_pulse: TimedPulse) -> bool:
-        raise NotImplementedError()
+    def remove(self, timed_pulse: TimedPulseBlock):
+        self._children.remove(timed_pulse)
 
     def start_time(self) -> int:
         raise NotImplementedError()
@@ -110,15 +104,20 @@ class PulseSchedule(TimedPulseBlock):
     def duration(self) -> int:
         raise NotImplementedError()
 
-    def channels(self) -> Set[PulseChannel]:
-        raise NotImplementedError()
+    # def channels(self) -> Set[PulseChannel]:
+    #     raise NotImplementedError()
 
     def children(self) -> List[TimedPulseBlock]:
-        raise NotImplementedError()
+        return self._children
 
-    def qobj(self) -> dict:
+    def _flat_pulse_sequence(self) -> List[TimedPulse]:
+        pass
+
+    def qobj(self):
         """Create qobj.
         Returns:
 
         """
+        pulses = self._flat_pulse_sequence()
+
         raise NotImplementedError()
