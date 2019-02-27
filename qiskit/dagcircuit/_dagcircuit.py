@@ -941,7 +941,7 @@ class DAGCircuit:
         # Now that we know the connections, delete node
         self.multi_graph.remove_node(node)
         # Iterate over nodes of input_circuit
-        for m in input_dag.multi_graph:
+        for m in nx.topological_sort(input_dag.multi_graph):
             md = input_dag.multi_graph.node[m]
             if md["type"] == "op":
                 # Insert a new node
@@ -1058,6 +1058,15 @@ class DAGCircuit:
             if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
+
+    def twoQ_gates(self):
+        """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
+        snapshot, barriers, and the like."""
+        two_q_gates = []
+        for node_id, node_data in self.gate_nodes(data=True):
+            if len(node_data['qargs']) == 2:
+                two_q_gates.append(self.multi_graph.node[node_id])
+        return two_q_gates
 
     def get_3q_or_more_nodes(self):
         """Deprecated. Use threeQ_or_more_nodes()."""

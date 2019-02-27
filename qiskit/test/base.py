@@ -47,7 +47,7 @@ class QiskitTestCase(unittest.TestCase):
             IBMQ._accounts.clear()
         except ImportError:
             pass
-        from qiskit.providers.builtinsimulators import BasicAer
+        from qiskit.providers.basicaer import BasicAer
 
         BasicAer._backends = BasicAer._verify_backends()
 
