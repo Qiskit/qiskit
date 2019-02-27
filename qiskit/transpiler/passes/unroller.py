@@ -50,7 +50,7 @@ class Unroller(TransformationPass):
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
                                   "The current node being expanded, %s, "
                                   "is defined in terms of an invalid basis." %
-                                  (str(self.basis), current_node["op"].name))
+                                  (str(self.basis), node.op.name))
 
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
             dag.substitute_node_with_dag(node=node, input_dag=decomposition_dag)

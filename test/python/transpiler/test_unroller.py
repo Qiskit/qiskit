@@ -31,21 +31,6 @@ class TestUnroller(QiskitTestCase):
         self.assertEqual(len(op_nodes), 1)
         self.assertEqual(op_nodes[0].name, 'u2')
 
-    def test_unroll_no_basis(self):
-        """Test no-basis unrolls all the way to U, CX.
-        """
-        qr = QuantumRegister(2, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        dag = circuit_to_dag(circuit)
-        pass_ = Unroller()
-        unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.op_nodes()
-        self.assertEqual(len(op_nodes), 2)
-        for node in op_nodes:
-            self.assertIn(node.name, ['U', 'CX'])
-
     def test_unroll_toffoli(self):
         """Test unroll toffoli on multi regs to h, t, tdg, cx.
         """
