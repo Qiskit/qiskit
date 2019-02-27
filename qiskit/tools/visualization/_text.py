@@ -784,8 +784,11 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
+        wire_names = self.wire_names(with_initial_value=True)
+        if not wire_names:
+            return []
 
-        layers = [InputWire.fillup_layer(self.wire_names(with_initial_value=True))]
+        layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)

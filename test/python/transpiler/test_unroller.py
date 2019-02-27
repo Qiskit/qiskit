@@ -96,3 +96,16 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u1(pi, qr[0]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_unroll_no_basis(self):
+        """Test when a given gate has no decompositions.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        dag = circuit_to_dag(circuit)
+        pass_ = Unroller(basis=[])
+
+        with self.assertRaises(NotImplementedError):
+            pass_.run(dag)

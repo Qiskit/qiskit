@@ -1031,6 +1031,15 @@ class DAGCircuit:
                 two_q_nodes.append(DAGNode(data_dict=node_data, node_id=node_id))
         return two_q_nodes
 
+    def twoQ_gates(self):
+        """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
+        snapshot, barriers, and the like."""
+        two_q_gates = []
+        for node_id, node_data in self.gate_nodes(data=True):
+            if len(node_data['qargs']) == 2:
+                two_q_gates.append(self.multi_graph.node[node_id])
+        return two_q_gates
+
     def get_3q_or_more_nodes(self):
         """Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'

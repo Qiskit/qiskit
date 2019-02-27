@@ -18,7 +18,7 @@ REQUIREMENTS = [
     "marshmallow>=2.17.0,<3",
     "marshmallow_polyfield>=3.2,<4",
     "networkx>=2.2",
-    "numpy>=1.13,<1.16",
+    "numpy>=1.13",
     "pillow>=4.2.1",
     "ply>=3.10",
     "psutil>=5",
@@ -38,7 +38,7 @@ INCLUDE_DIRS = []
 LINK_FLAGS = []
 # If on Win and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
-    COMPILER_FLAGS = ['/O2', '/std:c++11']
+    COMPILER_FLAGS = ['/O2']
 # Everything else
 else:
     COMPILER_FLAGS = ['-O2', '-funroll-loops', '-std=c++11']

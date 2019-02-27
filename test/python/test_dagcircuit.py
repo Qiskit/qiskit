@@ -19,6 +19,7 @@ from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
+from qiskit.extensions.standard.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -169,6 +170,7 @@ class TestDagOperations(QiskitTestCase):
         """The method dag.gate_nodes() returns all gate nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Barrier((self.qubit0, self.qubit1)))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
         op_nodes = self.dag.gate_nodes()
@@ -178,6 +180,20 @@ class TestDagOperations(QiskitTestCase):
         op_node_2 = op_nodes.pop()
         self.assertIsInstance(op_node_1.op, Gate)
         self.assertIsInstance(op_node_2.op, Gate)
+
+    def test_two_q_gates(self):
+        """The method dag.twoQ_gates() returns all 2Q gate nodes"""
+        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Barrier((self.qubit0, self.qubit1)))
+        self.dag.apply_operation_back(Reset(self.qubit0))
+
+        op_nodes = self.dag.twoQ_gates()
+        self.assertEqual(len(op_nodes), 1)
+
+        op_node = op_nodes.pop()
+        self.assertIsInstance(op_node["op"], Gate)
+        self.assertEqual(len(op_node['qargs']), 2)
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""

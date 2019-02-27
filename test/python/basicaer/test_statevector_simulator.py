@@ -5,30 +5,25 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-docstring,broad-except
+"""Test StateVectorSimulatorPy."""
 
 import unittest
-from qiskit import QuantumCircuit, QuantumRegister
-from qiskit import execute
-from qiskit import BasicAer
-from qiskit.test import QiskitTestCase
+
+from qiskit.providers.basicaer import StatevectorSimulatorPy
+from qiskit.test import ReferenceCircuits
+from qiskit.test import providers
 
 
-class StatevectorSimulatorTest(QiskitTestCase):
+class StatevectorSimulatorTest(providers.BackendTestCase):
     """Test BasicAer statevector simulator."""
 
-    def setUp(self):
-        qr = QuantumRegister(2)
-        self.q_circuit = QuantumCircuit(qr)
-        self.q_circuit.h(qr[0])
-        self.q_circuit.cx(qr[0], qr[1])
+    backend_cls = StatevectorSimulatorPy
+    circuit = ReferenceCircuits.bell_no_measure()
 
-    def test_statevector_simulator(self):
+    def test_run_circuit(self):
         """Test final state vector for single circuit run."""
-        result = execute(self.q_circuit,
-                         backend=BasicAer.get_backend('statevector_simulator')).result()
-        self.assertEqual(result.success, True)
-        actual = result.get_statevector(self.q_circuit)
+        result = super().test_run_circuit()
+        actual = result.get_statevector(self.circuit)
 
         # state is 1/sqrt(2)|00> + 1/sqrt(2)|11>, up to a global phase
         self.assertAlmostEqual((abs(actual[0]))**2, 1/2)

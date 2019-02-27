@@ -23,7 +23,7 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 import logging
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.providers.builtinsimulators.exceptions import SimulatorError
+from qiskit.providers.basicaer.exceptions import BasicAerError
 from qiskit.providers.models import BackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
 
@@ -98,7 +98,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             backend_options (dict): backend options
 
         Returns:
-            SimulatorsJob: derived from BaseJob
+            BasicAerJob: derived from BaseJob
 
         Additional Information::
 
@@ -134,9 +134,9 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise SimulatorError('Number of qubits {} '.format(n_qubits) +
-                                 'is greater than maximum ({}) '.format(max_qubits) +
-                                 'for "{}".'.format(self.name()))
+            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
+                                'is greater than maximum ({}) '.format(max_qubits) +
+                                'for "{}".'.format(self.name()))
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.',
                         self.name())
