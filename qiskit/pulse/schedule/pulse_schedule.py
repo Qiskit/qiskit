@@ -11,7 +11,7 @@ Schedule.
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
 from qiskit.pulse.commands import PulseCommand
 
 
@@ -30,10 +30,6 @@ class TimedPulseBlock(metaclass=ABCMeta):
     @abstractmethod
     def duration(self) -> int:
         pass
-
-    # @abstractmethod
-    # def channels(self) -> Set[PulseChannel]:
-    #     pass
 
     @abstractmethod
     def children(self) -> List['TimedPulseBlock']:
@@ -61,9 +57,6 @@ class TimedPulse(TimedPulseBlock):
     def duration(self) -> int:
         return self.command.duration
 
-    # def channels(self) -> Set[PulseChannel]:
-    #     return set([self.channel])
-
     def children(self) -> List[TimedPulseBlock]:
         return None
 
@@ -71,12 +64,15 @@ class TimedPulse(TimedPulseBlock):
 class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
-    def __init__(self, config):
+    def __init__(self,
+                 output_channels: List[OutputChannel] = None,
+                 acquire_channels: List[AcquireChannel] = None,
+                 snapshot_channels: List[SnapshotChannel] = None
+                 ):
         """Create empty schedule.
         Args:
             channels:
         """
-        self._config = config  # TODO: refactring later
         self._children = []
 
     def add(self, timed_pulse: TimedPulseBlock) -> bool:
@@ -113,9 +109,6 @@ class PulseSchedule(TimedPulseBlock):
     def duration(self) -> int:
         raise self.end_time() - self.start_time()
 
-    # def channels(self) -> Set[PulseChannel]:
-    #     raise NotImplementedError()
-
     def children(self) -> List[TimedPulseBlock]:
         return self._children
 
@@ -143,18 +136,10 @@ class PulseSchedule(TimedPulseBlock):
                     return False
         return True
 
-    def _flat_pulse_sequence(self) -> List[TimedPulse]:
+    def flat_pulse_sequence(self) -> List[TimedPulse]:
         # TODO: This is still a MVP
         for child in self._children:
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
         return self._children
 
-    def qobj(self):
-        """Create qobj.
-        Returns:
-
-        """
-        pulses = self._flat_pulse_sequence()
-
-        raise NotImplementedError()
