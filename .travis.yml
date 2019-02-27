@@ -27,7 +27,7 @@ stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
-    - pip install -U -r requirements-dev.txt
+    - pip install -U -r requirements-dev.txt -c constraints.txt
     - pip install qiskit-aer
     - pip install qiskit-ibmq-provider
   script:
