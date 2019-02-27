@@ -965,14 +965,22 @@ class DAGCircuit:
 
     def get_op_nodes(self, op=None, data=None):
         """Deprecated. Use op_nodes()."""
-        warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',
+        warnings.warn('The method get_op_nodes() is being replaced by op_nodes().'
+                      'Returning a list of node_ids/(node_id, data) tuples is '
+                      'also deprecated, op_nodes() returns a list of DAGNodes ',
                       DeprecationWarning, 2)
         if data:
-            warnings.warn('The parameter data is deprecated, '
-                          'get_op_nodes() now returns DAGNodes '
-                          'which always contain the data',
+            warnings.warn('The parameter data is deprecated, op_nodes() returns DAGNodes'
+                          ' which always contain the data',
                           DeprecationWarning, 2)
-        return self.op_nodes(op)
+        nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data["type"] == "op":
+                if op is None or isinstance(node_data["op"], op):
+                    nodes.append((node_id, node_data))
+        if not data:
+            nodes = [n[0] for n in nodes]
+        return nodes
 
     def op_nodes(self, op=None):
         """Get the list of "op" nodes in the dag.
@@ -992,14 +1000,23 @@ class DAGCircuit:
 
     def get_gate_nodes(self, data=False):
         """Deprecated. Use gate_nodes()."""
-        warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes()',
+        warnings.warn('The method get_gate_nodes() is being replaced by gate_nodes().'
+                      'Returning a list of node_ids/(node_id, data) tuples is also '
+                      'deprecated, gate_nodes() returns a list of DAGNodes ',
                       DeprecationWarning, 2)
         if data:
             warnings.warn('The parameter data is deprecated, '
                           'get_gate_nodes() now returns DAGNodes '
                           'which always contain the data',
                           DeprecationWarning, 2)
-        return self.gate_nodes()
+
+        nodes = []
+        for node_id, node_data in self.op_nodes(data=True):
+            if isinstance(node_data['op'], Gate):
+                nodes.append((node_id, node_data))
+        if not data:
+            nodes = [n[0] for n in nodes]
+        return nodes
 
     def gate_nodes(self):
         """Get the list of gate nodes in the dag.
@@ -1016,8 +1033,15 @@ class DAGCircuit:
     def get_named_nodes(self, *names):
         """Deprecated. Use named_nodes()."""
         warnings.warn('The method get_named_nodes() is being replaced by named_nodes()',
+                      'Returning a list of node_ids is also deprecated, named_nodes() '
+                      'returns a list of DAGNodes ',
                       DeprecationWarning, 2)
-        return self.named_nodes(*names)
+
+        named_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and node_data['op'].name in names:
+                named_nodes.append(node_id)
+        return named_nodes
 
     def named_nodes(self, *names):
         """Get the set of "op" nodes with the given name."""
@@ -1030,8 +1054,14 @@ class DAGCircuit:
     def get_2q_nodes(self):
         """Deprecated. Use twoQ_nodes()."""
         warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
+                      'Returning a list of data_dicts is also deprecated, twoQ_nodes() '
+                      'returns a list of DAGNodes ',
                       DeprecationWarning, 2)
-        return self.twoQ_nodes()
+
+        two_q_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and len(node_data['qargs']) == 2:
+                two_q_nodes.append(self.multi_graph.node[node_id])
 
     def twoQ_nodes(self):
         """Get list of 2-qubit nodes."""
@@ -1053,8 +1083,16 @@ class DAGCircuit:
     def get_3q_or_more_nodes(self):
         """Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
-                      ' threeQ_or_more_nodes()', DeprecationWarning, 2)
-        return self.threeQ_or_more_nodes()
+                      ' threeQ_or_more_nodes()',
+                      'Returning a list of (node_id, data) tuples is also deprecated, '
+                      'threeQ_or_more_nodes() returns a list of DAGNodes',
+                      DeprecationWarning, 2)
+
+        three_q_nodes = []
+        for node_id, node_data in self.multi_graph.nodes(data=True):
+            if node_data['type'] == 'op' and len(node_data['qargs']) >= 3:
+                three_q_nodes.append((node_id, self.multi_graph.node[node_id]))
+        return three_q_nodes
 
     def threeQ_or_more_nodes(self):
         """Get list of 3-or-more-qubit nodes: (id, data)."""
