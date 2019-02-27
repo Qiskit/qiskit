@@ -30,7 +30,7 @@ class DAGNode:
 
     @property
     def op(self):
-        """ Returns the Gate object corresponding to the op for the node else None"""
+        """ Returns the Instruction object corresponding to the op for the node else None"""
         return self.data_dict.get('op')
 
     @property
