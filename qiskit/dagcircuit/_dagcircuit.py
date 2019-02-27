@@ -1035,9 +1035,9 @@ class DAGCircuit:
         """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
         snapshot, barriers, and the like."""
         two_q_gates = []
-        for node_id, node_data in self.gate_nodes(data=True):
-            if len(node_data['qargs']) == 2:
-                two_q_gates.append(self.multi_graph.node[node_id])
+        for node in self.gate_nodes():
+            if len(node.qargs) == 2:
+                two_q_gates.append(node)
         return two_q_gates
 
     def get_3q_or_more_nodes(self):
