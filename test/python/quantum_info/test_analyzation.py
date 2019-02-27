@@ -115,8 +115,14 @@ class TestAnalyzation(QiskitTestCase):
         matrix_expected = {"00": 4, "01": -3, "10": 2, "11": -1}
         long_list_in = [1, 1, -1, -1, -1, -1, 1, 1]
         long_list_out = make_dict_observable(long_list_in)
-        long_list_expected = {"000": 1, "001": 1, "010": -1, "011": -1, "100":
-                -1, "101": -1, "110": 1, "111": 1}
+        long_list_expected = {"000": 1,
+                              "001": 1,
+                              "010": -1,
+                              "011": -1,
+                              "100": -1,
+                              "101": -1,
+                              "110": 1,
+                              "111": 1}
         self.assertEqual(list_out, list_expected)
         self.assertEqual(matrix_out, matrix_expected)
         self.assertEqual(long_list_out, long_list_expected)
