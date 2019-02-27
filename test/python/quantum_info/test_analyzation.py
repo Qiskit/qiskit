@@ -12,6 +12,7 @@ import unittest
 import qiskit
 from qiskit import BasicAer
 from qiskit.quantum_info.analyzation.average import average_data
+from qiskit.quantum_info.analyzation.make_observable import make_dict_observable
 from qiskit.test import QiskitTestCase
 
 
@@ -100,6 +101,25 @@ class TestAnalyzation(QiskitTestCase):
         self.assertAlmostEqual(mean_zz, 1, places=1)
         self.assertAlmostEqual(mean_zi, 0, places=1)
         self.assertAlmostEqual(mean_iz, 0, places=1)
+
+    def test_make_dict_observable(self):
+        """Test make_dict_observable."""
+        list_in = [1, 1, -1, -1]
+        list_out = make_dict_observable(list_in)
+        list_expected = {"00": 1, "01": 1, "10": -1, "11": -1}
+        matrix_in = [[4, 0, 0, 0],
+                     [0, -3, 0, 0],
+                     [0, 0, 2, 0],
+                     [0, 0, 0, -1]]
+        matrix_out = make_dict_observable(matrix_in)
+        matrix_expected = {"00": 4, "01": -3, "10": 2, "11": -1}
+        long_list_in = [1, 1, -1, -1, -1, -1, 1, 1]
+        long_list_out = make_dict_observable(long_list_in)
+        long_list_expected = {"000": 1, "001": 1, "010": -1, "011": -1, "100":
+                -1, "101": -1, "110": 1, "111": 1}
+        self.assertEqual(list_out, list_expected)
+        self.assertEqual(matrix_out, matrix_expected)
+        self.assertEqual(long_list_out, long_list_expected)
 
 
 if __name__ == '__main__':
