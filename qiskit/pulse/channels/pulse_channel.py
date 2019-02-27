@@ -8,22 +8,16 @@
 """
 Pulse Channels.
 """
+from abc import ABCMeta, abstractmethod
 
 from qiskit.pulse import commands
 
 
-class PulseChannel:
+class PulseChannel(metaclass=ABCMeta):
     """Pulse Channel."""
 
     supported = commands.PulseCommand
 
-    def __init__(self, index):
-        """Create new channel.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        self.index = index
-
-    def __str__(self):
-        return 'C%d' % self.index
+    @abstractmethod
+    def name(self):
+        pass
