@@ -192,8 +192,8 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 1)
 
         op_node = op_nodes.pop()
-        self.assertIsInstance(op_node["op"], Gate)
-        self.assertEqual(len(op_node['qargs']), 2)
+        self.assertIsInstance(op_node.op, Gate)
+        self.assertEqual(len(op_node.qargs), 2)
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""
