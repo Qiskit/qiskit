@@ -7,7 +7,7 @@
 
 """A collection of useful functions for post processing results."""
 
-import numpy as np
+from .make_observable import make_dict_observable
 
 
 def average_data(counts, observable):
@@ -36,30 +36,3 @@ def average_data(counts, observable):
         if key in observable:
             temp += counts[key] * observable[key] / tot
     return temp
-
-
-def make_dict_observable(matrix_observable):
-    """Convert an observable in matrix form to dictionary form.
-
-    Takes in a diagonal observable as a matrix and converts it to a dictionary
-    form. Can also handle a list sorted of the diagonal elements.
-
-    Args:
-        matrix_observable (list): The observable to be converted to dictionary
-        form. Can be a matrix or just an ordered list of observed values
-
-    Returns:
-        Dict: A dictionary with all observable states as keys, and corresponding
-        values being the observed value for that state
-    """
-    dict_observable = {}
-    observable = np.array(matrix_observable)
-    observable_size = len(observable)
-    observable_bits = int(np.ceil(np.log2(observable_size)))
-    binary_formater = '0{}b'.format(observable_bits)
-    if observable.ndim == 2:
-        observable = observable.diagonal()
-    for state_no in range(observable_size):
-        state_str = format(state_no, binary_formater)
-        dict_observable[state_str] = observable[state_no]
-    return dict_observable
