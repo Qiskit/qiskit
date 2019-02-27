@@ -19,7 +19,7 @@ class OutputChannel(PulseChannel):
     supported = (commands.FrameChange,
                  commands.FrameChange,
                  commands.PersistentValue,
-                 commands.sample_pulse)
+                 commands.SamplePulse)
 
     def __init__(self, index):
         """Create new output channel.
