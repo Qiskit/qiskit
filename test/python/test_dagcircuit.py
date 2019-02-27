@@ -213,6 +213,7 @@ class TestDagOperations(QiskitTestCase):
         """ Test that existence of edges between nodes is correctly identified"""
         self.assertTrue(self.dag.has_edge(1, 2))
         self.assertTrue(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 0)))
+        self.assertFalse(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 1)))
 
         self.assertFalse(self.dag.has_edge(1, 3))
         self.assertFalse(self.dag.has_edge(1, 3, (QuantumRegister(3, 'qr'), 0)))

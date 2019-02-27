@@ -1154,6 +1154,11 @@ class DAGCircuit:
             DAGCircuitError : if the edge doesn't exist in the graph
         """
 
+        # If no wire is specified, remove a random edge between the 2 nodes
+        if not wire:
+            self.multi_graph.remove_edge(node1, node2)
+            return
+
         for index, node_dict in self.multi_graph[node1][node2].items():
             if node_dict['wire'] == wire:
                 self.multi_graph.remove_edge(node1, node2, index)
