@@ -1154,6 +1154,47 @@ class DAGCircuit:
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
+    def remove_edge(self, node1, node2, wire=None):
+        """
+        Remove an edge from the DAG allowing the user to specify which edge if there are multiple
+        between the 2 nodes
+
+        Raises :
+            DAGCircuitError : if the edge doesn't exist in the graph
+        """
+
+        # If no wire is specified, remove a random edge between the 2 nodes
+        if not wire:
+            self.multi_graph.remove_edge(node1, node2)
+            return
+
+        for index, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                self.multi_graph.remove_edge(node1, node2, index)
+                return
+
+        raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist"
+                              % (node1, node2, str(wire)))
+
+    def has_edge(self, node1, node2, wire=None):
+        """
+        Check to see if edge exists between 2 DAG nodes, and optionally
+        if there is a connection on a specific wire
+
+        Returns :
+            boolean: True when an edge meeting the criteria exists
+        """
+
+        in_multi_graph = self.multi_graph.has_edge(node1, node2)
+
+        if not wire or not in_multi_graph:
+            return in_multi_graph
+
+        for _, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                return True
+        return False
+
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
