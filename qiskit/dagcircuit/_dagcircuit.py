@@ -1347,7 +1347,7 @@ class DAGCircuit:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = list(self.multi_graph.successors(s[0]))
-                if len(group) > 1:
+                if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
 
