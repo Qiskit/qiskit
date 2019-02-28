@@ -1,13 +1,17 @@
-ç
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
 
 class PulseChannel(metaclass=ABCMeta):
     """Pulse Channel."""
 
+    @abstractmethod
+    def __init__(self, index: int):
+        self.index = index
+
     def __str__(self):
         return '%s%d'.format(self.__class__.prefix, self.index)
 
+    @property
     def name(self):
         return str(self)
 
@@ -24,7 +28,3 @@ class PulseChannel(metaclass=ABCMeta):
                 self.index == other.index:
             return True
         return False
-
-    def __hash__(self):
-        """Make object hashable, based on the index to hash."""
-        return hash((type(self), self.index))
