@@ -12,6 +12,7 @@ Acquire.
 """
 
 from qiskit.exceptions import QiskitError
+from qiskit.pulse.commands.meas_opts import MeasOpts
 from qiskit.pulse.commands.pulse_command import PulseCommand
 
 
@@ -56,7 +57,7 @@ class Acquire(PulseCommand):
         and have the same kernel and discriminator.
 
         Args:
-            other (Acquire): other Acquire
+            other (Acquire): Other Acquire
 
         Returns:
             bool: are self and other equal.
@@ -69,7 +70,7 @@ class Acquire(PulseCommand):
             return False
 
 
-class Discriminator:
+class Discriminator(MeasOpts):
     """Discriminator."""
 
     def __init__(self, name=None, **params):
@@ -78,8 +79,7 @@ class Discriminator:
         Parameters:
             name (str): Name of discriminator to be used.
         """
-        self.name = name
-        self.params = params
+        super(Discriminator, self).__init__(name, **params)
 
 
 class Kernel:
@@ -91,5 +91,4 @@ class Kernel:
         Parameters:
             name (str): Name of kernel to be used.
         """
-        self.name = name
-        self.params = params
+        super(Kernel, self).__init__(name, **params)
