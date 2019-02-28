@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 from typing import List, Set, Union
 
 from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
-from qiskit.pulse.commands import PulseCommand
+from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,8 @@ class PulseSchedule(TimedPulseBlock):
         # TODO: Naive implementation (compute at add and remove would be better)
         lib = []
         for tp in self._children:
-            if tp.command not in lib:
+            if isinstance(tp.command, (FunctionalPulse, SamplePulse)) and \
+                    tp.command not in lib:
                 lib.append(tp.command)
         return lib
 
