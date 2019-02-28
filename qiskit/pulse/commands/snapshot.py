@@ -15,14 +15,34 @@ from qiskit.pulse.commands.pulse_command import PulseCommand
 class Snapshot(PulseCommand):
     """Snapshot."""
 
-    def __init__(self, label, name=None):
+    def __init__(self, label, type):
         """Create new snapshot command.
 
         Args:
             label (str): Snapshot label which is used to identify the snapshot in the output.
-            name (str): Unique name to identify the command object.
+            type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
+                The types of snapshots offered are defined in a separate specification
+                document for simulators.
         """
 
-        super(Snapshot, self).__init__(duration=0, name=name)
+        super(Snapshot, self).__init__(duration=0, name='snapshot')
 
         self.label = label
+        self.type = type
+
+    def __eq__(self, other):
+        """Two Snapshots are the same if they are of the same type
+        and have the same label and type.
+
+        Args:
+            other (Snapshot): other Snapshot,
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if type(self) is type(other) and \
+                self.label == other.label and\
+                self.type == other.type:
+            return True
+        else:
+            return False

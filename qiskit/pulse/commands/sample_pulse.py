@@ -24,9 +24,14 @@ class SamplePulse(PulseCommand):
             name (str): Unique name to identify the pulse.
         """
 
-        super(SamplePulse, self).__init__(duration=duration, name=name)
+        super(SamplePulse, self).__init__(duration=duration)
 
         self._samples = samples
+
+        if name:
+            self.name = name
+        else:
+            self.name = 'pulse_' + str(self.__hash__())
 
     @property
     def samples(self):
@@ -58,3 +63,20 @@ class SamplePulse(PulseCommand):
         from qiskit.tools.visualization import pulse_drawer
 
         return pulse_drawer(self.samples, self.duration, **kwargs)
+
+    def __eq__(self, other):
+        """Two SamplePulses are the same if they are of the same type
+        and have the same name and samples.
+
+        Args:
+            other (SamplePulse): other SamplePulse
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if type(self) is type(other) and \
+                self.name == other.name and \
+                self.samples == other.samples:
+            return True
+        else:
+            return False
