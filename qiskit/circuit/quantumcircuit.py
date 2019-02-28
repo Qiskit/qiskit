@@ -300,7 +300,7 @@ class QuantumCircuit:
 
     def draw(self, scale=0.7, filename=None, style=None, output='text',
              interactive=False, line_length=None, plot_barriers=True,
-             reverse_bits=False):
+             reverse_bits=False, justify=None):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -330,6 +330,11 @@ class QuantumCircuit:
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                 circuit. Defaults to True.
+            justify (string): Options are `left`, `right` or `none`, if anything
+                else is supplied it defaults to left justified. It refers to where
+                gates should be placed in the output circuit if there is an option.
+                `none` results in each gate being placed in its own column. Currently
+                only supported by text drawer.
 
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
@@ -351,7 +356,8 @@ class QuantumCircuit:
                                             interactive=interactive,
                                             line_length=line_length,
                                             plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits)
+                                            reverse_bits=reverse_bits,
+                                            justify=justify)
 
     def size(self):
         """Return total number of operations in circuit."""
