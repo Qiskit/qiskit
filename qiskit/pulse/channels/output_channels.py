@@ -18,7 +18,7 @@ class DriveChannel(OutputChannel):
     prefix = 'd'
 
     def __init__(self, index: int, lo_frequency: float = None):
-        """Create new drive (D) channel.
+        """Create new drive (d) channel.
 
         Args:
             index (int): Index of the channel.
@@ -31,10 +31,10 @@ class ControlChannel(OutputChannel):
     """Control Channel."""
 
     supported = OutputChannel.supported
-    prefix = 'c'
+    prefix = 'u'
 
     def __init__(self, index, lo_frequency: float = None):
-        """Create new control (U) channel.
+        """Create new control (u) channel.
 
         Args:
             index (int): Index of the channel.
@@ -50,7 +50,7 @@ class MeasureChannel(OutputChannel):
     prefix = 'm'
 
     def __init__(self, index, lo_frequency: float = None):
-        """Create new measurement (M) channel.
+        """Create new measurement (m) channel.
 
         Args:
             index (int): Index of the channel.
