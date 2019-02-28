@@ -27,4 +27,3 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
             print(swap)
         return dag
 
-    
