@@ -9,8 +9,9 @@
 Factory of channels.
 """
 from typing import List
+
+from qiskit.pulse.channels.output_channels import OutputChannel
 from qiskit.pulse.exceptions import ChannelsError
-from qiskit.pulse.channels.output_channels import DriveChannel, ControlChannel, MeasureChannel
 
 
 def create_channel(classinfo, size: int) -> List:
@@ -18,7 +19,7 @@ def create_channel(classinfo, size: int) -> List:
 
 
 def create_output_channel(classinfo, size: int, lo_frequencies: List[float] = None) -> List:
-    if type(classinfo) not in [DriveChannel, ControlChannel, MeasureChannel]:
+    if not issubclass(classinfo, OutputChannel):
         raise ChannelsError("%s is not OutputChannel, it cannot be created." % str(classinfo))
     if lo_frequencies:
         if len(lo_frequencies) != size:
