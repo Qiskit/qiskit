@@ -15,6 +15,7 @@ from qiskit.pulse.channels.backend_channels import OutputChannel
 class DriveChannel(OutputChannel):
     """Drive Channel."""
 
+    supported = OutputChannel.supported
     prefix = 'D'
 
     def __init__(self, index):
@@ -29,6 +30,7 @@ class DriveChannel(OutputChannel):
 class ControlChannel(OutputChannel):
     """Control Channel."""
 
+    supported = OutputChannel.supported
     prefix = 'U'
 
     def __init__(self, index):
@@ -43,6 +45,7 @@ class ControlChannel(OutputChannel):
 class MeasureChannel(OutputChannel):
     """Measure Channel."""
 
+    supported = OutputChannel.supported
     prefix = 'M'
 
     def __init__(self, index):

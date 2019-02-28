@@ -9,14 +9,15 @@
 Channels support actual backends.
 """
 
-from qiskit.pulse.channels.pulse_channel import PulseChannel
 from qiskit.pulse import commands
+from qiskit.pulse.channels.pulse_channel import PulseChannel
 
 
 class OutputChannel(PulseChannel):
     """Output Channel."""
 
     supported = (commands.FrameChange,
+                 commands.FunctionalPulse,
                  commands.PersistentValue,
                  commands.SamplePulse)
 
@@ -25,7 +26,6 @@ class AcquireChannel(PulseChannel):
     """Acquire Channel."""
 
     supported = commands.Acquire
-
     prefix = 'A'
 
     def __init__(self, index):
@@ -41,7 +41,6 @@ class SnapshotChannel(PulseChannel):
     """Snapshot Channel."""
 
     supported = commands.Snapshot
-
     prefix = 'S'
 
     def __init__(self, index):
