@@ -14,7 +14,8 @@ from inspect import signature
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.tools.visualization import _utils, circuit_drawer
+from qiskit.visualization import _utils
+from qiskit.tools.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
 
 logger = logging.getLogger(__name__)

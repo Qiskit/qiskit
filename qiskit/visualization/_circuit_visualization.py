@@ -24,11 +24,11 @@ import tempfile
 
 from PIL import Image
 
-from qiskit.tools.visualization import exceptions
-from qiskit.tools.visualization import _latex
-from qiskit.tools.visualization import _text
-from qiskit.tools.visualization import _utils
-from qiskit.tools.visualization import _matplotlib
+from qiskit.visualization import exceptions
+from qiskit.visualization import _latex
+from qiskit.visualization import _text
+from qiskit.visualization import _utils
+from qiskit.visualization import _matplotlib
 
 logger = logging.getLogger(__name__)
 

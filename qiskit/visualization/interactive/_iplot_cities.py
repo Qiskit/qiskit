@@ -6,13 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Hinton visualization
+Cities visualization
 """
 from string import Template
 import sys
 import time
 import re
-from qiskit.tools.visualization._utils import _validate_input_state
+from qiskit.visualization._utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -20,21 +20,22 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_state_hinton(rho, figsize=None):
-    """ Create a hinton representation.
+def iplot_state_city(rho, figsize=None):
+    """ Create a cities representation.
 
-        Graphical representation of the input array using a 2D city style
-        graph (hinton).
+        Graphical representation of the input array using a city style graph.
 
         Args:
-            rho (array): Density matrix
-            figsize (tuple): Figure size in pixels.
+            rho (array): State vector or density matrix.
+            figsize (tuple): The figure size in pixels.
     """
 
     # HTML
     html_template = Template("""
     <p>
-        <div id="hinton_$divNumber"></div>
+        <div id="content_$divNumber" style="position: absolute; z-index: 1;">
+            <div id="cities_$divNumber"></div>
+        </div>
     </p>
     """)
 
@@ -48,9 +49,16 @@ def iplot_state_hinton(rho, figsize=None):
         });
 
         require(["qVisualization"], function(qVisualizations) {
-            qVisualizations.plotState("hinton_$divNumber",
-                                      "hinton",
-                                      $executions,
+            data = {
+                real: $real,
+                titleReal: "Real.[rho]",
+                imaginary: $imag,
+                titleImaginary: "Im.[rho]",
+                qbits: $qbits
+            };
+            qVisualizations.plotState("cities_$divNumber",
+                                      "cities",
+                                      data,
                                       $options);
         });
     </script>
@@ -60,11 +68,6 @@ def iplot_state_hinton(rho, figsize=None):
         options = {}
     else:
         options = {'width': figsize[0], 'height': figsize[1]}
-
-    # Process data and execute
-    div_number = str(time.time())
-    div_number = re.sub('[.]', '', div_number)
-
     # Process data and execute
     real = []
     imag = []
@@ -80,13 +83,18 @@ def iplot_state_hinton(rho, figsize=None):
             col_imag.append(float(value_imag))
         imag.append(col_imag)
 
+    div_number = str(time.time())
+    div_number = re.sub('[.]', '', div_number)
+
     html = html_template.substitute({
         'divNumber': div_number
     })
 
     javascript = javascript_template.substitute({
+        'real': real,
+        'imag': imag,
+        'qbits': len(real),
         'divNumber': div_number,
-        'executions': [{'data': real}, {'data': imag}],
         'options': options
     })
 

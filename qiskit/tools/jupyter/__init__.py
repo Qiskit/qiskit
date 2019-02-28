@@ -9,7 +9,7 @@
 """
 
 from IPython import get_ipython          # pylint: disable=import-error
-from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
+from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
 
