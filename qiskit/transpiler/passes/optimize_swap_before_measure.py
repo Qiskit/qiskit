@@ -12,14 +12,19 @@ Transpiler pass to remove the swaps in front of measurments by moving the readin
 """
 
 from qiskit.circuit import Measure
+from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
 
+
 class OptimizeSwapBeforeMeasure(TransformationPass):
-    """Remove the swaps infront of measurments."""
+    """Remove the swaps followed measurments (and adapts the measurement"""
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        measures = dag.op_nodes(Measure)
-        for measure in measures:
-            print(measure)
+        swap_runs = dag.collect_runs(['swap'])
+        for swap in swap_runs:
+            # after_swap = dag.successors(swap[-1])
+            print(swap)
         return dag
+
+    
