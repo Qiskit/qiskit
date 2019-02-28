@@ -10,19 +10,24 @@ Factory of channels.
 """
 from typing import List
 
+from qiskit.pulse.channels.pulse_channel import PulseChannel
 from qiskit.pulse.channels.output_channels import OutputChannel
 from qiskit.pulse.exceptions import ChannelsError
 
 
-def create_channel(classinfo, size: int) -> List:
+def create_channel(classinfo, size: int, lo_frequencies: List[float] = None) -> List:
+    if not issubclass(classinfo, PulseChannel):
+        raise ChannelsError("Unknown PulseChannel")
+
+    if issubclass(classinfo, OutputChannel):
+        if lo_frequencies is not None:
+            if len(lo_frequencies) == size:
+                return [classinfo(i, lof) for i, lof in zip(range(size), lo_frequencies)]
+            else:
+                raise ChannelsError("the size of lo_frequencies must be size")
+    else:
+        if lo_frequencies is not None:
+            raise ChannelsError("cannot apply lo_frequencies to this type of channel")
+
     return [classinfo(i) for i in range(size)]
 
-
-def create_output_channel(classinfo, size: int, lo_frequencies: List[float] = None) -> List:
-    if not issubclass(classinfo, OutputChannel):
-        raise ChannelsError("%s is not OutputChannel, it cannot be created." % str(classinfo))
-    if lo_frequencies:
-        if len(lo_frequencies) != size:
-            raise ChannelsError("the size of lo_frequencies must be size")
-        return [classinfo(i, lof) for i, lof in zip(range(size), lo_frequencies)]
-    return [classinfo(i) for i in range(size)]
