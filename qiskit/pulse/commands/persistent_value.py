@@ -46,5 +46,4 @@ class PersistentValue(PulseCommand):
         if type(self) is type(other) and \
                 self.value == other.value:
             return True
-        else:
-            return False
+        return False

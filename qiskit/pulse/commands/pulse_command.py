@@ -22,6 +22,7 @@ class PulseCommand:
 
         Args:
             duration (int): Duration of pulse.
+            name (str): Name of pulse command.
         Raises:
             QiskitError: when duration is not number of points.
         """
@@ -47,5 +48,4 @@ class PulseCommand:
                 self.duration == other.duration and\
                 self.name == other.name:
             return True
-        else:
-            return False
+        return False

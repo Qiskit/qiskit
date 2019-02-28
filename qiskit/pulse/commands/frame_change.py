@@ -40,5 +40,4 @@ class FrameChange(PulseCommand):
         if type(self) is type(other) and \
                 self.phase == other.phase:
             return True
-        else:
-            return False
+        return False

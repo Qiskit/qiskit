@@ -95,9 +95,10 @@ class TestSnapshot(QiskitTestCase):
     def test_default(self):
         """Test default snapshot.
         """
-        snap_comm = Snapshot(label='test_label')
+        snap_comm = Snapshot(label='test_label', snap_type='state')
 
         self.assertEqual(snap_comm.label, "test_label")
+        self.assertEqual(snap_comm.type, "state")
         self.assertEqual(snap_comm.duration, 0)
 
 

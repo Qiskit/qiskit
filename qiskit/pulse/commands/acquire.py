@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-param-doc
+# pylint: disable=missing-param-doc,useless-super-delegation
 
 """
 Acquire.
@@ -66,8 +66,7 @@ class Acquire(PulseCommand):
                 self.kernel == other.kernel and \
                 self.discriminator == other.discriminator:
             return True
-        else:
-            return False
+        return False
 
 
 class Discriminator(MeasOpts):
@@ -82,7 +81,7 @@ class Discriminator(MeasOpts):
         super(Discriminator, self).__init__(name, **params)
 
 
-class Kernel:
+class Kernel(MeasOpts):
     """Kernel."""
 
     def __init__(self, name=None, **params):

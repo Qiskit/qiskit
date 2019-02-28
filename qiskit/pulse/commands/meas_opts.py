@@ -38,5 +38,4 @@ class MeasOpts:
                 self.name == other.name and \
                 self.params == other.params:
             return True
-        else:
-            return False
+        return False

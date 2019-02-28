@@ -77,5 +77,4 @@ class SamplePulse(PulseCommand):
                 self.name == other.name and \
                 (self.samples == other.samples).all():
             return True
-        else:
-            return False
+        return False
