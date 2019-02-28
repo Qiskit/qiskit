@@ -9,7 +9,7 @@
 Schedule.
 """
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Set
 
 from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
 from qiskit.pulse.commands import PulseCommand
@@ -84,13 +84,6 @@ class PulseSchedule(TimedPulseBlock):
         Returns:
             True if succeeded, otherwise False
         """
-        """Add `timed_pulse` (pulse command with channel and start time context).
-        Args:
-            timed_pulse:
-
-        Returns:
-            An added pulse with channel and time context.
-        """
         if self._is_occupied_time(timed_pulse):
             return False  # TODO: or raise Exception?
         else:
@@ -131,10 +124,17 @@ class PulseSchedule(TimedPulseBlock):
         for pulse in self._flat_pulse_sequence():
             if pulse.channel == timed_pulse.channel:
                 # interval check
-                if pulse.start_time() <= timed_pulse.end_time()\
-                        and timed_pulse.start_time()  <= pulse.end_time():
+                if pulse.start_time() <= timed_pulse.end_time() \
+                        and timed_pulse.start_time() <= pulse.end_time():
                     return False
         return True
+
+    def command_library(self) -> Set[PulseCommand]:
+        # TODO: This is still a MVP
+        for child in self._children:
+            if not isinstance(child, TimedPulse):
+                raise NotImplementedError()
+        return {tp.command for tp in self._children}
 
     def flat_pulse_sequence(self) -> List[TimedPulse]:
         # TODO: This is still a MVP
@@ -142,4 +142,3 @@ class PulseSchedule(TimedPulseBlock):
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
         return self._children
-
