@@ -17,6 +17,8 @@ from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjH
 from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.qobj.run_config import RunConfig
 from qiskit.qobj._utils import QobjType
+from qiskit.pulse.commands import *
+from qiskit.exceptions import QiskitError
 
 
 def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
@@ -31,6 +33,8 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
 
     Returns:
         Qobj: the Qobj to be run on the backends.
+    Raises:
+        QiskitError: when invalid command is given.
     """
     user_qobj_header = user_qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
@@ -40,43 +44,52 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
 
     userconfig = QobjConfig(**run_config.to_dict())
     experiments = []
-    max_n_qubits = 0
-    max_memory_slots = 0
     for schedule in schedules:
-        # user defined qubit frequency
+        # user defined lo frequency
+        user_lo_freqs = {}
         if any(schedule.qubit_lo_freq):
-            qubit_lo_freq = np.where(schedule.qubit_lo_freq,
-                                     schedule.qubit_lo_freq,
-                                     userconfig.qubit_lo_freq)
-        else:
-            qubit_lo_freq = []
-
-        # user defined meas frequency
+            user_lo_freqs['qubit_lo_freq'] = np.where(schedule.qubit_lo_freq,
+                                                      schedule.qubit_lo_freq,
+                                                      userconfig.qubit_lo_freq)
         if any(schedule.meas_lo_freq):
-            meas_lo_freq = np.where(schedule.meas_lo_freq,
-                                    schedule.meas_lo_freq,
-                                    userconfig.meas_lo_freq)
-        else:
-            meas_lo_freq = []
+            user_lo_freqs['meas_lo_freq'] = np.where(schedule.meas_lo_freq,
+                                                     schedule.meas_lo_freq,
+                                                     userconfig.meas_lo_freq)
 
         # generate experimental configuration
-        if any(qubit_lo_freq) and any(meas_lo_freq):
-            experimentconfig = QobjExperimentConfig(qubit_lo_freq=qubit_lo_freq,
-                                                    meas_lo_freq=meas_lo_freq)
-        elif any(qubit_lo_freq):
-            experimentconfig = QobjExperimentConfig(qubit_lo_freq=qubit_lo_freq)
-        elif any(meas_lo_freq):
-            experimentconfig = QobjExperimentConfig(meas_lo_freq=meas_lo_freq)
-        else:
-            experimentconfig = QobjExperimentConfig()
+        experimentconfig = QobjExperimentConfig(**user_lo_freqs)
 
         # generate experimental header
         experimentheader = QobjExperimentHeader(name=schedule.name)
 
+        #TODO: support conditional gate
         instructions = []
         for pulse in schedule.flat_pulse_sequence():
-            current_instruction = QobjInstruction()
-
+            current_instruction = QobjInstruction(name=pulse.command.name,
+                                                  t0=pulse.start_time())
+            if isinstance(pulse.command, (SamplePulse, FunctionalPulse)):
+                current_instruction.ch = pulse.channel.name()
+            elif isinstance(pulse.command, FrameChange):
+                current_instruction.ch = pulse.channel.name()
+                current_instruction.phase = pulse.command.phase
+            elif isinstance(pulse.command, PersistentValue):
+                current_instruction.ch = pulse.channel.name()
+                current_instruction.value = pulse.command.value
+            elif isinstance(pulse.command, Acquire):
+                current_instruction.duration = pulse.command.duration
+                #TODO: qubit-register mapping
+                current_instruction.qubits = []
+                current_instruction.memory_slot = []
+                current_instruction.register_slot = []
+                #TODO: backend defaults
+                current_instruction.kernels = pulse.command.kernel or None
+                current_instruction.discriminators = pulse.command.discriminator or None
+            elif isinstance(pulse.command, Snapshot):
+                current_instruction.label = pulse.command.label
+                current_instruction.type = pulse.command.type
+            else:
+                raise QiskitError('Invalid command is given, %s' % pulse.command.name)
+            instructions.append(current_instruction)
 
         experiments.append(QobjExperiment(instructions=instructions, header=experimentheader,
                                           config=experimentconfig))
