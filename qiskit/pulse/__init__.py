@@ -6,3 +6,4 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Module for Pulses."""
+from .exceptions import ChannelsError, CommandsError, ScheduleError

@@ -8,12 +8,14 @@
 """
 Schedule.
 """
+import logging
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Set, Union
 
 from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
 from qiskit.pulse.commands import PulseCommand
 
+logger = logging.getLogger(__name__)
 
 class TimedPulseBlock(metaclass=ABCMeta):
     """
@@ -43,16 +45,16 @@ class TimedPulse(TimedPulseBlock):
         if isinstance(pulse_command, to_channel.supported):  # TODO: refactoring
             self.command = pulse_command
             self.channel = to_channel
-            self.start_time = start_time
+            self.t0 = start_time
         else:
             raise Exception(
                 "Not supported commands on the channel")  # TODO need to make PulseException class
 
     def start_time(self) -> int:
-        return self.start_time
+        return self.t0
 
     def end_time(self) -> int:
-        return self.start_time + self.command.duration
+        return self.t0 + self.command.duration
 
     def duration(self) -> int:
         return self.command.duration
@@ -67,38 +69,61 @@ class PulseSchedule(TimedPulseBlock):
     def __init__(self,
                  output_channels: List[OutputChannel] = None,
                  acquire_channels: List[AcquireChannel] = None,
-                 snapshot_channels: List[SnapshotChannel] = None
+                 snapshot_channels: List[SnapshotChannel] = None,
+                 name: str = None
                  ):
         """Create empty schedule.
+
         Args:
-            channels:
+            output_channels:
+            acquire_channels:
+            snapshot_channels:
+            name:
         """
+        self.name = name
+        self._output_channels = output_channels
+        self._acquire_channels = acquire_channels
+        self._snapshot_channels = snapshot_channels
         self._children = []
 
-    def add(self, timed_pulse: TimedPulseBlock) -> bool:
-        """Add a new composite pulse `TimedPulseBlock` (pulse command with channel and start time context).
+    def add(self,
+            commands: Union[PulseCommand, List[PulseCommand]],
+            channel: PulseChannel,
+            start_time: int) -> bool:
+        """Add new pulse command(s) with channel and start time context.
 
         Args:
-            timed_pulse:
+            commands (PulseCommand|list):
+            channel:
+            start_time:
 
         Returns:
             True if succeeded, otherwise False
         """
-        """Add `timed_pulse` (pulse command with channel and start time context).
-        Args:
-            timed_pulse:
-
-        Returns:
-            An added pulse with channel and time context.
-        """
-        if self._is_occupied_time(timed_pulse):
-            return False  # TODO: or raise Exception?
-        else:
-            self._children.append(timed_pulse)
+        if isinstance(commands, PulseCommand):
+            return self.add_block(TimedPulse(commands, channel, start_time))
+        elif isinstance(commands, list):
+            for cmd in commands:
+                success = self.add(cmd, channel, start_time)
+                if not success:
+                    return False
             return True
 
-    def remove(self, timed_pulse: TimedPulseBlock):
-        self._children.remove(timed_pulse)
+    def add_block(self, block: TimedPulseBlock) -> bool:
+        """Add a new composite pulse `TimedPulseBlock`.
+
+        Args:
+            block:
+
+        Returns:
+            True if succeeded, otherwise False
+        """
+        if self._is_occupied_time(block):
+            logger.warning("a pulse block is not added due to the occupied timing: %s", str(block))
+            return False  # TODO: or raise Exception?
+        else:
+            self._children.append(block)
+            return True
 
     def start_time(self) -> int:
         return min([self._start_time(child) for child in self._children])
@@ -128,13 +153,27 @@ class PulseSchedule(TimedPulseBlock):
         # TODO: This is still a MVP, very very naive implementation
         if not isinstance(timed_pulse, TimedPulse):
             raise NotImplementedError()
-        for pulse in self._flat_pulse_sequence():
+        for pulse in self.flat_pulse_sequence():
             if pulse.channel == timed_pulse.channel:
                 # interval check
-                if pulse.start_time() <= timed_pulse.end_time()\
-                        and timed_pulse.start_time()  <= pulse.end_time():
-                    return False
-        return True
+                if pulse.start_time() < timed_pulse.end_time() \
+                        and timed_pulse.start_time() < pulse.end_time():
+                    return True
+        return False
+
+    def remove(self, timed_pulse: TimedPulseBlock):
+        # TODO: This is still a MVP
+        for child in self._children:
+            if not isinstance(child, TimedPulse):
+                raise NotImplementedError()
+        self._children.remove(timed_pulse)
+
+    def command_library(self) -> Set[PulseCommand]:
+        # TODO: This is still a MVP
+        for child in self._children:
+            if not isinstance(child, TimedPulse):
+                raise NotImplementedError()
+        return {tp.command for tp in self._children}
 
     def flat_pulse_sequence(self) -> List[TimedPulse]:
         # TODO: This is still a MVP
@@ -142,4 +181,3 @@ class PulseSchedule(TimedPulseBlock):
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
         return self._children
-
