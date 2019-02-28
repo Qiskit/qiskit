@@ -37,7 +37,8 @@ Added
 - Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
   different output stream 
-  
+- Register indexing supports negative indices (#1875)
+
 Changed
 -------
 
