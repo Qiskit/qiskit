@@ -177,7 +177,7 @@ class PulseSchedule(TimedPulseBlock):
         lib = []
         for tp in self._children:
             if tp.command not in lib:
-                lib.append()
+                lib.append(tp.command)
         return lib
 
     def flat_pulse_sequence(self) -> List[TimedPulse]:
