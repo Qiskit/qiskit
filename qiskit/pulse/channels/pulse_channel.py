@@ -9,7 +9,7 @@ class PulseChannel(metaclass=ABCMeta):
         self.index = index
 
     def __str__(self):
-        return '%s%d'.format(self.__class__.prefix, self.index)
+        return '%s%d' % (self.__class__.prefix, self.index)
 
     @property
     def name(self):
