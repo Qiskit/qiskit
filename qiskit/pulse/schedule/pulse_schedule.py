@@ -67,23 +67,17 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 output_channels: List[OutputChannel] = None,
-                 acquire_channels: List[AcquireChannel] = None,
-                 snapshot_channels: List[SnapshotChannel] = None,
+                 channel_list: List[List[PulseChannel]],
                  name: str = None
                  ):
         """Create empty schedule.
 
         Args:
-            output_channels:
-            acquire_channels:
-            snapshot_channels:
+            channels:
             name:
         """
         self.name = name
-        self._output_channels = output_channels
-        self._acquire_channels = acquire_channels
-        self._snapshot_channels = snapshot_channels
+        self._channel_list = channel_list
         self._children = []
 
     def add(self,
@@ -167,6 +161,10 @@ class PulseSchedule(TimedPulseBlock):
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
         self._children.remove(timed_pulse)
+
+    @property
+    def channel_list(self):
+        return self._channel_list
 
     def command_library(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
