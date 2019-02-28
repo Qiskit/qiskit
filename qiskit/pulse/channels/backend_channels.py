@@ -20,22 +20,13 @@ class OutputChannel(PulseChannel):
                  commands.PersistentValue,
                  commands.SamplePulse)
 
-    def __init__(self, index):
-        """Create new output channel.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super(OutputChannel, self).__init__(index)
-
-    def __str__(self):
-        return 'O%d' % self.index
-
 
 class AcquireChannel(PulseChannel):
     """Acquire Channel."""
 
     supported = commands.Acquire
+
+    prefix = 'A'
 
     def __init__(self, index):
         """Create new acquire channel.
@@ -43,10 +34,7 @@ class AcquireChannel(PulseChannel):
         Args:
             index (int): Index of the channel.
         """
-        super(AcquireChannel, self).__init__(index)
-
-    def __str__(self):
-        return 'A%d' % self.index
+        self.index = index
 
 
 class SnapshotChannel(PulseChannel):
@@ -54,13 +42,12 @@ class SnapshotChannel(PulseChannel):
 
     supported = commands.Snapshot
 
+    prefix = 'S'
+
     def __init__(self, index):
-        """Create new acquire channel.
+        """Create new snapshot channel.
 
         Args:
             index (int): Index of the channel.
         """
-        super(SnapshotChannel, self).__init__(index)
-
-    def __str__(self):
-        return 'S%d' % self.index
+        self.index = index
