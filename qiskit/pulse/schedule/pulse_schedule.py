@@ -43,16 +43,16 @@ class TimedPulse(TimedPulseBlock):
         if isinstance(pulse_command, to_channel.supported):  # TODO: refactoring
             self.command = pulse_command
             self.channel = to_channel
-            self.start_time = start_time
+            self.t0 = start_time
         else:
             raise Exception(
                 "Not supported commands on the channel")  # TODO need to make PulseException class
 
     def start_time(self) -> int:
-        return self.start_time
+        return self.t0
 
     def end_time(self) -> int:
-        return self.start_time + self.command.duration
+        return self.t0 + self.command.duration
 
     def duration(self) -> int:
         return self.command.duration
@@ -150,7 +150,7 @@ class PulseSchedule(TimedPulseBlock):
         # TODO: This is still a MVP, very very naive implementation
         if not isinstance(timed_pulse, TimedPulse):
             raise NotImplementedError()
-        for pulse in self._flat_pulse_sequence():
+        for pulse in self.flat_pulse_sequence():
             if pulse.channel == timed_pulse.channel:
                 # interval check
                 if pulse.start_time() <= timed_pulse.end_time() \
