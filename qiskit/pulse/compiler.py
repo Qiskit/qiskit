@@ -16,8 +16,9 @@ import numpy as np
 from qiskit.converters import schedules_to_qobj
 from qiskit.pulse.schedule import PulseSchedule
 from qiskit.qobj import RunConfig
-from qiskit.qobj import QobjHeader
+from qiskit.qobj import QobjHeader, QobjConfig
 from qiskit.exceptions import QiskitError
+from qiskit.pulse.commands import *
 
 
 logger = logging.getLogger(__name__)
@@ -55,10 +56,10 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
         warnings.warn('The `config` argument is deprecated and '
                       'does not do anything', DeprecationWarning)
 
-    backend_config = backend.configuration()
-    backend_defaults = backend_config.defaults
-
     run_config = RunConfig()
+
+    if isinstance(schedules, PulseSchedule):
+        schedules = [schedules]
 
     if seed:
         run_config.seed = seed
@@ -67,11 +68,61 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
     if max_credits:
         run_config.max_credits = max_credits
 
-    run_config.meas_level = meas_level
-    # merge all pulse commands in the library to reduce data size
-    pulse_library = backend_defaults.get('pulse_library', [])
+    # additional config for OpenPulse
+    run_config = embed_pulse_config(schedules, run_config, backend,
+                                    meas_level, memory_slot_size,
+                                    meas_return, rep_time)
+
+    # add backend information to schedules
     for schedule in schedules:
-        cmds = schedule.command_library()
+        embed_backend_frequency(schedule, backend)
+        embed_backend_defaults(schedule, backend)
+
+    qobj = schedules_to_qobj(schedules, user_qobj_header=QobjHeader(), run_config=run_config,
+                             qobj_id=qobj_id)
+
+    return qobj
+
+
+def embed_pulse_config(schedules, run_config, backend,
+                       meas_level, memory_slot_size,
+                       meas_return, rep_time):
+    """ Add OpenPulse configurations to Qobj configuration.
+
+    Args:
+        schedules (List[PulseSchedule]): a list of PulseSchedule.
+        run_config (RunConfig): RunConfig object.
+        backend (BaseBackend): a backend to execute the circuits on.
+        meas_level (int): set the appropriate level of the measurement output.
+        memory_slot_size (int): size of each memory slot if the output is Level 0.
+        meas_return (str): indicates the level of measurement information to return.
+        rep_time (int): repetition time of the experiment in μs.
+    Returns:
+        RunConfig: the returned default configuration.
+    """
+    userconfig = QobjConfig(**run_config.to_dict())
+    config = backend.configuration()
+
+    # add OpenPulse configuration
+    userconfig.meas_level = meas_level
+    run_config.memory_slot_size = memory_slot_size
+    run_config.meas_return = meas_return
+    run_config.qubit_lo_freq = config.defaults['qubit_freq_est']
+    run_config.meas_lo_freq = config.defaults['meas_freq_est']
+
+    # check if rep_time is supported by backend
+    if rep_time:
+        if rep_time in config.rep_times:
+            run_config.rep_time = rep_time
+        else:
+            raise QiskitError('Invalid rep_time is specified.')
+    else:
+        run_config.rep_time = config.rep_times[0]
+
+    # merge all pulse commands in the library to reduce data size
+    pulse_library = config.defaults.get('pulse_library', [])
+    for schedle in schedules:
+        cmds = schedle.command_library()
         for cmd in cmds:
             _name = cmd.name
             _samples = list(map(lambda x: [np.real(x), np.imag(x)], cmd.samples))
@@ -79,24 +130,47 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
             if pulse not in pulse_library:
                 pulse_library.append(pulse)
     run_config.pulse_library = pulse_library
-    run_config.memory_slot_size = memory_slot_size
-    run_config.meas_return = meas_return
-    run_config.qubit_lo_freq = backend_defaults['qubit_freq_est']
-    run_config.meas_lo_freq = backend_defaults['meas_freq_est']
-    if rep_time:
-        # check if rep_time is supported by the backend
-        if rep_time in backend_config.rep_times:
-            run_config.rep_time = rep_time
-        else:
-            raise QiskitError('Invalid rep_time is specified.')
-    else:
-        run_config.rep_time = config.rep_times[0]
 
-    qobj = schedules_to_qobj(schedules, user_qobj_header=QobjHeader(), run_config=run_config,
-                             qobj_id=qobj_id)
+    return userconfig
 
-    return qobj
-    
+
+def embed_backend_frequency(schedule, backend):
+    """Add default LO frequencies to PulseSchedules.
+
+    Args:
+        schedule (PulseSchedule): a PulseSchedule.
+        backend (BaseBackend): a backend to execute the circuits on.
+    """
+    config = backend.configuration()
+
+    if any(schedule.qubit_lo_freq):
+        schedule.qubit_lo_freq = np.where(schedule.qubit_lo_freq,
+                                          schedule.qubit_lo_freq,
+                                          config.defaults['qubit_freq_est'])
+    if any(schedule.meas_lo_freq):
+        schedule.meas_lo_freq = np.where(schedule.meas_lo_freq,
+                                         schedule.meas_lo_freq,
+                                         config.defaults['meas_freq_est'])
+
+
+def embed_backend_defaults(schedule, backend):
+    """Add default backend settings to PulseCommands.
+
+    Args:
+        schedule (PulseSchedule): a PulseSchedule.
+        backend (BaseBackend): a backend to execute the circuits on.
+    """
+    config = backend.configuration()
+
+    for pulse in schedule.flat_pulse_sequence():
+        if isinstance(pulse.command, Acquire):
+            # fill measurement kernel and discriminator
+            _kernel = pulse.command.kernel or config.defaults['kernel']
+            _discriminator = pulse.command.discriminator or config.defaults['discriminator']
+            pulse.command.kernel = _kernel
+            pulse.command.discriminator = _discriminator
+
+
 def execute(schedules, backend, config=None, shots=1024, max_credits=10,
             seed=None, meas_level=1, memory_slot_size=100,
             meas_return="avg", rep_time=None, qobj_id=None):
