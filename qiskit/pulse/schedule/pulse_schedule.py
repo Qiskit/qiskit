@@ -168,12 +168,17 @@ class PulseSchedule(TimedPulseBlock):
                 raise NotImplementedError()
         self._children.remove(timed_pulse)
 
-    def command_library(self) -> Set[PulseCommand]:
+    def command_library(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
         for child in self._children:
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
-        return {tp.command for tp in self._children}
+        # TODO: Naive implementation (compute at add and remove would be better)
+        lib = []
+        for tp in self._children:
+            if tp.command not in lib:
+                lib.append()
+        return lib
 
     def flat_pulse_sequence(self) -> List[TimedPulse]:
         # TODO: This is still a MVP
