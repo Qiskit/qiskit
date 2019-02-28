@@ -8,5 +8,5 @@
 """Channel classes for pulse."""
 
 from .backend_channels import OutputChannel, AcquireChannel, SnapshotChannel
-from .output_channel import DriveChannel, ControlChannel, MeasureChannel
+from .output_channels import DriveChannel, ControlChannel, MeasureChannel
 from .pulse_channel import PulseChannel
