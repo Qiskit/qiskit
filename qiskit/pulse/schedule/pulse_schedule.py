@@ -8,12 +8,14 @@
 """
 Schedule.
 """
+import logging
 from abc import ABCMeta, abstractmethod
 from typing import List, Set, Union
 
 from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
 from qiskit.pulse.commands import PulseCommand
 
+logger = logging.getLogger(__name__)
 
 class TimedPulseBlock(metaclass=ABCMeta):
     """
@@ -117,6 +119,7 @@ class PulseSchedule(TimedPulseBlock):
             True if succeeded, otherwise False
         """
         if self._is_occupied_time(block):
+            logger.warning("a pulse block is not added due to the occupied timing: %s", str(block))
             return False  # TODO: or raise Exception?
         else:
             self._children.append(block)
@@ -153,10 +156,10 @@ class PulseSchedule(TimedPulseBlock):
         for pulse in self.flat_pulse_sequence():
             if pulse.channel == timed_pulse.channel:
                 # interval check
-                if pulse.start_time() <= timed_pulse.end_time() \
-                        and timed_pulse.start_time() <= pulse.end_time():
-                    return False
-        return True
+                if pulse.start_time() < timed_pulse.end_time() \
+                        and timed_pulse.start_time() < pulse.end_time():
+                    return True
+        return False
 
     def remove(self, timed_pulse: TimedPulseBlock):
         # TODO: This is still a MVP
