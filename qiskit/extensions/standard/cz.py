@@ -25,7 +25,7 @@ class CzGate(Gate):
 
     def __init__(self, circ=None):
         """Create new CZ gate."""
-        super().__init__("cz", [], circ)
+        super().__init__("cz", 2, [], circ)
 
     def _define_decompositions(self):
         """

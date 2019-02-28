@@ -187,7 +187,7 @@ class TestDagOperations(QiskitTestCase):
         """The method dag.twoQ_gates() returns all 2Q gate nodes"""
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
-        self.dag.apply_operation_back(Barrier(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Barrier(2), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
         op_nodes = self.dag.twoQ_gates()

@@ -24,7 +24,7 @@ class IdGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Identity gate."""
-        super().__init__("id", [], circ)
+        super().__init__("id", 1, [], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()

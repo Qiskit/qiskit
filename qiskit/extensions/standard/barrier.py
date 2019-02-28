@@ -17,9 +17,9 @@ from qiskit.circuit import Instruction
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, circ=None):
+    def __init__(self, num_qubits, circ=None):
         """Create new barrier instruction."""
-        super().__init__("barrier", [], circ)
+        super().__init__("barrier", num_qubits, 0, [], circ)
 
     def inverse(self):
         """Special case. Return self."""
@@ -47,7 +47,7 @@ def barrier(self, *qargs):
         else:
             qubits.append(qarg)
 
-    return self._attach(Barrier(self), qubits, [])
+    return self._attach(Barrier(self, len(qubits)), qubits, [])
 
 
 QuantumCircuit.barrier = barrier

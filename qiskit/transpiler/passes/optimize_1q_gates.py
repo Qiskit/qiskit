@@ -17,8 +17,8 @@ from qiskit.mapper import MapperError
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.circuit.instruction import Instruction
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit.gate import Gate
+from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.dagcircuit import DAGCircuit

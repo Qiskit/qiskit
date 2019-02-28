@@ -25,7 +25,7 @@ class XGate(Gate):
 
     def __init__(self, circ=None):
         """Create new X gate."""
-        super().__init__("x", [], circ)
+        super().__init__("x", 1, [], circ)
 
     def _define_decompositions(self):
         """

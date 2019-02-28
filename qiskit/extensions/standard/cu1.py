@@ -23,7 +23,7 @@ class Cu1Gate(Gate):
 
     def __init__(self, theta, circ=None):
         """Create new cu1 gate."""
-        super().__init__("cu1", [theta], circ)
+        super().__init__("cu1", 2, [theta], circ)
 
     def _define_decompositions(self):
         """

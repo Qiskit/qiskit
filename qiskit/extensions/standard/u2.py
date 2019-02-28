@@ -25,7 +25,7 @@ class U2Gate(Gate):
 
     def __init__(self, phi, lam, circ=None):
         """Create new one-pulse single-qubit gate."""
-        super().__init__("u2", [phi, lam], circ)
+        super().__init__("u2", 1, [phi, lam], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()

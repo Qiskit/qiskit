@@ -25,7 +25,7 @@ class ZGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Z gate."""
-        super().__init__("z", [], circ)
+        super().__init__("z", 1, [], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()

@@ -23,7 +23,7 @@ class CrzGate(Gate):
 
     def __init__(self, theta, circ=None):
         """Create new crz gate."""
-        super().__init__("crz", [theta], circ)
+        super().__init__("crz", 2, [theta], circ)
 
     def _define_decompositions(self):
         """

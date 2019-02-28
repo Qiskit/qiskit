@@ -24,7 +24,7 @@ class U0Gate(Gate):
 
     def __init__(self, m, circ=None):
         """Create new u0 gate."""
-        super().__init__("u0", [m], circ)
+        super().__init__("u0", 1, [m], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()

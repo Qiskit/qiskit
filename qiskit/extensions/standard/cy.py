@@ -26,7 +26,7 @@ class CyGate(Gate):
 
     def __init__(self, circ=None):
         """Create new CY gate."""
-        super().__init__("cy", [], circ)
+        super().__init__("cy", 2, [], circ)
 
     def _define_decompositions(self):
         """

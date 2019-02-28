@@ -19,7 +19,7 @@ class CXBase(Gate):  # pylint: disable=abstract-method
 
     def __init__(self, circ=None):
         """Create new CX instruction."""
-        super().__init__("CX", [], circ)
+        super().__init__("CX", 2, [], circ)
 
     def inverse(self):
         """Invert this gate."""

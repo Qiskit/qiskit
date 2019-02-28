@@ -33,16 +33,20 @@ from qiskit.exceptions import QiskitError
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, params, circuit=None):
+    def __init__(self, name, num_qubits, num_clbits, params, circuit=None):
         """Create a new instruction.
         Args:
             name (str): instruction name
+            num_qubits (int): instruction's qubit width
+            num_clbits (int): instructions's clbit width
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
             circuit (QuantumCircuit or Instruction): where the instruction is attached
         Raises:
             QiskitError: when the register is not in the correct format.
         """
         self.name = name
+        self.num_qubits = num_qubits
+        self.num_clbits = num_clbits
         self.params = []  # a list of gate params stored
         for single_param in params:
             # example: u2(pi/2, sin(pi/4))

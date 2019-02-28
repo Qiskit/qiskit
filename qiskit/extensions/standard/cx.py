@@ -24,7 +24,7 @@ class CnotGate(Gate):
 
     def __init__(self, circ=None):
         """Create new CNOT gate."""
-        super().__init__("cx", [], circ)
+        super().__init__("cx", 2, [], circ)
 
     def _define_decompositions(self):
         """

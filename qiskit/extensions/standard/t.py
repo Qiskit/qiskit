@@ -25,7 +25,7 @@ class TGate(Gate):
 
     def __init__(self, circ=None):
         """Create new T gate."""
-        super().__init__("t", [], circ)
+        super().__init__("t", 1, [], circ)
 
     def _define_decompositions(self):
         """
@@ -54,7 +54,7 @@ class TdgGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Tdg gate."""
-        super().__init__("tdg", [], circ)
+        super().__init__("tdg", 1, [], circ)
 
     def _define_decompositions(self):
         """

@@ -29,7 +29,7 @@ class CHGate(Gate):
 
     def __init__(self, circ=None):
         """Create new CH gate."""
-        super().__init__("ch", [], circ)
+        super().__init__("ch", 2, [], circ)
 
     def _define_decompositions(self):
         """

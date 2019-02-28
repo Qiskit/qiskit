@@ -25,7 +25,7 @@ class HGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Hadamard gate."""
-        super().__init__("h", [], circ)
+        super().__init__("h", 1, [], circ)
 
     def _define_decompositions(self):
         """

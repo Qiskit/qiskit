@@ -25,7 +25,7 @@ class YGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Y gate."""
-        super().__init__("y", [], circ)
+        super().__init__("y", 1, [], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()

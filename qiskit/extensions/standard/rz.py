@@ -24,7 +24,7 @@ class RZGate(Gate):
 
     def __init__(self, phi, circ=None):
         """Create new rz single qubit gate."""
-        super().__init__("rz", [phi], circ)
+        super().__init__("rz", 1, [phi], circ)
 
     def _define_decompositions(self):
         """

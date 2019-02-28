@@ -14,7 +14,7 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, params, circuit=None):
+    def __init__(self, name, num_qubits, params, circuit=None):
         """Create a new composite gate.
 
         name = instruction name string
@@ -24,7 +24,7 @@ class Gate(Instruction):
         self._decompositions = None
         self._matrix_rep = None
 
-        super().__init__(name, params, circuit)
+        super().__init__(name, num_qubits, 0, params, circuit)
 
     def inverse(self):
         """Invert this gate."""

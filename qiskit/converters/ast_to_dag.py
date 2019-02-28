@@ -281,7 +281,7 @@ class AstInterpreter:
             for qubit in ids:
                 for j, _ in enumerate(qubit):
                     qubits.append(qubit[j])
-            self.dag.apply_operation_back(Barrier(), qubits, [])
+            self.dag.apply_operation_back(Barrier(len(qubits)), qubits, [])
 
         elif node.type == "reset":
             id0 = self._process_bit_id(node.children[0])

@@ -23,7 +23,7 @@ class FredkinGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Fredkin gate."""
-        super().__init__("cswap", [], circ)
+        super().__init__("cswap", 3, [], circ)
 
     def _define_decompositions(self):
         """

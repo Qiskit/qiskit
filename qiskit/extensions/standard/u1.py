@@ -24,7 +24,7 @@ class U1Gate(Gate):
 
     def __init__(self, theta, circ=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", [theta], circ)
+        super().__init__("u1", 1, [theta], circ)
 
     def _define_decompositions(self):
         decomposition = DAGCircuit()

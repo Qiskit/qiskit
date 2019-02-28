@@ -24,7 +24,7 @@ class SwapGate(Gate):
 
     def __init__(self, circ=None):
         """Create new SWAP gate."""
-        super().__init__("swap", [], circ)
+        super().__init__("swap", 2, [], circ)
 
     def _define_decompositions(self):
         """

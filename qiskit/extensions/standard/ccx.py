@@ -25,7 +25,7 @@ class ToffoliGate(Gate):
 
     def __init__(self, circ=None):
         """Create new Toffoli gate."""
-        super().__init__("ccx", [], circ)
+        super().__init__("ccx", 3, [], circ)
 
     def _define_decompositions(self):
         """

@@ -25,7 +25,7 @@ class RXGate(Gate):
 
     def __init__(self, theta, circ=None):
         """Create new rx single qubit gate."""
-        super().__init__("rx", [theta], circ)
+        super().__init__("rx", 1, [theta], circ)
 
     def _define_decompositions(self):
         """
