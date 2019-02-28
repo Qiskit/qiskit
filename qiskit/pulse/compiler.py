@@ -105,19 +105,19 @@ def embed_pulse_config(schedules, run_config, backend,
 
     # add OpenPulse configuration
     userconfig.meas_level = meas_level
-    run_config.memory_slot_size = memory_slot_size
-    run_config.meas_return = meas_return
-    run_config.qubit_lo_freq = config.defaults['qubit_freq_est']
-    run_config.meas_lo_freq = config.defaults['meas_freq_est']
+    userconfig.memory_slot_size = memory_slot_size
+    userconfig.meas_return = meas_return
+    userconfig.qubit_lo_freq = config.defaults['qubit_freq_est']
+    userconfig.meas_lo_freq = config.defaults['meas_freq_est']
 
     # check if rep_time is supported by backend
     if rep_time:
         if rep_time in config.rep_times:
-            run_config.rep_time = rep_time
+            userconfig.rep_time = rep_time
         else:
             raise QiskitError('Invalid rep_time is specified.')
     else:
-        run_config.rep_time = config.rep_times[0]
+        userconfig.rep_time = config.rep_times[0]
 
     # merge all pulse commands in the library to reduce data size
     pulse_library = config.defaults.get('pulse_library', [])
@@ -129,7 +129,7 @@ def embed_pulse_config(schedules, run_config, backend,
             pulse = {'name': _name, 'samples': _samples}
             if pulse not in pulse_library:
                 pulse_library.append(pulse)
-    run_config.pulse_library = pulse_library
+    userconfig.pulse_library = pulse_library
 
     return userconfig
 
