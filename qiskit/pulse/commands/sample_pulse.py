@@ -23,15 +23,14 @@ class SamplePulse(PulseCommand):
             samples (ndarray): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
         """
+        if not name:
+            _name = str('pulse_object_%s' % id(self))
+        else:
+            _name = name
 
-        super(SamplePulse, self).__init__(duration=duration)
+        super(SamplePulse, self).__init__(duration=duration, name=_name)
 
         self._samples = samples
-
-        if name:
-            self.name = name
-        else:
-            self.name = 'pulse_' + str(self.__hash__())
 
     @property
     def samples(self):
