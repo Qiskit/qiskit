@@ -15,15 +15,29 @@ from qiskit.pulse.commands.pulse_command import PulseCommand
 class FrameChange(PulseCommand):
     """Frame change pulse."""
 
-    def __init__(self, phase, name=None):
+    def __init__(self, phase):
         """Create new frame change pulse.
 
         Args:
             phase (float): Frame change phase in radians.
                 The allowable precision is device specific.
-            name (str): Unique name to identify the command object.
         """
 
-        super(FrameChange, self).__init__(duration=0, name=name)
+        super(FrameChange, self).__init__(duration=0, name='fc')
 
         self.phase = phase
+
+    def __eq__(self, other):
+        """Two FrameChanges are the same if they are of the same type
+        and have the same phase.
+
+        Args:
+            other (FrameChange): other FrameChange
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if type(self) is type(other) and \
+                self.phase == other.phase:
+            return True
+        return False
