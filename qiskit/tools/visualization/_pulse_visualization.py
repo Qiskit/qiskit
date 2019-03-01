@@ -8,13 +8,24 @@
 # pylint: disable=invalid-name
 
 """
-Visualization function for pulse envelope.
+mpl pulse visualization.
 """
 
 import numpy as np
+import logging
 from scipy.interpolate import CubicSpline
 
 from qiskit.exceptions import QiskitError
+from qiskit.pulse.schedule import TimedPulse
+
+try:
+    from matplotlib import pyplot as plt
+
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
+logger = logging.getLogger(__name__)
 
 
 def pulse_drawer(samples, duration, dt=None, interp_method='None',
@@ -101,3 +112,41 @@ def pulse_drawer(samples, duration, dt=None, interp_method='None',
         plt.show(image)
 
     return image
+
+
+class FrameChanges:
+
+
+class Channels:
+    """Pulse dataset for channel."""
+
+    def __init__(self, name, duration):
+        """Create new channel dataset.
+
+        Args:
+            name (str): Name of Channel.
+            duration (int):
+        """
+
+        self.name = name
+        self.duration = duration
+        self.waveform = None
+        self.frame_changes = None
+        self.conditionals = None
+
+    def add_timedpulse(self, tp):
+        """Add new timed pulse to channel.
+
+        Args:
+            tp (TimedPulse): TimePulse object to be added.
+        """
+
+
+class PulseDrawer:
+    def __init__(self):
+        """Create new figure.
+        """
+        self.figure = plt.figure()
+        self.ax = self.figure.add_subplot(111)
+
+    def
