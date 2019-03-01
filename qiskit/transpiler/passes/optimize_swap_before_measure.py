@@ -15,34 +15,22 @@ from qiskit.circuit import Measure
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
 
+from qiskit.tools.visualization import dag_drawer
+
+
 class OptimizeSwapBeforeMeasure(TransformationPass):
     """Remove the swaps followed measurement (and adapts the measurement)"""
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
         swaps_to_remove = []
-        swap_runs = dag.collect_runs(['swap'])
-        for swaps in dag.op:
-            last
-            after_swap = dag.successors()
+        swaps = dag.op_nodes(SwapGate)
+        for swap in swaps:
+            after_swap = dag.successors(swap)
+            dag_drawer(dag)
             successor_one = dag.multi_graph.node[next(after_swap)]
             successor_two = dag.multi_graph.node[next(after_swap)]
             if (successor_one['type'] == 'out' or successor_one['type'] == 'op' and successor_one['op'].name == 'measure') and (successor_two['type'] == 'out' or successor_two['type'] == 'op' and successor_two['op'].name == 'measure'):
-                swaps_to_remove.append(swaps)
+                swaps_to_remove.append(swap)
         print(swaps_to_remove)
-        return dag
-
-
-    def run(self, dag):
-        """Return a new circuit that has been optimized."""
-        measures = dag.op_nodes(Measure)
-        for measure in measures:
-            for ancestor in dag.ancestors(measure):
-                if dag.multi_graph.node[ancestor]['type'] == 'op' and \
-                        dag.multi_graph.node[ancestor]['op'].name == 'swap':
-                    # A measu
-                    # --X--m--
-                    #   |
-                    # --X----?
-                    dag._remove_op_node(ancestor)
         return dag
