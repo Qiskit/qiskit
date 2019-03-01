@@ -11,6 +11,7 @@ Channels support signal output.
 
 from qiskit.pulse.channels.backend_channels import OutputChannel
 
+
 class DriveChannel(OutputChannel):
     """Drive Channel."""
 
@@ -23,8 +24,7 @@ class DriveChannel(OutputChannel):
         Args:
             index (int): Index of the channel.
         """
-        self.index = index
-        self.lo_frequency = lo_frequency
+        super().__init__(index, lo_frequency)
 
 
 class ControlChannel(OutputChannel):
@@ -39,8 +39,7 @@ class ControlChannel(OutputChannel):
         Args:
             index (int): Index of the channel.
         """
-        self.index = index
-        self.lo_frequency = lo_frequency
+        super().__init__(index, lo_frequency)
 
 
 class MeasureChannel(OutputChannel):
@@ -55,7 +54,4 @@ class MeasureChannel(OutputChannel):
         Args:
             index (int): Index of the channel.
         """
-        self.index = index
-        self.lo_frequency = lo_frequency
-
-
+        super().__init__(index, lo_frequency)
