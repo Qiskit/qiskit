@@ -14,6 +14,7 @@ from typing import Union, List
 from qiskit.circuit import Register
 from qiskit.exceptions import QiskitError, QiskitIndexError
 from qiskit.pulse.channels import PulseChannel, OutputChannel
+from qiskit.pulse.exceptions import ChannelsError
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class ChannelRegister(Register):
         super().__init__(size, name)
 
         if not issubclass(self.channel_cls, PulseChannel):
-            raise QiskitError("Unknown channel class: %s", channel_cls.__name__)
+            raise ChannelsError("Unknown channel class: %s", channel_cls.__name__)
 
         self.channel_cls = channel_cls
 
@@ -100,7 +101,7 @@ class OutputChannelRegister(ChannelRegister):
         """Create a new output channel register.
         """
         if not issubclass(channel_cls, OutputChannel):
-            raise QiskitError("Unknown output channel class: %s", channel_cls.__name__)
+            raise ChannelsError("Unknown output channel class: %s", channel_cls.__name__)
 
         super().__init__(channel_cls, size, name)
 
