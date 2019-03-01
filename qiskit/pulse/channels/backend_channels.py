@@ -24,7 +24,7 @@ class OutputChannel(PulseChannel):
 
     @abstractmethod
     def __init__(self, index: int, lo_frequency: float = None):
-        self.index = index
+        super().__init__(index)
         self.lo_frequency = lo_frequency
 
     def __eq__(self, other):
@@ -32,7 +32,7 @@ class OutputChannel(PulseChannel):
         have the same index and lo_frequency.
 
         Args:
-            other (PulseChannel): other PulseChannel
+            other (OutputChannel): other OutputChannel
 
         Returns:
             bool: are self and other equal.
@@ -56,7 +56,7 @@ class AcquireChannel(PulseChannel):
         Args:
             index (int): Index of the channel.
         """
-        self.index = index
+        super().__init__(index)
 
 
 class SnapshotChannel(PulseChannel):
@@ -71,4 +71,4 @@ class SnapshotChannel(PulseChannel):
         Args:
             index (int): Index of the channel.
         """
-        self.index = index
+        super().__init__(index)

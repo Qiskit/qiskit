@@ -20,13 +20,13 @@ def create_channel(classinfo, size: int, lo_frequencies: List[float] = None) -> 
         raise ChannelsError("Unknown PulseChannel")
 
     if issubclass(classinfo, OutputChannel):
-        if lo_frequencies is not None:
+        if lo_frequencies:
             if len(lo_frequencies) == size:
                 return [classinfo(i, lof) for i, lof in zip(range(size), lo_frequencies)]
             else:
                 raise ChannelsError("the size of lo_frequencies must be size")
     else:
-        if lo_frequencies is not None:
+        if lo_frequencies:
             raise ChannelsError("cannot apply lo_frequencies to this type of channel")
 
     return [classinfo(i) for i in range(size)]
