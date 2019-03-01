@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
+# pylint: disable=redefined-builtin,invalid-name
 
 """Tests basic functionality of the transpile function"""
 
@@ -81,12 +81,9 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
-        dag_circuit = circuit_to_dag(circuit)
-        resources_before = dag_circuit.count_ops()
 
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
         circuit2 = transpile(circuit, basis_gates=basis_gates)
-        dag_circuit = circuit_to_dag(circuit)
+        dag_circuit = circuit_to_dag(circuit2)
         resources_after = dag_circuit.count_ops()
-
-        self.assertDictEqual(resources_before, resources_after)
+        self.assertEqual({'u2': 2, 'cx': 4}, resources_after)
