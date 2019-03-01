@@ -10,12 +10,13 @@ Schedule.
 """
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import List, Set, Union
+from typing import List, Union
 
-from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
 
 logger = logging.getLogger(__name__)
+
 
 class TimedPulseBlock(metaclass=ABCMeta):
     """
