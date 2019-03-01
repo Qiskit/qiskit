@@ -12,7 +12,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import List, Union
 
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, ChannelMemory
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 channel_list: List[List[PulseChannel]],
+                 channel_memory: ChannelMemory,
                  name: str = None
                  ):
         """Create empty schedule.
@@ -78,7 +78,7 @@ class PulseSchedule(TimedPulseBlock):
             name:
         """
         self.name = name
-        self._channel_list = channel_list
+        self._channel_memory = channel_memory
         self._children = []
 
     def add(self,
@@ -164,8 +164,8 @@ class PulseSchedule(TimedPulseBlock):
         self._children.remove(timed_pulse)
 
     @property
-    def channel_list(self):
-        return self._channel_list
+    def channel_memory(self):
+        return self._channel_memory
 
     def command_library(self) -> List[PulseCommand]:
         # TODO: This is still a MVP

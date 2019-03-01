@@ -10,6 +10,7 @@
 from .backend_channels import OutputChannel, AcquireChannel, SnapshotChannel
 from .channel_factory import create_channel
 from .channel_register import ChannelRegister, OutputChannelRegister
+from .channel_memory import ChannelMemory
 from .output_channels import DriveChannel, ControlChannel, MeasureChannel
 from .pulse_channel import PulseChannel
 
