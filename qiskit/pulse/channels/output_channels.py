@@ -9,7 +9,7 @@
 Channels support signal output.
 """
 
-from qiskit.pulse.channels.backend_channels import OutputChannel
+from .backend_channels import OutputChannel
 
 
 class DriveChannel(OutputChannel):

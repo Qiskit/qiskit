@@ -11,7 +11,7 @@ Channels support actual backends.
 from abc import abstractmethod
 
 from qiskit.pulse import commands
-from qiskit.pulse.channels.pulse_channel import PulseChannel
+from .pulse_channel import PulseChannel
 
 
 class OutputChannel(PulseChannel):
