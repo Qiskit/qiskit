@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 
 from qiskit.pulse.schedule import PulseSchedule
+from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader
 from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.qobj.run_config import RunConfig
@@ -43,15 +44,18 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
     experiments = []
 
     for schedule in schedules:
-        # user defined lo frequency
-        user_lo_freqs = {}
-        if any(schedule.qubit_lo_freq):
-            user_lo_freqs['qubit_lo_freq'] = schedule.qubit_lo_freq
-        if any(schedule.meas_lo_freq):
-            user_lo_freqs['meas_lo_freq'] = schedule.meas_lo_freq
+        lo_freqs = {}
+        for chs in schedule.channel_list:
+            # qubit_lo_freq
+            if all(isinstance(ch, DriveChannel) for ch in chs):
+                lo_freqs['qubit_lo_freq'] = [ch.lo_frequency for ch in chs]
+            # meas_los_freq
+            if all(isinstance(ch, MeasureChannel) for ch in chs):
+                lo_freqs['meas_lo_freq'] = [ch.lo_frequency for ch in chs]
+
 
         # generate experimental configuration
-        experimentconfig = QobjExperimentConfig(**user_lo_freqs)
+        experimentconfig = QobjExperimentConfig(**lo_freqs)
 
         # generate experimental header
         experimentheader = QobjExperimentHeader(name=schedule.name)
@@ -62,12 +66,12 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
             current_instruction = QobjInstruction(name=pulse.command.name,
                                                   t0=pulse.start_time())
             if isinstance(pulse.command, (SamplePulse, FunctionalPulse)):
-                current_instruction.ch = pulse.channel.name()
+                current_instruction.ch = pulse.channel.name
             elif isinstance(pulse.command, FrameChange):
-                current_instruction.ch = pulse.channel.name()
+                current_instruction.ch = pulse.channel.name
                 current_instruction.phase = pulse.command.phase
             elif isinstance(pulse.command, PersistentValue):
-                current_instruction.ch = pulse.channel.name()
+                current_instruction.ch = pulse.channel.name
                 current_instruction.value = pulse.command.value
             elif isinstance(pulse.command, Acquire):
                 current_instruction.duration = pulse.command.duration
@@ -75,8 +79,8 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
                 current_instruction.qubits = [pulse.channel.index]
                 current_instruction.memory_slot = [pulse.channel.index]
                 current_instruction.register_slot = [pulse.channel.index]
-                current_instruction.kernels = pulse.command.kernel
-                current_instruction.discriminators = pulse.command.discriminator
+                current_instruction.kernels = pulse.command.kernel.to_dict()
+                current_instruction.discriminators = pulse.command.discriminator.to_dict()
             elif isinstance(pulse.command, Snapshot):
                 current_instruction.label = pulse.command.label
                 current_instruction.type = pulse.command.type

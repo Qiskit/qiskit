@@ -15,6 +15,8 @@ import numpy as np
 
 from qiskit.converters import schedules_to_qobj
 from qiskit.pulse.schedule import PulseSchedule
+from qiskit.pulse.channels import DriveChannel, MeasureChannel
+from qiskit.pulse.commands import Discriminator, Kernel
 from qiskit.qobj import RunConfig
 from qiskit.qobj import QobjHeader, QobjConfig
 from qiskit.exceptions import QiskitError
@@ -100,7 +102,7 @@ def embed_pulse_config(schedules, run_config, backend,
     Returns:
         RunConfig: the returned default configuration.
     """
-    userconfig = QobjConfig(**run_config.to_dict())
+    userconfig = run_config
     config = backend.configuration()
 
     # add OpenPulse configuration
@@ -143,14 +145,15 @@ def embed_backend_frequency(schedule, backend):
     """
     config = backend.configuration()
 
-    if any(schedule.qubit_lo_freq):
-        schedule.qubit_lo_freq = np.where(schedule.qubit_lo_freq,
-                                          schedule.qubit_lo_freq,
-                                          config.defaults['qubit_freq_est'])
-    if any(schedule.meas_lo_freq):
-        schedule.meas_lo_freq = np.where(schedule.meas_lo_freq,
-                                         schedule.meas_lo_freq,
-                                         config.defaults['meas_freq_est'])
+    for chs in schedule.channel_list:
+        # qubit_lo_freq
+        if all(isinstance(ch, DriveChannel) for ch in chs):
+            for ii, ch in enumerate(chs):
+                ch.lo_frequency = ch.lo_frequency or config.defaults['qubit_freq_est'][ii]
+        # meas_los_freq
+        if all(isinstance(ch, MeasureChannel) for ch in chs):
+            for ii, ch in enumerate(chs):
+                ch.lo_frequency = ch.lo_frequency or config.defaults['meas_freq_est'][ii]
 
 
 def embed_backend_defaults(schedule, backend):
@@ -165,10 +168,13 @@ def embed_backend_defaults(schedule, backend):
     for pulse in schedule.flat_pulse_sequence():
         if isinstance(pulse.command, Acquire):
             # fill measurement kernel and discriminator
-            _kernel = pulse.command.kernel or config.defaults['kernel']
-            _discriminator = pulse.command.discriminator or config.defaults['discriminator']
-            pulse.command.kernel = _kernel
-            pulse.command.discriminator = _discriminator
+            _k = config.defaults['meas_kernel']
+            _d = config.defaults['discriminator']
+
+            if not pulse.command.kernel.name:
+                pulse.command.kernel = Kernel(_k['name'], **_k['params'])
+            if not pulse.command.discriminator.name:
+                pulse.command.discriminator = Discriminator(_d['name'], **_d['params'])
 
 
 def execute(schedules, backend, config=None, shots=1024, max_credits=10,
