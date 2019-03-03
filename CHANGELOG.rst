@@ -80,6 +80,7 @@ Deprecated
   (#1666).
 - Unroller bases must now be explicit, and violation raises an informative
   ``QiskitError`` (#1802).
+- The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
 
 Fixed
 -----
