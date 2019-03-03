@@ -15,8 +15,9 @@ import scipy
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import CompositeGate
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Gate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -24,60 +25,59 @@ from qiskit.extensions.standard.rz import RZGate
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
+class InitializeGate(Gate):  # pylint: disable=abstract-method
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
-
-    Implements a recursive initialization algorithm including optimizations
-    from "Synthesis of Quantum Logic Circuits" Shende, Bullock, Markov
-    https://arxiv.org/abs/quant-ph/0406176v5
-
-    Additionally implements some extra optimizations: remove zero rotations and
-    double cnots.`
-
-    It inherits from CompositeGate in the same way that the Fredkin (cswap)
-    gate does. Therefore self.data is the list of gates (in order) that must
-    be applied to implement this meta-gate.
-
-    params = list of complex amplitudes
-    qargs = list of qubits
-    circ = QuantumCircuit or CompositeGate containing this gate
     """
-    def __init__(self, params, qargs, circ=None):
-        """Create new initialize composite gate."""
+    def __init__(self, params, circ=None):
+        """Create new initialize composite gate.
+        
+        params (list): vector of complex amplitudes to initialize to
+        circ (QuantumCircuit): where the initialize instruction is attached
+        """
         num_qubits = math.log2(len(params))
 
         # Check if param is a power of 2
         if num_qubits == 0 or not num_qubits.is_integer():
             raise QiskitError("Desired vector not a positive power of 2.")
 
-        self.num_qubits = int(num_qubits)
-
-        # Check if number of desired qubits agrees with available qubits
-        if len(qargs) != self.num_qubits:
-            raise QiskitError("Number of complex amplitudes do not correspond "
-                              "to the number of qubits.")
-
         # Check if probabilities (amplitudes squared) sum to 1
         if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
                             abs_tol=_EPS):
             raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
-        super().__init__("init", params, qargs, circ)
+        num_qubits = int(num_qubits)
+
+        super().__init__("init", num_qubits, params, circ)
+
+    def _define_decompositions(self):
+        """Calculate a subcircuit that implements this initialization
+
+        Implements a recursive initialization algorithm, including optimizations,
+        from "Synthesis of Quantum Logic Circuits" Shende, Bullock, Markov
+        https://arxiv.org/abs/quant-ph/0406176v5
+
+        Additionally implements some extra optimizations: remove zero rotations and
+        double cnots.
+        """
+        self.decomposition = DAGCircuit()
+        q = QuantumRegister(self.num_qubits, "q")
+        self.decomposition.add_qreg(q)
 
         # call to generate the circuit that takes the desired vector to zero
-        self.gates_to_uncompute()
+        decomposition = self.gates_to_uncompute()
+
         # remove zero rotations and double cnots
-        self.optimize_gates()
+        self.optimize_gates(decomposition)
+        
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
         self.inverse()
-        # do not set the inverse flag, as this is the actual initialize gate
-        # we just used inverse() as a method to obtain it
-        self.inverse_flag = False
+
+        self._decompositions = [decomposition]
 
     def nth_qubit_from_least_sig_qubit(self, nth):
         """
@@ -92,16 +92,12 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
         # to generalize any mapping could be placed here or even taken from
         # the user
 
-    def reapply(self, circ):
-        """Reapply this gate to the corresponding qubits in circ."""
-        self._modifiers(circ.initialize(self.params, self.qargs))
-
     def gates_to_uncompute(self):
         """
-        Call to populate the self.data list with gates that takes the
+        Call to create a circuit with gates that takes the
         desired vector to zero.
         """
-        # kick start the peeling loop
+        # kick start the peeling loop, and disentangle one-by-one from LSB to MSB
         remaining_param = self.params
 
         for i in range(self.num_qubits):
@@ -112,10 +108,9 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
              phis) = InitializeGate._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
-            # it can be "factored" out, leaving a
-            # shorter amplitude vector to peel away)
-            self._attach(self._multiplex(RZGate, i, phis))
-            self._attach(self._multiplex(RYGate, i, thetas))
+            # it can be "factored" out, leaving a shorter amplitude vector to peel away)
+            self.decomposition.compose_back(self.multiplex(RZGate, i, phis))
+            self.decomposition.compose_back(self.multiplex(RYGate, i, thetas))
 
     @staticmethod
     def _rotations_to_disentangle(local_param):
@@ -183,25 +178,40 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
 
         return final_r * np.exp(1.J * final_t/2), theta, phi
 
-    def _multiplex(self, bottom_gate, bottom_qubit_index, list_of_angles):
+    def multiplex(self, target_gate, target_qubit_index, list_of_angles):
         """
         Internal recursive method to create gates to perform rotations on the
         imaginary qubits: works by rotating LSB (and hence ALL imaginary
         qubits) by combo angle and then flipping sign (by flipping the bit,
         hence moving the complex amplitudes) of half the imaginary qubits
         (CNOT) followed by another combo angle on LSB, therefore executing
-        conditional (on MSB) rotations, thereby disentangling LSB.
+        conditional (on MSB) rotations, thereby disentangling bottom qubit (LSB).
+
+        Args:
+            target_gate (Gate): Ry or Rz gate to apply to target qubit, multiplexed
+                over all other "select" qubits
+            target_qubit_index (int): the multiplexor's "data" qubit
+            list_of_angles (list[float]): list of rotation angles to apply Ry and Rz
+
+        Returns:
+            DAGCircuit: the circuit implementing the multiplexor's action
         """
         list_len = len(list_of_angles)
-        target_qubit = self.nth_qubit_from_least_sig_qubit(bottom_qubit_index)
+        local_num_qubits = int(math.log2(list_len)) + 1
+        control_qubit_index = local_num_qubits - 1 + target_qubit_index
+
+        # build multiplex circuit
+        # TODO: simplify code with better circuit building API
+        multiplex_circuit = DAGCircuit()
+        multiplex_circuit.name = "multiplex" + local_num_qubits.__str__()
+        q = QuantumRegister()
+        multiplex_circuit.add_qreg(self.decomposition.qregs.values[0])
 
         # Case of no multiplexing = base case for recursion
         if list_len == 1:
-            return bottom_gate(list_of_angles[0], target_qubit)
-
-        local_num_qubits = int(math.log2(list_len)) + 1
-        control_qubit = self.nth_qubit_from_least_sig_qubit(
-            local_num_qubits - 1 + bottom_qubit_index)
+            multiplex_circuit.apply_operation_back(
+                    target_gate(list_of_angles[0]), [target_qubit], [])
+            return multiplex_circuit
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
@@ -209,37 +219,34 @@ class InitializeGate(CompositeGate):  # pylint: disable=abstract-method
                                   np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
-        list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
-        combine_composite_gates = CompositeGate(
-            "multiplex" + local_num_qubits.__str__(), [], self.qargs)
+        list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()Z
 
         # recursive step on half the angles fulfilling the above assumption
-        combine_composite_gates._attach(
-            self._multiplex(bottom_gate, bottom_qubit_index,
+        multiplex_circuit.compose_back(
+            self.multiplex(target_gate, target_qubit,
                             list_of_angles[0:(list_len // 2)]))
 
-        # combine_composite_gates.cx(control_qubit,target_qubit) -> does not
-        # work as expected because checks circuit
-        # so attach CNOT as follows, thereby flipping the LSB qubit
-        combine_composite_gates._attach(CnotGate(control_qubit, target_qubit))
+        # attach CNOT as follows, thereby flipping the LSB qubit
+        multiplex_circuit.apply_operation_back(
+                CnotGate(), [control_qubit, target_qubit], [])
 
         # implement extra efficiency from the paper of cancelling adjacent
-        # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
+        # CNOTs (by leaving out last CNOT and reversing (not inverting) the
         # second lower-level multiplex)
-        sub_gate = self._multiplex(
-            bottom_gate, bottom_qubit_index, list_of_angles[(list_len // 2):])
-        if isinstance(sub_gate, CompositeGate):
-            combine_composite_gates._attach(sub_gate.reverse())
+        sub_circuit = self.multiplex(
+            target_gate, target_qubit, list_of_angles[(list_len // 2):])
+        if list_len > 1:
+            multiplex_circuit.compose_back(sub_circuit.reverse())
         else:
-            combine_composite_gates._attach(sub_gate)
+            multiplex_circuit.compose_back(sub_circuit)
 
         # outer multiplex keeps final CNOT, because no adjacent CNOT to cancel
         # with
-        if self.num_qubits == local_num_qubits + bottom_qubit_index:
-            combine_composite_gates._attach(CnotGate(control_qubit,
-                                                     target_qubit))
+        if self.num_qubits == local_num_qubits + target_qubit_index:
+            multiplex_circuit.apply_operation_back(
+                    CnotGate(), [control_qubit, target_qubit], [])
 
-        return combine_composite_gates
+        return multiplex_circuit
 
     @staticmethod
     def chop_num(numb):
@@ -276,7 +283,6 @@ def reverse(self):
 
 
 QuantumCircuit.reverse = reverse
-CompositeGate.reverse = reverse
 
 
 def optimize_gates(self):
@@ -287,7 +293,6 @@ def optimize_gates(self):
 
 
 QuantumCircuit.optimize_gates = optimize_gates
-CompositeGate.optimize_gates = optimize_gates
 
 
 def remove_zero_rotations(self):
@@ -318,7 +323,6 @@ def remove_zero_rotations(self):
 
 
 QuantumCircuit.remove_zero_rotations = remove_zero_rotations
-CompositeGate.remove_zero_rotations = remove_zero_rotations
 
 
 def number_atomic_gates(self):
@@ -334,7 +338,6 @@ def number_atomic_gates(self):
 
 
 QuantumCircuit.number_atomic_gates = number_atomic_gates
-CompositeGate.number_atomic_gates = number_atomic_gates
 
 
 def remove_double_cnots_once(self):
@@ -396,7 +399,6 @@ def remove_double_cnots_once(self):
 
 
 QuantumCircuit.remove_double_cnots_once = remove_double_cnots_once
-CompositeGate.remove_double_cnots_once = remove_double_cnots_once
 
 
 def first_atomic_gate_host(self):
@@ -410,7 +412,6 @@ def first_atomic_gate_host(self):
 
 
 QuantumCircuit.first_atomic_gate_host = first_atomic_gate_host
-CompositeGate.first_atomic_gate_host = first_atomic_gate_host
 
 
 def last_atomic_gate_host(self):
@@ -424,15 +425,13 @@ def last_atomic_gate_host(self):
 
 
 QuantumCircuit.last_atomic_gate_host = last_atomic_gate_host
-CompositeGate.last_atomic_gate_host = last_atomic_gate_host
 
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     # TODO: make initialize an Instruction, and insert reset
     # TODO: avoid explicit reset if compiler determines a |0> state
-    return self._attach(InitializeGate(params, qubits, self))
+    return self._attach(InitializeGate(params, self), qubits, [])
 
 
 QuantumCircuit.initialize = initialize
-CompositeGate.initialize = initialize
