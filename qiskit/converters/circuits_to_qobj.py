@@ -25,7 +25,7 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
         user_qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
 
-        qobj_id (int): TODO: identifier for the generated qobj
+        qobj_id (int): TODO: delete after qiskit-terra 0.8
         backend_name (str): TODO: delete after qiskit-terra 0.8
         config (dict): TODO: delete after qiskit-terra 0.8
         shots (int): TODO: delete after qiskit-terra 0.8

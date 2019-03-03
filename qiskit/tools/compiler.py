@@ -9,9 +9,8 @@
 import warnings
 import logging
 
-from qiskit.compiler import assemble_qobj, RunConfig, TranspileConfig, synthesize_circuits
-from qiskit.runner_wrapper import run_circuits
-
+from qiskit.compiler import assemble_qobj, RunConfig, TranspileConfig, transpile
+from qiskit.execute_wrapper import execute_circuits
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +69,13 @@ def compile(circuits, backend,
         run_config.seed = seed
     if memory:
         run_config.memory = memory
+    if pass_manager:
+        warnings.warn('pass_manager if using pass_manager please dont use execute',
+                      DeprecationWarning)
 
     transpile_config.backend = backend
 
-    new_circuits = synthesize_circuits(circuits, transpile_config=transpile_config,
-                                       pass_manager=pass_manager)
+    new_circuits = transpile(circuits, transpile_config=transpile_config)
 
     qobj = assemble_qobj(new_circuits, user_qobj_header=None, run_config=run_config,
                          qobj_id=qobj_id)
@@ -136,9 +137,12 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         run_config.seed = seed
     if memory:
         run_config.memory = memory
+    if pass_manager:
+        warnings.warn('pass_manager if using pass_manager please dont use execute',
+                      DeprecationWarning)
 
-    job = run_circuits(circuits, backend, user_qobj_header=None,
-                       run_config=run_config, transpile_config=transpile_config,
-                       pass_manager=pass_manager, **kwargs)
+    job = execute_circuits(circuits, backend, user_qobj_header=None, 
+                           run_config=run_config, 
+                           transpile_config=transpile_config, **kwargs)
 
     return job

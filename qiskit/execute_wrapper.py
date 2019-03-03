@@ -8,25 +8,22 @@
 """Helper module for simplified Qiskit usage.
 
     This module includes
-        run_circuits: runs a list of quantum circuits.
-        run_schedule: (TODO) runs a schedule of pulses.
-        run_algorithm: (TODO) runs a quantum algorithm from aqua.
-        run_experiment: (TODO) runs a quantum ignis experiment
+        execute_circuits: runs a list of quantum circuits.
 
     In general we recommend using the SDK functions directly. However, to get something
     running quickly we have provider this wrapper module.
 """
 
 import logging
-from qiskit.compiler import assemble_qobj, synthesize_circuits
+from qiskit.compiler import assemble_qobj, transpile
 from qiskit.compiler import RunConfig, TranspileConfig
 from qiskit.qobj import QobjHeader
 
 logger = logging.getLogger(__name__)
 
 
-def run_circuits(circuits, backend, user_qobj_header=None, run_config=None,
-                 transpile_config=None, pass_manager=None, **kwargs):
+def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
+                 transpile_config=None, **kwargs):
     """Executes a list of circuits.
 
     Args:
@@ -35,7 +32,6 @@ def run_circuits(circuits, backend, user_qobj_header=None, run_config=None,
         user_qobj_header (QobjHeader): User input to go in the header
         run_config (RunConfig): Run Configuration
         transpile_config (TranspileConfig): Configurations for the transpiler
-        pass_manager (PassManger): Pass_manager
         kwargs: extra arguments used by AER for running configurable backends.
                 Refer to the backend documentation for details on these arguments
 
@@ -61,9 +57,8 @@ def run_circuits(circuits, backend, user_qobj_header=None, run_config=None,
 
     # TODO add a default pass_manager which also sets the transpile_config
 
-    # synthesizing the circuits using the transpiler and pass_manager
-    new_circuits = synthesize_circuits(circuits, transpile_config=transpile_config,
-                                       pass_manager=pass_manager)
+    # synthesizing the circuits using the transpiler_config
+    new_circuits = transpile(circuits, transpile_config=transpile_config)
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble_qobj(new_circuits, user_qobj_header=user_qobj_header,

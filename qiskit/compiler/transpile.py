@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Circuit synthesize function """
+"""Circuit transpile function """
 import logging
 
 from qiskit import transpiler
@@ -15,20 +15,20 @@ from qiskit.mapper import Layout
 logger = logging.getLogger(__name__)
 
 
-def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
-    """Compile a list of circuits into a list of synthesized circuits.
+def transpile(circuits, transpile_config=None):
+    """Compile a list of circuits into a list of optimized circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to compile
         transpile_config (TranspileConfig): configuration for the transpiler
-        pass_manager (PassManager): a pass manger for the transpiler pipeline
 
     Returns:
-        circuits: the synthesized circuits
+        circuits: the optimized circuits
 
     """
 
     # ------------
+    # This is a HACK while we are still using the old transpiler.
     try:
         initial_layout = transpile_config.initial_layout
     except AttributeError:
@@ -49,13 +49,15 @@ def synthesize_circuits(circuits, transpile_config=None, pass_manager=None):
     if initial_layout is not None and not isinstance(initial_layout, Layout):
         initial_layout = Layout(initial_layout)
 
-    # This is a HACK while we are still using the old transpiler.
+    pass_manager = None
     backend = transpile_config.backend
     new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
                                         initial_layout, seed_mapper, pass_manager)
     # ---------
 
     # THE IDEAL CODE HERE WILL BE.
-    # 1 set up the pass_manager
+    # 1 set up the pass_manager from transconfig
+    # pass_manager = PassManager(TranspileConig)
     # run the passes
+    # new_circuits = pass_manager.run(circuits)
     return new_circuits

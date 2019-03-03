@@ -24,7 +24,7 @@ from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.tools.compiler import (compile, execute)  # TODO remove after 0.8
-from qiskit.runner_wrapper import run_circuits
+from qiskit.execute_wrapper import execute_circuits
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
