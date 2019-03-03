@@ -39,7 +39,7 @@ def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
         BaseJob: returns job instance derived from BaseJob
     """
 
-    # HACK CODE TO BE REMOVED WHEN SYNTHESIZE DOES NOT USE BACKEND
+    # HACK CODE TO BE REMOVED when backend is not needed in transpile
     # ------
     transpile_config = transpile_config or TranspileConfig()
     transpile_config.backend = backend
@@ -54,8 +54,6 @@ def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
         # TODO remove max_credits from the default when it is not required by
         # by the backend.
         run_config = RunConfig(shots=1024, max_credits=10, memory=False)
-
-    # TODO add a default pass_manager which also sets the transpile_config
 
     # synthesizing the circuits using the transpiler_config
     new_circuits = transpile(circuits, transpile_config=transpile_config)
