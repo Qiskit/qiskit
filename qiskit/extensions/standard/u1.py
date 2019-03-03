@@ -10,12 +10,13 @@
 """
 Diagonal single qubit gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard.ubase import UBase
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class U1Gate(Gate):
@@ -30,7 +31,7 @@ class U1Gate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            UBase(0, 0, self.params[0], q[0])
+            U3Gate(0, 0, self.params[0], q[0])
         ]
         for inst in rule:
             decomposition.apply_operation_back(inst)
@@ -55,3 +56,4 @@ def u1(self, theta, q):
 
 
 QuantumCircuit.u1 = u1
+CompositeGate.u1 = u1

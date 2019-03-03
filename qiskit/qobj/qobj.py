@@ -57,9 +57,14 @@ class QobjItem(SimpleNamespace):
         if isinstance(obj, sympy.Symbol):
             return str(obj)
         if isinstance(obj, sympy.Basic):
-            return float(obj.evalf())
+            if obj.is_imaginary:
+                return [float(sympy.re(obj)), float(sympy.im(obj))]
+            else:
+                return float(obj.evalf())
         if isinstance(obj, numpy.ndarray):
             return cls._expand_item(obj.tolist())
+        if isinstance(obj, sympy.Matrix):
+            return cls._expand_item(sympy.matrix2numpy(obj, dtype=complex))
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
         if hasattr(obj, 'as_dict'):
@@ -136,6 +141,13 @@ class Qobj(QobjItem):
         self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
+
+    def __repr__(self):
+        return "Qobj<{0} qubits, {1} {2}, {3} shots>".format(
+            self.config.n_qubits,
+            len(self.experiments),
+            'circuits' if self.type == 'QASM' else 'schedules',
+            self.config.shots)
 
 
 class QobjHeader(QobjItem):

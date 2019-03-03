@@ -34,9 +34,12 @@ install:
     - pip.exe install vcrpy
     - pip.exe install jupyter
     - pip.exe install ipywidgets
+    - pip.exe install cython
     - pip.exe install stestr
     - pip.exe install qiskit-aer
     - pip.exe install qiskit-ibmq-provider
+    - pip.exe install PyGithub
+    - python setup.py build_ext --inplace
 # TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
 
@@ -52,3 +55,7 @@ on_finish:
     - ps: $wc = New-Object 'System.Net.WebClient'
 # TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test_results.xml))
+
+# Open an issue on failure
+on_failure:
+    - python tools/report_ci_failure.py

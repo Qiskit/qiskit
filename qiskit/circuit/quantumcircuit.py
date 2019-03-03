@@ -8,7 +8,6 @@
 """
 Quantum circuit object.
 """
-
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
@@ -17,6 +16,7 @@ import multiprocessing as mp
 
 from qiskit.qasm import _qasm
 from qiskit.exceptions import QiskitError
+from .instruction import Instruction
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -131,6 +131,12 @@ class QuantumCircuit:
 
         Return self + rhs as a new object.
         """
+        if isinstance(rhs, Instruction):
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -160,6 +166,12 @@ class QuantumCircuit:
 
         Modify and return self.
         """
+        if isinstance(rhs, Instruction):
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -288,7 +300,7 @@ class QuantumCircuit:
 
     def draw(self, scale=0.7, filename=None, style=None, output='text',
              interactive=False, line_length=None, plot_barriers=True,
-             reverse_bits=False):
+             reverse_bits=False, justify=None):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -318,6 +330,11 @@ class QuantumCircuit:
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                 circuit. Defaults to True.
+            justify (string): Options are `left`, `right` or `none`, if anything
+                else is supplied it defaults to left justified. It refers to where
+                gates should be placed in the output circuit if there is an option.
+                `none` results in each gate being placed in its own column. Currently
+                only supported by text drawer.
 
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
@@ -339,7 +356,8 @@ class QuantumCircuit:
                                             interactive=interactive,
                                             line_length=line_length,
                                             plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits)
+                                            reverse_bits=reverse_bits,
+                                            justify=justify)
 
     def size(self):
         """Return total number of operations in circuit."""
@@ -376,9 +394,18 @@ class QuantumCircuit:
         dag = circuit_to_dag(self)
         return dag.num_tensor_factors()
 
-    def copy(self):
-        """ Returns a deepcopy of the circuit"""
-        return deepcopy(self)
+    def copy(self, name=None):
+        """
+        Args:
+          name (str): name to be given to the copied circuit, if None then the name stays the same
+        Returns:
+          QuantumCircuit: a deepcopy of the current circuit, with the name updated if
+                          it was provided
+        """
+        cpy = deepcopy(self)
+        if name:
+            cpy.name = name
+        return cpy
 
     @staticmethod
     def from_qasm_file(path):
