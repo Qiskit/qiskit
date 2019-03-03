@@ -63,7 +63,6 @@ def compile(circuits, backend,
     if memory:
         run_config.memory = memory
 
-
     if initial_layout is not None and not isinstance(initial_layout, Layout):
         initial_layout = Layout(initial_layout)
 
