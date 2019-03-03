@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
-                 transpile_config=None, **kwargs):
+                     transpile_config=None, **kwargs):
     """Executes a list of circuits.
 
     Args:
@@ -39,7 +39,7 @@ def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
         BaseJob: returns job instance derived from BaseJob
     """
 
-    # HACK CODE TO BE REMOVED when backend is not needed in transpile
+    # HACK TO BE REMOVED when backend is not needed in transpile
     # ------
     transpile_config = transpile_config or TranspileConfig()
     transpile_config.backend = backend

@@ -141,8 +141,8 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         warnings.warn('pass_manager if using pass_manager please dont use execute',
                       DeprecationWarning)
 
-    job = execute_circuits(circuits, backend, user_qobj_header=None, 
-                           run_config=run_config, 
+    job = execute_circuits(circuits, backend, user_qobj_header=None,
+                           run_config=run_config,
                            transpile_config=transpile_config, **kwargs)
 
     return job
