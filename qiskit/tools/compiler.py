@@ -9,8 +9,10 @@
 import warnings
 import logging
 
-from qiskit.compiler import assemble_qobj, RunConfig, TranspileConfig, transpile
+from qiskit.compiler import assemble_qobj, RunConfig, TranspileConfig
 from qiskit.execute_wrapper import execute_circuits
+from qiskit import transpiler
+from qiskit.mapper import Layout
 
 logger = logging.getLogger(__name__)
 
@@ -47,20 +49,11 @@ def compile(circuits, backend,
     warnings.warn('compile is replace with in 0.8 with synthesis and assemble',
                   DeprecationWarning)
 
-    transpile_config = TranspileConfig()
     run_config = RunConfig()
 
     if config:
         warnings.warn('config is not used anymore. Set all configs in '
                       'run_config.', DeprecationWarning)
-    if basis_gates:
-        transpile_config.basis_gate = basis_gates
-    if coupling_map:
-        transpile_config.coupling_map = coupling_map
-    if initial_layout:
-        transpile_config.initial_layout = initial_layout
-    if seed_mapper:
-        transpile_config.seed_mapper = seed_mapper
     if shots:
         run_config.shots = shots
     if max_credits:
@@ -69,13 +62,13 @@ def compile(circuits, backend,
         run_config.seed = seed
     if memory:
         run_config.memory = memory
-    if pass_manager:
-        warnings.warn('pass_manager if using pass_manager please dont use execute',
-                      DeprecationWarning)
 
-    transpile_config.backend = backend
 
-    new_circuits = transpile(circuits, transpile_config=transpile_config)
+    if initial_layout is not None and not isinstance(initial_layout, Layout):
+        initial_layout = Layout(initial_layout)
+
+    new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
+                                        initial_layout, seed_mapper, pass_manager)
 
     qobj = assemble_qobj(new_circuits, user_qobj_header=None, run_config=run_config,
                          qobj_id=qobj_id)
