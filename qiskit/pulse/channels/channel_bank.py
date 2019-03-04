@@ -8,7 +8,6 @@
 """
 Memory of channel registers.
 """
-# from qiskit.providers import BaseBackend
 from qiskit.pulse import ChannelsError
 from .channel_register import ChannelRegister, AcquireChannelRegister, SnapshotChannelRegister
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
@@ -21,7 +20,7 @@ from .pulse_channel import AcquireChannel, SnapshotChannel
 class ChannelBank:  # TODO: better name?
     """Implement a channel memory."""
 
-    def __init__(self, backend = None):
+    def __init__(self, backend=None):
         """
         Create channel registers with default values in backend.
         Args:
@@ -32,9 +31,26 @@ class ChannelBank:  # TODO: better name?
         self._measure = None
         self._acquire = None
         self._snapshot = None
+
+        # configuration from backend info
         if backend:
-            # TODO: create channel regs from backend
-            pass
+            config = backend.configuration()
+
+            # system size
+            n_qubit = config.n_qubits
+
+            # frequency information
+            qubit_lo_freqs = config.defaults['qubit_freq_est']
+            qubit_lo_range = config.qubit_lo_range
+            meas_lo_freqs = config.defaults['meas_freq_est']
+            meas_lo_range = config.meas_lo_range
+
+            # generate channel registers
+            self._drive = DriveChannelRegister(size=n_qubit, lo_freqs=qubit_lo_freqs)
+            self._control = ControlChannelRegister(size=n_qubit)
+            self._measure = MeasureChannelRegister(size=n_qubit, lo_freqs=meas_lo_freqs)
+            self._acquire = AcquireChannelRegister(size=n_qubit)
+            self._snapshot = SnapshotChannelRegister(size=n_qubit)
 
     def register(self, reg: ChannelRegister):
         """
@@ -46,6 +62,7 @@ class ChannelBank:  # TODO: better name?
 
         """
         cls = reg.channel_cls
+        # TODO: safety check
         if cls == DriveChannel:
             self._drive = reg
         elif cls == ControlChannel:
