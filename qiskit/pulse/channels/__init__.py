@@ -8,8 +8,14 @@
 """Channel classes for pulse."""
 
 from .channel_bank import ChannelBank
-from .channel_factory import create_channel
-from .channel_register import ChannelRegister, OutputChannelRegister
-from .output_channel import OutputChannel, DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channel import PulseChannel, AcquireChannel, SnapshotChannel
+from .channel_register import AcquireChannelRegister, SnapshotChannelRegister
+from .channel_register import ChannelRegister
+from .output_channel import DriveChannel, ControlChannel, MeasureChannel
+from .output_channel import OutputChannel
+from .output_channel_register import (DriveChannelRegister,
+                                      ControlChannelRegister,
+                                      MeasureChannelRegister)
+from .output_channel_register import OutputChannelRegister
+from .pulse_channel import AcquireChannel, SnapshotChannel
+from .pulse_channel import PulseChannel
 

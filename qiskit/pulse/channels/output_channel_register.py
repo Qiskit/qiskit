@@ -29,10 +29,10 @@ class OutputChannelRegister(ChannelRegister):
 
         super().__init__(channel_cls, size, name)
 
-        if lo_freqs:
-            self.lo_freqs = lo_freqs
-        else:
-            self.lo_freqs = [None] * size
+        if lo_freqs is None:
+            lo_freqs = [None] * size
+
+        self._channels = [self.channel_cls(i, lo_freqs[i]) for i in range(self.size)]
 
     def __eq__(self, other):
         """Two output channel registers are the same if they are of the same type

@@ -31,7 +31,7 @@ class ChannelRegister(Register):
             raise ChannelsError("Unknown channel class: %s", channel_cls.__name__)
 
         self.channel_cls = channel_cls
-        self._channels = [self.channel_cls(ind) for ind in range(self.size)]
+        self._channels = [self.channel_cls(i) for i in range(self.size)]
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -91,8 +91,6 @@ class ChannelRegister(Register):
     def __hash__(self):
         """Make object hashable."""
         return hash((type(self), self.channel_cls, self.name, self.size))
-
-        return hash((type(self), self.channel_cls, self.name, self.size, self.lo_freqs))
 
 
 class AcquireChannelRegister(ChannelRegister):

@@ -10,8 +10,9 @@ Memory of channel registers.
 """
 from qiskit.providers import BaseBackend
 from qiskit.pulse import ChannelsError
-from .channel_register import ChannelRegister, OutputChannelRegister
+from .channel_register import ChannelRegister, AcquireChannelRegister
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
+from .output_channel_register import DriveChannelRegister
 from .pulse_channel import AcquireChannel, SnapshotChannel
 
 
@@ -20,7 +21,7 @@ class ChannelBank:  # TODO: better name?
 
     def __init__(self, backend: BaseBackend = None):
         """
-        Create channel registers with default values in babckend.
+        Create channel registers with default values in backend.
         Args:
             backend:
         """
@@ -30,7 +31,7 @@ class ChannelBank:  # TODO: better name?
         self._acquire = None
         self._snapshot = None
         if backend:
-            # TODO
+            # TODO: create channel regs from backend
             pass
 
     def register(self, reg: ChannelRegister):
@@ -57,9 +58,13 @@ class ChannelBank:  # TODO: better name?
             raise ChannelsError("Unknown channel: %s", cls.__name__)
 
     @property
-    def drive(self) -> OutputChannelRegister:
+    def drive(self) -> DriveChannelRegister:
         return self._drive
 
     @drive.setter
     def drive(self, reg):
         raise ChannelsError("No direct set is allowed, use 'register()' for safety set.")
+
+    @property
+    def acquire(self) -> AcquireChannelRegister:
+        return self._acquire
