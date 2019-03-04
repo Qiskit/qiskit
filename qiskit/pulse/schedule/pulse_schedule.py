@@ -14,6 +14,7 @@ from typing import List, Union
 
 from qiskit.pulse.channels import PulseChannel, ChannelBank
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
+from qiskit.pulse.exceptions import ScheduleError
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 channel_memory: ChannelBank,
+                 channel_bank: ChannelBank,
                  name: str = None
                  ):
         """Create empty schedule.
@@ -78,7 +79,7 @@ class PulseSchedule(TimedPulseBlock):
             name:
         """
         self.name = name
-        self._channel_memory = channel_memory
+        self._channel_bank = channel_bank
         self._children = []
 
     def add(self,
@@ -113,6 +114,10 @@ class PulseSchedule(TimedPulseBlock):
         Returns:
             True if succeeded, otherwise False
         """
+        if isinstance(block, PulseSchedule):
+            if self._channel_bank != block._channel_bank:
+                raise ScheduleError("additional block must have the same channels as self")
+
         if self._is_occupied_time(block):
             logger.warning("a pulse block is not added due to the occupied timing: %s", str(block))
             return False  # TODO: or raise Exception?
@@ -164,8 +169,8 @@ class PulseSchedule(TimedPulseBlock):
         self._children.remove(timed_pulse)
 
     @property
-    def channel_memory(self):
-        return self._channel_memory
+    def channels(self) -> ChannelBank:
+        return self._channel_bank
 
     def command_library(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
