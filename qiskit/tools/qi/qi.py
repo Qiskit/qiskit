@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,anomalous-backslash-in-string
+# pylint: disable=assignment-from-no-return
 
 """
 A collection of useful quantum information functions.
@@ -19,12 +20,12 @@ import warnings
 
 import numpy as np
 import scipy.linalg as la
-from scipy.stats import unitary_group
 
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
 from qiskit.quantum_info import purity as new_purity
+from qiskit.quantum_info import random_state
 
 
 ###############################################################
@@ -335,19 +336,32 @@ def outer(vector1, vector2=None):
 # Random Matrices.
 ###############################################################
 
-def random_unitary_matrix(length, seed=None):
+def random_unitary_matrix(dim, seed=None):
     """
-    Return a random unitary ndarray.
+    Return a random unitary ndarray over num qubits.
 
     Args:
-        length (int): the length of the returned unitary.
+        dim (int): the dim of the state space.
         seed (int): Optional. To set a random seed.
     Returns:
-        ndarray: U (length, length) unitary ndarray.
+        ndarray: U (2**num, 2**num) unitary ndarray.
     """
-    if seed is not None:
-        np.random.seed(seed)
-    return unitary_group.rvs(length)
+    unitary = np.zeros([dim, dim], dtype=complex)
+    for j in range(dim):
+        if j == 0:
+            a = random_state(dim, seed)
+        else:
+            a = random_state(dim)
+        unitary[:, j] = np.copy(a)
+        # Grahm-Schmidt Orthogonalize
+        i = j-1
+        while i >= 0:
+            dc = np.vdot(unitary[:, i], a)
+            unitary[:, j] = unitary[:, j]-dc*unitary[:, i]
+            i = i - 1
+        # normalize
+        unitary[:, j] = unitary[:, j] * (1.0 / np.sqrt(np.vdot(unitary[:, j], unitary[:, j])))
+    return unitary
 
 
 def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):

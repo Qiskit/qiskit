@@ -456,6 +456,11 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         _wide_gate = 'u2 u3 cu2 cu3'.split()
+        _barriers = {'coord': [], 'group': []}
+        next_ops = self._ops.copy()
+        if next_ops:
+            next_ops.pop(0)
+        this_anc = 0
 
         #
         # generate coordinate manager
@@ -665,27 +670,43 @@ class MatplotlibDrawer:
                 self._cond['xmax'] = self._style.fold + 1
                 self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
             else:
-                self._cond['xmax'] = max_anc + 1
-                self._cond['ymax'] = self._cond['n_lines']
-            # add horizontal lines
-            for ii in range(n_fold + 1):
-                feedline_r = (n_fold > 0 and n_fold > ii)
-                feedline_l = (ii > 0)
-                self._draw_regs_sub(ii, feedline_l, feedline_r)
-            # draw gate number
-            if self._style.index:
-                for ii in range(max_anc):
-                    if self._style.fold > 0:
-                        x_coord = ii % self._style.fold + 1
-                        y_coord = - (ii // self._style.fold) * (
-                            self._cond['n_lines'] + 1) + 0.7
-                    else:
-                        x_coord = ii + 1
-                        y_coord = 0.7
-                    self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
-                                 va='center', fontsize=self._style.sfs,
-                                 color=self._style.tc, clip_on=True,
-                                 zorder=PORDER_TEXT)
+                logger.critical('Invalid gate %s', op)
+                raise exceptions.VisualizationError('invalid gate {}'.format(op))
+        #
+        # adjust window size and draw horizontal lines
+        #
+        anchors = [q_anchors[ii].get_index() for ii in self._qreg_dict]
+        if anchors:
+            max_anc = max(anchors)
+        else:
+            max_anc = 0
+        n_fold = max(0, max_anc - 1) // self._style.fold
+        # window size
+        if max_anc > self._style.fold > 0:
+            self._cond['xmax'] = self._style.fold + 1
+            self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
+        else:
+            self._cond['xmax'] = max_anc + 1
+            self._cond['ymax'] = self._cond['n_lines']
+        # add horizontal lines
+        for ii in range(n_fold + 1):
+            feedline_r = (n_fold > 0 and n_fold > ii)
+            feedline_l = (ii > 0)
+            self._draw_regs_sub(ii, feedline_l, feedline_r)
+        # draw gate number
+        if self._style.index:
+            for ii in range(max_anc):
+                if self._style.fold > 0:
+                    x_coord = ii % self._style.fold + 1
+                    y_coord = - (ii // self._style.fold) * (
+                        self._cond['n_lines'] + 1) + 0.7
+                else:
+                    x_coord = ii + 1
+                    y_coord = 0.7
+                self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
+                             va='center', fontsize=self._style.sfs,
+                             color=self._style.tc, clip_on=True,
+                             zorder=PORDER_TEXT)
 
     @staticmethod
     def param_parse(v, pimode=False):

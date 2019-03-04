@@ -225,7 +225,7 @@ class QCircuitImage:
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                            'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
-                           'crz', 'cu3']
+                           'crz', 'cu3', 'id']
             target_gates = ['cx', 'ccx']
             if op['name'] in boxed_gates:
                 self.has_box = True
@@ -546,6 +546,8 @@ class QCircuitImage:
                             self._latex[pos_1][columns] = "\\gate{Z}"
                         elif nm == "h":
                             self._latex[pos_1][columns] = "\\gate{H}"
+                        elif nm == "id":
+                            self._latex[pos_1][columns] = "\\gate{Id}"
                         elif nm == "s":
                             self._latex[pos_1][columns] = "\\gate{S}"
                         elif nm == "sdg":
@@ -606,6 +608,8 @@ class QCircuitImage:
                             self._latex[pos_1][columns] = "\\gate{Z}"
                         elif nm == "h":
                             self._latex[pos_1][columns] = "\\gate{H}"
+                        elif nm == "id":
+                            self._latex[pos_1][columns] = "\\gate{Id}"
                         elif nm == "s":
                             self._latex[pos_1][columns] = "\\gate{S}"
                         elif nm == "sdg":

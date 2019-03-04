@@ -941,7 +941,7 @@ class DAGCircuit:
         # Now that we know the connections, delete node
         self.multi_graph.remove_node(node)
         # Iterate over nodes of input_circuit
-        for m in input_dag.multi_graph:
+        for m in nx.topological_sort(input_dag.multi_graph):
             md = input_dag.multi_graph.node[m]
             if md["type"] == "op":
                 # Insert a new node
@@ -1059,6 +1059,15 @@ class DAGCircuit:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
 
+    def twoQ_gates(self):
+        """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
+        snapshot, barriers, and the like."""
+        two_q_gates = []
+        for node_id, node_data in self.gate_nodes(data=True):
+            if len(node_data['qargs']) == 2:
+                two_q_gates.append(self.multi_graph.node[node_id])
+        return two_q_gates
+
     def get_3q_or_more_nodes(self):
         """Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
@@ -1144,6 +1153,47 @@ class DAGCircuit:
             nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 self._remove_op_node(n)
+
+    def remove_edge(self, node1, node2, wire=None):
+        """
+        Remove an edge from the DAG allowing the user to specify which edge if there are multiple
+        between the 2 nodes
+
+        Raises :
+            DAGCircuitError : if the edge doesn't exist in the graph
+        """
+
+        # If no wire is specified, remove a random edge between the 2 nodes
+        if not wire:
+            self.multi_graph.remove_edge(node1, node2)
+            return
+
+        for index, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                self.multi_graph.remove_edge(node1, node2, index)
+                return
+
+        raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist"
+                              % (node1, node2, str(wire)))
+
+    def has_edge(self, node1, node2, wire=None):
+        """
+        Check to see if edge exists between 2 DAG nodes, and optionally
+        if there is a connection on a specific wire
+
+        Returns :
+            boolean: True when an edge meeting the criteria exists
+        """
+
+        in_multi_graph = self.multi_graph.has_edge(node1, node2)
+
+        if not wire or not in_multi_graph:
+            return in_multi_graph
+
+        for _, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                return True
+        return False
 
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
@@ -1297,7 +1347,7 @@ class DAGCircuit:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = list(self.multi_graph.successors(s[0]))
-                if len(group) > 1:
+                if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
 

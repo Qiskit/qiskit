@@ -19,7 +19,7 @@ The simulator is run using
 
     QasmSimulatorPy().run(qobj)
 
-Where the input is a Qobj object and the output is a SimulatorsJob object, which can
+Where the input is a Qobj object and the output is a BasicAerJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -36,11 +36,11 @@ from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
-from qiskit.providers.builtinsimulators.simulatorsjob import SimulatorsJob
-from .exceptions import SimulatorError
-from ._simulatortools import single_gate_matrix
-from ._simulatortools import cx_gate_matrix
-from ._simulatortools import einsum_vecmul_index
+from qiskit.providers.basicaer.basicaerjob import BasicAerJob
+from .exceptions import BasicAerError
+from ._basicaertools import single_gate_matrix
+from ._basicaertools import cx_gate_matrix
+from ._basicaertools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -268,8 +268,8 @@ class QasmSimulatorPy(BaseBackend):
         length = len(self._initial_statevector)
         required_dim = 2 ** self._number_of_qubits
         if length != required_dim:
-            raise SimulatorError('initial statevector is incorrect length: ' +
-                                 '{} != {}'.format(length, required_dim))
+            raise BasicAerError('initial statevector is incorrect length: ' +
+                                '{} != {}'.format(length, required_dim))
 
     def _set_options(self, qobj_config=None, backend_options=None):
         """Set the backend options for all experiments in a qobj"""
@@ -291,8 +291,8 @@ class QasmSimulatorPy(BaseBackend):
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
-                raise SimulatorError('initial statevector is not normalized: ' +
-                                     'norm {} != 1'.format(norm))
+                raise BasicAerError('initial statevector is not normalized: ' +
+                                    'norm {} != 1'.format(norm))
         # Check for custom chop threshold
         # Replace with custom options
         if 'chop_threshold' in backend_options:
@@ -364,7 +364,7 @@ class QasmSimulatorPy(BaseBackend):
             backend_options (dict): backend options
 
         Returns:
-            SimulatorsJob: derived from BaseJob
+            BasicAerJob: derived from BaseJob
 
         Additional Information:
             backend_options: Is a dict of options for the backend. It may contain
@@ -384,7 +384,7 @@ class QasmSimulatorPy(BaseBackend):
         self._set_options(qobj_config=qobj.config,
                           backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = SimulatorsJob(self, job_id, self._run_job, qobj)
+        job = BasicAerJob(self, job_id, self._run_job, qobj)
         job.submit()
         return job
 
@@ -442,7 +442,7 @@ class QasmSimulatorPy(BaseBackend):
                 "time_taken": simulation time of this single experiment
                 }
         Raises:
-            SimulatorError: if an error occurred.
+            BasicAerError: if an error occurred.
         """
         start = time.time()
         self._number_of_qubits = experiment.config.n_qubits
@@ -526,7 +526,7 @@ class QasmSimulatorPy(BaseBackend):
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise SimulatorError(err_msg.format(backend, operation.name))
+                    raise BasicAerError(err_msg.format(backend, operation.name))
 
             # Add final creg data to memory list
             if self._number_of_cbits > 0:
@@ -566,9 +566,9 @@ class QasmSimulatorPy(BaseBackend):
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise SimulatorError('Number of qubits {} '.format(n_qubits) +
-                                 'is greater than maximum ({}) '.format(max_qubits) +
-                                 'for "{}".'.format(self.name()))
+            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
+                                'is greater than maximum ({}) '.format(max_qubits) +
+                                'for "{}".'.format(self.name()))
         for experiment in qobj.experiments:
             name = experiment.header.name
             if experiment.config.memory_slots == 0:

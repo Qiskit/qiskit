@@ -84,12 +84,12 @@ class TestStates(QiskitTestCase):
         E_P0_last = 0
         for ii in range(number):
             state = basis_state(bin(3)[2:].zfill(3), 3)
-            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state, random_state(3, seed=ii))/(ii+1)
+            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state, random_state(2**3, seed=ii))/(ii+1)
             E_P0_last = E_P0
         self.assertAlmostEqual(E_P0, 1/8, places=2)
 
     def test_random_state_circuit(self):
-        state = random_state(3, seed=40)
+        state = random_state(2**3, seed=40)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
