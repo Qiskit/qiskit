@@ -14,7 +14,7 @@ from typing import Union, List
 from qiskit.circuit import Register
 from qiskit.exceptions import QiskitError, QiskitIndexError
 from qiskit.pulse.exceptions import ChannelsError
-from .backend_channels import OutputChannel
+from .output_channels import OutputChannel
 from .pulse_channel import PulseChannel
 
 logger = logging.getLogger(__name__)

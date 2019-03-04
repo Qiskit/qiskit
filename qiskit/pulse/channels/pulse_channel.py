@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
+from qiskit.pulse import commands
+
 
 class PulseChannel(metaclass=ABCMeta):
     """Pulse Channel."""
@@ -28,3 +30,33 @@ class PulseChannel(metaclass=ABCMeta):
                 self.index == other.index:
             return True
         return False
+
+
+class AcquireChannel(PulseChannel):
+    """Acquire Channel."""
+
+    supported = commands.Acquire
+    prefix = 'a'
+
+    def __init__(self, index):
+        """Create new acquire channel.
+
+        Args:
+            index (int): Index of the channel.
+        """
+        super().__init__(index)
+
+
+class SnapshotChannel(PulseChannel):
+    """Snapshot Channel."""
+
+    supported = commands.Snapshot
+    prefix = 's'
+
+    def __init__(self, index):
+        """Create new snapshot channel.
+
+        Args:
+            index (int): Index of the channel.
+        """
+        super().__init__(index)
