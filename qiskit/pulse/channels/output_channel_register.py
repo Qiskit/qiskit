@@ -11,7 +11,7 @@ PulseChannel register.
 import logging
 from typing import List
 
-from qiskit.pulse.exceptions import ChannelsError
+from qiskit.pulse import ChannelsError
 from .channel_register import ChannelRegister
 from .output_channel import OutputChannel, DriveChannel, ControlChannel, MeasureChannel
 
@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 class OutputChannelRegister(ChannelRegister):
     """An abstract output channel register."""
 
-    def __init__(self, channel_cls, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, channel_cls, size: int, lo_freqs: List[float] = None):
         """Create a new output channel register.
         """
         if not issubclass(channel_cls, OutputChannel):
             raise ChannelsError("Unknown output channel class: %s", channel_cls.__name__)
 
-        super().__init__(channel_cls, size, name)
+        super().__init__(channel_cls, size)
 
         if lo_freqs is None:
             lo_freqs = [None] * size
@@ -48,9 +48,7 @@ class OutputChannelRegister(ChannelRegister):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.channel_cls == other.channel_cls and \
-                self.name == other.name and \
-                self.size == other.size and \
+                super().__eq__(other) and \
                 self._channels == other._channels:
             return True
         return False
@@ -63,25 +61,25 @@ class OutputChannelRegister(ChannelRegister):
 class DriveChannelRegister(OutputChannelRegister):
     """Drive channel register."""
 
-    def __init__(self, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, size: int, lo_freqs: List[float] = None):
         """Create a new drive channel register.
         """
-        super().__init__(DriveChannel, size, name, lo_freqs)
+        super().__init__(DriveChannel, size, lo_freqs)
 
 
 class ControlChannelRegister(OutputChannelRegister):
     """Control channel register."""
 
-    def __init__(self, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, size: int, lo_freqs: List[float] = None):
         """Create a new control channel register.
         """
-        super().__init__(ControlChannel, size, name, lo_freqs)
+        super().__init__(ControlChannel, size, lo_freqs)
 
 
 class MeasureChannelRegister(OutputChannelRegister):
     """Measure channel register."""
 
-    def __init__(self, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, size: int, lo_freqs: List[float] = None):
         """Create a new measure channel register.
         """
-        super().__init__(MeasureChannel, size, name, lo_freqs)
+        super().__init__(MeasureChannel, size, lo_freqs)

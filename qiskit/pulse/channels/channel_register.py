@@ -35,9 +35,9 @@ class ChannelRegister(Register):
 
     def __repr__(self):
         """Return the official string representing the register."""
-        return "%s(%s, %d, '%s')" % (self.__class__.__qualname__,
+        return "%s(%s, %d)" % (self.__class__.__qualname__,
                                      self.channel_cls.__name__,
-                                     self.size, self.name)
+                                     self.size)
 
     def __getitem__(self, key) -> Union[PulseChannel, List[PulseChannel]]:
         """
@@ -89,22 +89,22 @@ class ChannelRegister(Register):
 
     def __hash__(self):
         """Make object hashable."""
-        return hash((type(self), self.channel_cls, self.name, self.size))
+        return hash((type(self), self.channel_cls, self.size))
 
 
 class AcquireChannelRegister(ChannelRegister):
     """Acquire channel register."""
 
-    def __init__(self, size: int, name: str = None):
+    def __init__(self, size: int):
         """Create a new acquire channel register.
         """
-        super().__init__(AcquireChannel, size, name)
+        super().__init__(AcquireChannel, size)
 
 
 class SnapshotChannelRegister(ChannelRegister):
     """Snapshot channel register."""
 
-    def __init__(self, size: int, name: str = None):
+    def __init__(self, size: int):
         """Create a new snapshot channel register.
         """
-        super().__init__(SnapshotChannel, size, name)
+        super().__init__(SnapshotChannel, size)
