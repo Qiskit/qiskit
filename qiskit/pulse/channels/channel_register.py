@@ -32,6 +32,7 @@ class ChannelRegister(Register):
             raise ChannelsError("Unknown channel class: %s", channel_cls.__name__)
 
         self.channel_cls = channel_cls
+        self._channels = [self.channel_cls(ind) for ind in range(self.size)]
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -55,23 +56,21 @@ class ChannelRegister(Register):
         """
         if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
-        self.check_range(key)
-        if isinstance(key, slice):
-            return [self.channel_cls(ind) for ind in range(*key.indices(len(self)))]
-        elif isinstance(key, list):  # list of channel indices
-            if max(key) < len(self):
-                return [self.channel_cls(ind) for ind in key]
+        self.check_range(key)   # TODO: need more checks!
+        if isinstance(key, list):  # list of channel indices
+            if max(key) < len(self):    # TODO: need to move check_range()
+                return [self._channels[i] for i in key]
             else:
                 raise QiskitIndexError('register index out of range')
         else:
-            return self.channel_cls(key)
+            return self._channels[key]
 
     def __iter__(self):
         """
         Returns:
             iterator: an iterator over the channels of the register.
         """
-        yield from [self.channel_cls(ind) for ind in range(self.size)]
+        yield from self._channels
 
     def __eq__(self, other):
         """Two channel registers are the same if they are of the same type
@@ -110,40 +109,6 @@ class OutputChannelRegister(ChannelRegister):
             self.lo_freqs = lo_freqs
         else:
             self.lo_freqs = [None] * size
-
-    def __getitem__(self, key) -> Union[OutputChannel, List[OutputChannel]]:
-        """
-        Arg:
-            key (int|slice|list): index of the channel to be retrieved.
-
-        Returns:
-            OutputChannel|list(OutputChannel): a channel if key is int.
-                If key is a slice, return a `list(OutputChannel)`.
-
-        Raises:
-            QiskitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range
-                `(0, self.size)`.
-        """
-        if not isinstance(key, (int, slice, list)):
-            raise QiskitError("expected integer or slice index into register")
-        self.check_range(key)
-        if isinstance(key, slice):
-            return [self.channel_cls(i, self.lo_freqs[i]) for i in range(*key.indices(len(self)))]
-        elif isinstance(key, list):  # list of channel indices
-            if max(key) < len(self):
-                return [self.channel_cls(i, self.lo_freqs[i]) for i in key]
-            else:
-                raise QiskitIndexError('register index out of range')
-        else:
-            return self.channel_cls(key, self.lo_freqs[key])
-
-    def __iter__(self):
-        """
-        Returns:
-            iterator: an iterator over the channels of the register.
-        """
-        yield from [self.channel_cls(i, self.lo_freqs[i]) for i in range(self.size)]
 
     def __eq__(self, other):
         """Two channel registers are the same if they are of the same type
