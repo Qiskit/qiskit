@@ -25,7 +25,11 @@ class OutputChannel(PulseChannel):
     @abstractmethod
     def __init__(self, index: int, lo_frequency: float = None):
         super().__init__(index)
-        self.lo_frequency = lo_frequency
+        self._lo_frequency = lo_frequency
+
+    @property
+    def lo_frequency(self) -> float:
+        return self._lo_frequency
 
     def __eq__(self, other):
         """Two output channels are the same if they are of the same type, and
@@ -38,8 +42,8 @@ class OutputChannel(PulseChannel):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.index == other.index and \
-                self.lo_frequency == other.lo_frequency:
+                self._index == other._index and \
+                self._lo_frequency == other._lo_frequency:
             return True
         return False
 

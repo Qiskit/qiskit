@@ -34,6 +34,9 @@ class OutputChannelRegister(ChannelRegister):
 
         self._channels = [self.channel_cls(i, lo_freqs[i]) for i in range(self.size)]
 
+    def lo_frequencies(self):
+        return [channel.lo_frequency for channel in self._channels]
+
     def __eq__(self, other):
         """Two output channel registers are the same if they are of the same type
          have the same channel class, name and size.
@@ -48,13 +51,13 @@ class OutputChannelRegister(ChannelRegister):
                 self.channel_cls == other.channel_cls and \
                 self.name == other.name and \
                 self.size == other.size and \
-                self.lo_freqs == other.lo_freqs:
+                self._channels == other._channels:
             return True
         return False
 
     def __hash__(self):
         """Make object hashable."""
-        return hash((type(self), self.channel_cls, self.name, self.size, self.lo_freqs))
+        return hash((type(self), self.channel_cls, self.name, self.size, hash(self._channels)))
 
 
 class DriveChannelRegister(OutputChannelRegister):
