@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 class OutputChannelRegister(ChannelRegister):
     """An abstract output channel register."""
 
-    def __init__(self, channel_cls, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, channel_cls, size: int, lo_freqs: List[float] = None):
         """Create a new output channel register.
         """
         if not issubclass(channel_cls, OutputChannel):
             raise ChannelsError("Unknown output channel class: %s", channel_cls.__name__)
 
-        super().__init__(channel_cls, size, name)
+        super().__init__(channel_cls, size)
 
         if lo_freqs is None:
             lo_freqs = [None] * size
@@ -63,25 +63,25 @@ class OutputChannelRegister(ChannelRegister):
 class DriveChannelRegister(OutputChannelRegister):
     """Drive channel register."""
 
-    def __init__(self, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, size: int, lo_freqs: List[float] = None):
         """Create a new drive channel register.
         """
-        super().__init__(DriveChannel, size, name, lo_freqs)
+        super().__init__(DriveChannel, size, lo_freqs)
 
 
 class ControlChannelRegister(OutputChannelRegister):
     """Control channel register."""
 
-    def __init__(self, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, size: int, lo_freqs: List[float] = None):
         """Create a new control channel register.
         """
-        super().__init__(ControlChannel, size, name, lo_freqs)
+        super().__init__(ControlChannel, size, lo_freqs)
 
 
 class MeasureChannelRegister(OutputChannelRegister):
     """Measure channel register."""
 
-    def __init__(self, size: int, name: str = None, lo_freqs: List[float] = None):
+    def __init__(self, size: int, lo_freqs: List[float] = None):
         """Create a new measure channel register.
         """
-        super().__init__(MeasureChannel, size, name, lo_freqs)
+        super().__init__(MeasureChannel, size, lo_freqs)

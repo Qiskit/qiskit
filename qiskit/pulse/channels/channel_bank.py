@@ -32,9 +32,31 @@ class ChannelBank:  # TODO: better name?
         self._measure = None
         self._acquire = None
         self._snapshot = None
+
+        # configuration from backend info
         if backend:
-            # TODO: create channel regs from backend
-            pass
+            config = backend.configuration()
+
+            # system size
+            n_qubit = config.n_qubits
+
+            # frequency information
+            qubit_lo_freqs = config.defaults['qubit_freq_est']
+            qubit_lo_range = config.qubit_lo_range
+            meas_lo_freqs = config.defaults['meas_freq_est']
+            meas_lo_range = config.meas_lo_range
+
+            # generate channel registers
+            registers = [
+                DriveChannelRegister(size=n_qubit, lo_freqs=qubit_lo_freqs),
+                ControlChannelRegister(size=n_qubit),
+                MeasureChannelRegister(size=n_qubit, lo_freqs=meas_lo_freqs),
+                AcquireChannelRegister(size=n_qubit),
+                SnapshotChannelRegister(size=n_qubit)
+            ]
+
+            for register in registers:
+                self.register(register)
 
     def register(self, reg: ChannelRegister):
         """

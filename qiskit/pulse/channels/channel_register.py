@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 class ChannelRegister(Register):
     """Implement a channel register."""
 
-    def __init__(self, channel_cls, size, name=None):
+    def __init__(self, channel_cls, size):
         """Create a new channel register.
         """
-        super().__init__(size, name)
+        super().__init__(size, name=None)
 
         if not issubclass(channel_cls, PulseChannel):
             raise ChannelsError("Unknown channel class: %s", channel_cls.__name__)
@@ -35,9 +35,9 @@ class ChannelRegister(Register):
 
     def __repr__(self):
         """Return the official string representing the register."""
-        return "%s(%s, %d, '%s')" % (self.__class__.__qualname__,
-                                     self.channel_cls.__name__,
-                                     self.size, self.name)
+        return "%s(%s, %d)" % (self.__class__.__qualname__,
+                               self.channel_cls.__name__,
+                               self.size)
 
     def __getitem__(self, key) -> Union[PulseChannel, List[PulseChannel]]:
         """
@@ -73,7 +73,7 @@ class ChannelRegister(Register):
 
     def __eq__(self, other):
         """Two channel registers are the same if they are of the same type
-         have the same channel class, name and size.
+         have the same channel class and size.
 
         Args:
             other (ChannelRegister): other ChannelRegister
@@ -83,29 +83,28 @@ class ChannelRegister(Register):
         """
         if type(self) is type(other) and \
                 self.channel_cls == other.channel_cls and \
-                self.name == other.name and \
                 self.size == other.size:
             return True
         return False
 
     def __hash__(self):
         """Make object hashable."""
-        return hash((type(self), self.channel_cls, self.name, self.size))
+        return hash((type(self), self.channel_cls, self.size))
 
 
 class AcquireChannelRegister(ChannelRegister):
     """Acquire channel register."""
 
-    def __init__(self, size: int, name: str = None):
+    def __init__(self, size: int):
         """Create a new aquire channel register.
         """
-        super().__init__(AcquireChannel, size, name)
+        super().__init__(AcquireChannel, size)
 
 
 class SnapshotChannelRegister(ChannelRegister):
     """Snapshot channel register."""
 
-    def __init__(self, size: int, name: str = None):
+    def __init__(self, size: int):
         """Create a new snapshot channel register.
         """
-        super().__init__(SnapshotChannel, size, name)
+        super().__init__(SnapshotChannel, size)
