@@ -8,15 +8,15 @@
 """Test the optimize-1q-gate pass"""
 
 import unittest
-import sympy
-import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
+
+from qiskit.tools.visualization import dag_drawer
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
@@ -39,20 +39,19 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         expected = QuantumCircuit(qr, cr)
         expected.measure(qr[1], cr[0])
-        print()
-        print(circuit)
+
         pass_ = OptimizeSwapBeforeMeasure()
         after = pass_.run(dag)
 
-        # self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_undone_swap(self):
         """ Remove redundant swap
-            qr0:--X--X--m--       qr0:--m-
+            qr0:--X--X--m--       qr0:--X-----
                   |  |  |               |
-            qr1:--X--X--|--  ==>  qr1:--|-
-                        |               |
-            cr0:--------.--       cr0:--.-
+            qr1:--X--X--|--  ==>  qr1:--X--m--
+                        |                  |
+            cr0:--------.--       cr0:-----.--
         """
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
@@ -60,24 +59,27 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.swap(qr[0], qr[1])
         circuit.measure(qr[0], cr[0])
+
         dag = circuit_to_dag(circuit)
 
-        print()
-        print(circuit)
+        expected = QuantumCircuit(qr, cr)
+        expected.swap(qr[0], qr[1])
+        expected.measure(qr[1], cr[0])
+
         pass_ = OptimizeSwapBeforeMeasure()
         after = pass_.run(dag)
 
-        # self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_overlap_swap(self):
         """ Remove two swaps that overlap
-            qr0:--X--------       qr0:--m--
+            qr0:--X--------       qr0:--X----
                   |                     |
-            qr1:--X--X-----       qr1:--|--
-                     |       ==>        |
-            qr2:-----X--m--       qr2:--|--
-                        |               |
-            cr0:--------.--       cr0:--.--
+            qr1:--X--X-----       qr1:--X-m--
+                     |       ==>          |
+            qr2:-----X--m--       qr2:----|--
+                        |                 |
+            cr0:--------.--       cr0:----.--
         """
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(1, 'cr')
@@ -87,12 +89,14 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         circuit.measure(qr[2], cr[0])
         dag = circuit_to_dag(circuit)
 
-        print()
-        print(circuit)
+        expected = QuantumCircuit(qr, cr)
+        expected.swap(qr[0], qr[1])
+        expected.measure(qr[1], cr[0])
+
         pass_ = OptimizeSwapBeforeMeasure()
         after = pass_.run(dag)
 
-        # self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(circuit_to_dag(expected), after)
 
 if __name__ == '__main__':
     unittest.main()

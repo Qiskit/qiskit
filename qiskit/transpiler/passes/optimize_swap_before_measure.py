@@ -14,8 +14,7 @@ Transpiler pass to remove the swaps in front of measurments by moving the readin
 from qiskit.circuit import Measure
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
-
-from qiskit.tools.visualization import dag_drawer
+from qiskit.dagcircuit import DAGCircuit
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
@@ -23,14 +22,31 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        swaps_to_remove = []
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps:
-            after_swap = dag.successors(swap)
-            dag_drawer(dag)
-            successor_one = dag.multi_graph.node[next(after_swap)]
-            successor_two = dag.multi_graph.node[next(after_swap)]
-            if (successor_one['type'] == 'out' or successor_one['type'] == 'op' and successor_one['op'].name == 'measure') and (successor_two['type'] == 'out' or successor_two['type'] == 'op' and successor_two['op'].name == 'measure'):
-                swaps_to_remove.append(swap)
-        print(swaps_to_remove)
+            final_successor = []
+            for successor in dag.successors(swap):
+                node = dag.multi_graph.node[successor]
+                final_successor.append(
+                    node['type'] == 'out' or node['type'] == 'op' and node['op'].name == 'measure')
+            if all(final_successor):
+                # the node swap needs to be removed and, if a meassure follows, needs to be adapted
+                swap_qargs = dag.multi_graph.node[swap]['qargs']
+                measure_layer = DAGCircuit()
+                for qreg in dag.qregs.values():
+                    measure_layer.add_qreg(qreg)
+                for creg in dag.cregs.values():
+                    measure_layer.add_creg(creg)
+                for successor in dag.successors(swap):
+                    node = dag.multi_graph.node[successor]
+                    if node['type'] == 'op' and node['op'].name == 'measure':
+                        # replace measure node with a new one, where qargs is set with the "other"
+                        # swap qarg.
+                        dag._remove_op_node(successor)
+                        old_measure_qarg = node['qargs'][0]
+                        new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
+                        measure_layer.apply_operation_back(
+                            Measure(qubit=new_measure_qarg, bit=node['cargs'][0]))
+                dag.extend_back(measure_layer)
+                dag._remove_op_node(swap)
         return dag
