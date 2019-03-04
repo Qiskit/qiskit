@@ -10,12 +10,14 @@ Schedule.
 """
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import List, Set, Union
+from typing import List, Union
 
-from qiskit.pulse.channels import PulseChannel, OutputChannel, AcquireChannel, SnapshotChannel
-from qiskit.pulse.commands import PulseCommand
+from qiskit.pulse.channels import PulseChannel, ChannelBank
+from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
+from qiskit.pulse.exceptions import ScheduleError
 
 logger = logging.getLogger(__name__)
+
 
 class TimedPulseBlock(metaclass=ABCMeta):
     """
@@ -42,13 +44,14 @@ class TimedPulse(TimedPulseBlock):
     """TimedPulse = Pulse with start time context."""
 
     def __init__(self, pulse_command: PulseCommand, to_channel: PulseChannel, start_time: int):
-        if isinstance(pulse_command, to_channel.supported):  # TODO: refactoring
+        if isinstance(pulse_command, to_channel.__class__.supported):
             self.command = pulse_command
             self.channel = to_channel
             self.t0 = start_time
         else:
-            raise Exception(
-                "Not supported commands on the channel")  # TODO need to make PulseException class
+            raise ScheduleError("%s (%s) is not supported on %s (%s)" % (
+                                pulse_command.__class__.__name__, pulse_command.name,
+                                to_channel.__class__.__name__, to_channel.name))
 
     def start_time(self) -> int:
         return self.t0
@@ -67,23 +70,17 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 output_channels: List[OutputChannel] = None,
-                 acquire_channels: List[AcquireChannel] = None,
-                 snapshot_channels: List[SnapshotChannel] = None,
+                 channel_bank: ChannelBank,
                  name: str = None
                  ):
         """Create empty schedule.
 
         Args:
-            output_channels:
-            acquire_channels:
-            snapshot_channels:
+            channels:
             name:
         """
         self.name = name
-        self._output_channels = output_channels
-        self._acquire_channels = acquire_channels
-        self._snapshot_channels = snapshot_channels
+        self._channel_bank = channel_bank
         self._children = []
 
     def add(self,
@@ -118,6 +115,10 @@ class PulseSchedule(TimedPulseBlock):
         Returns:
             True if succeeded, otherwise False
         """
+        if isinstance(block, PulseSchedule):
+            if self._channel_bank != block._channel_bank:
+                raise ScheduleError("additional block must have the same channels as self")
+
         if self._is_occupied_time(block):
             logger.warning("a pulse block is not added due to the occupied timing: %s", str(block))
             return False  # TODO: or raise Exception?
@@ -168,12 +169,22 @@ class PulseSchedule(TimedPulseBlock):
                 raise NotImplementedError()
         self._children.remove(timed_pulse)
 
-    def command_library(self) -> Set[PulseCommand]:
+    @property
+    def channels(self) -> ChannelBank:
+        return self._channel_bank
+
+    def command_library(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
         for child in self._children:
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
-        return {tp.command for tp in self._children}
+        # TODO: Naive implementation (compute at add and remove would be better)
+        lib = []
+        for tp in self._children:
+            if isinstance(tp.command, (FunctionalPulse, SamplePulse)) and \
+                    tp.command not in lib:
+                lib.append(tp.command)
+        return lib
 
     def flat_pulse_sequence(self) -> List[TimedPulse]:
         # TODO: This is still a MVP
