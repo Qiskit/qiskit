@@ -8,7 +8,6 @@
 """
 Memory of channel registers.
 """
-from qiskit.providers import BaseBackend
 from qiskit.pulse import ChannelsError
 from .channel_register import ChannelRegister, AcquireChannelRegister, SnapshotChannelRegister
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
@@ -21,7 +20,7 @@ from .pulse_channel import AcquireChannel, SnapshotChannel
 class ChannelBank:  # TODO: better name?
     """Implement a channel memory."""
 
-    def __init__(self, backend: BaseBackend = None):
+    def __init__(self, backend=None):
         """
         Create channel registers with default values in backend.
         Args:
