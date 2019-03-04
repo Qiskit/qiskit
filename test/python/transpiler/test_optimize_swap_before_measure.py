@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
@@ -15,8 +15,6 @@ from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
-
-from qiskit.tools.visualization import dag_drawer
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
