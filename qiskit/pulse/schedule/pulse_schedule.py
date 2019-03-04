@@ -44,13 +44,14 @@ class TimedPulse(TimedPulseBlock):
     """TimedPulse = Pulse with start time context."""
 
     def __init__(self, pulse_command: PulseCommand, to_channel: PulseChannel, start_time: int):
-        if isinstance(pulse_command, to_channel.supported):  # TODO: refactoring
+        if isinstance(pulse_command, to_channel.__class__.supported):
             self.command = pulse_command
             self.channel = to_channel
             self.t0 = start_time
         else:
-            raise Exception(
-                "Not supported commands on the channel")  # TODO need to make PulseException class
+            raise ScheduleError("%s (%s) is not supported on %s (%s)" % (
+                                pulse_command.__class__.__name__, pulse_command.name,
+                                to_channel.__class__.__name__, to_channel.name))
 
     def start_time(self) -> int:
         return self.t0
