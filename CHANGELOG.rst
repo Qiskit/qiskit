@@ -20,11 +20,16 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+`0.7.1`_ - 2019-03-04
+=====================
+
+
 Fixed
 -----
 
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
+
 
 `0.7.0`_ - 2018-12-19
 =====================
@@ -878,7 +883,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...HEAD
+.. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
 .. _0.7.0: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
 .. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
 .. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
