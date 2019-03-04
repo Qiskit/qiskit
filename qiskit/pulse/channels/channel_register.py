@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 class ChannelRegister(Register):
     """Implement a channel register."""
 
-    def __init__(self, channel_cls, size, name=None):
+    def __init__(self, channel_cls, size):
         """Create a new channel register.
         """
-        super().__init__(size, name)
+        super().__init__(size, name=None)
 
         if not issubclass(channel_cls, PulseChannel):
             raise ChannelsError("Unknown channel class: %s", channel_cls.__name__)
@@ -71,7 +71,7 @@ class ChannelRegister(Register):
         """
         yield from self._channels
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Two channel registers are the same if they are of the same type
          have the same channel class, name and size.
 
@@ -82,9 +82,8 @@ class ChannelRegister(Register):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.channel_cls == other.channel_cls and \
-                self.name == other.name and \
-                self.size == other.size:
+                super().__eq__(other) and \
+                self.channel_cls == other.channel_cls:
             return True
         return False
 
@@ -97,7 +96,7 @@ class AcquireChannelRegister(ChannelRegister):
     """Acquire channel register."""
 
     def __init__(self, size: int, name: str = None):
-        """Create a new aquire channel register.
+        """Create a new acquire channel register.
         """
         super().__init__(AcquireChannel, size, name)
 
