@@ -14,7 +14,6 @@ from qiskit.transpiler import PassManager, transpile_dag
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, FixedPoint, CountOperations
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeRueschlikon
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
@@ -69,6 +68,26 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_cannot_optimize(self):
+        """ Cannot optimize when swap is not at the end in all of the successors
+            qr0:--X-----m--
+                  |     |
+            qr1:--X-[H]-|--
+                        |
+            cr0:--------.--
+        """
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1])
+        circuit.h(qr[1])
+        circuit.measure(qr[0], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(circuit), after)
 
 class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
     """ Test swap-followed-by-measure optimizations in a transpiler, using fixed point. """
