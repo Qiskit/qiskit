@@ -11,7 +11,7 @@ Memory of channel registers.
 from qiskit.providers import BaseBackend
 from qiskit.pulse import ChannelsError
 from .channel_register import ChannelRegister, OutputChannelRegister
-from .output_channels import DriveChannel, ControlChannel, MeasureChannel
+from .output_channel import DriveChannel, ControlChannel, MeasureChannel
 from .pulse_channel import AcquireChannel, SnapshotChannel
 
 

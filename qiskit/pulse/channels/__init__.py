@@ -10,6 +10,6 @@
 from .channel_bank import ChannelBank
 from .channel_factory import create_channel
 from .channel_register import ChannelRegister, OutputChannelRegister
-from .output_channels import OutputChannel, DriveChannel, ControlChannel, MeasureChannel
+from .output_channel import OutputChannel, DriveChannel, ControlChannel, MeasureChannel
 from .pulse_channel import PulseChannel, AcquireChannel, SnapshotChannel
 
