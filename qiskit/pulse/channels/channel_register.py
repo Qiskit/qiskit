@@ -36,8 +36,8 @@ class ChannelRegister(Register):
     def __repr__(self):
         """Return the official string representing the register."""
         return "%s(%s, %d)" % (self.__class__.__qualname__,
-                                     self.channel_cls.__name__,
-                                     self.size)
+                               self.channel_cls.__name__,
+                               self.size)
 
     def __getitem__(self, key) -> Union[PulseChannel, List[PulseChannel]]:
         """
@@ -71,9 +71,9 @@ class ChannelRegister(Register):
         """
         yield from self._channels
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other):
         """Two channel registers are the same if they are of the same type
-         have the same channel class, name and size.
+         have the same size and channel class.
 
         Args:
             other (ChannelRegister): other ChannelRegister
@@ -82,14 +82,14 @@ class ChannelRegister(Register):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                super().__eq__(other) and \
+                self.size == other.size and \
                 self.channel_cls == other.channel_cls:
             return True
         return False
 
     def __hash__(self):
         """Make object hashable."""
-        return hash((type(self), self.channel_cls, self.size))
+        return hash((super().__hash__(), self.channel_cls))
 
 
 class AcquireChannelRegister(ChannelRegister):
