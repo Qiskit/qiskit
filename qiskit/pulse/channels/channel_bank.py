@@ -15,7 +15,7 @@ from .channel_register import ChannelRegister, OutputChannelRegister
 from .output_channels import DriveChannel, ControlChannel, MeasureChannel
 
 
-class ChannelMemory:    # TODO: better name?
+class ChannelBank:    # TODO: better name?
     """Implement a channel memory."""
 
     def __init__(self, backend: BaseBackend = None):

@@ -12,7 +12,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import List, Union
 
-from qiskit.pulse.channels import PulseChannel, ChannelMemory
+from qiskit.pulse.channels import PulseChannel, ChannelBank
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 channel_memory: ChannelMemory,
+                 channel_memory: ChannelBank,
                  name: str = None
                  ):
         """Create empty schedule.
