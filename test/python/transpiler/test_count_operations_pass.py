@@ -19,10 +19,17 @@ class TestCountGatesPass(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
     def test_empty_dag(self):
-        """ When pass_that_updates_the_property is not passed, there are no requirements. """
-        self.assertEqual(len(self.pass_.requires), 0)
+        """ Empty DAG has 0 amount of operations """
+        circuit = QuantumCircuit()
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CountOperations()
+        _ = pass_.run(dag)
+
+        self.assertEqual(pass_.property_set['amount_of_operations'], 0)
 
     def test_count_h_and_cx(self):
+        """ A dag with 8 operations """
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -37,7 +44,9 @@ class TestCountGatesPass(QiskitTestCase):
 
         pass_ = CountOperations()
         _ = pass_.run(dag)
+
         self.assertEqual(pass_.property_set['amount_of_operations'], 8)
+
 
 if __name__ == '__main__':
     unittest.main()
