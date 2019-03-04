@@ -19,6 +19,7 @@ from collections import OrderedDict
 import importlib
 import logging
 from qiskit.providers import BaseBackend
+from qiskit.aqua import Preferences
 
 try:
     from qiskit.providers.ibmq import IBMQProvider
@@ -147,7 +148,6 @@ def get_backends_from_provider(provider_name):
     """
     provider_object = _load_provider(provider_name)
     if has_ibmq() and isinstance(provider_object, IBMQProvider):
-        from qiskit_aqua_cmd import Preferences
         preferences = Preferences()
         url = preferences.get_url()
         token = preferences.get_token()
@@ -187,7 +187,6 @@ def get_backend_from_provider(provider_name, backend_name):
     backend = None
     provider_object = _load_provider(provider_name)
     if has_ibmq() and isinstance(provider_object, IBMQProvider):
-        from qiskit_aqua_cmd import Preferences
         preferences = Preferences()
         url = preferences.get_url()
         token = preferences.get_token()
@@ -286,7 +285,6 @@ def _load_provider(provider_name):
 
     if has_ibmq() and isinstance(provider_object, IBMQProvider):
         # enable IBMQ account
-        from qiskit_aqua_cmd import Preferences
         preferences = Preferences()
         enable_ibmq_account(preferences.get_url(), preferences.get_token(), preferences.get_proxies({}))
 
