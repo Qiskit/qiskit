@@ -50,18 +50,19 @@ class SamplePulse(PulseCommand):
 
         Keyword Args:
             dt (float): Time interval of samples.
-            interp_method (str): Method of interpolation
-                (set `None` for turn off the interpolation).
+            nop (int): Data points for interpolation.
+            interp_method (str): A method of interpolation.
+                'None' for turn off interpolation
+                'CubicSpline' for cubic spline interpolation
             filename (str): Name required to save pulse image.
             interactive (bool): When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this).
             dpi (int): Resolution of saved image.
-            nop (int): Data points for interpolation.
             size (tuple): Size of figure.
         """
         from qiskit.tools.visualization import pulse_drawer
 
-        return pulse_drawer(self.samples, self.duration, **kwargs)
+        return pulse_drawer(self, **kwargs)
 
     def __eq__(self, other):
         """Two SamplePulses are the same if they are of the same type
