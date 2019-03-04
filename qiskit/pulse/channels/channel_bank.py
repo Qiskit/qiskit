@@ -10,9 +10,11 @@ Memory of channel registers.
 """
 from qiskit.providers import BaseBackend
 from qiskit.pulse import ChannelsError
-from .channel_register import ChannelRegister, AcquireChannelRegister
+from .channel_register import ChannelRegister, AcquireChannelRegister, SnapshotChannelRegister
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
-from .output_channel_register import DriveChannelRegister
+from .output_channel_register import (DriveChannelRegister,
+                                      ControlChannelRegister,
+                                      MeasureChannelRegister)
 from .pulse_channel import AcquireChannel, SnapshotChannel
 
 
@@ -66,5 +68,17 @@ class ChannelBank:  # TODO: better name?
         raise ChannelsError("No direct set is allowed, use 'register()' for safety set.")
 
     @property
+    def control(self) -> ControlChannelRegister:
+        return self._control
+
+    @property
+    def measure(self) -> MeasureChannelRegister:
+        return self._measure
+
+    @property
     def acquire(self) -> AcquireChannelRegister:
         return self._acquire
+
+    @property
+    def snapshot(self) -> SnapshotChannelRegister:
+        return self._snapshot
