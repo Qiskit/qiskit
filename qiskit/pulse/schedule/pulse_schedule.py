@@ -130,10 +130,10 @@ class PulseSchedule(TimedPulseBlock):
         return min([self._start_time(child) for child in self._children])
 
     def end_time(self) -> int:
-        raise max([self._end_time(child) for child in self._children])
+        return max([self._end_time(child) for child in self._children])
 
     def duration(self) -> int:
-        raise self.end_time() - self.start_time()
+        return self.end_time() - self.start_time()
 
     def children(self) -> List[TimedPulseBlock]:
         return self._children
