@@ -89,6 +89,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(circuit), after)
 
+
 class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
     """ Test swap-followed-by-measure optimizations in a transpiler, using fixed point. """
 
