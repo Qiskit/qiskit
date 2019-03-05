@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 def pulse_drawer(data, dt=1, interp_method='None',
                  style=None, filename=None,
-                 interactive=False):
+                 interactive=False, plot_channels=None,
+                 plot_empty=False, plot_range=None):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -47,6 +48,9 @@ def pulse_drawer(data, dt=1, interp_method='None',
         style (dict): A style sheet to configure plot appearance.
         interactive (bool): When set true show the circuit in a new window
             (this depends on the matplotlib backend being used supporting this).
+        plot_empty (bool): Plot empty channels.
+        plot_channels (list): A list of channel names to plot.
+        plot_range (tuple): A tuple of time range to plot.
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope.
     Raises:
@@ -61,7 +65,8 @@ def pulse_drawer(data, dt=1, interp_method='None',
     if isinstance(data, (SamplePulse, FunctionalPulse)):
         image = drawer.draw_sample(data, dt, interp_method)
     elif isinstance(data, PulseSchedule):
-        image = drawer.draw_schedule(data, dt, interp_method)
+        image = drawer.draw_schedule(data, dt, interp_method,
+                                     plot_empty, plot_channels, plot_range)
     else:
         raise exceptions.VisualizationError('This data cannot be visualized.')
 
@@ -92,7 +97,7 @@ def op_default():
                 'table_font': 10,
                 'label_font': 18,
                 'table_cols': 2,
-                'table_row_height': 0.2,
+                'table_row_height': 0.4,
                 'pulse_row_height': 2.5
             },
         'sample':
@@ -150,7 +155,7 @@ class Channels:
         else:
             pass
 
-    def __call__(self):
+    def get_waveform(self):
         """Get waveform.
         """
         # sort fc by time index
@@ -169,19 +174,19 @@ class Channels:
     def is_empty(self, time_range=None):
         """Return if pulse is empty.
         """
+        waveform = self.get_waveform()
+
         if time_range:
             t0, tf = time_range
-
             _fc_times = np.array(list(self.fc_pulses.keys()))
-            _pv_times = np.array(list(self.pv_pulses.keys()))
-            if any(self.samples[t0:tf + 1]) or \
-                    any(t0 <= _fc_times <= tf) or any(t0 <= _pv_times <= tf):
+            if any(waveform[t0:tf + 1]):
+                return False
+            elif any(_fc_times) and any(t0 <= _fc_times <= tf):
                 return False
             else:
                 return True
         else:
-            if any(self.samples) or \
-                    len(self.fc_pulses) > 0 or len(self.pv_pulses) > 0:
+            if any(waveform) or len(self.fc_pulses) > 0:
                 return False
             else:
                 return True
@@ -195,9 +200,9 @@ class Channels:
         time_event = []
 
         for key, val in self.fc_pulses.items():
-            data_str = 'FrameChange, %s' % val
+            data_str = 'FrameChange, %.2f' % val
             time_event.append((key, name, data_str))
-        for key, val in self.pv_pulses.items():
+        for key, val in self.conditionals.items():
             data_str = 'Conditional, %s' % val
             time_event.append((key, name, data_str))
 
@@ -224,8 +229,8 @@ class PulseDrawer:
             schedule (PulseSchedule): PulseSchedule to draw.
             dt (float): Time interval of samples.
             interp_method (str): A method of interpolation.
-            plot_channels (list): A list of channel names to plot.
             plot_empty (bool): Plot empty channels.
+            plot_channels (list): A list of channel names to plot.
             plot_range (tuple): A tuple of time range to plot.
         """
         if plot_range:
@@ -270,16 +275,16 @@ class PulseDrawer:
         default = self.style['sched2d']
         if default['use_table']:
             # height
-            _th = len(table_data) * default['table_row_height']
+            ncols = default['table_cols']
+            nrows = int(np.ceil(len(table_data)/ncols))
+            _th = nrows * default['table_row_height']
             _ah = n_channels * default['pulse_row_height']
             fig_h = _th + _ah
             # object
-            gs = gridspec.GridSpec(2, 1, height_ratios=[_th, _ah])
+            gs = gridspec.GridSpec(2, 1, height_ratios=[_th, _ah], hspace=0)
             tb = plt.subplot(gs[0])
             tb.axis('off')
             # generate table
-            ncols = default['table_cols']
-            nrows = int(np.ceil(len(table_data)/ncols))
             _table_value = [
                 ['' for _kk in range(ncols*3)]
                 for _jj in range(nrows)
@@ -308,8 +313,6 @@ class PulseDrawer:
                               cellColours=_table_color)
             _table.auto_set_font_size(False)
             _table.set_fontsize = default['table_font']
-            for cell in _table.get_celld().values():
-                cell.set_linewidth(0.1)
             ax = plt.subplot(gs[1])
         else:
             # height
@@ -326,7 +329,7 @@ class PulseDrawer:
         for name, channel in chs_dict.items():
             if channel.enable:
                 # plot waveform
-                time, re, im = self.interp(channel(), dt, self.style['num_points'],
+                time, re, im = self.interp(channel.get_waveform(), dt, self.style['num_points'],
                                            interp_method)
                 re = 0.5 * re + y0
                 im = 0.5 * im + y0
@@ -343,6 +346,9 @@ class PulseDrawer:
                 # plot fcs
                 if len(channel.fc_pulses) > 0:
                     for time, val in channel.fc_pulses.items():
+                        if plot_range:
+                            if time > plot_range[1] or time < plot_range[0]:
+                                continue
                         ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
                                 fontsize=default['label_font'], ha='center', va='center')
                 # plot label
@@ -355,7 +361,7 @@ class PulseDrawer:
         if plot_range:
             ax.set_xlim(plot_range)
         else:
-            ax.set_xlim(0, time[-1])
+            ax.set_xlim(0, schedule.end_time() * dt)
         ax.set_ylim(y0, 1)
         ax.set_yticklabels([])
 
