@@ -192,3 +192,25 @@ class PulseSchedule(TimedPulseBlock):
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError()
         return self._children
+
+    def draw(self, dt=1, interp_method='None', style=None, filename=None, **kwargs):
+        """Plot the interpolated envelope of pulse.
+
+        Args:
+            dt (float): Time interval of samples.
+            interp_method (str): A method of interpolation.
+                'None' for turn off interpolation
+                'CubicSpline' for cubic spline interpolation
+            style (dict) : A style sheet to configure plot appearance.
+            filename (str): Name required to save pulse image.
+        Keyword Args:
+            interactive (bool): When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this).
+            plot_empty (bool): Plot empty channels.
+            plot_channels (list): A list of channel names to plot.
+            plot_range (tuple): A tuple of time range to plot.
+        """
+        from qiskit.tools.visualization import pulse_drawer
+
+        return pulse_drawer(self, dt, interp_method,
+                            style, filename, **kwargs)
