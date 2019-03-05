@@ -1,6 +1,14 @@
 Release history
 ===============
 
+Qiskit 0.8
+----------
+
+In Qiskit 0.8 we introduced the Qiskit Ignis element. It also includes the
+Qiskit Terra element 0.7.1 release which contains a bug fix for the BasicAer
+Python simulator.
+
+
 Qiskit 0.7
 ----------
 
