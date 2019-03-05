@@ -48,7 +48,7 @@ class Gate(Instruction):
 
     def _define_decompositions(self):
         """ Populates self.decompositions with way to decompose this gate"""
-        raise NotImplementedError("No decomposition rules defined for ", self.name)
+        raise NotImplementedError("No decomposition rules defined for %s" % self.name)
 
     @property
     def matrix_rep(self):
