@@ -38,12 +38,12 @@ class Optimize1qGates(TransformationPass):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
-            run_qarg = dag.multi_graph.node[run[0]]["qargs"][0]
+            run_qarg = dag.node(run[0])["qargs"][0]
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
 
             for current_node in run:
-                node = dag.multi_graph.node[current_node]
+                node = dag.node(current_node)
                 left_name = node["name"]
                 if (node["condition"] is not None
                         or len(node["qargs"]) != 1
