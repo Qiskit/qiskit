@@ -72,7 +72,6 @@ def compile(schedules, backend, shots=1024, max_credits=10,
 
     # add backend information to schedules
     for schedule in schedules:
-        embed_backend_frequency(schedule, backend)
         embed_backend_defaults(schedule, backend)
 
     qobj = schedules_to_qobj(schedules, user_qobj_header=QobjHeader(), run_config=run_config,
@@ -129,26 +128,6 @@ def embed_pulse_config(schedules, run_config, backend,
     userconfig.pulse_library = pulse_library
 
     return userconfig
-
-
-def embed_backend_frequency(schedule, backend):
-    """Add default LO frequencies to PulseSchedules.
-
-    Args:
-        schedule (PulseSchedule): a PulseSchedule.
-        backend (BaseBackend): a backend to execute the circuits on.
-    """
-    config = backend.configuration()
-
-    for chs in schedule.channel_list:
-        # qubit_lo_freq
-        if all(isinstance(ch, DriveChannel) for ch in chs):
-            for ii, ch in enumerate(chs):
-                ch.lo_frequency = ch.lo_frequency or config.defaults['qubit_freq_est'][ii]
-        # meas_los_freq
-        if all(isinstance(ch, MeasureChannel) for ch in chs):
-            for ii, ch in enumerate(chs):
-                ch.lo_frequency = ch.lo_frequency or config.defaults['meas_freq_est'][ii]
 
 
 def embed_backend_defaults(schedule, backend):
