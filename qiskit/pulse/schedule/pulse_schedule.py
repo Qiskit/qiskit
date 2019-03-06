@@ -112,7 +112,7 @@ class PulseSchedule(TimedPulseBlock):
                 success = self.add(cmd, channel, start_time)
                 if not success:
                     logger.warning("Fail to add %s to %s at %s", cmd, channel, start_time)
-                    return False
+                    return False # TODO: or raise Exception?
             return True
 
     def add_block(self, block: TimedPulseBlock) -> bool:
@@ -139,10 +139,10 @@ class PulseSchedule(TimedPulseBlock):
         return min([self._start_time(child) for child in self._children])
 
     def end_time(self) -> int:
-        raise max([self._end_time(child) for child in self._children])
+        return max([self._end_time(child) for child in self._children])
 
     def duration(self) -> int:
-        raise self.end_time() - self.start_time()
+        return self.end_time() - self.start_time()
 
     def children(self) -> List[TimedPulseBlock]:
         return self._children
