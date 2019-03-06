@@ -94,46 +94,39 @@ class PulseSchedule(TimedPulseBlock):
     def add(self,
             commands: Union[PulseCommand, List[PulseCommand]],
             channel: PulseChannel,
-            start_time: int) -> bool:
+            start_time: int):
         """Add new pulse command(s) with channel and start time context.
 
         Args:
             commands (PulseCommand|list):
             channel:
             start_time:
-
-        Returns:
-            True if succeeded, otherwise False
         """
         if isinstance(commands, PulseCommand):
-            return self.add_block(TimedPulse(commands, channel, start_time))
+            try:
+                self.add_block(TimedPulse(commands, channel, start_time))
+            except ScheduleError as err:
+                logger.warning("Fail to add %s to %s at %s", commands, channel, start_time)
+                raise ScheduleError(err.message)
         elif isinstance(commands, list):
             for cmd in commands:
-                success = self.add(cmd, channel, start_time)
-                if not success:
-                    logger.warning("Fail to add %s to %s at %s", cmd, channel, start_time)
-                    return False # TODO: or raise Exception?
-            return True
+                self.add(cmd, channel, start_time)
 
-    def add_block(self, block: TimedPulseBlock) -> bool:
+    def add_block(self, block: TimedPulseBlock):
         """Add a new composite pulse `TimedPulseBlock`.
 
         Args:
             block:
-
-        Returns:
-            True if succeeded, otherwise False
         """
         if isinstance(block, PulseSchedule):
             if self._channel_bank != block._channel_bank:
-                raise ScheduleError("additional block must have the same channels as self")
+                raise ScheduleError("Additional block must have the same channels as self")
 
         if self._is_occupied_time(block):
-            logger.warning("a pulse block is not added due to the occupied timing: %s", str(block))
-            return False  # TODO: or raise Exception?
+            logger.warning("A pulse block is not added due to the occupied timing: %s", str(block))
+            raise ScheduleError("Cannot add to occupied time slot.")
         else:
             self._children.append(block)
-            return True
 
     def start_time(self) -> int:
         return min([self._start_time(child) for child in self._children])
@@ -170,13 +163,6 @@ class PulseSchedule(TimedPulseBlock):
                         and timed_pulse.start_time() < pulse.end_time():
                     return True
         return False
-
-    def remove(self, timed_pulse: TimedPulseBlock):
-        # TODO: This is still a MVP
-        for child in self._children:
-            if not isinstance(child, TimedPulse):
-                raise NotImplementedError()
-        self._children.remove(timed_pulse)
 
     def get_sample_pulses(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
