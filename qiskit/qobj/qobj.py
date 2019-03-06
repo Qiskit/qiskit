@@ -13,7 +13,6 @@ import numpy
 import sympy
 
 from .exceptions import QobjValidationError
-from ._utils import QobjType
 
 # Current version of the Qobj schema.
 QOBJ_VERSION = '1.0.0'
@@ -128,16 +127,16 @@ class Qobj(QobjItem):
         schema_version (str): Qobj version.
     """
 
-    REQUIRED_ARGS = ['qobj_id', 'config', 'experiments', 'header']
+    REQUIRED_ARGS = ['qobj_id', 'config', 'experiments', 'header', 'type']
 
-    def __init__(self, qobj_id, config, experiments, header, **kwargs):
+    def __init__(self, qobj_id, config, experiments, header, type, **kwargs):
         # pylint: disable=redefined-builtin,invalid-name
         self.qobj_id = qobj_id
         self.config = config
         self.experiments = experiments
         self.header = header
+        self.type = type
 
-        self.type = QobjType.QASM.value
         self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
