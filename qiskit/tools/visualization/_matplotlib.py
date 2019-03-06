@@ -21,13 +21,13 @@ import numpy as np
 try:
     from matplotlib import patches
     from matplotlib import pyplot as plt
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
 
 from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
-
 
 logger = logging.getLogger(__name__)
 
@@ -307,9 +307,9 @@ class MatplotlibDrawer:
         x0 = xys[0][0]
 
         box_y0 = min(y_reg) - int(anc / self._style.fold) * (
-            self._cond['n_lines'] + 1) - 0.5
+                self._cond['n_lines'] + 1) - 0.5
         box_y1 = max(y_reg) - int(anc / self._style.fold) * (
-            self._cond['n_lines'] + 1) + 0.5
+                self._cond['n_lines'] + 1) + 0.5
         box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
                                 width=0.6 * WID, height=box_y1 - box_y0,
                                 fc=self._style.bc, ec=None, alpha=0.6,
@@ -478,16 +478,18 @@ class MatplotlibDrawer:
         #
         # draw gates
         #
+        prev_width = 0
         for layer_no, layer in enumerate(self._ops):
 
-            _iswide = False
-            gw = 1
-
-            if any(op['name'] in _wide_gate for op in layer):
-                _iswide = True
-                gw = 2
+            layer_width = 1
 
             for op in layer:
+                if op['name'] in _wide_gate:
+                    layer_width = 2
+
+            for op in layer:
+
+                _iswide = op['name'] in _wide_gate
                 # get qreg index
                 if 'qargs' in op.keys():
                     q_idxs = []
@@ -511,25 +513,25 @@ class MatplotlibDrawer:
                 else:
                     c_idxs = []
 
-                this_anc = layer_no
+                this_anc = layer_no + prev_width
 
                 occupied = q_idxs
                 q_list = [ii for ii in range(min(occupied),
                                              max(occupied) + 1)]
                 locs = [q_anchors[jj].is_locatable(
-                    this_anc, gw) for jj in q_list]
+                    this_anc, layer_width) for jj in q_list]
                 if all(locs):
                     for ii in q_list:
                         if op['name'] in ['barrier', 'snapshot', 'load', 'save', 'noise'] \
-                           and not self.plot_barriers:
-                            q_anchors[ii].set_index(this_anc - 1, gw)
+                                and not self.plot_barriers:
+                            q_anchors[ii].set_index(this_anc - 1, layer_width)
                         else:
-                            q_anchors[ii].set_index(this_anc, gw)
+                            q_anchors[ii].set_index(this_anc, layer_width)
 
                 # qreg coordinate
-                q_xy = [q_anchors[ii].plot_coord(this_anc, gw) for ii in q_idxs]
+                q_xy = [q_anchors[ii].plot_coord(this_anc, layer_width) for ii in q_idxs]
                 # creg coordinate
-                c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in c_idxs]
+                c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for ii in c_idxs]
                 # bottom and top point of qreg
                 qreg_b = min(q_xy, key=lambda xy: xy[1])
                 qreg_t = max(q_xy, key=lambda xy: xy[1])
@@ -543,7 +545,7 @@ class MatplotlibDrawer:
                     param = None
                 # conditional gate
                 if 'condition' in op.keys() and op['condition']:
-                    c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for
+                    c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for
                             ii in self._creg_dict]
                     mask = 0
                     for index, cbit in enumerate(self._creg):
@@ -660,18 +662,8 @@ class MatplotlibDrawer:
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
-            #
-            # adjust window size and draw horizontal lines
-            #
-            max_anc = max([q_anchors[ii].get_index() for ii in self._qreg_dict])
-            n_fold = (max_anc - 1) // self._style.fold
-            # window size
-            if max_anc > self._style.fold > 0:
-                self._cond['xmax'] = self._style.fold + 1
-                self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
-            else:
-                logger.critical('Invalid gate %s', op)
-                raise exceptions.VisualizationError('invalid gate {}'.format(op))
+
+            prev_width = layer_width - 1
         #
         # adjust window size and draw horizontal lines
         #
@@ -699,7 +691,7 @@ class MatplotlibDrawer:
                 if self._style.fold > 0:
                     x_coord = ii % self._style.fold + 1
                     y_coord = - (ii // self._style.fold) * (
-                        self._cond['n_lines'] + 1) + 0.7
+                            self._cond['n_lines'] + 1) + 0.7
                 else:
                     x_coord = ii + 1
                     y_coord = 0.7
