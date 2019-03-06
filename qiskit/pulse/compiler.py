@@ -15,12 +15,10 @@ import numpy as np
 
 from qiskit.converters import schedules_to_qobj
 from qiskit.pulse.schedule import PulseSchedule
-from qiskit.pulse.channels import DriveChannel, MeasureChannel
-from qiskit.pulse.commands import Discriminator, Kernel
 from qiskit.qobj import RunConfig
 from qiskit.qobj import QobjHeader, QobjConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import *
+from qiskit.pulse.commands import Acquire, Discriminator, Kernel
 
 
 logger = logging.getLogger(__name__)
