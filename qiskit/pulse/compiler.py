@@ -119,7 +119,7 @@ def embed_pulse_config(schedules, run_config, backend,
     # merge all pulse commands in the library to reduce data size
     pulse_library = config.defaults.get('pulse_library', [])
     for schedle in schedules:
-        cmds = schedle.command_library()
+        cmds = schedle.get_sample_pulses()
         for cmd in cmds:
             _name = cmd.name
             _samples = list(map(lambda x: [np.real(x), np.imag(x)], cmd.samples))

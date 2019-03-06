@@ -178,7 +178,7 @@ class PulseSchedule(TimedPulseBlock):
                 raise NotImplementedError()
         self._children.remove(timed_pulse)
 
-    def command_library(self) -> List[PulseCommand]:
+    def get_sample_pulses(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
         for child in self._children:
             if not isinstance(child, TimedPulse):
