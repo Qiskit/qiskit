@@ -19,6 +19,7 @@ from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_state_qsphere,
                                                              plot_state)
 
+from ._pulse_visualization import pulse_drawer
 from ._circuit_visualization import circuit_drawer, qx_color_scheme
 from ._dag_visualization import dag_drawer
 from ._gate_map import plot_gate_map
