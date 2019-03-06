@@ -47,9 +47,9 @@ class Instruction(object):
         Raises:
             QiskitError: when the register is not in the correct format.
         """
-        if not all(isinstance(i[0], QuantumRegister) and isinstance(i[1], int) for i in qargs):
+        if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
             raise QiskitError("qarg not (QuantumRegister, int) tuple")
-        if not all(isinstance(i[0], ClassicalRegister) and isinstance(i[1], int) for i in cargs):
+        if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
             raise QiskitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
         self.param = []  # a list of gate params stored as sympy objects
