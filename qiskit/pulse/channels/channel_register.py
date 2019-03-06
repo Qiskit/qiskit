@@ -73,7 +73,7 @@ class ChannelRegister(Register):
 
     def __eq__(self, other):
         """Two channel registers are the same if they are of the same type
-         have the same channel class and size.
+         have the same size and channel class.
 
         Args:
             other (ChannelRegister): other ChannelRegister
@@ -82,21 +82,21 @@ class ChannelRegister(Register):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.channel_cls == other.channel_cls and \
-                self.size == other.size:
+                self.size == other.size and \
+                self.channel_cls == other.channel_cls:
             return True
         return False
 
     def __hash__(self):
         """Make object hashable."""
-        return hash((type(self), self.channel_cls, self.size))
+        return hash((super().__hash__(), self.channel_cls))
 
 
 class AcquireChannelRegister(ChannelRegister):
     """Acquire channel register."""
 
     def __init__(self, size: int):
-        """Create a new aquire channel register.
+        """Create a new acquire channel register.
         """
         super().__init__(AcquireChannel, size)
 

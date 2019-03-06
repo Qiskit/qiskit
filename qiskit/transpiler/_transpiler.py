@@ -16,16 +16,16 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
+from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
 from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
-from .passes.mapping.check_map import CheckMap
+from .passes.mapping.check_cnot_direction import CheckCnotDirection
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
-from .passes.mapping.unroller import Unroller
 
 from .exceptions import TranspilerError
 
@@ -106,14 +106,15 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     # else layout on the most densely connected physical qubit subset
     # FIXME: this should be simplified once it is ported to a PassManager
     if coupling_map and initial_layout is None:
-        check_map = CheckMap(CouplingMap(coupling_map))
-        check_map.run(dag)
-        if check_map.property_set['is_direction_mapped']:
-            trivial_layout = TrivialLayout(CouplingMap(coupling_map))
+        cm_object = CouplingMap(coupling_map)
+        check_cnot_direction = CheckCnotDirection(cm_object)
+        check_cnot_direction.run(dag)
+        if check_cnot_direction.property_set['is_direction_mapped']:
+            trivial_layout = TrivialLayout(cm_object)
             trivial_layout.run(dag)
             initial_layout = trivial_layout.property_set['layout']
         else:
-            dense_layout = DenseLayout(CouplingMap(coupling_map))
+            dense_layout = DenseLayout(cm_object)
             dense_layout.run(dag)
             initial_layout = dense_layout.property_set['layout']
 

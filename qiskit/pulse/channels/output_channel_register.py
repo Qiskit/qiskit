@@ -11,7 +11,7 @@ PulseChannel register.
 import logging
 from typing import List
 
-from qiskit.pulse.exceptions import ChannelsError
+from qiskit.pulse import ChannelsError
 from .channel_register import ChannelRegister
 from .output_channel import OutputChannel, DriveChannel, ControlChannel, MeasureChannel
 
@@ -39,7 +39,7 @@ class OutputChannelRegister(ChannelRegister):
 
     def __eq__(self, other):
         """Two output channel registers are the same if they are of the same type
-         have the same channel class, name and size.
+         have the same size, channel class and channels.
 
         Args:
             other (OutputChannelRegister): other OutputChannelRegister
@@ -48,16 +48,15 @@ class OutputChannelRegister(ChannelRegister):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.channel_cls == other.channel_cls and \
-                self.name == other.name and \
                 self.size == other.size and \
+                self.channel_cls == other.channel_cls and \
                 self._channels == other._channels:
             return True
         return False
 
     def __hash__(self):
         """Make object hashable."""
-        return hash((type(self), self.channel_cls, self.name, self.size, hash(self._channels)))
+        return hash((super().__hash__(), hash(self._channels)))
 
 
 class DriveChannelRegister(OutputChannelRegister):

@@ -15,19 +15,17 @@ import numpy as np
 
 from qiskit.converters import schedules_to_qobj
 from qiskit.pulse.schedule import PulseSchedule
-from qiskit.pulse.channels import DriveChannel, MeasureChannel
-from qiskit.pulse.commands import Discriminator, Kernel
 from qiskit.qobj import RunConfig
 from qiskit.qobj import QobjHeader, QobjConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import *
+from qiskit.pulse.commands import Acquire, Discriminator, Kernel
 
 
 logger = logging.getLogger(__name__)
 
 
 # pylint: disable=redefined-builtin
-def compile(schedules, backend, config=None, shots=1024, max_credits=10,
+def compile(schedules, backend, shots=1024, max_credits=10,
             seed=None, meas_level=1, memory_slot_size=100,
             meas_return="avg", rep_time=None, qobj_id=None):
     """Compile a list of pulses into a qobj.
@@ -35,7 +33,6 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
     Args:
         schedules (PulseSchedule or list[PulseSchedule]): pulses to execute.
         backend (BaseBackend): a backend to execute the circuits on.
-        config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
@@ -53,10 +50,6 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
     Returns:
         Qobj: the qobj to be run on the backends.
     """
-
-    if config:
-        warnings.warn('The `config` argument is deprecated and '
-                      'does not do anything', DeprecationWarning)
 
     run_config = RunConfig()
 
@@ -77,7 +70,6 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
 
     # add backend information to schedules
     for schedule in schedules:
-        embed_backend_frequency(schedule, backend)
         embed_backend_defaults(schedule, backend)
 
     qobj = schedules_to_qobj(schedules, user_qobj_header=QobjHeader(), run_config=run_config,
@@ -124,7 +116,7 @@ def embed_pulse_config(schedules, run_config, backend,
     # merge all pulse commands in the library to reduce data size
     pulse_library = config.defaults.get('pulse_library', [])
     for schedle in schedules:
-        cmds = schedle.command_library()
+        cmds = schedle.get_sample_pulses()
         for cmd in cmds:
             _name = cmd.name
             _samples = list(map(lambda x: [np.real(x), np.imag(x)], cmd.samples))
@@ -134,26 +126,6 @@ def embed_pulse_config(schedules, run_config, backend,
     userconfig.pulse_library = pulse_library
 
     return userconfig
-
-
-def embed_backend_frequency(schedule, backend):
-    """Add default LO frequencies to PulseSchedules.
-
-    Args:
-        schedule (PulseSchedule): a PulseSchedule.
-        backend (BaseBackend): a backend to execute the circuits on.
-    """
-    config = backend.configuration()
-
-    for chs in schedule.channel_list:
-        # qubit_lo_freq
-        if all(isinstance(ch, DriveChannel) for ch in chs):
-            for ii, ch in enumerate(chs):
-                ch.lo_frequency = ch.lo_frequency or config.defaults['qubit_freq_est'][ii]
-        # meas_los_freq
-        if all(isinstance(ch, MeasureChannel) for ch in chs):
-            for ii, ch in enumerate(chs):
-                ch.lo_frequency = ch.lo_frequency or config.defaults['meas_freq_est'][ii]
 
 
 def embed_backend_defaults(schedule, backend):
@@ -177,7 +149,7 @@ def embed_backend_defaults(schedule, backend):
                 pulse.command.discriminator = Discriminator(_d['name'], **_d['params'])
 
 
-def execute(schedules, backend, config=None, shots=1024, max_credits=10,
+def execute(schedules, backend, shots=1024, max_credits=10,
             seed=None, meas_level=1, memory_slot_size=100,
             meas_return="avg", rep_time=None, qobj_id=None):
     """Executes a set of pulses.
@@ -185,7 +157,6 @@ def execute(schedules, backend, config=None, shots=1024, max_credits=10,
     Args:
         schedules (PulseSchedule or list[PulseSchedule]): pulses to execute.
         backend (BaseBackend): a backend to execute the circuits on.
-        config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
@@ -205,7 +176,7 @@ def execute(schedules, backend, config=None, shots=1024, max_credits=10,
     """
 
     qobj = compile(schedules, backend,
-                   config, shots, max_credits, seed,
+                   shots, max_credits, seed,
                    meas_level, memory_slot_size, meas_return,
                    rep_time, qobj_id)
 

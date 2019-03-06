@@ -79,9 +79,17 @@ class PulseSchedule(TimedPulseBlock):
             channels:
             name:
         """
-        self.name = name
+        self._name = name
         self._channel_bank = channel_bank
         self._children = []
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def channels(self) -> ChannelBank:
+        return self._channel_bank
 
     def add(self,
             commands: Union[PulseCommand, List[PulseCommand]],
@@ -103,7 +111,8 @@ class PulseSchedule(TimedPulseBlock):
             for cmd in commands:
                 success = self.add(cmd, channel, start_time)
                 if not success:
-                    return False
+                    logger.warning("Fail to add %s to %s at %s", cmd, channel, start_time)
+                    return False # TODO: or raise Exception?
             return True
 
     def add_block(self, block: TimedPulseBlock) -> bool:
@@ -169,11 +178,7 @@ class PulseSchedule(TimedPulseBlock):
                 raise NotImplementedError()
         self._children.remove(timed_pulse)
 
-    @property
-    def channels(self) -> ChannelBank:
-        return self._channel_bank
-
-    def command_library(self) -> List[PulseCommand]:
+    def get_sample_pulses(self) -> List[PulseCommand]:
         # TODO: This is still a MVP
         for child in self._children:
             if not isinstance(child, TimedPulse):

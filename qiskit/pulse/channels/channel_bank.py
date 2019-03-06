@@ -46,16 +46,11 @@ class ChannelBank:  # TODO: better name?
             meas_lo_range = config.meas_lo_range
 
             # generate channel registers
-            registers = [
-                DriveChannelRegister(size=n_qubit, lo_freqs=qubit_lo_freqs),
-                ControlChannelRegister(size=n_qubit),
-                MeasureChannelRegister(size=n_qubit, lo_freqs=meas_lo_freqs),
-                AcquireChannelRegister(size=n_qubit),
-                SnapshotChannelRegister(size=n_qubit)
-            ]
-
-            for register in registers:
-                self.register(register)
+            self._drive = DriveChannelRegister(size=n_qubit, lo_freqs=qubit_lo_freqs)
+            self._control = ControlChannelRegister(size=n_qubit)
+            self._measure = MeasureChannelRegister(size=n_qubit, lo_freqs=meas_lo_freqs)
+            self._acquire = AcquireChannelRegister(size=n_qubit)
+            self._snapshot = SnapshotChannelRegister(size=n_qubit)
 
     def register(self, reg: ChannelRegister):
         """
@@ -67,6 +62,7 @@ class ChannelBank:  # TODO: better name?
 
         """
         cls = reg.channel_cls
+        # TODO: safety check
         if cls == DriveChannel:
             self._drive = reg
         elif cls == ControlChannel:

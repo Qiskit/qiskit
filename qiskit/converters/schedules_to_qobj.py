@@ -13,21 +13,22 @@ import warnings
 import numpy as np
 
 from qiskit.pulse.schedule import PulseSchedule
-from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader
 from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.qobj.run_config import RunConfig
 from qiskit.qobj._utils import QobjType
-from qiskit.pulse.commands import *
+from qiskit.pulse.commands import (Acquire, FrameChange, FunctionalPulse,
+                                   PersistentValue, SamplePulse, Snapshot
+                                   )
 from qiskit.exceptions import QiskitError
 
 
-def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
-                      qobj_id=None):
+def schedules_to_qobj(schedules, user_qobj_header=None,
+                      run_config=None, qobj_id=None):
     """Convert a list of schedules into a qobj.
 
     Args:
-        circuits (list[PulseSchedule] or PulseSchedule): Schedules to compile.
+        schedules (list[PulseSchedule] or PulseSchedule): Schedules to compile.
         user_qobj_header (QobjHeader): Header to pass to the results.
         run_config (RunConfig): RunConfig object.
         qobj_id (int): Identifier for the generated qobj.
@@ -44,15 +45,10 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
     experiments = []
 
     for schedule in schedules:
-        lo_freqs = {}
-        for chs in schedule.channel_list:
-            # qubit_lo_freq
-            if all(isinstance(ch, DriveChannel) for ch in chs):
-                lo_freqs['qubit_lo_freq'] = [ch.lo_frequency for ch in chs]
-            # meas_los_freq
-            if all(isinstance(ch, MeasureChannel) for ch in chs):
-                lo_freqs['meas_lo_freq'] = [ch.lo_frequency for ch in chs]
-
+        lo_freqs = {
+            'qubit_lo_freq': schedule.channels.drive.lo_frequencies(),
+            'meas_lo_freq': schedule.channels.measure.lo_frequencies()
+        }
 
         # generate experimental configuration
         experimentconfig = QobjExperimentConfig(**lo_freqs)
@@ -60,7 +56,7 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
         # generate experimental header
         experimentheader = QobjExperimentHeader(name=schedule.name)
 
-        #TODO: support conditional gate
+        # TODO: support conditional gate
         instructions = []
         for pulse in schedule.flat_pulse_sequence():
             current_instruction = QobjInstruction(name=pulse.command.name,
@@ -75,12 +71,14 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
                 current_instruction.value = pulse.command.value
             elif isinstance(pulse.command, Acquire):
                 current_instruction.duration = pulse.command.duration
-                #TODO: do qubit-register mapping and acquire grouping
+                # TODO: do qubit-register mapping and acquire grouping
                 current_instruction.qubits = [pulse.channel.index]
                 current_instruction.memory_slot = [pulse.channel.index]
                 current_instruction.register_slot = [pulse.channel.index]
-                current_instruction.kernels = pulse.command.kernel.to_dict()
-                current_instruction.discriminators = pulse.command.discriminator.to_dict()
+                if run_config.meas_level < 2:
+                    current_instruction.kernels = pulse.command.kernel.to_dict()
+                if run_config.meas_level < 1:
+                    current_instruction.discriminators = pulse.command.discriminator.to_dict()
             elif isinstance(pulse.command, Snapshot):
                 current_instruction.label = pulse.command.label
                 current_instruction.type = pulse.command.type
@@ -88,7 +86,9 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
                 raise QiskitError('Invalid command is given, %s' % pulse.command.name)
             instructions.append(current_instruction)
 
-        experiments.append(QobjExperiment(instructions=instructions, header=experimentheader,
+        experiments.append(QobjExperiment(name=schedule.name,
+                                          instructions=instructions,
+                                          header=experimentheader,
                                           config=experimentconfig))
 
     return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,

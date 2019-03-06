@@ -55,8 +55,8 @@ class DAGCircuit:
         # Map from wire (Register,idx) to output nodes of the graph
         self.output_map = OrderedDict()
 
-        # Running count of the total number of nodes
-        self.node_counter = 0
+        # Stores the max id of a node added to the DAG
+        self._max_node_id = 0
 
         # Directed multigraph whose nodes are inputs, outputs, or operations.
         # Operation nodes have equal in- and out-degrees and carry
@@ -92,6 +92,14 @@ class DAGCircuit:
     def clbits(self):
         """Return a list of bits as (ClassicalRegister, index) pairs."""
         return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
+
+    @property
+    def node_counter(self):
+        """Deprecated usage to return max node id, now returns size of DAG"""
+        warnings.warn('Usage of node_counter to return the maximum node id is deprecated,'
+                      ' it now returns the number of nodes in the current DAG',
+                      DeprecationWarning, 2)
+        return len(self.multi_graph)
 
     # TODO: unused function. is it needed?
     def rename_register(self, regname, newname):
@@ -179,21 +187,27 @@ class DAGCircuit:
         """
         if wire not in self.wires:
             self.wires.append(wire)
-            self.node_counter += 1
-            self.input_map[wire] = self.node_counter
-            self.node_counter += 1
-            self.output_map[wire] = self.node_counter
-            in_node = self.input_map[wire]
-            out_node = self.output_map[wire]
-            self.multi_graph.add_edge(in_node, out_node)
-            self.multi_graph.node[in_node]["type"] = "in"
-            self.multi_graph.node[out_node]["type"] = "out"
-            self.multi_graph.node[in_node]["name"] = "%s[%s]" % (wire[0].name, wire[1])
-            self.multi_graph.node[out_node]["name"] = "%s[%s]" % (wire[0].name, wire[1])
-            self.multi_graph.node[in_node]["wire"] = wire
-            self.multi_graph.node[out_node]["wire"] = wire
-            self.multi_graph.adj[in_node][out_node][0]["name"] = "%s[%s]" % (wire[0].name, wire[1])
-            self.multi_graph.adj[in_node][out_node][0]["wire"] = wire
+            self._max_node_id += 1
+            input_map_wire = self.input_map[wire] = self._max_node_id
+
+            self._max_node_id += 1
+            output_map_wire = self.output_map[wire] = self._max_node_id
+
+            self.multi_graph.add_edge(input_map_wire,
+                                      output_map_wire)
+
+            wire_name = "%s[%s]" % (wire[0].name, wire[1])
+
+            self.multi_graph.add_nodes_from([(input_map_wire, {'type': 'in'}),
+                                             (output_map_wire, {'type': 'out'})
+                                             ],
+                                            name=wire_name,
+                                            wire=wire,
+                                            )
+            self.multi_graph.adj[input_map_wire][output_map_wire][0]["name"] \
+                = "%s[%s]" % (wire[0].name, wire[1])
+            self.multi_graph.adj[input_map_wire][output_map_wire][0]["wire"] \
+                = wire
         else:
             raise DAGCircuitError("duplicate wire %s" % (wire,))
 
@@ -252,18 +266,18 @@ class DAGCircuit:
             condition (tuple or None): optional condition (ClassicalRegister, int)
         """
         # Add a new operation node to the graph
-        self.node_counter += 1
-        self.multi_graph.add_node(self.node_counter)
+        self._max_node_id += 1
+        self.multi_graph.add_node(self._max_node_id)
         # Update the operation itself. TODO: remove after qargs not connected to op
         op.qargs = qargs
         op.cargs = cargs
         # Update that operation node's data
-        self.multi_graph.node[self.node_counter]["type"] = "op"
-        self.multi_graph.node[self.node_counter]["op"] = op
-        self.multi_graph.node[self.node_counter]["name"] = op.name
-        self.multi_graph.node[self.node_counter]["qargs"] = qargs
-        self.multi_graph.node[self.node_counter]["cargs"] = cargs
-        self.multi_graph.node[self.node_counter]["condition"] = condition
+        self.multi_graph.node[self._max_node_id]["type"] = "op"
+        self.multi_graph.node[self._max_node_id]["op"] = op
+        self.multi_graph.node[self._max_node_id]["name"] = op.name
+        self.multi_graph.node[self._max_node_id]["qargs"] = qargs
+        self.multi_graph.node[self._max_node_id]["cargs"] = cargs
+        self.multi_graph.node[self._max_node_id]["condition"] = condition
 
     def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
@@ -275,8 +289,12 @@ class DAGCircuit:
             cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
+        Returns:
+            int: the current max node id
+
         Raises:
             DAGCircuitError: if a leaf node is connected to multiple outputs
+
         """
         qargs = qargs or op.qargs
         cargs = cargs or op.cargs
@@ -298,11 +316,13 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise DAGCircuitError("output node has multiple in-edges")
 
-            self.multi_graph.add_edge(ie[0], self.node_counter,
+            self.multi_graph.add_edge(ie[0], self._max_node_id,
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
-            self.multi_graph.add_edge(self.node_counter, self.output_map[q],
+            self.multi_graph.add_edge(self._max_node_id, self.output_map[q],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+
+        return self._max_node_id
 
     def apply_operation_front(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the input of the circuit.
@@ -313,6 +333,9 @@ class DAGCircuit:
             qargs (list[tuple]): qubits that op will be applied to
             cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
+
+        Returns:
+            int: the current max node id
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
@@ -325,7 +348,6 @@ class DAGCircuit:
         self._check_condition(op.name, condition)
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
-
         self._add_op_node(op, qargs, cargs, condition)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
@@ -335,11 +357,13 @@ class DAGCircuit:
             ie = list(self.multi_graph.successors(self.input_map[q]))
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
-            self.multi_graph.add_edge(self.node_counter, ie[0],
+            self.multi_graph.add_edge(self._max_node_id, ie[0],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self.multi_graph.remove_edge(self.input_map[q], ie[0])
-            self.multi_graph.add_edge(self.input_map[q], self.node_counter,
+            self.multi_graph.add_edge(self.input_map[q], self._max_node_id,
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+
+        return self._max_node_id
 
     def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
@@ -817,10 +841,10 @@ class DAGCircuit:
                             al = [m_qargs, all_cbits]
                             for q in itertools.chain(*al):
                                 self.multi_graph.add_edge(full_pred_map[q],
-                                                          self.node_counter,
+                                                          self._max_node_id,
                                                           name="%s[%s]" % (q[0].name, q[1]),
                                                           wire=q)
-                                full_pred_map[q] = copy.copy(self.node_counter)
+                                full_pred_map[q] = copy.copy(self._max_node_id)
                     # Connect all predecessors and successors, and remove
                     # residual edges between input and output nodes
                     for w in full_pred_map:
@@ -934,10 +958,10 @@ class DAGCircuit:
                 al = [m_qargs, all_cbits]
                 for q in itertools.chain(*al):
                     self.multi_graph.add_edge(full_pred_map[q],
-                                              self.node_counter,
+                                              self._max_node_id,
                                               name="%s[%s]" % (q[0].name, q[1]),
                                               wire=q)
-                    full_pred_map[q] = copy.copy(self.node_counter)
+                    full_pred_map[q] = copy.copy(self._max_node_id)
         # Connect all predecessors and successors, and remove
         # residual edges between input and output nodes
         for w in full_pred_map:
@@ -1035,6 +1059,15 @@ class DAGCircuit:
                 two_q_nodes.append(self.multi_graph.node[node_id])
         return two_q_nodes
 
+    def twoQ_gates(self):
+        """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
+        snapshot, barriers, and the like."""
+        two_q_gates = []
+        for node_id, node_data in self.gate_nodes(data=True):
+            if len(node_data['qargs']) == 2:
+                two_q_gates.append(self.multi_graph.node[node_id])
+        return two_q_gates
+
     def get_3q_or_more_nodes(self):
         """Deprecated. Use threeQ_or_more_nodes()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
@@ -1120,6 +1153,47 @@ class DAGCircuit:
             nd = self.multi_graph.node[n]
             if nd["type"] == "op":
                 self._remove_op_node(n)
+
+    def remove_edge(self, node1, node2, wire=None):
+        """
+        Remove an edge from the DAG allowing the user to specify which edge if there are multiple
+        between the 2 nodes
+
+        Raises :
+            DAGCircuitError : if the edge doesn't exist in the graph
+        """
+
+        # If no wire is specified, remove a random edge between the 2 nodes
+        if not wire:
+            self.multi_graph.remove_edge(node1, node2)
+            return
+
+        for index, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                self.multi_graph.remove_edge(node1, node2, index)
+                return
+
+        raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist"
+                              % (node1, node2, str(wire)))
+
+    def has_edge(self, node1, node2, wire=None):
+        """
+        Check to see if edge exists between 2 DAG nodes, and optionally
+        if there is a connection on a specific wire
+
+        Returns :
+            boolean: True when an edge meeting the criteria exists
+        """
+
+        in_multi_graph = self.multi_graph.has_edge(node1, node2)
+
+        if not wire or not in_multi_graph:
+            return in_multi_graph
+
+        for _, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                return True
+        return False
 
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
@@ -1273,7 +1347,7 @@ class DAGCircuit:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = list(self.multi_graph.successors(s[0]))
-                if len(group) > 1:
+                if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
 

@@ -462,7 +462,8 @@ class MatplotlibDrawer:
         _wide_gate = 'u2 u3 cu2 cu3'.split()
         _barriers = {'coord': [], 'group': []}
         next_ops = self._ops.copy()
-        next_ops.pop(0)
+        if next_ops:
+            next_ops.pop(0)
         this_anc = 0
 
         #
@@ -682,8 +683,12 @@ class MatplotlibDrawer:
         #
         # adjust window size and draw horizontal lines
         #
-        max_anc = max([q_anchors[ii].get_index() for ii in self._qreg_dict])
-        n_fold = (max_anc - 1) // self._style.fold
+        anchors = [q_anchors[ii].get_index() for ii in self._qreg_dict]
+        if anchors:
+            max_anc = max(anchors)
+        else:
+            max_anc = 0
+        n_fold = max(0, max_anc - 1) // self._style.fold
         # window size
         if max_anc > self._style.fold > 0:
             self._cond['xmax'] = self._style.fold + 1

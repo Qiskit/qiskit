@@ -6,6 +6,9 @@ from qiskit.pulse import commands
 class PulseChannel(metaclass=ABCMeta):
     """Pulse Channel."""
 
+    supported = None
+    prefix = None
+
     @abstractmethod
     def __init__(self, index: int):
         self._index = index
@@ -16,10 +19,10 @@ class PulseChannel(metaclass=ABCMeta):
 
     @property
     def name(self) -> str:
-        return str(self)
-
-    def __str__(self):
         return '%s%d' % (self.__class__.prefix, self._index)
+
+    def __repr__(self):
+        return '%s(%s)' % (self.__class__.__name__, self._index)
 
     def __eq__(self, other):
         """Two channels are the same if they are of the same type, and have the same index.
