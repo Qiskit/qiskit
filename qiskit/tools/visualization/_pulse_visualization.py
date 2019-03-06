@@ -273,7 +273,7 @@ class PulseDrawer:
 
         # plot table
         default = self.style['sched2d']
-        if default['use_table']:
+        if default['use_table'] and len(table_data) > 0:
             # height
             ncols = default['table_cols']
             nrows = int(np.ceil(len(table_data)/ncols))
