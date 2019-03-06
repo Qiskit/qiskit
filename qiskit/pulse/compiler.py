@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=redefined-builtin
-def compile(schedules, backend, config=None, shots=1024, max_credits=10,
+def compile(schedules, backend, shots=1024, max_credits=10,
             seed=None, meas_level=1, memory_slot_size=100,
             meas_return="avg", rep_time=None, qobj_id=None):
     """Compile a list of pulses into a qobj.
@@ -35,7 +35,6 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
     Args:
         schedules (PulseSchedule or list[PulseSchedule]): pulses to execute.
         backend (BaseBackend): a backend to execute the circuits on.
-        config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
@@ -53,10 +52,6 @@ def compile(schedules, backend, config=None, shots=1024, max_credits=10,
     Returns:
         Qobj: the qobj to be run on the backends.
     """
-
-    if config:
-        warnings.warn('The `config` argument is deprecated and '
-                      'does not do anything', DeprecationWarning)
 
     run_config = RunConfig()
 
@@ -177,7 +172,7 @@ def embed_backend_defaults(schedule, backend):
                 pulse.command.discriminator = Discriminator(_d['name'], **_d['params'])
 
 
-def execute(schedules, backend, config=None, shots=1024, max_credits=10,
+def execute(schedules, backend, shots=1024, max_credits=10,
             seed=None, meas_level=1, memory_slot_size=100,
             meas_return="avg", rep_time=None, qobj_id=None):
     """Executes a set of pulses.
@@ -185,7 +180,6 @@ def execute(schedules, backend, config=None, shots=1024, max_credits=10,
     Args:
         schedules (PulseSchedule or list[PulseSchedule]): pulses to execute.
         backend (BaseBackend): a backend to execute the circuits on.
-        config (dict): dictionary of parameters (e.g. noise) used by runner
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
@@ -205,7 +199,7 @@ def execute(schedules, backend, config=None, shots=1024, max_credits=10,
     """
 
     qobj = compile(schedules, backend,
-                   config, shots, max_credits, seed,
+                   shots, max_credits, seed,
                    meas_level, memory_slot_size, meas_return,
                    rep_time, qobj_id)
 
