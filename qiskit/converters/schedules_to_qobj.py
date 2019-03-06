@@ -75,8 +75,10 @@ def schedules_to_qobj(schedules, user_qobj_header=None,
                 current_instruction.qubits = [pulse.channel.index]
                 current_instruction.memory_slot = [pulse.channel.index]
                 current_instruction.register_slot = [pulse.channel.index]
-                current_instruction.kernels = pulse.command.kernel.to_dict()
-                current_instruction.discriminators = pulse.command.discriminator.to_dict()
+                if run_config.meas_level < 2:
+                    current_instruction.kernels = pulse.command.kernel.to_dict()
+                if run_config.meas_level < 1:
+                    current_instruction.discriminators = pulse.command.discriminator.to_dict()
             elif isinstance(pulse.command, Snapshot):
                 current_instruction.label = pulse.command.label
                 current_instruction.type = pulse.command.type
@@ -84,7 +86,9 @@ def schedules_to_qobj(schedules, user_qobj_header=None,
                 raise QiskitError('Invalid command is given, %s' % pulse.command.name)
             instructions.append(current_instruction)
 
-        experiments.append(QobjExperiment(instructions=instructions, header=experimentheader,
+        experiments.append(QobjExperiment(name=schedule.name,
+                                          instructions=instructions,
+                                          header=experimentheader,
                                           config=experimentconfig))
 
     return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
