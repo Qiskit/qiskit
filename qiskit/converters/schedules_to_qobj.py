@@ -22,8 +22,8 @@ from qiskit.pulse.commands import *
 from qiskit.exceptions import QiskitError
 
 
-def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
-                      qobj_id=None):
+def schedules_to_qobj(schedules, user_qobj_header=None,
+                      run_config=None, qobj_id=None):
     """Convert a list of schedules into a qobj.
 
     Args:
@@ -53,14 +53,13 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
             if all(isinstance(ch, MeasureChannel) for ch in chs):
                 lo_freqs['meas_lo_freq'] = [ch.lo_frequency for ch in chs]
 
-
         # generate experimental configuration
         experimentconfig = QobjExperimentConfig(**lo_freqs)
 
         # generate experimental header
         experimentheader = QobjExperimentHeader(name=schedule.name)
 
-        #TODO: support conditional gate
+        # TODO: support conditional gate
         instructions = []
         for pulse in schedule.flat_pulse_sequence():
             current_instruction = QobjInstruction(name=pulse.command.name,
@@ -75,7 +74,7 @@ def schedules_to_qobj(schedules, user_qobj_header=None, run_config=None,
                 current_instruction.value = pulse.command.value
             elif isinstance(pulse.command, Acquire):
                 current_instruction.duration = pulse.command.duration
-                #TODO: do qubit-register mapping and acquire grouping
+                # TODO: do qubit-register mapping and acquire grouping
                 current_instruction.qubits = [pulse.channel.index]
                 current_instruction.memory_slot = [pulse.channel.index]
                 current_instruction.register_slot = [pulse.channel.index]

@@ -18,4 +18,3 @@ from .output_channel_register import (DriveChannelRegister,
 from .output_channel_register import OutputChannelRegister
 from .pulse_channel import AcquireChannel, SnapshotChannel
 from .pulse_channel import PulseChannel
-

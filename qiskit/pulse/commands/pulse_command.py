@@ -53,4 +53,3 @@ class PulseCommand:
     def __repr__(self):
         return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
                                              self.name, self.duration)
-
