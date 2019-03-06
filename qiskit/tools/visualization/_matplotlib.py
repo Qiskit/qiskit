@@ -306,10 +306,8 @@ class MatplotlibDrawer:
                 y_reg.append(qreg['y'])
         x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self._style.fold) * (
-                self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self._style.fold) * (
-                self._cond['n_lines'] + 1) + 0.5
+        box_y0 = min(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) - 0.5
+        box_y1 = max(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) + 0.5
         box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
                                 width=0.6 * WID, height=box_y1 - box_y0,
                                 fc=self._style.bc, ec=None, alpha=0.6,
@@ -690,8 +688,7 @@ class MatplotlibDrawer:
             for ii in range(max_anc):
                 if self._style.fold > 0:
                     x_coord = ii % self._style.fold + 1
-                    y_coord = - (ii // self._style.fold) * (
-                            self._cond['n_lines'] + 1) + 0.7
+                    y_coord = - (ii // self._style.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
                     x_coord = ii + 1
                     y_coord = 0.7
