@@ -18,7 +18,9 @@ from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjH
 from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.qobj.run_config import RunConfig
 from qiskit.qobj._utils import QobjType
-from qiskit.pulse.commands import *
+from qiskit.pulse.commands import (Acquire, FrameChange, FunctionalPulse,
+                                   PersistentValue, SamplePulse, Snapshot
+                                   )
 from qiskit.exceptions import QiskitError
 
 
