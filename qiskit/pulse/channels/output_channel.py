@@ -51,7 +51,6 @@ class OutputChannel(PulseChannel):
 class DriveChannel(OutputChannel):
     """Drive Channel."""
 
-    supported = OutputChannel.supported
     prefix = 'd'
 
     def __init__(self, index: int, lo_frequency: float = None):
@@ -66,7 +65,6 @@ class DriveChannel(OutputChannel):
 class ControlChannel(OutputChannel):
     """Control Channel."""
 
-    supported = OutputChannel.supported
     prefix = 'u'
 
     def __init__(self, index, lo_frequency: float = None):
@@ -81,7 +79,6 @@ class ControlChannel(OutputChannel):
 class MeasureChannel(OutputChannel):
     """Measure Channel."""
 
-    supported = OutputChannel.supported
     prefix = 'm'
 
     def __init__(self, index, lo_frequency: float = None):
