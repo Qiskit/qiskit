@@ -12,7 +12,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import List, Union
 
-from qiskit.pulse.channels import PulseChannel, ChannelBank
+from qiskit.pulse.channels import PulseChannel, ChannelStore
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
 from qiskit.pulse.exceptions import ScheduleError
 
@@ -70,7 +70,7 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 channel_bank: ChannelBank,
+                 channel_store: ChannelStore,
                  name: str = None
                  ):
         """Create empty schedule.
@@ -80,7 +80,7 @@ class PulseSchedule(TimedPulseBlock):
             name:
         """
         self._name = name
-        self._channel_bank = channel_bank
+        self._channel_store = channel_store
         self._children = []
 
     @property
@@ -88,8 +88,8 @@ class PulseSchedule(TimedPulseBlock):
         return self._name
 
     @property
-    def channels(self) -> ChannelBank:
-        return self._channel_bank
+    def channels(self) -> ChannelStore:
+        return self._channel_store
 
     def add(self,
             commands: Union[PulseCommand, List[PulseCommand]],
@@ -119,7 +119,7 @@ class PulseSchedule(TimedPulseBlock):
             block:
         """
         if isinstance(block, PulseSchedule):
-            if self._channel_bank != block._channel_bank:
+            if self._channel_store is not block._channel_store:
                 raise ScheduleError("Additional block must have the same channels as self")
 
         if self._is_occupied_time(block):

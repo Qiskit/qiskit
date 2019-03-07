@@ -7,7 +7,7 @@
 
 """Channel classes for pulse."""
 
-from .channel_bank import ChannelBank
+from .channel_store import ChannelStore
 from .channel_register import AcquireChannelRegister, SnapshotChannelRegister
 from .channel_register import ChannelRegister
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel

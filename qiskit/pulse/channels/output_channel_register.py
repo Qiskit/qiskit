@@ -54,10 +54,6 @@ class OutputChannelRegister(ChannelRegister):
             return True
         return False
 
-    def __hash__(self):
-        """Make object hashable."""
-        return hash((super().__hash__(), hash(self._channels)))
-
 
 class DriveChannelRegister(OutputChannelRegister):
     """Drive channel register."""
