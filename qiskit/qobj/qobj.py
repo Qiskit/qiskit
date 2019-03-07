@@ -56,6 +56,7 @@ class Qobj(BaseModel):
         schema_version (str): Qobj version.
     """
     def __init__(self, qobj_id, config, experiments, header, type, **kwargs):
+        # pylint: disable=redefined-builtin
         self.qobj_id = qobj_id
         self.config = config
         self.experiments = experiments

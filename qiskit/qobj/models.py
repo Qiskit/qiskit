@@ -100,6 +100,7 @@ class QobjConditional(BaseModel):
         val (str): hexadecimal value of the conditional
     """
     def __init__(self, mask, type, val, **kwargs):
+        # pylint: disable=redefined-builtin
         self.mask = mask
         self.type = type
         self.val = val
