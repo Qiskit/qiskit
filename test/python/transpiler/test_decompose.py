@@ -14,7 +14,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
 from qiskit.extensions.standard import HGate
 from qiskit.extensions.standard import ToffoliGate
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDecompose(QiskitTestCase):
@@ -29,7 +29,7 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.get_op_nodes(data=True)
+        op_nodes = after_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 1)
         self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
 
@@ -43,7 +43,7 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.get_op_nodes(data=True)
+        op_nodes = after_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
             op = node[1]["op"]
@@ -59,7 +59,7 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(ToffoliGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.get_op_nodes(data=True)
+        op_nodes = after_dag.op_nodes(data=True)
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             op = node[1]["op"]

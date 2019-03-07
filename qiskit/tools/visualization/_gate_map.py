@@ -7,9 +7,11 @@
 
 """A module for visualizing device coupling maps"""
 
-import matplotlib.pyplot as plt  # pylint: disable=import-error
-import matplotlib.patches as mpatches  # pylint: disable=import-error
-from qiskit.qiskiterror import QISKitError
+from qiskit.exceptions import QiskitError
+from ._matplotlib import HAS_MATPLOTLIB
+if HAS_MATPLOTLIB:
+    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.patches as mpatches
 
 
 class _GraphDist():
@@ -75,10 +77,14 @@ def plot_gate_map(backend, figsize=None,
         Figure: A Matplotlib figure instance.
 
     Raises:
-        QISKitError: Tried to pass a simulator.
+        QiskitError: if tried to pass a simulator.
+        ImportError: if matplotlib not installed.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
+
     if backend.configuration().simulator:
-        raise QISKitError('Requires a device backend, not simulator.')
+        raise QiskitError('Requires a device backend, not simulator.')
 
     mpl_data = {}
 

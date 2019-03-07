@@ -9,10 +9,10 @@
 Message broker for the Publisher / Subscriber mechanism
 """
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 
 
-class _Broker(object):
+class _Broker:
     """The event/message broker. It's a singleton.
 
     In order to keep consistency across all the components, it would be great to
@@ -114,7 +114,7 @@ class _Broker(object):
         self._subscribers.clear()
 
 
-class Publisher(object):
+class Publisher:
     """ Represents a Publisher, every component (class) can become a Publisher and
     send events by inheriting this class. Functions can call this class like:
     Publisher().publish("event", args, ... )
@@ -128,7 +128,7 @@ class Publisher(object):
         return self._broker.dispatch(event, *args, **kwargs)
 
 
-class Subscriber(object):
+class Subscriber:
     """ Represents a Subscriber, every component (class) can become a Subscriber and
     subscribe to events, that will call callback functions when they are emitted.
     """

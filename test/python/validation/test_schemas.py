@@ -5,12 +5,10 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
 """Test qiskit schema binding."""
 
-from test.python.common import QiskitTestCase
-
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.test import QiskitTestCase
 
 
 class TestSchemas(QiskitTestCase):

@@ -12,12 +12,12 @@ import re
 import logging
 import itertools
 
-from qiskit.qiskiterror import QiskitError, QiskitIndexError
+from qiskit.exceptions import QiskitError, QiskitIndexError
 
 logger = logging.getLogger(__name__)
 
 
-class Register(object):
+class Register:
     """Implement a generic register."""
 
     # Counter for the number of instances in this class.
@@ -56,26 +56,40 @@ class Register(object):
 
     def check_range(self, j):
         """Check that j is a valid index into self."""
-        if j < 0 or j >= self.size:
-            raise QiskitIndexError("register index out of range")
+        if isinstance(j, int):
+            if j < 0 or j >= self.size:
+                raise QiskitIndexError("register index out of range")
+            elif isinstance(j, slice):
+                if j.start < 0 or j.stop >= self.size or (j.step is not None and
+                                                          j.step <= 0):
+                    raise QiskitIndexError("register index slice out of range")
 
     def __getitem__(self, key):
         """
         Arg:
-            key (int): index of the bit/qubit to be retrieved.
+            key (int|slice|list): index of the bit/qubit to be retrieved.
 
         Returns:
-            tuple[Register, int]: a tuple in the form `(self, key)`.
+            tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
+                If key is a slice, return a `list((self,key))`.
 
         Raises:
             QiskitError: if the `key` is not an integer.
             QiskitIndexError: if the `key` is not in the range
                 `(0, self.size)`.
         """
-        if not isinstance(key, int):
-            raise QiskitError("expected integer index into register")
+        if not isinstance(key, (int, slice, list)):
+            raise QiskitError("expected integer or slice index into register")
         self.check_range(key)
-        return self, key
+        if isinstance(key, slice):
+            return [(self, ind) for ind in range(*key.indices(len(self)))]
+        elif isinstance(key, list):  # list of qubit indices
+            if max(key) < len(self):
+                return [(self, ind) for ind in key]
+            else:
+                raise QiskitError('register index out of range')
+        else:
+            return self, key
 
     def __iter__(self):
         """
@@ -104,4 +118,4 @@ class Register(object):
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        return hash(str(type(self)) + self.name + str(self.size))
+        return hash((type(self), self.name, self.size))

@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=redefined-builtin
+# pylint: disable=unused-import
 
 """Tests for the converters."""
 
@@ -19,7 +20,8 @@ from qiskit import compile
 from qiskit.qobj import Qobj
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
+import qiskit.extensions.simulator
 
 
 class TestQobjToCircuits(QiskitTestCase):
@@ -97,8 +99,6 @@ class TestQobjToCircuits(QiskitTestCase):
         """Check that qobj_to_circuits's result matches the qobj ini."""
         backend = BasicAer.get_backend('qasm_simulator')
         qobj_in = compile(self.circuit, backend, pass_manager=PassManager())
-        for i in qobj_in.experiments:
-            del i.header.compiled_circuit_qasm
         out_circuit = qobj_to_circuits(qobj_in)
         self.assertEqual(circuit_to_dag(out_circuit[0]), self.dag)
 
@@ -116,8 +116,6 @@ class TestQobjToCircuits(QiskitTestCase):
         circuit_b.measure(qreg2[0], creg2[1])
         qobj = compile([self.circuit, circuit_b], backend,
                        pass_manager=PassManager())
-        for i in qobj.experiments:
-            del i.header.compiled_circuit_qasm
 
         dag_list = [circuit_to_dag(x) for x in qobj_to_circuits(qobj)]
         self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])

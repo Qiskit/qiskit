@@ -8,12 +8,12 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
 
@@ -36,8 +36,6 @@ class FredkinGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(3, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("cx", 2, 0, 0)
-        decomposition.add_basis_element("ccx", 3, 0, 0)
         rule = [
             CnotGate(q[2], q[1]),
             ToffoliGate(q[0], q[1], q[2]),
@@ -56,17 +54,9 @@ class FredkinGate(Gate):
         self._modifiers(circ.cswap(self.qargs[0], self.qargs[1], self.qargs[2]))
 
 
+@_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-    if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt1, QuantumRegister) and \
-       isinstance(tgt2, QuantumRegister) and \
-       len(ctl) == len(tgt1) and len(ctl) == len(tgt2):
-        instructions = InstructionSet()
-        for i in range(ctl.size):
-            instructions.add(self.cswap((ctl, i), (tgt1, i), (tgt2, i)))
-        return instructions
-
     self._check_qubit(ctl)
     self._check_qubit(tgt1)
     self._check_qubit(tgt2)
@@ -75,3 +65,4 @@ def cswap(self, ctl, tgt1, tgt2):
 
 
 QuantumCircuit.cswap = cswap
+CompositeGate.cswap = cswap

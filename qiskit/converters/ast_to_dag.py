@@ -14,7 +14,7 @@ from collections import OrderedDict
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
@@ -63,14 +63,12 @@ def ast_to_dag(ast):
         QiskitError: if the AST is malformed.
     """
     dag = DAGCircuit()
-    # default_basis = set(['U', 'CX', 'measure', 'reset', 'barrier',
-    #                      'snapshot', 'noise', 'save', 'load'])
     AstInterpreter(dag)._process_node(ast)
 
     return dag
 
 
-class AstInterpreter(object):
+class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
     def __init__(self, dag):
@@ -172,7 +170,6 @@ class AstInterpreter(object):
             de_gate["body"] = None
         else:
             de_gate["body"] = node.body
-        self.dag.add_gate_data(node.name, de_gate)
 
     def _process_cnot(self, node):
         """Process a CNOT gate node."""
@@ -306,13 +303,13 @@ class AstInterpreter(object):
                               "file=%s" % node.file)
         return None
 
-    def _create_dag_op(self, name, param, qargs):
+    def _create_dag_op(self, name, params, qargs):
         """
         Create a DAG node out of a parsed AST op node.
 
         Args:
             name (str): operation name to apply to the dag.
-            param (list): op parameters
+            params (list): op parameters
             qargs (list(QuantumRegister, int)): qubits to attach to
 
         Raises:
@@ -375,7 +372,6 @@ class AstInterpreter(object):
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 
-        op = op_class(*param, *qargs)
+        op = op_class(*params, *qargs)
 
-        self.dag.add_basis_element(name, len(qargs), 0, len(param))
         self.dag.apply_operation_back(op, condition=self.condition)

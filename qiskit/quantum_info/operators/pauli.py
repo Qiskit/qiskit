@@ -5,19 +5,18 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,assignment-from-no-return
 
 """
 Tools for working with Pauli Operators.
 
 A simple pauli class and some tools.
 """
-import warnings
 
 import numpy as np
 from scipy import sparse
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 def _make_np_bool(arr):
@@ -214,22 +213,6 @@ class Pauli:
     def __hash__(self):
         """Make object is hashable, based on the pauli label to hash."""
         return hash(str(self))
-
-    @property
-    def v(self):
-        """Old getter of z."""
-        warnings.warn('Accessing property `v` is deprecated, please access `z` instead,'
-                      'Furthermore, use the `update_z` method if you would like to update'
-                      'the z vector', DeprecationWarning)
-        return self._z
-
-    @property
-    def w(self):
-        """Old getter of x."""
-        warnings.warn('Accessing property `w` is deprecated, please access `x` instead,'
-                      'Furthermore, use the `update_x` method if you would like to update'
-                      'the x vector', DeprecationWarning)
-        return self._x
 
     @property
     def z(self):
@@ -441,15 +424,17 @@ class Pauli:
         return self
 
     @classmethod
-    def random(cls, num_qubits):
+    def random(cls, num_qubits, seed=None):
         """Return a random Pauli on number of qubits.
 
         Args:
             num_qubits (int): the number of qubits
-
+            seed (int): Optional. To set a random seed.
         Returns:
             Pauli: the random pauli
         """
+        if seed is not None:
+            np.random.seed(seed)
         z = np.random.randint(2, size=num_qubits).astype(np.bool)
         x = np.random.randint(2, size=num_qubits).astype(np.bool)
         return cls(z, x)
@@ -530,15 +515,6 @@ def pauli_group(number_of_qubits, case='weight'):
     """
     if number_of_qubits < 5:
         temp_set = []
-        if isinstance(case, int):
-            warnings.warn('Passing case as integer is deprecated, please pass `weight`'
-                          ' or `tensor` instead,', DeprecationWarning)
-            if case == 0:
-                case = 'weight'
-            elif case == 1:
-                case = 'tensor'
-            else:
-                case = 'na'
 
         if case == 'weight':
             tmp = pauli_group(number_of_qubits, case='tensor')

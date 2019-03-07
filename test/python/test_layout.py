@@ -12,8 +12,8 @@ import unittest
 
 from qiskit import QuantumRegister
 from qiskit.mapper import Layout
-from qiskit.mapper._layout import LayoutError
-from .common import QiskitTestCase
+from qiskit.mapper.exceptions import LayoutError
+from qiskit.test import QiskitTestCase
 
 
 class LayoutTest(QiskitTestCase):
@@ -21,6 +21,18 @@ class LayoutTest(QiskitTestCase):
 
     def setUp(self):
         self.qr = QuantumRegister(3, 'qr')
+
+    def test_default_layout(self):
+        """Static method generate_trivial_layout creates a Layout"""
+        qr0 = QuantumRegister(3, 'q0')
+        qr1 = QuantumRegister(2, 'q1')
+        layout = Layout.generate_trivial_layout(qr0, qr1)
+
+        self.assertEqual(layout[(qr0, 0)], 0)
+        self.assertEqual(layout[(qr0, 1)], 1)
+        self.assertEqual(layout[(qr0, 2)], 2)
+        self.assertEqual(layout[(qr1, 0)], 3)
+        self.assertEqual(layout[(qr1, 1)], 4)
 
     def test_layout_from_dict(self):
         """Constructor from a dict"""
@@ -63,28 +75,47 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(self.qr, 0)], 0)
         self.assertEqual(layout[0], (self.qr, 0))
 
+    def test_layout_avoid_dangling_physical(self):
+        """ No dangling pointers for physical qubits."""
+        layout = Layout({(self.qr, 0): 0})
+        self.assertEqual(layout[0], (self.qr, 0))
+        layout[(self.qr, 0)] = 1
+        with self.assertRaises(KeyError):
+            _ = layout[0]
+
+    def test_layout_avoid_dangling_virtual(self):
+        """ No dangling pointers for virtual qubits."""
+        layout = Layout({(self.qr, 0): 0})
+        self.assertEqual(layout[0], (self.qr, 0))
+        layout[0] = (self.qr, 1)
+        with self.assertRaises(KeyError):
+            print(layout[(self.qr, 0)])
+
     def test_layout_len(self):
         """Length of the layout is the amount of physical bits"""
         layout = Layout()
         self.assertEqual(len(layout), 0)
-        layout.add((self.qr, 0))
+        layout.add((self.qr, 2))
         self.assertEqual(len(layout), 1)
         layout.add((self.qr, 1), 3)
-        self.assertEqual(len(layout), 4)
+        self.assertEqual(len(layout), 2)
 
-    def test_layout_set_len(self):
-        """Length setter"""
+    def test_layout_len_with_idle(self):
+        """Length of the layout is the amount of physical bits"""
         layout = Layout()
+        self.assertEqual(len(layout), 0)
+        layout.add((self.qr, 2))
+        self.assertEqual(len(layout), 1)
         layout.add((self.qr, 1), 3)
-        layout.set_length(4)
-        self.assertEqual(len(layout), 4)
+        self.assertEqual(len(layout), 2)
 
     def test_layout_idle_physical_bits(self):
         """Get physical_bits that are not mapped"""
         layout = Layout()
         layout.add((self.qr, 1), 2)
-        layout.set_length(4)
-        self.assertEqual(layout.idle_physical_bits(), [0, 1, 3])
+        layout.add(None, 4)
+        layout.add(None, 6)
+        self.assertEqual(layout.idle_physical_bits(), [4, 6])
 
     def test_layout_get_bits(self):
         """Get the map from the (qu)bits view"""
@@ -119,6 +150,22 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 1)
         self.assertEqual(layout[(QuantumRegister(1, 'q1'), 0)], 2)
+
+    def test_physical_keyerror(self):
+        """When asking for an unexistant physical qubit, KeyError"""
+        layout = Layout()
+        layout[(self.qr, 0)] = 1
+
+        with self.assertRaises(KeyError):
+            _ = layout[0]
+
+    def test_virtual_keyerror(self):
+        """When asking for an unexistant virtual qubit, KeyError"""
+        layout = Layout()
+        layout[(self.qr, 0)] = 1
+
+        with self.assertRaises(KeyError):
+            _ = layout[(self.qr, 1)]
 
     def test_layout_swap(self):
         """swap() method"""
@@ -161,6 +208,14 @@ class LayoutTest(QiskitTestCase):
         edge_map = layout.combine_into_edge_map(another_layout)
         self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
 
+    def test_set_virtual_without_physical(self):
+        """When adding a virtual without care in which physical is going"""
+        layout = Layout()
+        layout.add((self.qr, 1), 2)
+        layout.add((self.qr, 0))
+
+        self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 2})
+
     def test_layout_combine_smaller(self):
         """combine_into_edge_map() method with another_layout is smaller and raises an Error"""
         layout = Layout()
@@ -182,15 +237,38 @@ class LayoutTest(QiskitTestCase):
 
         layout_dict_copy = layout.copy()
         self.assertTrue(isinstance(layout_dict_copy, Layout))
-        self.assertDictEqual(layout, layout_dict_copy)
+        self.assertDictEqual(layout.get_physical_bits(), layout_dict_copy.get_physical_bits())
+        self.assertDictEqual(layout.get_virtual_bits(), layout_dict_copy.get_virtual_bits())
 
         layout_copy_copy = copy.copy(layout)
         self.assertTrue(isinstance(layout_copy_copy, Layout))
-        self.assertDictEqual(layout, layout_copy_copy)
+        self.assertDictEqual(layout.get_physical_bits(), layout_dict_copy.get_physical_bits())
+        self.assertDictEqual(layout.get_virtual_bits(), layout_dict_copy.get_virtual_bits())
 
         layout_copy_deepcopy = copy.deepcopy(layout)
         self.assertTrue(isinstance(layout_copy_deepcopy, Layout))
-        self.assertDictEqual(layout, layout_copy_deepcopy)
+        self.assertDictEqual(layout.get_physical_bits(), layout_dict_copy.get_physical_bits())
+        self.assertDictEqual(layout.get_virtual_bits(), layout_dict_copy.get_virtual_bits())
+
+    def test_layout_error_str_key(self):
+        """Layout does not work with strings"""
+        layout = Layout()
+
+        with self.assertRaises(LayoutError):
+            layout['a_string'] = 3
+
+        with self.assertRaises(LayoutError):
+            layout[2] = 'a_string'
+
+    def test_layout_error_when_same_type(self):
+        """Layout does not work when key and value are the same type"""
+        layout = Layout()
+
+        with self.assertRaises(LayoutError):
+            layout[(self.qr, 0)] = (self.qr, 1)
+
+        with self.assertRaises(LayoutError):
+            layout[0] = 1
 
 
 if __name__ == '__main__':

@@ -19,9 +19,10 @@ from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
-from qiskit.dagcircuit._dagcircuiterror import DAGCircuitError
+from qiskit.extensions.standard.barrier import Barrier
+from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestDagRegisters(QiskitTestCase):
@@ -44,12 +45,12 @@ class TestDagRegisters(QiskitTestCase):
         dag.add_qreg(QuantumRegister(1, 'qr3'))
         dag.add_qreg(QuantumRegister(1, 'qr4'))
         dag.add_qreg(QuantumRegister(1, 'qr6'))
-        self.assertListEqual(dag.get_qubits(), [(QuantumRegister(1, 'qr1'), 0),
-                                                (QuantumRegister(1, 'qr10'), 0),
-                                                (QuantumRegister(1, 'qr0'), 0),
-                                                (QuantumRegister(1, 'qr3'), 0),
-                                                (QuantumRegister(1, 'qr4'), 0),
-                                                (QuantumRegister(1, 'qr6'), 0)])
+        self.assertListEqual(dag.qubits(), [(QuantumRegister(1, 'qr1'), 0),
+                                            (QuantumRegister(1, 'qr10'), 0),
+                                            (QuantumRegister(1, 'qr0'), 0),
+                                            (QuantumRegister(1, 'qr3'), 0),
+                                            (QuantumRegister(1, 'qr4'), 0),
+                                            (QuantumRegister(1, 'qr6'), 0)])
 
     def test_add_reg_duplicate(self):
         """ add_qreg with the same register twice is not allowed."""
@@ -91,12 +92,6 @@ class TestDagOperations(QiskitTestCase):
         creg = ClassicalRegister(2, 'cr')
         self.dag.add_qreg(qreg)
         self.dag.add_creg(creg)
-        self.dag.add_basis_element(name='h', number_qubits=1,
-                                   number_classical=0, number_parameters=0)
-        self.dag.add_basis_element('cx', 2, 0, 0)
-        self.dag.add_basis_element('x', 1, 0, 0)
-        self.dag.add_basis_element('measure', 1, 1, 0)
-        self.dag.add_basis_element('reset', 1, 0, 0)
 
         self.qubit0 = qreg[0]
         self.qubit1 = qreg[1]
@@ -120,32 +115,32 @@ class TestDagOperations(QiskitTestCase):
         """The apply_operation_front() method"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_front(Reset(self.qubit0))
-        h_node = self.dag.get_op_nodes(op=HGate).pop()
-        reset_node = self.dag.get_op_nodes(op=Reset).pop()
+        h_node = self.dag.op_nodes(op=HGate).pop()
+        reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.multi_graph.predecessors(h_node)))
 
     def test_get_op_nodes_all(self):
-        """The method dag.get_op_nodes() returns all op nodes"""
+        """The method dag.op_nodes() returns all op nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
-        op_nodes = self.dag.get_op_nodes()
+        op_nodes = self.dag.op_nodes()
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
             self.assertIsInstance(self.dag.multi_graph.nodes[node]["op"], Instruction)
 
     def test_get_op_nodes_particular(self):
-        """The method dag.get_gates_nodes(op=AGate) returns all the AGate nodes"""
+        """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(HGate(self.qubit1))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
 
-        op_nodes = self.dag.get_op_nodes(op=HGate)
+        op_nodes = self.dag.op_nodes(op=HGate)
         self.assertEqual(len(op_nodes), 2)
 
         op_node_1 = op_nodes.pop()
@@ -160,7 +155,7 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
-        successor_measure = self.dag.quantum_successors(self.dag.get_named_nodes('measure').pop())
+        successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop())
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
         self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
@@ -171,18 +166,33 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(self.dag.multi_graph.nodes[successor_cnot[1]]["op"], Reset)
 
     def test_get_gates_nodes(self):
-        """The method dag.get_gate_nodes() returns all gate nodes"""
+        """The method dag.gate_nodes() returns all gate nodes"""
         self.dag.apply_operation_back(HGate(self.qubit0))
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Barrier((self.qubit0, self.qubit1)))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
-        op_nodes = self.dag.get_gate_nodes()
+        op_nodes = self.dag.gate_nodes()
         self.assertEqual(len(op_nodes), 2)
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
         self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
+
+    def test_two_q_gates(self):
+        """The method dag.twoQ_gates() returns all 2Q gate nodes"""
+        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(Barrier((self.qubit0, self.qubit1)))
+        self.dag.apply_operation_back(Reset(self.qubit0))
+
+        op_nodes = self.dag.twoQ_gates()
+        self.assertEqual(len(op_nodes), 1)
+
+        op_node = op_nodes.pop()
+        self.assertIsInstance(op_node["op"], Gate)
+        self.assertEqual(len(op_node['qargs']), 2)
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""
@@ -194,7 +204,7 @@ class TestDagOperations(QiskitTestCase):
 
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
-        named_nodes = self.dag.get_named_nodes('cx')
+        named_nodes = self.dag.named_nodes('cx')
         node_qargs = {tuple(self.dag.multi_graph.node[node_id]["op"].qargs)
                       for node_id in named_nodes}
         expected_qargs = {
@@ -212,8 +222,37 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(HGate(self.qubit2))
 
         named_nodes = self.dag.node_nums_in_topological_order()
-        self.assertEqual([9, 10, 7, 8, 5, 3, 1, 11, 13, 4, 12, 14, 15, 6, 2],
+        self.assertEqual([1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 4, 14, 2, 15, 6],
                          [i for i in named_nodes])
+
+    def test_dag_has_edge(self):
+        """ Test that existence of edges between nodes is correctly identified"""
+        self.assertTrue(self.dag.has_edge(1, 2))
+        self.assertTrue(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 0)))
+        self.assertFalse(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 1)))
+
+        self.assertFalse(self.dag.has_edge(1, 3))
+        self.assertFalse(self.dag.has_edge(1, 3, (QuantumRegister(3, 'qr'), 0)))
+
+    def test_dag_remove_edge(self):
+        """ Test that removing an edge as specified by a wire removes the correct edge"""
+
+        q = QuantumRegister(2, 'qr')
+        qc = QuantumCircuit(q)
+        qc.cx(q[0], q[1])
+        qc.cx(q[0], q[1])
+
+        dag = circuit_to_dag(qc)
+
+        node1 = 5
+        node2 = 6
+        wire = (QuantumRegister(2, 'qr'), 0)
+
+        self.assertTrue(dag.has_edge(node1, node2, wire))
+        dag.remove_edge(node1, node2, wire)
+        self.assertFalse(dag.has_edge(node1, node2, wire))
+
+        self.assertRaises(DAGCircuitError, dag.remove_edge, node1, node2, wire)
 
 
 class TestDagLayers(QiskitTestCase):
@@ -229,10 +268,6 @@ class TestDagLayers(QiskitTestCase):
         clbit1 = creg[1]
         condition = (creg, 3)
         dag = DAGCircuit()
-        dag.add_basis_element('h', 1, 0, 0)
-        dag.add_basis_element('cx', 2, 0, 0)
-        dag.add_basis_element('x', 1, 0, 0)
-        dag.add_basis_element('measure', 1, 1, 0)
         dag.add_qreg(qreg)
         dag.add_creg(creg)
         dag.apply_operation_back(HGate(qubit0))
@@ -374,12 +409,6 @@ class TestDagSubstitute(QiskitTestCase):
         creg = ClassicalRegister(2, 'cr')
         self.dag.add_qreg(qreg)
         self.dag.add_creg(creg)
-        self.dag.add_basis_element(name='h', number_qubits=1,
-                                   number_classical=0, number_parameters=0)
-        self.dag.add_basis_element('cx', 2, 0, 0)
-        self.dag.add_basis_element('x', 1, 0, 0)
-        self.dag.add_basis_element('measure', 1, 1, 0)
-        self.dag.add_basis_element('reset', 1, 0, 0)
 
         self.qubit0 = qreg[0]
         self.qubit1 = qreg[1]
@@ -394,13 +423,11 @@ class TestDagSubstitute(QiskitTestCase):
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
-        cx_node = self.dag.get_op_nodes(op=CnotGate).pop()
+        cx_node = self.dag.op_nodes(op=CnotGate).pop()
 
         flipped_cx_circuit = DAGCircuit()
         v = QuantumRegister(2, "v")
         flipped_cx_circuit.add_qreg(v)
-        flipped_cx_circuit.add_basis_element("cx", 2)
-        flipped_cx_circuit.add_basis_element("h", 1)
         flipped_cx_circuit.apply_operation_back(HGate(v[0]))
         flipped_cx_circuit.apply_operation_back(HGate(v[1]))
         flipped_cx_circuit.apply_operation_back(CnotGate(v[1], v[0]))

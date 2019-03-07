@@ -12,7 +12,7 @@ Doing so requires that the required backend interface is implemented.
 """
 from abc import ABC, abstractmethod
 
-import qiskit
+from qiskit.version import __version__
 from .models import BackendStatus
 
 
@@ -75,7 +75,7 @@ class BaseBackend(ABC):
             BackendStatus: the status of the backend.
         """
         return BackendStatus(backend_name=self.name(),
-                             backend_version=qiskit.__version__,
+                             backend_version=__version__,
                              operational=True,
                              pending_jobs=0,
                              status_msg='')

@@ -10,11 +10,11 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.transpiler import MapperError
+from qiskit.transpiler import TranspilerError
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCXDirection(QiskitTestCase):
@@ -54,12 +54,12 @@ class TestCXDirection(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CXDirection(coupling)
 
-        with self.assertRaises(MapperError):
+        with self.assertRaises(TranspilerError):
             pass_.run(dag)
 
     def test_direction_correct(self):
@@ -73,7 +73,7 @@ class TestCXDirection(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = CouplingMap([(0, 1)])
+        coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CXDirection(coupling)
@@ -96,7 +96,7 @@ class TestCXDirection(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])
-        coupling = CouplingMap([(0, 1)])
+        coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
@@ -133,7 +133,7 @@ class TestCXDirection(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[1], qr[0])
         circuit.measure(qr[0], cr[0])
-        coupling = CouplingMap([(0, 1)])
+        coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)

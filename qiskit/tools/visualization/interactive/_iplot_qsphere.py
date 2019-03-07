@@ -18,7 +18,7 @@ from string import Template
 import numpy as np
 from scipy import linalg
 from qiskit.tools.visualization._utils import _validate_input_state
-from qiskit.tools.visualization import VisualizationError
+from qiskit.tools.visualization.exceptions import VisualizationError
 
 
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):

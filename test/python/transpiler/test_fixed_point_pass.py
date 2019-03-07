@@ -10,7 +10,7 @@
 import unittest
 from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import FixedPoint
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestFixedPointPass(QiskitTestCase):

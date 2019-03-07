@@ -48,9 +48,10 @@ the pull request,  including a link to accept the agreement. The
 `individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
 available for review as a PDF.
 
-NOTE: If you work for a company that wants to allow you to contribute your work,
-then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
-and email it to us at qiskit@us.ibm.com.
+.. note::
+    If you work for a company that wants to allow you to contribute your work,
+    then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
+    and email it to us at qiskit@us.ibm.com.
 
 
 Good first contributions
@@ -139,151 +140,8 @@ A good example:
 Installing Qiskit Terra from source
 -----------------------------------
 
-This section include some tips that will help you install and push source code.
-
-.. note::
-
-    We recommend using `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`__
-    to cleanly separate Qiskit from other applications and improve your experience.
-
-
-Setup with an environment
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The simplest way to use environments is by using Anaconda
-
-.. code:: sh
-
-    conda create -y -n QiskitDevenv python=3
-    source activate QiskitDevenv
-
-For the python code, we need some libraries that can be installed in this way:
-
-.. code:: sh
-
-    cd qiskit-terra
-    pip install -r requirements.txt
-    pip install -r requirements-dev.txt
-
-To get the examples working try  
-
-.. code:: sh
-
-    $ pip install -e .
- 
-and then you can run them with 
-
-.. code:: sh
-
-    $ python examples/python/using_qiskit_terra_level_0.py
-
-We recommend that after setting up Terra you set up Aer to get more advanced simulators.  
-
-Building the legacy simulators
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note::
-
-    These will become obsolete in Terra 0.8 
-
-Dependencies
-""""""""""""
-
-Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
-installed. As we will deal with languages that build native binaries, we will
-need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
-
-On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
-we only support `MinGW64 <http://mingw-w64.org>`_ at the moment.
-Note that a prerequiste for the C++ toolchain is that C++14 must be supported.
-
-Building
-""""""""
-
-The preferred way CMake is meant to be used, is by setting up an "out of source" build.
-So in order to build our native code, we have to follow these steps:
-
-Linux and Mac
-
-.. code::
-
-    qiskit-terra$ mkdir out
-    qiskit-terra$ cd out
-    qiskit-terra/out$ cmake ..
-    qiskit-terra/out$ make
-
-Windows
-
-.. code::
-
-    C:\..\> mkdir out
-    C:\..\> cd out
-    C:\..\out> cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a -G "MinGW Makefiles" ..
-    C:\..\out> make
-
-As you can see, the Windows cmake command invocation is slightly different from
-the Linux and Mac version, this is because we need to provide CMake with some
-more info about where to find libphreads.a for later building. Furthermore,
-we are forcing CMake to generate MingGW makefiles, because we don't support
-other toolchain at the moment.
-
-Useful CMake flags
-""""""""""""""""""
-
-There are some useful flags that can be set during cmake command invocation and
-will help you change some default behavior. To make use of them, you just need to
-pass them right after ``-D`` cmake argument. Example:
-.. code::
-
-    qiskit-terra/out$ cmake -DUSEFUL_FLAG=Value ..
-
-Flags:
-
-USER_LIB_PATH
-    This flag tells CMake to look for libraries that are needed by some of the native
-    components to be built, but they are not in a common place where CMake could find
-    it automatically.
-    Values: An absolute path with file included.
-    Default: No value.
-    Example: ``cmake -DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a ..``
-
-STATIC_LINKING
-    Tells the build system whether to create static versions of the programs being built or not.
-    Notes: On MacOS static linking is not fully working for all versions of GNU G++/Clang
-    compilers, so enable this flag in this platform could cause errors.
-    Values: True|False
-    Default: False
-    Example: ``cmake -DSTATIC_LINKING=True ..``
-
-CMAKE_BUILD_TYPE
-    Tells the build system to create executables/libraries for debugging purposes
-    or highly optimized binaries ready for distribution.
-    Values: Debug|Release
-    Default: "Release"
-    Example: ``cmake -DCMAKE_BUILD_TYPE="Debug" ..``
-
-ENABLE_TARGETS_NON_PYTHON
-    We can enable or disable non-python code generation by setting this flag to True or False
-    respectively. This is mostly used in our CI systems so they can launch some fast tests
-    for the Python code (which is currently a majority).
-    Values: True|False
-    Default: True
-    Example: ``cmake -DENABLE_TARGETS_NON_PYTHON=True ..``
-
-ENABLE_TARGETS_QA
-    We can enable or disable QA stuff (lintering, styling and testing) by setting this flag to
-    True or False respectively. This is mostly used in our CI systems so they can run light
-    stages pretty fast, and fail fast if they found any issues within the code.
-    Values: True|False
-    Default: True
-    Example: ``cmake -DENABLE_TARGETS_QA=True ..``
-
-WHEEL_TAG
-    This is used to force platform specific tag name generation when creating wheels package
-    for Pypi.
-    Values: "-pWhateverTagName"
-    Default: No value.
-    Example: ``cmake -DWHEEL_TAG="-pmanylinux1_x86_64" ..``
+Please see the `Installing Qiskit Terra from Source <https://qiskit.org/documentation/install/terra.html>`_
+section of the Qiskit documentation.
 
 
 Test
@@ -365,6 +223,10 @@ The order of precedence in the options is right to left. For example,
 ``QISKIT_TESTS=skip_online,rec`` will set the options as
 ``skip_online == False`` and ``rec == True``.
 
+Alternatively, the ``make test_ci`` target can be used instead of ``make test``
+in order to run in a setup that replicates the configuration we used in our
+CI systems more closely.
+
 Style guide
 ~~~~~~~~~~~
 
@@ -386,29 +248,13 @@ All platforms:
 Documentation
 -------------
 
-The documentation Qiskit Terra is in the ``doc`` directory. The
-documentation is auto-generated from python
-docstrings using `Sphinx <http://www.sphinx-doc.org>`_ for generating the
-documentation. Please follow `Google's Python Style
+The documentation for Qiskit Terra is in the ``docs`` directory of `Qiskit repository <https://github.com/Qiskit/qiskit/tree/master/docs>`_. See this repository for more information, however, the reference 
+documentation is auto-generated from the python
+docstrings throughout the code using `Sphinx <http://www.sphinx-doc.org>`_. Please follow `Google's Python Style
 Guide <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_
 for docstrings. A good example of the style can also be found with
 `sphinx's napolean converter
 documentation <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_.
-You can see the rendered documentation for the stable version of Qiskit Terra at
-the `landing page <https://qiskit.org/terra>`_.
-
-To generate the documentation, we need to invoke CMake first in order to generate
-all specific files for our current platform.
-
-See the previous *Building* section for details on how to run CMake.
-Once CMake is invoked, all configuration files are in place, so we can build the
-documentation running this command:
-
-All platforms:
-
-.. code:: sh
-
-    $> make doc
 
 
 Development cycle

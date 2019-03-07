@@ -46,8 +46,10 @@ from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.mapper import Layout, MapperError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.mapper import Layout
+
+from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -56,15 +58,17 @@ SEARCH_WIDTH = 4
 class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs."""
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, initial_layout=None):
         """Initialize a LookaheadSwap instance.
 
         Arguments:
             coupling_map (CouplingMap): CouplingMap of the target backend.
+            initial_layout (Layout): The initial layout of the DAG to analyze.
         """
 
         super().__init__()
         self._coupling_map = coupling_map
+        self.initial_layout = initial_layout
         self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
@@ -74,27 +78,30 @@ class LookaheadSwap(TransformationPass):
             dag (DAGCircuit): the directed acyclic graph to be mapped
         Returns:
             DAGCircuit: A dag mapped to be compatible with the coupling_map in
-              the property_set.
+                the property_set.
         Raises:
-            MapperError: If the provided DAG has more qubits than are available
-              in the coupling map.
-
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
 
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
-        if len(dag.get_qubits()) > len(coupling_map.physical_qubits):
-            raise MapperError('DAG contains more qubits than are present in the coupling map.')
+        if self.initial_layout is None:
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        dag_qubits = dag.get_qubits()
-        coupling_qubits = coupling_map.physical_qubits
+        if len(dag.qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        starting_layout = [dag_qubits[i] if i < len(dag_qubits) else None
-                           for i in range(len(coupling_qubits))]
+        if len(self._coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         mapped_gates = []
-        layout = Layout(starting_layout)
+        layout = self.initial_layout.copy()
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:
@@ -264,12 +271,6 @@ def _copy_circuit_metadata(source_dag, coupling_map):
 
     device_qreg = QuantumRegister(len(coupling_map.physical_qubits), 'q')
     target_dag.add_qreg(device_qreg)
-
-    for name, (num_qbits, num_cbits, num_params) in source_dag.basis.items():
-        target_dag.add_basis_element(name, num_qbits, num_cbits, num_params)
-
-    for name, gate_data in source_dag.gates.items():
-        target_dag.add_gate_data(name, gate_data)
 
     return target_dag
 

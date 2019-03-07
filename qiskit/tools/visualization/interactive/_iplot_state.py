@@ -9,7 +9,7 @@
 Qiskit visualization library.
 """
 import warnings
-from qiskit.tools.visualization import VisualizationError
+from qiskit.tools.visualization.exceptions import VisualizationError
 from qiskit.tools.visualization._utils import _validate_input_state
 from ._iplot_blochsphere import iplot_bloch_multivector
 from ._iplot_cities import iplot_state_city

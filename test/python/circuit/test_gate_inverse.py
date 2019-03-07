@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitQasm(QiskitTestCase):

@@ -10,12 +10,12 @@
 """
 SWAP gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cx import CnotGate
 
 
@@ -33,7 +33,6 @@ class SwapGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("cx", 2, 0, 0)
         rule = [
             CnotGate(q[0], q[1]),
             CnotGate(q[1], q[0]),
@@ -52,19 +51,14 @@ class SwapGate(Gate):
         self._modifiers(circ.swap(self.qargs[0], self.qargs[1]))
 
 
-def swap(self, ctl, tgt):
-    """Apply SWAP from ctl to tgt."""
-    if isinstance(ctl, QuantumRegister) and \
-            isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        instructions = InstructionSet()
-        for j in range(ctl.size):
-            instructions.add(self.swap((ctl, j), (tgt, j)))
-        return instructions
-
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(SwapGate(ctl, tgt, self))
+@_op_expand(2, broadcastable=[False, False])
+def swap(self, qubit1, qubit2):
+    """Apply SWAP from qubit1 to qubit2."""
+    self._check_qubit(qubit1)
+    self._check_qubit(qubit2)
+    self._check_dups([qubit1, qubit2])
+    return self._attach(SwapGate(qubit1, qubit2, self))
 
 
 QuantumCircuit.swap = swap
+CompositeGate.swap = swap

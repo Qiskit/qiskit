@@ -14,7 +14,7 @@ A collection of useful quantum information functions for states.
 """
 
 import numpy as np
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 def basis_state(str_state, num):
@@ -38,22 +38,26 @@ def basis_state(str_state, num):
         raise QiskitError('size of bitstring is greater than num.')
 
 
-def random_state(num):
+def random_state(dim, seed=None):
     """
     Return a random quantum state from the uniform (Haar) measure on
     state space.
 
     Args:
-        num (int): the number of qubits
+        dim (int): the dim of the state spaxe
+        seed (int): Optional. To set a random seed.
+
     Returns:
         ndarray:  state(2**num) a random quantum state.
     """
+    if seed is not None:
+        np.random.seed(seed)
     # Random array over interval (0, 1]
-    x = np.random.random(1 << num)
+    x = np.random.random(dim)
     x += x == 0
     x = -np.log(x)
     sumx = sum(x)
-    phases = np.random.random(1 << num)*2.0*np.pi
+    phases = np.random.random(dim)*2.0*np.pi
     return np.sqrt(x/sumx)*np.exp(1j*phases)
 
 
@@ -72,3 +76,17 @@ def projector(state, flatten=False):
     if flatten:
         return density_matrix.flatten(order='F')
     return density_matrix
+
+
+def purity(state):
+    """Calculate the purity of a quantum state.
+
+    Args:
+        state (ndarray): a quantum state
+    Returns:
+        float: purity.
+    """
+    rho = np.array(state)
+    if rho.ndim == 1:
+        return 1.0
+    return np.real(np.trace(rho.dot(rho)))

@@ -7,6 +7,8 @@
 
 """
 This pass checks if a DAG is mapped to a coupling map.
+
+It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
 from qiskit.transpiler._basepasses import AnalysisPass
@@ -15,7 +17,8 @@ from qiskit.mapper import Layout
 
 class CheckMap(AnalysisPass):
     """
-    Checks if a DAGCircuit is mapped to `coupling_map`.
+    Checks if a DAGCircuit is mapped to `coupling_map` setting `is_swap_mapped` in
+    the property set as False if mapped. True otherwise.
     """
 
     def __init__(self, coupling_map, initial_layout=None):
@@ -31,32 +34,24 @@ class CheckMap(AnalysisPass):
 
     def run(self, dag):
         """
-        If `dag` is mapped to `coupling_map`, the property `is_mapped` is
-        set to True (or to False otherwise).
-        If `dag` is mapped and the direction is correct the property
-        `is_direction_mapped` is set to True (or to False otherwise).
+        If `dag` is mapped to `coupling_map`, the property
+        `is_swap_mapped` is set to True (or to False otherwise).
 
         Args:
             dag (DAGCircuit): DAG to map.
         """
         if self.layout is None:
-            self.layout = Layout()
-            for qreg in dag.qregs.values():
-                self.layout.add_register(qreg)
+            if self.property_set["layout"]:
+                self.layout = self.property_set["layout"]
+            else:
+                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        self.property_set['is_mapped'] = True
-        self.property_set['is_direction_mapped'] = True
+        self.property_set['is_swap_mapped'] = True
 
-        for layer in dag.serial_layers():
-            subdag = layer['graph']
+        for gate in dag.twoQ_nodes():
+            physical_q0 = self.layout[gate['qargs'][0]]
+            physical_q1 = self.layout[gate['qargs'][1]]
 
-            for cnot in subdag.get_cnot_nodes():
-                physical_q0 = self.layout[cnot['qargs'][0]]
-                physical_q1 = self.layout[cnot['qargs'][1]]
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    self.property_set['is_mapped'] = False
-                    self.property_set['is_direction_mapped'] = False
-                    return
-                else:
-                    if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
-                        self.property_set['is_direction_mapped'] = False
+            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                self.property_set['is_swap_mapped'] = False
+                return

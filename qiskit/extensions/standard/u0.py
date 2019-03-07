@@ -10,12 +10,12 @@
 """
 Single qubit gate cycle idle.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.ubase import UBase
 
 
@@ -30,7 +30,6 @@ class U0Gate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("U", 1, 0, 3)
         rule = [
             UBase(0, 0, 0, q[0])
         ]
@@ -44,19 +43,15 @@ class U0Gate(Gate):
 
     def reapply(self, circ):
         """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u0(self.param[0], self.qargs[0]))
+        self._modifiers(circ.u0(self.params[0], self.qargs[0]))
 
 
+@_op_expand(1)
 def u0(self, m, q):
     """Apply u0 with length m to q."""
-    if isinstance(q, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.u0(m, (q, j)))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(U0Gate(m, q, self))
 
 
 QuantumCircuit.u0 = u0
+CompositeGate.u0 = u0

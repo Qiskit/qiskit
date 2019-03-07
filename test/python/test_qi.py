@@ -22,7 +22,7 @@ from qiskit.tools.qi.qi import choi_to_rauli, random_density_matrix
 from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
 from qiskit.tools.qi.qi import __eof_qubit as eof_qubit
 from qiskit import QiskitError
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQI(QiskitTestCase):
@@ -225,10 +225,9 @@ class TestQI(QiskitTestCase):
         self.assertTrue(np.array_equal(expected, res))
 
     def test_random_density_matrix(self):
-        # Verify the shape because random data will change each call
-        random_hs_matrix = random_density_matrix(2)
+        random_hs_matrix = random_density_matrix(2, seed=42)
         self.assertEqual((2, 2), random_hs_matrix.shape)
-        random_bures_matrix = random_density_matrix(2, method='Bures')
+        random_bures_matrix = random_density_matrix(2, method='Bures', seed=40)
         self.assertEqual((2, 2), random_bures_matrix.shape)
 
     def test_random_density_matrix_invalid_method(self):

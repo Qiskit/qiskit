@@ -12,6 +12,7 @@ from qiskit.circuit import quantumcircuit as qc
 from qiskit.circuit import quantumregister as qr
 
 
+# TODO: This is broken for conditionals. Will fix after circuits_2_qobj pr
 def qobj_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj
 
@@ -42,19 +43,30 @@ def qobj_to_circuits(qobj):
             for i in x.instructions:
                 instr_method = getattr(circuit, i.name)
                 qubits = []
-                for qubit in i.qubits:
-                    qubit_label = x.header.qubit_labels[qubit]
-                    qubits.append(
-                        qreg_dict[qubit_label[0]][qubit_label[1]])
+                try:
+                    for qubit in i.qubits:
+                        qubit_label = x.header.qubit_labels[qubit]
+                        qubits.append(
+                            qreg_dict[qubit_label[0]][qubit_label[1]])
+                except Exception:  # pylint: disable=broad-except
+                    pass
                 clbits = []
-                for clbit in i.memory:
-                    clbit_label = x.header.clbit_labels[clbit]
-                    clbits.append(
-                        creg_dict[clbit_label[0]][clbit_label[1]])
-                if i.name in ['snapshot', 'save', 'load', 'noise']:
-                    instr_method(*i.params)
+                try:
+                    for clbit in i.memory:
+                        clbit_label = x.header.clbit_labels[clbit]
+                        clbits.append(
+                            creg_dict[clbit_label[0]][clbit_label[1]])
+                except Exception:  # pylint: disable=broad-except
+                    pass
+                params = []
+                try:
+                    params = i.params
+                except Exception:  # pylint: disable=broad-except
+                    pass
+                if i.name in ['snapshot']:
+                    instr_method(*params)
                 else:
-                    instr_method(*i.params, *qubits, *clbits)
+                    instr_method(*params, *qubits, *clbits)
             circuits.append(circuit)
         return circuits
     return None

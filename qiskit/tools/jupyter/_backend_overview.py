@@ -13,8 +13,8 @@ import types
 from IPython.display import display                              # pylint: disable=import-error
 from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disable=import-error
 from IPython.core import magic_arguments                         # pylint: disable=import-error
-import ipywidgets as widgets                                     # pylint: disable=import-error
 import matplotlib.pyplot as plt                                  # pylint: disable=import-error
+import ipywidgets as widgets                                     # pylint: disable=import-error
 from qiskit.tools.monitor.backend_overview import get_unique_backends
 from qiskit.tools.visualization._gate_map import plot_gate_map
 

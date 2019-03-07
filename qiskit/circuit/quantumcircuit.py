@@ -5,31 +5,30 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=cyclic-import,invalid-name
-
 """
 Quantum circuit object.
 """
 from collections import OrderedDict
 from copy import deepcopy
 import itertools
-import warnings
 import sys
 import multiprocessing as mp
 
 from qiskit.qasm import _qasm
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
+from .instruction import Instruction
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
 
-class QuantumCircuit(object):
+class QuantumCircuit:
     """Quantum circuit."""
     instances = 0
     prefix = 'circuit'
 
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
+    extension_lib = "include \"qelib1.inc\";"
 
     # Class variable with gate definitions
     # This is a dict whose values are dicts with the
@@ -132,6 +131,12 @@ class QuantumCircuit(object):
 
         Return self + rhs as a new object.
         """
+        if isinstance(rhs, Instruction):
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -161,6 +166,12 @@ class QuantumCircuit(object):
 
         Modify and return self.
         """
+        if isinstance(rhs, Instruction):
+            qregs = {qubit[0] for qubit in rhs.qargs}
+            cregs = {cbit[0] for cbit in rhs.cargs}
+            qc = QuantumCircuit(*qregs, *cregs)
+            qc._attach(rhs)
+            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -178,7 +189,7 @@ class QuantumCircuit(object):
         return self
 
     def __add__(self, rhs):
-        """Overload + to implement self.concatenate."""
+        """Overload + to implement self.combine."""
         return self.combine(rhs)
 
     def __iadd__(self, rhs):
@@ -210,14 +221,6 @@ class QuantumCircuit(object):
                 self.cregs.append(register)
             else:
                 raise QiskitError("expected a register")
-
-    def add(self, *regs):
-        """Add registers."""
-
-        warnings.warn('The add() function is deprecated and will be '
-                      'removed in a future release. Instead use '
-                      'QuantumCircuit.add_register().', DeprecationWarning)
-        self.add_register(*regs)
 
     def _check_qreg(self, register):
         """Raise exception if r is not in this circuit or not qreg."""
@@ -286,9 +289,7 @@ class QuantumCircuit(object):
     def qasm(self):
         """Return OPENQASM string."""
         string_temp = self.header + "\n"
-        for gate_name in self.definitions:
-            if self.definitions[gate_name]["print"]:
-                string_temp += self._gate_string(gate_name)
+        string_temp += self.extension_lib + "\n"
         for register in self.qregs:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
@@ -299,7 +300,7 @@ class QuantumCircuit(object):
 
     def draw(self, scale=0.7, filename=None, style=None, output='text',
              interactive=False, line_length=None, plot_barriers=True,
-             reverse_bits=False):
+             reverse_bits=False, justify=None):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -329,6 +330,11 @@ class QuantumCircuit(object):
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                 circuit. Defaults to True.
+            justify (string): Options are `left`, `right` or `none`, if anything
+                else is supplied it defaults to left justified. It refers to where
+                gates should be placed in the output circuit if there is an option.
+                `none` results in each gate being placed in its own column. Currently
+                only supported by text drawer.
 
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
@@ -350,7 +356,8 @@ class QuantumCircuit(object):
                                             interactive=interactive,
                                             line_length=line_length,
                                             plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits)
+                                            reverse_bits=reverse_bits,
+                                            justify=justify)
 
     def size(self):
         """Return total number of operations in circuit."""
@@ -387,6 +394,19 @@ class QuantumCircuit(object):
         dag = circuit_to_dag(self)
         return dag.num_tensor_factors()
 
+    def copy(self, name=None):
+        """
+        Args:
+          name (str): name to be given to the copied circuit, if None then the name stays the same
+        Returns:
+          QuantumCircuit: a deepcopy of the current circuit, with the name updated if
+                          it was provided
+        """
+        cpy = deepcopy(self)
+        if name:
+            cpy.name = name
+        return cpy
+
     @staticmethod
     def from_qasm_file(path):
         """Take in a QASM file and generate a QuantumCircuit object.
@@ -413,6 +433,7 @@ class QuantumCircuit(object):
 
 
 def _circuit_from_qasm(qasm):
+    # pylint: disable=cyclic-import
     from qiskit.converters import ast_to_dag
     from qiskit.converters import dag_to_circuit
     ast = qasm.parse()

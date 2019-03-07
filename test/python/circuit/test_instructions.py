@@ -5,19 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's Instruction class."""
 
-import os
-import tempfile
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestInstructions(QiskitTestCase):

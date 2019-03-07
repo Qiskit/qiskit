@@ -10,8 +10,7 @@
 
 from qiskit import QiskitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-
-from ..common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class LoadFromQasmTest(QiskitTestCase):
@@ -120,7 +119,7 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.
         """
-        qasm_filename = self._get_resource_path('qasm/example.qasm')
+        qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
                                                                    "include \"qelib1.inc\";",
                                                                    "qreg q[3];",
@@ -146,3 +145,19 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit, expected_circuit)
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 2)
+
+    def test_qasm_qas_string_order(self):
+        """ Test that gates are returned in qasm in ascending order"""
+        expected_qasm = '\n'.join(["OPENQASM 2.0;",
+                                   "include \"qelib1.inc\";",
+                                   "qreg q[3];",
+                                   "h q[0];",
+                                   "h q[1];",
+                                   "h q[2];"]) + '\n'
+        qasm_string = """OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[3];
+        h q;"""
+        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        self.assertEqual(q_circuit.qasm(), expected_qasm)

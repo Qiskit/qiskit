@@ -18,7 +18,7 @@ Instructions are identified by the following fields, and are serialized as such 
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
 
-    param: List of parameters to specialize a specific intruction instance.
+    params: List of parameters to specialize a specific intruction instance.
 
     qargs: List of qubits (QuantumRegister, index) that the instruction acts on.
 
@@ -26,21 +26,22 @@ Instructions are identified by the following fields, and are serialized as such 
 
 """
 import sympy
+import numpy
 
 from qiskit.qasm._node import _node
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
 
-class Instruction(object):
+class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, param, qargs, cargs, circuit=None):
+    def __init__(self, name, params, qargs, cargs, circuit=None):
         """Create a new instruction.
         Args:
             name (str): instruction name
-            param (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
+            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit (QuantumCircuit or Instruction): where the instruction is attached
@@ -52,23 +53,29 @@ class Instruction(object):
         if not all(isinstance(i[0], ClassicalRegister) and isinstance(i[1], int) for i in cargs):
             raise QiskitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
-        self.param = []  # a list of gate params stored as sympy objects
-        for single_param in param:
+        self.params = []  # a list of gate params stored
+        for single_param in params:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, sympy.Basic):
-                self.param.append(single_param)
+                self.params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, _node.Node):
-                self.param.append(single_param.sym())
+                self.params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
-                self.param.append(sympy.Number(single_param))
+                self.params.append(sympy.Number(single_param))
             # example: Initialize([complex(0,1), complex(0,0)])
             elif isinstance(single_param, complex):
-                self.param.append(single_param.real + single_param.imag * sympy.I)
+                self.params.append(single_param.real + single_param.imag * sympy.I)
             # example: snapshot('label')
             elif isinstance(single_param, str):
-                self.param.append(sympy.Symbol(single_param))
+                self.params.append(sympy.Symbol(single_param))
+            # example: numpy.array([[1, 0], [0, 1]])
+            elif isinstance(single_param, numpy.ndarray):
+                self.params.append(single_param)
+            # example: sympy.Matrix([[1, 0], [0, 1]])
+            elif isinstance(single_param, sympy.Matrix):
+                self.params.append(single_param)
             else:
                 raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), name))
@@ -90,7 +97,7 @@ class Instruction(object):
         res = False
         if type(self) is type(other) and \
                 self.name == other.name and \
-                self.param == other.param:
+                self.params == other.params:
             res = True
         return res
 
@@ -130,9 +137,9 @@ class Instruction(object):
         different format (e.g. measure q[0] -> c[0];).
         """
         name_param = self.name
-        if self.param:
+        if self.params:
             name_param = "%s(%s)" % (name_param,
-                                     ",".join([str(i) for i in self.param]))
+                                     ",".join([str(i) for i in self.params]))
 
         name_param_arg = "%s %s;" % (name_param,
                                      ",".join(["%s[%d]" % (j[0].name, j[1])

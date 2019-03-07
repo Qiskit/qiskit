@@ -12,7 +12,7 @@ from qiskit.dagcircuit import DAGCircuit
 from ._propertyset import PropertySet
 from ._basepasses import BasePass
 from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
-from ._transpilererror import TranspilerError
+from .exceptions import TranspilerError
 
 
 class PassManager():

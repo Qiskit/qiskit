@@ -5,16 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests for pass cancelling 2 consecutive CNOTs on the same qubits."""
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile_dag
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.converters import circuit_to_dag
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCXCancellation(QiskitTestCase):

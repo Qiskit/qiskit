@@ -10,10 +10,11 @@
 from collections.abc import Iterable
 from functools import partial
 
+from marshmallow.exceptions import ValidationError
 from marshmallow.utils import is_collection
 from marshmallow_polyfield import PolyField
 
-from qiskit.validation import ValidationError, ModelTypeValidator
+from qiskit.validation import ModelTypeValidator
 
 
 class BasePolyField(PolyField, ModelTypeValidator):

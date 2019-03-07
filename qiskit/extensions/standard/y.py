@@ -10,13 +10,13 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import pi
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.u3 import U3Gate
 
 
@@ -31,7 +31,6 @@ class YGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("u3", 1, 0, 3)
         rule = [
             U3Gate(pi, pi/2, pi/2, q[0])
         ]
@@ -48,16 +47,12 @@ class YGate(Gate):
         self._modifiers(circuit.y(self.qargs[0]))
 
 
+@_op_expand(1)
 def y(self, q):
     """Apply Y to q."""
-    if isinstance(q, QuantumRegister):
-        instructions = InstructionSet()
-        for j in range(q.size):
-            instructions.add(self.y((q, j)))
-        return instructions
-
     self._check_qubit(q)
     return self._attach(YGate(q, self))
 
 
 QuantumCircuit.y = y
+CompositeGate.y = y

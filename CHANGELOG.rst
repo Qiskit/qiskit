@@ -31,6 +31,7 @@ Fixed
 - Fixed a bug whereby inheriting from QuantumRegister or ClassicalRegister
   would cause a QiskitError in instruction.py
 
+
 `0.7.1`_ - 2019-03-04
 =====================
 
@@ -41,6 +42,118 @@ Fixed
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
 
+
+`UNRELEASED`_
+=============
+
+Added
+-----
+
+- Core StochasticSwap routine implimented in Cython (#1789).
+- New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
+  selection pass (#1603).
+- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
+- Added a RunConfig object for configurations for run configurations to be used
+  in compile and circuits_to_qobj. (#1629)
+- Added support for register slicing when applying operations to a register (#1643).
+- Added in new parameter ``justify`` to the text circuit drawer to say how the
+  circuit should be aligned. (#1725)
+- Added function for purity of a mixed state in ``qiskit.quantum_information``
+  (#1733)
+- Added in methods to remove a specific DAG edge and to see if a specific edge exists
+- Added parameter to the TextProgressBar to allow the output to be sent to a
+  different output stream 
+  
+Changed
+-------
+
+- Changed ``average_data`` to accept observable input in matrix form (#1858)
+- Change random_state to take in dim over number of qubits (#1857)
+- The ``Exception`` subclasses have been moved to an ``.exceptions`` module
+  within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
+- The ``QiskitTestCase`` and testing utilities are now included as part of
+  ``qiskit.test`` and thus available for third-party implementations, with
+  convenience test cases for providers and backends. (#1616, #1844)
+- The snapshot instruction now takes ``label`` and ``snap_type`` instead of
+  ``slot`` (#1615).
+- The test folders have been reorganized to match the python modules (#1625)
+- The circuits_to_qobj no longers uses the unrollers (#1629)
+- The previously deprecated default output of ``circuit_drawer()`` (using latex
+  and falling back to mpl) is no longer present. Instead the default output
+  is the ascii art ``text`` output backend.
+- Changed param to params in Instruction (#1665).
+- ``dag_drawer`` and ``plot_gate_map`` are available via importing
+  ``qiskit.tools.visualization``. They will raise at the point of use, if
+  dependencies are not installed (#1669).
+- The ``qiskit.validation`` schemas are now strict and raise a more specific
+  ``ModelValidationError`` (#1695).
+- The default transpile pipeline will now add a barrier before the set of
+  final measurements when compiling for both simulators and devices (#1591).
+- Purity function in ``qiskit.tools.qi.qi`` calls new version in
+  ``qiskit.quantum_information`` and issues deprecation warning (#1733)
+- Updated `dag.node_counter` to return the current number of nodes (#1763)
+- The argument ``basis_gates`` used in ``compile``, ``execute``, and ``transpile``
+  is not longer a comma-separated string but a list of strings. For example,
+  this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
+  (#1333)
+
+Deprecated
+----------
+
+- The methods prefixed by `_get` in the DAGCircuit object are being renamed
+  without that prefix (see #1346)
+- Changed elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists
+  (#1666).
+- Unroller bases must now be explicit, and violation raises an informative
+  ``QiskitError`` (#1802).
+- The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
+
+Fixed
+-----
+
+- Fixed #829 by removing dependence on scipy unitary_group (#1857).
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
+- Fixed a bug where barriers didn't plot over all qubits when using matplotlib (#1718).
+- Fixed a minor conda env bug in Makefile (#1691).
+- Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
+- Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
+  used in conditional operations (#1705).
+- Fixed a bug that with transpile ignoring initial layout when
+  coupling map is provided (#1711).
+
+Removed
+-------
+
+- The previously deprecated functions ``plot_circuit()``,
+  ``latex_circuit_drawer()``, ``generate_latex_source()``, and
+  ``matplotlib_circuit_drawer()`` from ``qiskit.tools.visualization`` have
+  been removed. The ``circuit_drawer()`` function from the same module should
+  be used instead.
+- The previously deprecated keys ``plot_barriers`` and ``reverse_bits`` keys in
+  the ``style`` kwarg dict are deprecated, instead the
+  ``qiskit.tools.visualization.circuit_drawer()`` kwargs ``plot_barriers`` and
+  ``reverse_bits`` should be used instead.
+- Removed the wrapper folder as part of the post 0.7 cleanup (#1613).
+- Removed the python wrappers of the legacy simualtors now that
+  Qiskit Aer is out (#1615).
+- Removed simulator instructions ``save``, ``load``, ``wait``, ``noise``
+  as unsupported in Aer (#1615).
+- Removed circuit.add as deprecated (#1627)
+- Removed the unroller (#1629)
+- Removed deprecated ``result`` methods (#1659)
+- Removed deprecated ``couplingdict`` kwarg from ``CouplingMap`` (#1666)
+- Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
+- Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
+- Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
+- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
+  package (``pip install qiskit-ibmq-provider``). (#1700)
+- ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
+  was part of the pre-qobj specification (#1715).
+- Removed the wigner plotting functions ``plot_wigner_function``,
+  ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
+  (#1860).
 
 `0.7.0`_ - 2018-12-19
 =====================

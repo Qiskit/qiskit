@@ -14,8 +14,8 @@ from qiskit import compile, BasicAer
 from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.tools.compiler import circuits_to_qobj
 from qiskit.converters import circuit_to_dag
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
+from qiskit.qobj.run_config import RunConfig
 
 
 class TestTranspile(QiskitTestCase):
@@ -60,15 +60,13 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         coupling_map = [[1, 0]]
-        basis_gates = 'u1,u2,u3,cx,id'
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
 
         backend = BasicAer.get_backend('qasm_simulator')
         circuit2 = transpile(circuit, backend, coupling_map=coupling_map, basis_gates=basis_gates,
                              pass_manager=None)
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
-
-        qobj2 = circuits_to_qobj(circuit2, backend.name(), basis_gates=basis_gates,
-                                 coupling_map=coupling_map, qobj_id=qobj.qobj_id)
-
+        run_config = RunConfig(shots=1024, max_credits=10)
+        qobj2 = circuits_to_qobj(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
         self.assertEqual(qobj, qobj2)

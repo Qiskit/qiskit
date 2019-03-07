@@ -14,7 +14,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCommutationAnalysis(QiskitTestCase):

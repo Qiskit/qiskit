@@ -8,4 +8,4 @@
 """Module for working with results."""
 
 from .result import Result
-from ._resulterror import ResultError
+from .exceptions import ResultError

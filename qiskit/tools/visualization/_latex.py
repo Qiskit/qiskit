@@ -19,11 +19,11 @@ import re
 
 import numpy as np
 
-from qiskit.tools.visualization import _error
+from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
 
 
-class QCircuitImage(object):
+class QCircuitImage:
     """This class contains methods to create \\LaTeX circuit images.
 
     The class targets the \\LaTeX package Q-circuit
@@ -225,7 +225,7 @@ class QCircuitImage(object):
             # useful information for determining row spacing
             boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                            'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
-                           'crz', 'cu3']
+                           'crz', 'cu3', 'id']
             target_gates = ['cx', 'ccx']
             if op['name'] in boxed_gates:
                 self.has_box = True
@@ -360,7 +360,7 @@ class QCircuitImage(object):
 
                 # update current column width
                 arg_str_len = 0
-                for arg in op['op'].param:
+                for arg in op['op'].params:
                     arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
                                      _truncate_float, str(arg))
                     arg_str_len += len(arg_str)
@@ -370,9 +370,9 @@ class QCircuitImage(object):
                                                 max_column_width[columns])
             elif op['name'] == "measure":
                 if len(op['cargs']) != 1 or len(op['qargs']) != 1:
-                    raise _error.VisualizationError("bad operation record")
+                    raise exceptions.VisualizationError("bad operation record")
                 if 'condition' in op and op['condition']:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         'conditional measures currently not supported.')
                 qname, qindex = op['qargs'][0]
                 cname, cindex = op['cargs'][0]
@@ -399,7 +399,7 @@ class QCircuitImage(object):
                     max_column_width[columns] = 0
             elif op['name'] == "reset":
                 if 'conditional' in op and op['condition']:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         'conditional reset currently not supported.')
                 qname, qindex = op['qargs'][0]
                 if aliases:
@@ -423,20 +423,20 @@ class QCircuitImage(object):
                         qarglist = map(lambda x: aliases[x], qarglist)
                     start = self.img_regs[start_bit]
                     span = len(op['qargs']) - 1
-                    for i in range(start, span + 1):
+                    for i in range(start, start + span + 1):
                         if is_occupied[i] is False:
                             is_occupied[i] = True
                         else:
                             columns += 1
                             is_occupied = [False] * self.img_width
-                            for j in range(start, span + 1):
+                            for j in range(start, start + span + 1):
                                 is_occupied[j] = True
                             break
                     # update current column width
                     if columns not in max_column_width:
                         max_column_width[columns] = 0
             else:
-                raise _error.VisualizationError("bad node data")
+                raise exceptions.VisualizationError("bad node data")
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
         # the qubit/cbit labels plus initial states is 2 more
@@ -546,6 +546,8 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\gate{Z}"
                         elif nm == "h":
                             self._latex[pos_1][columns] = "\\gate{H}"
+                        elif nm == "id":
+                            self._latex[pos_1][columns] = "\\gate{Id}"
                         elif nm == "s":
                             self._latex[pos_1][columns] = "\\gate{S}"
                         elif nm == "sdg":
@@ -556,28 +558,28 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\gate{T^\\dag}"
                         elif nm == "u0":
                             self._latex[pos_1][columns] = "\\gate{U_0(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "u1":
                             self._latex[pos_1][columns] = "\\gate{U_1(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "u2":
                             self._latex[pos_1][columns] = \
                                 "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                    op["op"].param[0], op["op"].param[1])
+                                    op["op"].params[0], op["op"].params[1])
                         elif nm == "u3":
                             self._latex[pos_1][columns] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                op["op"].param[0],
-                                op["op"].param[1],
-                                op["op"].param[2]))
+                                op["op"].params[0],
+                                op["op"].params[1],
+                                op["op"].params[2]))
                         elif nm == "rx":
                             self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "ry":
                             self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "rz":
                             self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
 
                         gap = pos_2 - pos_1
                         for i in range(self.cregs[if_reg]):
@@ -606,6 +608,8 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\gate{Z}"
                         elif nm == "h":
                             self._latex[pos_1][columns] = "\\gate{H}"
+                        elif nm == "id":
+                            self._latex[pos_1][columns] = "\\gate{Id}"
                         elif nm == "s":
                             self._latex[pos_1][columns] = "\\gate{S}"
                         elif nm == "sdg":
@@ -616,28 +620,28 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\gate{T^\\dag}"
                         elif nm == "u0":
                             self._latex[pos_1][columns] = "\\gate{U_0(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "u1":
                             self._latex[pos_1][columns] = "\\gate{U_1(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "u2":
                             self._latex[pos_1][columns] = \
                                 "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                    op["op"].param[0], op["op"].param[1])
+                                    op["op"].params[0], op["op"].params[1])
                         elif nm == "u3":
                             self._latex[pos_1][columns] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                op["op"].param[0],
-                                op["op"].param[1],
-                                op["op"].param[2]))
+                                op["op"].params[0],
+                                op["op"].params[1],
+                                op["op"].params[2]))
                         elif nm == "rx":
                             self._latex[pos_1][columns] = "\\gate{R_x(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "ry":
                             self._latex[pos_1][columns] = "\\gate{R_y(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "rz":
                             self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
-                                op["op"].param[0])
+                                op["op"].params[0])
                         elif nm == "reset":
                             self._latex[pos_1][columns] = (
                                 "\\push{\\rule{.6em}{0em}\\ket{0}\\"
@@ -704,21 +708,21 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = \
                                 "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = \
-                                "\\gate{R_z(%s)}" % (op["op"].param[0])
+                                "\\gate{R_z(%s)}" % (op["op"].params[0])
                         elif nm == "cu1":
                             self._latex[pos_1][columns - 1] = "\\ctrl{" + str(
                                 pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns - 1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\dstick{%s}\\qw" % (op["op"].param[0])
+                                "\\dstick{%s}\\qw" % (op["op"].params[0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = \
                                 "\\ctrl{" + str(pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = \
-                                "\\gate{U_3(%s,%s,%s)}" % (op["op"].param[0],
-                                                           op["op"].param[1],
-                                                           op["op"].param[2])
+                                "\\gate{U_3(%s,%s,%s)}" % (op["op"].params[0],
+                                                           op["op"].params[1],
+                                                           op["op"].params[2])
                     else:
                         temp = [pos_1, pos_2]
                         temp.sort(key=int)
@@ -764,21 +768,21 @@ class QCircuitImage(object):
                             self._latex[pos_1][columns] = "\\ctrl{" + str(
                                 pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = \
-                                "\\gate{R_z(%s)}" % (op["op"].param[0])
+                                "\\gate{R_z(%s)}" % (op["op"].params[0])
                         elif nm == "cu1":
                             self._latex[pos_1][columns - 1] = "\\ctrl{" + str(
                                 pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns - 1] = "\\control\\qw"
                             self._latex[min(pos_1, pos_2)][columns] = \
-                                "\\dstick{%s}\\qw" % (op["op"].param[0])
+                                "\\dstick{%s}\\qw" % (op["op"].params[0])
                             self._latex[max(pos_1, pos_2)][columns] = "\\qw"
                         elif nm == "cu3":
                             self._latex[pos_1][columns] = "\\ctrl{" + str(
                                 pos_2 - pos_1) + "}"
                             self._latex[pos_2][columns] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                op["op"].param[0],
-                                op["op"].param[1],
-                                op["op"].param[2]))
+                                op["op"].params[0],
+                                op["op"].params[1],
+                                op["op"].params[2]))
 
                 elif len(qarglist) == 3:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -882,10 +886,10 @@ class QCircuitImage(object):
             elif op["name"] == "measure":
                 if (len(op['cargs']) != 1
                         or len(op['qargs']) != 1
-                        or op['op'].param):
-                    raise _error.VisualizationError("bad operation record")
+                        or op['op'].params):
+                    raise exceptions.VisualizationError("bad operation record")
                 if 'condition' in op and op['condition']:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         "If controlled measures currently not supported.")
 
                 qname, qindex = op['qargs'][0]
@@ -924,7 +928,7 @@ class QCircuitImage(object):
                     self._latex[pos_2][columns] = \
                         "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                 except Exception as e:
-                    raise _error.VisualizationError(
+                    raise exceptions.VisualizationError(
                         'Error during Latex building: %s' % str(e))
             elif op['name'] in ["barrier", 'snapshot', 'load', 'save',
                                 'noise']:
@@ -936,19 +940,19 @@ class QCircuitImage(object):
                         qarglist = map(lambda x: aliases[x], qarglist)
                     start = self.img_regs[start_bit]
                     span = len(op['qargs']) - 1
-                    for i in range(start, span + 1):
+                    for i in range(start, start + span + 1):
                         if is_occupied[i] is False:
                             is_occupied[i] = True
                         else:
                             columns += 1
                             is_occupied = [False] * self.img_width
-                            for j in range(start, span + 1):
+                            for j in range(start, start + span + 1):
                                 is_occupied[j] = True
                             break
                     self._latex[start][columns] = "\\qw \\barrier{" + str(
                         span) + "}"
             else:
-                raise _error.VisualizationError("bad node data")
+                raise exceptions.VisualizationError("bad node data")
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit
@@ -965,7 +969,7 @@ class QCircuitImage(object):
                 qindex = i
                 break
         else:
-            raise _error.VisualizationError(
+            raise exceptions.VisualizationError(
                 "unable to find bit for operation")
         return qindex
 
