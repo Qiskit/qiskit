@@ -67,7 +67,7 @@ class CommutationAnalysis(AnalysisPass):
 
                     self.property_set['commutation_set'][(node, edge_name)] = -1
 
-                if dag.multi_graph.node[edge[1]]['type'] == "out":
+                if dag.node(edge[1])['type'] == "out":
                     self.wire_op[edge_name].append(edge[1])
 
         # With traversing the circuit in topological order,
@@ -84,7 +84,7 @@ class CommutationAnalysis(AnalysisPass):
 
                 if node not in self.property_set['commutation_set'][wire_name][-1]:
                     test_node = self.property_set['commutation_set'][wire_name][-1][-1]
-                    if _commute(dag.multi_graph.node[node], dag.multi_graph.node[test_node]):
+                    if _commute(dag.node(node), dag.node(test_node)):
                         self.property_set['commutation_set'][wire_name][-1].append(node)
 
                     else:
