@@ -31,6 +31,9 @@ class OutputChannel(PulseChannel):
     def lo_frequency(self) -> float:
         return self._lo_frequency
 
+    def set_lo_frequency(self, lo_frequency: float):
+        self._lo_frequency = lo_frequency
+
     def __eq__(self, other):
         """Two output channels are the same if they are of the same type, and
         have the same index and lo_frequency.
