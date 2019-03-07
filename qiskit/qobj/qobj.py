@@ -9,11 +9,12 @@
 
 from marshmallow.validate import OneOf
 
-from qiskit.qobj._utils import QobjType
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
 
 from .models import QobjConfigSchema, QobjExperimentSchema, QobjHeaderSchema
+from .utils import QobjType
+
 
 QOBJ_VERSION = '1.1.0'
 """Current version of the Qobj schema.
