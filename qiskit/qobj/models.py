@@ -43,7 +43,7 @@ class QobjExperimentHeaderSchema(BaseSchema):
 
 
 class QobjExperimentConfigSchema(BaseSchema):
-    """Schema for QobjConfig."""
+    """Schema for QobjExperimentConfig."""
 
     # Required properties.
 
