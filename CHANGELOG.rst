@@ -16,7 +16,6 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-=============
 `UNRELEASED`_
 =============
 
@@ -30,21 +29,6 @@ Fixed
 
 - Fixed a bug whereby inheriting from QuantumRegister or ClassicalRegister
   would cause a QiskitError in instruction.py
-
-
-`0.7.1`_ - 2019-03-04
-=====================
-
-
-Fixed
------
-
-- Fixed a bug with measurement sampling optimization in BasicAer
-  qasm_simulator (#1624).
-
-
-`UNRELEASED`_
-=============
 
 Added
 -----
@@ -1007,8 +991,7 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...HEAD
-.. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...HEAD
 .. _0.7.0: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
 .. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
 .. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
