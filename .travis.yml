@@ -83,6 +83,25 @@ stages:
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
+    # Wheel builds
+    - sudo: required
+      services:
+        - docker
+      env:
+        - CIBW_SKIP=cp27-*
+#      if: tag IS present
+      script:
+        - pip install cibuildwheel==0.10.1
+        - cibuildwheel --output-dir wheelhouse
+    - os: osx
+      language: generic
+#      if: tag IS present
+      env:
+        - CIBW_SKIP=cp27-*
+      script:
+        - pip2 install cibuildwheel==0.10.1
+        - cibuildwheel --output-dir wheelhouse
+
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
