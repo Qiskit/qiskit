@@ -21,7 +21,6 @@ class Gate(Instruction):
         params = list of real parameters (will be converted to symbolic)
         circuit = QuantumCircuit containing this gate
         """
-        self._decompositions = None
         self._matrix_rep = None
 
         super().__init__(name, num_qubits, 0, params, circuit)
@@ -29,16 +28,6 @@ class Gate(Instruction):
     def inverse(self):
         """Invert this gate."""
         raise NotImplementedError("inverse not implemented")
-
-    def decompositions(self):
-        """Returns a list of possible decompositions. """
-        if self._decompositions is None:
-            self._define_decompositions()
-        return self._decompositions
-
-    def _define_decompositions(self):
-        """ Populates self.decompositions with way to decompose this gate"""
-        raise NotImplementedError("No decomposition rules defined for %s" % self.name)
 
     @property
     def matrix_rep(self):

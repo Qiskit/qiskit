@@ -219,7 +219,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
                                   np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
-        list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()Z
+        list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
         multiplex_circuit.compose_back(

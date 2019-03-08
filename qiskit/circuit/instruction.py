@@ -75,6 +75,17 @@ class Instruction:
                                   "{1}".format(type(single_param), name))
         self.control = None  # tuple (ClassicalRegister, int) for "if"
         self.circuit = circuit
+        self._decompositions = None
+
+    def decompositions(self):
+        """Returns a list of possible decompositions. """
+        if self._decompositions is None:
+            self._define_decompositions()
+        return self._decompositions
+
+    def _define_decompositions(self):
+        """Populates self.decompositions with way to decompose this instruction."""
+        raise NotImplementedError("No decomposition rules defined for %s", self.name)
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name and same

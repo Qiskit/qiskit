@@ -7,6 +7,7 @@
 
 """Helper function for converting a circuit to a dag"""
 
+import copy
 
 from qiskit.circuit.compositegate import CompositeGate
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -56,7 +57,7 @@ def circuit_to_dag(circuit):
                 new_instruction = instruction.__class__(*args)
                 return new_instruction
 
-            instruction = duplicate_instruction(instruction)
+            instruction = copy.deepcopy(instruction)
             dagcircuit.apply_operation_back(instruction, qargs, cargs, control)
 
     return dagcircuit
