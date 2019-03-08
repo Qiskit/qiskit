@@ -92,7 +92,7 @@ jobs:
         - CIBW_SKIP=cp27-*
 #      if: tag IS present
       script:
-        - pip install cibuildwheel==0.10.1
+        - sudo pip install cibuildwheel==0.10.1
         - cibuildwheel --output-dir wheelhouse
     - os: osx
       language: generic
@@ -101,7 +101,7 @@ jobs:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP=cp27-*
       script:
-        - pip2 install cibuildwheel==0.10.1
+        - sudo pip2 install cibuildwheel==0.10.1
         - cibuildwheel --output-dir wheelhouse
 
     # "lint and and pure python test" stage
