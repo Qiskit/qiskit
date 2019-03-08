@@ -492,7 +492,11 @@ class QasmSimulatorPy(BaseBackend):
             self._classical_memory = 0
             self._classical_register = 0
             for operation in experiment.instructions:
-                if getattr(operation, 'conditional', None):
+                conditional = getattr(operation, 'conditional', None)
+                if isinstance(conditional, int):
+                    if not self._classical_register[-conditional-1]:
+                        continue
+                elif conditional is not None:
                     mask = int(operation.conditional.mask, 16)
                     if mask > 0:
                         value = self._classical_memory & mask
@@ -501,6 +505,7 @@ class QasmSimulatorPy(BaseBackend):
                             value >>= 1
                         if value != int(operation.conditional.val, 16):
                             continue
+
                 # Check if single  gate
                 if operation.name in ('U', 'u1', 'u2', 'u3'):
                     params = getattr(operation, 'params', None)
@@ -540,8 +545,8 @@ class QasmSimulatorPy(BaseBackend):
                     relation = operation.relation
                     val = int(operation.val, 16)
 
-                    output_register = operation.register
-                    output_memory = operation.memory if hasattr(operation, 'memory') else None
+                    cregbit = operation.register
+                    cmembit = operation.memory if hasattr(operation, 'memory') else None
 
                     compared = (self._classical_register & mask) - val
 
@@ -561,9 +566,13 @@ class QasmSimulatorPy(BaseBackend):
                         raise BasicAerError('Invalid boolean function relation.')
 
                     # Store outcome in register and optionally memory slot
-                    self._classical_register[output_register] = int(outcome)
-                    if output_memory is not None:
-                        self._classical_memory[output_memory] = int(outcome)
+                    regbit = 1 << cregbit
+                    self._classical_register = \
+                        (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
+                    if cmembit is not None:
+                        membit = 1 << cmembit
+                        self._classical_memory = \
+                            (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
