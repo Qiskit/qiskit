@@ -47,7 +47,7 @@ class U1Gate(Gate):
 @_op_expand(1)
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
-    return self._attach(U1Gate(theta, self), [q], [])
+    return self.append(U1Gate(theta, self), [q], [])
 
 
 QuantumCircuit.u1 = u1

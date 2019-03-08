@@ -29,7 +29,7 @@ class CXBase(Gate):  # pylint: disable=abstract-method
 @_op_expand(2)
 def cx_base(self, ctl, tgt):
     """Apply CX ctl, tgt."""
-    return self._attach(CXBase(self), [ctl, tgt], [])
+    return self.append(CXBase(self), [ctl, tgt], [])
 
 
 QuantumCircuit.cx_base = cx_base

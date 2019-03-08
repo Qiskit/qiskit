@@ -46,7 +46,7 @@ class YGate(Gate):
 @_op_expand(1)
 def y(self, q):
     """Apply Y to q."""
-    return self._attach(YGate(self), [q], [])
+    return self.append(YGate(self), [q], [])
 
 
 QuantumCircuit.y = y

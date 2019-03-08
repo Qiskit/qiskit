@@ -60,7 +60,7 @@ def snapshot(self, label, snap_type='statevector'):
                 qubits.append((tuple_element, j))
         else:
             qubits.append(tuple_element)
-    return self._attach(Snapshot(len(qubits), 0, label, snap_type, self), qubits, [])
+    return self.append(Snapshot(len(qubits), 0, label, snap_type, self), qubits, [])
 
 
 # Add to QuantumCircuit and CompositeGate classes

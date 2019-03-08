@@ -49,7 +49,7 @@ class HGate(Gate):
 @_op_expand(1)
 def h(self, q):
     """Apply H to q."""
-    return self._attach(HGate(self), [q], [])
+    return self.append(HGate(self), [q], [])
 
 
 QuantumCircuit.h = h

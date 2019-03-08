@@ -263,28 +263,6 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 #  TODO: multiple inheritance might be better?)
 
 
-def reverse(self):
-    """
-    Reverse (recursively) the sub-gates of this CompositeGate. Note this does
-    not invert the gates!
-    """
-    new_data = []
-    for gate in reversed(self.data):
-        if isinstance(gate, CompositeGate):
-            new_data.append(gate.reverse())
-        else:
-            new_data.append(gate)
-    self.data = new_data
-
-    # not just a high-level reverse:
-    # self.data = [gate for gate in reversed(self.data)]
-
-    return self
-
-
-QuantumCircuit.reverse = reverse
-
-
 def optimize_gates(self):
     """Remove Zero rotations and Double CNOTS."""
     self.remove_zero_rotations()
@@ -431,7 +409,7 @@ def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     # TODO: make initialize an Instruction, and insert reset
     # TODO: avoid explicit reset if compiler determines a |0> state
-    return self._attach(InitializeGate(params, self), qubits, [])
+    return self.append(InitializeGate(params, self), qubits, [])
 
 
 QuantumCircuit.initialize = initialize

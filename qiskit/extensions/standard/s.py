@@ -81,13 +81,13 @@ class SdgGate(Gate):
 @_op_expand(1)
 def s(self, q):
     """Apply S to q."""
-    return self._attach(SGate(self), [q], [])
+    return self.append(SGate(self), [q], [])
 
 
 @_op_expand(1)
 def sdg(self, q):
     """Apply Sdg to q."""
-    return self._attach(SdgGate(self), [q], [])
+    return self.append(SdgGate(self), [q], [])
 
 
 QuantumCircuit.s = s

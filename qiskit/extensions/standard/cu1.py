@@ -57,7 +57,7 @@ class Cu1Gate(Gate):
 @_op_expand(2)
 def cu1(self, theta, ctl, tgt):
     """Apply cu1 from ctl to tgt with angle theta."""
-    return self._attach(Cu1Gate(theta, self), [ctl, tgt], [])
+    return self.append(Cu1Gate(theta, self), [ctl, tgt], [])
 
 
 QuantumCircuit.cu1 = cu1

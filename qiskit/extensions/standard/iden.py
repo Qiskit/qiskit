@@ -45,7 +45,7 @@ class IdGate(Gate):
 @_op_expand(1)
 def iden(self, q):
     """Apply Identity to q."""
-    return self._attach(IdGate(self), [q], [])
+    return self.append(IdGate(self), [q], [])
 
 
 QuantumCircuit.iden = iden

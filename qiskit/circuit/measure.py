@@ -36,7 +36,7 @@ def measure(self, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    return self._attach(Measure(self), [qubit], [cbit])
+    return self.append(Measure(self), [qubit], [cbit])
 
 
 QuantumCircuit.measure = measure

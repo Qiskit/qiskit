@@ -52,10 +52,14 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
             gate.inverse()
         super()._modifiers(gate)
 
-    def _attach(self, gate):
+    def append(self, gate):
         """Attach a gate."""
         self.data.append(gate)
         return gate
+
+    def _attach(self, gate):
+        """DEPRECATED after 0.8."""
+        self.append(gate)
 
     def _check_qubit(self, qubit):
         """Raise exception if q is not an argument or not qreg in circuit."""

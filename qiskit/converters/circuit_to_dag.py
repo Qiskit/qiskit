@@ -9,7 +9,6 @@
 
 import copy
 
-from qiskit.circuit.compositegate import CompositeGate
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
@@ -29,35 +28,25 @@ def circuit_to_dag(circuit):
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
-    for main_instruction in circuit.data:
-        # TODO: generate nodes for CompositeGates;
-        # for now simply drop their instructions into the DAG
-        instruction_list = []
-        is_composite = isinstance(main_instruction, CompositeGate)
-        if is_composite:
-            instruction_list = main_instruction.instruction_list()
+    for instruction, qargs, cargs in circuit.data:
+        # Get arguments for classical control (if any)
+        if instruction.control is None:
+            control = None
         else:
-            instruction_list.append(main_instruction)
+            control = (instruction.control[0], instruction.control[1])
 
-        for instruction, qargs, cargs in instruction_list:
-            # Get arguments for classical control (if any)
-            if instruction.control is None:
-                control = None
-            else:
-                control = (instruction.control[0], instruction.control[1])
+        def duplicate_instruction(instruction):
+            """Create a fresh instruction from an input instruction."""
+            args = instruction.params + [instruction.circuit]
+            # hacky special cases
+            if instruction.name == 'barrier':
+                args = [instruction.num_qubits] + args
+            if instruction.name == 'snapshot':
+                args = [instruction.num_qubits, instruction.num_clbits] + args
+            new_instruction = instruction.__class__(*args)
+            return new_instruction
 
-            def duplicate_instruction(instruction):
-                """Create a fresh instruction from an input instruction."""
-                args = instruction.params + [instruction.circuit]
-                # hacky special cases
-                if instruction.name == 'barrier':
-                    args = [instruction.num_qubits] + args
-                if instruction.name == 'snapshot':
-                    args = [instruction.num_qubits, instruction.num_clbits] + args
-                new_instruction = instruction.__class__(*args)
-                return new_instruction
-
-            instruction = copy.deepcopy(instruction)
-            dagcircuit.apply_operation_back(instruction, qargs, cargs, control)
+        instruction = copy.deepcopy(instruction)
+        dagcircuit.apply_operation_back(instruction, qargs, cargs, control)
 
     return dagcircuit

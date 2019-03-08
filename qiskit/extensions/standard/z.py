@@ -46,7 +46,7 @@ class ZGate(Gate):
 @_op_expand(1)
 def z(self, q):
     """Apply Z to q."""
-    return self._attach(ZGate(self), [q], [])
+    return self.append(ZGate(self), [q], [])
 
 
 QuantumCircuit.z = z

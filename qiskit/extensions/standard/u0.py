@@ -45,7 +45,7 @@ class U0Gate(Gate):
 @_op_expand(1)
 def u0(self, m, q):
     """Apply u0 with length m to q."""
-    return self._attach(U0Gate(m, self), [q], [])
+    return self.append(U0Gate(m, self), [q], [])
 
 
 QuantumCircuit.u0 = u0

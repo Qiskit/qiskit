@@ -51,7 +51,7 @@ class CzGate(Gate):
 @_op_expand(2)
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
-    return self._attach(CzGate(self), [ctl, tgt], [])
+    return self.append(CzGate(self), [ctl, tgt], [])
 
 
 QuantumCircuit.cz = cz

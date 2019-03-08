@@ -51,7 +51,7 @@ class RZZGate(Gate):
 @_op_expand(2, broadcastable=[False, False])
 def rzz(self, theta, qubit1, qubit2):
     """Apply RZZ to circuit."""
-    return self._attach(RZZGate(theta, self), [qubit1, qubit2], [])
+    return self.append(RZZGate(theta, self), [qubit1, qubit2], [])
 
 
 # Add to QuantumCircuit and CompositeGate classes

@@ -74,7 +74,7 @@ class CHGate(Gate):
 @_op_expand(2)
 def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
-    return self._attach(CHGate(self), [ctl, tgt], [])
+    return self.append(CHGate(self), [ctl, tgt], [])
 
 
 QuantumCircuit.ch = ch

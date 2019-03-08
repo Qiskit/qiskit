@@ -68,7 +68,7 @@ class ToffoliGate(Gate):
 @_op_expand(3, broadcastable=[True, True, False])
 def ccx(self, ctl1, ctl2, tgt):
     """Apply Toffoli to from ctl1 and ctl2 to tgt."""
-    return self._attach(ToffoliGate(self), [ctl1, ctl2, tgt], [])
+    return self.append(ToffoliGate(self), [ctl1, ctl2, tgt], [])
 
 
 QuantumCircuit.ccx = ccx

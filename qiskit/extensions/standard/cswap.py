@@ -53,7 +53,7 @@ class FredkinGate(Gate):
 @_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-    return self._attach(FredkinGate(self), [ctl, tgt1, tgt2], [])
+    return self.append(FredkinGate(self), [ctl, tgt1, tgt2], [])
 
 
 QuantumCircuit.cswap = cswap

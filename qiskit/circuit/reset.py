@@ -29,7 +29,7 @@ def reset(self, qubit):
         for sizes in range(qubit.size):
             instructions.add(self.reset((qubit, sizes)))
         return instructions
-    return self._attach(Reset(self), [qubit], [])
+    return self.append(Reset(self), [qubit], [])
 
 
 QuantumCircuit.reset = reset

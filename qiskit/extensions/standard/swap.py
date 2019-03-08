@@ -50,7 +50,7 @@ class SwapGate(Gate):
 @_op_expand(2, broadcastable=[False, False])
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""
-    return self._attach(SwapGate(self), [qubit1, qubit2], [])
+    return self.append(SwapGate(self), [qubit1, qubit2], [])
 
 
 QuantumCircuit.swap = swap

@@ -48,7 +48,7 @@ class CnotGate(Gate):
 @_op_expand(2)
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""
-    return self._attach(CnotGate(self), [ctl, tgt], [])
+    return self.append(CnotGate(self), [ctl, tgt], [])
 
 
 QuantumCircuit.cx = cx

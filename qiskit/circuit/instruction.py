@@ -23,6 +23,7 @@ Instructions are identified by the following fields.
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
+from copy import deepcopy
 import sympy
 import numpy
 
@@ -119,6 +120,49 @@ class Instruction:
             raise QiskitError("control value should be non-negative")
         self.control = (classical, val)
         return self
+
+    def copy(self, name=None):
+        """
+        deepcopy of the instruction.
+
+        Args:
+          name (str): name to be given to the copied circuit,
+            if None then the name stays the same
+
+        Returns:
+          Instruction: a deepcopy of the current instruction, with the name
+            updated if it was provided
+        """
+        cpy = deepcopy(self)
+        if name:
+            cpy.name = name
+        return cpy 
+
+    def reverse(self):
+        """For a composite instruction, reverse the order of sub-instructions.
+
+        This is done by recursively reversing all sub-instructions. It does
+        not invert any gate.
+
+        Returns:
+            Instruction: a fresh instruction with sub-instructions reversed
+        """
+        # TODO: this function is ugly and must be redone, possible after 
+        # circuit and DAG merge.
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
+        if not self._decompositions:
+            return self
+        reverse_inst = self.copy(name=self.name+'_reverse')
+        new_decompositions = []
+        for decomposition in self._decompositions:
+            circ = dag_to_circuit(decomposition)
+            new_circ = QuantumCircuit(*circ.qregs, *circ.cregs)
+            for inst, qargs, cargs in reversed(circ.data):
+                new_circ.append(inst.reverse(), qargs, cargs)
+            new_decompositions.append(circuit_to_dag(new_circ))
+        reverse_inst._decompositions = new_decompositions
+        return reverse_inst
 
     def _modifiers(self, gate):
         """Apply any modifiers of this instruction to another one."""

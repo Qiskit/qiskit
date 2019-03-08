@@ -55,7 +55,7 @@ class CrzGate(Gate):
 @_op_expand(2)
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    return self._attach(CrzGate(theta, self), [ctl, tgt], [])
+    return self.append(CrzGate(theta, self), [ctl, tgt], [])
 
 
 QuantumCircuit.crz = crz

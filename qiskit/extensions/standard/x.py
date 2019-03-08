@@ -51,7 +51,7 @@ class XGate(Gate):
 @_op_expand(1)
 def x(self, q):
     """Apply X to q."""
-    return self._attach(XGate(self), [q], [])
+    return self.append(XGate(self), [q], [])
 
 
 QuantumCircuit.x = x

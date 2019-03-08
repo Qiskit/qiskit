@@ -133,7 +133,7 @@ class QuantumCircuit:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for instruction_context in itertools.chain(self.data, rhs.data):
-            circuit._attach(*instruction_context)
+            circuit.append(*instruction_context)
         return circuit
 
     def extend(self, rhs):
@@ -160,7 +160,7 @@ class QuantumCircuit:
 
         # Add new gates
         for instruction_context in rhs.data:
-            self._attach(*instruction_context)
+            self.append(*instruction_context)
         return self
 
     def __add__(self, rhs):
@@ -179,15 +179,31 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
-    def _attach(self, instruction, qargs, cargs):
-        """Attach an instruction."""
+    def append(self, instruction, qargs, cargs):
+        """Append an instruction to the end of the circuit, modifying
+        the circuit in place.
+        
+        Args:
+            instruction (Instruction): Instruction instance to append
+            qargs (list(tuple)): qubits to attach instruction to
+            cargs (list(tuple)): clbits to attach instruction to
+
+        Returns:
+            Instruction: a handle to the instruction that was just added
+        """
         # do some compatibility checks
         self._check_dups(instruction.qargs)
         self._check_qargs(instruction.qargs)
         self._check_cargs(instruction.cargs)
+
+        # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
         self.data.append(instruction_context)
         return instruction
+
+    def _attach(self, instruction, qargs, cargs):
+        """DEPRECATED after 0.8"""
+        self.append(instruction, qargs, cargs)
 
     def add_register(self, *regs):
         """Add registers."""

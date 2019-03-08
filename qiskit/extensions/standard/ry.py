@@ -53,7 +53,7 @@ class RYGate(Gate):
 @_op_expand(1)
 def ry(self, theta, q):
     """Apply Ry to q."""
-    return self._attach(RYGate(theta, self), [q], [])
+    return self.append(RYGate(theta, self), [q], [])
 
 
 QuantumCircuit.ry = ry
