@@ -40,9 +40,6 @@ class QuantumAlgorithm(Pluggable):
 
     This method should initialize the module and its configuration, and
     use an exception if a component of the module is available.
-
-    Args:
-        configuration (dict): configuration dictionary
     """
     @abstractmethod
     def __init__(self):
