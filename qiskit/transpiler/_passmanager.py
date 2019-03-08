@@ -145,7 +145,7 @@ class PassManager():
         # First, do the requires of pass_
         if not options["ignore_requires"]:
             for required_pass in pass_.requires:
-                self._do_pass(required_pass, dag, options)
+                dag = self._do_pass(required_pass, dag, options)
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
