@@ -535,6 +535,35 @@ class QasmSimulatorPy(BaseBackend):
                     else:
                         # If not sampling perform measurement as normal
                         self._add_qasm_measure(qubit, cmembit, cregbit)
+                elif operation.name == 'bfunc':
+                    mask = int(operation.mask, 16)
+                    relation = operation.relation
+                    val = int(operation.val, 16)
+
+                    output_register = operation.register
+                    output_memory = operation.memory if hasattr(operation, 'memory') else None
+
+                    compared = (self._classical_register & mask) - val
+
+                    if relation == '==':
+                        outcome = (compared == 0)
+                    elif relation == '!=':
+                        outcome = (compared != 0)
+                    elif relation == '<':
+                        outcome = (compared < 0)
+                    elif relation == '<=':
+                        outcome = (compared <= 0)
+                    elif relation == '>':
+                        outcome = (compared > 0)
+                    elif relation == '>=':
+                        outcome = (compared >= 0)
+                    else:
+                        raise BasicAerError('Invalid boolean function relation.')
+
+                    # Store outcome in register and optionally memory slot
+                    self._classical_register[output_register] = int(outcome)
+                    if output_memory is not None:
+                        self._classical_memory[output_memory] = int(outcome)
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
