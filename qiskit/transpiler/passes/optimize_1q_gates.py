@@ -171,10 +171,9 @@ class Optimize1qGates(TransformationPass):
                 new_op = U2Gate(right_parameters[1], right_parameters[2], run_qarg)
             if right_name == "u3":
                 new_op = U3Gate(*right_parameters, run_qarg)
-            nx.set_node_attributes(dag.multi_graph, name='name',
-                                   values={run[0]: right_name})
-            nx.set_node_attributes(dag.multi_graph, name='op',
-                                   values={run[0]: new_op})
+            dag.node(run[0])['name'] = right_name
+            dag.node(run[0])['op'] = new_op
+
             # Delete the other nodes in the run
             for current_node in run[1:]:
                 dag._remove_op_node(current_node)
