@@ -88,6 +88,7 @@ jobs:
       services:
         - docker
       env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP=cp27-*
 #      if: tag IS present
       script:
@@ -97,6 +98,7 @@ jobs:
       language: generic
 #      if: tag IS present
       env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP=cp27-*
       script:
         - pip2 install cibuildwheel==0.10.1

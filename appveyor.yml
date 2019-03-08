@@ -8,8 +8,14 @@ version: 1.0.{build}
 environment:
     matrix:
         - PYTHON: C:\Python35
+          CIBW_BEFORE_BUILD="pip install -U Cython"
+          CIBW_SKIP=cp27-*
         - PYTHON: C:\Python36
+          CIBW_BEFORE_BUILD="pip install -U Cython"
+          CIBW_SKIP=cp27-*
         - PYTHON: C:\Python37
+          CIBW_BEFORE_BUILD="pip install -U Cython"
+          CIBW_SKIP=cp27-*
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
     TRAVIS_REPO_SLUG: invalid-but-different
