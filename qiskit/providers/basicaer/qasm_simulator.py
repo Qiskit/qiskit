@@ -220,18 +220,24 @@ class QasmSimulatorPy(BaseBackend):
             memory.append(hex(int(value, 2)))
         return memory
 
-    def _add_qasm_measure(self, qubit, cmembit):
+    def _add_qasm_measure(self, qubit, cmembit, cregbit=None):
         """Apply a measure instruction to a qubit.
 
         Args:
             qubit (int): qubit is the qubit measured.
             cmembit (int): is the classical memory bit to store outcome in.
+            cregbit (int, optional): is the classical register bit to store outcome in.
         """
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
         # update classical state
         membit = 1 << cmembit
         self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
+
+        if cregbit is not None:
+            regbit = 1 << cregbit
+            self._classical_register = \
+                (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
 
         # update quantum state
         if outcome == '0':
@@ -520,13 +526,15 @@ class QasmSimulatorPy(BaseBackend):
                 elif operation.name == 'measure':
                     qubit = operation.qubits[0]
                     cmembit = operation.memory[0]
+                    cregbit = operation.register[0] if hasattr(operation, 'register') else None
+
                     if self._sample_measure:
                         # If sampling measurements record the qubit and cmembit
                         # for this measurement for later sampling
                         measure_sample_ops.append((qubit, cmembit))
                     else:
                         # If not sampling perform measurement as normal
-                        self._add_qasm_measure(qubit, cmembit)
+                        self._add_qasm_measure(qubit, cmembit, cregbit)
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
