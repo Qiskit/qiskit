@@ -113,7 +113,8 @@ class QasmSimulatorPy(BaseBackend):
 
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
-        self._classical_state = 0
+        self._classical_memory = 0
+        self._classical_register = 0
         self._statevector = 0
         self._number_of_cbits = 0
         self._number_of_qubits = 0
@@ -210,12 +211,12 @@ class QasmSimulatorPy(BaseBackend):
         # Convert to bit-strings
         memory = []
         for sample in samples:
-            classical_state = self._classical_state
+            classical_memory = self._classical_memory
             for count, (qubit, cbit) in enumerate(sorted(measure_params)):
                 qubit_outcome = int((sample & (1 << count)) >> count)
                 bit = 1 << cbit
-                classical_state = (classical_state & (~bit)) | (qubit_outcome << cbit)
-            value = bin(classical_state)[2:]
+                classical_memory = (classical_memory & (~bit)) | (qubit_outcome << cbit)
+            value = bin(classical_memory)[2:]
             memory.append(hex(int(value, 2)))
         return memory
 
@@ -230,7 +231,7 @@ class QasmSimulatorPy(BaseBackend):
         outcome, probability = self._get_measure_outcome(qubit)
         # update classical state
         bit = 1 << cbit
-        self._classical_state = (self._classical_state & (~bit)) | (int(outcome) << cbit)
+        self._classical_memory = (self._classical_memory & (~bit)) | (int(outcome) << cbit)
         # update quantum state
         if outcome == '0':
             update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
@@ -448,7 +449,8 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_qubits = experiment.config.n_qubits
         self._number_of_cbits = experiment.config.memory_slots
         self._statevector = 0
-        self._classical_state = 0
+        self._classical_memory = 0
+        self._classical_register = 0
         self._sample_measure = False
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
@@ -480,12 +482,13 @@ class QasmSimulatorPy(BaseBackend):
         for _ in range(shots):
             self._initialize_statevector()
             # Initialize classical memory to all 0
-            self._classical_state = 0
+            self._classical_memory = 0
+            self._classical_register = 0
             for operation in experiment.instructions:
                 if getattr(operation, 'conditional', None):
                     mask = int(operation.conditional.mask, 16)
                     if mask > 0:
-                        value = self._classical_state & mask
+                        value = self._classical_memory & mask
                         while (mask & 0x1) == 0:
                             mask >>= 1
                             value >>= 1
@@ -534,8 +537,8 @@ class QasmSimulatorPy(BaseBackend):
                     # If sampling we generate all shot samples from the final statevector
                     memory = self._add_sample_measure(measure_sample_ops, self._shots)
                 else:
-                    # Turn classical_state (int) into bit string and pad zero for unused cbits
-                    outcome = bin(self._classical_state)[2:]
+                    # Turn classical_memory (int) into bit string and pad zero for unused cbits
+                    outcome = bin(self._classical_memory)[2:]
                     memory.append(hex(int(outcome, 2)))
 
         # Add data
