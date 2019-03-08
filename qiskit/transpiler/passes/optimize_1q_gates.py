@@ -11,7 +11,6 @@ Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining
 a single gate.
 """
 
-import networkx as nx
 import numpy as np
 
 from qiskit.mapper import MapperError
