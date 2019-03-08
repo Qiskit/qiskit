@@ -99,7 +99,7 @@ jobs:
 #      if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
-        - CIBW_SKIP="cp27-* cp-34-*"
+        - CIBW_SKIP="cp27-* cp34-*"
       script:
         - sudo pip2 install cibuildwheel==0.10.1
         - cibuildwheel --output-dir wheelhouse
