@@ -25,6 +25,7 @@ from .powell import POWELL
 from .slsqp import SLSQP
 from .spsa import SPSA
 from .tnc import TNC
+from .aqgd import AQGD
 
 __all__ = ['Optimizer',
            'CG',
@@ -35,7 +36,8 @@ __all__ = ['Optimizer',
            'POWELL',
            'SLSQP',
            'SPSA',
-           'TNC']
+           'TNC',
+           'AQGD']
 
 try:
     import nlopt
