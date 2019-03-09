@@ -45,8 +45,6 @@ def dag_to_circuit(dag):
             for clbit in n['cargs']:
                 clbits.append(cregs[clbit[0].name][clbit[1]])
 
-            params = n['op'].params
-
             # Get arguments for classical control (if any)
             if n['condition'] is None:
                 control = None
