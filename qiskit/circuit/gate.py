@@ -26,8 +26,35 @@ class Gate(Instruction):
         super().__init__(name, num_qubits, 0, params, circuit)
 
     def inverse(self):
-        """Invert this gate."""
-        raise NotImplementedError("inverse not implemented")
+        """Invert this gate.
+
+        If the gate is composite (i.e. has decomposition rules), then those
+        rules will be recursively inverted.
+
+        Special gates inheriting from Gate can implement their own inverse
+        (e.g. T and Tdg)
+
+        Returns:
+            Gate: the inverted gate
+
+        Raises:
+            NotImplementedError: if the gate is not composite and an inverse
+                has not been implemented for it.
+        """
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
+        if not self._decompositions:
+            raise NotImplementedError("inverse not implemented")
+        inverse_inst = self.copy(name=self.name+'_dg')
+        new_decompositions = []
+        for decomposition in self._decompositions:
+            circ = dag_to_circuit(decomposition)
+            new_circ = QuantumCircuit(*circ.qregs, *circ.cregs)
+            for inst, qargs, cargs in reversed(circ.data):
+                new_circ.append(inst.inverse(), qargs, cargs)
+            new_decompositions.append(circuit_to_dag(new_circ))
+        inverse_inst._decompositions = new_decompositions
+        return inverse_inst
 
     def decompositions(self):
         """Returns a list of possible decompositions. """

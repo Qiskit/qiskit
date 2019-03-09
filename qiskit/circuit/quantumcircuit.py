@@ -199,9 +199,9 @@ class QuantumCircuit:
         cargs = cargs or []
 
         # do some compatibility checks
-        self._check_dups(instruction.qargs)
-        self._check_qargs(instruction.qargs)
-        self._check_cargs(instruction.cargs)
+        self._check_dups(qargs)
+        self._check_qargs(qargs)
+        self._check_cargs(cargs)
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
@@ -224,6 +224,12 @@ class QuantumCircuit:
                 self.cregs.append(register)
             else:
                 raise QiskitError("expected a register")
+
+    def _check_dups(self, qubits):
+        """Raise exception if list of qubits contains duplicates."""
+        squbits = set(qubits)
+        if len(squbits) != len(qubits):
+            raise QiskitError("duplicate qubit arguments")
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
