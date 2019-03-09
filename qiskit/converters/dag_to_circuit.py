@@ -50,19 +50,19 @@ def dag_to_circuit(dag):
             else:
                 control = (node.condition[0], node.condition[1])
 
-            def duplicate_instruction(inst):
+            def duplicate_instruction(instruction):
                 """Create a fresh instruction from an input instruction."""
-                if inst.name == 'barrier':
-                    params = [inst.qargs]
-                elif inst.name == 'snapshot':
-                    params = inst.params + [inst.qargs]
-                else:
-                    params = inst.params + inst.qargs + inst.cargs
-                new_inst = inst.__class__(*params)
-                return new_inst
+                args = instruction.params + [instruction.circuit]
+                # hacky special cases
+                if instruction.name == 'barrier':
+                    args = [instruction.num_qubits] + args
+                if instruction.name == 'snapshot':
+                    args = [instruction.num_qubits, instruction.num_clbits] + args
+                new_instruction = instruction.__class__(*args)
+                return new_instruction
 
             inst = duplicate_instruction(node.op)
             inst.control = control
-            circuit._attach(inst)
+            circuit.append(inst, qubits, clbits)
 
     return circuit
