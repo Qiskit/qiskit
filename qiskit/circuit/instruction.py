@@ -86,7 +86,7 @@ class Instruction:
 
     def _define_decompositions(self):
         """Populates self.decompositions with way to decompose this instruction."""
-        raise NotImplementedError("No decomposition rules defined for %s", self.name)
+        raise NotImplementedError("No decomposition rules defined for %s" % self.name)
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name and same

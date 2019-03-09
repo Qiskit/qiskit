@@ -35,17 +35,6 @@ def circuit_to_dag(circuit):
         else:
             control = (instruction.control[0], instruction.control[1])
 
-        def duplicate_instruction(instruction):
-            """Create a fresh instruction from an input instruction."""
-            args = instruction.params + [instruction.circuit]
-            # hacky special cases
-            if instruction.name == 'barrier':
-                args = [instruction.num_qubits] + args
-            if instruction.name == 'snapshot':
-                args = [instruction.num_qubits, instruction.num_clbits] + args
-            new_instruction = instruction.__class__(*args)
-            return new_instruction
-
         instruction = copy.deepcopy(instruction)
         dagcircuit.apply_operation_back(instruction, qargs, cargs, control)
 

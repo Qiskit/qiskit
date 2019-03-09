@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting a dag to a circuit"""
+import copy
 import collections
 
 from qiskit.circuit import QuantumCircuit
@@ -50,18 +51,7 @@ def dag_to_circuit(dag):
             else:
                 control = (node.condition[0], node.condition[1])
 
-            def duplicate_instruction(instruction):
-                """Create a fresh instruction from an input instruction."""
-                args = instruction.params + [instruction.circuit]
-                # hacky special cases
-                if instruction.name == 'barrier':
-                    args = [instruction.num_qubits] + args
-                if instruction.name == 'snapshot':
-                    args = [instruction.num_qubits, instruction.num_clbits] + args
-                new_instruction = instruction.__class__(*args)
-                return new_instruction
-
-            inst = duplicate_instruction(node.op)
+            inst = copy.deepcopy(n['op'])
             inst.control = control
             circuit.append(inst, qubits, clbits)
 
