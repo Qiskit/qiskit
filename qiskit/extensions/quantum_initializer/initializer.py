@@ -21,6 +21,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
+from qiskit.converters import circuit_to_instruction
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -68,16 +69,16 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         self.decomposition.add_qreg(q)
 
         # call to generate the circuit that takes the desired vector to zero
-        decomposition = self.gates_to_uncompute()
+        initialize_circuit = self.gates_to_uncompute()
 
         # remove zero rotations and double cnots
-        self.optimize_gates(decomposition)
+        self.optimize_gates(initialize_circuit)
         
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
-        self.inverse()
+        initialize_circuit.inverse()
 
-        self._decompositions = [decomposition]
+        self._decompositions = [circuit_to_dag(initialize_circuit)]
 
     def nth_qubit_from_least_sig_qubit(self, nth):
         """
@@ -109,8 +110,10 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
-            self.decomposition.compose_back(self.multiplex(RZGate, i, phis))
-            self.decomposition.compose_back(self.multiplex(RYGate, i, thetas))
+            rz_mult = self._multiplex(RZGate, phis))
+            ry_mult = self._multiplex(RYGate, thetas))
+            circuit.append(circuit_to_instruction(rz_mult), q[0:num_qubits-i], [])
+            circuit.append(circuit_to_instruction(ry_mult), q[0:num_qubits-i], [])
 
     @staticmethod
     def _rotations_to_disentangle(local_param):
@@ -178,19 +181,17 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         return final_r * np.exp(1.J * final_t/2), theta, phi
 
-    def multiplex(self, target_gate, target_qubit_index, list_of_angles):
+    def _multiplex(target_gate, list_of_angles):
         """
-        Internal recursive method to create gates to perform rotations on the
-        imaginary qubits: works by rotating LSB (and hence ALL imaginary
-        qubits) by combo angle and then flipping sign (by flipping the bit,
-        hence moving the complex amplitudes) of half the imaginary qubits
-        (CNOT) followed by another combo angle on LSB, therefore executing
-        conditional (on MSB) rotations, thereby disentangling bottom qubit (LSB).
+        Return a recursive implementation of a multiplexor circuit,
+        where each instruction itself has a decomposition based on
+        smaller multiplexors.
+        
+        The LSB is the multiplexor "data" and the other bits are multiplexor "select".
 
         Args:
             target_gate (Gate): Ry or Rz gate to apply to target qubit, multiplexed
                 over all other "select" qubits
-            target_qubit_index (int): the multiplexor's "data" qubit
             list_of_angles (list[float]): list of rotation angles to apply Ry and Rz
 
         Returns:
@@ -198,20 +199,18 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         """
         list_len = len(list_of_angles)
         local_num_qubits = int(math.log2(list_len)) + 1
-        control_qubit_index = local_num_qubits - 1 + target_qubit_index
+        
+        q = QuantumRegister(local_num_qubits)
+        circuit = QuantumCircuit(q)
+        circuit.name = "multiplex" + local_num_qubits.__str__()    
 
-        # build multiplex circuit
-        # TODO: simplify code with better circuit building API
-        multiplex_circuit = DAGCircuit()
-        multiplex_circuit.name = "multiplex" + local_num_qubits.__str__()
-        q = QuantumRegister()
-        multiplex_circuit.add_qreg(self.decomposition.qregs.values[0])
+        lsb = q[0]
+        msb = q[local_num_qubits - 1]
 
-        # Case of no multiplexing = base case for recursion
-        if list_len == 1:
-            multiplex_circuit.apply_operation_back(
-                    target_gate(list_of_angles[0]), [target_qubit], [])
-            return multiplex_circuit
+        # case of no multiplexing: base case for recursion
+        if local_num_qubits == 1:
+            circuit.append(target_gate(list_of_angles[0]), [q[0]], [])
+            return circuit
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
@@ -222,31 +221,28 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_circuit.compose_back(
-            self.multiplex(target_gate, target_qubit,
-                            list_of_angles[0:(list_len // 2)]))
+        multiplex_1 = circuit_to_instruction(
+            self._multiplex(target_gate, list_of_angles[0:(list_len // 2)], num_qubits))
+        circuit.append(multiplex_1, q[0:-1], [])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
-        multiplex_circuit.apply_operation_back(
-                CnotGate(), [control_qubit, target_qubit], [])
+        circuit.append(CnotGate(), [msb, lsb], [])
 
         # implement extra efficiency from the paper of cancelling adjacent
-        # CNOTs (by leaving out last CNOT and reversing (not inverting) the
+        # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        sub_circuit = self.multiplex(
-            target_gate, target_qubit, list_of_angles[(list_len // 2):])
+        multiplex_2 = circuit_to_instruction(
+            self._multiplex(target_gate, list_of_angles[(list_len // 2):], num_qubits))
         if list_len > 1:
-            multiplex_circuit.compose_back(sub_circuit.reverse())
+            circuit.append(multiplex_2.reverse(), q[0:-1], [])
         else:
-            multiplex_circuit.compose_back(sub_circuit)
+            circuit.append(multiplex_2, q[0:-1], [])
 
         # outer multiplex keeps final CNOT, because no adjacent CNOT to cancel
-        # with
-        if self.num_qubits == local_num_qubits + target_qubit_index:
-            multiplex_circuit.apply_operation_back(
-                    CnotGate(), [control_qubit, target_qubit], [])
+        if local_num_qubits == num_qubits:
+            circuit.append(CnotGate(), [msb, lsb], [])
 
-        return multiplex_circuit
+        return circuit
 
     @staticmethod
     def chop_num(numb):
