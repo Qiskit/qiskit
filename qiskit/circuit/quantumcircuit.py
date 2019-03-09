@@ -69,7 +69,7 @@ class QuantumCircuit:
         return str(self.draw(output='text'))
 
     def __eq__(self, other):
-        # TODO: removed the DAG from this function
+        # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
 
@@ -247,24 +247,18 @@ class QuantumCircuit:
         for clbit in cargs:
             clbit[0].check_range(clbit[1])
 
-    def _check_clbit(self, clbit):
-        """Raise exception if clbit is not in this circuit or bad format."""
-        if not isinstance(clbit, tuple):
-            raise QiskitError("%s is not a tuple."
-                              "A clbit should be formated as a tuple." % str(clbit))
-        if not len(clbit) == 2:
-            raise QiskitError("%s is not a tuple with two elements, but %i instead" % len(clbit))
-        if not isinstance(clbit[1], int):
-            raise QiskitError("The second element of a tuple defining a clbit should be an int:"
-                              "%s was found instead" % type(clbit[1]).__name__)
-        self._check_creg(clbit[0])
-        clbit[0].check_range(clbit[1])
+    def to_gate(self):
+        """Create a Gate out of this circuit, if conditions are met.
 
-    def _check_dups(self, qubits):
-        """Raise exception if list of qubits contains duplicates."""
-        squbits = set(qubits)
-        if len(squbits) != len(qubits):
-            raise QiskitError("duplicate qubit arguments")
+        Returns:
+            Gate: a composite gate encapsulating this circuit
+                (can be decomposed back)
+
+        Raises:
+            QiskitError: if circuit is non-reversible
+        """
+        from qiskit.converters.circuit_to_gate import circuit_to_gate
+        return circuit_to_gate(self)
 
     def _check_compatible_regs(self, rhs):
         """Raise exception if the circuits are defined on incompatible registers"""
