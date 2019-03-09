@@ -292,7 +292,7 @@ class DAGCircuit:
         self.multi_graph.add_node(new_node)
         self._id_to_node[self._max_node_id] = new_node
 
-    def apply_operation_back(self, op, qargs, cargs, condition=None):
+    def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
 
         Args:
@@ -308,6 +308,9 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
+        qargs = qargs or []
+        cargs = cargs or []
+
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(cargs)
 

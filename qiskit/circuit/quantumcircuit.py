@@ -179,7 +179,7 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
-    def append(self, instruction, qargs, cargs):
+    def append(self, instruction, qargs=None, cargs=None):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
 
@@ -195,6 +195,9 @@ class QuantumCircuit:
             QiskitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
+        qargs = qargs or []
+        cargs = cargs or []
+
         # do some compatibility checks
         self._check_dups(instruction.qargs)
         self._check_qargs(instruction.qargs)
