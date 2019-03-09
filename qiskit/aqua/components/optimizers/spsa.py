@@ -113,11 +113,10 @@ class SPSA(Optimizer):
         self._skip_calibration = skip_calibration
 
     def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
 
         if not isinstance(initial_point, np.ndarray):
             initial_point = np.asarray(initial_point)
-
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
 
         logger.debug('Parameters: {}'.format(self._parameters))
         if not self._skip_calibration:
