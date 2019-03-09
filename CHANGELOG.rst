@@ -20,16 +20,6 @@ The format is based on `Keep a Changelog`_.
 =============
 
 
-`0.7.2`_ - 2019-03-05
-=====================
-
-
-Fixed
------
-
-- Fixed a bug whereby inheriting from QuantumRegister or ClassicalRegister
-  would cause a QiskitError in instruction.py
-
 Added
 -----
 
@@ -95,6 +85,7 @@ Deprecated
 Fixed
 -----
 
+- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would cause a QiskitError in instruction.py
 - Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
