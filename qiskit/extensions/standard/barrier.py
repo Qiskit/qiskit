@@ -47,7 +47,7 @@ def barrier(self, *qargs):
         else:
             qubits.append(qarg)
 
-    return self.append(Barrier(self, len(qubits)), qubits, [])
+    return self.append(Barrier(len(qubits)), qubits, [])
 
 
 QuantumCircuit.barrier = barrier

@@ -78,16 +78,6 @@ class Instruction:
         self.circuit = circuit
         self._decompositions = None
 
-    def decompositions(self):
-        """Returns a list of possible decompositions. """
-        if self._decompositions is None:
-            self._define_decompositions()
-        return self._decompositions
-
-    def _define_decompositions(self):
-        """Populates self.decompositions with way to decompose this instruction."""
-        raise NotImplementedError("No decomposition rules defined for %s" % self.name)
-
     def __eq__(self, other):
         """Two instructions are the same if they have the same name and same
         params.
@@ -136,7 +126,7 @@ class Instruction:
         cpy = deepcopy(self)
         if name:
             cpy.name = name
-        return cpy 
+        return cpy
 
     def reverse(self):
         """For a composite instruction, reverse the order of sub-instructions.
@@ -147,7 +137,7 @@ class Instruction:
         Returns:
             Instruction: a fresh instruction with sub-instructions reversed
         """
-        # TODO: this function is ugly and must be redone, possible after 
+        # TODO: this function is ugly and must be redone, possible after
         # circuit and DAG merge.
         from qiskit.circuit import QuantumCircuit
         from qiskit.converters import dag_to_circuit, circuit_to_dag

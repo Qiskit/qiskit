@@ -182,7 +182,7 @@ class QuantumCircuit:
     def append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
-        
+
         Args:
             instruction (Instruction): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
@@ -190,6 +190,10 @@ class QuantumCircuit:
 
         Returns:
             Instruction: a handle to the instruction that was just added
+
+        Raises:
+            QiskitError: if the gate is of a different shape than the wires
+                it is being attached to.
         """
         # do some compatibility checks
         self._check_dups(instruction.qargs)
@@ -239,6 +243,19 @@ class QuantumCircuit:
             raise QiskitError("register not in this circuit")
         for clbit in cargs:
             clbit[0].check_range(clbit[1])
+
+    def _check_clbit(self, clbit):
+        """Raise exception if clbit is not in this circuit or bad format."""
+        if not isinstance(clbit, tuple):
+            raise QiskitError("%s is not a tuple."
+                              "A clbit should be formated as a tuple." % str(clbit))
+        if not len(clbit) == 2:
+            raise QiskitError("%s is not a tuple with two elements, but %i instead" % len(clbit))
+        if not isinstance(clbit[1], int):
+            raise QiskitError("The second element of a tuple defining a clbit should be an int:"
+                              "%s was found instead" % type(clbit[1]).__name__)
+        self._check_creg(clbit[0])
+        clbit[0].check_range(clbit[1])
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""

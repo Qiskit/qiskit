@@ -21,7 +21,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.converters import circuit_to_instruction
+from qiskit.converters import circuit_to_gate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -35,7 +35,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
     """
     def __init__(self, params, circ=None):
         """Create new initialize composite gate.
-        
+
         params (list): vector of complex amplitudes to initialize to
         circ (QuantumCircuit): where the initialize instruction is attached
         """
@@ -73,7 +73,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         # remove zero rotations and double cnots
         self.optimize_gates(initialize_circuit)
-        
+
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
         initialize_circuit.inverse()
@@ -110,10 +110,10 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
-            rz_mult = self._multiplex(RZGate, phis))
-            ry_mult = self._multiplex(RYGate, thetas))
-            circuit.append(circuit_to_instruction(rz_mult), q[0:num_qubits-i], [])
-            circuit.append(circuit_to_instruction(ry_mult), q[0:num_qubits-i], [])
+            rz_mult = self._multiplex(RZGate, phis)
+            ry_mult = self._multiplex(RYGate, thetas)
+            circuit.append(circuit_to_gate(rz_mult), q[0:num_qubits-i], [])
+            circuit.append(circuit_to_gate(ry_mult), q[0:num_qubits-i], [])
 
     @staticmethod
     def _rotations_to_disentangle(local_param):
@@ -186,7 +186,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         Return a recursive implementation of a multiplexor circuit,
         where each instruction itself has a decomposition based on
         smaller multiplexors.
-        
+
         The LSB is the multiplexor "data" and the other bits are multiplexor "select".
 
         Args:
@@ -199,10 +199,10 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         """
         list_len = len(list_of_angles)
         local_num_qubits = int(math.log2(list_len)) + 1
-        
+
         q = QuantumRegister(local_num_qubits)
         circuit = QuantumCircuit(q)
-        circuit.name = "multiplex" + local_num_qubits.__str__()    
+        circuit.name = "multiplex" + local_num_qubits.__str__()
 
         lsb = q[0]
         msb = q[local_num_qubits - 1]
@@ -221,7 +221,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = circuit_to_instruction(
+        multiplex_1 = circuit_to_gate(
             self._multiplex(target_gate, list_of_angles[0:(list_len // 2)], num_qubits))
         circuit.append(multiplex_1, q[0:-1], [])
 
@@ -231,7 +231,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = circuit_to_instruction(
+        multiplex_2 = circuit_to_gate(
             self._multiplex(target_gate, list_of_angles[(list_len // 2):], num_qubits))
         if list_len > 1:
             circuit.append(multiplex_2.reverse(), q[0:-1], [])
