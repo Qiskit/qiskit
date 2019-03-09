@@ -56,6 +56,10 @@ class AQGD(Optimizer):
                         'type': 'boolean',
                         'default': False
                     },
+                'momentum': {
+                        'type': 'float',
+                        'default': 0.25
+                    }
             },
             'additionalProperties': False
         },
