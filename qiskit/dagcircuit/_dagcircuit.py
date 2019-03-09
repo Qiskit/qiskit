@@ -991,6 +991,15 @@ class DAGCircuit:
         """
         return self.multi_graph.nodes[node_id]
 
+    def nodes(self):
+        """Iterator for node values.
+
+        Yield:
+            node: the node.
+        """
+        for node in self.multi_graph.nodes.values():
+            yield node
+
     def get_op_nodes(self, op=None, data=False):
         """Deprecated. Use op_nodes()."""
         warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',
