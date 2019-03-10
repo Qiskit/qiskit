@@ -15,6 +15,8 @@
 """
 
 import logging
+import warnings
+
 from qiskit.compiler import assemble_qobj, transpile
 from qiskit.compiler import RunConfig, TranspileConfig
 from qiskit.qobj import QobjHeader

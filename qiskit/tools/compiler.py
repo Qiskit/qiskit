@@ -72,4 +72,3 @@ def compile(circuits, backend,
                          qobj_id=qobj_id)
 
     return qobj
-

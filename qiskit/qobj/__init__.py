@@ -11,3 +11,5 @@ from .qobj import Qobj
 from .models import (QobjConfig, QobjExperiment, QobjInstruction, QobjHeader,
                      QobjExperimentHeader, QobjConditional, QobjExperimentConfig)
 from .exceptions import QobjValidationError
+
+from ._validation import validate_qobj_against_schema

@@ -14,6 +14,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader
 from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.compiler.run_config import RunConfig
+from qiskit.qobj.utils import QobjType
 
 
 def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None):
@@ -117,4 +118,5 @@ def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None
     userconfig.n_qubits = max_n_qubits
 
     return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
-                experiments=experiments, header=user_qobj_header)
+                experiments=experiments, header=user_qobj_header,
+                type=QobjType.QASM.value)
