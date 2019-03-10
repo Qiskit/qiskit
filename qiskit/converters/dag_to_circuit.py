@@ -37,16 +37,6 @@ def dag_to_circuit(dag):
     for node in dag.node_nums_in_topological_order():
         n = dag.node(node)
         if n['type'] == 'op':
-            if n['op'].name == 'U':
-                name = 'u_base'
-            elif n['op'].name == 'CX':
-                name = 'cx_base'
-            elif n['op'].name == 'id':
-                name = 'iden'
-            else:
-                name = n['op'].name
-
-            instr_method = getattr(circuit, name)
             qubits = []
             for qubit in n['qargs']:
                 qubits.append(qregs[qubit[0].name][qubit[1]])
@@ -54,12 +44,26 @@ def dag_to_circuit(dag):
             clbits = []
             for clbit in n['cargs']:
                 clbits.append(cregs[clbit[0].name][clbit[1]])
-            params = n['op'].params
 
-            if name in ['snapshot', 'save', 'noise', 'load']:
-                result = instr_method(params[0])
+            # Get arguments for classical control (if any)
+            if n['condition'] is None:
+                control = None
             else:
-                result = instr_method(*params, *qubits, *clbits)
-            if 'condition' in n and n['condition']:
-                result.c_if(*n['condition'])
+                control = (n['condition'][0], n['condition'][1])
+
+            def duplicate_instruction(inst):
+                """Create a fresh instruction from an input instruction."""
+                if inst.name == 'barrier':
+                    params = [inst.qargs]
+                elif inst.name == 'snapshot':
+                    params = inst.params + [inst.qargs]
+                else:
+                    params = inst.params + inst.qargs + inst.cargs
+                new_inst = inst.__class__(*params)
+                return new_inst
+
+            inst = duplicate_instruction(n['op'])
+            inst.control = control
+            circuit._attach(inst)
+
     return circuit
