@@ -16,9 +16,9 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-
 `UNRELEASED`_
 =============
+
 
 Added
 -----
@@ -72,6 +72,8 @@ Changed
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
   (#1333)
+- The ``Qobj`` classes have been reimplemented using models and schemas, as the
+  rest of spec-defined entities. (#1909).
 
 Deprecated
 ----------
@@ -87,6 +89,7 @@ Deprecated
 Fixed
 -----
 
+- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would cause a QiskitError in instruction.py
 - Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
