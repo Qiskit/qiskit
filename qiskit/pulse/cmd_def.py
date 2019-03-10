@@ -10,6 +10,8 @@ Command definition module. Relates circuit gates to pulse commands.
 """
 import numpy as np
 
+from qiskit.exceptions import QiskitError
+
 from .commands import SamplePulse
 from .exceptions import ScheduleError
 from .schedule import PulseSchedule
@@ -58,25 +60,49 @@ def cmd_def_from_defaults(flat_cmd_def, pulse_library):
     _pulse_library = self._preprocess_pulse_library(pulse_library)
 
 
+def _to_qubit_tuple(qubit_tuple):
+    """Convert argument to tuple.
+    Args:
+        qubit_tuple (int, iterable): qubits to enforce as tuple.
+
+    Returns:
+        tuple
+    """
+    try:
+        qubit_tuple = tuple(qubit_tuple)
+    except TypeError:
+        qubit_tuple = (qubit_tuple,)
+
+    if not all(isinstance(i, int) for i in qubit_tuple):
+        raise QiskitError("All qubits must be integers.")
+
+
 class CmdDef:
     """Command definition class.
     Relates `Gate`s to `PulseSchedule`s.
     """
 
-    def __init__(self):
+    def __init__(self, schedules=None):
         """Create command definition from backend.
+
+        Args:
+            dict: Keys are tuples of (cmd_name, *qubits) and values are `PulseSchedule`
         """
         self._cmd_dict = {}
+
+        if schedules:
+            for key, schedule in schedules.items():
+                self.add(key[0], key[1:], schedule)
 
     def add(self, cmd_name, qubits, schedule):
         """Add a command to the `CommandDefinition`
 
         Args:
             cmd_name (str): Name of the command
-            qubits (list or tuple): Ordered list of qubits command applies to
+            qubits (int, list or tuple): Ordered list of qubits command applies to
             schedule (ParameterizedSchedule or Schedule): Schedule to be added
         """
-        qubits = tuple(qubits)
+        qubits = _to_qubit_tuple(qubits)
         cmd_dict = self._cmd_dict.setdefault('cmd', {})
         cmd_dict[qubits] = schedule
 
@@ -85,11 +111,12 @@ class CmdDef:
 
         Args:
             cmd_name (str): Name of the command
-            qubits (list or tuple): Ordered list of qubits command applies to
+            qubits (int, list or tuple): Ordered list of qubits command applies to
 
         Returns:
             bool
         """
+        qubits = _to_qubit_tuple(qubits)
         if cmd_name in self._cmd_dict:
             if qubits in self._cmd_dict[cmd_name]:
                 return True
@@ -99,7 +126,7 @@ class CmdDef:
         """Get command from command definition.
         Args:
             cmd_name (str): Name of the command
-            qubits (list or tuple): Ordered list of qubits command applies to
+            qubits (int, list or tuple): Ordered list of qubits command applies to
             default (None or ParameterizedPulseSchedule or PulseSchedule): Default PulseSchedule
                 to return if command is not in CmdDef.
         Returns:
@@ -108,6 +135,7 @@ class CmdDef:
         Raises:
             ScheduleError
         """
+        qubits = _to_qubit_tuple(qubits)
         if self.has_cmd(cmd_name, qubits):
             return self._cmd_dict[cmd_name][qubits]
         elif default:
@@ -121,7 +149,7 @@ class CmdDef:
 
         Args:
             cmd_name (str): Name of the command
-            qubits (list or tuple): Ordered list of qubits command applies to
+            qubits (int, list or tuple): Ordered list of qubits command applies to
             default (None or ParameterizedPulseSchedule or PulseSchedule): Default PulseSchedule
                 to return if command is not in CmdDef.
         Returns:
@@ -130,6 +158,7 @@ class CmdDef:
         Raises:
             ScheduleError
         """
+        qubits = _to_qubit_tuple(qubits)
         if self.has_cmd(cmd_name, qubits):
             cmd_dict = self._cmd_dict[cmd_name]
             cmd = cmd_dict.pop(qubits)
@@ -185,3 +214,18 @@ class CmdDef:
             key (str, *qubits): Command name followed by qubits command applies to in order.
         """
         return self.get(key[0], key[1:])
+
+    def __contains__(self, key):
+        """
+        Args:
+            key (str, **list[int]): A tuple containing
+                the command name, tuple of qubits the command applies to and the command
+                schedule.
+        """
+        return self.has_cmd(key[0], key[1:])
+
+    def __repr__(self):
+        return repr(self._cmd_dict)
+
+    def __cmp__(self, cmd_def):
+        return self._cmd_dict.__cmp__(cmd_def)
