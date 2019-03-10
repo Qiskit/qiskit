@@ -95,6 +95,7 @@ Fixed
   used in conditional operations (#1705).
 - Fixed a bug that with transpile ignoring initial layout when
   coupling map is provided (#1711).
+- Fixed a bug in the definition of the rzz gate (#1940).
 
 Removed
 -------
