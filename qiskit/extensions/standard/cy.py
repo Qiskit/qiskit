@@ -56,9 +56,6 @@ class CyGate(Gate):
 @_op_expand(2)
 def cy(self, ctl, tgt):
     """Apply CY to circuit."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(CyGate(ctl, tgt, self))
 
 
