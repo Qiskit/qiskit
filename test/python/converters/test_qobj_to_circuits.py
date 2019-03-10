@@ -17,7 +17,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit import compile
 
-from qiskit.qobj import Qobj
+from qiskit.qobj import Qobj, QobjConfig, QobjHeader
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -92,7 +92,11 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuits_with_nothing(self):
         """Verify that qobj_to_circuits returns None without any data."""
-        qobj = Qobj('abc123', {}, {}, {})
+        qobj = Qobj(qobj_id='abc123',
+                    config=QobjConfig(),
+                    header=QobjHeader(),
+                    experiments=[],
+                    type='QASM')
         self.assertIsNone(qobj_to_circuits(qobj))
 
     def test_qobj_to_circuits_single_no_qasm(self):
