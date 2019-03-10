@@ -7,17 +7,21 @@
 
 # pylint: disable=redefined-builtin
 
-"""QOBj test."""
+"""Qobj tests."""
+
 import uuid
-import unittest
 import copy
 import jsonschema
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
+
 from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.providers.basicaer import basicaerjob
+
+from qiskit.qobj.utils import QobjType
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
 
@@ -28,20 +32,21 @@ class TestQobj(QiskitTestCase):
     def setUp(self):
         self.valid_qobj = Qobj(
             qobj_id='12345',
-            header={},
+            header=QobjHeader(),
             config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
             experiments=[
                 QobjExperiment(instructions=[
                     QobjInstruction(name='u1', qubits=[1], params=[0.4]),
                     QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
                 ])
-            ]
+            ],
+            type=QobjType.QASM.value
         )
 
         self.valid_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.0.0',
+            'schema_version': '1.1.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -55,11 +60,6 @@ class TestQobj(QiskitTestCase):
         self.bad_qobj = copy.deepcopy(self.valid_qobj)
         self.bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
 
-    def test_as_dict(self):
-        """Test conversion to dict of a Qobj based on the individual elements."""
-        self.valid_qobj._version = '67890'  # private member variables shouldn't appear in the dict
-        self.assertEqual(self.valid_qobj.as_dict(), self.valid_dict)
-
     def test_as_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
         try:
@@ -67,8 +67,6 @@ class TestQobj(QiskitTestCase):
         except jsonschema.ValidationError as validation_error:
             self.fail(str(validation_error))
 
-    @unittest.expectedFailure
-    # expected to fail until _qobjectify_item is updated (see TODO_ on line 77 of _qobj.py)
     def test_from_dict_per_class(self):
         """Test Qobj and its subclass representations given a dictionary."""
         test_parameters = {
@@ -83,7 +81,7 @@ class TestQobj(QiskitTestCase):
             QobjExperiment: (
                 QobjExperiment(
                     instructions=[QobjInstruction(name='u1', qubits=[1], params=[0.4])]),
-                {'instructions': {'name': 'u1', 'qubits': [1], 'params': [0.4]}}
+                {'instructions': [{'name': 'u1', 'qubits': [1], 'params': [0.4]}]}
             ),
             QobjInstruction: (
                 QobjInstruction(name='u1', qubits=[1], params=[0.4]),
@@ -91,9 +89,9 @@ class TestQobj(QiskitTestCase):
             )
         }
 
-        for qobj_class, (qobj, expected_dict) in test_parameters.items():
+        for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
-                self.assertEqual(qobj, qobj_class.from_dict(expected_dict))
+                self.assertEqual(qobj_item, qobj_class.from_dict(expected_dict))
 
     def test_simjob_raises_error_when_sending_bad_qobj(self):
         """Test SimulatorJob is denied resource request access when given an invalid Qobj instance.

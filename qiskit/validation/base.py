@@ -242,7 +242,7 @@ class _SchemaBinder:
                 _ = self.shallow_schema.validate(kwargs)
             except ValidationError as ex:
                 raise ModelValidationError(
-                    ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+                    ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
 
             init_method(self, **kwargs)
 
@@ -327,7 +327,7 @@ class BaseModel(SimpleNamespace):
             data, _ = self.schema.dump(self)
         except ValidationError as ex:
             raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
 
         return data
 
@@ -342,9 +342,13 @@ class BaseModel(SimpleNamespace):
             data, _ = cls.schema.load(dict_)
         except ValidationError as ex:
             raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
+                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
 
         return data
+
+    def as_dict(self):
+        """Serialize the model into a Python dict of simple types."""
+        return self.to_dict()
 
 
 class ObjSchema(BaseSchema):
