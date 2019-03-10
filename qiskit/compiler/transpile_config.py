@@ -7,16 +7,8 @@
 
 """Models for TranspileConfig and its related components."""
 
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
-
-
-class TranspileConfigSchema(BaseSchema):
-    """Schema for TranspileConfig."""
-
-    # Required properties.
-    # None
-
-    # Optional properties.
+from qiskit.compiler.models import TranspileConfigSchema
+from qiskit.validation import BaseModel, bind_schema
 
 
 @bind_schema(TranspileConfigSchema)
