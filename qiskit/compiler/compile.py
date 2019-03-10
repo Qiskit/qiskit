@@ -69,8 +69,7 @@ def compile(circuits, backend,
         run_config.max_credits = max_credits
     if memory:
         run_config.memory = memory
-    qobj = circuits_to_qobj(circuits, user_qobj_header=QobjHeader(), run_config=run_config,
+    qobj = circuits_to_qobj(circuits, qobj_header=QobjHeader(), run_config=run_config,
                             qobj_id=qobj_id)
 
     return qobj
-

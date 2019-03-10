@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def execute(circuits, backend, qobj_header=None, config=None, basis_gates=None,
-            coupling_map=None,initial_layout=None, shots=1024, max_credits=10,
+            coupling_map=None, initial_layout=None, shots=1024, max_credits=10,
             seed=None, qobj_id=None, seed_mapper=None, pass_manager=None,
             memory=False, **kwargs):
     """Executes a set of circuits.
@@ -55,7 +55,6 @@ def execute(circuits, backend, qobj_header=None, config=None, basis_gates=None,
         BaseJob: returns job instance derived from BaseJob
     """
 
-<<<<<<< HEAD
     transpile_config = TranspileConfig()
     run_config = RunConfig()
 
@@ -131,11 +130,4 @@ def execute_circuits(circuits, backend, qobj_header=None,
                              run_config=run_config)
 
     # executing the circuits on the backend and returning the job
-=======
-    qobj = compile(circuits, backend,
-                   config, basis_gates, coupling_map, initial_layout,
-                   shots, max_credits, seed, qobj_id, seed_mapper,
-                   pass_manager, memory)
-
->>>>>>> Compiler redo
     return backend.run(qobj, **kwargs)
