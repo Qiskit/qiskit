@@ -39,8 +39,8 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
         Qobj: the Qobj to be run on the backends
     """
     warnings.warn('circuits_to_qobj is deprecated and will be removed in Qiskit Terra 0.9. '
-              'Use qiskit.compiler.assemble() to serialize circuits into a qobj.',
-              DeprecationWarning)
+                  'Use qiskit.compiler.assemble() to serialize circuits into a qobj.',
+                  DeprecationWarning)
 
     qobj_header = qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
