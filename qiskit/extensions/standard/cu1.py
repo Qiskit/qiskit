@@ -61,9 +61,6 @@ class Cu1Gate(Gate):
 @_op_expand(2)
 def cu1(self, theta, ctl, tgt):
     """Apply cu1 from ctl to tgt with angle theta."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(Cu1Gate(theta, ctl, tgt, self))
 
 
