@@ -130,7 +130,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
-            self.assertIsInstance(self.dag.multi_graph.nodes[node]["op"], Instruction)
+            self.assertIsInstance(self.dag.node(node)["op"], Instruction)
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
@@ -146,8 +146,8 @@ class TestDagOperations(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], HGate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
+        self.assertIsInstance(self.dag.node(op_node_1)["op"], HGate)
+        self.assertIsInstance(self.dag.node(op_node_2)["op"], HGate)
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
@@ -158,12 +158,12 @@ class TestDagOperations(QiskitTestCase):
         successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop())
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
-        self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
+        self.assertIsInstance(self.dag.node(cnot_node)["op"], CnotGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
         self.assertEqual(len(successor_cnot), 2)
-        self.assertEqual(self.dag.multi_graph.nodes[successor_cnot[0]]["type"], 'out')
-        self.assertIsInstance(self.dag.multi_graph.nodes[successor_cnot[1]]["op"], Reset)
+        self.assertEqual(self.dag.node(successor_cnot[0])["type"], 'out')
+        self.assertIsInstance(self.dag.node(successor_cnot[1])["op"], Reset)
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
@@ -177,8 +177,8 @@ class TestDagOperations(QiskitTestCase):
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
+        self.assertIsInstance(self.dag.node(op_node_1)["op"], Gate)
+        self.assertIsInstance(self.dag.node(op_node_2)["op"], Gate)
 
     def test_two_q_gates(self):
         """The method dag.twoQ_gates() returns all 2Q gate nodes"""
@@ -205,7 +205,7 @@ class TestDagOperations(QiskitTestCase):
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
         named_nodes = self.dag.named_nodes('cx')
-        node_qargs = {tuple(self.dag.multi_graph.node[node_id]["op"].qargs)
+        node_qargs = {tuple(self.dag.node(node_id)["op"].qargs)
                       for node_id in named_nodes}
         expected_qargs = {
             (self.qubit0, self.qubit1),
@@ -224,6 +224,35 @@ class TestDagOperations(QiskitTestCase):
         named_nodes = self.dag.node_nums_in_topological_order()
         self.assertEqual([1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 4, 14, 2, 15, 6],
                          [i for i in named_nodes])
+
+    def test_dag_has_edge(self):
+        """ Test that existence of edges between nodes is correctly identified"""
+        self.assertTrue(self.dag.has_edge(1, 2))
+        self.assertTrue(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 0)))
+        self.assertFalse(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 1)))
+
+        self.assertFalse(self.dag.has_edge(1, 3))
+        self.assertFalse(self.dag.has_edge(1, 3, (QuantumRegister(3, 'qr'), 0)))
+
+    def test_dag_remove_edge(self):
+        """ Test that removing an edge as specified by a wire removes the correct edge"""
+
+        q = QuantumRegister(2, 'qr')
+        qc = QuantumCircuit(q)
+        qc.cx(q[0], q[1])
+        qc.cx(q[0], q[1])
+
+        dag = circuit_to_dag(qc)
+
+        node1 = 5
+        node2 = 6
+        wire = (QuantumRegister(2, 'qr'), 0)
+
+        self.assertTrue(dag.has_edge(node1, node2, wire))
+        dag.remove_edge(node1, node2, wire)
+        self.assertFalse(dag.has_edge(node1, node2, wire))
+
+        self.assertRaises(DAGCircuitError, dag.remove_edge, node1, node2, wire)
 
 
 class TestDagLayers(QiskitTestCase):

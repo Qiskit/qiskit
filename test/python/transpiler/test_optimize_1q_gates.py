@@ -70,10 +70,10 @@ class TestMovedFromMapper(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.cx(qr[1], qr[0])
-        qc.u1(2 * sympy.pi, qr[0])  # TODO: this identity should be removed (but is not)
+        qc.u1(2 * sympy.pi, qr[0])
         qc.cx(qr[1], qr[0])
         qc.u1(sympy.pi / 2, qr[0])  # these three should combine
-        qc.u1(sympy.pi, qr[0])  # to identity then
+        qc.u1(sympy.pi, qr[0])      # to identity then
         qc.u1(sympy.pi / 2, qr[0])  # optimized away.
         qc.cx(qr[1], qr[0])
         qc.u1(np.pi, qr[1])
@@ -83,8 +83,8 @@ class TestMovedFromMapper(QiskitTestCase):
 
         dag = circuit_to_dag(qc)
         simplified_dag = Optimize1qGates().run(dag)
-        num_u1_gates_remaining = len(simplified_dag.get_named_nodes('u1'))
-        self.assertEqual(num_u1_gates_remaining, 1)
+        num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
+        self.assertEqual(num_u1_gates_remaining, 0)
 
     def test_optimize_1q_gates_symbolic(self):
         """optimizes single qubit gate sequences with symbolic params.
@@ -111,10 +111,9 @@ class TestMovedFromMapper(QiskitTestCase):
         simplified_dag = Optimize1qGates().run(dag)
 
         params = set()
-        for n in simplified_dag.multi_graph.nodes:
-            node = simplified_dag.multi_graph.node[n]
-            if node['name'] == 'u1':
-                params.add(node['op'].params[0])
+        for node_id in simplified_dag.named_nodes('u1'):
+            node = simplified_dag.node(node_id)
+            params.add(node['op'].params[0])
 
         expected_params = {sympy.Number(-3 * np.pi / 2),
                            sympy.Number(1.0 + 0.55 * np.pi),

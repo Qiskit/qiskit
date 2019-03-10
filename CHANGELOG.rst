@@ -34,12 +34,14 @@ Added
   circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
+- Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
   different output stream 
-
+  
 Changed
 -------
 
+- Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
@@ -78,6 +80,7 @@ Deprecated
   (#1666).
 - Unroller bases must now be explicit, and violation raises an informative
   ``QiskitError`` (#1802).
+- The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
 
 Fixed
 -----
@@ -92,6 +95,7 @@ Fixed
   used in conditional operations (#1705).
 - Fixed a bug that with transpile ignoring initial layout when
   coupling map is provided (#1711).
+- Fixed a bug in the definition of the rzz gate (#1940).
 
 Removed
 -------
@@ -122,6 +126,9 @@ Removed
   package (``pip install qiskit-ibmq-provider``). (#1700)
 - ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
   was part of the pre-qobj specification (#1715).
+- Removed the wigner plotting functions ``plot_wigner_function``,
+  ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
+  (#1860).
 
 `0.7.0`_ - 2018-12-19
 =====================
