@@ -11,5 +11,5 @@
 
 from .run_config import RunConfig
 from .transpile_config import TranspileConfig
-from .assembler import assemble_qobj
+from .assembler import assemble_circuits
 from .transpile import transpile

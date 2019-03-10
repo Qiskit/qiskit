@@ -9,7 +9,7 @@
 import warnings
 import logging
 
-from qiskit.compiler import assemble_qobj, RunConfig
+from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit import transpiler
 from qiskit.mapper import Layout
 
@@ -45,7 +45,9 @@ def compile(circuits, backend,
     Raises:
         QiskitError: if the desired options are not supported by backend
     """
-    warnings.warn('compile is replace with in 0.8 with synthesis and assemble',
+    warnings.warn('qiskit.compile() is deprecated and will be removed in Qiskit Terra 0.9. '
+                  'Please use qiskit.transpile() to transform circuits '
+                  'and qiskit.assemble_circuits() to produce qobj.',
                   DeprecationWarning)
 
     run_config = RunConfig()
@@ -68,7 +70,7 @@ def compile(circuits, backend,
     new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
                                         initial_layout, seed_mapper, pass_manager)
 
-    qobj = assemble_qobj(new_circuits, qobj_header=None, run_config=run_config,
-                         qobj_id=qobj_id)
+    qobj = assemble_circuits(new_circuits, qobj_header=None, run_config=run_config,
+                             qobj_id=qobj_id)
 
     return qobj

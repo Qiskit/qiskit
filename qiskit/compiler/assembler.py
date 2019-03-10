@@ -17,7 +17,7 @@ from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj.utils import QobjType
 
 
-def assemble_qobj(circuits, qobj_header=None, run_config=None, qobj_id=None):
+def assemble_circuits(circuits, qobj_header=None, run_config=None, qobj_id=None):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:

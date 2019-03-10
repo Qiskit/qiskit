@@ -12,7 +12,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.transpiler import PassManager, transpile_dag, transpile
-from qiskit.compiler import assemble_qobj
+from qiskit.compiler import assemble_circuits
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import RunConfig
@@ -68,5 +68,5 @@ class TestTranspile(QiskitTestCase):
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
         run_config = RunConfig(shots=1024, max_credits=10)
-        qobj2 = assemble_qobj(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
+        qobj2 = assemble_circuits(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
         self.assertEqual(qobj, qobj2)

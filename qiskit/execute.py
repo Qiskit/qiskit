@@ -17,7 +17,7 @@
 import logging
 import warnings
 
-from qiskit.compiler import assemble_qobj, transpile
+from qiskit.compiler import assemble_circuits, transpile
 from qiskit.compiler import RunConfig, TranspileConfig
 from qiskit.qobj import QobjHeader
 
@@ -123,8 +123,8 @@ def execute_circuits(circuits, backend, qobj_header=None, run_config=None,
     new_circuits = transpile(circuits, transpile_config=transpile_config)
 
     # assembling the circuits into a qobj to be run on the backend
-    qobj = assemble_qobj(new_circuits, qobj_header=qobj_header,
-                         run_config=run_config)
+    qobj = assemble_circuits(new_circuits, qobj_header=qobj_header,
+                             run_config=run_config)
 
     # executing the circuits on the backend and returning the job
     return backend.run(qobj, **kwargs)
