@@ -49,7 +49,6 @@ class U0Gate(Gate):
 @_op_expand(1)
 def u0(self, m, q):
     """Apply u0 with length m to q."""
-    self._check_qubit(q)
     return self._attach(U0Gate(m, q, self))
 
 

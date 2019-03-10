@@ -57,12 +57,9 @@ def snapshot(self, label, snap_type='statevector'):
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):
             for j in range(tuple_element.size):
-                self._check_qubit((tuple_element, j))
                 qubits.append((tuple_element, j))
         else:
-            self._check_qubit(tuple_element)
             qubits.append(tuple_element)
-    self._check_dups(qubits)
     return self._attach(Snapshot(label, snap_type, qubits, self))
 
 

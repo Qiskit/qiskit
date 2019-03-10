@@ -57,7 +57,6 @@ class RZGate(Gate):
 @_op_expand(1)
 def rz(self, phi, q):
     """Apply Rz to q."""
-    self._check_qubit(q)
     return self._attach(RZGate(phi, q, self))
 
 
