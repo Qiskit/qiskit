@@ -980,6 +980,26 @@ class DAGCircuit:
 
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
+    def node(self, node_id):
+        """Get the node in the dag.
+
+        Args:
+            node_id(int): Node identifier.
+
+        Returns:
+            node: the node.
+        """
+        return self.multi_graph.nodes[node_id]
+
+    def nodes(self):
+        """Iterator for node values.
+
+        Yield:
+            node: the node.
+        """
+        for node in self.multi_graph.nodes.values():
+            yield node
+
     def get_op_nodes(self, op=None, data=False):
         """Deprecated. Use op_nodes()."""
         warnings.warn('The method get_op_nodes() is being replaced by op_nodes()',

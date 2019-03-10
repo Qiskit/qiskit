@@ -16,9 +16,9 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-
 `UNRELEASED`_
 =============
+
 
 Added
 -----
@@ -42,6 +42,7 @@ Added
 Changed
 -------
 
+- Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
@@ -70,6 +71,8 @@ Changed
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
   (#1333)
+- The ``Qobj`` classes have been reimplemented using models and schemas, as the
+  rest of spec-defined entities. (#1909).
 
 Deprecated
 ----------
@@ -80,10 +83,12 @@ Deprecated
   (#1666).
 - Unroller bases must now be explicit, and violation raises an informative
   ``QiskitError`` (#1802).
+- The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
 
 Fixed
 -----
 
+- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would cause a QiskitError in instruction.py
 - Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
@@ -94,6 +99,7 @@ Fixed
   used in conditional operations (#1705).
 - Fixed a bug that with transpile ignoring initial layout when
   coupling map is provided (#1711).
+- Fixed a bug in the definition of the rzz gate (#1940).
 
 Removed
 -------
