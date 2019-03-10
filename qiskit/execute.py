@@ -5,13 +5,15 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper module for simplified Qiskit usage.
+"""
+Helper module for simplified Qiskit usage.
 
-    This module includes
-        execute_circuits: runs a list of quantum circuits.
+This module includes
+    execute_circuits: compile and run a list of quantum circuits.
+    execute: simplified usage of either execute_circuits or execute_schedules
 
-    In general we recommend using the SDK functions directly. However, to get something
-    running quickly we have provider this wrapper module.
+In general we recommend using the SDK functions directly. However, to get something
+running quickly we have provider this wrapper module.
 """
 
 import logging
@@ -24,15 +26,16 @@ from qiskit.qobj import QobjHeader
 logger = logging.getLogger(__name__)
 
 
-def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
-            initial_layout=None, shots=1024, max_credits=10, seed=None,
-            qobj_id=None, seed_mapper=None, pass_manager=None,
+def execute(circuits, backend, qobj_header=None, config=None, basis_gates=None,
+            coupling_map=None,initial_layout=None, shots=1024, max_credits=10,
+            seed=None, qobj_id=None, seed_mapper=None, pass_manager=None,
             memory=False, **kwargs):
     """Executes a set of circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): a backend to execute the circuits on
+        qobj_header (QobjHeader): user input to go into the header
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (list[str]): list of basis gate names supported by the
             target. Default: ['u1','u2','u3','cx','id']
@@ -80,23 +83,23 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         warnings.warn('pass_manager in the execute function is deprecated in terra 0.8.',
                       DeprecationWarning)
 
-    job = execute_circuits(circuits, backend, qobj_header=None,
+    job = execute_circuits(circuits, backend, qobj_header=qobj_header,
                            run_config=run_config,
                            transpile_config=transpile_config, **kwargs)
 
     return job
 
 
-def execute_circuits(circuits, backend, qobj_header=None, run_config=None,
-                     transpile_config=None, **kwargs):
+def execute_circuits(circuits, backend, qobj_header=None,
+                     transpile_config=None, run_config=None, **kwargs):
     """Executes a list of circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): a backend to execute the circuits on
         qobj_header (QobjHeader): User input to go in the header
-        run_config (RunConfig): Run Configuration
         transpile_config (TranspileConfig): Configurations for the transpiler
+        run_config (RunConfig): Run Configuration
         kwargs: extra arguments used by AER for running configurable backends.
                 Refer to the backend documentation for details on these arguments
 
@@ -104,23 +107,23 @@ def execute_circuits(circuits, backend, qobj_header=None, run_config=None,
         BaseJob: returns job instance derived from BaseJob
     """
 
-    # HACK TO BE REMOVED when backend is not needed in transpile
+    # TODO: a hack, remove when backend is not needed in transpile
     # ------
     transpile_config = transpile_config or TranspileConfig()
     transpile_config.backend = backend
     # ------
 
-    # filling in the header with the backend name the qob was rune on
+    # filling in the header with the backend name the qobj was run on
     qobj_header = qobj_header or QobjHeader()
     qobj_header.backend_name = backend.name()
 
     # default values
     if not run_config:
-        # TODO remove max_credits from the default when it is not required by
-        # by the backend.
+        # TODO remove max_credits from the default when it is not
+        # required by by the backend.
         run_config = RunConfig(shots=1024, max_credits=10, memory=False)
 
-    # synthesizing the circuits using the transpiler_config
+    # transpiling the circuits using the transpiler_config
     new_circuits = transpile(circuits, transpile_config=transpile_config)
 
     # assembling the circuits into a qobj to be run on the backend
