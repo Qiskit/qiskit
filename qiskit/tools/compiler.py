@@ -68,7 +68,7 @@ def compile(circuits, backend,
     new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
                                         initial_layout, seed_mapper, pass_manager)
 
-    qobj = assemble_qobj(new_circuits, user_qobj_header=None, run_config=run_config,
+    qobj = assemble_qobj(new_circuits, qobj_header=None, run_config=run_config,
                          qobj_id=qobj_id)
 
     return qobj

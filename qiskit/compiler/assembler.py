@@ -17,19 +17,19 @@ from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj.utils import QobjType
 
 
-def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None):
+def assemble_qobj(circuits, qobj_header=None, run_config=None, qobj_id=None):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
-        user_qobj_header (QobjHeader): header to pass to the results
+        qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
         qobj_id (int): identifier for the generated qobj
 
     Returns:
         Qobj: the Qobj to be run on the backends
     """
-    user_qobj_header = user_qobj_header or QobjHeader()
+    qobj_header = qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -118,5 +118,5 @@ def assemble_qobj(circuits, user_qobj_header=None, run_config=None, qobj_id=None
     userconfig.n_qubits = max_n_qubits
 
     return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
-                experiments=experiments, header=user_qobj_header,
+                experiments=experiments, header=qobj_header,
                 type=QobjType.QASM.value)

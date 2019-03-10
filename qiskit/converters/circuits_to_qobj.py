@@ -13,7 +13,7 @@ from qiskit.compiler.run_config import RunConfig
 from qiskit.compiler import assemble_qobj
 
 
-def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
+def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
                      qobj_id=None, backend_name=None,
                      config=None, shots=None, max_credits=None,
                      basis_gates=None,
@@ -22,7 +22,7 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
 
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
-        user_qobj_header (QobjHeader): header to pass to the results
+        qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
 
         qobj_id (int): TODO: delete after qiskit-terra 0.8
@@ -42,12 +42,12 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
     warnings.warn('circuits_to_qobj is not used in 0.8. Use qiskit.compiler.assemble',
                   DeprecationWarning)
 
-    user_qobj_header = user_qobj_header or QobjHeader()
+    qobj_header = qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
 
     if backend_name:
         warnings.warn('backend_name is not required anymore', DeprecationWarning)
-        user_qobj_header.backend_name = backend_name
+        qobj_header.backend_name = backend_name
     if config:
         warnings.warn('config is not used anymore. Set all configs in '
                       'run_config.', DeprecationWarning)
@@ -70,6 +70,6 @@ def circuits_to_qobj(circuits, user_qobj_header=None, run_config=None,
     if qobj_id:
         warnings.warn('qobj_id is not used anymore', DeprecationWarning)
 
-    qobj = assemble_qobj(circuits, user_qobj_header, run_config)
+    qobj = assemble_qobj(circuits, qobj_header, run_config)
 
     return qobj

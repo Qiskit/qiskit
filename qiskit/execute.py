@@ -79,21 +79,21 @@ def execute(circuits, backend, config=None, basis_gates=None, coupling_map=None,
         warnings.warn('pass_manager in the execute function is deprecated in terra 0.8.',
                       DeprecationWarning)
 
-    job = execute_circuits(circuits, backend, user_qobj_header=None,
+    job = execute_circuits(circuits, backend, qobj_header=None,
                            run_config=run_config,
                            transpile_config=transpile_config, **kwargs)
 
     return job
 
 
-def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
+def execute_circuits(circuits, backend, qobj_header=None, run_config=None,
                      transpile_config=None, **kwargs):
     """Executes a list of circuits.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): a backend to execute the circuits on
-        user_qobj_header (QobjHeader): User input to go in the header
+        qobj_header (QobjHeader): User input to go in the header
         run_config (RunConfig): Run Configuration
         transpile_config (TranspileConfig): Configurations for the transpiler
         kwargs: extra arguments used by AER for running configurable backends.
@@ -110,8 +110,8 @@ def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
     # ------
 
     # filling in the header with the backend name the qob was rune on
-    user_qobj_header = user_qobj_header or QobjHeader()
-    user_qobj_header.backend_name = backend.name()
+    qobj_header = qobj_header or QobjHeader()
+    qobj_header.backend_name = backend.name()
 
     # default values
     if not run_config:
@@ -123,7 +123,7 @@ def execute_circuits(circuits, backend, user_qobj_header=None, run_config=None,
     new_circuits = transpile(circuits, transpile_config=transpile_config)
 
     # assembling the circuits into a qobj to be run on the backend
-    qobj = assemble_qobj(new_circuits, user_qobj_header=user_qobj_header,
+    qobj = assemble_qobj(new_circuits, qobj_header=qobj_header,
                          run_config=run_config)
 
     # executing the circuits on the backend and returning the job
