@@ -78,9 +78,6 @@ class CHGate(Gate):
 @_op_expand(2)
 def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(CHGate(ctl, tgt, self))
 
 

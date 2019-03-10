@@ -33,9 +33,6 @@ class CXBase(Gate):  # pylint: disable=abstract-method
 @_op_expand(2)
 def cx_base(self, ctl, tgt):
     """Apply CX ctl, tgt."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(CXBase(ctl, tgt, self))
 
 

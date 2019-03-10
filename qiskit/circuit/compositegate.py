@@ -67,22 +67,6 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
             raise QiskitError("qubit '%s[%d]' not argument of gate"
                               % (qubit[0].name, qubit[1]))
 
-    def _check_qreg(self, register):
-        """Raise exception.
-
-        if quantum register is not in this gate's circuit.
-        """
-        self.check_circuit()
-        self.circuit._check_qreg(register)
-
-    def _check_creg(self, register):
-        """Raise exception.
-
-        if classical register is not in this gate's circuit.
-        """
-        self.check_circuit()
-        self.circuit._check_creg(register)
-
     def _check_dups(self, qubits):
         """Raise exception.
 

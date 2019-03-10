@@ -59,9 +59,6 @@ class CrzGate(Gate):
 @_op_expand(2)
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(CrzGate(theta, ctl, tgt, self))
 
 

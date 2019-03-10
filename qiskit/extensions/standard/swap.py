@@ -54,9 +54,6 @@ class SwapGate(Gate):
 @_op_expand(2, broadcastable=[False, False])
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""
-    self._check_qubit(qubit1)
-    self._check_qubit(qubit2)
-    self._check_dups([qubit1, qubit2])
     return self._attach(SwapGate(qubit1, qubit2, self))
 
 

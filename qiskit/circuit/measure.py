@@ -9,8 +9,8 @@
 Quantum measurement in the computational basis.
 """
 from qiskit.circuit.decorators import _op_expand
-from .instruction import Instruction
-from .quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 class Measure(Instruction):
@@ -49,9 +49,6 @@ def measure(self, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    self._check_qubit(qubit)
-    self._check_creg(cbit[0])
-    cbit[0].check_range(cbit[1])
     return self._attach(Measure(qubit, cbit, self))
 
 
