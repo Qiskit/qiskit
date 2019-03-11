@@ -25,7 +25,6 @@ import uuid
 import numpy as np
 from qiskit import transpiler
 from qiskit.compiler import assemble_circuits
-from qiskit.qobj import QobjHeader
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.basicaer import BasicAerJob
 
