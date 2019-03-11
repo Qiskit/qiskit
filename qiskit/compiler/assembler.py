@@ -17,13 +17,13 @@ from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj.utils import QobjType
 
 
-def assemble_circuits(circuits, qobj_header=None, run_config=None, qobj_id=None):
+def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
-        qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
+        qobj_header (QobjHeader): header to pass to the results
         qobj_id (int): identifier for the generated qobj
 
     Returns:
