@@ -130,7 +130,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
-            self.assertIsInstance(self.dag.multi_graph.nodes[node]["op"], Instruction)
+            self.assertIsInstance(self.dag.node(node)["op"], Instruction)
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
@@ -146,8 +146,8 @@ class TestDagOperations(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], HGate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], HGate)
+        self.assertIsInstance(self.dag.node(op_node_1)["op"], HGate)
+        self.assertIsInstance(self.dag.node(op_node_2)["op"], HGate)
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
@@ -158,12 +158,12 @@ class TestDagOperations(QiskitTestCase):
         successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop())
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
-        self.assertIsInstance(self.dag.multi_graph.nodes[cnot_node]["op"], CnotGate)
+        self.assertIsInstance(self.dag.node(cnot_node)["op"], CnotGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
         self.assertEqual(len(successor_cnot), 2)
-        self.assertEqual(self.dag.multi_graph.nodes[successor_cnot[0]]["type"], 'out')
-        self.assertIsInstance(self.dag.multi_graph.nodes[successor_cnot[1]]["op"], Reset)
+        self.assertEqual(self.dag.node(successor_cnot[0])["type"], 'out')
+        self.assertIsInstance(self.dag.node(successor_cnot[1])["op"], Reset)
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
@@ -177,8 +177,8 @@ class TestDagOperations(QiskitTestCase):
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_1]["op"], Gate)
-        self.assertIsInstance(self.dag.multi_graph.nodes[op_node_2]["op"], Gate)
+        self.assertIsInstance(self.dag.node(op_node_1)["op"], Gate)
+        self.assertIsInstance(self.dag.node(op_node_2)["op"], Gate)
 
     def test_two_q_gates(self):
         """The method dag.twoQ_gates() returns all 2Q gate nodes"""
