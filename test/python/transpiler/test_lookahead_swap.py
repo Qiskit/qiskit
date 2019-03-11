@@ -112,6 +112,7 @@ class TestLookaheadSwap(QiskitTestCase):
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         mapped_measure_qargs = set(op.qargs[0]
+
                                    for op in mapped_dag.named_nodes('measure'))
 
         self.assertIn(mapped_measure_qargs,
@@ -142,6 +143,7 @@ class TestLookaheadSwap(QiskitTestCase):
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         mapped_barrier_qargs = [set(op.qargs)
+
                                 for op in mapped_dag.named_nodes('barrier')][0]
 
         self.assertIn(mapped_barrier_qargs,

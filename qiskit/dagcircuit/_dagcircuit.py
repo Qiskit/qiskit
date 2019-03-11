@@ -963,7 +963,28 @@ class DAGCircuit:
 
                 self.multi_graph.remove_edge(p[0], self.output_map[w])
 
-    def get_op_nodes(self, op=None, data=None):
+    def node(self, node_id):
+        """Get the node in the dag.
+
+        Args:
+            node_id(int): Node identifier.
+
+        Returns:
+            node: the node.
+        """
+        return self.multi_graph.nodes[node_id]
+
+    def nodes(self):
+        """Iterator for node values.
+
+        Yield:
+            node: the node.
+        """
+        for node in self.multi_graph.nodes.values():
+            yield node
+
+    def get_op_nodes(self, op=None, data=False):
+
         """Deprecated. Use op_nodes()."""
         warnings.warn('The method get_op_nodes() is being replaced by op_nodes().'
                       'Returning a list of node_ids/(node_id, data) tuples is '
@@ -1257,6 +1278,47 @@ class DAGCircuit:
             if nd["type"] == "op":
                 self._remove_op_node(n)
 
+    def remove_edge(self, node1, node2, wire=None):
+        """
+        Remove an edge from the DAG allowing the user to specify which edge if there are multiple
+        between the 2 nodes
+
+        Raises :
+            DAGCircuitError : if the edge doesn't exist in the graph
+        """
+
+        # If no wire is specified, remove a random edge between the 2 nodes
+        if not wire:
+            self.multi_graph.remove_edge(node1, node2)
+            return
+
+        for index, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                self.multi_graph.remove_edge(node1, node2, index)
+                return
+
+        raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist"
+                              % (node1, node2, str(wire)))
+
+    def has_edge(self, node1, node2, wire=None):
+        """
+        Check to see if edge exists between 2 DAG nodes, and optionally
+        if there is a connection on a specific wire
+
+        Returns :
+            boolean: True when an edge meeting the criteria exists
+        """
+
+        in_multi_graph = self.multi_graph.has_edge(node1, node2)
+
+        if not wire or not in_multi_graph:
+            return in_multi_graph
+
+        for _, node_dict in self.multi_graph[node1][node2].items():
+            if node_dict['wire'] == wire:
+                return True
+        return False
+
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
@@ -1384,7 +1446,7 @@ class DAGCircuit:
             next_layer = []
 
     def collect_runs(self, namelist):
-        """Return a set of runs of "op" nodes with the given names.
+        """Return a set of non-conditional runs of "op" nodes with the given names.
 
         For example, "... h q[0]; cx q[0],q[1]; cx q[0],q[1]; h q[1]; .."
         would produce the tuple of cx nodes as an element of the set returned
@@ -1405,7 +1467,7 @@ class DAGCircuit:
         for node in tops_node:
             nd = self.multi_graph.node[node]
             if nd["type"] == "op" and nd["name"] in namelist \
-                    and not nodes_seen[node]:
+                    and nd["condition"] is None and not nodes_seen[node]:
                 group = [node]
                 nodes_seen[node] = True
                 s = list(self.multi_graph.successors(node))
@@ -1415,7 +1477,7 @@ class DAGCircuit:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = list(self.multi_graph.successors(s[0]))
-                if len(group) > 1:
+                if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
 

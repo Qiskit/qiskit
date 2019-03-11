@@ -82,7 +82,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
 
     if justify == 'none':
         for node_no in dag.node_nums_in_topological_order():
-            node = dag.multi_graph.node[node_no]
+            node = dag.node(node_no)
             if node['type'] == 'op':
                 ops.append([node])
 
@@ -194,7 +194,7 @@ def _get_instructions(circuit, reversebits=False):
     qregs = []
     cregs = []
     for node_no in dag.node_nums_in_topological_order():
-        node = dag.multi_graph.node[node_no]
+        node = dag.node(node_no)
         if node['type'] == 'op':
             ops.append(node)
 

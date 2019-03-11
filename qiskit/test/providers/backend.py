@@ -9,7 +9,7 @@
 
 from unittest import SkipTest
 
-from qiskit.tools.compiler import compile  # pylint: disable=redefined-builtin
+from qiskit import execute
 from ..base import QiskitTestCase
 from ..reference_circuits import ReferenceCircuits
 
@@ -63,8 +63,7 @@ class BackendTestCase(QiskitTestCase):
 
     def test_run_circuit(self):
         """Test running a single circuit."""
-        qobj = compile(self.circuit, self.backend)
-        job = self.backend.run(qobj)
+        job = execute(self.circuit, self.backend)
         result = job.result()
         self.assertEqual(result.success, True)
         return result
