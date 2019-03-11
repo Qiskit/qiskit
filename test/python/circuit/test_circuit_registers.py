@@ -41,6 +41,15 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(cr1.size, 10)
         self.assertEqual(type(cr1), ClassicalRegister)
 
+    def test_negative_index(self):
+        """Test indexing from the back
+        """
+        qr1 = QuantumRegister(10, "q")
+        cr1 = ClassicalRegister(10, "c")
+        self.assertEqual(qr1[-1], (qr1, 9))
+        self.assertEqual(qr1[-3:-1], [(qr1, 7), (qr1, 8)])
+        self.assertEqual(len(cr1[0:-2]), 8)
+
     def test_reg_equal(self):
         """Test getting quantum registers from circuit.
         """
