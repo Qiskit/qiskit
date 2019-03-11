@@ -10,7 +10,7 @@ This pass checks if the CNOTs (or any other 2Q) in the DAG follow the right
 direction with respect to thecoupling map.
 """
 
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.mapper import Layout
 from qiskit.extensions.standard.cx import CXBase, CnotGate
 

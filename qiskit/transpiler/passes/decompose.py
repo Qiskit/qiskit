@@ -7,7 +7,7 @@
 
 """Pass for decompose a gate in a circuit."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class Decompose(TransformationPass):
