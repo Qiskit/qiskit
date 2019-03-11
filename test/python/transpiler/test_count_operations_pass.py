@@ -5,13 +5,13 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""CountOperations pass testing"""
+"""ResourceEstimation pass testing"""
 
 import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import CountOperations
+from qiskit.transpiler.passes import ResourceEstimation
 from qiskit.test import QiskitTestCase
 
 
@@ -23,7 +23,7 @@ class TestCountGatesPass(QiskitTestCase):
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
-        pass_ = CountOperations()
+        pass_ = ResourceEstimation()
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set['amount_of_operations'], 0)
@@ -42,7 +42,7 @@ class TestCountGatesPass(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = CountOperations()
+        pass_ = ResourceEstimation()
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set['amount_of_operations'], 8)
