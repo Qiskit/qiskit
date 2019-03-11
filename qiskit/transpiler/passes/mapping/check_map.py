@@ -11,7 +11,7 @@ This pass checks if a DAG is mapped to a coupling map.
 It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.mapper import Layout
 
 
