@@ -87,7 +87,8 @@ Deprecated
 Fixed
 -----
 
-- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would cause a QiskitError in instruction.py
+- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would
+  cause a QiskitError in instruction.py (#1908).
 - Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
@@ -99,6 +100,8 @@ Fixed
 - Fixed a bug that with transpile ignoring initial layout when
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
+- Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+
 
 Removed
 -------
