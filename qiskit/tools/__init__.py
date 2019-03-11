@@ -16,4 +16,4 @@ refer to the documentation of each component and use them separately.
 """
 
 from .parallel import parallel_map
-from .compiler import (compile, execute)
+from .compiler import compile
