@@ -59,18 +59,23 @@ try:
     pprint.pprint(my_backend.properties())
 
 
-    print("\n(IMQ Backends)")
+    # Compile and run the circuit on a real device backend
+    # See a list of available remote backends
+    print("\n(IBMQ Backends)")
     for backend in IBMQ.backends():
         print(backend.status())
 
-    # select least busy available device and execute.
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    try:
+        # select least busy available device and execute.
+        least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    except:
+        print("All devices are currently unavailable.")
+
     print("Running on current least busy device: ", least_busy_device)
     print("(with configuration) ")
     pprint.pprint(least_busy_device.configuration())
     print("(with properties) ")
     pprint.pprint(least_busy_device.properties())
-
 
     # Compiling the job for the experimental backend 
     qobj = compile([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
@@ -85,20 +90,15 @@ try:
     print(sim_result.get_counts(qc1))
     print(sim_result.get_counts(qc2))
 
-    # Compile and run the Quantum Program on a real device backend
-    # See a list of available remote backends
-    try:
-        # Running the job.
-        exp_job = least_busy_device.run(qobj)
+    # Running the job.
+    exp_job = least_busy_device.run(qobj)
 
-        job_monitor(exp_job)
-        exp_result = exp_job.result()
+    job_monitor(exp_job)
+    exp_result = exp_job.result()
 
-        # Show the results
-        print(exp_result.get_counts(qc1))
-        print(exp_result.get_counts(qc2))
-    except:
-        print("All devices are currently unavailable.")
+    # Show the results
+    print(exp_result.get_counts(qc1))
+    print(exp_result.get_counts(qc2))
 
 except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
