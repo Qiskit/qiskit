@@ -30,8 +30,8 @@ class TestResourceEstimationPass(QiskitTestCase):
         self.assertEqual(pass_.property_set['depth'], 0)
         self.assertEqual(pass_.property_set['width'], 0)
 
-    def test_count_h_and_cx(self):
-        """ A dag with 8 operations """
+    def test_purly_qubits(self):
+        """ A dag with 8 operations and no classic bits"""
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
