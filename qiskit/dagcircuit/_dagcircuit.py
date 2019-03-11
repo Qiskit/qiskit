@@ -621,7 +621,8 @@ class DAGCircuit:
         if not nx.is_directed_acyclic_graph(self.multi_graph):
             raise DAGCircuitError("not a DAG")
 
-        return nx.dag_longest_path_length(self.multi_graph) - 1
+        depth = nx.dag_longest_path_length(self.multi_graph) - 1
+        return depth if depth != -1 else 0
 
     def width(self):
         """Return the total number of qubits used by the circuit."""
