@@ -55,9 +55,6 @@ class CzGate(Gate):
 @_op_expand(2)
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(CzGate(ctl, tgt, self))
 
 

@@ -55,9 +55,6 @@ class RZZGate(Gate):
 @_op_expand(2, broadcastable=[False, False])
 def rzz(self, theta, qubit1, qubit2):
     """Apply RZZ to circuit."""
-    self._check_qubit(qubit1)
-    self._check_qubit(qubit2)
-    self._check_dups([qubit1, qubit2])
     return self._attach(RZZGate(theta, qubit1, qubit2, self))
 
 

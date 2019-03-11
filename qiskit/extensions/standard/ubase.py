@@ -42,7 +42,6 @@ class UBase(Gate):  # pylint: disable=abstract-method
 @_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
-    self._check_qubit(q)
     return self._attach(UBase(theta, phi, lam, q, self))
 
 

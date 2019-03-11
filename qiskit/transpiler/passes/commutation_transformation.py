@@ -10,7 +10,7 @@ The generated DAGCircuit is more relaxed about operation dependencies,
 but is not ready for simple scheduling.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from .commutation_analysis import CommutationAnalysis
 
 

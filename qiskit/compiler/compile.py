@@ -5,13 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper module for simplified Qiskit usage. THIS WILL BE REMOVED IN AFTER 0.8."""
+"""Helper module for simplified Qiskit usage."""
 import warnings
 import logging
 
-from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit import transpiler
+from qiskit.converters import circuits_to_qobj
+from qiskit.compiler import RunConfig
+from qiskit.qobj import QobjHeader
 from qiskit.mapper import Layout
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,32 +48,28 @@ def compile(circuits, backend,
     Raises:
         QiskitError: if the desired options are not supported by backend
     """
-    warnings.warn('qiskit.compile() is deprecated and will be removed in Qiskit Terra 0.9. '
-                  'Please use qiskit.transpile() to transform circuits '
-                  'and qiskit.assemble_circuits() to produce qobj.',
-                  DeprecationWarning)
-
-    run_config = RunConfig()
-
     if config:
-        warnings.warn('config is not used anymore. Set all configs in '
-                      'run_config.', DeprecationWarning)
-    if shots:
-        run_config.shots = shots
-    if max_credits:
-        run_config.max_credits = max_credits
-    if seed:
-        run_config.seed = seed
-    if memory:
-        run_config.memory = memory
+        warnings.warn('The `config` argument is deprecated and '
+                      'does not do anything', DeprecationWarning)
 
     if initial_layout is not None and not isinstance(initial_layout, Layout):
         initial_layout = Layout(initial_layout)
 
-    new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
-                                        initial_layout, seed_mapper, pass_manager)
+    circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map, initial_layout,
+                                    seed_mapper, pass_manager)
 
-    qobj = assemble_circuits(new_circuits, qobj_header=None, run_config=run_config,
-                             qobj_id=qobj_id)
+    # step 4: Making a qobj
+    run_config = RunConfig()
+
+    if seed:
+        run_config.seed = seed
+    if shots:
+        run_config.shots = shots
+    if max_credits:
+        run_config.max_credits = max_credits
+    if memory:
+        run_config.memory = memory
+    qobj = circuits_to_qobj(circuits, qobj_header=QobjHeader(), run_config=run_config,
+                            qobj_id=qobj_id)
 
     return qobj

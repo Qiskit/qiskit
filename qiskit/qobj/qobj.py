@@ -20,9 +20,9 @@ QOBJ_VERSION = '1.1.0'
 """Current version of the Qobj schema.
 
 Qobj schema versions:
-* 1.1.0: Qiskit 0.8
-* 1.0.0: Qiskit 0.6
-* 0.0.1: Qiskit 0.5.x format (pre-schemas).
+* 1.1.0: Qiskit Terra 0.8
+* 1.0.0: Qiskit Terra 0.6
+* 0.0.1: Qiskit Terra 0.5.x format (pre-schemas).
 """
 
 
