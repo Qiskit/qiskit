@@ -10,7 +10,7 @@
 from abc import abstractmethod
 from collections.abc import Hashable
 from inspect import signature
-from ._propertyset import PropertySet
+from .propertyset import PropertySet
 
 
 class MetaPass(type):

@@ -15,7 +15,7 @@ A new barrier will not be added if an equivalent barrier is already present.
 """
 
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 
