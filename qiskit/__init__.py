@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=wrong-import-order
-# pylint: disable=redefined-builtin
 
 
 """Main Qiskit public functionality."""
@@ -23,6 +22,7 @@ from .exceptions import QiskitError
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
+# pylint: disable=redefined-builtin
 from qiskit.tools.compiler import compile  # TODO remove after 0.8
 from qiskit.execute import (execute_circuits, execute)
 

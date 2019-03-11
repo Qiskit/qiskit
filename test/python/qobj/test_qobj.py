@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
 
 """Qobj tests."""
 
@@ -14,7 +13,8 @@ import copy
 import jsonschema
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, BasicAer
+from qiskit import BasicAer
+from qiskit.compiler import assemble_circuits, RunConfig
 
 from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
@@ -118,7 +118,7 @@ class TestQobj(QiskitTestCase):
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
         backend = BasicAer.get_backend('qasm_simulator')
-        qobj1 = compile(circuits, backend=backend, shots=1024, seed=88)
+        qobj1 = assemble_circuits(circuits, RunConfig(backend=backend, shots=1024, seed=88))
         qobj1.experiments[0].config.shots = 50
         qobj1.experiments[1].config.shots = 1
         self.assertTrue(qobj1.experiments[0].config.shots == 50)
