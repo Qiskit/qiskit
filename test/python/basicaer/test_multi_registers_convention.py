@@ -5,11 +5,10 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Test Qiskit's QuantumCircuit class for multiple registers."""
+"""Test executing multiple-register circuits on BasicAer."""
 
-from qiskit import BasicAer
+from qiskit import BasicAer, execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.quantum_info import Pauli, basis_state, process_fidelity, state_fidelity
 from qiskit.test import QiskitTestCase
 
@@ -34,20 +33,18 @@ class TestCircuitMultiRegs(QiskitTestCase):
         qc = circ + meas
 
         backend_sim = BasicAer.get_backend('qasm_simulator')
-        qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
-        qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
 
-        result = backend_sim.run(qobj_qc).result()
+        result = execute(qc, backend_sim, seed_mapper=34342).result()
         counts = result.get_counts(qc)
 
         target = {'01 10': 1024}
 
         backend_sim = BasicAer.get_backend('statevector_simulator')
-        result = backend_sim.run(qobj_circ).result()
+        result = execute(circ, backend_sim, seed_mapper=3438).result()
         state = result.get_statevector(circ)
 
         backend_sim = BasicAer.get_backend('unitary_simulator')
-        result = backend_sim.run(qobj_circ).result()
+        result = execute(circ, backend_sim, seed_mapper=3438).result()
         unitary = result.get_unitary(circ)
 
         self.assertEqual(counts, target)
