@@ -1336,7 +1336,7 @@ class DAGCircuit:
             next_layer = []
 
     def collect_runs(self, namelist):
-        """Return a set of runs of "op" nodes with the given names.
+        """Return a set of non-conditional runs of "op" nodes with the given names.
 
         For example, "... h q[0]; cx q[0],q[1]; cx q[0],q[1]; h q[1]; .."
         would produce the tuple of cx nodes as an element of the set returned
@@ -1357,7 +1357,7 @@ class DAGCircuit:
         for node in tops_node:
             nd = self.multi_graph.node[node]
             if nd["type"] == "op" and nd["name"] in namelist \
-                    and not nodes_seen[node]:
+                    and nd["condition"] is None and not nodes_seen[node]:
                 group = [node]
                 nodes_seen[node] = True
                 s = list(self.multi_graph.successors(node))
