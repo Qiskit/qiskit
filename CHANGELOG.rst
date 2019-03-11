@@ -16,9 +16,9 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-
 `UNRELEASED`_
 =============
+
 
 Added
 -----
@@ -27,8 +27,6 @@ Added
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
-- Added a RunConfig object for configurations for run configurations to be used
-  in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
 - Added in new parameter ``justify`` to the text circuit drawer to say how the
   circuit should be aligned. (#1725)
@@ -36,7 +34,20 @@ Added
   (#1733)
 - Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
-  different output stream 
+  different output stream
+- Added a ``RunConfig`` object for configurations related to running an
+  experiment (e.g. shots, memory) (#1856)
+- Added a ``TranspileConfig`` object for configurations related to transforming
+  circuits (e.g. basis_gates, coupling_map, initial_layout) (#1856)
+- Added a ``qiskit.compiler`` namespace for all functions that transpile, schedule
+  and assemble circuits and pulses (#1856)
+- Added a ``qiskit.compiler.assemble_circuits()`` function to generate qobj from some
+  circuits and a RunConfig (#1856)
+- Added an ``execute_circuits()`` function that takes a list of circuits along with a
+  TranspileConfig and RunConfig. The ``execute()`` function remains as a wrapper of this,
+  and later as a wrapper of ``execute_pulses()``.
+- ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
+  QobjHeader to add extra information to the qobj (and thus result).
   
 Changed
 -------
@@ -70,6 +81,8 @@ Changed
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
   (#1333)
+- The ``Qobj`` classes have been reimplemented using models and schemas, as the
+  rest of spec-defined entities. (#1909).
 
 Deprecated
 ----------
@@ -81,10 +94,15 @@ Deprecated
 - Unroller bases must now be explicit, and violation raises an informative
   ``QiskitError`` (#1802).
 - The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
+- The ``qiskit.compile()`` function is now deprecated in favor of explicitly
+  using the ``qiskit.compiler.transpile()`` function to transform a circuit followed
+  by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of it.
 
 Fixed
 -----
 
+- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would
+  cause a QiskitError in instruction.py (#1908).
 - Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
@@ -95,6 +113,9 @@ Fixed
   used in conditional operations (#1705).
 - Fixed a bug that with transpile ignoring initial layout when
   coupling map is provided (#1711).
+- Fixed a bug in the definition of the rzz gate (#1940).
+- Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+
 
 Removed
 -------

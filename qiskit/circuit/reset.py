@@ -33,7 +33,6 @@ def reset(self, quantum_register):
         for sizes in range(quantum_register.size):
             instructions.add(self.reset((quantum_register, sizes)))
         return instructions
-    self._check_qubit(quantum_register)
     return self._attach(Reset(quantum_register, self))
 
 

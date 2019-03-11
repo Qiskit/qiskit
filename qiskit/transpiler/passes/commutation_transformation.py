@@ -10,7 +10,7 @@ The generated DAGCircuit is more relaxed about operation dependencies,
 but is not ready for simple scheduling.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from .commutation_analysis import CommutationAnalysis
 
 
@@ -46,7 +46,7 @@ class CommutationTransformation(TransformationPass):
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
             wire_commutation_set = self.property_set['commutation_set'][wire_name]
             for c_set_ind, c_set in enumerate(wire_commutation_set):
-                if dag.multi_graph.node[c_set[0]]['type'] == 'out':
+                if dag.node(c_set[0])['type'] == 'out':
                     continue
                 for node1 in c_set:
                     for node2 in c_set:
