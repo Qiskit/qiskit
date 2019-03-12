@@ -52,7 +52,8 @@ class Optimize1qGates(TransformationPass):
                 if left_name == "u1":
                     left_parameters = (0, 0, current_node["op"].params[0])
                 elif left_name == "u2":
-                    left_parameters = (np.pi / 2, current_node["op"].params[0], current_node["op"].params[1])
+                    left_parameters = (np.pi / 2, current_node["op"].params[0],
+                                       current_node["op"].params[1])
                 elif left_name == "u3":
                     left_parameters = tuple(current_node["op"].params)
                 else:

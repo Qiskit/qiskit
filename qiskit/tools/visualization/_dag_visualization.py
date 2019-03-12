@@ -14,7 +14,6 @@ Visualization function for DAG circuit representation.
 import sys
 import copy
 from .exceptions import VisualizationError
-import networkx as nx
 
 
 def dag_drawer(dag, scale=0.7, filename=None, style='color'):

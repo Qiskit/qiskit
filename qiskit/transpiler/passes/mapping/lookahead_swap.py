@@ -250,8 +250,7 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
 
 
 def _score_step(step):
-    for g in step['gates_mapped']:
-        print(type(g))
+
     """Count the mapped two-qubit gates, less the number of added SWAPs."""
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']

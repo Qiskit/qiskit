@@ -69,7 +69,6 @@ class DAGNode:
         return self.data_dict.get('wire')
 
     def __getitem__(self, x):
-        #print(type(x))
         return getattr(self, x)
 
     def __setitem__(self, key, value):
@@ -107,16 +106,6 @@ class DAGNode:
         """Needed for ancestors function, which returns a set
         to be in a set requires the object to be hashable
         """
-
-        """hash((
-                            self.type,
-                            str(self.op),
-                            self.name,
-                            tuple(self.qargs),
-                            tuple(self.cargs),
-                            self.condition,
-                            self.wire))
-        """
         return hash(id(self))
 
     def __str__(self):
@@ -125,4 +114,5 @@ class DAGNode:
         return str(id(self))
 
     def pop(self, val):
+        """Remove the provided value from the dictionary"""
         del self.data_dict[val]
