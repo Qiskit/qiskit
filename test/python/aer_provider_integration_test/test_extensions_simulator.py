@@ -26,7 +26,6 @@ class TestExtensionsSimulator(QiskitTestCase):
     """
     _desired_fidelity = 0.99
 
-    @unittest.expectedFailure
     def test_snapshot(self):
         """snapshot a bell state in the middle of circuit"""
         basis_gates = ['cx', 'u1', 'u2', 'u3', 'snapshot']
