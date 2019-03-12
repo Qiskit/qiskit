@@ -7,6 +7,7 @@
 
 # pylint: disable=wrong-import-order
 
+
 """Main Qiskit public functionality."""
 
 import pkgutil
@@ -21,7 +22,9 @@ from .exceptions import QiskitError
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
-from .tools.compiler import (compile, execute)
+# pylint: disable=redefined-builtin
+from qiskit.tools.compiler import compile  # TODO remove after 0.8
+from qiskit.execute import (execute_circuits, execute)
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
@@ -38,12 +41,12 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer
 
-# Try to import the Aer provider if the Aer element is installed.
+# Try to import the Aer provider if installed.
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
     pass
-# Try to import the IBQM provider if the IBMQ element is installed.
+# Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
