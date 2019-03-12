@@ -18,7 +18,7 @@ from qiskit.transpiler import PassManager, transpile, transpile_dag
 from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
-from qiskit.qobj import Qobj
+from qiskit.qobj import QASMQobj
 from qiskit.converters import circuit_to_dag
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
@@ -576,7 +576,7 @@ class TestCompiler(QiskitTestCase):
         circ1.rz(0.7, qr[1])
         circ1.rx(1.570796, qr[1])
         qobj1 = compile(circ1, backend)
-        self.assertIsInstance(qobj1, Qobj)
+        self.assertIsInstance(qobj1, QASMQobj)
 
         circ2 = QuantumCircuit(qr)
         circ2.y(qr[0])
@@ -584,7 +584,7 @@ class TestCompiler(QiskitTestCase):
         circ2.s(qr[0])
         circ2.h(qr[0])
         qobj2 = compile(circ2, backend)
-        self.assertIsInstance(qobj2, Qobj)
+        self.assertIsInstance(qobj2, QASMQobj)
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.

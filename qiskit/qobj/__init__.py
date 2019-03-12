@@ -7,7 +7,7 @@
 
 """Module for the Qobj structure."""
 
-from .qobj import Qobj
+from .qobj import QASMQobj, PulseQobj
 from .models import (QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader,
                      QASMQobjExperimentHeader, QobjConditional, QASMQobjExperimentConfig,
                      PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction,

@@ -13,7 +13,7 @@ import unittest
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble_circuits
 from qiskit.compiler import RunConfig
-from qiskit.qobj import Qobj
+from qiskit.qobj import QASMQobj
 from qiskit.test import QiskitTestCase
 
 
@@ -32,7 +32,7 @@ class TestAssembler(QiskitTestCase):
 
         run_config = RunConfig(shots=2000, memory=True)
         qobj = assemble_circuits(circ, run_config=run_config)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QASMQobj)
         self.assertEqual(qobj.config.shots, 2000)
         self.assertEqual(qobj.config.memory, True)
         self.assertEqual(len(qobj.experiments), 1)
@@ -58,7 +58,7 @@ class TestAssembler(QiskitTestCase):
 
         run_config = RunConfig(shots=100, memory=False, seed=6)
         qobj = assemble_circuits([circ0, circ1], run_config=run_config)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QASMQobj)
         self.assertEqual(qobj.config.seed, 6)
         self.assertEqual(len(qobj.experiments), 2)
         self.assertEqual(qobj.experiments[1].config.n_qubits, 3)
@@ -76,7 +76,7 @@ class TestAssembler(QiskitTestCase):
         circ.measure(q, c)
 
         qobj = assemble_circuits(circ)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QASMQobj)
         self.assertIsNone(getattr(qobj.config, 'shots', None))
 
     def test_assemble_initialize(self):
@@ -87,7 +87,7 @@ class TestAssembler(QiskitTestCase):
         circ.initialize([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], q[:])
 
         qobj = assemble_circuits(circ)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QASMQobj)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'init')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])

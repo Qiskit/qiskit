@@ -11,10 +11,11 @@ import sympy
 import numpy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.qobj import Qobj, QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
-from qiskit.qobj import QASMQobjExperimentConfig, QASMQobjExperimentHeader, QobjConditional
+from qiskit.qobj import QASMQobj
+from qiskit.qobj import QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
+from qiskit.qobj import QASMQobjExperimentConfig, QASMQobjExperimentHeader
+from qiskit.qobj import QobjConditional
 from qiskit.compiler.run_config import RunConfig
-from qiskit.qobj.utils import QobjType
 
 
 def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):
@@ -27,7 +28,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
         qobj_id (int): identifier for the generated qobj
 
     Returns:
-        Qobj: the Qobj to be run on the backends
+        QASMQobj: the Qobj to be run on the backends
     """
     qobj_header = qobj_header or QASMQobjHeader()
     run_config = run_config or RunConfig()
@@ -117,6 +118,5 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
     userconfig.memory_slots = max_memory_slots
     userconfig.n_qubits = max_n_qubits
 
-    return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
-                experiments=experiments, header=qobj_header,
-                type=QobjType.QASM.value)
+    return QASMQobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
+                    experiments=experiments, header=qobj_header)

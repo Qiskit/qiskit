@@ -17,7 +17,7 @@ from qiskit import BasicAer
 from qiskit.compiler import assemble_circuits, RunConfig
 
 from qiskit.qobj.exceptions import SchemaValidationError
-from qiskit.qobj import Qobj, QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction
+from qiskit.qobj import QASMQobj, QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction
 from qiskit.qobj import QASMQobjHeader, validate_qobj_against_schema
 from qiskit.providers.basicaer import basicaerjob
 
@@ -30,7 +30,7 @@ class TestQobj(QiskitTestCase):
     """Tests for Qobj."""
 
     def setUp(self):
-        self.valid_qobj = Qobj(
+        self.valid_qobj = QASMQobj(
             qobj_id='12345',
             header=QASMQobjHeader(),
             config=QASMQobjConfig(shots=1024, memory_slots=2, max_credits=10),
@@ -39,8 +39,7 @@ class TestQobj(QiskitTestCase):
                     QASMQobjInstruction(name='u1', qubits=[1], params=[0.4]),
                     QASMQobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
                 ])
-            ],
-            type=QobjType.QASM.value
+            ]
         )
 
         self.valid_dict = {
@@ -70,7 +69,7 @@ class TestQobj(QiskitTestCase):
     def test_from_dict_per_class(self):
         """Test Qobj and its subclass representations given a dictionary."""
         test_parameters = {
-            Qobj: (
+            QASMQobj: (
                 self.valid_qobj,
                 self.valid_dict
             ),
