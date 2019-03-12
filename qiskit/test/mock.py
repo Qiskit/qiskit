@@ -22,7 +22,6 @@ import logging
 from concurrent import futures
 import time
 
-from qiskit.qobj.utils import QobjType
 from qiskit.result import Result
 from qiskit.providers import BaseBackend, BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration

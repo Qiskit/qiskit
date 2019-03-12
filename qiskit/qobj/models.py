@@ -11,7 +11,7 @@ from marshmallow.validate import Length, Range, Regexp, OneOf
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import (Integer, List, Nested, String,
-                                      InstructionParameter, Number, Raw)
+                                      InstructionParameter, Number, Complex, Dict)
 
 from .utils import MeasReturnType
 
@@ -30,8 +30,8 @@ class QobjMeasurementOptionSchema(BaseSchema):
 
     # Required properties.
     name = String(required=True)
-    # TODO : Need to add custom schema for params?
-    params = List(Raw(), required=True)
+    # TODO : Need to prepare custom model for nested params?
+    params = Dict(keys=String(), values=Number(), required=True)
 
 
 class QobjPulseLibrarySchema(BaseSchema):
@@ -39,8 +39,7 @@ class QobjPulseLibrarySchema(BaseSchema):
 
     # Required properties.
     name = String(required=True)
-    samples = Nested(List(Number, validate=Length(equal=2)),
-                     required=True, many=True)
+    samples = List(Complex(), required=True, validate=Length(min=1))
 
 
 class BaseQobjInstructionSchema(BaseSchema):
@@ -134,6 +133,7 @@ class QASMQobjHeaderSchema(BaseQobjHeaderSchema):
 
 class PulseQobjInstructionSchema(BaseQobjInstructionSchema):
     """Schema for PulseQobjInstruction."""
+    # pylint: disable=invalid-name
 
     # Required properties
     t0 = Integer(required=True, validate=Range(min=0))
@@ -142,9 +142,9 @@ class PulseQobjInstructionSchema(BaseQobjInstructionSchema):
     ch = String(validate=Regexp('[dum]([0-9])+'))
     conditional = Integer(validate=Range(min=0))
     phase = Number()
-    value = List(Number(), validate=Length(equal=2))
+    val = Complex()
     duration = Integer(validate=Range(min=1))
-    qubit = List(Integer(validate=Range(min=0)), validate=Length(min=1))
+    qubits = List(Integer(validate=Range(min=0)), validate=Length(min=1))
     memory_slot = List(Integer(validate=Range(min=0)), validate=Length(min=1))
     register_slot = List(Integer(validate=Range(min=0)), validate=Length(min=1))
     kernels = Nested(QobjMeasurementOptionSchema, many=True)
@@ -162,8 +162,8 @@ class PulseQobjExperimentConfigSchema(BaseQobjExperimentConfigSchema):
     """Schema for PulseQobjExperimentConfig."""
 
     # Optional properties.
-    qubit_lo_freq = List(Number)
-    meas_lo_freq = List(Number)
+    qubit_lo_freq = List(Number())
+    meas_lo_freq = List(Number())
 
 
 class PulseQobjExperimentSchema(BaseQobjExperimentSchema):
@@ -184,13 +184,11 @@ class PulseQobjConfigSchema(BaseQobjConfigSchema):
     # Required properties.
     # TODO : check if they are always required by backend
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
+    memory_slot_size = Integer(required=True)
     pulse_library = Nested(QobjPulseLibrarySchema, many=True)
-    qubit_lo_freq = List(Number, required=True)
-    meas_lo_freq = List(Number, required=True)
-    rep_time = Number(required=True)
-
-    # Optional properties.
-    memory_slot_size = Integer()
+    qubit_lo_freq = List(Number(), required=True)
+    meas_lo_freq = List(Number(), required=True)
+    rep_time = Integer(required=True)
     meas_return = String(validate=OneOf(MeasReturnType.AVERAGE,
                                         MeasReturnType.SINGLE))
 
@@ -248,7 +246,7 @@ class QobjPulseLibrary(BaseModel):
 
     Attributes:
         name (str): name of pulse
-        samples (list[list[float]]): list of complex values defining pulse shape
+        samples (list[complex]]): list of complex values defining pulse shape
     """
 
     def __init__(self, name, samples, **kwargs):
@@ -342,6 +340,8 @@ class PulseQobjInstruction(BaseModel):
         t0 (int): timing of executing the instruction
     """
     def __init__(self, name, t0, **kwargs):
+        # pylint: disable=invalid-name
+
         self.name = name
         self.t0 = t0
 
@@ -393,15 +393,19 @@ class PulseQobjConfig(BaseModel):
 
     Attributes:
         meas_level (int): a value represents the level of measurement.
+        memory_slot_size (int): size of memory slot
+        meas_return (str): a level of measurement information.
         pulse_library (list[QobjPulseLibrary]): a pulse library.
         qubit_lo_freq (list): the list of frequencies for qubit drive LO's in GHz.
         meas_lo_freq (list): the list of frequencies for measurement drive LO's in GHz.
-        rep_time (float): the value of repetition time of experiment in us.
+        rep_time (int): the value of repetition time of experiment in us.
     """
-    def __init__(self, meas_level, pulse_library,
-                 qubit_lo_freq, meas_lo_freq, rep_time,
+    def __init__(self, meas_level, memory_slot_size, meas_return,
+                 pulse_library, qubit_lo_freq, meas_lo_freq, rep_time,
                  **kwargs):
         self.meas_level = meas_level
+        self.memory_slot_size = memory_slot_size
+        self.meas_return = meas_return
         self.pulse_library = pulse_library
         self.qubit_lo_freq = qubit_lo_freq
         self.meas_lo_freq = meas_lo_freq

@@ -95,3 +95,8 @@ class Boolean(_fields.Boolean, ModelTypeValidator):
 class Raw(_fields.Raw, ModelTypeValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Boolean.__doc__
+
+
+class Dict(_fields.Dict, ModelTypeValidator):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Dict.__doc__

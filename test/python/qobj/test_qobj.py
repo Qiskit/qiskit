@@ -8,23 +8,21 @@
 
 """Qobj tests."""
 
-import uuid
 import copy
+import uuid
+
 import jsonschema
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble_circuits, RunConfig
-
-from qiskit.qobj.exceptions import SchemaValidationError
-from qiskit.qobj import QASMQobj, PulseQobj
-from qiskit.qobj import QobjConditional, QobjPulseLibrary, QobjMeasurementOption
-from qiskit.qobj import QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
-from qiskit.qobj import PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction, PulseQobjHeader
-from qiskit.qobj import validate_qobj_against_schema
-
 from qiskit.providers.basicaer import basicaerjob
-
+from qiskit.qobj import PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction, PulseQobjHeader
+from qiskit.qobj import QASMQobj, PulseQobj
+from qiskit.qobj import QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
+from qiskit.qobj import QobjPulseLibrary, QobjMeasurementOption
+from qiskit.qobj import validate_qobj_against_schema
+from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
 
@@ -137,28 +135,31 @@ class TestPulseQobj(QiskitTestCase):
             header=PulseQobjHeader(),
             config=PulseQobjConfig(shots=1024, memory_slots=2, max_credits=10,
                                    meas_level=1,
+                                   memory_slot_size=8192,
+                                   meas_return='avg',
                                    pulse_library=[
                                        QobjPulseLibrary(name='pulse0',
-                                                        samples=[[0.0, 0.0],
-                                                                 [0.5, 0.0],
-                                                                 [0.0, 0.0]])
+                                                        samples=[0.0 + 0.0j,
+                                                                 0.5 + 0.0j,
+                                                                 0.0 + 0.0j])
                                    ],
                                    qubit_lo_freq=[4.9],
                                    meas_lo_freq=[6.9],
-                                   rep_time=1000,
-                                   meas_return='avg'),
-            experiments=PulseQobjExperiment(instructions=[
-                PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
-                PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
-                PulseQobjInstruction(name='pv', t0=10, ch='d0', value=[0.1, 0.0]),
-                PulseQobjInstruction(name='acquire', t0=15, duration=5,
-                                     qubit=[0], memory_slot=[0],
-                                     kernels=[
-                                         QobjMeasurementOption(name='boxcar',
-                                                               params={"start_window": 0,
-                                                                       "stop_window": 5})
-                                     ])
-            ])
+                                   rep_time=1000),
+            experiments=[
+                PulseQobjExperiment(instructions=[
+                    PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
+                    PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
+                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
+                    PulseQobjInstruction(name='acquire', t0=15, duration=5,
+                                         qubits=[0], memory_slot=[0],
+                                         kernels=[
+                                             QobjMeasurementOption(name='boxcar',
+                                                                   params={"start_window": 0,
+                                                                           "stop_window": 5})
+                                         ])
+                    ])
+            ]
         )
         self.valid_dict = {
             'qobj_id': '12345',
@@ -167,6 +168,8 @@ class TestPulseQobj(QiskitTestCase):
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024,
                        'meas_level': 1,
+                       'memory_slot_size': 8192,
+                       'meas_return': 'avg',
                        'pulse_library': [{'name': 'pulse0',
                                           'samples': [[0.0, 0.0],
                                                       [0.5, 0.0],
@@ -181,9 +184,9 @@ class TestPulseQobj(QiskitTestCase):
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 1.57},
-                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'value': [0.1, 0.0]},
+                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': [0.1, 0.0]},
                     {'name': 'acquire', 't0': 15, 'duration': 5,
-                     'qubit': [0], 'memory_slot': [0],
+                     'qubits': [0], 'memory_slot': [0],
                      'kernels': [{'name': 'boxcar',
                                   'params': {'start_window': 0,
                                              'stop_window': 5}}
@@ -209,20 +212,24 @@ class TestPulseQobj(QiskitTestCase):
             ),
             PulseQobjConfig: (
                 PulseQobjConfig(meas_level=1,
+                                memory_slot_size=8192,
+                                meas_return='avg',
                                 pulse_library=[
-                                    QobjPulseLibrary(name='pulse0', samples=[[0.0, 0.0]])
+                                    QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j])
                                 ],
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
                                 rep_time=1000),
                 {'meas_level': 1,
-                 'pulse_library': [{'name': 'pulse0', 'samples': [[0.0, 0.0]]}],
+                 'memory_slot_size': 8192,
+                 'meas_return': 'avg',
+                 'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
                  'rep_time': 1000}
             ),
             QobjPulseLibrary: (
-                QobjPulseLibrary(name='pulse0', samples=[[0.0, 0.0]]),
-                {'name': 'pulse0', 'samples': [[0.0, 0.0]]}
+                QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j]),
+                {'name': 'pulse0', 'samples': [[0.1, 0.0]]}
             ),
             PulseQobjExperiment: (
                 PulseQobjExperiment(

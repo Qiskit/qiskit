@@ -35,8 +35,7 @@ class QASMQobjSchema(BaseSchema):
     config = Nested(QASMQobjConfigSchema, required=True)
     experiments = Nested(QASMQobjExperimentSchema, required=True, many=True)
     header = Nested(QASMQobjHeaderSchema, required=True)
-    type = String(required=True,
-                  validate=Equal(QobjType.QASM))
+    type = String(validate=Equal(QobjType.QASM))
     schema_version = String(required=True, missing=QOBJ_VERSION)
 
 
@@ -48,8 +47,7 @@ class PulseQobjSchema(BaseSchema):
     config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
     header = Nested(PulseQobjHeaderSchema, required=True)
-    type = String(required=True,
-                  validate=Equal(QobjType.PULSE))
+    type = String(validate=Equal(QobjType.PULSE))
     schema_version = String(required=True, missing=QOBJ_VERSION)
 
 
@@ -73,7 +71,7 @@ class QASMQobj(BaseModel):
         self.config = config
         self.experiments = experiments
         self.header = header
-        self.type = QobjType.QASM
+        self.type = 'QASM'
 
         self.schema_version = QOBJ_VERSION
 
@@ -100,7 +98,7 @@ class PulseQobj(BaseModel):
         self.config = config
         self.experiments = experiments
         self.header = header
-        self.type = QobjType.PULSE
+        self.type = 'PULSE'
 
         self.schema_version = QOBJ_VERSION
 
