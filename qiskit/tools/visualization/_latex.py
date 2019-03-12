@@ -241,7 +241,7 @@ class QCircuitImage:
                 if len(qarglist) == 1:
                     pos_1 = self.img_regs[(qarglist[0][0],
                                            qarglist[0][1])]
-                    if 'condition' in op and op['condition']:
+                    if op['condition']:
                         mask = self._get_mask(op['condition'][0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
@@ -266,7 +266,7 @@ class QCircuitImage:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
                     pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
 
-                    if 'condition' in op and op['condition']:
+                    if op['condition']:
                         mask = self._get_mask(op['condition'][0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
@@ -322,7 +322,7 @@ class QCircuitImage:
                     pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
                     pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
 
-                    if 'condition' in op and op['condition']:
+                    if op['condition']:
                         mask = self._get_mask(op['condition'][0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
@@ -371,7 +371,7 @@ class QCircuitImage:
             elif op['name'] == "measure":
                 if len(op['cargs']) != 1 or len(op['qargs']) != 1:
                     raise exceptions.VisualizationError("bad operation record")
-                if 'condition' in op and op['condition']:
+                if op['condition']:
                     raise exceptions.VisualizationError(
                         'conditional measures currently not supported.')
                 qname, qindex = op['qargs'][0]
@@ -507,7 +507,7 @@ class QCircuitImage:
             qregdata = self.qregs
 
         for _, op in enumerate(self.ops):
-            if 'condition' in op and op['condition']:
+            if op['condition']:
                 mask = self._get_mask(op['condition'][0])
                 cl_reg = self.clbit_list[self._ffs(mask)]
                 if_reg = cl_reg[0]
@@ -523,7 +523,7 @@ class QCircuitImage:
                 if len(qarglist) == 1:
                     pos_1 = self.img_regs[(qarglist[0][0],
                                            qarglist[0][1])]
-                    if 'condition' in op and op['condition']:
+                    if op['condition']:
                         mask = self._get_mask(op['condition'][0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg[0]
@@ -651,7 +651,7 @@ class QCircuitImage:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
                     pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
 
-                    if 'condition' in op and op['condition']:
+                    if op['condition']:
                         pos_3 = self.img_regs[(if_reg, 0)]
                         temp = [pos_1, pos_2, pos_3]
                         temp.sort(key=int)
@@ -789,7 +789,7 @@ class QCircuitImage:
                     pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
                     pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
 
-                    if 'condition' in op and op['condition']:
+                    if op['condition']:
                         pos_4 = self.img_regs[(if_reg, 0)]
 
                         temp = [pos_1, pos_2, pos_3, pos_4]
@@ -888,7 +888,7 @@ class QCircuitImage:
                         or len(op['qargs']) != 1
                         or op['op'].params):
                     raise exceptions.VisualizationError("bad operation record")
-                if 'condition' in op and op['condition']:
+                if op['condition']:
                     raise exceptions.VisualizationError(
                         "If controlled measures currently not supported.")
 

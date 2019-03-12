@@ -41,9 +41,9 @@ class Unroller(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.gate_nodes():
-            if node.op.name in self.basis:  # If already a base, ignore.
-
+            if node.name in self.basis:  # If already a base, ignore.
                 continue
+
             # TODO: allow choosing other possible decompositions
             decomposition_rules = node.op.decompositions()
 

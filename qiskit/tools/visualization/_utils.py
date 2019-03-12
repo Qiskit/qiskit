@@ -81,8 +81,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
     if justify == 'none':
-        for node_no in dag.node_nums_in_topological_order():
-            node = dag.node(node_no)
+        for node in dag.nodes_in_topological_order():
             if node['type'] == 'op':
                 ops.append([node])
 
@@ -92,7 +91,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
             current_layer = []
 
             dag_nodes = dag_layer['graph'].op_nodes()
-            dag_nodes.sort(key=lambda nd: nd.node_id)
+            dag_nodes.sort(key=lambda nd: nd._node_id)
 
             for node in dag_nodes:
                 multibit_gate = len(node.qargs) + len(node.cargs) > 1
@@ -102,18 +101,18 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
                     gate_span = _get_gate_span(qregs, node)
 
                     all_indices = []
-                    for ins in dag_nodes:
-                        if ins != node:
-                            all_indices += _get_gate_span(qregs, ins)
+                    for check_node in dag_nodes:
+                        if check_node != node:
+                            all_indices += _get_gate_span(qregs, check_node)
 
                     if any(i in gate_span for i in all_indices):
                         # needs to be a new layer
-                        layers.append([node.data_dict])
+                        layers.append([node])
                     else:
                         # can be added
-                        current_layer.append(node.data_dict)
+                        current_layer.append(node)
                 else:
-                    current_layer.append(node.data_dict)
+                    current_layer.append(node)
 
             layers.append(current_layer)
             ops += layers
@@ -135,7 +134,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
             dag_instructions = dag_layer['graph'].op_nodes()
 
             # sort into the order they were input
-            dag_instructions.sort(key=lambda nd: nd.node_id)
+            dag_instructions.sort(key=lambda nd: nd._node_id)
             for instruction_node in dag_instructions:
 
                 gate_span = _get_gate_span(qregs, instruction_node)
@@ -152,18 +151,18 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
                             new_dict = {}
 
                             for index in gate_span:
-                                new_dict[index] = instruction_node.data_dict
+                                new_dict[index] = instruction_node
                             layer_dicts.append(new_dict)
                         else:
                             curr_dict = layer_dicts[-i]
                             for index in gate_span:
-                                curr_dict[index] = instruction_node.data_dict
+                                curr_dict[index] = instruction_node
 
                         break
 
                 if not added:
                     for index in gate_span:
-                        layer_dicts[0][index] = instruction_node.data_dict
+                        layer_dicts[0][index] = instruction_node
 
         # need to convert from dict format to layers
         layer_dicts.reverse()
@@ -193,8 +192,8 @@ def _get_instructions(circuit, reversebits=False):
     ops = []
     qregs = []
     cregs = []
-    for node_no in dag.node_nums_in_topological_order():
-        node = dag.node(node_no)
+
+    for node in dag.nodes_in_topological_order():
         if node['type'] == 'op':
             ops.append(node)
 

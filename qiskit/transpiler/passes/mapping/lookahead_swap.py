@@ -118,7 +118,7 @@ class LookaheadSwap(TransformationPass):
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
         for gate in mapped_gates:
-            mapped_dag.apply_operation_back(**gate)
+            mapped_dag.apply_operation_back(op=gate.op)
 
         return mapped_dag
 
@@ -250,11 +250,12 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
 
 
 def _score_step(step):
+    for g in step['gates_mapped']:
+        print(type(g))
     """Count the mapped two-qubit gates, less the number of added SWAPs."""
-
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']
-                if len(g.get('qargs', [])) == 2]) - 3 * step['swaps_added']
+                if len(g['qargs']) == 2]) - 3 * step['swaps_added']
 
 
 def _copy_circuit_metadata(source_dag, coupling_map):

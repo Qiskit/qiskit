@@ -40,7 +40,7 @@ class CommutationAnalysis(AnalysisPass):
         Run the pass on the DAG, and write the discovered commutation relations
         into the property_set.
         """
-        tops_node = list(dag.node_nums_in_topological_order())
+        tops_node = list(dag.nodes_in_topological_order())
 
         # Initiation of the node_order
         for num, node in enumerate(tops_node):
@@ -67,7 +67,7 @@ class CommutationAnalysis(AnalysisPass):
 
                     self.property_set['commutation_set'][(node, edge_name)] = -1
 
-                if dag.node(edge[1])['type'] == "out":
+                if edge[1]['type'] == "out":
                     self.wire_op[edge_name].append(edge[1])
 
         # With traversing the circuit in topological order,

@@ -18,10 +18,10 @@ class DAGNode:
     be supplied to functions that take a node.
 
     """
-    def __init__(self, data_dict, node_id=None):
+    def __init__(self, data_dict, nid=-1):
         """ Create a node """
+        self._node_id = nid
         self.data_dict = data_dict
-        self.node_id = node_id
 
     @property
     def type(self):
@@ -68,7 +68,18 @@ class DAGNode:
         """
         return self.data_dict.get('wire')
 
+    def __getitem__(self, x):
+        #print(type(x))
+        return getattr(self, x)
+
+    def __setitem__(self, key, value):
+        self.data_dict[key] = value
+
     def __eq__(self, other):
+
+        # if other is None
+        if not other:
+            return False
 
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == self.name == other.name:
@@ -86,25 +97,32 @@ class DAGNode:
 
         return self.data_dict == other.data_dict
 
-    def to_tuple(self):
-        """
-        Return a tuple of the node_id and data_dict
-        Required when adding nodes to a multigraph
-        """
-        return self.node_id, self.data_dict
+    def __lt__(self, other):
+        return self._node_id < other._node_id
+
+    def __gt__(self, other):
+        return self._node_id > other._node_id
 
     def __hash__(self):
         """Needed for ancestors function, which returns a set
         to be in a set requires the object to be hashable
         """
-        return hash((self.node_id,
-                     self.type,
-                     str(self.op),
-                     self.name,
-                     tuple(self.qargs),
-                     tuple(self.cargs),
-                     self.condition,
-                     self.wire))
+
+        """hash((
+                            self.type,
+                            str(self.op),
+                            self.name,
+                            tuple(self.qargs),
+                            tuple(self.cargs),
+                            self.condition,
+                            self.wire))
+        """
+        return hash(id(self))
 
     def __str__(self):
-        return str(self.data_dict)
+        # TODO is this used anywhere other than in DAG drawing?
+        # needs to be unique as it is what pydot uses to distinguish nodes
+        return str(id(self))
+
+    def pop(self, val):
+        del self.data_dict[val]

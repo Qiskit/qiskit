@@ -38,5 +38,5 @@ class Decompose(TransformationPass):
             # TODO: allow choosing other possible decompositions
             decomposition_dag = decomposition_rules[0]
 
-            dag.substitute_node_with_dag(node_id, decomposition_dag)
+            dag.substitute_node_with_dag(node, decomposition_dag)
         return dag

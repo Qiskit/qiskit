@@ -31,14 +31,15 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for candidate_op in dag.named_nodes(*final_op_types):
             is_final_op = True
 
-            for child_successors in dag.bfs_successors(candidate_op):
+            for _, child_successors in dag.bfs_successors(candidate_op):
+
                 if any(suc.type == 'op' and suc.name not in final_op_types
                        for suc in child_successors):
                     is_final_op = False
                     break
 
             if is_final_op:
-                final_ops.append(candidate_op.node_id)
+                final_ops.append(candidate_op)
 
         if not final_ops:
             return dag
@@ -50,19 +51,19 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
-        final_qubits = set(dag.node(final_op)['qargs'][0]
+        final_qubits = set(final_op.qargs[0]
+
                            for final_op in final_ops)
 
         new_barrier_id = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
 
         # Preserve order of final ops collected earlier from the original DAG.
-        ordered_node_ids = [node_id for node_id in dag.node_nums_in_topological_order()
-                            if node_id in set(final_ops)]
-        ordered_final_nodes = [dag.node(node) for node in ordered_node_ids]
+        ordered_final_nodes = [node for node in dag.nodes_in_topological_order()
+                            if node in set(final_ops)]
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
-            barrier_layer.apply_operation_back(final_node['op'])
+            barrier_layer.apply_operation_back(final_node.op)
 
         for final_op in final_ops:
             dag._remove_op_node(final_op)
@@ -76,7 +77,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         existing_barriers = barrier_layer.named_nodes('barrier')
         # remove element from the list
         for i, node in enumerate(existing_barriers):
-            if node.node_id == new_barrier_id:
+            if node._node_id == new_barrier_id:
                 del existing_barriers[i]
                 break
 
