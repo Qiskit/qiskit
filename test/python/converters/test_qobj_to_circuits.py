@@ -16,7 +16,7 @@ from qiskit import BasicAer
 from qiskit.compiler import assemble_circuits
 from qiskit.converters import qobj_to_circuits
 
-from qiskit.qobj import Qobj, QobjConfig, QobjHeader
+from qiskit.qobj import Qobj, QASMQobjConfig, QASMQobjHeader
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -88,8 +88,8 @@ class TestQobjToCircuits(QiskitTestCase):
     def test_qobj_to_circuits_with_nothing(self):
         """Verify that qobj_to_circuits returns None without any data."""
         qobj = Qobj(qobj_id='abc123',
-                    config=QobjConfig(),
-                    header=QobjHeader(),
+                    config=QASMQobjConfig(),
+                    header=QASMQobjHeader(),
                     experiments=[],
                     type='QASM')
         self.assertIsNone(qobj_to_circuits(qobj))

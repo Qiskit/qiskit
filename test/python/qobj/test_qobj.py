@@ -17,8 +17,8 @@ from qiskit import BasicAer
 from qiskit.compiler import assemble_circuits, RunConfig
 
 from qiskit.qobj.exceptions import SchemaValidationError
-from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
-from qiskit.qobj import QobjHeader, validate_qobj_against_schema
+from qiskit.qobj import Qobj, QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction
+from qiskit.qobj import QASMQobjHeader, validate_qobj_against_schema
 from qiskit.providers.basicaer import basicaerjob
 
 from qiskit.qobj.utils import QobjType
@@ -32,12 +32,12 @@ class TestQobj(QiskitTestCase):
     def setUp(self):
         self.valid_qobj = Qobj(
             qobj_id='12345',
-            header=QobjHeader(),
-            config=QobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            header=QASMQobjHeader(),
+            config=QASMQobjConfig(shots=1024, memory_slots=2, max_credits=10),
             experiments=[
-                QobjExperiment(instructions=[
-                    QobjInstruction(name='u1', qubits=[1], params=[0.4]),
-                    QobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                QASMQobjExperiment(instructions=[
+                    QASMQobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QASMQobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
                 ])
             ],
             type=QobjType.QASM.value
@@ -74,17 +74,17 @@ class TestQobj(QiskitTestCase):
                 self.valid_qobj,
                 self.valid_dict
             ),
-            QobjConfig: (
-                QobjConfig(shots=1, memory_slots=2),
+            QASMQobjConfig: (
+                QASMQobjConfig(shots=1, memory_slots=2),
                 {'shots': 1, 'memory_slots': 2}
             ),
-            QobjExperiment: (
-                QobjExperiment(
-                    instructions=[QobjInstruction(name='u1', qubits=[1], params=[0.4])]),
+            QASMQobjExperiment: (
+                QASMQobjExperiment(
+                    instructions=[QASMQobjInstruction(name='u1', qubits=[1], params=[0.4])]),
                 {'instructions': [{'name': 'u1', 'qubits': [1], 'params': [0.4]}]}
             ),
-            QobjInstruction: (
-                QobjInstruction(name='u1', qubits=[1], params=[0.4]),
+            QASMQobjInstruction: (
+                QASMQobjInstruction(name='u1', qubits=[1], params=[0.4]),
                 {'name': 'u1', 'qubits': [1], 'params': [0.4]}
             )
         }
@@ -98,7 +98,7 @@ class TestQobj(QiskitTestCase):
         """
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
-        self.bad_qobj.header = QobjHeader(backend_name=backend.name())
+        self.bad_qobj.header = QASMQobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
             job = basicaerjob.BasicAerJob(backend, job_id, _nop, self.bad_qobj)

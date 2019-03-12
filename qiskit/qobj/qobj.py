@@ -12,7 +12,7 @@ from marshmallow.validate import OneOf
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
 
-from .models import QobjConfigSchema, QobjExperimentSchema, QobjHeaderSchema
+from .models import QASMQobjConfigSchema, QASMQobjExperimentSchema, QASMQobjHeaderSchema
 from .utils import QobjType
 
 
@@ -31,9 +31,9 @@ class QobjSchema(BaseSchema):
 
     # Required properties.
     qobj_id = String(required=True)
-    config = Nested(QobjConfigSchema, required=True)
-    experiments = Nested(QobjExperimentSchema, required=True, many=True)
-    header = Nested(QobjHeaderSchema, required=True)
+    config = Nested(QASMQobjConfigSchema, required=True)
+    experiments = Nested(QASMQobjExperimentSchema, required=True, many=True)
+    header = Nested(QASMQobjHeaderSchema, required=True)
     type = String(required=True,
                   validate=OneOf(QobjType.QASM.value,
                                  QobjType.PULSE.value))
