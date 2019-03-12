@@ -18,7 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
-    """Remove the swaps followed measurement (and adapts the measurement)"""
+    """Remove the swaps followed by measurement (and adapt the measurement)"""
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
