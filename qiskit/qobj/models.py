@@ -139,7 +139,7 @@ class PulseQobjInstructionSchema(BaseQobjInstructionSchema):
     t0 = Integer(required=True, validate=Range(min=0))
 
     # Optional properties.
-    ch = String(validate=Regexp('[dum]\d+'))
+    ch = String(validate=Regexp('[dum]([0-9])+'))
     conditional = Integer(validate=Range(min=0))
     phase = Number()
     value = List(Number(), validate=Length(equal=2))
@@ -393,6 +393,7 @@ class PulseQobjConfig(BaseModel):
 
     Attributes:
         meas_level (int): a value represents the level of measurement.
+        pulse_library (list[QobjPulseLibrary]): a pulse library.
         qubit_lo_freq (list): the list of frequencies for qubit drive LO's in GHz.
         meas_lo_freq (list): the list of frequencies for measurement drive LO's in GHz.
         rep_time (float): the value of repetition time of experiment in us.
