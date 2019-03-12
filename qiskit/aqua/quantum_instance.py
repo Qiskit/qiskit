@@ -18,7 +18,7 @@
 import logging
 
 from qiskit import __version__ as terra_version
-from qiskit.qobj import RunConfig
+from qiskit.compiler.run_config import RunConfig
 from qiskit.mapper import Layout
 from qiskit.aqua.utils import compile_and_run_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,

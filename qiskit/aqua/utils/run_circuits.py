@@ -24,8 +24,7 @@ import uuid
 
 import numpy as np
 from qiskit import transpiler
-from qiskit.converters import circuits_to_qobj
-from qiskit.qobj import QobjHeader
+from qiskit.compiler import assemble_circuits
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.basicaer import BasicAerJob
 
@@ -157,8 +156,7 @@ def _maybe_add_aer_expectation_instruction(qobj, options):
 
 def _compile_wrapper(circuits, backend, backend_config, compile_config, run_config):
     transpiled_circuits = transpiler.transpile(circuits, backend, **backend_config, **compile_config)
-    qobj = circuits_to_qobj(transpiled_circuits, user_qobj_header=QobjHeader(),
-                            run_config=run_config, qobj_id=None)
+    qobj = assemble_circuits(transpiled_circuits, run_config=run_config)
     return qobj, transpiled_circuits
 
 
