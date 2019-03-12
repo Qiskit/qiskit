@@ -32,7 +32,6 @@ class CommutationAnalysis(AnalysisPass):
         super().__init__()
         self.max_depth = max_depth
         self.wire_op = {}
-        self.node_order = {}
         self.node_commute_group = {}
 
     def run(self, dag):
@@ -41,10 +40,6 @@ class CommutationAnalysis(AnalysisPass):
         into the property_set.
         """
         tops_node = list(dag.nodes_in_topological_order())
-
-        # Initiation of the node_order
-        for num, node in enumerate(tops_node):
-            self.node_order[node] = num
 
         # Initiate the commutation set
         if self.property_set['commutation_set'] is None:
@@ -65,15 +60,10 @@ class CommutationAnalysis(AnalysisPass):
                 if edge[0] == node:
                     self.wire_op[edge_name].append(edge[0])
 
-                    self.property_set['commutation_set'][(node, edge_name)] = -1
+                    self.property_set['commutation_set'][(node._node_id, edge_name)] = -1
 
-                if edge[1]['type'] == "out":
+                if edge[1].type == "out":
                     self.wire_op[edge_name].append(edge[1])
-
-        # With traversing the circuit in topological order,
-        # the list of gates on a qubit doesn't have to be sorted
-        # for key in self.wire_op:
-        #     self.wire_op[key].sort(key=_get_node_order)
 
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
@@ -84,13 +74,13 @@ class CommutationAnalysis(AnalysisPass):
 
                 if node not in self.property_set['commutation_set'][wire_name][-1]:
                     test_node = self.property_set['commutation_set'][wire_name][-1][-1]
-                    if _commute(dag.node(node), dag.node(test_node)):
+                    if _commute(node, test_node):
                         self.property_set['commutation_set'][wire_name][-1].append(node)
 
                     else:
                         self.property_set['commutation_set'][wire_name].append([node])
                 temp_len = len(self.property_set['commutation_set'][wire_name])
-                self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
+                self.property_set['commutation_set'][(node._node_id, wire_name)] = temp_len - 1
 
 
 def _gate_master_def(name, para=None):

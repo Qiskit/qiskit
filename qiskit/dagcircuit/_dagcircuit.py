@@ -318,6 +318,11 @@ class DAGCircuit:
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(cargs)
 
+        print('qargs : ', op.qargs)
+        for x in self.output_map:
+            print(x)
+        print()
+
         self._check_condition(op.name, condition)
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
@@ -1310,6 +1315,10 @@ class DAGCircuit:
         if not wire:
             self.multi_graph.remove_edge(node1, node2)
             return
+
+        if not self.has_edge(node1, node2, wire):
+            raise DAGCircuitError("Edge from node %d to node %d on wire %s does not exist"
+                                  % (node1._node_id, node2._node_id, str(wire)))
 
         for index, node_dict in self.multi_graph[node1][node2].items():
             if node_dict['wire'] == wire:

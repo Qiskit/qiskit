@@ -233,9 +233,9 @@ class TestDagOperations(QiskitTestCase):
     def test_dag_has_edge(self):
         """ Test that existence of edges between nodes is correctly identified"""
         nodes = list(self.dag.nodes_in_topological_order())
-        self.assertTrue(self.dag.has_edge(nodes[0], nodes[6]))
-        self.assertTrue(self.dag.has_edge(nodes[0], nodes[6], (QuantumRegister(3, 'qr'), 0)))
-        self.assertFalse(self.dag.has_edge(nodes[0], nodes[6], (QuantumRegister(3, 'qr'), 1)))
+        self.assertTrue(self.dag.has_edge(nodes[0], nodes[1]))
+        self.assertTrue(self.dag.has_edge(nodes[0], nodes[1], (QuantumRegister(3, 'qr'), 0)))
+        self.assertFalse(self.dag.has_edge(nodes[0], nodes[1], (QuantumRegister(3, 'qr'), 1)))
 
         self.assertFalse(self.dag.has_edge(nodes[0], nodes[2]))
         self.assertFalse(self.dag.has_edge(nodes[0], nodes[2], (QuantumRegister(3, 'qr'), 0)))
@@ -252,7 +252,7 @@ class TestDagOperations(QiskitTestCase):
         nodes = list(dag.nodes_in_topological_order())
 
         node1 = nodes[0]
-        node2 = nodes[1]
+        node2 = nodes[2]
         wire = (QuantumRegister(2, 'qr'), 0)
 
         self.assertTrue(dag.has_edge(node1, node2, wire))
@@ -289,7 +289,7 @@ class TestDagLayers(QiskitTestCase):
 
         name_layers = [
             [node["op"].name
-             for node in layer["graph"].multi_graph.nodes(data=True)
+             for node in layer["graph"].multi_graph.nodes()
              if node["type"] == "op"] for layer in layers]
 
         self.assertEqual([

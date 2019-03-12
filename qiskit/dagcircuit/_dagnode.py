@@ -80,6 +80,9 @@ class DAGNode:
         if not other:
             return False
 
+        if isinstance(other, int):
+            return other == self._node_id
+
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == self.name == other.name:
             node1_qargs = set(self.qargs)
