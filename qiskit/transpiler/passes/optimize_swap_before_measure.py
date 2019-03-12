@@ -7,7 +7,7 @@
 
 
 """
-Transpiler pass to remove the swaps in front of measurments by moving the reading qubit
+Transpiler pass to remove swaps in front of measurements by re-targeting the classical bit
  of the measure instruction.
 """
 
