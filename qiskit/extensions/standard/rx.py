@@ -58,7 +58,6 @@ class RXGate(Gate):
 @_op_expand(1)
 def rx(self, theta, q):
     """Apply Rx to q."""
-    self._check_qubit(q)
     return self._attach(RXGate(theta, q, self))
 
 
