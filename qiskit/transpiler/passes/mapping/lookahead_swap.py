@@ -119,7 +119,6 @@ class LookaheadSwap(TransformationPass):
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
         for gate in mapped_gates:
-            print("ADDING GATE ", gate.op.name)
             mapped_dag.apply_operation_back(op=gate.op)
 
         return mapped_dag
@@ -286,8 +285,6 @@ def _transform_gate_for_layout(gate, layout):
     mapped_op.pop('type')
     mapped_op.pop('name')
 
-    print("mapped op : ", mapped_op.data_dict)
-
     return mapped_op
 
 
@@ -297,7 +294,6 @@ def _swap_ops_from_edge(edge, layout):
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     qreg_edge = [(device_qreg, i) for i in edge]
 
-    print('adding : ', qreg_edge)
     # TODO shouldn't be making other nodes not by the DAG!!
     return [
         DAGNode({'op': SwapGate(*qreg_edge), 'qargs': qreg_edge})

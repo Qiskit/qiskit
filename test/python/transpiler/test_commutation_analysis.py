@@ -209,31 +209,6 @@ class TestCommutationAnalysis(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
-        for x in self.pset["commutation_set"]:
-            vals = self.pset["commutation_set"][x]
-
-            new_vals = []
-            if not isinstance(vals, int):
-                for sublist in vals:
-                    lst = []
-                    for n in sublist:
-                        lst.append(n._node_id)
-                        new_vals.append(lst)
-
-                vals = new_vals
-            print(x, " : ", vals)
-            print()
-        print("-" * 50)
-
-
-        """
-        qr[0]  :  [[1], [13], [2]]
-        qr[1]  :  [[3], [13], [14], [23], [4]]
-        qr[2]  :  [[5], [14], [15], [22], [6]]
-        qr[3]  :  [[7], [15], [16], [21], [8]]
-        qr[4]  :  [[9], [16], [17], [20], [10]]
-        qr[5]  :  [[11], [17], [18], [19], [12]]
-        """
         self.assertEqual(self.pset["commutation_set"]["qr[0]"], [[1], [13, 23], [2]])
         self.assertEqual(self.pset["commutation_set"]["qr[1]"], [[3], [13], [14, 22], [23], [4]])
         self.assertEqual(self.pset["commutation_set"]["qr[2]"], [[5], [14], [15, 21], [22], [6]])

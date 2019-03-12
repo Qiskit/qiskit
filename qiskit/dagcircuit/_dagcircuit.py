@@ -318,11 +318,6 @@ class DAGCircuit:
         all_cbits = self._bits_in_condition(condition)
         all_cbits.extend(cargs)
 
-        print('qargs : ', op.qargs)
-        for x in self.output_map:
-            print(x)
-        print()
-
         self._check_condition(op.name, condition)
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
