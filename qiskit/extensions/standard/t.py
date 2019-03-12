@@ -87,14 +87,12 @@ class TdgGate(Gate):
 @_op_expand(1)
 def t(self, q):
     """Apply T to q."""
-    self._check_qubit(q)
     return self._attach(TGate(q, self))
 
 
 @_op_expand(1)
 def tdg(self, q):
     """Apply Tdg to q."""
-    self._check_qubit(q)
     return self._attach(TdgGate(q, self))
 
 

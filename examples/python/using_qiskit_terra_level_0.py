@@ -68,18 +68,20 @@ try:
     try:
         # select least busy available device and execute.
         least_busy_device = least_busy(IBMQ.backends(simulator=False))
-        print("Running on current least busy device: ", least_busy_device)
-
-        # running the job
-        job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
-
-        job_monitor(job_exp)
-        exp_result = job_exp.result()
-
-        # Show the results
-        print(exp_result.get_counts(qc1))
-        print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
+
+    print("Running on current least busy device: ", least_busy_device)
+
+    # running the job
+    job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
+
+    job_monitor(job_exp)
+    exp_result = job_exp.result()
+
+    # Show the results
+    print(exp_result.get_counts(qc1))
+    print(exp_result.get_counts(qc2))
+
 except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

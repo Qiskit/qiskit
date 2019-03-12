@@ -57,10 +57,6 @@ class FredkinGate(Gate):
 @_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt1)
-    self._check_qubit(tgt2)
-    self._check_dups([ctl, tgt1, tgt2])
     return self._attach(FredkinGate(ctl, tgt1, tgt2, self))
 
 
