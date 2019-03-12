@@ -34,7 +34,7 @@ Added
   (#1733)
 - Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
-  different output stream
+  different output stream 
 - Added a ``RunConfig`` object for configurations related to running an
   experiment (e.g. shots, memory) (#1856)
 - Added a ``TranspileConfig`` object for configurations related to transforming
@@ -48,7 +48,8 @@ Added
   and later as a wrapper of ``execute_pulses()``.
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
-  
+- Register indexing supports negative indices (#1875)
+
 Changed
 -------
 

@@ -78,7 +78,6 @@ class TestAerQasmSimulator(QiskitTestCase):
         self.assertEqual(counts_if_true, {'111': 100})
         self.assertEqual(counts_if_false, {'001': 100})
 
-    @unittest.expectedFailure
     def test_teleport(self):
         """test teleportation as in tutorials"""
         self.log.info('test_teleport')
