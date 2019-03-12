@@ -8,7 +8,7 @@
 
 """
 Transpiler pass to remove the swaps in front of measurments by moving the reading qubit
- of the measure intruction.
+ of the measure instruction.
 """
 
 from qiskit.circuit import Measure
