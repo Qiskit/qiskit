@@ -388,14 +388,14 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_rzz(self):
-        """ rzz drawing. """
-        expected = '\n'.join(["        ┌────────┐               ",
-                              "q_0: |0>┤        ├───────────────",
-                              "        │ Rzz(0) │┌─────────────┐",
-                              "q_1: |0>┤        ├┤             ├",
-                              "        └────────┘│ Rzz(1.5708) │",
-                              "q_2: |0>──────────┤             ├",
-                              "                  └─────────────┘"])
+        """ rzz drawing. See #1957 """
+        expected = '\n'.join(["                             ",
+                              "q_0: |0>─■───────────────────",
+                              "         │zz(0)              ",
+                              "q_1: |0>─■───────■───────────",
+                              "                 │zz(1.5708) ",
+                              "q_2: |0>─────────■───────────",
+                              "                             "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.rzz(0, qr[0], qr[1])

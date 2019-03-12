@@ -743,6 +743,12 @@ class TextDrawing():
             gates = [Bullet(), Bullet()]
             add_connected_gate(instruction, gates, layer, current_cons)
 
+        elif instruction['name'] == 'rzz':
+            # rzz
+            connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+            gates = [Bullet(), Bullet()]
+            add_connected_gate(instruction, gates, layer, current_cons)
+
         elif instruction['name'] == 'cu3':
             # cu3
             params = TextDrawing.params_for_label(instruction)
