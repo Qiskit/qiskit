@@ -18,7 +18,7 @@ class Reset(Instruction):
 
     def __init__(self, circ=None):
         """Create new reset instruction."""
-        super().__init__("reset", 1, 0, [], circ)
+        super().__init__("reset", 1, 0, [], circ, is_reversible=False)
 
 
 @_op_expand(1)

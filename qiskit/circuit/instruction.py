@@ -34,7 +34,7 @@ from qiskit.exceptions import QiskitError
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, circuit=None):
+    def __init__(self, name, num_qubits, num_clbits, params, circuit=None, is_reversible=True):
         """Create a new instruction.
         Args:
             name (str): instruction name
@@ -42,6 +42,7 @@ class Instruction:
             num_clbits (int): instructions's clbit width
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
             circuit (QuantumCircuit or Instruction): where the instruction is attached
+            is_reversible (bool): whether the instruction can be inverted
         Raises:
             QiskitError: when the register is not in the correct format.
         """
@@ -78,6 +79,8 @@ class Instruction:
         self.control = None
         # reference to the circuit containing this instruction
         self.circuit = circuit
+        # flag to keep track of gate reversibility
+        self.is_reversible = is_reversible
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name and same

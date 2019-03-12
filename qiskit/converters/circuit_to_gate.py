@@ -9,7 +9,6 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate
-from qiskit.circuit import Reset
 
 
 def circuit_to_gate(circuit):
@@ -31,8 +30,8 @@ def circuit_to_gate(circuit):
         QiskitError: if the circuit is non-reversible and thus not a Gate.
     """
     insts = [inst_context[0] for inst_context in circuit.data]
-    if circuit.cregs or any([isinstance(x, Reset) for x in insts]):
-        raise QiskitError("circuit %s is non-reversible, and cannot be "
+    if circuit.cregs or not all(i.is_reversible for i in insts):
+        raise QiskitError("circuit %s is non-invertible, and cannot be "
                           "converted to Gate." % circuit.name)
 
     instruction = Gate(name=circuit.name,

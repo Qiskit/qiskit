@@ -263,7 +263,7 @@ class QuantumCircuit:
         Raises:
             QiskitError: if circuit is non-reversible
         """
-        from qiskit.converters.circuit_to_gate import circuit_to_gate
+        from qiskit.converters import circuit_to_gate
         return circuit_to_gate(self)
 
     def _check_compatible_regs(self, rhs):
