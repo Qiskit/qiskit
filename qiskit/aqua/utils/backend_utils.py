@@ -244,9 +244,10 @@ def get_provider_from_backend(backend):
     Raises:
         ImportError: Failed to find provider
     """
-    known_providers = {'AerProvider': 'qiskit.Aer',
+    known_providers = {
                        'BasicAerProvider': 'qiskit.BasicAer',
-                       'IBMQProvider': 'qiskit.IBMQ'
+                       'AerProvider': 'qiskit.Aer',
+                       'IBMQProvider': 'qiskit.IBMQ',
                        }
     if isinstance(backend, BaseBackend):
         provider = backend.provider()
