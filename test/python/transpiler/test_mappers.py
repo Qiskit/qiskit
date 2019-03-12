@@ -61,14 +61,15 @@ For example::
 ```
 """
 
-# pylint: disable=redefined-builtin,attribute-defined-outside-init
+# pylint: disable=attribute-defined-outside-init
 
 import unittest
 import pickle
 import sys
 import os
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, compile
+from qiskit import execute
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap
 from qiskit.mapper import CouplingMap, Layout
@@ -114,13 +115,12 @@ class CommonUtilitiesMixin:
         (self.create_backend()). That's saved in a pickle in filename.
 
         Args:
-            transpiled_result (DAGCircuit): The DAGCircuit to compile and run.
+            transpiled_result (DAGCircuit): The DAGCircuit to execute.
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        qobj = compile(transpiled_result, sim_backend, seed=self.seed, shots=self.shots,
-                       seed_mapper=self.seed_mapper)
-        job = sim_backend.run(qobj)
+        job = execute(transpiled_result, sim_backend, seed=self.seed, shots=self.shots,
+                      seed_mapper=self.seed_mapper)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:

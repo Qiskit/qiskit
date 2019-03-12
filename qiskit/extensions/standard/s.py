@@ -87,14 +87,12 @@ class SdgGate(Gate):
 @_op_expand(1)
 def s(self, q):
     """Apply S to q."""
-    self._check_qubit(q)
     return self._attach(SGate(q, self))
 
 
 @_op_expand(1)
 def sdg(self, q):
     """Apply Sdg to q."""
-    self._check_qubit(q)
     return self._attach(SdgGate(q, self))
 
 
