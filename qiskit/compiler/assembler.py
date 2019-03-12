@@ -11,10 +11,12 @@ import sympy
 import numpy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.qobj import QASMQobj
+from qiskit.qobj import QASMQobj, PulseQobj
+from qiskit.qobj import QobjConditional, QobjPulseLibrary, QobjMeasurementOption
 from qiskit.qobj import QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
 from qiskit.qobj import QASMQobjExperimentConfig, QASMQobjExperimentHeader
-from qiskit.qobj import QobjConditional
+from qiskit.qobj import PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction, PulseQobjHeader
+from qiskit.qobj import PulseQobjExperimentConfig, PulseQobjExperimentHeader
 from qiskit.compiler.run_config import RunConfig
 
 
@@ -120,3 +122,18 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
     return QASMQobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
                     experiments=experiments, header=qobj_header)
+
+
+def assemble_schedules(schedules, run_config=None, qobj_header=None, qobj_id=None):
+    """Assembles a list of circuits into a qobj which can be run on the backend.
+
+    Args:
+        schedules (list[PulseSchedule] or PulseSchedule): schedules to assemble
+        run_config (RunConfig): RunConfig object
+        qobj_header (PulseQobjHeader): header to pass to the results
+        qobj_id (int): identifier for the generated qobj
+
+    Returns:
+        PulseQobj: the Qobj to be run on the backends
+    """
+    pass
