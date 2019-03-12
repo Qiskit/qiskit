@@ -12,11 +12,11 @@ import logging
 from typing import List
 
 from qiskit.pulse import ChannelsError
-from .channel_register import ChannelRegister, AcquireChannelRegister, SnapshotChannelRegister
+from .channel_list import ChannelList, AcquireChannelList, SnapshotChannelList
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
-from .output_channel_register import (DriveChannelRegister,
-                                      ControlChannelRegister,
-                                      MeasureChannelRegister)
+from .output_channel_list import (DriveChannelList,
+                                  ControlChannelList,
+                                  MeasureChannelList)
 from .pulse_channel import AcquireChannel, SnapshotChannel
 
 logger = logging.getLogger(__name__)
@@ -46,16 +46,16 @@ class ChannelStore:  # TODO: better name?
 
         # generate channel registers
         channels = [
-            DriveChannelRegister(size=n_qubit, lo_freqs=qubit_lo_freqs),
-            ControlChannelRegister(size=n_qubit),
-            MeasureChannelRegister(size=n_qubit, lo_freqs=meas_lo_freqs),
-            AcquireChannelRegister(size=n_qubit),
-            SnapshotChannelRegister(size=n_qubit)
+            DriveChannelList(size=n_qubit, lo_freqs=qubit_lo_freqs),
+            ControlChannelList(size=n_qubit),
+            MeasureChannelList(size=n_qubit, lo_freqs=meas_lo_freqs),
+            AcquireChannelList(size=n_qubit),
+            SnapshotChannelList(size=n_qubit)
         ]
 
         return ChannelStore(channels)
 
-    def __init__(self, registers: List[ChannelRegister]):
+    def __init__(self, registers: List[ChannelList]):
         """
         Create channel registers with default values in backend.
         Args:
@@ -69,13 +69,13 @@ class ChannelStore:  # TODO: better name?
         for reg in registers:
             self._register(reg)
 
-    def _register(self, reg: ChannelRegister):
+    def _register(self, reg: ChannelList):
         """
         Store the register `reg` if the same type register has not yet stored.
         Args:
             reg:
         """
-        cls = reg.channel_cls
+        cls = reg._channel_cls
         if cls == DriveChannel:
             if self._drive is None:
                 self._drive = reg
@@ -105,21 +105,21 @@ class ChannelStore:  # TODO: better name?
             raise ChannelsError("Unknown channel: %s", cls.__name__)
 
     @property
-    def drive(self) -> DriveChannelRegister:
+    def drive(self) -> DriveChannelList:
         return self._drive
 
     @property
-    def control(self) -> ControlChannelRegister:
+    def control(self) -> ControlChannelList:
         return self._control
 
     @property
-    def measure(self) -> MeasureChannelRegister:
+    def measure(self) -> MeasureChannelList:
         return self._measure
 
     @property
-    def acquire(self) -> AcquireChannelRegister:
+    def acquire(self) -> AcquireChannelList:
         return self._acquire
 
     @property
-    def snapshot(self) -> SnapshotChannelRegister:
+    def snapshot(self) -> SnapshotChannelList:
         return self._snapshot
