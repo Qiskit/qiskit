@@ -8,8 +8,8 @@
 """
 Qubit reset to computational zero.
 """
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Instruction, InstructionSet
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Instruction
 from .decorators import _op_expand
 
 
@@ -24,11 +24,6 @@ class Reset(Instruction):
 @_op_expand(1)
 def reset(self, qubit):
     """Reset q."""
-    if isinstance(qubit, QuantumRegister):
-        instructions = InstructionSet()
-        for sizes in range(qubit.size):
-            instructions.add(self.reset((qubit, sizes)))
-        return instructions
     return self.append(Reset(self), [qubit], [])
 
 

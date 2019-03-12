@@ -20,7 +20,6 @@ from qiskit.circuit import Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.converters import circuit_to_dag
 
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -54,7 +53,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         super().__init__("init", num_qubits, params, circ)
 
-    def _define_decompositions(self):
+    def _define(self):
         """Calculate a subcircuit that implements this initialization
 
         Implements a recursive initialization algorithm, including optimizations,
@@ -77,7 +76,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         # TODO: avoid explicit reset if compiler determines a |0> state
         initialize_circuit.append(initialize_gate, q[:])
 
-        self._decompositions = [circuit_to_dag(initialize_circuit)]
+        self.definition = initialize_circuit.data
 
     def gates_to_uncompute(self):
         """
@@ -106,7 +105,6 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             ry_mult = self._multiplex(RYGate, thetas)
             circuit.append(rz_mult.to_gate(), q[i:self.num_qubits])
             circuit.append(ry_mult.to_gate(), q[i:self.num_qubits])
-
         return circuit
 
     @staticmethod

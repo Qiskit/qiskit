@@ -74,9 +74,10 @@ class Instruction:
             else:
                 raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), name))
-        self.control = None  # tuple (ClassicalRegister, int) for "if"
+        # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
+        self.control = None
+        # reference to the circuit containing this instruction
         self.circuit = circuit
-        self._decompositions = None
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name and same
@@ -127,32 +128,6 @@ class Instruction:
         if name:
             cpy.name = name
         return cpy
-
-    def reverse(self):
-        """For a composite instruction, reverse the order of sub-instructions.
-
-        This is done by recursively reversing all sub-instructions. It does
-        not invert any gate.
-
-        Returns:
-            Instruction: a fresh instruction with sub-instructions reversed
-        """
-        # TODO: this function is ugly and must be redone, possible after
-        # circuit and DAG merge.
-        from qiskit.circuit import QuantumCircuit
-        from qiskit.converters import dag_to_circuit, circuit_to_dag
-        if not self._decompositions:
-            return self
-        reverse_inst = self.copy(name=self.name+'_reverse')
-        new_decompositions = []
-        for decomposition in self._decompositions:
-            circ = dag_to_circuit(decomposition)
-            new_circ = QuantumCircuit(*circ.qregs, *circ.cregs)
-            for inst, qargs, cargs in reversed(circ.data):
-                new_circ.append(inst.reverse(), qargs, cargs)
-            new_decompositions.append(circuit_to_dag(new_circ))
-        reverse_inst._decompositions = new_decompositions
-        return reverse_inst
 
     def _modifiers(self, gate):
         """Apply any modifiers of this instruction to another one."""

@@ -21,50 +21,67 @@ class Gate(Instruction):
         params = list of real parameters (will be converted to symbolic)
         circuit = QuantumCircuit containing this gate
         """
+        # list of instructions (and their contexts) that this instruction is composed of
+        # self.definition=None means opaque or fundamental
+        self._definition = None
         self._matrix_rep = None
 
         super().__init__(name, num_qubits, 0, params, circuit)
 
+    def reverse(self):
+        """For a composite gate, reverse the order of sub-gates.
+
+        This is done by recursively reversing all sub-gates. It does
+        not invert any gate.
+
+        Returns:
+            Gate: a fresh gate with sub-gates reversed
+        """
+        if not self._definition:
+            return self.copy()
+
+        reverse_inst = self.copy(name=self.name+'_reverse')
+        reverse_inst.definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            reverse_inst._definition.append((inst.reverse(), qargs, cargs))
+        return reverse_inst
+
     def inverse(self):
         """Invert this gate.
 
-        If the gate is composite (i.e. has decomposition rules), then those
-        rules will be recursively inverted.
+        If the gate is composite (i.e. has a definition), then its definition
+        will be recursively inverted.
 
         Special gates inheriting from Gate can implement their own inverse
         (e.g. T and Tdg)
 
         Returns:
-            Gate: the inverted gate
+            Gate: a fresh gate for the inverse
 
         Raises:
             NotImplementedError: if the gate is not composite and an inverse
                 has not been implemented for it.
         """
-        from qiskit.circuit import QuantumCircuit
-        from qiskit.converters import dag_to_circuit, circuit_to_dag
-        if not self._decompositions:
-            raise NotImplementedError("inverse not implemented")
-        inverse_inst = self.copy(name=self.name+'_dg')
-        new_decompositions = []
-        for decomposition in self._decompositions:
-            circ = dag_to_circuit(decomposition)
-            new_circ = QuantumCircuit(*circ.qregs, *circ.cregs)
-            for inst, qargs, cargs in reversed(circ.data):
-                new_circ.append(inst.inverse(), qargs, cargs)
-            new_decompositions.append(circuit_to_dag(new_circ))
-        inverse_inst._decompositions = new_decompositions
-        return inverse_inst
+        if not self.definition:
+            raise NotImplementedError("inverse() not implemented for %s." %
+                                      self.name)
+        inverse_gate = self.copy(name=self.name+'_dg')
+        inverse_gate._definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+        return inverse_gate
 
-    def decompositions(self):
-        """Returns a list of possible decompositions. """
-        if self._decompositions is None:
-            self._define_decompositions()
-        return self._decompositions
+    @property
+    def definition(self):
+        """Return definition in terms of other basic gates."""
+        if self._definition is None:
+            self._define()
+        return self._definition
 
-    def _define_decompositions(self):
-        """Populates self.decompositions with way to decompose this instruction."""
-        raise NotImplementedError("No decomposition rules defined for %s" % self.name)
+    @definition.setter
+    def definition(self, array):
+        """Set matrix representation"""
+        self._definition = array
 
     @property
     def matrix_rep(self):
@@ -75,3 +92,8 @@ class Gate(Instruction):
     def matrix_rep(self, matrix):
         """Set matrix representation"""
         self._matrix_rep = matrix
+
+    def _define(self):
+        """Populates self.definition with a decomposition of this gate."""
+        raise NotImplementedError("No definition for %s (cannot decompose)." %
+                                  self.name)

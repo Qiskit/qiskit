@@ -10,7 +10,6 @@
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate
 from qiskit.circuit import Reset
-from qiskit.converters import circuit_to_dag
 
 
 def circuit_to_gate(circuit):
@@ -42,6 +41,6 @@ def circuit_to_gate(circuit):
     instruction.control = None
     instruction.circuit = None
 
-    instruction._decompositions = [circuit_to_dag(circuit)]
+    instruction.definition = circuit.data
 
     return instruction

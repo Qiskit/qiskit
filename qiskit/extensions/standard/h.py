@@ -16,7 +16,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.qasm import pi
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.u2 import U2Gate
 
 
@@ -27,19 +26,18 @@ class HGate(Gate):
         """Create new Hadamard gate."""
         super().__init__("h", 1, [], circ)
 
-    def _define_decompositions(self):
+    def _define(self):
         """
         gate h a { u2(0,pi) a; }
         """
-        decomposition = DAGCircuit()
+        definition = []
         q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
         rule = [
             (U2Gate(0, pi), [q[0]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(*inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""

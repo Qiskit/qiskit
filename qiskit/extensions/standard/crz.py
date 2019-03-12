@@ -13,7 +13,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.cx import CnotGate
 
@@ -25,16 +24,15 @@ class CrzGate(Gate):
         """Create new crz gate."""
         super().__init__("crz", 2, [theta], circ)
 
-    def _define_decompositions(self):
+    def _define(self):
         """
         gate crz(lambda) a,b
         { u1(lambda/2) b; cx a,b;
           u1(-lambda/2) b; cx a,b;
         }
         """
-        decomposition = DAGCircuit()
+        definition = []
         q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
         rule = [
             (U1Gate(self.params[0]/2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
@@ -42,13 +40,13 @@ class CrzGate(Gate):
             (CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(*inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
         self.params[0] = -self.params[0]
-        self._decompositions = None
+        self.definition = None
         return self
 
 

@@ -15,7 +15,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.cx import CnotGate
 
 
@@ -26,21 +25,20 @@ class SwapGate(Gate):
         """Create new SWAP gate."""
         super().__init__("swap", 2, [], circ)
 
-    def _define_decompositions(self):
+    def _define(self):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
-        decomposition = DAGCircuit()
+        definition = []
         q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
         rule = [
             (CnotGate(), [q[0], q[1]], []),
             (CnotGate(), [q[1], q[0]], []),
             (CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(*inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""

@@ -13,7 +13,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
@@ -27,7 +26,7 @@ class ToffoliGate(Gate):
         """Create new Toffoli gate."""
         super().__init__("ccx", 3, [], circ)
 
-    def _define_decompositions(self):
+    def _define(self):
         """
         gate ccx a,b,c
         {
@@ -36,9 +35,8 @@ class ToffoliGate(Gate):
         t b; t c; h c; cx a,b;
         t a; tdg b; cx a,b;}
         """
-        decomposition = DAGCircuit()
+        definition = []
         q = QuantumRegister(3, "q")
-        decomposition.add_qreg(q)
         rule = [
             (HGate(), [q[2]], []),
             (CnotGate(), [q[1], q[2]], []),
@@ -57,8 +55,8 @@ class ToffoliGate(Gate):
             (CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(*inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
