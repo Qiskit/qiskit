@@ -133,6 +133,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
 
             dag_instructions = dag_layer['graph'].op_nodes()
 
+
             # sort into the order they were input
             dag_instructions.sort(key=lambda nd: nd._node_id)
             for instruction_node in dag_instructions:

@@ -7,7 +7,7 @@
 
 """Pass for peep-hole cancellation of consecutive CX gates.
 """
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class CXCancellation(TransformationPass):
