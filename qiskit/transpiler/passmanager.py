@@ -9,9 +9,9 @@
 from functools import partial
 from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
-from ._propertyset import PropertySet
-from ._basepasses import BasePass
-from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
+from .propertyset import PropertySet
+from .basepasses import BasePass
+from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
 
 

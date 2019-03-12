@@ -35,9 +35,6 @@ Added
 - Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
   different output stream
-<<<<<<< HEAD
-
-=======
 - Added a ``RunConfig`` object for configurations related to running an
   experiment (e.g. shots, memory) (#1856)
 - Added a ``TranspileConfig`` object for configurations related to transforming
@@ -51,8 +48,9 @@ Added
   and later as a wrapper of ``execute_pulses()``.
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
-  
->>>>>>> upstream/master
+- Register indexing supports negative indices (#1875)
+
+
 Changed
 -------
 
@@ -85,13 +83,11 @@ Changed
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
   (#1333)
-<<<<<<< HEAD
 - Methods on the ``DAGCircuit`` which previously returned node_ids and/or dicts now
   return ``DAGNodes``
-=======
 - The ``Qobj`` classes have been reimplemented using models and schemas, as the
   rest of spec-defined entities. (#1909).
->>>>>>> upstream/master
+
 
 Deprecated
 ----------

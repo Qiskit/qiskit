@@ -7,7 +7,7 @@
 
 """Pass for decomposing 3q (or more) gates into 2q or 1q gates."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class Unroll3qOrMore(TransformationPass):

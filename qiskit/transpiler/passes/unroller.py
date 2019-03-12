@@ -7,7 +7,7 @@
 
 """Pass for unrolling a circuit to a given basis."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 
 
