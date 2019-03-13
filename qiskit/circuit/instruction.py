@@ -13,10 +13,12 @@ Instructions can be implementable on hardware (u, cx, etc.) or in simulation
 
 Instructions can be unitary (a.k.a Gate) or non-unitary.
 
-Instructions are identified by the following fields.
+Instructions are identified by the following:
 
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
+
+    num_qubits, num_clbits: dimensions of the instruction
 
     params: List of parameters to specialize a specific intruction instance.
 
@@ -49,6 +51,10 @@ class Instruction:
         self.name = name
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
+        if self.num_qubits < 0 or self.num_clbits < 0:
+            raise QiskitError("bad instruction dimensions: %d qubits, %d clbits." %
+                              self.num_qubits, self.num_clbits)
+
         self.params = []  # a list of gate params stored
         for single_param in params:
             # example: u2(pi/2, sin(pi/4))
@@ -81,6 +87,9 @@ class Instruction:
         self.circuit = circuit
         # flag to keep track of gate reversibility
         self.is_reversible = is_reversible
+        if self.is_reversible and num_clbits > 0:
+            raise QiskitError("instruction %s cannot be reversible and "
+                              "act on classical bits." % self.name)
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name and same

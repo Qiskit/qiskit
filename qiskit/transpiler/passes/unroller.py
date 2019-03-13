@@ -49,8 +49,7 @@ class Unroller(TransformationPass):
             rule = current_node["op"].definition
             if not rule:
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
-                                  "The current node being expanded, %s, "
-                                  "is defined in terms of an invalid basis." %
+                                  "No rule to expand instruction %s." %
                                   (str(self.basis), node.op.name))
 
             # hacky way to build a dag on the same register as the rule is defined

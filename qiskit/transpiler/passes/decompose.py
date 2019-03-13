@@ -34,6 +34,9 @@ class Decompose(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes(self.gate):
+            # opaque or built-in gates are not decomposable
+            if not current_node["op"].definition:
+                continue
             # TODO: allow choosing among multiple decomposition rules
             rule = current_node["op"].definition
             # hacky way to build a dag on the same register as the rule is defined

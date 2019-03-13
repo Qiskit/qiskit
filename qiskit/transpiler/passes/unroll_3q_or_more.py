@@ -28,6 +28,11 @@ class Unroll3qOrMore(TransformationPass):
         for node in dag.threeQ_or_more_nodes():
             # TODO: allow choosing other possible decompositions
             rule = node_data["op"].definition
+            if not rule:
+                raise QiskitError("Cannot unroll all 3q or more gates. "
+                                  "No rule to expand instruction %s." %
+                                  current_node["op"].name)
+
             # hacky way to build a dag on the same register as the rule is defined
             # TODO: need anonymous rules to address wires by index
             decomposition = DAGCircuit()

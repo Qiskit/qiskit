@@ -95,5 +95,4 @@ class Gate(Instruction):
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
-        raise NotImplementedError("No definition for %s (cannot decompose)." %
-                                  self.name)
+        pass
