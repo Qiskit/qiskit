@@ -8,6 +8,7 @@
 """
    Object to represent the information at a node in the DAGCircuit
 """
+import copy
 
 
 class DAGNode:
@@ -98,6 +99,26 @@ class DAGNode:
             return copy_self == copy_other
 
         return self.data_dict == other.data_dict
+
+    def isomorphic(self, other):
+        """
+        Method that is like equality, but does not necessitate the exact same op obj is used
+        Used in the DAGCircuit for checking isomorphism, as isomorphic DAGCircuits only need
+        the same type of node in the same place, not the exact same objects
+        """
+
+        if self == other:
+            return True
+
+        test_dict_self = copy.deepcopy(self.data_dict)
+        test_dict_other = copy.deepcopy(other.data_dict)
+
+        if self.op:
+            del test_dict_self['op']
+        if other.op:
+            del test_dict_other['op']
+
+        return test_dict_self == test_dict_other
 
     def __lt__(self, other):
         return self._node_id < other._node_id

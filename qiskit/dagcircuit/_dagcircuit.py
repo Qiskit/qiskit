@@ -767,7 +767,9 @@ class DAGCircuit:
             for node in oth.nodes:
                 oth.nodes[node]["node"] = node
 
-            return nx.is_isomorphic(slf, oth, node_match=lambda x, y: x['node'] == y['node'])
+            return nx.is_isomorphic(slf, oth, node_match=lambda x, y:
+                                    x['node'].isomorphic(y['node']))
+
         return False
 
     def nodes_in_topological_order(self):
@@ -1483,8 +1485,8 @@ class DAGCircuit:
         tops_node = list(self.nodes_in_topological_order())
         nodes_seen = dict(zip(tops_node, [False] * len(tops_node)))
         for node in tops_node:
-            if node["type"] == "op" and node["name"] in namelist \
-                    and not nodes_seen[node]:
+            if node.type == "op" and node.name in namelist \
+                    and node.condition is None and not nodes_seen[node]:
 
                 group = [node]
                 nodes_seen[node] = True

@@ -60,7 +60,7 @@ class CommutationAnalysis(AnalysisPass):
                 if edge[0] == node:
                     self.wire_op[edge_name].append(edge[0])
 
-                    self.property_set['commutation_set'][(node._node_id, edge_name)] = -1
+                    self.property_set['commutation_set'][(node, edge_name)] = -1
 
                 if edge[1].type == "out":
                     self.wire_op[edge_name].append(edge[1])
@@ -80,7 +80,7 @@ class CommutationAnalysis(AnalysisPass):
                     else:
                         self.property_set['commutation_set'][wire_name].append([node])
                 temp_len = len(self.property_set['commutation_set'][wire_name])
-                self.property_set['commutation_set'][(node._node_id, wire_name)] = temp_len - 1
+                self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
 
 def _gate_master_def(name, para=None):

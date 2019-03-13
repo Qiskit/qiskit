@@ -50,6 +50,7 @@ class TestOptimize1qGates(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+
         self.assertEqual(expected, result)
 
     def test_optimize_1q_gates_collapse_identity(self):

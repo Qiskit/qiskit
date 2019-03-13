@@ -48,6 +48,7 @@ class Optimize1qGates(TransformationPass):
                         or len(current_node["qargs"]) != 1
                         or current_node["qargs"][0] != run_qarg
                         or left_name not in ["u1", "u2", "u3", "id"]):
+
                     raise MapperError("internal error")
                 if left_name == "u1":
                     left_parameters = (0, 0, current_node["op"].params[0])

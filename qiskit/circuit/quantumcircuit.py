@@ -84,6 +84,7 @@ class QuantumCircuit:
     def __eq__(self, other):
         # TODO: removed the DAG from this function
         from qiskit.converters import circuit_to_dag
+
         return circuit_to_dag(self) == circuit_to_dag(other)
 
     @classmethod
