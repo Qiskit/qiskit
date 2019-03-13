@@ -5,7 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-""" Updates 'size', 'depth', and 'width' in the property set.
+"""Writes circuit resources to the property set
+('size', 'depth', 'width', 'count_ops', 'num_tensor_factors')
 """
 from qiskit.transpiler.basepasses import AnalysisPass
 
