@@ -21,9 +21,9 @@ class ResourceEstimation(AnalysisPass):
         self.property_set['width'] = dag.width()
         op_dict = {}
         for node in dag.node_nums_in_topological_order():
-            nd = dag.node(node)
-            name = nd["name"]
-            if nd["type"] == "op":
+            node_data = dag.node(node)
+            name = node_data["name"]
+            if node_data["type"] == "op":
                 if name not in op_dict:
                     op_dict[name] = 1
                 else:
