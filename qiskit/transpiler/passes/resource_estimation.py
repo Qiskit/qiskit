@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Writes circuit resources to the property set
-('size', 'depth', 'width', 'count_ops', 'num_tensor_factors')
+('size', 'depth', 'width', and 'count_ops')
 """
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -20,8 +20,8 @@ class ResourceEstimation(AnalysisPass):
         self.property_set['depth'] = dag.depth()
         self.property_set['width'] = dag.width()
         op_dict = {}
-        for node in self.node_nums_in_topological_order():
-            nd = self.multi_graph.node[node]
+        for node in dag.node_nums_in_topological_order():
+            nd = dag.node(node)
             name = nd["name"]
             if nd["type"] == "op":
                 if name not in op_dict:

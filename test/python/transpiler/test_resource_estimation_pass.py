@@ -29,6 +29,7 @@ class TestResourceEstimationPass(QiskitTestCase):
         self.assertEqual(pass_.property_set['size'], 0)
         self.assertEqual(pass_.property_set['depth'], 0)
         self.assertEqual(pass_.property_set['width'], 0)
+        self.assertDictEqual(pass_.property_set['count_ops'], {})
 
     def test_purly_qubits(self):
         """ A dag with 8 operations and no classic bits"""
@@ -50,6 +51,7 @@ class TestResourceEstimationPass(QiskitTestCase):
         self.assertEqual(pass_.property_set['size'], 8)
         self.assertEqual(pass_.property_set['depth'], 7)
         self.assertEqual(pass_.property_set['width'], 2)
+        self.assertDictEqual(pass_.property_set['count_ops'], {'cx': 6, 'h': 2})
 
     def test_depth_one(self):
         """ A dag with operations in parallel and depth 1"""
@@ -65,6 +67,7 @@ class TestResourceEstimationPass(QiskitTestCase):
         self.assertEqual(pass_.property_set['size'], 2)
         self.assertEqual(pass_.property_set['depth'], 1)
         self.assertEqual(pass_.property_set['width'], 2)
+        self.assertDictEqual(pass_.property_set['count_ops'], {'h': 2})
 
 
 if __name__ == '__main__':
