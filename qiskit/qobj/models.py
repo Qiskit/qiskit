@@ -10,7 +10,8 @@
 from marshmallow.validate import Length, Range, Regexp
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import Integer, List, Nested, Raw, String
+from qiskit.validation.fields import (Integer, List, Nested, String,
+                                      InstructionParameter)
 
 
 class QobjConditionalSchema(BaseSchema):
@@ -31,7 +32,7 @@ class QobjInstructionSchema(BaseSchema):
     # Optional properties.
     qubits = List(Integer(validate=Range(min=0)),
                   validate=Length(min=1))
-    params = List(Raw())
+    params = List(InstructionParameter())
     memory = List(Integer(validate=Range(min=0)),
                   validate=Length(min=1))
     conditional = Nested(QobjConditionalSchema)
