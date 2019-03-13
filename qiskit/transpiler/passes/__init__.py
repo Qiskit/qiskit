@@ -10,6 +10,7 @@
 from .unroller import Unroller
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
+from .dag_fixed_point import DAGFixedPoint
 from .resource_estimation import ResourceEstimation
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
