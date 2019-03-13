@@ -261,25 +261,25 @@ def _kraus_to_superop(data, input_dim, output_dim):
 def _chi_to_choi(data, input_dim, output_dim):
     """Transform Chi representation to a Choi representation."""
     num_qubits = int(np.log2(input_dim))
-    return _transform_basis(data, num_qubits, _pauli2col(), 2)
+    return _transform_from_pauli(data, num_qubits)
 
 
 def _choi_to_chi(data, input_dim, output_dim):
     """Transform Choi representation to the Chi representation."""
     num_qubits = int(np.log2(input_dim))
-    return _transform_basis(data, num_qubits, _col2pauli(), 2)
+    return _transform_to_pauli(data, num_qubits)
 
 
 def _ptm_to_superop(data, input_dim, output_dim):
     """Transform PTM representation to SuperOp representation."""
     num_qubits = int(np.log2(input_dim))
-    return _transform_basis(data, num_qubits, _pauli2col(), 2)
+    return _transform_from_pauli(data, num_qubits)
 
 
 def _superop_to_ptm(data, input_dim, output_dim):
     """Transform SuperOp representation to PTM representation."""
     num_qubits = int(np.log2(input_dim))
-    return _transform_basis(data, num_qubits, _col2pauli(), 2)
+    return _transform_to_pauli(data, num_qubits)
 
 
 def _bipartite_tensor(a, b, front=False, shape_a=None, shape_b=None):
@@ -346,36 +346,42 @@ def _reravel(a, b, shape_a, shape_b):
     return data
 
 
-def _transform_basis(data, num_qubits, basis_mat, factor=1):
+def _transform_to_pauli(data, num_qubits):
     """Change of basis of bipartite matrix represenation."""
-    # Change basis
+    # Change basis: um_{i=0}^3 |i>><\sigma_i|
+    basis_mat = np.array([[1, 0, 0, 1],
+                          [0, 1, 1, 0],
+                          [0, -1j, 1j, 0],
+                          [1, 0j, 0, -1]], dtype=complex)
     # Note that we manually renormalized after change of basis
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
     for j in range(num_qubits - 1):
         dim = int(np.sqrt(len(cob)))
-        cob = _bipartite_tensor(basis_mat, cob, (2, 2, 2, 2), (dim, dim, dim, dim))
-    return np.dot(np.dot(cob, data), cob.conj().T) / factor ** num_qubits
+        cob = np.reshape(np.transpose(np.reshape(np.kron(basis_mat, cob),
+                                                 (4, dim * dim, 2, 2, dim, dim)),
+                                      (0, 1, 2, 4, 3, 5)),
+                         (4 * dim * dim, 4 * dim * dim))
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
 
 
-def _pauli2col():
-    """Change of basis matrix from col-vec to Pauli."""
-    # This matrix is given by:
-    # sum_{i=0}^3 =|\sigma_i>><i|=
-    return np.array([[1, 0, 0, 1],
-                     [0, 1, 1j, 0],
-                     [0, 1, -1j, 0],
-                     [1, 0j, 0, -1]], dtype=complex)
-
-
-def _col2pauli():
-    """Change of basis matrix from Pauli col-vec."""
-    # This matrix is given by:
-    # sum_{i=0}^3 |i>><\sigma_i|
-    return np.array([[1, 0, 0, 1],
-                     [0, 1, 1, 0],
-                     [0, -1j, 1j, 0],
-                     [1, 0j, 0, -1]], dtype=complex)
+def _transform_from_pauli(data, num_qubits):
+    """Change of basis of bipartite matrix represenation."""
+    # Change basis: sum_{i=0}^3 =|\sigma_i>><i|
+    basis_mat = np.array([[1, 0, 0, 1],
+                          [0, 1, 1j, 0],
+                          [0, 1, -1j, 0],
+                          [1, 0j, 0, -1]], dtype=complex)
+    # Note that we manually renormalized after change of basis
+    # to avoid rounding errors from square-roots of 2.
+    cob = basis_mat
+    for j in range(num_qubits - 1):
+        dim = int(np.sqrt(len(cob)))
+        cob = np.reshape(np.transpose(np.reshape(np.kron(basis_mat, cob),
+                                                 (2, 2, dim, dim, 4, dim * dim)),
+                                      (0, 2, 1, 3, 4, 5)),
+                         (4 * dim * dim, 4 * dim * dim))
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
 
 
 def _reshuffle(a, shape):

@@ -157,18 +157,15 @@ class PTM(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         if not isinstance(other, PTM):
             other = PTM(other)
-
-        # Reshuffle indicies
+        # Combined channel dimensions
         a_in, a_out = self.dims
         b_in, b_out = other.dims
-
-        # Combined channel dimensions
         input_dim = a_in * b_in
         output_dim = a_out * b_out
-
-        data = _bipartite_tensor(self._data, other.data, front=front,
-                                 shape_a=self._bipartite_shape,
-                                 shape_b=other._bipartite_shape)
+        if front:
+            data = np.kron(self._data, other.data)
+        else:
+            data = np.kron(other.data, self._data)
         if inplace:
             self._data = data
             self._input_dim = input_dim
