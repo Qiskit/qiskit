@@ -11,11 +11,21 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class ResourceEstimation(AnalysisPass):
-    """ Updates 'size', 'depth', and 'width' in the property set.
+    """ Updates 'size', 'depth', 'width', and 'count_ops' in the property set.
     """
 
     def run(self, dag):
         self.property_set['size'] = dag.size()
         self.property_set['depth'] = dag.depth()
         self.property_set['width'] = dag.width()
+        op_dict = {}
+        for node in self.node_nums_in_topological_order():
+            nd = self.multi_graph.node[node]
+            name = nd["name"]
+            if nd["type"] == "op":
+                if name not in op_dict:
+                    op_dict[name] = 1
+                else:
+                    op_dict[name] += 1
+        self.property_set['count_ops'] = op_dict
         return dag
