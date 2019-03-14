@@ -28,11 +28,11 @@ class MetaPass(type):
         return pass_instance
 
     @staticmethod
-    def _freeze_init_parameters(cls, args, kwargs):
+    def _freeze_init_parameters(class_, args, kwargs):
         self_guard = object()
-        init_signature = signature(cls.__init__)
+        init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = [('__qualname__', cls.__name__)]
+        arguments = [('__qualname__', class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
@@ -50,6 +50,7 @@ class BasePass(metaclass=MetaPass):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
+        self._hash = None
 
     @classmethod
     def normalize_parameters(cls, *args, **kwargs):
