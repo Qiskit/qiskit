@@ -24,15 +24,15 @@ class MetaPass(type):
             cls._pass_cache = {}
         args, kwargs = cls.normalize_parameters(*args, **kwargs)
         pass_instance = type.__call__(cls, *args, **kwargs)
-        pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls.__init__, args, kwargs))
+        pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls, args, kwargs))
         return pass_instance
 
     @staticmethod
-    def _freeze_init_parameters(init_method, args, kwargs):
+    def _freeze_init_parameters(cls, args, kwargs):
         self_guard = object()
-        init_signature = signature(init_method)
+        init_signature = signature(cls.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = []
+        arguments = [('__qualname__', cls.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
