@@ -22,7 +22,6 @@ class MetaPass(type):
     def __call__(cls, *args, **kwargs):
         if '_pass_cache' not in cls.__dict__.keys():
             cls._pass_cache = {}
-        args, kwargs = cls.normalize_parameters(*args, **kwargs)
         pass_instance = type.__call__(cls, *args, **kwargs)
         pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls, args, kwargs))
         return pass_instance
@@ -32,7 +31,7 @@ class MetaPass(type):
         self_guard = object()
         init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = [('__qualname__', class_.__name__)]
+        arguments = [('class_.__name__', class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
@@ -51,20 +50,6 @@ class BasePass(metaclass=MetaPass):
         self.preserves = []  # List of passes that preserves
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
         self._hash = None
-
-    @classmethod
-    def normalize_parameters(cls, *args, **kwargs):
-        """
-        Because passes with the same args/kwargs are considered the same, this method allows to
-        modify the args/kargs to respect that identity.
-        Args:
-            *args: args to normalize
-            **kwargs: kwargs to normalize
-
-        Returns:
-            tuple: normalized (list(args), dict(kwargs))
-        """
-        return args, kwargs
 
     def __hash__(self):
         return self._hash

@@ -194,6 +194,7 @@ class PassK_check_fixed_point_property(DummyAP, FixedPoint):
         for base in PassK_check_fixed_point_property.__bases__:
             base.run(self, dag)
 
+
 class PassM_AP_NR_NP(DummyAP):
     """ A dummy analysis pass that modifies internal state at runtime
     AP: Analysis Pass
