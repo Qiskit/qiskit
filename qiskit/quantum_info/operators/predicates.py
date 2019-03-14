@@ -5,6 +5,11 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=len-as-condition
+"""
+Predicates for operators.
+"""
+
 import numpy as np
 
 ATOL_DEFAULT = 1e-8
@@ -66,12 +71,24 @@ def is_identity_matrix(op, ignore_phase=False, atol=ATOL_DEFAULT):
     return np.allclose(mat, iden, atol=atol)
 
 
-def matrix_equal(a, b, ignore_phase=False, atol=ATOL_DEFAULT):
-    """Test if two arrays are equal"""
+def matrix_equal(mat1, mat2, ignore_phase=False, atol=ATOL_DEFAULT):
+    """Test if two arrays are equal.
+
+    Args:
+        mat1 (matrix_like): a matrix
+        mat2 (matrix_like): a matrix
+        ignore_phase (bool): ignore complex-phase differences between
+            matrices [Default: False]
+        atol (double): comparison threhsold [Default {}].
+
+    Returns:
+        bool: True if the matrices are equal or False otherwise.
+    """.format(ATOL_DEFAULT)
+
     if atol is None:
         atol = ATOL_DEFAULT
-    mat1 = np.array(a)
-    mat2 = np.array(b)
+    mat1 = np.array(mat1)
+    mat2 = np.array(mat2)
     if mat1.shape != mat2.shape:
         return False
     if ignore_phase:

@@ -5,6 +5,11 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=unused-argument,too-many-return-statements,len-as-condition
+"""
+Transformations between QuantumChannel represenations.
+"""
+
 import logging
 
 import numpy as np
@@ -33,8 +38,7 @@ def _to_choi(rep, data, input_dim, output_dim):
         data = _ptm_to_superop(data, input_dim, output_dim)
         return _superop_to_choi(data, input_dim, output_dim)
     if rep == 'Stinespring':
-        data = _stinespring_to_kraus(data, input_dim, output_dim)
-        return _kraus_to_choi(data, input_dim, output_dim)
+        return _stinespring_to_choi(data, input_dim, output_dim)
     raise QiskitError('Invalid QuantumChannel {}'.format(rep))
 
 
@@ -54,8 +58,7 @@ def _to_superop(rep, data, input_dim, output_dim):
     if rep == 'PTM':
         return _ptm_to_superop(data, input_dim, output_dim)
     if rep == 'Stinespring':
-        data = _stinespring_to_kraus(data, input_dim, output_dim)
-        return _kraus_to_superop(data, input_dim, output_dim)
+        return _stinespring_to_superop(data, input_dim, output_dim)
     raise QiskitError('Invalid QuantumChannel {}'.format(rep))
 
 
@@ -117,6 +120,8 @@ def _to_unitary(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the UnitaryChannel representation."""
     if rep == 'UnitaryChannel':
         return data
+    if rep == 'Stinespring':
+        return _stinespring_to_unitary(data, input_dim, output_dim)
     # Convert via Kraus representation
     if rep != 'Kraus':
         data = _to_kraus(rep, data, input_dim, output_dim)
@@ -149,11 +154,23 @@ def _from_unitary(rep, data, input_dim, output_dim):
 
 def _kraus_to_unitary(data, input_dim, output_dim):
     """Transform Kraus representation to UnitaryChannel representation."""
-    kraus_l, kraus_r = data
-    if input_dim != output_dim or kraus_r is not None or len(kraus_l) > 1:
-        logger.error('Channel cannot be converted to UnitaryChannel representation')
-        raise QiskitError('Channel cannot be converted to UnitaryChannel representation')
-    return kraus_l[0]
+    if input_dim != output_dim or data[1] is not None or len(data[0]) > 1:
+        logger.error(
+            'Channel cannot be converted to UnitaryChannel representation')
+        raise QiskitError(
+            'Channel cannot be converted to UnitaryChannel representation')
+    return data[0][0]
+
+
+def _stinespring_to_unitary(data, input_dim, output_dim):
+    """Transform Stinespring representation to UnitaryChannel representation."""
+    trace_dim = data[0].shape[0] // output_dim
+    if input_dim != output_dim or data[1] is not None or trace_dim != 1:
+        logger.error(
+            'Channel cannot be converted to UnitaryChannel representation')
+        raise QiskitError(
+            'Channel cannot be converted to UnitaryChannel representation')
+    return data[0]
 
 
 def _superop_to_choi(data, input_dim, output_dim):
@@ -173,13 +190,12 @@ def _kraus_to_choi(data, input_dim, output_dim):
     choi = 0
     kraus_l, kraus_r = data
     if kraus_r is None:
-        for a in kraus_l:
-            u = a.ravel(order='F')
-            choi += np.dot(u[:, None], u.conj()[None, :])
+        for i in kraus_l:
+            vec = i.ravel(order='F')
+            choi += np.outer(vec, vec.conj())
     else:
-        for a, b in zip(kraus_l, kraus_r):
-            choi += np.dot(a.ravel(order='F')[:, None],
-                           b.ravel(order='F').conj()[None, :])
+        for i, j in zip(kraus_l, kraus_r):
+            choi += np.outer(i.ravel(order='F'), j.ravel(order='F').conj())
     return choi
 
 
@@ -195,7 +211,8 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
             kraus = []
             for val, vec in zip(w, v.T):
                 if abs(val) > atol:
-                    k = np.sqrt(val) * vec.reshape((output_dim, input_dim), order='F')
+                    k = np.sqrt(val) * vec.reshape(
+                        (output_dim, input_dim), order='F')
                     kraus.append(k)
             # If we are converting a zero matrix, we need to return a Kraus set
             # with a single zero-element Kraus matrix
@@ -203,12 +220,14 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
                 kraus.append(np.zeros((output_dim, input_dim), dtype=complex))
             return (kraus, None)
     # Non-CP-map generalized Kraus representation
-    U, s, Vh = la.svd(data)
+    mat_u, svals, mat_vh = la.svd(data)
     kraus_l = []
     kraus_r = []
-    for val, vecL, vecR in zip(s, U.T, Vh.conj()):
-        kraus_l.append(np.sqrt(val) * vecL.reshape((output_dim, input_dim), order='F'))
-        kraus_r.append(np.sqrt(val) * vecR.reshape((output_dim, input_dim), order='F'))
+    for val, vec_l, vec_r in zip(svals, mat_u.T, mat_vh.conj()):
+        kraus_l.append(
+            np.sqrt(val) * vec_l.reshape((output_dim, input_dim), order='F'))
+        kraus_r.append(
+            np.sqrt(val) * vec_r.reshape((output_dim, input_dim), order='F'))
     return (kraus_l, kraus_r)
 
 
@@ -223,11 +242,37 @@ def _stinespring_to_kraus(data, input_dim, output_dim):
             iden = np.eye(output_dim)
             kraus = []
             for j in range(trace_dim):
-                v = np.zeros(trace_dim)
-                v[j] = 1
-                kraus.append(np.kron(iden, v[None, :]).dot(stine))
+                vec = np.zeros(trace_dim)
+                vec[j] = 1
+                kraus.append(np.kron(iden, vec[None, :]).dot(stine))
             kraus_pair.append(kraus)
     return tuple(kraus_pair)
+
+
+def _stinespring_to_choi(data, input_dim, output_dim):
+    """Transform Stinespring representation to Choi representation."""
+    trace_dim = data[0].shape[0] // output_dim
+    stine_l = np.reshape(data[0], (output_dim, trace_dim, input_dim))
+    if data[1] is None:
+        stine_r = stine_l
+    else:
+        stine_r = np.reshape(data[1], (output_dim, trace_dim, input_dim))
+    return np.reshape(
+        np.einsum('iAj,kAl->jilk', stine_l, stine_r.conj()),
+        2 * [input_dim * output_dim])
+
+
+def _stinespring_to_superop(data, input_dim, output_dim):
+    """Transform Stinespring representation to SuperOp representation."""
+    trace_dim = data[0].shape[0] // output_dim
+    stine_l = np.reshape(data[0], (output_dim, trace_dim, input_dim))
+    if data[1] is None:
+        stine_r = stine_l
+    else:
+        stine_r = np.reshape(data[1], (output_dim, trace_dim, input_dim))
+    return np.reshape(
+        np.einsum('iAj,kAl->ikjl', stine_r.conj(), stine_l),
+        (output_dim * output_dim, input_dim * input_dim))
 
 
 def _kraus_to_stinespring(data, input_dim, output_dim):
@@ -236,11 +281,12 @@ def _kraus_to_stinespring(data, input_dim, output_dim):
     for i, kraus in enumerate(data):
         if kraus is not None:
             num_kraus = len(kraus)
-            stine = np.zeros((output_dim * num_kraus, input_dim), dtype=complex)
-            for j, k in enumerate(kraus):
-                v = np.zeros(num_kraus)
-                v[j] = 1
-                stine += np.kron(k, v[:, None])
+            stine = np.zeros((output_dim * num_kraus, input_dim),
+                             dtype=complex)
+            for j, mat in enumerate(kraus):
+                vec = np.zeros(num_kraus)
+                vec[j] = 1
+                stine += np.kron(mat, vec[:, None])
             stine_pair[i] = stine
     return tuple(stine_pair)
 
@@ -250,11 +296,11 @@ def _kraus_to_superop(data, input_dim, output_dim):
     kraus_l, kraus_r = data
     superop = 0
     if kraus_r is None:
-        for a in kraus_l:
-            superop += np.kron(np.conj(a), a)
+        for i in kraus_l:
+            superop += np.kron(np.conj(i), i)
     else:
-        for a, b in zip(kraus_l, kraus_r):
-            superop += np.kron(np.conj(b), a)
+        for i, j in zip(kraus_l, kraus_r):
+            superop += np.kron(np.conj(j), i)
     return superop
 
 
@@ -282,119 +328,120 @@ def _superop_to_ptm(data, input_dim, output_dim):
     return _transform_to_pauli(data, num_qubits)
 
 
-def _bipartite_tensor(a, b, front=False, shape_a=None, shape_b=None):
+def _bipartite_tensor(mat1, mat2, front=False, shape1=None, shape2=None):
     """Tensor product to bipartite matrices and reravel indicies.
 
     This is used for tensor product of superoperators and Choi matrices.
 
     Args:
-        a (matrix like): a bipartite matrix
-        b (matrix like): a bipartite matrix
-        front (bool): If False return (b ⊗ a) if True return (a ⊗ b) [Default: False]
-        shape_a (tuple): bipartite-shape for matrix a (a0, a1, a2, a3)
-        shape_b (tuple): bipartite-shape for matrix b (b0, b1, b2, b3)
+        mat1 (matrix_like): a bipartite matrix A
+        mat2 (matrix_like): a bipartite matrix B
+        front (bool): If False return (B ⊗ A) if True return (A ⊗ B) [Default: False]
+        shape1 (tuple): bipartite-shape for matrix A (a0, a1, a2, a3)
+        shape2 (tuple): bipartite-shape for matrix B (b0, b1, b2, b3)
 
     Returns:
-        a bipartite matrix for reravel(a ⊗ b) or  reravel(b ⊗ a).
+        np.array: a bipartite matrix for reravel(a ⊗ b) or  reravel(b ⊗ a).
+
+    Raises:
+        QiskitError: if input matrices are wrong shape.
     """
     # Convert inputs to numpy arrays
-    a = np.array(a)
-    b = np.array(b)
+    mat1 = np.array(mat1)
+    mat2 = np.array(mat2)
 
     # Determine bipartite dimensions if not provided
-    dim_a0, dim_a1 = a.shape
-    dim_b0, dim_b1 = b.shape
-    if shape_a is None:
-        a0 = int(np.sqrt(dim_a0))
-        a1 = int(np.sqrt(dim_a1))
-        shape_a = (a0, a0, a1, a1)
-    if shape_b is None:
-        b0 = int(np.sqrt(dim_b0))
-        b1 = int(np.sqrt(dim_b1))
-        shape_b = (b0, b0, b1, b1)
+    dim_a0, dim_a1 = mat1.shape
+    dim_b0, dim_b1 = mat2.shape
+    if shape1 is None:
+        sdim_a0 = int(np.sqrt(dim_a0))
+        sdim_a1 = int(np.sqrt(dim_a1))
+        shape1 = (sdim_a0, sdim_a0, sdim_a1, sdim_a1)
+    if shape2 is None:
+        sdim_b0 = int(np.sqrt(dim_b0))
+        sdim_b1 = int(np.sqrt(dim_b1))
+        shape2 = (sdim_b0, sdim_b0, sdim_b1, sdim_b1)
     # Check dimensions
-    if len(shape_a) != 4 or shape_a[0] * shape_a[1] != dim_a0 or \
-            shape_a[2] * shape_a[3] != dim_a1:
+    if len(shape1) != 4 or shape1[0] * shape1[1] != dim_a0 or \
+            shape1[2] * shape1[3] != dim_a1:
         raise QiskitError("Invalid shape_a")
-    if len(shape_b) != 4 or shape_b[0] * shape_b[1] != dim_b0 or \
-            shape_b[2] * shape_b[3] != dim_b1:
+    if len(shape2) != 4 or shape2[0] * shape2[1] != dim_b0 or \
+            shape2[2] * shape2[3] != dim_b1:
         raise QiskitError("Invalid shape_b")
 
     if front:
         # Return A ⊗ B
-        return _reravel(a, b, shape_a, shape_b)
+        return _reravel(mat1, mat2, shape1, shape2)
     # Return B ⊗ A
-    return _reravel(b, a, shape_b, shape_a)
+    return _reravel(mat2, mat1, shape2, shape1)
 
 
-def _reravel(a, b, shape_a, shape_b):
-    """
-    shape_a and shape_b length-4 lists.
-    """
-    data = np.kron(a, b)
+def _reravel(mat1, mat2, shape1, shape2):
+    """Reravel two bipartite matrices."""
     # Reshuffle indicies
-    left_dims = shape_a[:2] + shape_b[:2]
-    right_dims = shape_a[2:] + shape_b[2:]
+    left_dims = shape1[:2] + shape2[:2]
+    right_dims = shape1[2:] + shape2[2:]
     tensor_shape = left_dims + right_dims
     final_shape = (np.product(left_dims), np.product(right_dims))
-
     # Tensor product matrices
-    data = np.kron(a, b)
-    data = np.reshape(np.transpose(np.reshape(data, tensor_shape),
-                                   (0, 2, 1, 3, 4, 6, 5, 7)),
-                      final_shape)
+    data = np.kron(mat1, mat2)
+    data = np.reshape(
+        np.transpose(np.reshape(data, tensor_shape), (0, 2, 1, 3, 4, 6, 5, 7)),
+        final_shape)
     return data
 
 
 def _transform_to_pauli(data, num_qubits):
     """Change of basis of bipartite matrix represenation."""
     # Change basis: um_{i=0}^3 |i>><\sigma_i|
-    basis_mat = np.array([[1, 0, 0, 1],
-                          [0, 1, 1, 0],
-                          [0, -1j, 1j, 0],
-                          [1, 0j, 0, -1]], dtype=complex)
+    basis_mat = np.array(
+        [[1, 0, 0, 1], [0, 1, 1, 0], [0, -1j, 1j, 0], [1, 0j, 0, -1]],
+        dtype=complex)
     # Note that we manually renormalized after change of basis
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
-    for j in range(num_qubits - 1):
+    for _ in range(num_qubits - 1):
         dim = int(np.sqrt(len(cob)))
-        cob = np.reshape(np.transpose(np.reshape(np.kron(basis_mat, cob),
-                                                 (4, dim * dim, 2, 2, dim, dim)),
-                                      (0, 1, 2, 4, 3, 5)),
-                         (4 * dim * dim, 4 * dim * dim))
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
+        cob = np.reshape(
+            np.transpose(
+                np.reshape(
+                    np.kron(basis_mat, cob), (4, dim * dim, 2, 2, dim, dim)),
+                (0, 1, 2, 4, 3, 5)), (4 * dim * dim, 4 * dim * dim))
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
 
 
 def _transform_from_pauli(data, num_qubits):
     """Change of basis of bipartite matrix represenation."""
     # Change basis: sum_{i=0}^3 =|\sigma_i>><i|
-    basis_mat = np.array([[1, 0, 0, 1],
-                          [0, 1, 1j, 0],
-                          [0, 1, -1j, 0],
-                          [1, 0j, 0, -1]], dtype=complex)
+    basis_mat = np.array(
+        [[1, 0, 0, 1], [0, 1, 1j, 0], [0, 1, -1j, 0], [1, 0j, 0, -1]],
+        dtype=complex)
     # Note that we manually renormalized after change of basis
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
-    for j in range(num_qubits - 1):
+    for _ in range(num_qubits - 1):
         dim = int(np.sqrt(len(cob)))
-        cob = np.reshape(np.transpose(np.reshape(np.kron(basis_mat, cob),
-                                                 (2, 2, dim, dim, 4, dim * dim)),
-                                      (0, 2, 1, 3, 4, 5)),
-                         (4 * dim * dim, 4 * dim * dim))
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
+        cob = np.reshape(
+            np.transpose(
+                np.reshape(
+                    np.kron(basis_mat, cob), (2, 2, dim, dim, 4, dim * dim)),
+                (0, 2, 1, 3, 4, 5)), (4 * dim * dim, 4 * dim * dim))
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
 
 
-def _reshuffle(a, shape):
+def _reshuffle(mat, shape):
     """Reshuffle the indicies of a bipartite matrix A[ij,kl] -> A[lj,ki]."""
-    return np.reshape(np.transpose(np.reshape(a, shape), (3, 1, 2, 0)),
-                      (shape[3] * shape[1], shape[0] * shape[2]))
+    return np.reshape(
+        np.transpose(np.reshape(mat, shape), (3, 1, 2, 0)),
+        (shape[3] * shape[1], shape[0] * shape[2]))
 
 
 def _check_nqubit_dim(input_dim, output_dim):
     """Return true if dims correspond to an n-qubit channel."""
     if input_dim != output_dim:
-        raise QiskitError('Not an n-qubit channel: input_dim' +
-                          ' ({}) != output_dim ({})'.format(input_dim, output_dim))
+        raise QiskitError(
+            'Not an n-qubit channel: input_dim' +
+            ' ({}) != output_dim ({})'.format(input_dim, output_dim))
     num_qubits = int(np.log2(input_dim))
-    if 2 ** num_qubits != input_dim:
+    if 2**num_qubits != input_dim:
         raise QiskitError('Not an n-qubit channel: input_dim != 2 ** n')

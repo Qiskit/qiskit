@@ -4,6 +4,23 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Choi-matrix representation of a Quantum Channel.
+
+
+For a quantum channel E, the Choi matrix Λ is defined by:
+Λ = sum_{i,j} |i⟩⟨j|⊗E(|i⟩⟨j|)
+
+Evolution of a density matrix with respect to the Choi-matrix is given by:
+
+    E(ρ) = Tr_{1}[Λ.(ρ^T⊗I)]
+
+See [1] for further details.
+
+References:
+    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
+        Open access: arXiv:1111.6950 [quant-ph]
+"""
 
 from numbers import Number
 
@@ -28,26 +45,28 @@ class Choi(QuantumChannel):
         else:
             choi_mat = np.array(data, dtype=complex)
             # Determine input and output dimensions
-            dl, dr = choi_mat.shape
-            if dl != dr:
+            dim_l, dim_r = choi_mat.shape
+            if dim_l != dim_r:
                 raise QiskitError('Invalid Choi-matrix input.')
             if output_dim is None and input_dim is None:
-                output_dim = int(np.sqrt(dl))
-                input_dim = dl // output_dim
+                output_dim = int(np.sqrt(dim_l))
+                input_dim = dim_l // output_dim
             elif input_dim is None:
-                input_dim = dl // output_dim
+                input_dim = dim_l // output_dim
             elif output_dim is None:
-                output_dim = dl // input_dim
+                output_dim = dim_l // input_dim
             # Check dimensions
-            if input_dim * output_dim != dl:
-                raise QiskitError("Invalid input and output dimension for Choi-matrix input.")
+            if input_dim * output_dim != dim_l:
+                raise QiskitError(
+                    "Invalid input and output dimension for Choi-matrix input."
+                )
         super().__init__('Choi', choi_mat, input_dim, output_dim)
 
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._input_dim, self._output_dim,
-                self._input_dim, self._output_dim)
+        return (self._input_dim, self._output_dim, self._input_dim,
+                self._output_dim)
 
     def evolve(self, state):
         """Apply the channel to a quantum state.
@@ -56,7 +75,7 @@ class Choi(QuantumChannel):
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A density matrix.
+            DensityMatrix: the output quantum state as a density matrix.
         """
         state = self._format_density_matrix(self._check_state(state))
         return np.einsum('AB,AiBj->ij', state,
@@ -72,19 +91,18 @@ class Choi(QuantumChannel):
     def transpose(self, inplace=False):
         """Return the transpose channel"""
         # Make bipartite matrix
-        di = self._input_dim
-        do = self._output_dim
-        data = np.reshape(self._data, (di, do, di, do))
+        d_in, d_out = self.dims
+        data = np.reshape(self._data, (d_in, d_out, d_in, d_out))
         # Swap input and output indicies on bipartite matrix
         data = np.transpose(data, (1, 0, 3, 2))
         # Transpose channel has input and output dimensions swapped
-        data = np.reshape(data, (di * do, di * do))
+        data = np.reshape(data, (d_in * d_out, d_in * d_out))
         if inplace:
             self._data = data
-            self._input_dim = do
-            self._output_dim = di
+            self._input_dim = d_out
+            self._output_dim = d_in
             return self
-        return Choi(data, do, di)
+        return Choi(data, d_out, d_in)
 
     def is_cptp(self):
         """Test if Choi-matrix is completely-positive and trace preserving (CPTP)"""
@@ -106,10 +124,12 @@ class Choi(QuantumChannel):
     def _is_tp(self):
         """Test if Choi-matrix is trace-preserving (TP)"""
         # Check if the partial trace is the identity matrix
-        din, dout = self.dims
-        tr = np.trace(np.reshape(self._data, (din, dout, din, dout)),
-                      axis1=1, axis2=3)
-        return is_identity_matrix(tr, atol=self.atol)
+        d_in, d_out = self.dims
+        mat = np.trace(
+            np.reshape(self._data, (d_in, d_out, d_in, d_out)),
+            axis1=1,
+            axis2=3)
+        return is_identity_matrix(mat, atol=self.atol)
 
     def compose(self, other, inplace=False, front=False):
         """Return the composition channel B(A(input))
@@ -130,27 +150,30 @@ class Choi(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
-            raise QiskitError('input_dim of self must match output_dim of other')
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
         if not front and self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         # Convert to Choi matrix
         if not isinstance(other, Choi):
             other = Choi(other)
 
         if front:
-            a = np.reshape(other._data, other._bipartite_shape)
-            b = np.reshape(self._data, self._bipartite_shape)
+            first = np.reshape(other._data, other._bipartite_shape)
+            second = np.reshape(self._data, self._bipartite_shape)
             input_dim = other._input_dim
             output_dim = self._output_dim
         else:
-            a = np.reshape(self._data, self._bipartite_shape)
-            b = np.reshape(other._data, other._bipartite_shape)
+            first = np.reshape(self._data, self._bipartite_shape)
+            second = np.reshape(other._data, other._bipartite_shape)
             input_dim = self._input_dim
             output_dim = other._output_dim
 
         # Contract Choi matrices for composition
-        data = np.reshape(np.einsum('iAjB,AkBl->ikjl', a, b),
-                          (input_dim * output_dim, input_dim * output_dim))
+        data = np.reshape(
+            np.einsum('iAjB,AkBl->ikjl', first, second),
+            (input_dim * output_dim, input_dim * output_dim))
         if inplace:
             self._data = data
             self._input_dim = input_dim
@@ -172,8 +195,12 @@ class Choi(QuantumChannel):
         Raises:
             QiskitError: if b is not a Choi object
         """
+        # Convert other to Choi
+        if not issubclass(other.__class__, QuantumChannel):
+            raise QiskitError('Other is not a channel rep')
         if not isinstance(other, Choi):
-            raise QiskitError('Input channels must Choi')
+            other = Choi(other)
+
         # Reshuffle indicies
         a_in, a_out = self.dims
         b_in, b_out = other.dims
@@ -182,9 +209,12 @@ class Choi(QuantumChannel):
         input_dim = a_in * b_in
         output_dim = a_out * b_out
 
-        data = _bipartite_tensor(self._data, other.data, front=front,
-                                 shape_a=self._bipartite_shape,
-                                 shape_b=other._bipartite_shape)
+        data = _bipartite_tensor(
+            self._data,
+            other.data,
+            front=front,
+            shape1=self._bipartite_shape,
+            shape2=other._bipartite_shape)
         if inplace:
             self._data = data
             self._input_dim = input_dim

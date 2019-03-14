@@ -4,6 +4,22 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Chi-matrix representation of a Quantum Channel.
+
+
+This is the matrix χ such that:
+
+    E(ρ) = sum_{i, j} χ_{i,j} P_i.ρ.P_j^dagger
+
+where [P_i, i=0,...4^{n-1}] is the n-qubit Pauli basis in lexicographic order.
+
+See [1] for further details.
+
+References:
+    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
+        Open access: arXiv:1111.6950 [quant-ph]
+"""
 
 from numbers import Number
 
@@ -12,7 +28,7 @@ import numpy as np
 from qiskit.qiskiterror import QiskitError
 from .basechannel import QuantumChannel
 from .choi import Choi
-from .transformations import _to_chi, _bipartite_tensor
+from .transformations import _to_chi
 
 
 class Chi(QuantumChannel):
@@ -27,35 +43,37 @@ class Chi(QuantumChannel):
         if issubclass(data.__class__, QuantumChannel):
             input_dim, output_dim = data.dims
             if input_dim != output_dim:
-                raise QiskitError("Cannot convert to Chi-matrix: input_dim " +
-                                  "({}) != output_dim ({})".format(input_dim, output_dim))
+                raise QiskitError(
+                    "Cannot convert to Chi-matrix: input_dim " +
+                    "({}) != output_dim ({})".format(input_dim, output_dim))
             chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
         else:
             chi_mat = np.array(data, dtype=complex)
             # Determine input and output dimensions
-            dl, dr = chi_mat.shape
-            if dl != dr:
+            dim_l, dim_r = chi_mat.shape
+            if dim_l != dim_r:
                 raise QiskitError('Invalid Choi-matrix input.')
             if output_dim is None and input_dim is None:
-                output_dim = int(np.sqrt(dl))
-                input_dim = dl // output_dim
+                output_dim = int(np.sqrt(dim_l))
+                input_dim = dim_l // output_dim
             elif input_dim is None:
-                input_dim = dl // output_dim
+                input_dim = dim_l // output_dim
             elif output_dim is None:
-                output_dim = dl // input_dim
+                output_dim = dim_l // input_dim
             # Check dimensions
-            if input_dim * output_dim != dl:
-                raise QiskitError("Invalid input and output dimension for Chi-matrix input.")
+            if input_dim * output_dim != dim_l:
+                raise QiskitError(
+                    "Invalid input and output dimension for Chi-matrix input.")
             nqubits = int(np.log2(input_dim))
-            if 2 ** nqubits != input_dim:
+            if 2**nqubits != input_dim:
                 raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__('Chi', chi_mat, input_dim, output_dim)
 
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._input_dim, self._output_dim,
-                self._input_dim, self._output_dim)
+        return (self._input_dim, self._output_dim, self._input_dim,
+                self._output_dim)
 
     def evolve(self, state):
         """Apply the channel to a quantum state.
@@ -64,7 +82,7 @@ class Chi(QuantumChannel):
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A density matrix.
+            DensityMatrix: the output quantum state as a density matrix.
         """
         return Choi(self).evolve(state)
 
@@ -117,9 +135,11 @@ class Chi(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
-            raise QiskitError('input_dim of self must match output_dim of other')
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
         if not front and self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         # Since we cannot directly add two channels in the Chi
         # representation we convert to the Choi representation
         tmp = Chi(Choi(self).compose(other, inplace=True, front=front))

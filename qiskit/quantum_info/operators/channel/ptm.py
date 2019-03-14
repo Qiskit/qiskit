@@ -4,6 +4,28 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
+
+The PTM is the n-qubit superoperator defined with respect to vectorization in
+the Pauli basis. For a quantum channel E, the PTM is defined by
+
+    PTM_{i,j} = Tr[P_i.E(P_j)]
+
+where [P_i, i=0,...4^{n-1}] is the n-qubit Pauli basis in lexicographic order.
+
+Evolution is given by
+
+    |E(ρ)⟩⟩_p = PTM|ρ⟩⟩_p
+
+where |A⟩⟩_p denotes vectorization in the Pauli basis: ⟨i|A⟩⟩_p = Tr[P_i.A]
+
+See [1] for further details.
+
+References:
+    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
+        Open access: arXiv:1111.6950 [quant-ph]
+"""
 
 from numbers import Number
 
@@ -13,7 +35,7 @@ from qiskit.qiskiterror import QiskitError
 from .basechannel import QuantumChannel
 from .choi import Choi
 from .superop import SuperOp
-from .transformations import _to_ptm, _bipartite_tensor
+from .transformations import _to_ptm
 
 
 class PTM(QuantumChannel):
@@ -38,18 +60,20 @@ class PTM(QuantumChannel):
             if input_dim is None:
                 input_dim = int(np.sqrt(din))
             # Check dimensions
-            if output_dim ** 2 != dout or input_dim ** 2 != din or input_dim != output_dim:
-                raise QiskitError("Invalid input and output dimension for PTM input.")
+            if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
+                raise QiskitError(
+                    "Invalid input and output dimension for PTM input.")
             nqubits = int(np.log2(input_dim))
-            if 2 ** nqubits != input_dim:
-                raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
+            if 2**nqubits != input_dim:
+                raise QiskitError(
+                    "Input is not an n-qubit Pauli transfer matrix.")
         super().__init__('PTM', ptm, input_dim, output_dim)
 
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._output_dim, self._output_dim,
-                self._input_dim, self._input_dim)
+        return (self._output_dim, self._output_dim, self._input_dim,
+                self._input_dim)
 
     def evolve(self, state):
         """Apply the channel to a quantum state.
@@ -58,7 +82,7 @@ class PTM(QuantumChannel):
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A density matrix.
+            DensityMatrix: the output quantum state as a density matrix.
         """
         return SuperOp(self).evolve(state)
 
@@ -111,9 +135,11 @@ class PTM(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
-            raise QiskitError('input_dim of self must match output_dim of other')
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
         if not front and self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         # Convert other to PTM
         if not isinstance(other, PTM):
             other = PTM(other)

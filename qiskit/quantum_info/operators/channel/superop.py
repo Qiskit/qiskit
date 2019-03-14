@@ -4,6 +4,22 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Superoperator representation of a Quantum Channel.
+
+
+For a quantum channel E, the superoperator is defined as the matrix S such that
+
+    |E(ρ)⟩⟩ = S|ρ⟩⟩
+
+where |A⟩⟩ denotes the column stacking vectorization of a matrix A.
+
+See [1] for further details.
+
+References:
+    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
+        Open access: arXiv:1111.6950 [quant-ph]
+"""
 
 from numbers import Number
 import numpy as np
@@ -22,7 +38,8 @@ class SuperOp(QuantumChannel):
         # If so we disregard the dimension kwargs
         if issubclass(data.__class__, QuantumChannel):
             input_dim, output_dim = data.dims
-            super_mat = _to_superop(data.rep, data._data, input_dim, output_dim)
+            super_mat = _to_superop(data.rep, data._data, input_dim,
+                                    output_dim)
         else:
             # We initialize directly from superoperator matrix
             super_mat = np.array(data, dtype=complex)
@@ -33,15 +50,17 @@ class SuperOp(QuantumChannel):
             if input_dim is None:
                 input_dim = int(np.sqrt(din))
             # Check dimensions
-            if output_dim ** 2 != dout or input_dim ** 2 != din:
-                raise QiskitError("Invalid input and output dimension for superoperator input.")
+            if output_dim**2 != dout or input_dim**2 != din:
+                raise QiskitError(
+                    "Invalid input and output dimension for superoperator input."
+                )
         super().__init__('SuperOp', super_mat, input_dim, output_dim)
 
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._output_dim, self._output_dim,
-                self._input_dim, self._input_dim)
+        return (self._output_dim, self._output_dim, self._input_dim,
+                self._input_dim)
 
     def evolve(self, state):
         """Apply the channel to a quantum state.
@@ -50,13 +69,15 @@ class SuperOp(QuantumChannel):
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A density matrix.
+            DensityMatrix: the output quantum state as a density matrix.
         """
         state = self._format_density_matrix(self._check_state(state))
         shape_in = self._input_dim * self._input_dim
         shape_out = (self._output_dim, self._output_dim)
-        return np.reshape(np.dot(self._data, np.reshape(state, shape_in, order='F')),
-                          shape_out, order='F')
+        return np.reshape(
+            np.dot(self._data, np.reshape(state, shape_in, order='F')),
+            shape_out,
+            order='F')
 
     def is_cptp(self):
         """Test if channel completely-positive and trace preserving (CPTP)"""
@@ -102,9 +123,11 @@ class SuperOp(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
-            raise QiskitError('input_dim of self must match output_dim of other')
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
         if not front and self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         # Convert other to SuperOp
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
@@ -121,7 +144,8 @@ class SuperOp(QuantumChannel):
                 self._input_dim = input_dim
                 self._output_dim = output_dim
                 return self
-            return SuperOp(np.dot(self._data, other.data), input_dim, output_dim)
+            return SuperOp(
+                np.dot(self._data, other.data), input_dim, output_dim)
         # Composition B(A(input))
         input_dim = self._input_dim
         output_dim = other._output_dim
@@ -163,9 +187,12 @@ class SuperOp(QuantumChannel):
         input_dim = a_in * b_in
         output_dim = a_out * b_out
 
-        data = _bipartite_tensor(self._data, other.data, front=front,
-                                 shape_a=self._bipartite_shape,
-                                 shape_b=other._bipartite_shape)
+        data = _bipartite_tensor(
+            self._data,
+            other.data,
+            front=front,
+            shape1=self._bipartite_shape,
+            shape2=other._bipartite_shape)
         if inplace:
             self._data = data
             self._input_dim = input_dim

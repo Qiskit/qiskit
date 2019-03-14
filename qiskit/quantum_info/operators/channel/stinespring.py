@@ -4,6 +4,25 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Stinespring representation of a Quantum Channel.
+
+
+The Stinespring representation for a quantum channel E is given by a rectangular matrix A such that
+
+    E(ρ) = Tr_2[A.ρ.A^dagger]
+
+A general operator map G can also be written using the generalized Kraus representation which
+is given by two matrices A, B such that
+
+    G(ρ) = Tr_2[A.ρ.B^dagger]
+
+See [1] for further details.
+
+References:
+    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
+        Open access: arXiv:1111.6950 [quant-ph]
+"""
 
 from numbers import Number
 
@@ -25,7 +44,8 @@ class Stinespring(QuantumChannel):
         # If so we disregard the dimension kwargs
         if issubclass(data.__class__, QuantumChannel):
             input_dim, output_dim = data.dims
-            stine = _to_stinespring(data.rep, data._data, input_dim, output_dim)
+            stine = _to_stinespring(data.rep, data._data, input_dim,
+                                    output_dim)
         else:
             if not isinstance(data, tuple):
                 # Convert single Stinespring set to length 1 tuple
@@ -54,14 +74,17 @@ class Stinespring(QuantumChannel):
         # evolution
         if stine[1] is None or (stine[1] == stine[0]).all():
             # Standard Stinespring map
-            super().__init__('Stinespring', (stine[0], None),
-                             input_dim=input_dim,
-                             output_dim=output_dim)
+            super().__init__(
+                'Stinespring', (stine[0], None),
+                input_dim=input_dim,
+                output_dim=output_dim)
         else:
             # General (non-CPTP) Stinespring map
-            super().__init__('Stinespring', stine,
-                             input_dim=input_dim,
-                             output_dim=output_dim)
+            super().__init__(
+                'Stinespring',
+                stine,
+                input_dim=input_dim,
+                output_dim=output_dim)
 
     @property
     def data(self):
@@ -78,7 +101,7 @@ class Stinespring(QuantumChannel):
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A density matrix.
+            QuantumState: the output quantum state.
         """
         state = self._check_state(state)
         if state.ndim == 1 and self._data[1] is None and \
@@ -95,8 +118,7 @@ class Stinespring(QuantumChannel):
         din, dout = self.dims
         dtr = stine_l.shape[0] // dout
         shape = (dout, dtr, din)
-        return np.einsum('iAB,BC,jAC->ij',
-                         np.reshape(stine_l, shape), state,
+        return np.einsum('iAB,BC,jAC->ij', np.reshape(stine_l, shape), state,
                          np.reshape(np.conjugate(stine_r), shape))
 
     def is_cptp(self):
@@ -109,6 +131,7 @@ class Stinespring(QuantumChannel):
 
     def conjugate(self, inplace=False):
         """Return the conjugate channel"""
+        # pylint: disable=assignment-from-no-return
         if inplace:
             np.conjugate(self._data[0], out=self._data[0])
             if self._data[1] is not None:
@@ -127,11 +150,11 @@ class Stinespring(QuantumChannel):
         din, dout = self.dims
         dtr = self._data[0].shape[0] // dout
         stine = [None, None]
-        for i, s in enumerate(self._data):
-            if s is not None:
-                stine[i] = np.reshape(np.transpose(np.reshape(s, (dout, dtr, din)),
-                                                   (2, 1, 0)),
-                                      (din * dtr, dout))
+        for i, mat in enumerate(self._data):
+            if mat is not None:
+                stine[i] = np.reshape(
+                    np.transpose(np.reshape(mat, (dout, dtr, din)), (2, 1, 0)),
+                    (din * dtr, dout))
         if inplace:
             self._data = tuple(stine)
             self._input_dim = dout
@@ -159,12 +182,15 @@ class Stinespring(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
-            raise QiskitError('input_dim of self must match output_dim of other')
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
         if not front and self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         # Since we cannot directly compose two channels in Stinespring
         # representation we convert to the Kraus representation
-        tmp = Stinespring(Kraus(self).compose(other, inplace=True, front=front))
+        tmp = Stinespring(
+            Kraus(self).compose(other, inplace=True, front=front))
         if inplace:
             self._data = tmp._data
             self._input_dim = tmp._input_dim
@@ -186,8 +212,11 @@ class Stinespring(QuantumChannel):
         Raises:
             QiskitError: if other is not a Stinespring object
         """
+        # Convert other to Stinespring
+        if not issubclass(other.__class__, QuantumChannel):
+            raise QiskitError('Other is not a channel rep')
         if not isinstance(other, Stinespring):
-            raise QiskitError('Input channels must Stinespring')
+            other = Stinespring(other)
 
         # Tensor stinespring ops
         sa_l, sa_r = self._data
@@ -211,8 +240,9 @@ class Stinespring(QuantumChannel):
         else:
             sab_l = np.kron(sb_l, sa_l)
         # Reravel indicies
-        sab_l = np.reshape(np.transpose(np.reshape(sab_l, shape_in),
-                                        (0, 2, 1, 3, 4)), shape_out)
+        sab_l = np.reshape(
+            np.transpose(np.reshape(sab_l, shape_in), (0, 2, 1, 3, 4)),
+            shape_out)
 
         # Compute right stinespring op
         if sa_r is None and sb_r is None:
@@ -227,8 +257,9 @@ class Stinespring(QuantumChannel):
             else:
                 sab_r = np.kron(sb_r, sa_r)
             # Reravel indicies
-            sab_r = np.reshape(np.transpose(np.reshape(sab_r, shape_in),
-                                            (0, 2, 1, 3, 4)), shape_out)
+            sab_r = np.reshape(
+                np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
+                shape_out)
         if inplace:
             self._data = (sab_l, sab_r)
             self._input_dim = din_a * din_b

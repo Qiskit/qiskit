@@ -4,6 +4,13 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Unitary representation of a QuantumChannel
+
+For a quantum channel E this is a matrix U such that:
+
+    E(ρ) = U.ρ.U^dagger
+"""
 
 from numbers import Number
 import numpy as np
@@ -36,13 +43,14 @@ class UnitaryChannel(QuantumChannel):
             if output_dim != input_dim:
                 raise QiskitError('Invalid unitary matrix: must be square')
             if output_dim != dout or input_dim != din:
-                raise QiskitError("Invalid input and output dimension for unitary matrix.")
+                raise QiskitError(
+                    "Invalid input and output dimension for unitary matrix.")
         super().__init__('UnitaryChannel', unitary, input_dim, output_dim)
 
-    def is_cptp(self, atol=None):
+    def is_cptp(self):
         """Test if channel is completely-positive trace-preserving (CPTP)"""
         # If the matrix is a unitary matrix the channel is CPTP
-        return is_unitary_matrix(self._data, atol=atol)
+        return is_unitary_matrix(self._data, atol=self.atol)
 
     def evolve(self, state):
         """Apply the channel to a quantum state.
@@ -51,22 +59,23 @@ class UnitaryChannel(QuantumChannel):
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A state of the same form as the input state (statevector or
-            density matrix).
+            QuantumState: the output quantum state.
         """
         state = self._check_state(state)
         if state.ndim == 1 or state.ndim == 2 and state.shape[1] == 1:
             # Return evolved statevector
             return np.dot(self._data, state)
         # Return evolved density matrix
-        return np.dot(np.dot(self._data, state), np.transpose(np.conj(self._data)))
+        return np.dot(
+            np.dot(self._data, state), np.transpose(np.conj(self._data)))
 
     def conjugate(self, inplace=False):
         """Return the conjugate channel"""
         if inplace:
             np.conjugate(self._data, out=self._data)
             return self
-        return UnitaryChannel(np.conj(self._data), self._input_dim, self._output_dim)
+        return UnitaryChannel(
+            np.conj(self._data), self._input_dim, self._output_dim)
 
     def transpose(self, inplace=False):
         """Return the transpose channel"""
@@ -98,9 +107,11 @@ class UnitaryChannel(QuantumChannel):
             raise QiskitError('Other is not a channel rep')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
-            raise QiskitError('input_dim of self must match output_dim of other')
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
         if not front and self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         # Convert to UnitaryChannel matrix
         if not isinstance(other, UnitaryChannel):
             other = UnitaryChannel(other)
@@ -108,7 +119,8 @@ class UnitaryChannel(QuantumChannel):
         if front:
             # Composition A(B(input))
             if self._input_dim != other._output_dim:
-                raise QiskitError('input_dim of self must match output_dim of other')
+                raise QiskitError(
+                    'input_dim of self must match output_dim of other')
             input_dim = other._input_dim
             output_dim = self._output_dim
             if inplace:
@@ -116,10 +128,12 @@ class UnitaryChannel(QuantumChannel):
                 self._input_dim = input_dim
                 self._output_dim = output_dim
                 return self
-            return UnitaryChannel(np.dot(self._data, other.data), input_dim, output_dim)
+            return UnitaryChannel(
+                np.dot(self._data, other.data), input_dim, output_dim)
         # Composition B(A(input))
         if self._output_dim != other._input_dim:
-            raise QiskitError('input_dim of other must match output_dim of self')
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
         input_dim = self._input_dim
         output_dim = other._output_dim
         if inplace:
@@ -128,7 +142,8 @@ class UnitaryChannel(QuantumChannel):
             self._input_dim = input_dim
             self._output_dim = output_dim
             return self
-        return UnitaryChannel(np.dot(other.data, self._data), input_dim, output_dim)
+        return UnitaryChannel(
+            np.dot(other.data, self._data), input_dim, output_dim)
 
     def tensor(self, other, inplace=False, front=False):
         """Return the tensor product unitary channel.
@@ -181,7 +196,8 @@ class UnitaryChannel(QuantumChannel):
             self._data = np.linalg.matrix_power(self._data, n)
             return self
         # Return new object
-        return UnitaryChannel(np.linalg.matrix_power(self._data, n), *self.dims)
+        return UnitaryChannel(
+            np.linalg.matrix_power(self._data, n), *self.dims)
 
     def add(self, other, inplace=False):
         """Add another UnitaryChannel"""

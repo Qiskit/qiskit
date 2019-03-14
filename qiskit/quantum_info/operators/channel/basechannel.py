@@ -4,6 +4,9 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+"""
+Abstract base class for Quantum Channels.
+"""
 
 from abc import ABC, abstractmethod
 
@@ -21,7 +24,8 @@ class QuantumChannel(ABC):
 
     def __init__(self, rep, data, input_dim, output_dim):
         if not isinstance(rep, str):
-            raise QiskitError("rep must be a string not a {}".format(rep.__class__))
+            raise QiskitError("rep must be a string not a {}".format(
+                rep.__class__))
         self._rep = rep
         self._data = data
         self._input_dim = input_dim
@@ -33,10 +37,8 @@ class QuantumChannel(ABC):
         return False
 
     def __repr__(self):
-        return '{}({}, input_dim={}, output_dim={})'.format(self.rep,
-                                                            self.data,
-                                                            self._input_dim,
-                                                            self._output_dim)
+        return '{}({}, input_dim={}, output_dim={})'.format(
+            self.rep, self.data, self._input_dim, self._output_dim)
 
     @property
     def rep(self):
@@ -61,17 +63,19 @@ class QuantumChannel(ABC):
         return QuantumChannel.ATOL
 
     @atol.setter
-    def atol(cls, atol):
+    def atol(self, atol):
         """Set atol parameter for float comparisons."""
-        MAX_ATOL = QuantumChannel.MAX_ATOL
+        max_atol = QuantumChannel.MAX_ATOL
         if atol < 0:
             raise QiskitError("Invalid atol: must be non-negative.")
-        if atol > MAX_ATOL:
-            raise QiskitError("Invalid atol: must be less than {}.".format(MAX_ATOL))
+        if atol > max_atol:
+            raise QiskitError(
+                "Invalid atol: must be less than {}.".format(max_atol))
         QuantumChannel.ATOL = atol
 
     def copy(self):
         """Make a copy of current channel."""
+        # pylint: disable=no-value-for-parameter
         # The constructor of subclasses from raw data should be a copy
         return self.__class__(self._data, self._input_dim, self._output_dim)
 
@@ -178,11 +182,13 @@ class QuantumChannel(ABC):
         if ndim > 2:
             raise QiskitError('Input state is not a vector or matrix.')
         if shape[0] != self._input_dim:
-            raise QiskitError('Input state is wrong size for channel input dimension.')
+            raise QiskitError(
+                'Input state is wrong size for channel input dimension.')
         # Flatten column-vector to vector
         if ndim == 2:
             if shape[1] != 1 and shape[1] != self._input_dim:
-                raise QiskitError('Input state is wrong size for channel input dimension.')
+                raise QiskitError(
+                    'Input state is wrong size for channel input dimension.')
             if shape[1] == 1:
                 # flatten colum-vector to vector
                 state = np.reshape(state, shape[0])
