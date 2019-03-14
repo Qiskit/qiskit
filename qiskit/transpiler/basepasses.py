@@ -23,11 +23,9 @@ class MetaPass(type):
         if '_pass_cache' not in cls.__dict__.keys():
             cls._pass_cache = {}
         args, kwargs = cls.normalize_parameters(*args, **kwargs)
-        hash_ = hash(MetaPass._freeze_init_parameters(cls.__init__, args, kwargs))
-        if hash_ not in cls._pass_cache:
-            new_pass = type.__call__(cls, *args, **kwargs)
-            cls._pass_cache[hash_] = new_pass
-        return cls._pass_cache[hash_]
+        pass_instance = type.__call__(cls, *args, **kwargs)
+        pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls.__init__, args, kwargs))
+        return pass_instance
 
     @staticmethod
     def _freeze_init_parameters(init_method, args, kwargs):
@@ -66,6 +64,12 @@ class BasePass(metaclass=MetaPass):
             tuple: normalized (list(args), dict(kwargs))
         """
         return args, kwargs
+
+    def __hash__(self):
+        return self._hash
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def name(self):
         """ The name of the pass. """

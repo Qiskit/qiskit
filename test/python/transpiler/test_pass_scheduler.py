@@ -282,7 +282,7 @@ class TestUseCases(SchedulerTestCase):
                                    TranspilerAccessError)
 
     def test_ignore_request_pm(self):
-        """ A pass manager that ignores requests does not run the passes decleared in the 'requests'
+        """ A pass manager that ignores requires does not run the passes decleared in the 'requires'
         field of the passes."""
         passmanager = PassManager(ignore_requires=True)
         passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
