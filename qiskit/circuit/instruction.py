@@ -48,12 +48,14 @@ class Instruction:
         Raises:
             QiskitError: when the register is not in the correct format.
         """
+        if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
+            raise QiskitError("num_qubits and num_clbits must be integer.")
+        if num_qubits < 0 or num_clbits < 0:
+            raise QiskitError("bad instruction dimensions: %d qubits, %d clbits." %
+                              num_qubits, num_clbits)
         self.name = name
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
-        if self.num_qubits < 0 or self.num_clbits < 0:
-            raise QiskitError("bad instruction dimensions: %d qubits, %d clbits." %
-                              self.num_qubits, self.num_clbits)
 
         self.params = []  # a list of gate params stored
         for single_param in params:
