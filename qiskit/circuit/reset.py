@@ -8,8 +8,8 @@
 """
 Qubit reset to computational zero.
 """
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from .decorators import _op_expand
 
 

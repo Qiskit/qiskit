@@ -51,7 +51,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         num_qubits = int(num_qubits)
 
-        super().__init__("init", num_qubits, params, circ)
+        super().__init__("initialize", num_qubits, params, circ)
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization

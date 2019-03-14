@@ -13,6 +13,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestUnroller(QiskitTestCase):
@@ -92,5 +93,5 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(basis=[])
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(QiskitError):
             pass_.run(dag)

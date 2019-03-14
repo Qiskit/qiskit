@@ -8,7 +8,7 @@
 """Helper function for converting a circuit to an instruction"""
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate
+from qiskit.circuit.gate import Gate
 
 
 def circuit_to_gate(circuit):
