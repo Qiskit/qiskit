@@ -67,6 +67,7 @@ class CommutationAnalysis(AnalysisPass):
 
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+
             for node in self.wire_op[wire_name]:
 
                 if not self.property_set['commutation_set'][wire_name]:
@@ -79,6 +80,7 @@ class CommutationAnalysis(AnalysisPass):
 
                     else:
                         self.property_set['commutation_set'][wire_name].append([node])
+
                 temp_len = len(self.property_set['commutation_set'][wire_name])
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
