@@ -9,9 +9,9 @@
 from functools import partial
 from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
-from ._propertyset import PropertySet
-from ._basepasses import BasePass
-from ._fencedobjs import FencedPropertySet, FencedDAGCircuit
+from .propertyset import PropertySet
+from .basepasses import BasePass
+from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
 
 
@@ -145,7 +145,7 @@ class PassManager():
         # First, do the requires of pass_
         if not options["ignore_requires"]:
             for required_pass in pass_.requires:
-                self._do_pass(required_pass, dag, options)
+                dag = self._do_pass(required_pass, dag, options)
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:

@@ -50,7 +50,6 @@ class ZGate(Gate):
 @_op_expand(1)
 def z(self, q):
     """Apply Z to q."""
-    self._check_qubit(q)
     return self._attach(ZGate(q, self))
 
 

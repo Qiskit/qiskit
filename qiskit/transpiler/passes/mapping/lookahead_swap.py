@@ -45,7 +45,7 @@ from copy import deepcopy
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.mapper import Layout
 
@@ -205,8 +205,7 @@ def _map_free_gates(layout, gates, coupling_map):
         # Gates without a partition (barrier, snapshot, save, load, noise) may
         # still have associated qubits. Look for them in the qargs.
         if not gate['partition']:
-            qubits = [n for n in gate['graph'].multi_graph.nodes.values()
-                      if n['type'] == 'op'][0]['qargs']
+            qubits = [n for n in gate['graph'].nodes() if n['type'] == 'op'][0]['qargs']
 
             if not qubits:
                 continue
@@ -259,7 +258,7 @@ def _score_step(step):
 
 
 def _copy_circuit_metadata(source_dag, coupling_map):
-    """Return a copy of source_dag with metadata but without a multi_graph.
+    """Return a copy of source_dag with metadata but empty.
     Generate only a single qreg in the output DAG, matching the size of the
     coupling_map."""
 
@@ -278,8 +277,7 @@ def _copy_circuit_metadata(source_dag, coupling_map):
 def _transform_gate_for_layout(gate, layout):
     """Return op implementing a virtual gate on given layout."""
 
-    mapped_op = deepcopy([n for n in gate['graph'].multi_graph.nodes.values()
-                          if n['type'] == 'op'][0])
+    mapped_op = deepcopy([n for n in gate['graph'].nodes() if n['type'] == 'op'][0])
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     mapped_op['qargs'] = [(device_qreg, layout[a]) for a in mapped_op['qargs']]

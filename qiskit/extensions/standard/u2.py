@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.qasm import pi
-from qiskit.extensions.standard.ubase import UBase
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class U2Gate(Gate):
@@ -32,7 +32,7 @@ class U2Gate(Gate):
         q = QuantumRegister(1, "q")
         decomposition.add_qreg(q)
         rule = [
-            UBase(pi/2, self.params[0], self.params[1], q[0])
+            U3Gate(pi/2, self.params[0], self.params[1], q[0])
         ]
         for inst in rule:
             decomposition.apply_operation_back(inst)
@@ -57,7 +57,6 @@ class U2Gate(Gate):
 @_op_expand(1)
 def u2(self, phi, lam, q):
     """Apply u2 to q."""
-    self._check_qubit(q)
     return self._attach(U2Gate(phi, lam, q, self))
 
 
