@@ -42,12 +42,12 @@ class BaseBackend(ABC):
     def coupling_map(self):
         """Coupling map for the backend."""
         return self._configuration.coupling_map
-    
+
     @property
     def basis_gates(self):
         """Basis gates for the backend."""
         return self._configuration.basis_gates
-    
+
     @abstractmethod
     def run(self, qobj):
         """Run a Qobj on the the backend."""
