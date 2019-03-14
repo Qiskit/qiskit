@@ -280,8 +280,11 @@ def _transform_gate_for_layout(gate, layout):
 
     mapped_op = deepcopy([n for n in gate['graph'].nodes() if n['type'] == 'op'][0])
 
+    # Workaround until #1816, apply mapped to qargs to both DAGNode and op
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    mapped_op['qargs'] = [(device_qreg, layout[a]) for a in mapped_op['qargs']]
+    mapped_qargs = [(device_qreg, layout[a]) for a in mapped_op['qargs']]
+    mapped_op['qargs'] = mapped_op['op'].qargs = mapped_qargs
+
     mapped_op.pop('type')
     mapped_op.pop('name')
 
