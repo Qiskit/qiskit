@@ -227,8 +227,23 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(HGate(self.qubit2))
 
         named_nodes = self.dag.nodes_in_topological_order()
-        self.assertEqual([1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 4, 14, 2, 15, 6],
-                         [i._node_id for i in named_nodes])
+
+        expected = [('qr[0]', []),
+                    ('qr[1]', []),
+                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
+                    ('qr[2]', []),
+                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
+                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 2)]),
+                    ('qr[0]', []),
+                    ('qr[1]', []),
+                    ('qr[2]', []),
+                    ('cr[0]', []),
+                    ('cr[0]', []),
+                    ('cr[1]', []),
+                    ('cr[1]', [])]
+        self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
     def test_dag_has_edge(self):
         """ Test that existence of edges between nodes is correctly identified"""
