@@ -82,7 +82,7 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
 
     if justify == 'none':
         for node in dag.nodes_in_topological_order():
-            if node['type'] == 'op':
+            if node.type == 'op':
                 ops.append([node])
 
     if justify == 'left':
@@ -194,7 +194,7 @@ def _get_instructions(circuit, reversebits=False):
     cregs = []
 
     for node in dag.nodes_in_topological_order():
-        if node['type'] == 'op':
+        if node.type == 'op':
             ops.append(node)
 
     for qreg in dag.qregs.values():

@@ -288,9 +288,9 @@ class TestDagLayers(QiskitTestCase):
         self.assertEqual(5, len(layers))
 
         name_layers = [
-            [node["op"].name
+            [node.op.name
              for node in layer["graph"].multi_graph.nodes()
-             if node["type"] == "op"] for layer in layers]
+             if node.type == "op"] for layer in layers]
 
         self.assertEqual([
             ['h'],

@@ -130,29 +130,30 @@ class DAGCircuit:
             self.qregs.pop(regname, None)
 
         for node in self.multi_graph.nodes():
-            if node["type"] == "in" or node["type"] == "out":
-                if regname in node["name"]:
-                    node["name"] = re.sub(regname, newname, node["name"])
-            elif node["type"] == "op":
+            print('-'*20, type(node), " ", node)
+            if node.type == "in" or node.type == "out":
+                if node.name and regname in node.name:
+                    node.name = newname
+            elif node.type == "op":
                 qa = []
-                for a in node["qargs"]:
+                for a in node.qargs:
                     if a[0] == regname:
                         a = (newname, a[1])
                     qa.append(a)
-                node["qargs"] = qa
+                node.qargs = qa
                 ca = []
-                for a in node["cargs"]:
+                for a in node.cargs:
                     if a[0] == regname:
                         a = (newname, a[1])
                     ca.append(a)
-                node["cargs"] = ca
-                if node["condition"] is not None:
-                    if node["condition"][0] == regname:
-                        node["condition"] = (newname, node["condition"][1])
+                node.cargs = ca
+                if node.condition is not None:
+                    if node.condition[0] == regname:
+                        node.condition = (newname, node.condition[1])
         # eX = edge, d= data
-        for _, _, node in self.multi_graph.edges(data=True):
-            if regname in node["name"]:
-                node["name"] = re.sub(regname, newname, node["name"])
+        for _, _, edge_data in self.multi_graph.edges(data=True):
+            if regname in edge_data['name']:
+                edge_data['name'] = re.sub(regname, newname, edge_data['name'])
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -538,28 +539,28 @@ class DAGCircuit:
 
         # Compose
         for nd in nx.topological_sort(input_circuit.multi_graph):
-            if nd["type"] == "in":
+            if nd.type == "in":
                 # if in wire_map, get new name, else use existing name
-                m_wire = edge_map.get(nd["wire"], nd["wire"])
+                m_wire = edge_map.get(nd.wire, nd.wire)
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
                     raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
 
-                if nd["wire"] not in input_circuit.wires:
+                if nd.wire not in input_circuit.wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
-                                          % (nd["wire"][0].name, nd["wire"][1]))
+                                          % (nd.wire[0].name, nd.wire[1]))
 
-            elif nd["type"] == "out":
+            elif nd.type == "out":
                 # ignore output nodes
                 pass
-            elif nd["type"] == "op":
-                condition = self._map_condition(edge_map, nd["condition"])
-                self._check_condition(nd["name"], condition)
-                m_qargs = list(map(lambda x: edge_map.get(x, x), nd["qargs"]))
-                m_cargs = list(map(lambda x: edge_map.get(x, x), nd["cargs"]))
-                self.apply_operation_back(nd["op"], m_qargs, m_cargs, condition)
+            elif nd.type == "op":
+                condition = self._map_condition(edge_map, nd.condition)
+                self._check_condition(nd.name, condition)
+                m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
+                m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
+                self.apply_operation_back(nd.op, m_qargs, m_cargs, condition)
             else:
-                raise DAGCircuitError("bad node type %s" % nd["type"])
+                raise DAGCircuitError("bad node type %s" % nd.type)
 
     # FIXME: this does not work as expected. it is also not used anywhere
     def compose_front(self, input_circuit, wire_map=None):
@@ -602,27 +603,27 @@ class DAGCircuit:
         # Compose
         for n in reversed(list(nx.topological_sort(input_circuit.multi_graph))):
             nd = input_circuit.multi_graph.node[n]
-            if nd["type"] == "out":
+            if nd.type == "out":
                 # if in wire_map, get new name, else use existing name
-                m_name = wire_map.get(nd["wire"], nd["wire"])
+                m_name = wire_map.get(nd.wire, nd.wire)
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
                     raise DAGCircuitError("wire %s[%d] not in self" % (m_name[0].name, m_name[1]))
 
-                if nd["wire"] not in input_circuit.wires:
+                if nd.wire not in input_circuit.wires:
                     raise DAGCircuitError(
                         "inconsistent wire for %s[%d] in input_circuit"
-                        % (nd["wire"][0].name, nd["wire"][1]))
+                        % (nd.wire[0].name, nd.wire[1]))
 
-            elif nd["type"] == "in":
+            elif nd.type == "in":
                 # ignore input nodes
                 pass
-            elif nd["type"] == "op":
-                condition = self._map_condition(wire_map, nd["condition"])
-                self._check_condition(nd["name"], condition)
-                self.apply_operation_front(nd["op"], condition)
+            elif nd.type == "op":
+                condition = self._map_condition(wire_map, nd.condition)
+                self._check_condition(nd.name, condition)
+                self.apply_operation_front(nd.op, condition)
             else:
-                raise DAGCircuitError("bad node type %s" % nd["type"])
+                raise DAGCircuitError("bad node type %s" % nd.type)
 
     def size(self):
         """Return the number of operations."""
@@ -820,10 +821,10 @@ class DAGCircuit:
         #       this later is to add or update the conditions of each gate
         #       that we add from the input_circuit.
         for nd in self.nodes_in_topological_order():
-            if nd["type"] == "op" and nd["op"] == op:
-                if nd["condition"] is None:
+            if nd.type == "op" and nd.op == op:
+                if nd.condition is None:
                     wire_map = {k: v for k, v in zip(wires,
-                                                     [i for s in [nd["qargs"], nd["cargs"]]
+                                                     [i for s in [nd.qargs, nd.cargs]
                                                       for i in s])}
                     self._check_wiremap_validity(wire_map, wires,
                                                  self.input_map)
@@ -836,10 +837,10 @@ class DAGCircuit:
                     # Iterate over nodes of input_circuit
                     for m in nx.topological_sort(input_circuit.multi_graph):
                         md = input_circuit.multi_graph.node[m]
-                        if md["type"] == "op":
+                        if md.type == "op":
                             # Insert a new node
                             condition = self._map_condition(wire_map,
-                                                            md["condition"])
+                                                            md.condition)
                             m_qargs = [wire_map.get(x, x) for x in md["qargs0"]]
                             m_cargs = [wire_map.get(x, x) for x in md["cargs0"]]
                             self._add_op_node(md["op"], m_qargs, m_cargs, condition)
@@ -957,14 +958,14 @@ class DAGCircuit:
 
         # Iterate over nodes of input_circuit
         for sorted_node in nx.topological_sort(input_dag.multi_graph):
-            if sorted_node["type"] == "op":
+            if sorted_node.type == "op":
                 # Insert a new node
-                condition = self._map_condition(wire_map, sorted_node["condition"])
+                condition = self._map_condition(wire_map, sorted_node.condition)
                 m_qargs = list(map(lambda x: wire_map.get(x, x),
-                                   sorted_node["qargs"]))
+                                   sorted_node.qargs))
                 m_cargs = list(map(lambda x: wire_map.get(x, x),
-                                   sorted_node["cargs"]))
-                self._add_op_node(sorted_node["op"], m_qargs, m_cargs, condition)
+                                   sorted_node.cargs))
+                self._add_op_node(sorted_node.op, m_qargs, m_cargs, condition)
                 # Add edges from predecessor nodes to new node
                 # and update predecessor nodes that change
                 all_cbits = self._bits_in_condition(condition)
@@ -1028,8 +1029,8 @@ class DAGCircuit:
                           DeprecationWarning, 2)
         nodes = []
         for node in self.multi_graph.nodes():
-            if node["type"] == "op":
-                if op is None or isinstance(node["op"], op):
+            if node.type == "op":
+                if op is None or isinstance(node.op, op):
                     nodes.append((node._node_id, node.data_dict))
         if not data:
             nodes = [n[0] for n in nodes]
@@ -1065,7 +1066,7 @@ class DAGCircuit:
 
         nodes = []
         for node in self.op_nodes():
-            if isinstance(node['op'], Gate):
+            if isinstance(node.op, Gate):
                 nodes.append((node._node_id, node))
         if not data:
             nodes = [n[0] for n in nodes]
@@ -1092,7 +1093,7 @@ class DAGCircuit:
 
         named_nodes = []
         for node in self.multi_graph.nodes():
-            if node['type'] == 'op' and node['op'].name in names:
+            if node.type == 'op' and node.op.name in names:
                 named_nodes.append(node._node_id)
         return named_nodes
 
@@ -1113,7 +1114,7 @@ class DAGCircuit:
 
         two_q_nodes = []
         for node in self.multi_graph.nodes():
-            if node['type'] == 'op' and len(node['qargs']) == 2:
+            if node.type == 'op' and len(node.qargs) == 2:
                 two_q_nodes.append(node.data_dict)
 
     def twoQ_nodes(self):
@@ -1143,7 +1144,7 @@ class DAGCircuit:
 
         three_q_nodes = []
         for node in self.multi_graph.nodes():
-            if node['type'] == 'op' and len(node['qargs']) >= 3:
+            if node.type == 'op' and len(node.qargs) >= 3:
                 three_q_nodes.append((node._node_id, node.data_dict))
         return three_q_nodes
 
@@ -1196,14 +1197,16 @@ class DAGCircuit:
         return nx.descendants(self.multi_graph, node)
 
     def bfs_successors(self, node):
-        """Returns generator of the successors of a node as DAGNodes in BFS order."""
+        """
+        Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
+        and [DAGNode] is its successors in  BFS order.
+        """
         if isinstance(node, int):
             warnings.warn('Calling successors() with a node id is deprecated,'
                           ' use a DAGNode instead',
                           DeprecationWarning, 2)
             node = self.id_to_node[node]
 
-        # convert from a list of numbers to a list of DAGNodes
         return nx.bfs_successors(self.multi_graph, node)
 
     def quantum_successors(self, node):
@@ -1255,7 +1258,7 @@ class DAGCircuit:
         # TODO: probably better to do all at once using
         # multi_graph.remove_nodes_from; same for related functions ...
         for anc_node in anc:
-            if anc_node["type"] == "op":
+            if anc_node.type == "op":
                 self._remove_op_node(anc_node)
 
     def remove_descendants_of(self, node):
@@ -1268,7 +1271,7 @@ class DAGCircuit:
 
         desc = nx.descendants(self.multi_graph, node)
         for desc_node in desc:
-            if desc_node["type"] == "op":
+            if desc_node.type == "op":
                 self._remove_op_node(desc_node)
 
     def remove_nonancestors_of(self, node):
@@ -1282,7 +1285,7 @@ class DAGCircuit:
         anc = nx.ancestors(self.multi_graph, node)
         comp = list(set(self.multi_graph.nodes()) - set(anc))
         for n in comp:
-            if n["type"] == "op":
+            if n.type == "op":
                 self._remove_op_node(n)
 
     def remove_nondescendants_of(self, node):
@@ -1296,7 +1299,7 @@ class DAGCircuit:
         dec = nx.descendants(self.multi_graph, node)
         comp = list(set(self.multi_graph.nodes()) - set(dec))
         for n in comp:
-            if n["type"] == "op":
+            if n.type == "op":
                 self._remove_op_node(n)
 
     def remove_edge(self, node1, node2, wire=None):
@@ -1415,8 +1418,8 @@ class DAGCircuit:
         A serial layer is a circuit with one gate. The layers have the
         same structure as in layers().
         """
-        for nxt_nd in self.nodes_in_topological_order():
-            if nxt_nd["type"] == "op":
+        for next_node in self.nodes_in_topological_order():
+            if next_node.type == "op":
                 new_layer = DAGCircuit()
                 for qreg in self.qregs.values():
                     new_layer.add_qreg(qreg)
@@ -1425,16 +1428,16 @@ class DAGCircuit:
                 # Save the support of the operation we add to the layer
                 support_list = []
                 # Operation data
-                op = copy.copy(nxt_nd["op"])
-                qa = copy.copy(nxt_nd["qargs"])
-                ca = copy.copy(nxt_nd["cargs"])
-                co = copy.copy(nxt_nd["condition"])
+                op = copy.copy(next_node.op)
+                qa = copy.copy(next_node.qargs)
+                ca = copy.copy(next_node.cargs)
+                co = copy.copy(next_node.condition)
                 _ = self._bits_in_condition(co)
 
                 # Add node to new_layer
                 new_layer.apply_operation_back(op, qa, ca, co)
                 # Add operation to partition
-                if nxt_nd["name"] not in ["barrier",
+                if next_node.name not in ["barrier",
                                           "snapshot", "save", "load", "noise"]:
                     support_list.append(list(qa))
                 l_dict = {"graph": new_layer, "partition": support_list}
@@ -1508,8 +1511,8 @@ class DAGCircuit:
         """
         op_dict = {}
         for node in self.nodes_in_topological_order():
-            name = node["name"]
-            if node["type"] == "op":
+            name = node.name
+            if node.type == "op":
                 if name not in op_dict:
                     op_dict[name] = 1
                 else:

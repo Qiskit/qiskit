@@ -28,10 +28,10 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # Collect DAG nodes which are followed only by barriers or other measures.
         final_op_types = ['measure', 'barrier']
         final_ops = []
-        for candidate_op in dag.named_nodes(*final_op_types):
+        for candidate_node in dag.named_nodes(*final_op_types):
             is_final_op = True
 
-            for _, child_successors in dag.bfs_successors(candidate_op):
+            for _, child_successors in dag.bfs_successors(candidate_node):
 
                 if any(suc.type == 'op' and suc.name not in final_op_types
                        for suc in child_successors):
@@ -39,7 +39,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     break
 
             if is_final_op:
-                final_ops.append(candidate_op)
+                final_ops.append(candidate_node)
 
         if not final_ops:
             return dag

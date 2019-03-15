@@ -9,6 +9,7 @@
    Object to represent the information at a node in the DAGCircuit
 """
 import copy
+from qiskit.exceptions import QiskitError
 
 
 class DAGNode:
@@ -32,12 +33,19 @@ class DAGNode:
     @property
     def op(self):
         """ Returns the Instruction object corresponding to the op for the node else None"""
+        if 'type' not in self.data_dict or self.data_dict['type'] != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
         return self.data_dict.get('op')
 
     @property
     def name(self):
         """ Returns a str which is the name of the node else None"""
         return self.data_dict.get('name')
+
+    @name.setter
+    def name(self, new_name):
+        """ Sets the name of the node to be the given value"""
+        self.data_dict['name'] = new_name
 
     @property
     def qargs(self):
@@ -46,6 +54,11 @@ class DAGNode:
         of the qubit else an empty list
         """
         return self.data_dict.get('qargs', [])
+
+    @qargs.setter
+    def qargs(self, new_qargs):
+        """ Sets the qargs to be the given list of qargs"""
+        self.data_dict['qargs'] = new_qargs
 
     @property
     def cargs(self):
@@ -67,13 +80,9 @@ class DAGNode:
         Returns (Register, int) tuple where the int is the index of
         the wire else None
         """
+        if self.data_dict['type'] not in ['in', 'out']:
+            raise QiskitError('The node %s is not an input/output node' % str(self))
         return self.data_dict.get('wire')
-
-    def __getitem__(self, x):
-        return getattr(self, x)
-
-    def __setitem__(self, key, value):
-        self.data_dict[key] = value
 
     def __eq__(self, other):
 
@@ -99,7 +108,7 @@ class DAGNode:
             return copy_self == copy_other
 
         # Comparing the dicts only checks they are the same type not the same obj
-        if self.op and not id(self.op) == id(other.op):
+        if 'op' in self.data_dict and 'op' in other.data_dict and not id(self.op) == id(other.op):
             return False
 
         return self.data_dict == other.data_dict
@@ -117,9 +126,9 @@ class DAGNode:
         test_dict_self = copy.deepcopy(self.data_dict)
         test_dict_other = copy.deepcopy(other.data_dict)
 
-        if self.op:
+        if 'op' in self.data_dict:
             del test_dict_self['op']
-        if other.op:
+        if 'op' in other.data_dict:
             del test_dict_other['op']
 
         return test_dict_self == test_dict_other

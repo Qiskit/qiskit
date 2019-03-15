@@ -43,20 +43,20 @@ class Optimize1qGates(TransformationPass):
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
 
             for current_node in run:
-                left_name = current_node["name"]
-                if (current_node["condition"] is not None
-                        or len(current_node["qargs"]) != 1
-                        or current_node["qargs"][0] != run_qarg
+                left_name = current_node.name
+                if (current_node.condition is not None
+                        or len(current_node.qargs) != 1
+                        or current_node.qargs[0] != run_qarg
                         or left_name not in ["u1", "u2", "u3", "id"]):
 
                     raise MapperError("internal error")
                 if left_name == "u1":
-                    left_parameters = (0, 0, current_node["op"].params[0])
+                    left_parameters = (0, 0, current_node.op.params[0])
                 elif left_name == "u2":
-                    left_parameters = (np.pi / 2, current_node["op"].params[0],
-                                       current_node["op"].params[1])
+                    left_parameters = (np.pi / 2, current_node.op.params[0],
+                                       current_node.op.params[1])
                 elif left_name == "u3":
-                    left_parameters = tuple(current_node["op"].params)
+                    left_parameters = tuple(current_node.op.params)
                 else:
                     left_name = "u1"  # replace id with u1
                     left_parameters = (0, 0, 0)

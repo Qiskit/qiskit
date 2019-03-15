@@ -30,8 +30,8 @@ class CXCancellation(TransformationPass):
             for i in range(len(cx_run) - 1):
                 chunk.append(cx_run[i])
 
-                qargs0 = cx_run[i]["qargs"]
-                qargs1 = cx_run[i + 1]["qargs"]
+                qargs0 = cx_run[i].qargs
+                qargs1 = cx_run[i + 1].qargs
 
                 if qargs0 != qargs1:
                     partition.append(chunk)
