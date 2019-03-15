@@ -780,7 +780,7 @@ class DAGCircuit:
         Returns:
             list: The list of node numbers in topological order
         """
-        return nx.lexicographical_topological_sort(self.multi_graph)
+        return nx.lexicographical_topological_sort(self.multi_graph, key=lambda x: str(x.qargs))
 
     def substitute_circuit_all(self, op, input_circuit, wires=None):
         """Replace every occurrence of operation op with input_circuit.
