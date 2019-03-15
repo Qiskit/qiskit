@@ -1198,7 +1198,7 @@ class DAGCircuit:
     def bfs_successors(self, node):
         """Returns generator of the successors of a node as DAGNodes in BFS order."""
         if isinstance(node, int):
-            warnings.warn('Calling successors() with a node id is deprecated,'
+            warnings.warn('Calling bfs_successors() with a node id is deprecated,'
                           ' use a DAGNode instead',
                           DeprecationWarning, 2)
             node = self.id_to_node[node]
