@@ -177,8 +177,7 @@ class TestPulseQobj(QiskitTestCase):
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
-                       'rep_time': 1000,
-                       'meas_return': 'avg'
+                       'rep_time': 1000
                        },
             'experiments': [
                 {'instructions': [
