@@ -20,7 +20,7 @@ from qiskit.test.mock import FakeRueschlikon
 
 
 class TestOptimize1qGates(QiskitTestCase):
-    """ Test for 1q gate optimizations. """
+    """Test for 1q gate optimizations. """
 
     def test_optimize_id(self):
         """ qr0:--[id]-- == qr0:------ """
@@ -36,12 +36,8 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-
-class TestOptimize1qGatesTranspiler(QiskitTestCase):
-    """ Test for 1q gate optimizations as part of the transpiler, with a PassManager """
-
-    def test_optimize_h_gates(self):
-        """ Transpile: qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
+    def test_optimize_h_gates_pass_manager(self):
+        """Transpile: qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -55,10 +51,6 @@ class TestOptimize1qGatesTranspiler(QiskitTestCase):
         passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
         self.assertEqual(expected, result)
-
-
-class TestMovedFromMapper(QiskitTestCase):
-    """ This tests are moved from test_mapper.py"""
 
     def test_optimize_1q_gates_collapse_identity(self):
         """test optimize_1q_gates removes u1(2*pi) rotations.
@@ -121,6 +113,34 @@ class TestMovedFromMapper(QiskitTestCase):
                            sympy.Number(0.3 + np.pi + np.pi ** 2)}
 
         self.assertEqual(params, expected_params)
+
+    def test_ignores_conditional_rotations(self):
+        """Conditional rotations should not be considered in the chain.
+
+        qr0:--[U1]-[U1]-[U1]-[U1]-    qr0:--[U1]-[U1]-
+               ||   ||                       ||   ||
+        cr0:===.================== == cr0:===.====.===
+                    ||                            ||
+        cr1:========.=============    cr1:========.===
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.u1(0.1, qr).c_if(cr, 1)
+        circuit.u1(0.2, qr).c_if(cr, 3)
+        circuit.u1(0.3, qr)
+        circuit.u1(0.4, qr)
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.u1(0.1, qr).c_if(cr, 1)
+        expected.u1(0.2, qr).c_if(cr, 3)
+        expected.u1(0.7, qr)
+
+        pass_ = Optimize1qGates()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
 
 
 if __name__ == '__main__':

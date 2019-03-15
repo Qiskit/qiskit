@@ -22,13 +22,14 @@ import logging
 from concurrent import futures
 import time
 
+from qiskit.qobj.utils import QobjType
 from qiskit.result import Result
-from qiskit.providers import BaseBackend
-from qiskit.providers import BaseJob
+from qiskit.providers import BaseBackend, BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.qobj import Qobj, QobjItem, QobjConfig, QobjHeader, QobjInstruction
-from qiskit.qobj import QobjExperiment, QobjExperimentHeader
+from qiskit.qobj import (Qobj, QobjConfig, QobjHeader, QobjInstruction,
+                         QobjExperiment, QobjExperimentHeader,
+                         QobjExperimentConfig)
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
@@ -356,6 +357,7 @@ def new_fake_qobj():
                 QobjInstruction(name='barrier', qubits=[1])
             ],
             header=QobjExperimentHeader(),
-            config=QobjItem(seed=123456)
-        )]
+            config=QobjExperimentConfig(seed=123456)
+        )],
+        type=QobjType.QASM.value
     )

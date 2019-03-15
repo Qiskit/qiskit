@@ -66,9 +66,6 @@ class Cu3Gate(Gate):
 @_op_expand(2)
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(Cu3Gate(theta, phi, lam, ctl, tgt, self))
 
 

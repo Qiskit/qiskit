@@ -11,8 +11,8 @@ import unittest
 
 import numpy as np
 
+from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.test import ReferenceCircuits
 from qiskit.test import providers
@@ -27,8 +27,7 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        qobj = compile(circuits, backend=self.backend)
-        job = self.backend.run(qobj)
+        job = execute(circuits, backend=self.backend)
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
         norms = [np.trace(np.dot(np.transpose(np.conj(target)), actual))
