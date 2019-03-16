@@ -3,6 +3,28 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+OS := $(shell uname -s)
+
+ifeq ($(OS), Linux)
+  NPROCS := $(shell grep -c ^processor /proc/cpuinfo)
+else ifeq ($(OS), Darwin)
+  NPROCS := $(shell system_profiler | awk '/Number of CPUs/ {print $$4}{next;}')
+else
+  NPROCS := 0
+endif # $(OS)
+
+ifeq ($(NPROCS), 2)
+	CONCURRENCY := 2
+else ifeq ($(NPROCS), 1)
+	CONCURRENCY := 1
+else ifeq ($(NPROCS), 3)
+	CONCURRENCY := 3
+else ifeq ($(NPROCS), 0)
+	CONCURRENCY := 0
+else
+	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{print $$1 / $$2}')
+endif
+
 .PHONY: env lint test test_record test_mock test_ci
 
 # Dependencies need to be installed on the Anaconda virtual environment.
@@ -34,7 +56,7 @@ test_recording:
 	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
 
 test_ci:
-	stestr run --concurrency 2
+	stestr run --concurrency $(CONCURRENCY)
 
 profile:
 	python3 -m unittest discover -p "profile*.py" -v
