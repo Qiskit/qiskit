@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U2Gate(Gate):
     """One-pulse single-qubit gate."""
 
-    def __init__(self, phi, lam, circ=None):
+    def __init__(self, phi, lam):
         """Create new one-pulse single-qubit gate."""
-        super().__init__("u2", 1, [phi, lam], circ)
+        super().__init__("u2", 1, [phi, lam])
 
     def _define(self):
         definition = []
@@ -51,7 +51,7 @@ class U2Gate(Gate):
 @_op_expand(1)
 def u2(self, phi, lam, q):
     """Apply u2 to q."""
-    return self.append(U2Gate(phi, lam, self), [q], [])
+    return self.append(U2Gate(phi, lam), [q], [])
 
 
 QuantumCircuit.u2 = u2

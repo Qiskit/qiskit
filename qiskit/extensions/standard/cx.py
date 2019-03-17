@@ -21,9 +21,9 @@ from qiskit.extensions.standard.cxbase import CXBase
 class CnotGate(Gate):
     """controlled-NOT gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new CNOT gate."""
-        super().__init__("cx", 2, [], circ)
+        super().__init__("cx", 2, [])
 
     def _define(self):
         """
@@ -46,7 +46,7 @@ class CnotGate(Gate):
 @_op_expand(2)
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""
-    return self.append(CnotGate(self), [ctl, tgt], [])
+    return self.append(CnotGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cx = cx

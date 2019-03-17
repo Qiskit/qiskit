@@ -21,9 +21,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class RZGate(Gate):
     """rotation around the z-axis."""
 
-    def __init__(self, phi, circ=None):
+    def __init__(self, phi):
         """Create new rz single qubit gate."""
-        super().__init__("rz", 1, [phi], circ)
+        super().__init__("rz", 1, [phi])
 
     def _define(self):
         """
@@ -51,7 +51,7 @@ class RZGate(Gate):
 @_op_expand(1)
 def rz(self, phi, q):
     """Apply Rz to q."""
-    return self.append(RZGate(phi, self), [q], [])
+    return self.append(RZGate(phi), [q], [])
 
 
 QuantumCircuit.rz = rz

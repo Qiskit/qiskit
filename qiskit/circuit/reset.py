@@ -16,15 +16,15 @@ from .decorators import _op_expand
 class Reset(Instruction):
     """Qubit reset."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new reset instruction."""
-        super().__init__("reset", 1, 0, [], circ, is_reversible=False)
+        super().__init__("reset", 1, 0, [], is_reversible=False)
 
 
 @_op_expand(1)
 def reset(self, qubit):
     """Reset q."""
-    return self.append(Reset(self), [qubit], [])
+    return self.append(Reset(), [qubit], [])
 
 
 QuantumCircuit.reset = reset

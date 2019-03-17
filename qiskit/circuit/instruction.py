@@ -31,19 +31,19 @@ import numpy
 
 from qiskit.qasm._node import _node
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.classicalregister import ClassicalRegister
 
 
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, circuit=None, is_reversible=True):
+    def __init__(self, name, num_qubits, num_clbits, params, is_reversible=True):
         """Create a new instruction.
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instructions's clbit width
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
-            circuit (QuantumCircuit or Instruction): where the instruction is attached
             is_reversible (bool): whether the instruction can be inverted
         Raises:
             QiskitError: when the register is not in the correct format.
@@ -85,8 +85,6 @@ class Instruction:
                                   "{1}".format(type(single_param), name))
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
         self.control = None
-        # reference to the circuit containing this instruction
-        self.circuit = circuit
         # flag to keep track of gate reversibility
         self.is_reversible = is_reversible
         if self.is_reversible and num_clbits > 0:
@@ -113,9 +111,8 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""
-        self.check_circuit()
-        if not self.circuit.has_register(classical):
-            raise QiskitError("the control creg is not in the circuit")
+        if not isinstance(classical, ClassicalRegister):
+            raise QiskitError("c_if must be used with a classical register")
         if val < 0:
             raise QiskitError("control value should be non-negative")
         self.control = (classical, val)

@@ -21,9 +21,9 @@ from qiskit.extensions.standard.ubase import UBase
 class IdGate(Gate):
     """Identity gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Identity gate."""
-        super().__init__("id", 1, [], circ)
+        super().__init__("id", 1, [])
 
     def _define(self):
         definition = []
@@ -43,7 +43,7 @@ class IdGate(Gate):
 @_op_expand(1)
 def iden(self, q):
     """Apply Identity to q."""
-    return self.append(IdGate(self), [q], [])
+    return self.append(IdGate(), [q], [])
 
 
 QuantumCircuit.iden = iden

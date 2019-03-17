@@ -23,9 +23,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CyGate(Gate):
     """controlled-Y gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new CY gate."""
-        super().__init__("cy", 2, [], circ)
+        super().__init__("cy", 2, [])
 
     def _define(self):
         """
@@ -50,7 +50,7 @@ class CyGate(Gate):
 @_op_expand(2)
 def cy(self, ctl, tgt):
     """Apply CY to circuit."""
-    return self.append(CyGate(self), [ctl, tgt], [])
+    return self.append(CyGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cy = cy

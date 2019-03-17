@@ -18,9 +18,9 @@ from qiskit.extensions.exceptions import ExtensionError
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    def __init__(self, num_qubits, num_clbits, label, snap_type, circ=None):
+    def __init__(self, num_qubits, num_clbits, label, snap_type):
         """Create new snapshot instruction."""
-        super().__init__("snapshot", num_qubits, num_clbits, [label, snap_type], circ)
+        super().__init__("snapshot", num_qubits, num_clbits, [label, snap_type])
 
     def inverse(self):
         """Special case. Return self."""
@@ -56,7 +56,7 @@ def snapshot(self, label, snap_type='statevector'):
                 qubits.append((tuple_element, j))
         else:
             qubits.append(tuple_element)
-    return self.append(Snapshot(len(qubits), 0, label, snap_type, self), qubits, [])
+    return self.append(Snapshot(len(qubits), 0, label, snap_type), qubits, [])
 
 
 # Add to QuantumCircuit and CompositeGate classes

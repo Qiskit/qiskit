@@ -16,9 +16,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self, circuit=None):
+    def __init__(self):
         """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [], circuit, is_reversible=False)
+        super().__init__("measure", 1, 1, [], is_reversible=False)
 
 
 @_op_expand(2, broadcastable=[True, False])
@@ -36,7 +36,7 @@ def measure(self, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    return self.append(Measure(self), [qubit], [cbit])
+    return self.append(Measure(), [qubit], [cbit])
 
 
 QuantumCircuit.measure = measure

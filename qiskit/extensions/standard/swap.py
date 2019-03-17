@@ -21,9 +21,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class SwapGate(Gate):
     """SWAP gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [], circ)
+        super().__init__("swap", 2, [])
 
     def _define(self):
         """
@@ -48,7 +48,7 @@ class SwapGate(Gate):
 @_op_expand(2, broadcastable=[False, False])
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""
-    return self.append(SwapGate(self), [qubit1, qubit2], [])
+    return self.append(SwapGate(), [qubit1, qubit2], [])
 
 
 QuantumCircuit.swap = swap

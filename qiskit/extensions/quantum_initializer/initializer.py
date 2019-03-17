@@ -32,11 +32,10 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
     """
-    def __init__(self, params, circ=None):
+    def __init__(self, params):
         """Create new initialize composite gate.
 
         params (list): vector of complex amplitudes to initialize to
-        circ (QuantumCircuit): where the initialize instruction is attached
         """
         num_qubits = math.log2(len(params))
 
@@ -51,7 +50,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         num_qubits = int(num_qubits)
 
-        super().__init__("initialize", num_qubits, params, circ)
+        super().__init__("initialize", num_qubits, params)
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization
@@ -238,7 +237,7 @@ def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     # TODO: make initialize an Instruction, and insert reset
     # TODO: avoid explicit reset if compiler determines a |0> state
-    return self.append(InitializeGate(params, self), qubits, [])
+    return self.append(InitializeGate(params), qubits, [])
 
 
 QuantumCircuit.initialize = initialize

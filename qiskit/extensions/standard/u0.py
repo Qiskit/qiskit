@@ -21,9 +21,9 @@ from qiskit.extensions.standard.ubase import UBase
 class U0Gate(Gate):
     """Wait gate."""
 
-    def __init__(self, m, circ=None):
+    def __init__(self, m):
         """Create new u0 gate."""
-        super().__init__("u0", 1, [m], circ)
+        super().__init__("u0", 1, [m])
 
     def _define(self):
         definition = []
@@ -43,7 +43,7 @@ class U0Gate(Gate):
 @_op_expand(1)
 def u0(self, m, q):
     """Apply u0 with length m to q."""
-    return self.append(U0Gate(m, self), [q], [])
+    return self.append(U0Gate(m), [q], [])
 
 
 QuantumCircuit.u0 = u0

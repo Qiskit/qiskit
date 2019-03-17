@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class YGate(Gate):
     """Pauli Y (bit-phase-flip) gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Y gate."""
-        super().__init__("y", 1, [], circ)
+        super().__init__("y", 1, [])
 
     def _define(self):
         definition = []
@@ -44,7 +44,7 @@ class YGate(Gate):
 @_op_expand(1)
 def y(self, q):
     """Apply Y to q."""
-    return self.append(YGate(self), [q], [])
+    return self.append(YGate(), [q], [])
 
 
 QuantumCircuit.y = y

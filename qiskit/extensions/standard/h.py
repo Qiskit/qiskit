@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u2 import U2Gate
 class HGate(Gate):
     """Hadamard gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Hadamard gate."""
-        super().__init__("h", 1, [], circ)
+        super().__init__("h", 1, [])
 
     def _define(self):
         """
@@ -47,7 +47,7 @@ class HGate(Gate):
 @_op_expand(1)
 def h(self, q):
     """Apply H to q."""
-    return self.append(HGate(self), [q], [])
+    return self.append(HGate(), [q], [])
 
 
 QuantumCircuit.h = h

@@ -22,9 +22,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CzGate(Gate):
     """controlled-Z gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new CZ gate."""
-        super().__init__("cz", 2, [], circ)
+        super().__init__("cz", 2, [])
 
     def _define(self):
         """
@@ -49,7 +49,7 @@ class CzGate(Gate):
 @_op_expand(2)
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
-    return self.append(CzGate(self), [ctl, tgt], [])
+    return self.append(CzGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cz = cz

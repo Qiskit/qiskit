@@ -14,19 +14,18 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, num_qubits, params, circuit=None):
+    def __init__(self, name, num_qubits, params):
         """Create a new composite gate.
 
         name = instruction name string
         params = list of real parameters (will be converted to symbolic)
-        circuit = QuantumCircuit containing this gate
         """
         # list of instructions (and their contexts) that this instruction is composed of
         # self.definition=None means opaque or fundamental
         self._definition = None
         self._matrix_rep = None
 
-        super().__init__(name, num_qubits, 0, params, circuit)
+        super().__init__(name, num_qubits, 0, params)
 
     def reverse(self):
         """For a composite gate, reverse the order of sub-gates.

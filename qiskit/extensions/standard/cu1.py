@@ -20,9 +20,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class Cu1Gate(Gate):
     """controlled-u1 gate."""
 
-    def __init__(self, theta, circ=None):
+    def __init__(self, theta):
         """Create new cu1 gate."""
-        super().__init__("cu1", 2, [theta], circ)
+        super().__init__("cu1", 2, [theta])
 
     def _define(self):
         """
@@ -55,7 +55,7 @@ class Cu1Gate(Gate):
 @_op_expand(2)
 def cu1(self, theta, ctl, tgt):
     """Apply cu1 from ctl to tgt with angle theta."""
-    return self.append(Cu1Gate(theta, self), [ctl, tgt], [])
+    return self.append(Cu1Gate(theta), [ctl, tgt], [])
 
 
 QuantumCircuit.cu1 = cu1

@@ -19,8 +19,8 @@ from qiskit.circuit.decorators import _op_expand
 class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
-    def __init__(self, theta, phi, lam, circ=None):
-        super().__init__("U", 1, [theta, phi, lam], circ)
+    def __init__(self, theta, phi, lam):
+        super().__init__("U", 1, [theta, phi, lam])
 
     def inverse(self):
         """Invert this gate.
@@ -37,7 +37,7 @@ class UBase(Gate):  # pylint: disable=abstract-method
 @_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
-    return self.append(UBase(theta, phi, lam, self), [q], [])
+    return self.append(UBase(theta, phi, lam), [q], [])
 
 
 QuantumCircuit.u_base = u_base

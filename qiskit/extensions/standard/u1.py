@@ -21,9 +21,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U1Gate(Gate):
     """Diagonal single-qubit gate."""
 
-    def __init__(self, theta, circ=None):
+    def __init__(self, theta):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", 1, [theta], circ)
+        super().__init__("u1", 1, [theta])
 
     def _define(self):
         definition = []
@@ -45,7 +45,7 @@ class U1Gate(Gate):
 @_op_expand(1)
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
-    return self.append(U1Gate(theta, self), [q], [])
+    return self.append(U1Gate(theta), [q], [])
 
 
 QuantumCircuit.u1 = u1

@@ -20,9 +20,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CrzGate(Gate):
     """controlled-rz gate."""
 
-    def __init__(self, theta, circ=None):
+    def __init__(self, theta):
         """Create new crz gate."""
-        super().__init__("crz", 2, [theta], circ)
+        super().__init__("crz", 2, [theta])
 
     def _define(self):
         """
@@ -53,7 +53,7 @@ class CrzGate(Gate):
 @_op_expand(2)
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    return self.append(CrzGate(theta, self), [ctl, tgt], [])
+    return self.append(CrzGate(theta), [ctl, tgt], [])
 
 
 QuantumCircuit.crz = crz

@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class ZGate(Gate):
     """Pauli Z (phase-flip) gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Z gate."""
-        super().__init__("z", 1, [], circ)
+        super().__init__("z", 1, [])
 
     def _define(self):
         definition = []
@@ -44,7 +44,7 @@ class ZGate(Gate):
 @_op_expand(1)
 def z(self, q):
     """Apply Z to q."""
-    return self.append(ZGate(self), [q], [])
+    return self.append(ZGate(), [q], [])
 
 
 QuantumCircuit.z = z

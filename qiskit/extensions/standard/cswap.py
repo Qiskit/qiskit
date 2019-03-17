@@ -20,9 +20,9 @@ from qiskit.extensions.standard.ccx import ToffoliGate
 class FredkinGate(Gate):
     """Fredkin gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Fredkin gate."""
-        super().__init__("cswap", 3, [], circ)
+        super().__init__("cswap", 3, [])
 
     def _define(self):
         """
@@ -51,7 +51,7 @@ class FredkinGate(Gate):
 @_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
-    return self.append(FredkinGate(self), [ctl, tgt1, tgt2], [])
+    return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
 
 
 QuantumCircuit.cswap = cswap

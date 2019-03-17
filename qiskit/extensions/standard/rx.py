@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class RXGate(Gate):
     """rotation around the x-axis."""
 
-    def __init__(self, theta, circ=None):
+    def __init__(self, theta):
         """Create new rx single qubit gate."""
-        super().__init__("rx", 1, [theta], circ)
+        super().__init__("rx", 1, [theta])
 
     def _define(self):
         """
@@ -52,7 +52,7 @@ class RXGate(Gate):
 @_op_expand(1)
 def rx(self, theta, q):
     """Apply Rx to q."""
-    return self.append(RXGate(theta, self), [q], [])
+    return self.append(RXGate(theta), [q], [])
 
 
 QuantumCircuit.rx = rx

@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class TGate(Gate):
     """T Gate: pi/4 rotation around Z axis."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new T gate."""
-        super().__init__("t", 1, [], circ)
+        super().__init__("t", 1, [])
 
     def _define(self):
         """
@@ -41,18 +41,15 @@ class TGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        inv = TdgGate()
-        _, qargs, cargs = self.circuit.data[-1]
-        self.circuit.data[-1] = (inv, qargs, cargs)
-        return inv
+        return TdgGate()
 
 
 class TdgGate(Gate):
     """T Gate: -pi/4 rotation around Z axis."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], circ)
+        super().__init__("tdg", 1, [])
 
     def _define(self):
         """
@@ -69,22 +66,19 @@ class TdgGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        inv = TGate()
-        _, qargs, cargs = self.circuit.data[-1]
-        self.circuit.data[-1] = (inv, qargs, cargs)
-        return inv
+        return TGate()
 
 
 @_op_expand(1)
 def t(self, q):
     """Apply T to q."""
-    return self.append(TGate(self), [q], [])
+    return self.append(TGate(), [q], [])
 
 
 @_op_expand(1)
 def tdg(self, q):
     """Apply Tdg to q."""
-    return self.append(TdgGate(self), [q], [])
+    return self.append(TdgGate(), [q], [])
 
 
 QuantumCircuit.t = t

@@ -26,9 +26,9 @@ from qiskit.extensions.standard.s import SdgGate
 class CHGate(Gate):
     """controlled-H gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new CH gate."""
-        super().__init__("ch", 2, [], circ)
+        super().__init__("ch", 2, [])
 
     def _define(self):
         """
@@ -72,7 +72,7 @@ class CHGate(Gate):
 @_op_expand(2)
 def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
-    return self.append(CHGate(self), [ctl, tgt], [])
+    return self.append(CHGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.ch = ch

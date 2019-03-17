@@ -15,14 +15,13 @@ from .gate import Gate
 class CompositeGate(Gate):  # pylint: disable=abstract-method
     """Composite gate, a sequence of unitary gates."""
 
-    def __init__(self, name, params, circuit=None, inverse_name=None):
+    def __init__(self, name, params, inverse_name=None):
         """Create a new composite gate.
 
         name = instruction name string
         params = list of real parameters
-        circ = QuantumCircuit or CompositeGate containing this gate
         """
-        super().__init__(name, params, circuit)
+        super().__init__(name, params)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False
         self.inverse_name = inverse_name or (name + 'dg')
@@ -41,11 +40,6 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
                 instruction_list.append(instruction)
         return instruction_list
 
-    def has_register(self, register):
-        """Test if this gate's circuit has the register r."""
-        self.check_circuit()
-        return self.circuit.has_register(register)
-
     def append(self, gate):
         """Attach a gate."""
         self.data.append(gate)
@@ -54,11 +48,6 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
     def _attach(self, gate):
         """DEPRECATED after 0.8."""
         self.append(gate)
-
-    def _check_qubit(self, qubit):
-        """Raise exception if q is not an argument or not qreg in circuit."""
-        self.check_circuit()
-        self.circuit._check_qubit(qubit)
 
     def _check_dups(self, qubits):
         """Raise exception.
@@ -78,11 +67,6 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
         self.data = [gate.inverse() for gate in reversed(self.data)]
         self.inverse_flag = not self.inverse_flag
         return self
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        for gate in self.data:
-            gate.reapply(circ)
 
     def q_if(self, *qregs):
         """Add controls to this gate."""

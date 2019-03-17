@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class SGate(Gate):
     """S=diag(1,i) Clifford phase gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new S gate."""
-        super().__init__("s", 1, [], circ)
+        super().__init__("s", 1, [])
 
     def _define(self):
         """
@@ -41,18 +41,15 @@ class SGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        inv = SdgGate()
-        _, qargs, cargs = self.circuit.data[-1]
-        self.circuit.data[-1] = (inv, qargs, cargs)
-        return inv
+        return SdgGate()
 
 
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoint phase gate."""
 
-    def __init__(self, circ=None):
+    def __init__(self):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], circ)
+        super().__init__("sdg", 1, [])
 
     def _define(self):
         """
@@ -69,22 +66,19 @@ class SdgGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        inv = SGate()
-        _, qargs, cargs = self.circuit.data[-1]
-        self.circuit.data[-1] = (inv, qargs, cargs)
-        return inv
+        return SGate()
 
 
 @_op_expand(1)
 def s(self, q):
     """Apply S to q."""
-    return self.append(SGate(self), [q], [])
+    return self.append(SGate(), [q], [])
 
 
 @_op_expand(1)
 def sdg(self, q):
     """Apply Sdg to q."""
-    return self.append(SdgGate(self), [q], [])
+    return self.append(SdgGate(), [q], [])
 
 
 QuantumCircuit.s = s
