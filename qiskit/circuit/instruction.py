@@ -111,11 +111,6 @@ class Instruction:
             res = True
         return res
 
-    def check_circuit(self):
-        """Raise exception if self.circuit is None."""
-        if self.circuit is None:
-            raise QiskitError("Instruction's circuit not assigned")
-
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""
         self.check_circuit()
@@ -142,15 +137,6 @@ class Instruction:
         if name:
             cpy.name = name
         return cpy
-
-    def _modifiers(self, gate):
-        """Apply any modifiers of this instruction to another one."""
-        if self.control is not None:
-            self.check_circuit()
-            if not gate.circuit.has_register(self.control[0]):
-                raise QiskitError("control register %s not found"
-                                  % self.control[0].name)
-            gate.c_if(self.control[0], self.control[1])
 
     def _qasmif(self, string):
         """Print an if statement if needed."""

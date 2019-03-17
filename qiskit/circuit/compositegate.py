@@ -46,12 +46,6 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
         self.check_circuit()
         return self.circuit.has_register(register)
 
-    def _modifiers(self, gate):
-        """Apply any modifiers of this gate to another composite g."""
-        if self.inverse_flag:
-            gate.inverse()
-        super()._modifiers(gate)
-
     def append(self, gate):
         """Attach a gate."""
         self.data.append(gate)

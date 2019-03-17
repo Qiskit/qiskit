@@ -26,10 +26,6 @@ class Snapshot(Instruction):
         """Special case. Return self."""
         return self
 
-    def reapply(self, circ):
-        """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.snapshot(self.params[0], self.params[1]))
-
 
 def snapshot(self, label, snap_type='statevector'):
     """Take a snapshot of the internal simulator representation (statevector)
