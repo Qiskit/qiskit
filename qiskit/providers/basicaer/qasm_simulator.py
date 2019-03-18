@@ -50,6 +50,12 @@ class QasmSimulatorPy(BaseBackend):
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
+    CMAP = []
+    for i in range(min(24, MAX_QUBITS_MEMORY)):
+        for j in range(min(24, MAX_QUBITS_MEMORY)):
+            if i != j:
+                CMAP.append([i, j])
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': '2.0.0',
@@ -61,6 +67,7 @@ class QasmSimulatorPy(BaseBackend):
         'open_pulse': False,
         'memory': True,
         'max_shots': 65536,
+        'coupling_map': CMAP,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [

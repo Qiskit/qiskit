@@ -58,13 +58,21 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         return_form_is_single = True
 
     # Check for valid parameters for the experiments.
+    dev_qubits = None
     basis_gates = basis_gates or backend.configuration().basis_gates
     if coupling_map:
         coupling_map = coupling_map
     elif backend:
-        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
+        coupling_map = backend.configuration().coupling_map
+        dev_qubits = backend.configuration().n_qubits
     else:
         coupling_map = None
+
+    # Check if coupling_map is all to all
+    # If so, set coupling_map = None which was old way for simulators
+    if coupling_map and dev_qubits:
+        if len(coupling_map) == dev_qubits*(dev_qubits-1):
+            coupling_map = None
 
     if not basis_gates:
         raise TranspilerError('no basis_gates or backend to compile to')
@@ -186,11 +194,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
     # TODO: move this to the mapper pass
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
-    # Check if coupling map is an all-to-all mapping.
-    is_all_to_all = False
-    if coupling_map:
-        is_all_to_all = len(coupling_map) == num_qubits*(num_qubits-1)
-    if num_qubits == 1 or is_all_to_all:
+    if num_qubits == 1:
         coupling_map = None
 
     if basis_gates is None:
