@@ -66,6 +66,20 @@ class DeviceSpecification:
         """
         self._qubits = qubits
 
+    def __eq__(self, other):
+        """Two device specs are the same if they have the same qubits.
+
+        Args:
+            other (DeviceSpecification): other DeviceSpecification
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if type(self) is type(other) and \
+                self._qubits == other._qubits:
+            return True
+        return False
+
     @property
     def q(self) -> List[Qubit]:
         return self._qubits
