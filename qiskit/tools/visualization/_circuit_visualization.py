@@ -280,7 +280,6 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 
 
-
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plotbarriers=True, justify=None):
     """

@@ -69,7 +69,6 @@ class DrawElement():
     @property
     def length(self):
         """ Returns the length of the element, including the box around."""
-
         return max(len(self.top), len(self.mid), len(self.bot))
 
     @length.setter
@@ -424,6 +423,7 @@ class InputWire(DrawElement):
 
 class TextDrawing():
     """ The text drawing"""
+
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None):
         self.qregs = qregs
@@ -754,11 +754,13 @@ class TextDrawing():
             connection_label = TextDrawing.params_for_label(instruction)[0]
             gates = [Bullet(), Bullet()]
             add_connected_gate(instruction, gates, layer, current_cons)
+
         elif instruction['name'] == 'rzz':
             # rzz
             connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
             gates = [Bullet(), Bullet()]
             add_connected_gate(instruction, gates, layer, current_cons)
+
         elif instruction['name'] == 'cu3':
             # cu3
             params = TextDrawing.params_for_label(instruction)
@@ -779,11 +781,12 @@ class TextDrawing():
 
         elif len(instruction['qargs']) >= 2 and not instruction['cargs']:
             # multiple qubit gate
-            # label = instruction['name']
+            label = instruction['name']
             params = TextDrawing.params_for_label(instruction)
             if params:
                 label += "(%s)" % ','.join(params)
             layer.set_qu_multibox(instruction['qargs'], label)
+
         else:
             raise VisualizationError(
                 "Text visualizer does not know how to handle this instruction", instruction)
@@ -808,6 +811,7 @@ class TextDrawing():
             return []
 
         layers = [InputWire.fillup_layer(wire_names)]
+
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)
 
