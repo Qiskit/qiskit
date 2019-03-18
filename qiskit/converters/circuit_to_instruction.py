@@ -31,6 +31,6 @@ def circuit_to_instruction(circuit):
                               params=[])
     instruction.control = None
 
-    instruction.definition = circuit.data
+    instruction.definition = circuit.data.copy()
 
     return instruction

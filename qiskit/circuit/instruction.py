@@ -85,7 +85,7 @@ class Instruction:
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
         self.control = None
         # list of instructions (and their contexts) that this instruction is composed of
-        # self.definition=None means opaque or fundamental
+        # empty definition means opaque or fundamental instruction
         self._definition = None
 
     def __eq__(self, other):
@@ -124,25 +124,29 @@ class Instruction:
         """Set matrix representation"""
         self._definition = array
 
-    def mirror(self):
+    def mirror(self, inplace=False):
         """For a composite instruction, reverse the order of sub-gates.
+        Non-composite instructions are returned with no modification.
 
         This is done by recursively mirroring all sub-instructions.
         It does not invert any gate.
 
         Returns:
-            Instruction: a fresh gate with sub-gates reversed
+            Instruction: an instruction with sub-instructions mirrored
         """
-        if not self._definition:
-            return self.copy()
+        if inplace:
+            if not self._definition:
+                return self
+            self._definition.reverse()
+            for inst, _, _ in self._definition:
+                inst.mirror(inplace=True)
+            return self
 
-        reverse_inst = self.copy(name=self.name+'_reverse')
-        reverse_inst.definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
-        return reverse_inst
+        mirror_inst = self.copy(name=self.name+'_mirror')
+        mirror_inst.mirror(inplace=True)
+        return mirror_inst
 
-    def inverse(self):
+    def inverse(self, inplace=False):
         """Invert this instruction.
 
         If the instruction is composite (i.e. has a definition),
@@ -158,14 +162,18 @@ class Instruction:
             QiskitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
-        if not self.definition:
+        if self.definition is None:
             raise NotImplementedError("inverse() not implemented for %s." %
                                       self.name)
-        inverse_gate = self.copy(name=self.name+'_dg')
-        inverse_gate._definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
-        return inverse_gate
+        if inplace:
+            self._definition.reverse()
+            for inst, _, _ in self._definition:
+                inst.inverse(inplace=True)
+            return self
+
+        inverse_inst = self.copy(name=self.name+'_dg')
+        inverse_inst.inverse(inplace=True)
+        return inverse_inst
 
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""

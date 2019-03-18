@@ -43,6 +43,8 @@ class Decompose(TransformationPass):
             # TODO: need anonymous rules to address wires by index
             decomposition = DAGCircuit()
             decomposition.add_qreg(rule[0][1][0][0])
+            if rule[0][2]:
+                decomposition.add_creg(rule[0][2][0][0])            
             for inst in rule:
                 decomposition.apply_operation_back(*inst)
             dag.substitute_node_with_dag(node, decomposition)
