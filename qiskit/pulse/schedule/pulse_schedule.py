@@ -10,9 +10,9 @@ Schedule.
 """
 import logging
 import pprint
-from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from typing import List, Union
+from collections import defaultdict
+from typing import List
 
 from qiskit.pulse.channels import PulseChannel, ChannelStore
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
@@ -71,7 +71,7 @@ class TimedPulse(TimedPulseBlock):
         return "(%s, %s, %d)" % (self.command.name, self.channel.name, self.t0)
 
 
-class PulseSchedule(TimedPulseBlock):
+class Schedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
@@ -106,39 +106,32 @@ class PulseSchedule(TimedPulseBlock):
         """
         try:
             start_time = self.end_time_by(channel)  # TODO: need to add buffer?
-            self.add_block(TimedPulse(command, channel, start_time))
+            self.add(TimedPulse(command, channel, start_time))
         except ScheduleError as err:
             logger.warning("Fail to append %s to %s", command, channel)
             raise ScheduleError(err.message)
 
-    def add(self,
-            commands: Union[PulseCommand, List[PulseCommand]],
-            channel: PulseChannel,
-            start_time: int):
-        """Add new pulse command(s) with channel and start time context.
+    def insert(self, command: PulseCommand, channel: PulseChannel, start_time: int):
+        """Insert new pulse command with `channel` at `start_time`.
 
         Args:
-            commands (PulseCommand|list):
+            command (PulseCommand):
             channel:
             start_time:
         """
-        if isinstance(commands, PulseCommand):
-            try:
-                self.add_block(TimedPulse(commands, channel, start_time))
-            except ScheduleError as err:
-                logger.warning("Fail to add %s to %s at %s", commands, channel, start_time)
-                raise ScheduleError(err.message)
-        elif isinstance(commands, list):
-            for cmd in commands:
-                self.add(cmd, channel, start_time)
+        try:
+            self.add(TimedPulse(command, channel, start_time))
+        except ScheduleError as err:
+            logger.warning("Fail to insert %s to %s at %s", command, channel, start_time)
+            raise ScheduleError(err.message)
 
-    def add_block(self, block: TimedPulseBlock):
+    def add(self, block: TimedPulseBlock):
         """Add a new composite pulse `TimedPulseBlock`.
 
         Args:
             block:
         """
-        if isinstance(block, PulseSchedule):
+        if isinstance(block, Schedule):
             if self._channel_store is not block._channel_store:
                 raise ScheduleError("Additional block must have the same channels as self")
 
