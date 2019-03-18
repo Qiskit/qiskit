@@ -95,7 +95,7 @@ class Stinespring(QuantumChannel):
             return self._data
 
     def evolve(self, state):
-        """Apply the channel to a quantum state.
+        """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (quantum_state like): A statevector or density matrix.
@@ -122,7 +122,7 @@ class Stinespring(QuantumChannel):
                          np.reshape(np.conjugate(stine_r), shape))
 
     def is_cptp(self):
-        """Test if channel completely-positive and trace preserving (CPTP)"""
+        """Return True if completely-positive trace-preserving."""
         # We convert to the Choi representation to check if CPTP
         if self._data[1] is not None:
             return False
@@ -130,7 +130,16 @@ class Stinespring(QuantumChannel):
         return is_identity_matrix(check, atol=self.atol)
 
     def conjugate(self, inplace=False):
-        """Return the conjugate channel"""
+        """Return the conjugate of the  QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            Stinespring: the conjugate of the quantum channel as a
+            Stinespring object.
+        """
         # pylint: disable=assignment-from-no-return
         if inplace:
             np.conjugate(self._data[0], out=self._data[0])
@@ -144,9 +153,16 @@ class Stinespring(QuantumChannel):
         return Stinespring((stine_l, stine_r), *self.dims)
 
     def transpose(self, inplace=False):
-        """Return the transpose channel"""
-        # To compute the transpose channel we first convert to the
-        # Kraus representation
+        """Return the transpose of the QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            Stinespring: the transpose of the quantum channel as a
+            Stinespring object.
+        """
         din, dout = self.dims
         dtr = self._data[0].shape[0] // dout
         stine = [None, None]
@@ -163,23 +179,39 @@ class Stinespring(QuantumChannel):
         # Return new stinespring operator with output and input dims swapped
         return Stinespring(tuple(stine), input_dim=dout, output_dim=din)
 
-    def compose(self, other, inplace=False, front=False):
-        """Return PTM for the composition channel B(A(input))
+    def adjoint(self, inplace=False):
+        """Return the adjoint of the QuantumChannel.
 
         Args:
-            other (QuantumChannel): A quantum channel representation object
-            inplace (bool): If True modify the current object inplace [default: False]
-            front (bool): If True compose in reverse order A(B(input)) [default: False]
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
 
         Returns:
-            Stinespring: The Stinespring representation for the composition channel.
+            Stinespring: the adjoint of the quantum channel as a
+            Stinespring object.
+        """
+        return super().adjoint(inplace=inplace)
+
+    def compose(self, other, inplace=False, front=False):
+        """Return the composition channel self∘other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+            front (bool): If False compose in standard order other(self(input))
+                          otherwise compose in reverse order self(other(input))
+                          [default: False]
+
+        Returns:
+            Stinespring: The composition channel as a Stinespring object.
 
         Raises:
-            QiskitError: if other is not a PTM object
-            QiskitError: if dimensions don't match.
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
         """
         if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('Other is not a channel rep')
+            raise QiskitError('other is not a QuantumChannel subclass')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
             raise QiskitError(
@@ -198,77 +230,75 @@ class Stinespring(QuantumChannel):
             return self
         return tmp
 
-    def tensor(self, other, inplace=False, front=False):
-        """Return Stinespring for the tensor product channel.
+    def power(self, n, inplace=False):
+        """Return the compose of a QuantumChannel with itself n times.
 
         Args:
-            other (Stinespring): A SuperOp
-            inplace (bool): If True modify the current object inplace [default: False]
-            front (bool): If False return (other ⊗ self),
-                          if True return (self ⊗ other) [Default: False]
+            n (int): the number of times to compose with self (n>0).
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+
         Returns:
-            Stinespring: the tensor product channel.
+            Stinespring: the n-times composition channel as a Stinespring
+            object.
 
         Raises:
-            QiskitError: if other is not a Stinespring object
+            QiskitError: if the input and output dimensions of the
+            QuantumChannel are not equal, or the power is not a positive
+            integer.
         """
-        # Convert other to Stinespring
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('Other is not a channel rep')
-        if not isinstance(other, Stinespring):
-            other = Stinespring(other)
+        return super().power(n, inplace=inplace)
 
-        # Tensor stinespring ops
-        sa_l, sa_r = self._data
-        sb_l, sb_r = other._data
+    def tensor(self, other, inplace=False):
+        """Return the tensor product channel self ⊗ other.
 
-        # Reshuffle tensor dimensions
-        din_a, dout_a = self.dims
-        din_b, dout_b = other.dims
-        dtr_a = sa_l.shape[0] // dout_a
-        dtr_b = sb_l.shape[0] // dout_b
-        if front:
-            shape_in = (dout_a, dtr_a, dout_b, dtr_b, din_a * din_b)
-            shape_out = (dout_a * dtr_a * dout_b * dtr_b, din_a * din_b)
-        else:
-            shape_in = (dout_b, dtr_b, dout_a, dtr_a, din_b * din_a)
-            shape_out = (dout_b * dtr_b * dout_a * dtr_a, din_b * din_a)
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
 
-        # Compute left stinepsring op
-        if front:
-            sab_l = np.kron(sa_l, sb_l)
-        else:
-            sab_l = np.kron(sb_l, sa_l)
-        # Reravel indicies
-        sab_l = np.reshape(
-            np.transpose(np.reshape(sab_l, shape_in), (0, 2, 1, 3, 4)),
-            shape_out)
+        Returns:
+            Stinespring: the tensor product channel other ⊗ self as a
+            Stinespring object.
 
-        # Compute right stinespring op
-        if sa_r is None and sb_r is None:
-            sab_r = None
-        else:
-            if sa_r is None:
-                sa_r = sa_l
-            elif sb_r is None:
-                sb_r = sb_l
-            if front:
-                sab_r = np.kron(sa_r, sb_r)
-            else:
-                sab_r = np.kron(sb_r, sa_r)
-            # Reravel indicies
-            sab_r = np.reshape(
-                np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
-                shape_out)
-        if inplace:
-            self._data = (sab_l, sab_r)
-            self._input_dim = din_a * din_b
-            self._output_dim = dout_a * dout_b
-            return self
-        return Stinespring((sab_l, sab_r), din_a * din_b, dout_a * dout_b)
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass.
+        """
+        return self._tensor_product(other, inplace=inplace, reverse=False)
+
+    def expand(self, other, inplace=False):
+        """Return the tensor product channel other ⊗ self.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            Stinespring: the tensor product channel other ⊗ self as a
+            Stinespring object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass.
+        """
+        return self._tensor_product(other, inplace=inplace, reverse=True)
 
     def add(self, other, inplace=False):
-        """Add another QuantumChannel"""
+        """Return the QuantumChannel self + other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            Stinespring: the linear addition self + other as a
+            Stinespring object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
         tmp = Stinespring(Choi(self).add(other, inplace=True))
@@ -280,7 +310,21 @@ class Stinespring(QuantumChannel):
         return tmp
 
     def subtract(self, other, inplace=False):
-        """Subtract another QuantumChannel"""
+        """Return the QuantumChannel self - other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            Stinespring: the linear subtraction self - other as
+            Stinespring object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
         # Since we cannot directly subtract two channels in the Stinespring
         # representation we convert to the Choi representation
         tmp = Stinespring(Choi(self).subtract(other, inplace=True))
@@ -292,9 +336,22 @@ class Stinespring(QuantumChannel):
         return tmp
 
     def multiply(self, other, inplace=False):
-        """Multiple by a scalar"""
+        """Return the QuantumChannel self + other.
+
+        Args:
+            other (complex): a complex number
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            Stinespring: the scalar multiplication other * self as a
+            Stinespring object.
+
+        Raises:
+            QiskitError: if other is not a valid scalar.
+        """
         if not isinstance(other, Number):
-            raise QiskitError("Not a number")
+            raise QiskitError("other is not a number")
         # If the number is complex or negative we need to convert to
         # general Stinespring representation so we first convert to
         # the Choi representation
@@ -321,3 +378,73 @@ class Stinespring(QuantumChannel):
         if self._data[1] is not None:
             stine_r = num * self._data[1]
         return Stinespring((stine_l, stine_r), *self.dims)
+
+    def _tensor_product(self, other, inplace=False, reverse=False):
+        """Return the tensor product channel.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [default: False]
+            reverse (bool): If False return self ⊗ other, if True return
+                            if True return (other ⊗ self) [Default: False]
+        Returns:
+            Stinespring: the tensor product channel as a Stinespring object.
+
+        Raises:
+            QiskitError: if other is not a Stinespring object
+        """
+        # Convert other to Stinespring
+        if not issubclass(other.__class__, QuantumChannel):
+            raise QiskitError('other is not a QuantumChannel subclass')
+        if not isinstance(other, Stinespring):
+            other = Stinespring(other)
+
+        # Tensor stinespring ops
+        sa_l, sa_r = self._data
+        sb_l, sb_r = other._data
+
+        # Reshuffle tensor dimensions
+        din_a, dout_a = self.dims
+        din_b, dout_b = other.dims
+        dtr_a = sa_l.shape[0] // dout_a
+        dtr_b = sb_l.shape[0] // dout_b
+        if reverse:
+            shape_in = (dout_b, dtr_b, dout_a, dtr_a, din_b * din_a)
+            shape_out = (dout_b * dtr_b * dout_a * dtr_a, din_b * din_a)
+        else:
+            shape_in = (dout_a, dtr_a, dout_b, dtr_b, din_a * din_b)
+            shape_out = (dout_a * dtr_a * dout_b * dtr_b, din_a * din_b)
+
+        # Compute left stinepsring op
+        if reverse:
+            sab_l = np.kron(sb_l, sa_l)
+        else:
+            sab_l = np.kron(sa_l, sb_l)
+        # Reravel indicies
+        sab_l = np.reshape(
+            np.transpose(np.reshape(sab_l, shape_in), (0, 2, 1, 3, 4)),
+            shape_out)
+
+        # Compute right stinespring op
+        if sa_r is None and sb_r is None:
+            sab_r = None
+        else:
+            if sa_r is None:
+                sa_r = sa_l
+            elif sb_r is None:
+                sb_r = sb_l
+            if reverse:
+                sab_r = np.kron(sb_r, sa_r)
+            else:
+                sab_r = np.kron(sa_r, sb_r)
+            # Reravel indicies
+            sab_r = np.reshape(
+                np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
+                shape_out)
+        if inplace:
+            self._data = (sab_l, sab_r)
+            self._input_dim = din_a * din_b
+            self._output_dim = dout_a * dout_b
+            return self
+        return Stinespring((sab_l, sab_r), din_a * din_b, dout_a * dout_b)

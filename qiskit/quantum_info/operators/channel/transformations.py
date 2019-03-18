@@ -328,20 +328,19 @@ def _superop_to_ptm(data, input_dim, output_dim):
     return _transform_to_pauli(data, num_qubits)
 
 
-def _bipartite_tensor(mat1, mat2, front=False, shape1=None, shape2=None):
-    """Tensor product to bipartite matrices and reravel indicies.
+def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
+    """Tensor product (A ⊗ B) to bipartite matrices and reravel indicies.
 
     This is used for tensor product of superoperators and Choi matrices.
 
     Args:
         mat1 (matrix_like): a bipartite matrix A
         mat2 (matrix_like): a bipartite matrix B
-        front (bool): If False return (B ⊗ A) if True return (A ⊗ B) [Default: False]
         shape1 (tuple): bipartite-shape for matrix A (a0, a1, a2, a3)
         shape2 (tuple): bipartite-shape for matrix B (b0, b1, b2, b3)
 
     Returns:
-        np.array: a bipartite matrix for reravel(a ⊗ b) or  reravel(b ⊗ a).
+        np.array: a bipartite matrix for reravel(A ⊗ B).
 
     Raises:
         QiskitError: if input matrices are wrong shape.
@@ -369,11 +368,7 @@ def _bipartite_tensor(mat1, mat2, front=False, shape1=None, shape2=None):
             shape2[2] * shape2[3] != dim_b1:
         raise QiskitError("Invalid shape_b")
 
-    if front:
-        # Return A ⊗ B
-        return _reravel(mat1, mat2, shape1, shape2)
-    # Return B ⊗ A
-    return _reravel(mat2, mat1, shape2, shape1)
+    return _reravel(mat1, mat2, shape1, shape2)
 
 
 def _reravel(mat1, mat2, shape1, shape2):

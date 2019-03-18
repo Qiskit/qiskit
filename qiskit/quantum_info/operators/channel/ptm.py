@@ -76,10 +76,10 @@ class PTM(QuantumChannel):
                 self._input_dim)
 
     def evolve(self, state):
-        """Apply the channel to a quantum state.
+        """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): A statevector or density matrix.
+            state (quantum_state like): The input statevector or density matrix.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.
@@ -87,13 +87,21 @@ class PTM(QuantumChannel):
         return SuperOp(self).evolve(state)
 
     def is_cptp(self):
-        """Test if channel completely-positive and trace preserving (CPTP)"""
+        """Return True if completely-positive trace-preserving."""
         # We convert to the Choi representation to check if CPTP
         tmp = Choi(self)
         return tmp.is_cptp()
 
     def conjugate(self, inplace=False):
-        """Return the conjugate channel"""
+        """Return the conjugate of the  QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the conjugate of the quantum channel as a PTM object.
+        """
         # Since conjugation is basis dependent we transform
         # to the SuperOp representation to compute the
         # conjugate channel
@@ -105,7 +113,15 @@ class PTM(QuantumChannel):
         return tmp
 
     def transpose(self, inplace=False):
-        """Return the transpose channel"""
+        """Return the transpose of the QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the transpose of the quantum channel as a PTM object.
+        """
         # Since conjugation is basis dependent we transform
         # to the SuperOp representation to compute the
         # conjugate channel
@@ -116,23 +132,38 @@ class PTM(QuantumChannel):
             self._output_dim = tmp._output_dim
         return tmp
 
-    def compose(self, other, inplace=False, front=False):
-        """Return PTM for the composition channel B(A(input))
+    def adjoint(self, inplace=False):
+        """Return the adjoint of the QuantumChannel.
 
         Args:
-            other (QuantumChannel): A quantum channel representation object
-            inplace (bool): If True modify the current object inplace [default: False]
-            front (bool): If True compose in reverse order A(B(input)) [default: False]
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
 
         Returns:
-            PTM: The PTM for the composition channel.
+            PTM: the adjoint of the quantum channel as a PTM object.
+        """
+        return super().adjoint(inplace=inplace)
+
+    def compose(self, other, inplace=False, front=False):
+        """Return the composition channel self∘other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+            front (bool): If False compose in standard order other(self(input))
+                          otherwise compose in reverse order self(other(input))
+                          [default: False]
+
+        Returns:
+            PTM: The composition channel as a PTM object.
 
         Raises:
-            QiskitError: if other is not a PTM object
-            QiskitError: if dimensions don't match.
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
         """
         if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('Other is not a channel rep')
+            raise QiskitError('other is not a QuantumChannel subclass')
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
             raise QiskitError(
@@ -164,48 +195,75 @@ class PTM(QuantumChannel):
             return self
         return PTM(np.dot(other.data, self._data), input_dim, output_dim)
 
-    def tensor(self, other, inplace=False, front=False):
-        """Return PTM for the tensor product channel.
+    def power(self, n, inplace=False):
+        """Return the compose of a QuantumChannel with itself n times.
 
         Args:
-            other (QuantumChannel): A quantum channel representation object
-            inplace (bool): If True modify the current object inplace [default: False]
-            front (bool): If False return (other ⊗ self),
-                          if True return (self ⊗ other) [Default: False]
+            n (int): the number of times to compose with self (n>0).
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+
         Returns:
-            PTM: The PTM for the composition channel.
+            PTM: the n-times composition channel as a PTM object.
 
         Raises:
-            QiskitError: if b is not a PTM object
+            QiskitError: if the input and output dimensions of the
+            QuantumChannel are not equal, or the power is not a positive
+            integer.
         """
-        # Convert other to PTM
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('Other is not a channel rep')
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        # Combined channel dimensions
-        a_in, a_out = self.dims
-        b_in, b_out = other.dims
-        input_dim = a_in * b_in
-        output_dim = a_out * b_out
-        if front:
-            data = np.kron(self._data, other.data)
-        else:
-            data = np.kron(other.data, self._data)
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        # return new object
-        return PTM(data, input_dim, output_dim)
+        return super().power(n, inplace=inplace)
+
+    def tensor(self, other, inplace=False):
+        """Return the tensor product channel self ⊗ other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the tensor product channel self ⊗ other as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass.
+        """
+        return self._tensor_product(other, inplace=inplace, reverse=False)
+
+    def expand(self, other, inplace=False):
+        """Return the tensor product channel other ⊗ self.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the tensor product channel other ⊗ self as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass.
+        """
+        return self._tensor_product(other, inplace=inplace, reverse=True)
 
     def add(self, other, inplace=False):
-        """Add another channel"""
+        """Return the QuantumChannel self + other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the linear addition self + other as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
         if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('Other is not a channel rep')
+            raise QiskitError('other is not a QuantumChannel subclass')
         if self.dims != other.dims:
-            raise QiskitError("Channel dimensions are not equal")
+            raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, PTM):
             other = PTM(other)
         if inplace:
@@ -215,11 +273,24 @@ class PTM(QuantumChannel):
         return PTM(self._data + other.data, input_dim, output_dim)
 
     def subtract(self, other, inplace=False):
-        """Subtract another PTM"""
+        """Return the QuantumChannel self - other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the linear subtraction self - other as PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
         if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('Other is not a channel rep')
+            raise QiskitError('other is not a QuantumChannel subclass')
         if self.dims != other.dims:
-            raise QiskitError("Channel dimensions are not equal")
+            raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, PTM):
             other = PTM(other)
         if inplace:
@@ -229,11 +300,60 @@ class PTM(QuantumChannel):
         return PTM(self._data - other.data, input_dim, output_dim)
 
     def multiply(self, other, inplace=False):
-        """Multiple by a scalar"""
+        """Return the QuantumChannel self + other.
+
+        Args:
+            other (complex): a complex number
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            PTM: the scalar multiplication other * self as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a valid scalar.
+        """
         if not isinstance(other, Number):
-            raise QiskitError("Not a number")
+            raise QiskitError("other is not a number")
         if inplace:
             self._data *= other
             return self
         input_dim, output_dim = self.dims
         return PTM(other * self._data, input_dim, output_dim)
+
+    def _tensor_product(self, other, inplace=False, reverse=False):
+        """Return the tensor product channel.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [default: False]
+            reverse (bool): If False return self ⊗ other, if True return
+                            if True return (other ⊗ self) [Default: False
+        Returns:
+            PTM: the tensor product channel as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass.
+        """
+        # Convert other to PTM
+        if not issubclass(other.__class__, QuantumChannel):
+            raise QiskitError('other is not a QuantumChannel subclass')
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        # Combined channel dimensions
+        a_in, a_out = self.dims
+        b_in, b_out = other.dims
+        input_dim = a_in * b_in
+        output_dim = a_out * b_out
+        if reverse:
+            data = np.kron(other.data, self._data)
+        else:
+            data = np.kron(self._data, other.data)
+        if inplace:
+            self._data = data
+            self._input_dim = input_dim
+            self._output_dim = output_dim
+            return self
+        # return new object
+        return PTM(data, input_dim, output_dim)

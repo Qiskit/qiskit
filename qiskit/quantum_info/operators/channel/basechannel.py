@@ -80,44 +80,71 @@ class QuantumChannel(ABC):
         return self.__class__(self._data, self._input_dim, self._output_dim)
 
     @abstractmethod
+    def is_cptp(self):
+        """Return True if completely-positive trace-preserving."""
+        pass
+
+    @abstractmethod
     def evolve(self, state):
-        """Apply the channel to a quantum state.
+        """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (quantum_state like): A statevector or density matrix.
 
         Returns:
-            A density matrix.
+            QuantumState: the output quantum state.
         """
         pass
 
     @abstractmethod
-    def is_cptp(self):
-        """Check if channel is completely-positive trace-preserving."""
-        pass
-
-    @abstractmethod
     def conjugate(self, inplace=False):
-        """Return the conjugate channel"""
+        """Return the conjugate of the  QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            QuantumChannel: the conjugate of the quantum channel.
+        """
         pass
 
     @abstractmethod
     def transpose(self, inplace=False):
-        """Return the transpose channel"""
+        """Return the transpose of the QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            QuantumChannel: the transpose of the quantum channel.
+        """
         pass
 
     def adjoint(self, inplace=False):
-        """Return the adjoint channel"""
+        """Return the adjoint of the QuantumChannel.
+
+        Args:
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            QuantumChannel: the adjoint of the quantum channel.
+        """
         return self.conjugate(inplace=inplace).transpose(inplace=inplace)
 
     @abstractmethod
     def compose(self, other, inplace=False, front=False):
-        """Return the composition channel.
+        """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): A quantum channel representation object
-            inplace (bool): If True modify the current object inplace [default: False]
-            front (bool): If True compose in reverse order A(B(input)) [default: False]
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+            front (bool): If False compose in standard order other(self(input))
+                          otherwise compose in reverse order self(other(input))
+                          [default: False]
 
         Returns:
             QuantumChannel: the composition channel.
@@ -125,21 +152,49 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def tensor(self, other, inplace=False, front=False):
-        """Return the tensor product channel.
+    def tensor(self, other, inplace=False):
+        """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): A quantum channel representation object
-            inplace (bool): If True modify the current object inplace [default: False]
-            front (bool): If False return (other ⊗ self),
-                          if True return (self ⊗ other) [Default: False]
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+
         Returns:
-            QuantumChannel: the tensor product channel.
+            QuantumChannel: the tensor product channel self ⊗ other.
+        """
+        pass
+
+    @abstractmethod
+    def expand(self, other, inplace=False):
+        """Return the tensor product channel other ⊗ self.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+
+        Returns:
+            QuantumChannel: the tensor product channel other ⊗ self.
         """
         pass
 
     def power(self, n, inplace=False):
-        """ Rreturn composition of Channel with itself n times."""
+        """Return the compose of a QuantumChannel with itself n times.
+
+        Args:
+            n (int): the number of times to compose with self (n>0).
+            inplace (bool): If True modify the current object inplace
+                            [Default: False]
+
+        Returns:
+            QuantumChannel: the n-times composition channel.
+
+        Raises:
+            QiskitError: if the input and output dimensions of the
+            QuantumChannel are not equal, or the power is not a positive
+            integer.
+        """
         if not isinstance(n, int) or n < 1:
             raise QiskitError("Can only power with positive integer powers.")
         if self._input_dim != self._output_dim:
@@ -161,17 +216,55 @@ class QuantumChannel(ABC):
 
     @abstractmethod
     def add(self, other, inplace=False):
-        """Add another QuantumChannel"""
+        """Return the QuantumChannel self + other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            QuantumChannel: the linear addition self + other.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
         pass
 
     @abstractmethod
     def subtract(self, other, inplace=False):
-        """Subtract another QuantumChannel"""
+        """Return the QuantumChannel self - other.
+
+        Args:
+            other (QuantumChannel): a quantum channel subclass
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            QuantumChannel: the linear subtraction self - other.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
         pass
 
     @abstractmethod
     def multiply(self, other, inplace=False):
-        """Multiple by a scalar"""
+        """Return the QuantumChannel self + other.
+
+        Args:
+            other (complex): a complex number
+            inplace (bool): If True modify the current object inplace
+                           [Default: False]
+
+        Returns:
+            QuantumChannel: the scalar multiplication other * self.
+
+        Raises:
+            QiskitError: if other is not a valid scalar.
+        """
         pass
 
     def _check_state(self, state):
@@ -212,6 +305,12 @@ class QuantumChannel(ABC):
 
     def __ipow__(self, n):
         return self.power(n, inplace=True)
+
+    def __xor__(self, other):
+        return self.tensor(other)
+
+    def __ixor__(self, other):
+        return self.tensor(other, inplace=True)
 
     def __mul__(self, other):
         return self.multiply(other)
