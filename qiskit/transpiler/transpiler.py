@@ -58,25 +58,14 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         return_form_is_single = True
 
     # Check for valid parameters for the experiments.
-    dev_qubits = None
     basis_gates = basis_gates or backend.configuration().basis_gates
     if coupling_map:
         coupling_map = coupling_map
     elif backend:
-        # This needs to be changed not to allow a fall back to None.
-        # This has to be here otherwise tests will fail until Aer gets
-        # updates, but I cannot update Aer until the all-to-all check
-        # is in place.
+        # This needs to be removed once Aer 0.2 is out
         coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-        dev_qubits = backend.configuration().n_qubits
     else:
         coupling_map = None
-
-    # Check if coupling_map is all to all
-    # If so, set coupling_map = None which was old way for simulators
-    if coupling_map and dev_qubits:
-        if len(coupling_map) == dev_qubits*(dev_qubits-1):
-            coupling_map = None
 
     if not basis_gates:
         raise TranspilerError('no basis_gates or backend to compile to')

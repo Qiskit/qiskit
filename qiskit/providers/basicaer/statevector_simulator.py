@@ -35,12 +35,6 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
-    CMAP = []
-    for i in range(min(24, MAX_QUBITS_MEMORY)):
-        for j in range(min(24, MAX_QUBITS_MEMORY)):
-            if i != j:
-                CMAP.append([i, j])
-
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
         'backend_version': '1.0.0',
@@ -52,7 +46,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'open_pulse': False,
         'memory': True,
         'max_shots': 65536,
-        'coupling_map': CMAP,
+        'coupling_map': None,
         'description': 'A Python statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
         'gates': [

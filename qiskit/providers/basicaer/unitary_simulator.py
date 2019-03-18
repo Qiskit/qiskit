@@ -48,12 +48,6 @@ class UnitarySimulatorPy(BaseBackend):
 
     MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
-    CMAP = []
-    for i in range(min(24, MAX_QUBITS_MEMORY)):
-        for j in range(min(24, MAX_QUBITS_MEMORY)):
-            if i != j:
-                CMAP.append([i, j])
-
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
         'backend_version': '1.0.0',
@@ -65,7 +59,7 @@ class UnitarySimulatorPy(BaseBackend):
         'open_pulse': False,
         'memory': False,
         'max_shots': 65536,
-        'coupling_map': CMAP,
+        'coupling_map': None,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
         'gates': [
