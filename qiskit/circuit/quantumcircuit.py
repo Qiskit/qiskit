@@ -253,18 +253,15 @@ class QuantumCircuit:
         for clbit in cargs:
             clbit[0].check_range(clbit[1])
 
-    def to_gate(self):
-        """Create a Gate out of this circuit, if conditions are met.
+    def to_instruction(self):
+        """Create an Instruction out of this circuit.
 
         Returns:
-            Gate: a composite gate encapsulating this circuit
+            Instruction: a composite instruction encapsulating this circuit
                 (can be decomposed back)
-
-        Raises:
-            QiskitError: if circuit is non-reversible
         """
-        from qiskit.converters import circuit_to_gate
-        return circuit_to_gate(self)
+        from qiskit.converters.circuit_to_instruction import circuit_to_instruction
+        return circuit_to_instruction(self)
 
     def decompose(self):
         """Call a decomposition pass on this circuit,

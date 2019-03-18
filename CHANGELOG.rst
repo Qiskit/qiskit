@@ -53,7 +53,7 @@ Added
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
 - Added new properties to an Instruction:
-  ``num_qubits``, ``num_clbits``, ``is_reversible`` (#1816).
+  ``num_qubits``, ``num_clbits`` (#1816).
 - Added a ``QuantumCircuit.append`` public method for appending arbitrary instructions
   to some qubits and clbits in the circuit (#1816).
 - Added an ``Instruction.definition`` property that defines a composite instruction
@@ -108,7 +108,7 @@ Changed
   of virtual circuit qubits to physical qubits as defined by the list of integers (#1946).
 - Instructions no longer have context about where they are in a circuit. Instead,
   the circuit keeps this context. So Instructions are now light-weight and only
-  have a name, num_qubits, num_clbits, params and is_reversible flag (#1816).
+  have a name, num_qubits, num_clbits and params (#1816).
 - The old syntax for attaching a gate to the circuit then modifying it is no longer
   supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``.
   Instead, you must first modify the gate then attach it (#1816).

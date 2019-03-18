@@ -67,7 +67,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
-        initialize_gate = disentangling_circuit.to_gate().inverse()
+        initialize_gate = disentangling_circuit.to_instruction().inverse()
 
         q = QuantumRegister(self.num_qubits)
         initialize_circuit = QuantumCircuit(q)
@@ -102,8 +102,8 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
             rz_mult = self._multiplex(RZGate, phis)
             ry_mult = self._multiplex(RYGate, thetas)
-            circuit.append(rz_mult.to_gate(), q[i:self.num_qubits])
-            circuit.append(ry_mult.to_gate(), q[i:self.num_qubits])
+            circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
+            circuit.append(ry_mult.to_instruction(), q[i:self.num_qubits])
         return circuit
 
     @staticmethod
@@ -213,7 +213,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         # recursive step on half the angles fulfilling the above assumption
         multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)])
-        circuit.append(multiplex_1.to_gate(), q[0:-1])
+        circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
         circuit.append(CnotGate(), [msb, lsb])
@@ -223,9 +223,9 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         # second lower-level multiplex)
         multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):])
         if list_len > 1:
-            circuit.append(multiplex_2.to_gate().reverse(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction().reverse(), q[0:-1])
         else:
-            circuit.append(multiplex_2.to_gate(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
         circuit.append(CnotGate(), [msb, lsb])

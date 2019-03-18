@@ -37,14 +37,13 @@ from qiskit.circuit.classicalregister import ClassicalRegister
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, is_reversible=True):
+    def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instructions's clbit width
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
-            is_reversible (bool): whether the instruction can be inverted
         Raises:
             QiskitError: when the register is not in the correct format.
         """
@@ -85,15 +84,13 @@ class Instruction:
                                   "{1}".format(type(single_param), name))
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
         self.control = None
-        # flag to keep track of gate reversibility
-        self.is_reversible = is_reversible
-        if self.is_reversible and num_clbits > 0:
-            raise QiskitError("instruction %s cannot be reversible and "
-                              "act on classical bits." % self.name)
+        # list of instructions (and their contexts) that this instruction is composed of
+        # self.definition=None means opaque or fundamental
+        self._definition = None
 
     def __eq__(self, other):
-        """Two instructions are the same if they have the same name and same
-        params.
+        """Two instructions are the same if they have the same name,
+        same dimensions, and same params.
 
         Args:
             other (instruction): other instruction
@@ -103,11 +100,72 @@ class Instruction:
         """
         res = False
         if type(self) is type(other) and \
-                self.name == other.name and (self.params == other.params or
-                                             [float(param) for param in other.params] == [
-                                                 float(param) for param in self.params]):
+                self.name == other.name and \
+                self.num_qubits == other.num_qubits and \
+                self.num_clbits == other.num_clbits and \
+                (self.params == other.params or
+                 [float(p) for p in self.params] == [float(p) for p in other.params]):
             res = True
         return res
+
+    def _define(self):
+        """Populates self.definition with a decomposition of this gate."""
+        pass
+
+    @property
+    def definition(self):
+        """Return definition in terms of other basic gates."""
+        if self._definition is None:
+            self._define()
+        return self._definition
+
+    @definition.setter
+    def definition(self, array):
+        """Set matrix representation"""
+        self._definition = array
+
+    def reverse(self):
+        """For a composite gate, reverse the order of sub-gates.
+
+        This is done by recursively reversing all sub-gates. It does
+        not invert any gate.
+
+        Returns:
+            Gate: a fresh gate with sub-gates reversed
+        """
+        if not self._definition:
+            return self.copy()
+
+        reverse_inst = self.copy(name=self.name+'_reverse')
+        reverse_inst.definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            reverse_inst._definition.append((inst.reverse(), qargs, cargs))
+        return reverse_inst
+
+    def inverse(self):
+        """Invert this instruction.
+
+        If the instruction is composite (i.e. has a definition),
+        then its definition will be recursively inverted.
+
+        Special instructions inheriting from Instruction can
+        implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+
+        Returns:
+            Instruction: a fresh instruction for the inverse
+
+        Raises:
+            QiskitError: if the instruction is not composite
+                and an inverse has not been implemented for it.
+        """
+        if not self.definition:
+            raise NotImplementedError("inverse() not implemented for %s." %
+                                      self.name)
+        inverse_gate = self.copy(name=self.name+'_dg')
+        inverse_gate._definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+        return inverse_gate
 
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""

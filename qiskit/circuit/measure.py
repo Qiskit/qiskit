@@ -18,7 +18,7 @@ class Measure(Instruction):
 
     def __init__(self):
         """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [], is_reversible=False)
+        super().__init__("measure", 1, 1, [])
 
 
 @_op_expand(2, broadcastable=[True, False])
