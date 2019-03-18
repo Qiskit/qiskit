@@ -7,9 +7,8 @@
 
 """ Detects when the DAG reached a fixed point (it's not modified anymore)
 """
-from collections import defaultdict
 from qiskit.transpiler.basepasses import AnalysisPass
-from copy import copy
+from copy import deepcopy
 
 class DAGFixedPoint(AnalysisPass):
     """ A dummy analysis pass that checks if the DAG a fixed point. The results is saved
@@ -21,4 +20,4 @@ class DAGFixedPoint(AnalysisPass):
         else:
             self.property_set['dag_fixed_point'] = self.property_set['dag_previous_value'] == dag
 
-        self.property_set['dag_previous_value'] = copy(dag)
+        self.property_set['dag_previous_value'] = deepcopy(dag)

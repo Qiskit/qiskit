@@ -24,14 +24,13 @@ class TestFixedPointPass(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         pass_ = DAGFixedPoint()
-        self.assertIsNone(pass_.property_set['dag_fixed_point'])
         pass_.run(dag)
         self.assertFalse(pass_.property_set['dag_fixed_point'])
         pass_.run(dag)
         self.assertTrue(pass_.property_set['dag_fixed_point'])
 
     def test_nonempty_dag_false(self):
-        """Test the dag fixed point of a non-empty dag.
+        """Test the dag false fixed point of a non-empty dag.
         """
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
@@ -39,14 +38,12 @@ class TestFixedPointPass(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         dag = circuit_to_dag(circuit)
 
-        pass_1 = DAGFixedPoint()
-        self.assertIsNone(pass_1.property_set['dag_fixed_point'])
-        pass_1.run(dag)
-        self.assertFalse(pass_1.property_set['dag_fixed_point'])
+        pass_ = DAGFixedPoint()
+        pass_.run(dag)
+        self.assertFalse(pass_.property_set['dag_fixed_point'])
         dag.remove_all_ops_named('h')
-        pass_2 = DAGFixedPoint()
-        pass_2.run(dag)
-        self.assertFalse(pass_2.property_set['dag_fixed_point'])
+        pass_.run(dag)
+        self.assertFalse(pass_.property_set['dag_fixed_point'])
 
 if __name__ == '__main__':
     unittest.main()
