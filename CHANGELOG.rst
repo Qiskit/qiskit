@@ -52,7 +52,6 @@ Added
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
 
-
 Changed
 -------
 
@@ -91,7 +90,6 @@ Changed
   rest of spec-defined entities. (#1909).
 - The rzz gate is now represented as a line when printed in text (#1957).
 - Text drawer has support for multi-q gates (#1939).
-
 
 Deprecated
 ----------
