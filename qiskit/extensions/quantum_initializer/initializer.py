@@ -223,7 +223,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         # second lower-level multiplex)
         multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):])
         if list_len > 1:
-            circuit.append(multiplex_2.to_instruction().reverse(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction().mirror(), q[0:-1])
         else:
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 

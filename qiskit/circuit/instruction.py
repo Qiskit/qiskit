@@ -124,14 +124,14 @@ class Instruction:
         """Set matrix representation"""
         self._definition = array
 
-    def reverse(self):
-        """For a composite gate, reverse the order of sub-gates.
+    def mirror(self):
+        """For a composite instruction, reverse the order of sub-gates.
 
-        This is done by recursively reversing all sub-gates. It does
-        not invert any gate.
+        This is done by recursively mirroring all sub-instructions.
+        It does not invert any gate.
 
         Returns:
-            Gate: a fresh gate with sub-gates reversed
+            Instruction: a fresh gate with sub-gates reversed
         """
         if not self._definition:
             return self.copy()
@@ -139,7 +139,7 @@ class Instruction:
         reverse_inst = self.copy(name=self.name+'_reverse')
         reverse_inst.definition = []
         for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.reverse(), qargs, cargs))
+            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
         return reverse_inst
 
     def inverse(self):
