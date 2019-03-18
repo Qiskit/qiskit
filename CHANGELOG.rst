@@ -35,6 +35,8 @@ Added
 - Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
   different output stream 
+- Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
+  contain a dictionary of versions for all installed qiskit elements. (#1885).
 - Added a ``RunConfig`` object for configurations related to running an
   experiment (e.g. shots, memory) (#1856)
 - Added a ``TranspileConfig`` object for configurations related to transforming
