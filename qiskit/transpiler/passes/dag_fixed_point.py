@@ -15,16 +15,10 @@ class DAGFixedPoint(AnalysisPass):
     """ A dummy analysis pass that checks if the DAG a fixed point. The results is saved
         in property_set['dag_fixed_point'] as a boolean.
     """
-
-    def __init__(self):
-        super().__init__()
-        self._previous_value = None
-
     def run(self, dag):
-        if self.property_set['dag_fixed_point'] is None:
-            self.property_set['dag_fixed_point'] = defaultdict(lambda: False)
+        if self.property_set['dag_previous_value'] is None:
+            self.property_set['dag_fixed_point'] = False
+        else:
+            self.property_set['dag_fixed_point'] = self.property_set['dag_previous_value'] == dag
 
-        if self._previous_value is not None:
-            self.property_set['dag_fixed_point'] = self._previous_value == dag
-
-        self._previous_value = copy(dag)
+        self.property_set['dag_previous_value'] = copy(dag)
