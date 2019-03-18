@@ -63,6 +63,10 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
     if coupling_map:
         coupling_map = coupling_map
     elif backend:
+        # This needs to be changed not to allow a fall back to None.
+        # This has to be here otherwise tests will fail until Aer gets
+        # updates, but I cannot update Aer until the all-to-all check
+        # is in place.
         coupling_map = getattr(backend.configuration(), 'coupling_map', None)
         dev_qubits = backend.configuration().n_qubits
     else:
