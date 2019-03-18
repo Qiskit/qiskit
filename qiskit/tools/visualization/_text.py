@@ -865,6 +865,7 @@ class Layer:
 
     def _set_multibox(self, wire_type, bits, label, top_connect=None):
         # pylint: disable=invalid-name
+        bits = list(bits)
         if wire_type == "cl":
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
             bits.sort(key=self.cregs.index)
