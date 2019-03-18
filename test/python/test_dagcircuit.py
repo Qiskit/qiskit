@@ -245,6 +245,19 @@ class TestDagOperations(QiskitTestCase):
                     ('cr[1]', [])]
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
+    def test_dag_ops_on_wire(self):
+        """ Test that listing the gates on a qubit/classical bit gets the correct gates"""
+
+        qbit = self.dag.qubits()[0]
+        self.assertEqual([1, 2], list(self.dag.ops_on_wire(qbit)))
+
+        cbit = self.dag.clbits()[0]
+        self.assertEqual([7, 8], list(self.dag.ops_on_wire(cbit)))
+
+        (reg, _) = qbit
+        with self.assertRaises(DAGCircuitError):
+            next(self.dag.ops_on_wire((reg, 7)))
+
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""

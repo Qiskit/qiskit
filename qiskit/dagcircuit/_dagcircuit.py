@@ -1458,6 +1458,47 @@ class DAGCircuit:
                     group_list.append(tuple(group))
         return set(group_list)
 
+    def ops_on_wire(self, wire):
+        """
+        Yields the ops that happen on a given wire
+
+        Args:
+            wire(Register, index): the wire to be looked at
+        Yield:
+             node: the successive ops on the given wire
+        Raises:
+            DAGCircuitError: if the given wire doesn't exist in the DAG
+        """
+
+        starting_node = None
+
+        # Find the starting node for this wire
+        for node_id in self.input_map.values():
+            node = self.multi_graph.node[node_id]
+            if wire == node['wire']:
+                starting_node = node_id
+                break
+
+        if not starting_node:
+            raise DAGCircuitError('The given wire %s is not present in the circuit' % str(wire))
+
+        more_nodes = True
+        while more_nodes:
+            more_nodes = False
+
+            yield starting_node
+
+            for node_id in self.successors(starting_node):
+                node = self.multi_graph.node[node_id]
+
+                # check if this node includes the given wire
+                if ('wire' in node and wire == node['wire']) or \
+                   ('qargs' in node and (wire in (node['qargs'] or node['cargs']))):
+
+                    starting_node = node_id
+                    more_nodes = True
+                    break
+
     def count_ops(self):
         """Count the occurrences of operation names.
 
