@@ -1463,7 +1463,7 @@ class DAGCircuit:
         Yields the ops that happen on a given wire
 
         Args:
-            wire(Register, index): the wire to be looked at
+            wire (Register, index): the wire to be looked at
             only_ops(Boolean): True if only the ops nodes are wanted
             otherwise all nodes are returned
         Yield:
