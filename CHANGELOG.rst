@@ -33,7 +33,9 @@ Added
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
-  different output stream
+  different output stream 
+- Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
+  contain a dictionary of versions for all installed qiskit elements. (#1885).
 - Added a ``RunConfig`` object for configurations related to running an
   experiment (e.g. shots, memory) (#1856)
 - Added a ``TranspileConfig`` object for configurations related to transforming
@@ -47,7 +49,8 @@ Added
   and later as a wrapper of ``execute_pulses()``.
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
-  
+- Register indexing supports negative indices (#1875)
+
 Changed
 -------
 
@@ -82,6 +85,8 @@ Changed
   (#1333)
 - The ``Qobj`` classes have been reimplemented using models and schemas, as the
   rest of spec-defined entities. (#1909).
+- The rzz gate is now represented as a line when printed in text (#1957).
+- Text drawer has support for multi-q gates (#1939).
 
 Deprecated
 ----------
