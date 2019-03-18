@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 # Copyright 2018, IBM.
@@ -16,8 +15,10 @@ from qiskit.circuit import QuantumRegister
 
 def dag_to_circuit(dag):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
+
     Args:
         dag (DAGCircuit): the input dag.
+
     Return:
         QuantumCircuit: the circuit representing the input dag.
     """
