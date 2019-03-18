@@ -50,7 +50,7 @@ Added
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
-- Added ``ops_on_wire(wire)`` to DAGCircuit which returns an iterator over all the
+- Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
 
 Changed
