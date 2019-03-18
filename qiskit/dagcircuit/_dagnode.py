@@ -107,10 +107,6 @@ class DAGNode:
 
             return copy_self == copy_other
 
-        # Comparing the dicts only checks they are the same type not the same obj
-        if 'op' in self.data_dict and 'op' in other.data_dict and not id(self.op) == id(other.op):
-            return False
-
         return self.data_dict == other.data_dict
 
     def isomorphic(self, other):

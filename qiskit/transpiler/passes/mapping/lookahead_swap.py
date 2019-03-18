@@ -119,8 +119,7 @@ class LookaheadSwap(TransformationPass):
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
         for gate in mapped_gates:
-            if gate.type == 'op':
-                mapped_dag.apply_operation_back(op=gate.op)
+            mapped_dag.apply_operation_back(op=gate.op)
 
         return mapped_dag
 

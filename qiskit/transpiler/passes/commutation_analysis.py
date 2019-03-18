@@ -71,7 +71,11 @@ class CommutationAnalysis(AnalysisPass):
                 if not self.property_set['commutation_set'][wire_name]:
                     self.property_set['commutation_set'][wire_name].append([node])
 
-                if node not in self.property_set['commutation_set'][wire_name][-1]:
+                # must be the exact same objects whereas == is True
+                # for semantically equivalent objects
+                id_for_nodes = [id(x) for x in self.property_set['commutation_set'][wire_name][-1]]
+
+                if id(node) not in id_for_nodes:
                     test_node = self.property_set['commutation_set'][wire_name][-1][-1]
                     if _commute(node, test_node):
                         self.property_set['commutation_set'][wire_name][-1].append(node)

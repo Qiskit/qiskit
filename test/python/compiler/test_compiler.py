@@ -603,7 +603,7 @@ class TestCompiler(QiskitTestCase):
                                 coupling_map=cmap)
         meas_nodes = out_dag.named_nodes('measure')
         for n in meas_nodes:
-            is_last_measure = all([after_measure.node_id in out_dag.output_map.values()
+            is_last_measure = all([after_measure._node_id in out_dag.output_map.values()
                                    for after_measure in out_dag.quantum_successors(n)])
             self.assertTrue(is_last_measure)
 

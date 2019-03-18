@@ -90,7 +90,7 @@ class CXDirection(TransformationPass):
                     subdag.apply_operation_front(HGate(control))
 
                     # Flips the CX
-                    cnot_node.op.qargs[0], cnot_node.op.qargs[1] = target, control
+                    cnot_node.qargs[0], cnot_node.qargs[1] = target, control
 
             new_dag.extend_back(subdag)
 
