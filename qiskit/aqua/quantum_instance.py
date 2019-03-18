@@ -20,12 +20,12 @@ import logging
 from qiskit import __version__ as terra_version
 from qiskit.compiler.run_config import RunConfig
 from qiskit.mapper import Layout
-from qiskit.aqua.utils import compile_and_run_circuits
-from qiskit.aqua.utils.backend_utils import (is_aer_provider,
-                                             is_ibmq_provider,
-                                             is_statevector_backend,
-                                             is_simulator_backend,
-                                             is_local_backend)
+from .utils import compile_and_run_circuits, CircuitCache
+from .utils.backend_utils import (is_aer_provider,
+                                  is_ibmq_provider,
+                                  is_statevector_backend,
+                                  is_simulator_backend,
+                                  is_local_backend)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class QuantumInstance:
                  basis_gates=None, coupling_map=None,
                  initial_layout=None, pass_manager=None, seed_mapper=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
-                 circuit_cache=None, skip_qobj_validation=False):
+                 circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True, skip_qobj_validation=True):
         """Constructor.
 
         Args:
@@ -67,7 +67,9 @@ class QuantumInstance:
             noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model for simulator
             timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
             wait (float, optional): seconds between queries to result
-            circuit_cache (CircuitCache, optional): A CircuitCache to use when calling compile_and_run_circuits
+            circuit_caching (bool, optional): USe CircuitCache when calling compile_and_run_circuits
+            cache_file(str, optional): filename into which to store the cache as a pickle file
+            skip_qobj_deepcopy (bool, optional): Reuses the same qobj object over and over to avoid deepcopying
             skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
         """
         self._backend = backend
@@ -130,7 +132,7 @@ class QuantumInstance:
 
         self._shared_circuits = False
         self._circuit_summary = False
-        self._circuit_cache = circuit_cache
+        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy, cache_file=cache_file) if circuit_caching else None
         self._skip_qobj_validation = skip_qobj_validation
 
         logger.info(self)
