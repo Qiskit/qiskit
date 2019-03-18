@@ -1458,12 +1458,14 @@ class DAGCircuit:
                     group_list.append(tuple(group))
         return set(group_list)
 
-    def ops_on_wire(self, wire):
+    def nodes_on_wire(self, wire, only_ops=False):
         """
         Yields the ops that happen on a given wire
 
         Args:
             wire(Register, index): the wire to be looked at
+            only_ops(Boolean): True if only the ops nodes are wanted
+            otherwise all nodes are returned
         Yield:
              node: the successive ops on the given wire
         Raises:
@@ -1486,7 +1488,14 @@ class DAGCircuit:
         while more_nodes:
             more_nodes = False
 
-            yield starting_node
+            # allow user to just get ops on the wire - not the input/output nodes
+            if not only_ops:
+                yield starting_node
+            else:
+                nd = self.multi_graph.node[starting_node]
+
+                if nd['type'] == 'op':
+                    yield starting_node
 
             for node_id in self.successors(starting_node):
                 node = self.multi_graph.node[node_id]
