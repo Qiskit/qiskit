@@ -6,4 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Module for Pulses."""
-from .exceptions import ChannelsError, CommandsError, ScheduleError
+from .device_specification import DeviceSpecification
+from .exceptions import PulseError, ChannelsError, CommandsError, ScheduleError
+from .qubit import Qubit

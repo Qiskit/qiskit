@@ -14,7 +14,8 @@ from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 from typing import List, Union
 
-from qiskit.pulse.channels import PulseChannel, ChannelStore
+from qiskit.pulse import DeviceSpecification
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
 from qiskit.pulse.exceptions import ScheduleError
 
@@ -75,7 +76,7 @@ class PulseSchedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
-                 channel_store: ChannelStore,
+                 device: DeviceSpecification,
                  name: str = None
                  ):
         """Create empty schedule.
@@ -85,7 +86,7 @@ class PulseSchedule(TimedPulseBlock):
             name:
         """
         self._name = name
-        self._channel_store = channel_store
+        self._device = device
         self._children = []
 
     @property
@@ -93,8 +94,8 @@ class PulseSchedule(TimedPulseBlock):
         return self._name
 
     @property
-    def channels(self) -> ChannelStore:
-        return self._channel_store
+    def device(self) -> DeviceSpecification:
+        return self._device
 
     def append(self, command: PulseCommand, channel: PulseChannel):
         """Append a new pulse command on a channel at the timing
@@ -139,8 +140,8 @@ class PulseSchedule(TimedPulseBlock):
             block:
         """
         if isinstance(block, PulseSchedule):
-            if self._channel_store is not block._channel_store:
-                raise ScheduleError("Additional block must have the same channels as self")
+            if self._device is not block._device:
+                raise ScheduleError("Additional block must have the same device as self")
 
         if self._is_occupied_time(block):
             logger.warning("A pulse block is not added due to the occupied timing: %s", str(block))

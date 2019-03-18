@@ -11,7 +11,20 @@ Exception for errors raised by pulse module.
 from qiskit.exceptions import QiskitError
 
 
-class ChannelsError(QiskitError):
+class PulseError(QiskitError):
+    """Errors raised by the pulse module."""
+
+    def __init__(self, *message):
+        """Set the error message."""
+        super().__init__(*message)
+        self.message = ' '.join(message)
+
+    def __str__(self):
+        """Return the message."""
+        return repr(self.message)
+
+
+class ChannelsError(PulseError):
     """Errors raised by the channel module."""
 
     def __init__(self, *message):
@@ -24,7 +37,7 @@ class ChannelsError(QiskitError):
         return repr(self.message)
 
 
-class CommandsError(QiskitError):
+class CommandsError(PulseError):
     """Errors raised by the commands module."""
 
     def __init__(self, *msg):
@@ -37,7 +50,7 @@ class CommandsError(QiskitError):
         return repr(self.msg)
 
 
-class ScheduleError(QiskitError):
+class ScheduleError(PulseError):
     """Errors raised by the schedule module."""
 
     def __init__(self, *msg):
