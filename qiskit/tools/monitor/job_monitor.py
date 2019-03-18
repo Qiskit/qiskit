@@ -19,20 +19,25 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.display import display    # pylint: disable=import-error
 
 
-def _text_checker(job, interval, _interval_set=False):
+def _text_checker(job, interval, _interval_set=False, quiet=False, to_err=False):
     """A text-based job status checker
 
     Args:
         job (BaseJob): The job to check.
         interval (int): The interval at which to check.
         _interval_set (bool): Was interval time set by user?
+        quiet (bool): If True, do not print status messages.
+        to_err (bool): If True, print status messages to stderr instead of stdout
+
     """
+    f = sys.stderr if to_err else sys.stdout
     status = job.status()
     msg = status.value
     prev_msg = msg
     msg_len = len(msg)
 
-    print('\r%s: %s' % ('Job Status', msg), end='')
+    if not quiet:
+        print('\r%s: %s' % ('Job Status', msg), end='', file=f)
     while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
         time.sleep(interval)
         status = job.status()
@@ -52,24 +57,28 @@ def _text_checker(job, interval, _interval_set=False):
         elif len(msg) > msg_len:
             msg_len = len(msg)
 
-        if msg != prev_msg:
-            print('\r%s: %s' % ('Job Status', msg), end='')
+        if msg != prev_msg and not quiet:
+            print('\r%s: %s' % ('Job Status', msg), end='', file=f)
             prev_msg = msg
-    print('')
+    if not quiet:
+        print('', file=f)
 
 
-def job_monitor(job, interval=None, monitor_async=False):
+def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_err=False):
     """Monitor the status of a IBMQJob instance.
 
     Args:
         job (BaseJob): Job to monitor.
         interval (int): Time interval between status queries.
         monitor_async (bool): Monitor asyncronously (in Jupyter only).
+        quiet (bool): If True, do not print status messages.
+        to_err (bool): If True, print status messages to stderr instead of stdout
 
     Raises:
         QiskitError: When trying to run async outside of Jupyter
         ImportError: ipywidgets not available for notebook.
     """
+    f = sys.stderr if to_err else sys.stdout
     if interval is None:
         _interval_set = False
         interval = 2
@@ -85,7 +94,8 @@ def job_monitor(job, interval=None, monitor_async=False):
             from qiskit.tools.jupyter.jupyter_magics import _html_checker  # pylint: disable=C0412
 
             style = "font-size:16px;"
-            header = "<p style='{style}'>Job Status: %s </p>".format(style=style)
+            header = "<p style='{style}'>Job Status: %s </p>".format(
+                style=style)
             status = widgets.HTML(value=header % job.status().value)
             display(status)
 
@@ -93,9 +103,11 @@ def job_monitor(job, interval=None, monitor_async=False):
                                                                   status, header))
             thread.start()
         else:
-            _text_checker(job, interval, _interval_set)
+            _text_checker(job, interval, _interval_set,
+                          quiet=quiet, to_err=to_err)
 
     else:
         if monitor_async:
-            raise QiskitError('monitor_async only available in Jupyter notebooks.')
-        _text_checker(job, interval, _interval_set)
+            raise QiskitError(
+                'monitor_async only available in Jupyter notebooks.')
+        _text_checker(job, interval, _interval_set, quiet=quiet, to_err=to_err)
