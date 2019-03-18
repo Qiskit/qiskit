@@ -12,8 +12,8 @@ from marshmallow.validate import Equal
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
 
-from .models import QASMQobjConfigSchema, QASMQobjExperimentSchema, QASMQobjHeaderSchema
-from .models import PulseQobjConfigSchema, PulseQobjExperimentSchema, PulseQobjHeaderSchema
+from .models import (QASMQobjConfigSchema, QASMQobjExperimentSchema, QASMQobjHeaderSchema,
+                     PulseQobjConfigSchema, PulseQobjExperimentSchema, PulseQobjHeaderSchema)
 from .utils import QobjType
 
 
