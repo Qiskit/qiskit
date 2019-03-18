@@ -256,12 +256,12 @@ class QobjPulseLibrary(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(QASMQobjInstructionSchema)
-class QASMQobjInstruction(BaseModel):
-    """Model for QASMQobjInstruction.
+@bind_schema(BaseQobjInstructionSchema)
+class QobjInstruction(BaseModel):
+    """Model for QobjInstruction.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjInstructionSchema``.
+    full description of the model, please check ``BaseQobjInstructionSchema``.
 
     Attributes:
         name (str): name of the instruction
@@ -272,9 +272,80 @@ class QASMQobjInstruction(BaseModel):
         super().__init__(**kwargs)
 
 
+@bind_schema(BaseQobjExperimentHeaderSchema)
+class QobjExperimentHeader(BaseModel):
+    """Model for QobjExperimentHeader.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``BaseQobjExperimentHeaderSchema``.
+    """
+    pass
+
+
+@bind_schema(BaseQobjExperimentConfigSchema)
+class QobjExperimentConfig(BaseModel):
+    """Model for QobjExperimentConfig.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``BaseQobjExperimentConfigSchema``.
+    """
+    pass
+
+
+@bind_schema(BaseQobjExperimentSchema)
+class QobjExperiment(BaseModel):
+    """Model for QobjExperiment.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``BaseQobjExperimentSchema``.
+
+    Attributes:
+        instructions (list[QobjInstruction]): list of instructions.
+    """
+    def __init__(self, instructions, **kwargs):
+        self.instructions = instructions
+
+        super().__init__(**kwargs)
+
+
+@bind_schema(BaseQobjConfigSchema)
+class QobjConfig(BaseModel):
+    """Model for QobjConfig.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``BaseQobjConfigSchema``.
+    """
+    pass
+
+
+@bind_schema(BaseQobjHeaderSchema)
+class QobjHeader(BaseModel):
+    """Model for QobjHeader.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``BaseQASMQobjHeaderSchema``.
+    """
+    pass
+
+
+@bind_schema(QASMQobjInstructionSchema)
+class QASMQobjInstruction(QobjInstruction):
+    """Model for QASMQobjInstruction inherit from QobjInstruction.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``QASMQobjInstructionSchema``.
+
+    Attributes:
+        name (str): name of the instruction
+    """
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name,
+                         **kwargs)
+
+
 @bind_schema(QASMQobjExperimentHeaderSchema)
-class QASMQobjExperimentHeader(BaseModel):
-    """Model for QASMQobjExperimentHeader.
+class QASMQobjExperimentHeader(QobjExperimentHeader):
+    """Model for QASMQobjExperimentHeader inherit from QobjExperimentHeader.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``QASMQobjExperimentHeaderSchema``.
@@ -283,8 +354,8 @@ class QASMQobjExperimentHeader(BaseModel):
 
 
 @bind_schema(QASMQobjExperimentConfigSchema)
-class QASMQobjExperimentConfig(BaseModel):
-    """Model for QASMQobjExperimentConfig.
+class QASMQobjExperimentConfig(QobjExperimentConfig):
+    """Model for QASMQobjExperimentConfig inherit from QobjExperimentConfig.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``QASMQobjExperimentConfigSchema``.
@@ -293,8 +364,8 @@ class QASMQobjExperimentConfig(BaseModel):
 
 
 @bind_schema(QASMQobjExperimentSchema)
-class QASMQobjExperiment(BaseModel):
-    """Model for QASMQobjExperiment.
+class QASMQobjExperiment(QobjExperiment):
+    """Model for QASMQobjExperiment inherit from QobjExperiment.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``QASMQobjExperimentSchema``.
@@ -303,14 +374,13 @@ class QASMQobjExperiment(BaseModel):
         instructions (list[QASMQobjInstruction]): list of instructions.
     """
     def __init__(self, instructions, **kwargs):
-        self.instructions = instructions
-
-        super().__init__(**kwargs)
+        super().__init__(instructions=instructions,
+                         **kwargs)
 
 
 @bind_schema(QASMQobjConfigSchema)
-class QASMQobjConfig(BaseModel):
-    """Model for QASMQobjConfig.
+class QASMQobjConfig(QobjConfig):
+    """Model for QASMQobjConfig inherit from QobjConfig.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``QASMQobjConfigSchema``.
@@ -319,8 +389,8 @@ class QASMQobjConfig(BaseModel):
 
 
 @bind_schema(QASMQobjHeaderSchema)
-class QASMQobjHeader(BaseModel):
-    """Model for QASMQobjHeader.
+class QASMQobjHeader(QobjHeader):
+    """Model for QASMQobjHeader inherit from QobjHeader.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``QASMQobjHeaderSchema``.
@@ -329,8 +399,8 @@ class QASMQobjHeader(BaseModel):
 
 
 @bind_schema(PulseQobjInstructionSchema)
-class PulseQobjInstruction(BaseModel):
-    """Model for PulseQobjInstruction.
+class PulseQobjInstruction(QobjInstruction):
+    """Model for PulseQobjInstruction inherit from QobjInstruction.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``PulseQobjInstructionSchema``.
@@ -342,15 +412,14 @@ class PulseQobjInstruction(BaseModel):
     def __init__(self, name, t0, **kwargs):
         # pylint: disable=invalid-name
 
-        self.name = name
-        self.t0 = t0
-
-        super().__init__(**kwargs)
+        super().__init__(name=name,
+                         t0=t0,
+                         **kwargs)
 
 
 @bind_schema(PulseQobjExperimentHeaderSchema)
-class PulseQobjExperimentHeader(BaseModel):
-    """Model for PulseQobjExperimentHeader.
+class PulseQobjExperimentHeader(QobjExperimentHeader):
+    """Model for PulseQobjExperimentHeader inherit from QobjExperimentHeader.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``PulseQobjExperimentHeaderSchema``.
@@ -359,8 +428,8 @@ class PulseQobjExperimentHeader(BaseModel):
 
 
 @bind_schema(PulseQobjExperimentConfigSchema)
-class PulseQobjExperimentConfig(BaseModel):
-    """Model for PulseQobjExperimentConfig.
+class PulseQobjExperimentConfig(QobjExperimentConfig):
+    """Model for PulseQobjExperimentConfig inherit from QobjExperimentConfig.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``PulseQobjExperimentConfigSchema``.
@@ -369,8 +438,8 @@ class PulseQobjExperimentConfig(BaseModel):
 
 
 @bind_schema(PulseQobjExperimentSchema)
-class PulseQobjExperiment(BaseModel):
-    """Model for PulseQobjExperiment.
+class PulseQobjExperiment(QobjExperiment):
+    """Model for PulseQobjExperiment inherit from QobjExperiment.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``PulseQobjExperimentSchema``.
@@ -379,14 +448,14 @@ class PulseQobjExperiment(BaseModel):
         instructions (list[PulseQobjInstruction]): list of instructions.
     """
     def __init__(self, instructions, **kwargs):
-        self.instructions = instructions
 
-        super().__init__(**kwargs)
+        super().__init__(instructions=instructions,
+                         **kwargs)
 
 
 @bind_schema(PulseQobjConfigSchema)
-class PulseQobjConfig(BaseModel):
-    """Model for PulseQobjConfig.
+class PulseQobjConfig(QobjConfig):
+    """Model for PulseQobjConfig inherit from QobjConfig.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``PulseQobjConfigSchema``.
@@ -403,20 +472,20 @@ class PulseQobjConfig(BaseModel):
     def __init__(self, meas_level, memory_slot_size, meas_return,
                  pulse_library, qubit_lo_freq, meas_lo_freq, rep_time,
                  **kwargs):
-        self.meas_level = meas_level
-        self.memory_slot_size = memory_slot_size
-        self.meas_return = meas_return
-        self.pulse_library = pulse_library
-        self.qubit_lo_freq = qubit_lo_freq
-        self.meas_lo_freq = meas_lo_freq
-        self.rep_time = rep_time
 
-        super().__init__(**kwargs)
+        super().__init__(meas_level=meas_level,
+                         memory_slot_size=memory_slot_size,
+                         meas_return=meas_return,
+                         pulse_library=pulse_library,
+                         qubit_lo_freq=qubit_lo_freq,
+                         meas_lo_freq=meas_lo_freq,
+                         rep_time=rep_time,
+                         **kwargs)
 
 
 @bind_schema(PulseQobjHeaderSchema)
-class PulseQobjHeader(BaseModel):
-    """Model for PulseQobjHeader.
+class PulseQobjHeader(QobjHeader):
+    """Model for PulseQobjHeader inherit from QobjHeader.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``PulseQobjHeaderSchema``.
