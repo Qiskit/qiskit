@@ -11,19 +11,16 @@ Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining
 a single gate.
 """
 
-import networkx as nx
 import numpy as np
-import sympy
-from sympy import Number as N
 
 from qiskit.mapper import MapperError
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.instruction import Instruction
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from qiskit.transpiler.passes.mapping.unroller import Unroller
+from qiskit.transpiler.passes.unroller import Unroller
 
 
 _CHOP_THRESHOLD = 1e-15
@@ -40,11 +37,12 @@ class Optimize1qGates(TransformationPass):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
-            run_qarg = dag.multi_graph.node[run[0]]["qargs"][0]
+            run_qarg = dag.node(run[0])["qargs"][0]
             right_name = "u1"
-            right_parameters = (N(0), N(0), N(0))  # (theta, phi, lambda)
+            right_parameters = (0, 0, 0)  # (theta, phi, lambda)
+
             for current_node in run:
-                node = dag.multi_graph.node[current_node]
+                node = dag.node(current_node)
                 left_name = node["name"]
                 if (node["condition"] is not None
                         or len(node["qargs"]) != 1
@@ -52,28 +50,31 @@ class Optimize1qGates(TransformationPass):
                         or left_name not in ["u1", "u2", "u3", "id"]):
                     raise MapperError("internal error")
                 if left_name == "u1":
-                    left_parameters = (N(0), N(0), node["op"].params[0])
+                    left_parameters = (0, 0, node["op"].params[0])
                 elif left_name == "u2":
-                    left_parameters = (sympy.pi / 2, node["op"].params[0], node["op"].params[1])
+                    left_parameters = (np.pi / 2, node["op"].params[0], node["op"].params[1])
                 elif left_name == "u3":
                     left_parameters = tuple(node["op"].params)
                 else:
                     left_name = "u1"  # replace id with u1
-                    left_parameters = (N(0), N(0), N(0))
+                    left_parameters = (0, 0, 0)
+                # If there are any sympy objects coming from the gate convert
+                # to numpy.
+                left_parameters = tuple([float(x) for x in left_parameters])
                 # Compose gates
                 name_tuple = (left_name, right_name)
                 if name_tuple == ("u1", "u1"):
                     # u1(lambda1) * u1(lambda2) = u1(lambda1 + lambda2)
-                    right_parameters = (N(0), N(0), right_parameters[2] +
+                    right_parameters = (0, 0, right_parameters[2] +
                                         left_parameters[2])
                 elif name_tuple == ("u1", "u2"):
                     # u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
-                    right_parameters = (sympy.pi / 2, right_parameters[1] +
+                    right_parameters = (np.pi / 2, right_parameters[1] +
                                         left_parameters[2], right_parameters[2])
                 elif name_tuple == ("u2", "u1"):
                     # u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
                     right_name = "u2"
-                    right_parameters = (sympy.pi / 2, left_parameters[1],
+                    right_parameters = (np.pi / 2, left_parameters[1],
                                         right_parameters[2] + left_parameters[2])
                 elif name_tuple == ("u1", "u3"):
                     # u1(lambda1) * u3(theta2, phi2, lambda2) =
@@ -92,10 +93,10 @@ class Optimize1qGates(TransformationPass):
                     # u2(phi1, lambda1) * u2(phi2, lambda2) =
                     #    u3(pi - lambda1 - phi2, phi1 + pi/2, lambda2 + pi/2)
                     right_name = "u3"
-                    right_parameters = (sympy.pi - left_parameters[2] -
+                    right_parameters = (np.pi - left_parameters[2] -
                                         right_parameters[1], left_parameters[1] +
-                                        sympy.pi / 2, right_parameters[2] +
-                                        sympy.pi / 2)
+                                        np.pi / 2, right_parameters[2] +
+                                        np.pi / 2)
                 elif name_tuple[1] == "nop":
                     right_name = left_name
                     right_parameters = left_parameters
@@ -105,8 +106,6 @@ class Optimize1qGates(TransformationPass):
                     # together with the qiskit.mapper.compose_u3 method.
                     right_name = "u3"
                     # Evaluate the symbolic expressions for efficiency
-                    left_parameters = tuple(map(lambda x: x.evalf(), list(left_parameters)))
-                    right_parameters = tuple(map(lambda x: x.evalf(), list(right_parameters)))
                     right_parameters = Optimize1qGates.compose_u3(left_parameters[0],
                                                                   left_parameters[1],
                                                                   left_parameters[2],
@@ -138,7 +137,7 @@ class Optimize1qGates(TransformationPass):
                 # exact and approximate rewriting.
 
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
-                if (right_parameters[0] % (2 * sympy.pi)).is_zero \
+                if np.mod(right_parameters[0], (2 * np.pi)) == 0 \
                         and right_name != "u1":
                     right_name = "u1"
                     right_parameters = (0, 0, right_parameters[1] +
@@ -147,23 +146,22 @@ class Optimize1qGates(TransformationPass):
                 # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
                 if right_name == "u3":
                     # theta = pi/2 + 2*k*pi
-                    if ((right_parameters[0] - sympy.pi / 2) % (2 * sympy.pi)).is_zero:
+                    if np.mod((right_parameters[0] - np.pi / 2), (2 * np.pi)) == 0:
                         right_name = "u2"
-                        right_parameters = (sympy.pi / 2, right_parameters[1],
+                        right_parameters = (np.pi / 2, right_parameters[1],
                                             right_parameters[2] +
-                                            (right_parameters[0] - sympy.pi / 2))
+                                            (right_parameters[0] - np.pi / 2))
                     # theta = -pi/2 + 2*k*pi
-                    if ((right_parameters[0] + sympy.pi / 2) % (2 * sympy.pi)).is_zero:
+                    if np.mod((right_parameters[0] + np.pi / 2), (2 * np.pi)) == 0:
                         right_name = "u2"
-                        right_parameters = (sympy.pi / 2, right_parameters[1] +
-                                            sympy.pi, right_parameters[2] -
-                                            sympy.pi + (right_parameters[0] +
-                                                        sympy.pi / 2))
+                        right_parameters = (np.pi / 2, right_parameters[1] +
+                                            np.pi, right_parameters[2] -
+                                            np.pi + (right_parameters[0] +
+                                                     np.pi / 2))
                 # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
-                if right_name == "u1" and (right_parameters[2] % (2 * sympy.pi)).is_zero:
+                if right_name == "u1" and np.mod(right_parameters[2], (2 * np.pi)) == 0:
                     right_name = "nop"
-                # Simplify the symbolic parameters
-                right_parameters = tuple(map(sympy.simplify, list(right_parameters)))
+
             # Replace the data of the first node in the run
             new_op = Instruction("", [], [], [])
             if right_name == "u1":
@@ -172,11 +170,9 @@ class Optimize1qGates(TransformationPass):
                 new_op = U2Gate(right_parameters[1], right_parameters[2], run_qarg)
             if right_name == "u3":
                 new_op = U3Gate(*right_parameters, run_qarg)
+            dag.node(run[0])['name'] = right_name
+            dag.node(run[0])['op'] = new_op
 
-            nx.set_node_attributes(dag.multi_graph, name='name',
-                                   values={run[0]: right_name})
-            nx.set_node_attributes(dag.multi_graph, name='op',
-                                   values={run[0]: new_op})
             # Delete the other nodes in the run
             for current_node in run[1:]:
                 dag._remove_op_node(current_node)

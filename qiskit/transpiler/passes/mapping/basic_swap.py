@@ -13,7 +13,7 @@ a cx is not in the coupling map possibilities, it inserts one or more swaps in f
 compatible.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
@@ -91,11 +91,10 @@ class BasicSwap(TransformationPass):
 
                         # create qregs
                         for qreg in current_layout.get_registers():
-                            if qreg[0] not in swap_layer.qregs.values():
-                                swap_layer.add_qreg(qreg[0])
+                            if qreg not in swap_layer.qregs.values():
+                                swap_layer.add_qreg(qreg)
 
                         # create the swap operation
-                        swap_layer.add_basis_element('swap', 2, 0, 0)
                         swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
                                                         qargs=[qubit_1, qubit_2])
 

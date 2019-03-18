@@ -804,6 +804,7 @@ class QCircuitImage:
                             or len(op['qargs']) != 1
                             or op['op'].params):
                         raise exceptions.VisualizationError("bad operation record")
+
                     if 'condition' in op and op['condition']:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")

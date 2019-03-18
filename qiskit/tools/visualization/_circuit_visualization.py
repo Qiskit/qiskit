@@ -173,7 +173,7 @@ def circuit_drawer(circuit,
     if output == 'text':
         return _text_circuit_drawer(circuit, filename=filename,
                                     line_length=line_length,
-                                    reversebits=reverse_bits,
+                                    reverse_bits=reverse_bits,
                                     plotbarriers=plot_barriers,
                                     justify=justify)
     elif output == 'latex':
@@ -192,7 +192,8 @@ def circuit_drawer(circuit,
         image = _matplotlib_circuit_drawer(circuit, scale=scale,
                                            filename=filename, style=style,
                                            plot_barriers=plot_barriers,
-                                           reverse_bits=reverse_bits)
+                                           reverse_bits=reverse_bits,
+                                           justify=justify)
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
@@ -279,7 +280,8 @@ def qx_color_scheme():
 # -----------------------------------------------------------------------------
 
 
-def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=False,
+
+def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plotbarriers=True, justify=None):
     """
     Draws a circuit using ascii art.
@@ -291,7 +293,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
                    None (default), it will try to guess the console width using
                    shutil.get_terminal_size(). If you don't want pagination
                    at all, set line_length=-1.
-        reversebits (bool): Rearrange the bits in reverse order.
+        reverse_bits (bool): Rearrange the bits in reverse order.
         plotbarriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
@@ -299,9 +301,9 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reversebits=F
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = _utils._get_layered_instructions(circuit,
-                                                         reversebits=reversebits,
+                                                         reversebits=reverse_bits,
                                                          justify=justify)
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, circuit)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
 
@@ -437,7 +439,8 @@ def _matplotlib_circuit_drawer(circuit,
                                filename=None,
                                style=None,
                                plot_barriers=True,
-                               reverse_bits=False):
+                               reverse_bits=False,
+                               justify=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -451,12 +454,18 @@ def _matplotlib_circuit_drawer(circuit,
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+            the circuit should be justified.
 
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
     """
-    qcd = _matplotlib.MatplotlibDrawer(scale=scale, style=style,
+
+    qregs, cregs, ops = _utils._get_layered_instructions(circuit,
+                                                         reversebits=reverse_bits,
+                                                         justify=justify)
+    qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)
     qcd.parse_circuit(circuit)

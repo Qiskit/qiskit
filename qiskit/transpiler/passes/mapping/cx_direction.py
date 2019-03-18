@@ -10,7 +10,7 @@ The CX direction rearrenges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
@@ -65,7 +65,7 @@ class CXDirection(TransformationPass):
             subdag = layer['graph']
 
             for cnot_id in subdag.named_nodes('cx', 'CX'):
-                cnot_node = subdag.multi_graph.nodes[cnot_id]
+                cnot_node = subdag.node(cnot_id)
                 control = cnot_node['op'].qargs[0]
                 target = cnot_node['op'].qargs[1]
 
@@ -85,7 +85,6 @@ class CXDirection(TransformationPass):
                         subdag.add_qreg(target[0])
 
                     # Add H gates around
-                    subdag.add_basis_element('h', 1, 0, 0)
                     subdag.apply_operation_back(HGate(target))
                     subdag.apply_operation_back(HGate(control))
                     subdag.apply_operation_front(HGate(target))

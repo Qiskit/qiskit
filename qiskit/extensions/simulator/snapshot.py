@@ -9,16 +9,16 @@
 Simulator command to snapshot internal simulator representation.
 """
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 
 
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    def __init__(self, label, snap_type, qubits, circ):
+    def __init__(self, label, snap_type, qubits, circ=None):
         """Create new snapshot instruction."""
         super().__init__("snapshot", [label, snap_type], list(qubits), [], circ)
 
@@ -57,14 +57,12 @@ def snapshot(self, label, snap_type='statevector'):
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):
             for j in range(tuple_element.size):
-                self._check_qubit((tuple_element, j))
                 qubits.append((tuple_element, j))
         else:
-            self._check_qubit(tuple_element)
             qubits.append(tuple_element)
-    self._check_dups(qubits)
     return self._attach(Snapshot(label, snap_type, qubits, self))
 
 
-# Add to QuantumCircuit class
+# Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.snapshot = snapshot
+CompositeGate.snapshot = snapshot

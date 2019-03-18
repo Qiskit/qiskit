@@ -26,11 +26,10 @@ Instructions are identified by the following fields, and are serialized as such 
 
 """
 import sympy
+import numpy
 
 from qiskit.qasm._node import _node
 from qiskit.exceptions import QiskitError
-from .quantumregister import QuantumRegister
-from .classicalregister import ClassicalRegister
 
 
 class Instruction:
@@ -40,19 +39,15 @@ class Instruction:
         """Create a new instruction.
         Args:
             name (str): instruction name
-            params (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
+            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
             qargs (list[(QuantumRegister, index)]): list of quantum args
             cargs (list[(ClassicalRegister, index)]): list of classical args
             circuit (QuantumCircuit or Instruction): where the instruction is attached
         Raises:
             QiskitError: when the register is not in the correct format.
         """
-        if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
-            raise QiskitError("qarg not (QuantumRegister, int) tuple")
-        if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
-            raise QiskitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
-        self.params = []  # a list of gate params stored as sympy objects
+        self.params = []  # a list of gate params stored
         for single_param in params:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, sympy.Basic):
@@ -69,6 +64,12 @@ class Instruction:
             # example: snapshot('label')
             elif isinstance(single_param, str):
                 self.params.append(sympy.Symbol(single_param))
+            # example: numpy.array([[1, 0], [0, 1]])
+            elif isinstance(single_param, numpy.ndarray):
+                self.params.append(single_param)
+            # example: sympy.Matrix([[1, 0], [0, 1]])
+            elif isinstance(single_param, sympy.Matrix):
+                self.params.append(single_param)
             else:
                 raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), name))
@@ -102,7 +103,8 @@ class Instruction:
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""
         self.check_circuit()
-        self.circuit._check_creg(classical)
+        if not self.circuit.has_register(classical):
+            raise QiskitError("the control creg is not in the circuit")
         if val < 0:
             raise QiskitError("control value should be non-negative")
         self.control = (classical, val)

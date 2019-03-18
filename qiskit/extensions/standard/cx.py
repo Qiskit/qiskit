@@ -10,12 +10,12 @@
 """
 controlled-NOT gate.
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _control_target_gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
 from qiskit.extensions.standard.cxbase import CXBase
 
 
@@ -33,7 +33,6 @@ class CnotGate(Gate):
         decomposition = DAGCircuit()
         q = QuantumRegister(2, "q")
         decomposition.add_qreg(q)
-        decomposition.add_basis_element("CX", 2, 0, 0)
         rule = [
             CXBase(q[0], q[1])
         ]
@@ -50,13 +49,11 @@ class CnotGate(Gate):
         self._modifiers(circ.cx(self.qargs[0], self.qargs[1]))
 
 
-@_control_target_gate
+@_op_expand(2)
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
     return self._attach(CnotGate(ctl, tgt, self))
 
 
 QuantumCircuit.cx = cx
+CompositeGate.cx = cx
