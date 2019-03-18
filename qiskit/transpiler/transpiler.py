@@ -182,7 +182,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
     # TODO: move this to the mapper pass
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
-    if num_qubits == 1 or coupling_map == "all-to-all":
+    if num_qubits == 1 or len(coupling_map) == num_qubits*(num_qubits-1):
         coupling_map = None
 
     if basis_gates is None:
