@@ -25,11 +25,8 @@ Doing so requires that the required algorithm interface is implemented.
 
 from abc import abstractmethod
 import logging
-
-import numpy as np
 from qiskit.providers import BaseBackend
-
-from qiskit.aqua import Pluggable, QuantumInstance, AquaError
+from qiskit.aqua import aqua_globals, Pluggable, QuantumInstance, AquaError
 
 logger = logging.getLogger(__name__)
 
@@ -44,29 +41,22 @@ class QuantumAlgorithm(Pluggable):
     @abstractmethod
     def __init__(self):
         super().__init__()
-        self._random_seed = None
-        self._random = None
         self._quantum_instance = None
 
     @property
     def random_seed(self):
         """Return random seed."""
-        return self._random_seed
+        return aqua_globals.random_seed
 
     @random_seed.setter
     def random_seed(self, seed):
         """Set random seed."""
-        self._random_seed = seed
+        aqua_globals.random_seed = seed
 
     @property
     def random(self):
         """Return a numpy random."""
-        if self._random is None:
-            if self._random_seed is None:
-                self._random = np.random
-            else:
-                self._random = np.random.RandomState(self._random_seed)
-        return self._random
+        return aqua_globals.random
 
     def run(self, quantum_instance=None, **kwargs):
         """Execute the algorithm with selected backend.
