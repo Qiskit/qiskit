@@ -59,8 +59,12 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
 
     # Check for valid parameters for the experiments.
     basis_gates = basis_gates or backend.configuration().basis_gates
-    coupling_map = coupling_map or getattr(backend.configuration(),
-                                           'coupling_map', None)
+    if coupling_map:
+        coupling_map = coupling_map
+    elif backend:
+        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
+    else:
+        coupling_map = None
 
     if not basis_gates:
         raise TranspilerError('no basis_gates or backend to compile to')
