@@ -63,7 +63,7 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
     if coupling_map:
         coupling_map = coupling_map
     elif backend:
-        coupling_map = backend.configuration().coupling_map
+        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
         dev_qubits = backend.configuration().n_qubits
     else:
         coupling_map = None
