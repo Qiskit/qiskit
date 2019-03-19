@@ -179,13 +179,14 @@ class CouplingMap:
 
     def __repr__(self):
         """Return representation of the coupling graph."""
-        return 'CouplingMap({})'.format(self.__str__())
-
-    def __str__(self):
-        """Return a string representation of the coupling graph."""
-        string = ""
-        if self.get_edges():
-            string += "["
-            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
-            string += "]"
-        return string
+        str_list = []
+        count = 0
+        for edge in self.get_edges():
+            if count == 9:
+                ending = "\n"
+                count = 0
+            else:
+                ending = ""
+            str_list.append("[{}, {}], {}".format(edge[0], edge[1], ending))
+            count += 1
+        return 'CouplingMap([\n'+"".join(str_list)+"\n])"
