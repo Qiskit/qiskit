@@ -32,7 +32,6 @@ Added
   circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
-- Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
   different output stream 
 - Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
