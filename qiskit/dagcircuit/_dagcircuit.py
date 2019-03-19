@@ -765,7 +765,7 @@ class DAGCircuit:
                 oth.nodes[node]["node"] = node
 
             return nx.is_isomorphic(slf, oth, node_match=lambda x, y:
-                                    x['node'].isomorphic(y['node']))
+                                    x['node'] == y['node'])
 
         return False
 
