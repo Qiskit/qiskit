@@ -363,9 +363,18 @@ class QuantumCircuit:
 
     def depth(self):
         """Return circuit depth (i.e. length of critical path)."""
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.depth()
+        op_stack = {}
+        for op in self.data:
+            levels = []
+            for q in op.qargs:
+                if q[1] in op_stack.keys():
+                    levels.append(op_stack[q[1]] + 1)
+                else:
+                    levels.append(1)
+            max_level = max(levels)
+            for q in op.qargs:
+                op_stack[q[1]] = max_level
+        return max(op_stack.values())
 
     def width(self):
         """Return number of qubits in circuit."""
