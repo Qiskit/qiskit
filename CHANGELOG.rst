@@ -83,6 +83,8 @@ Changed
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
   (#1333)
+- Methods on the ``DAGCircuit`` which previously returned node_ids and/or dicts now
+  return ``DAGNodes``
 - The ``Qobj`` classes have been reimplemented using models and schemas, as the
   rest of spec-defined entities. (#1909).
 - The rzz gate is now represented as a line when printed in text (#1957).
