@@ -30,6 +30,13 @@ class Layout():
         if isinstance(input_, list):
             self.from_list(input_)
 
+    def __repr__(self):
+        """Representation of a Layout"""
+        str_list = []
+        for key, val in self._v2p.items():
+            str_list.append("{k}: {v},".format(k=key, v=val))
+        return "Layout({\n"+"\n".join(str_list)+"\n})"
+
     def from_dict(self, input_dict):
         """
         Populates a Layout from a dictionary.
