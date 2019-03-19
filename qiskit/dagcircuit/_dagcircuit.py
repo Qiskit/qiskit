@@ -1460,14 +1460,15 @@ class DAGCircuit:
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
-        Yields the ops that happen on a given wire
+        Iterator for nodes that affect a given wire
 
         Args:
-            wire (Register, index): the wire to be looked at
-            only_ops(Boolean): True if only the ops nodes are wanted
-            otherwise all nodes are returned
+            wire (tuple(Register, index)): the wire to be looked at.
+            only_ops (bool): True if only the ops nodes are wanted
+                        otherwise all nodes are returned.
         Yield:
              node: the successive ops on the given wire
+
         Raises:
             DAGCircuitError: if the given wire doesn't exist in the DAG
         """
