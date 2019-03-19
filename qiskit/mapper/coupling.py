@@ -177,6 +177,10 @@ class CouplingMap:
             raise CouplingError(
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
 
+    def __repr__(self):
+        """Return representation of the coupling graph."""
+        return 'CouplingMap({})'.format(self.__str__())
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
