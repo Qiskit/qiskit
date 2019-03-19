@@ -127,7 +127,7 @@ class Kraus(QuantumChannel):
         accum = 0j
         for op in self._data[0]:
             accum += np.dot(np.transpose(np.conj(op)), op)
-        return is_identity_matrix(accum, atol=self.atol)
+        return is_identity_matrix(accum, rtol=self.rtol, atol=self.atol)
 
     def evolve(self, state):
         """Apply the channel to a quantum state.

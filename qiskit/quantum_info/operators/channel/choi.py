@@ -319,7 +319,7 @@ class Choi(QuantumChannel):
         """Test if Choi-matrix is completely-positive (CP)"""
         # Test if Choi-matrix is Hermitian
         # This is required for eigenvalues to be real
-        if not is_hermitian_matrix(self._data, atol=self.atol):
+        if not is_hermitian_matrix(self._data, rtol=self.rtol, atol=self.atol):
             return False
         # Check eigenvalues are all positive
         vals = np.linalg.eigvalsh(self._data)
@@ -336,7 +336,7 @@ class Choi(QuantumChannel):
             np.reshape(self._data, (d_in, d_out, d_in, d_out)),
             axis1=1,
             axis2=3)
-        return is_identity_matrix(mat, atol=self.atol)
+        return is_identity_matrix(mat, rtol=self.rtol, atol=self.atol)
 
     def _tensor_product(self, other, inplace=False, reverse=False):
         """Return the tensor product channel.

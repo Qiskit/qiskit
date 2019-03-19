@@ -111,7 +111,7 @@ class ChannelTestCase(QiskitTestCase):
                        atol=1e-6,
                        equal_nan=False,
                        msg=None):
-        """Assert to objects are equal using Numpy.allclose."""
+        """Assert two objects are equal using Numpy.allclose."""
         comparison = np.allclose(
             obj1, obj2, rtol=rtol, atol=atol, equal_nan=equal_nan)
         if msg is None:

@@ -13,77 +13,34 @@ Predicates for operators.
 import numpy as np
 
 ATOL_DEFAULT = 1e-8
+RTOL_DEFAULT = 1e-5
 
 
-def is_square_matrix(op):
-    """Test if an array is a square matrix."""
-    mat = np.array(op)
-    if mat.ndim != 2:
-        return False
-    shape = mat.shape
-    return shape[0] == shape[1]
-
-
-def is_diagonal_matrix(op, atol=ATOL_DEFAULT):
-    """Test if an array is a diagonal matrix"""
-    if atol is None:
-        atol = ATOL_DEFAULT
-    mat = np.array(op)
-    if mat.ndim != 2:
-        return False
-    return np.allclose(mat, np.diag(np.diagonal(mat)), atol=atol)
-
-
-def is_symmetric_matrix(op, atol=ATOL_DEFAULT):
-    """Test if an array is a symmetrix matrix"""
-    if atol is None:
-        atol = ATOL_DEFAULT
-    mat = np.array(op)
-    if mat.ndim != 2:
-        return False
-    return np.allclose(mat, mat.T, atol=atol)
-
-
-def is_hermitian_matrix(op, atol=ATOL_DEFAULT):
-    """Test if an array is a Hermitian matrix"""
-    if atol is None:
-        atol = ATOL_DEFAULT
-    mat = np.array(op)
-    if mat.ndim != 2:
-        return False
-    return np.allclose(mat, np.conj(mat.T), atol=atol)
-
-
-def is_identity_matrix(op, ignore_phase=False, atol=ATOL_DEFAULT):
-    """Test if an array is an identity matrix."""
-    if atol is None:
-        atol = ATOL_DEFAULT
-    mat = np.array(op)
-    if mat.ndim != 2:
-        return False
-    if ignore_phase:
-        # If the matrix is equal to an identity up to a phase, we can
-        # remove the phase by multiplying each entry by the complex
-        # conjugate of the [0, 0] entry.
-        mat *= np.conj(mat[0, 0])
-    # Check if square identity
-    iden = np.eye(len(mat))
-    return np.allclose(mat, iden, atol=atol)
-
-
-def matrix_equal(mat1, mat2, ignore_phase=False, atol=ATOL_DEFAULT):
+def matrix_equal(mat1,
+                 mat2,
+                 ignore_phase=False,
+                 rtol=RTOL_DEFAULT,
+                 atol=ATOL_DEFAULT):
     """Test if two arrays are equal.
+
+    The final comparison is implemented using Numpy.allclose. See its
+    documentation for additional information on tolerance parameters.
+
+    If ignore_phase is True both matrices will be multiplied by
+    exp(-1j * theta) where `theta` is the first nphase for a
+    first non-zero matrix element `|a| * exp(1j * theta)`.
 
     Args:
         mat1 (matrix_like): a matrix
         mat2 (matrix_like): a matrix
         ignore_phase (bool): ignore complex-phase differences between
             matrices [Default: False]
-        atol (double): comparison threhsold [Default {}].
+        rtol (double): the relative tolerance parameter [Default {}].
+        atol (double): the absolute tolerance parameter [Default {}].
 
     Returns:
-        bool: True if the matrices are equal or False otherwise.
-    """.format(ATOL_DEFAULT)
+        bool: True if the matrices are equal or False otherwise.  
+    """.format(RTOL_DEFAULT, ATOL_DEFAULT)
 
     if atol is None:
         atol = ATOL_DEFAULT
@@ -100,14 +57,74 @@ def matrix_equal(mat1, mat2, ignore_phase=False, atol=ATOL_DEFAULT):
         phases2 = np.angle(mat2[mat2 != 0].ravel(order='F'))
         if len(phases2) > 0:
             mat2 *= np.exp(-1j * phases2[0])
-    return np.allclose(mat1, mat2, atol=atol)
+    return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
 
 
-def is_unitary_matrix(op, atol=ATOL_DEFAULT):
-    """Test if an array is a unitary matrix."""
+def is_square_matrix(op):
+    """Test if an array is a square matrix."""
+    mat = np.array(op)
+    if mat.ndim != 2:
+        return False
+    shape = mat.shape
+    return shape[0] == shape[1]
+
+
+def is_diagonal_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+    """Test if an array is a diagonal matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
     mat = np.array(op)
+    if mat.ndim != 2:
+        return False
+    return np.allclose(mat, np.diag(np.diagonal(mat)), rtol=rtol, atol=atol)
+
+
+def is_symmetric_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+    """Test if an array is a symmetrix matrix"""
+    if atol is None:
+        atol = ATOL_DEFAULT
+    mat = np.array(op)
+    if mat.ndim != 2:
+        return False
+    return np.allclose(mat, mat.T, rtol=rtol, atol=atol)
+
+
+def is_hermitian_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+    """Test if an array is a Hermitian matrix"""
+    if atol is None:
+        atol = ATOL_DEFAULT
+    mat = np.array(op)
+    if mat.ndim != 2:
+        return False
+    return np.allclose(mat, np.conj(mat.T), rtol=rtol, atol=atol)
+
+
+def is_identity_matrix(mat,
+                       ignore_phase=False,
+                       rtol=RTOL_DEFAULT,
+                       atol=ATOL_DEFAULT):
+    """Test if an array is an identity matrix."""
+    if atol is None:
+        atol = ATOL_DEFAULT
+    mat = np.array(mat)
+    if mat.ndim != 2:
+        return False
+    if ignore_phase:
+        # If the matrix is equal to an identity up to a phase, we can
+        # remove the phase by multiplying each entry by the complex
+        # conjugate of the phase of the [0, 0] entry.
+        theta =  np.angle(mat[0, 0])
+        mat *= np.exp(-1j * theta)
+    # Check if square identity
+    iden = np.eye(len(mat))
+    return np.allclose(mat, iden, rtol=rtol, atol=atol)
+
+
+def is_unitary_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+    """Test if an array is a unitary matrix."""
+    if atol is None:
+        atol = ATOL_DEFAULT
+    mat = np.array(mat)
     # Compute A^dagger.A and see if it is identity matrix
     mat = np.conj(mat.T).dot(mat)
-    return is_identity_matrix(mat, ignore_phase=False, atol=atol)
+    return is_identity_matrix(mat, ignore_phase=False, rtol=rtol, atol=atol)

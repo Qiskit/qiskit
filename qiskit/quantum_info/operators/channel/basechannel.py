@@ -13,14 +13,15 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
 class QuantumChannel(ABC):
     """Quantum channel representation base class."""
 
     ATOL = ATOL_DEFAULT
-    MAX_ATOL = 1e-4
+    RTOL = RTOL_DEFAULT
+    MAX_TOL = 1e-4
 
     def __init__(self, rep, data, input_dim, output_dim):
         if not isinstance(rep, str):
@@ -57,21 +58,39 @@ class QuantumChannel(ABC):
 
     @property
     def atol(self):
-        """Atol parameter for float comparisons."""
+        """The absolute tolerence parameter for float comparisons."""
         # NOTE: This should really be a class method so that it can
         # be overriden for all QuantumChannel subclasses
         return QuantumChannel.ATOL
 
     @atol.setter
     def atol(self, atol):
-        """Set atol parameter for float comparisons."""
-        max_atol = QuantumChannel.MAX_ATOL
+        """Set the absolute tolerence parameter for float comparisons."""
+        max_tol = QuantumChannel.MAX_TOL
         if atol < 0:
             raise QiskitError("Invalid atol: must be non-negative.")
-        if atol > max_atol:
+        if atol > max_tol:
             raise QiskitError(
-                "Invalid atol: must be less than {}.".format(max_atol))
+                "Invalid atol: must be less than {}.".format(max_tol))
         QuantumChannel.ATOL = atol
+
+    @property
+    def rtol(self):
+        """The relative tolerence parameter for float comparisons."""
+        # NOTE: This should really be a class method so that it can
+        # be overriden for all QuantumChannel subclasses
+        return QuantumChannel.RTOL
+
+    @rtol.setter
+    def rtol(self, rtol):
+        """Set the relative tolerence parameter for float comparisons."""
+        max_tol = QuantumChannel.MAX_TOL
+        if rtol < 0:
+            raise QiskitError("Invalid rtol: must be non-negative.")
+        if rtol > max_tol:
+            raise QiskitError(
+                "Invalid rtol: must be less than {}.".format(max_tol))
+        QuantumChannel.RTOL = rtol
 
     def copy(self):
         """Make a copy of current channel."""

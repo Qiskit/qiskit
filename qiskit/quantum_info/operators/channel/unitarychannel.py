@@ -50,7 +50,7 @@ class UnitaryChannel(QuantumChannel):
     def is_cptp(self):
         """Return True if completely-positive trace-preserving."""
         # If the matrix is a unitary matrix the channel is CPTP
-        return is_unitary_matrix(self._data, atol=self.atol)
+        return is_unitary_matrix(self._data, rtol=self.rtol, atol=self.atol)
 
     def evolve(self, state):
         """Evolve a quantum state by the QuantumChannel.
