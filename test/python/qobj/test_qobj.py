@@ -16,10 +16,10 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit.compiler import assemble_circuits, RunConfig
 
-from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction
 from qiskit.qobj import QobjHeader, validate_qobj_against_schema
 from qiskit.providers.basicaer import basicaerjob
+from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
 from qiskit.qobj.utils import QobjType
 from qiskit.test import QiskitTestCase
