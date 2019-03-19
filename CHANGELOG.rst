@@ -32,7 +32,6 @@ Added
   circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
-- Added in methods to remove a specific DAG edge and to see if a specific edge exists
 - Added parameter to the TextProgressBar to allow the output to be sent to a
   different output stream 
 - Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
@@ -85,6 +84,8 @@ Changed
   is not longer a comma-separated string but a list of strings. For example,
   this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
   (#1333)
+- Methods on the ``DAGCircuit`` which previously returned node_ids and/or dicts now
+  return ``DAGNodes``
 - The ``Qobj`` classes have been reimplemented using models and schemas, as the
   rest of spec-defined entities. (#1909).
 - The rzz gate is now represented as a line when printed in text (#1957).

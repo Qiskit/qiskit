@@ -24,11 +24,11 @@ class Unroll3qOrMore(TransformationPass):
         Returns:
             DAGCircuit: output dag with maximum node degrees of 2
         """
-        for node_id, node_data in dag.threeQ_or_more_nodes():
-            decomposition_rules = node_data["op"].decompositions()
+        for node in dag.threeQ_or_more_nodes():
+            decomposition_rules = node.op.decompositions()
 
             # TODO: allow choosing other possible decompositions
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll
 
-            dag.substitute_node_with_dag(node_id, decomposition_dag)
+            dag.substitute_node_with_dag(node, decomposition_dag)
         return dag
