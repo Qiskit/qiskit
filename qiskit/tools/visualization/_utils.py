@@ -48,15 +48,15 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reversebits=False, justify=None):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
-    in order (based on reversebits) and ops is a list
+    in order (based on reverse_bits) and ops is a list
     of DAG nodes which type is "operation".
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
-        reversebits (bool): If true the order of the bits in the registers is
+        reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
@@ -169,22 +169,22 @@ def _get_layered_instructions(circuit, reversebits=False, justify=None):
         layer_dicts.reverse()
         ops = [list(layer.values()) for layer in layer_dicts]
 
-    if reversebits:
+    if reverse_bits:
         qregs.reverse()
         cregs.reverse()
 
     return qregs, cregs, ops
 
 
-def _get_instructions(circuit, reversebits=False):
+def _get_instructions(circuit, reverse_bits=False):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
-    in order (based on reversebits) and ops is a list
+    in order (based on reverse_bits) and ops is a list
     of DAG nodes which type is "operation".
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
-        reversebits (bool): If true the order of the bits in the registers is
+        reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -204,7 +204,7 @@ def _get_instructions(circuit, reversebits=False):
     for creg in dag.cregs.values():
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
-    if reversebits:
+    if reverse_bits:
         qregs.reverse()
         cregs.reverse()
 

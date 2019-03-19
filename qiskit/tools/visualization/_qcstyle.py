@@ -70,7 +70,7 @@ class QCStyle:
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
         self.cline = 'doublet'
-        self.reverse = False
+        self.reverse_bits = False
 
     def set_style(self, dic):
         self.tc = dic.get('textcolor', self.tc)
@@ -99,4 +99,4 @@ class QCStyle:
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
         self.cline = dic.get('creglinestyle', self.cline)
-        self.reverse = dic.get('reversebits', self.reverse)
+        self.reverse_bits = dic.get('reversebits', self.reverse_bits)

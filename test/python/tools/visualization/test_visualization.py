@@ -198,7 +198,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_instructions_reversebits(self):
         """ _get_instructions with reversebits=True """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reversebits=True)
+        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reverse_bits=True)
 
         self.assertEqual([(self.qr2, 1), (self.qr2, 0), (self.qr1, 1), (self.qr1, 0)], qregs)
         self.assertEqual([(self.cr2, 1), (self.cr2, 0), (self.cr1, 1), (self.cr1, 0)], cregs)
