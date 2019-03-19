@@ -15,12 +15,12 @@ from qiskit.pulse.commands.pulse_command import PulseCommand
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    def __init__(self, name, samples):
+    def __init__(self, samples, name=None):
         """Create new sample pulse command.
 
         Args:
-            name (str): Unique name to identify the pulse.
             samples (ndarray): Complex array of pulse envelope.
+            name (str): Unique name to identify the pulse.
         """
         if not name:
             _name = str('pulse_object_%s' % id(self))
