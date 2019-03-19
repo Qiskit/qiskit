@@ -359,10 +359,7 @@ class QuantumCircuit:
 
     def size(self):
         """Return total number of operations in circuit."""
-        # TODO: removed the DAG from this function
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.size()
+        return len(self.data)
 
     def depth(self):
         """Return circuit depth (i.e. length of critical path)."""
