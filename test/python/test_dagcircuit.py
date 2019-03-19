@@ -248,8 +248,9 @@ class TestDagOperations(QiskitTestCase):
     def test_dag_ops_on_wire(self):
         """ Test that listing the gates on a qubit/classical bit gets the correct gates"""
 
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
-        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1),
+                                      [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(self.qubit0), [self.qubit0])
 
         qbit = self.dag.qubits()[0]
         self.assertEqual([1, 11, 12, 2], list(self.dag.nodes_on_wire(qbit)))

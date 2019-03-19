@@ -26,7 +26,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
-from ._dagnode import DAGNode
+from .dagnode import DAGNode
 
 
 class DAGCircuit:
@@ -1467,45 +1467,29 @@ class DAGCircuit:
             only_ops (bool): True if only the ops nodes are wanted
                         otherwise all nodes are returned.
         Yield:
-             node: the successive ops on the given wire
+             DAGNode: the successive ops on the given wire
 
         Raises:
             DAGCircuitError: if the given wire doesn't exist in the DAG
         """
+        current_node = self.input_map.get(wire, None)
 
-        starting_node = None
-
-        # Find the starting node for this wire
-        for node_id in self.input_map.values():
-            node = self.multi_graph.node[node_id]
-            if wire == node['wire']:
-                starting_node = node_id
-                break
-
-        if not starting_node:
-            raise DAGCircuitError('The given wire %s is not present in the circuit' % str(wire))
+        if not current_node:
+            raise DAGCircuitError('The given wire %s is not present in the circuit'
+                                  % str(wire))
 
         more_nodes = True
         while more_nodes:
             more_nodes = False
-
             # allow user to just get ops on the wire - not the input/output nodes
-            if not only_ops:
-                yield starting_node
-            else:
-                nd = self.multi_graph.node[starting_node]
+            if current_node.type == 'op' or not only_ops:
+                yield current_node
 
-                if nd['type'] == 'op':
-                    yield starting_node
-
-            for node_id in self.successors(starting_node):
-                node = self.multi_graph.node[node_id]
-
+            for node in self.successors(current_node):
                 # check if this node includes the given wire
-                if ('wire' in node and wire == node['wire']) or \
-                   ('qargs' in node and (wire in (node['qargs'] or node['cargs']))):
-
-                    starting_node = node_id
+                if (node.type in ['in', 'out'] and wire == node.wire) or \
+                   (node.type == 'op' and wire in node.qargs + node.cargs):
+                    current_node = node
                     more_nodes = True
                     break
 
