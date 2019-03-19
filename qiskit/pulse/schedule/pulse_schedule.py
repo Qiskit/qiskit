@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 from typing import List, Union
 
 from qiskit.pulse.channels import PulseChannel, ChannelBank
-from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
+from qiskit.pulse.commands import PulseCommand, SamplePulse
 from qiskit.pulse.exceptions import ScheduleError
 
 logger = logging.getLogger(__name__)
