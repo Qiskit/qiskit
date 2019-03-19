@@ -372,9 +372,7 @@ class QuantumCircuit:
 
     def width(self):
         """Return number of qubits in circuit."""
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.width()
+        return sum(qr.size for qr in self.qregs)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -382,9 +380,13 @@ class QuantumCircuit:
         Returns:
             dict: a breakdown of how many operations of each kind.
         """
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.count_ops()
+        count_ops = {}
+        for op in self.data:
+            if op.name in count_ops.keys():
+                count_ops[op.name] += 1
+            else:
+                count_ops[op.name] = 1
+        return count_ops
 
     def num_tensor_factors(self):
         """How many non-entangled subcircuits can the circuit be factored to."""
