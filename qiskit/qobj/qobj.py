@@ -66,3 +66,10 @@ class Qobj(BaseModel):
         self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
+
+    def __repr__(self):
+        return "Qobj<{0} qubits, {1} {2}, {3} shots>".format(
+            self.config.n_qubits,
+            len(self.experiments),
+            'circuits' if self.type == 'QASM' else 'schedules',
+            self.config.shots)
