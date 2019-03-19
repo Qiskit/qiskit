@@ -5,28 +5,22 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Writes circuit resources to the property set
-('size', 'depth', 'width', and 'count_ops')
+""" An analysis pass for automatically running Depth(), Width(), Size(), CountOps(), and
+Tensor_Factor()
 """
 from qiskit.transpiler.basepasses import AnalysisPass
-
+from qiskit.transpiler.passes.depth import Depth
+from qiskit.transpiler.passes.width import Width
+from qiskit.transpiler.passes.size import Size
+from qiskit.transpiler.passes.count_ops import CountOps
+from qiskit.transpiler.passes.num_tensor_factor import NumTensorFactor
 
 class ResourceEstimation(AnalysisPass):
-    """ Updates 'size', 'depth', 'width', and 'count_ops' in the property set.
+    """ Requires Depth(), Width(), Size(), CountOps(), and NumTensorFactor().
     """
+    def __init__(self):
+        super().__init__()
+        self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactor()]
 
-    def run(self, dag):
-        self.property_set['size'] = dag.size()
-        self.property_set['depth'] = dag.depth()
-        self.property_set['width'] = dag.width()
-        op_dict = {}
-        for node in dag.node_nums_in_topological_order():
-            node_data = dag.node(node)
-            name = node_data["name"]
-            if node_data["type"] == "op":
-                if name not in op_dict:
-                    op_dict[name] = 1
-                else:
-                    op_dict[name] += 1
-        self.property_set['count_ops'] = op_dict
-        return dag
+    def run(self, _):
+        pass

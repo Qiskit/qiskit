@@ -28,7 +28,7 @@ class TestNumTensorsFactorPass(QiskitTestCase):
 
         self.assertEqual(pass_.property_set['num_tensor_factors'], 0)
 
-    def test_purely_qubits(self):
+    def test_just_qubits(self):
         """ A dag with 8 operations and 1 tensor factor."""
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)

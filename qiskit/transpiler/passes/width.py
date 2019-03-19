@@ -14,4 +14,4 @@ class Width(AnalysisPass):
     """ An analysis pass for calculated the width of a DAG circuit.
     """
     def run(self, dag):
-        dag.property_set['width'] = dag.width()
+        self.property_set['width'] = dag.width()

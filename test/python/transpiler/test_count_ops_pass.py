@@ -28,7 +28,7 @@ class TestCountOpsPass(QiskitTestCase):
 
         self.assertDictEqual(pass_.property_set['count_ops'], {})
 
-    def test_purely_qubits(self):
+    def test_just_qubits(self):
         """ A dag with 8 operations (6 CXs and 2 Hs)"""
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)

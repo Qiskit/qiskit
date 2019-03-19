@@ -28,7 +28,7 @@ class TestDepthPass(QiskitTestCase):
 
         self.assertEqual(pass_.property_set['depth'], 0)
 
-    def test_purely_qubits(self):
+    def test_just_qubits(self):
         """ A dag with 8 operations and no classic bits"""
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
