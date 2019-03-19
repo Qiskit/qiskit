@@ -259,7 +259,7 @@ class Unitary(Gate):
         Args:
             name (str or None): label to assign unitary
 
-        Returns:
+        Raises:
             TypeError: name is not string or None.
         """
         if isinstance(name, (str, type(None))):
