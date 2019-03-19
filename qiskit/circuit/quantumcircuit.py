@@ -81,6 +81,10 @@ class QuantumCircuit:
     def __str__(self):
         return str(self.draw(output='text'))
 
+    def __repr__(self):
+        return "QuantumCircuit<width={}, depth={}, gate_count={}>".format(
+            self.width(), self.depth(), self.count_ops())
+
     def __eq__(self, other):
         # TODO: removed the DAG from this function
         from qiskit.converters import circuit_to_dag
