@@ -5,17 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Depth pass testing"""
+"""Width pass testing"""
 
 import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import ResourceEstimation
+from qiskit.transpiler.passes import Width
 from qiskit.test import QiskitTestCase
 
 
-class TestDepthPass(QiskitTestCase):
+class TestWidthPass(QiskitTestCase):
     """ Tests for Depth analysis methods. """
 
     def test_empty_dag(self):
@@ -23,13 +23,10 @@ class TestDepthPass(QiskitTestCase):
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
-        pass_ = ResourceEstimation()
+        pass_ = Width()
         _ = pass_.run(dag)
 
-        self.assertEqual(pass_.property_set['size'], 0)
-        self.assertEqual(pass_.property_set['depth'], 0)
         self.assertEqual(pass_.property_set['width'], 0)
-        self.assertDictEqual(pass_.property_set['count_ops'], {})
 
     def test_purly_qubits(self):
         """ A dag with 8 operations and no classic bits"""
@@ -45,29 +42,10 @@ class TestDepthPass(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = ResourceEstimation()
+        pass_ = Width()
         _ = pass_.run(dag)
 
-        self.assertEqual(pass_.property_set['size'], 8)
-        self.assertEqual(pass_.property_set['depth'], 7)
         self.assertEqual(pass_.property_set['width'], 2)
-        self.assertDictEqual(pass_.property_set['count_ops'], {'cx': 6, 'h': 2})
-
-    def test_depth_one(self):
-        """ A dag with operations in parallel and depth 1"""
-        qr = QuantumRegister(2)
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[1])
-        dag = circuit_to_dag(circuit)
-
-        pass_ = ResourceEstimation()
-        _ = pass_.run(dag)
-
-        self.assertEqual(pass_.property_set['size'], 2)
-        self.assertEqual(pass_.property_set['depth'], 1)
-        self.assertEqual(pass_.property_set['width'], 2)
-        self.assertDictEqual(pass_.property_set['count_ops'], {'h': 2})
 
 
 if __name__ == '__main__':
