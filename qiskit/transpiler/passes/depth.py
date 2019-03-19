@@ -13,5 +13,6 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class Depth(AnalysisPass):
     """ An analysis pass for calculated the depth of a DAG circuit.
     """
+
     def run(self, dag):
         self.property_set['depth'] = dag.depth()

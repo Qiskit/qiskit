@@ -16,6 +16,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
 
+
 class TestResourceEstimationPass(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
@@ -52,6 +53,7 @@ class TestResourceEstimationPass(QiskitTestCase):
         self.assertEqual(passmanager.property_set['depth'], 7)
         self.assertEqual(passmanager.property_set['width'], 2)
         self.assertDictEqual(passmanager.property_set['count_ops'], {'cx': 6, 'h': 2})
+
 
 if __name__ == '__main__':
     unittest.main()
