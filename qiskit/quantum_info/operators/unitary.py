@@ -39,6 +39,11 @@ class Unitary(Gate):
         self._validate = validate
         self._rtol = rtol
         self._atol = atol
+        # set attributes for use by other methods
+        self._matrix = None
+        self._n_qubits = None
+        self._label = None
+        self._dimension = None
         # set matrix (depends on previous attributes)
         self.matrix = matrix
         self.label = label
@@ -253,8 +258,11 @@ class Unitary(Gate):
 
         Args:
             name (str or None): label to assign unitary
+
+        Returns:
+            TypeError: name is not string or None.
         """
-        if isinstance(name, (str, None)):
+        if isinstance(name, (str, type(None))):
             self._label = name
         else:
             raise TypeError('label expects a string or None')
