@@ -19,16 +19,16 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual([], coupling.physical_qubits)
         self.assertEqual([], coupling.get_edges())
         self.assertFalse(coupling.is_connected())
-        self.assertEqual("", str(coupling))
+        self.assertEqual([], coupling.get_edges())
 
     def test_coupling_str(self):
         coupling_list = [[0, 1], [0, 2], [1, 2]]
         coupling = CouplingMap(coupling_list)
-        expected = ("[[0, 1], [0, 2], [1, 2]]")
-        self.assertEqual(expected, str(coupling))
+        expected = [[0, 1], [0, 2], [1, 2]]
+        self.assertEqual(expected, coupling.get_edges())
 
     def test_coupling_distance(self):
-        coupling_list = [(0, 1), (0, 2), (1, 2)]
+        coupling_list = [[0, 1], [0, 2], [1, 2]]
         coupling = CouplingMap(coupling_list)
         self.assertTrue(coupling.is_connected())
         physical_qubits = coupling.physical_qubits
@@ -37,10 +37,10 @@ class CouplingTest(QiskitTestCase):
 
     def test_add_physical_qubits(self):
         coupling = CouplingMap()
-        self.assertEqual("", str(coupling))
+        self.assertEqual([], coupling.get_edges())
         coupling.add_physical_qubit(0)
         self.assertEqual([0], coupling.physical_qubits)
-        self.assertEqual("", str(coupling))
+        self.assertEqual([], coupling.get_edges())
 
     def test_add_physical_qubits_not_int(self):
         coupling = CouplingMap()
@@ -48,10 +48,10 @@ class CouplingTest(QiskitTestCase):
 
     def test_add_edge(self):
         coupling = CouplingMap()
-        self.assertEqual("", str(coupling))
+        self.assertEqual([], coupling.get_edges())
         coupling.add_edge(0, 1)
-        expected = ("[[0, 1]]")
-        self.assertEqual(expected, str(coupling))
+        expected = [[0, 1]]
+        self.assertEqual(expected, coupling.get_edges())
 
     def test_distance_error(self):
         """Test distance between unconected physical_qubits."""
@@ -65,7 +65,7 @@ class CouplingTest(QiskitTestCase):
         coupling = CouplingMap(coupling_list)
 
         qubits_expected = [0, 1, 2]
-        edges_expected = [(0, 1), (1, 2)]
+        edges_expected = [[0, 1], [1, 2]]
 
         self.assertEqual(coupling.physical_qubits, qubits_expected)
         self.assertEqual(coupling.get_edges(), edges_expected)

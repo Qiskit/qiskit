@@ -75,7 +75,7 @@ class CXDirection(TransformationPass):
                     raise TranspilerError('The circuit requires a connection between physical '
                                           'qubits %s and %s' % (physical_q0, physical_q1))
 
-                if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
+                if [physical_q0, physical_q1] not in self.coupling_map.get_edges():
                     # A flip needs to be done
 
                     # Create the involved registers

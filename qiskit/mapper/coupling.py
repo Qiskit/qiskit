@@ -57,9 +57,9 @@ class CouplingMap:
         Gets the list of edges in the coupling graph.
 
         Returns:
-            Tuple(int,int): Each edge is a pair of physical qubits.
+            List(int,int): Each edge is a pair of physical qubits.
         """
-        return [edge for edge in self.graph.edges()]
+        return [[edge[0], edge[1]] for edge in self.graph.edges()]
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
