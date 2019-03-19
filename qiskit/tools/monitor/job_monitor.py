@@ -30,14 +30,14 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, to_err=False)
         to_err (bool): If True, print status messages to stderr instead of stdout
 
     """
-    f = sys.stderr if to_err else sys.stdout
+    _outstream = sys.stderr if to_err else sys.stdout
     status = job.status()
     msg = status.value
     prev_msg = msg
     msg_len = len(msg)
 
     if not quiet:
-        print('\r%s: %s' % ('Job Status', msg), end='', file=f)
+        print('\r%s: %s' % ('Job Status', msg), end='', file=_outstream)
     while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
         time.sleep(interval)
         status = job.status()
@@ -58,10 +58,10 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, to_err=False)
             msg_len = len(msg)
 
         if msg != prev_msg and not quiet:
-            print('\r%s: %s' % ('Job Status', msg), end='', file=f)
+            print('\r%s: %s' % ('Job Status', msg), end='', file=_outstream)
             prev_msg = msg
     if not quiet:
-        print('', file=f)
+        print('', file=_outstream)
 
 
 def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_err=False):
@@ -78,7 +78,6 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_err=Fal
         QiskitError: When trying to run async outside of Jupyter
         ImportError: ipywidgets not available for notebook.
     """
-    f = sys.stderr if to_err else sys.stdout
     if interval is None:
         _interval_set = False
         interval = 2
