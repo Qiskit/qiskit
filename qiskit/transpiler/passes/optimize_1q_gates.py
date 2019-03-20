@@ -173,7 +173,8 @@ class Optimize1qGates(TransformationPass):
             if right_name == "u3":
                 new_op = U3Gate(right_parameters[0],  right_parameters[1], right_parameters[2], run_qarg)
 
-            dag.apply_operation_back(new_op)
+            if (right_name != 'nop'):
+                dag.apply_operation_back(new_op)
 
             # Delete the other nodes in the run
             for current_node in run:
