@@ -7,4 +7,4 @@
 
 """Schedule classes for pulse."""
 
-from .pulse_schedule import TimedPulse, TimedPulseBlock, PulseSchedule
+from .pulse_schedule import TimedPulse, TimedPulseBlock, Schedule

@@ -10,9 +10,9 @@ Schedule.
 """
 import logging
 import pprint
-from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from typing import List, Union
+from collections import defaultdict
+from typing import List
 
 from qiskit.pulse import DeviceSpecification
 from qiskit.pulse.channels import PulseChannel
@@ -72,7 +72,7 @@ class TimedPulse(TimedPulseBlock):
         return "(%s, %s, %d)" % (self.command.name, self.channel.name, self.t0)
 
 
-class PulseSchedule(TimedPulseBlock):
+class Schedule(TimedPulseBlock):
     """Schedule."""
 
     def __init__(self,
@@ -106,40 +106,33 @@ class PulseSchedule(TimedPulseBlock):
             channel (PulseChannel):
         """
         try:
-            start_time = self.end_time_by(channel)  # TODO: need to add buffer?
-            self.add_block(TimedPulse(command, channel, start_time))
+            start_time = self.end_time()  # TODO: need to add buffer?
+            self._add(TimedPulse(command, channel, start_time))
         except ScheduleError as err:
             logger.warning("Fail to append %s to %s", command, channel)
             raise ScheduleError(err.message)
 
-    def add(self,
-            commands: Union[PulseCommand, List[PulseCommand]],
-            channel: PulseChannel,
-            start_time: int):
-        """Add new pulse command(s) with channel and start time context.
+    def insert(self, start_time: int, command: PulseCommand, channel: PulseChannel):
+        """Insert new pulse command with `channel` at `start_time`.
 
         Args:
-            commands (PulseCommand|list):
-            channel:
             start_time:
+            command (PulseCommand):
+            channel:
         """
-        if isinstance(commands, PulseCommand):
-            try:
-                self.add_block(TimedPulse(commands, channel, start_time))
-            except ScheduleError as err:
-                logger.warning("Fail to add %s to %s at %s", commands, channel, start_time)
-                raise ScheduleError(err.message)
-        elif isinstance(commands, list):
-            for cmd in commands:
-                self.add(cmd, channel, start_time)
+        try:
+            self._add(TimedPulse(command, channel, start_time))
+        except ScheduleError as err:
+            logger.warning("Fail to insert %s to %s at %s", command, channel, start_time)
+            raise ScheduleError(err.message)
 
-    def add_block(self, block: TimedPulseBlock):
+    def _add(self, block: TimedPulseBlock):
         """Add a new composite pulse `TimedPulseBlock`.
 
         Args:
             block:
         """
-        if isinstance(block, PulseSchedule):
+        if isinstance(block, Schedule):
             if self._device is not block._device:
                 raise ScheduleError("Additional block must have the same device as self")
 
