@@ -13,5 +13,4 @@ from .sample_pulse import SamplePulse
 from .acquire import Acquire, Discriminator, Kernel
 from .frame_change import FrameChange
 from .persistent_value import PersistentValue
-from .functional_pulse import FunctionalPulse
 from .snapshot import Snapshot

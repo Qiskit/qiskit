@@ -16,6 +16,7 @@ from typing import List
 
 from qiskit.pulse.channels import PulseChannel, ChannelStore
 from qiskit.pulse.commands import PulseCommand, FunctionalPulse, SamplePulse
+
 from qiskit.pulse.exceptions import ScheduleError
 
 logger = logging.getLogger(__name__)
