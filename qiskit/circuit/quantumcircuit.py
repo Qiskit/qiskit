@@ -82,8 +82,9 @@ class QuantumCircuit:
         return str(self.draw(output='text'))
 
     def __repr__(self):
-        return "QuantumCircuit<width={}, depth={}, gate_count={}>".format(
-            self.width(), self.depth(), self.count_ops())
+        repr_str = "QuantumCircuit<width={}, depth={}, gate_count={}, tensor_factors={}>"
+        return repr_str.format(self.width(), self.depth(),
+                               self.count_ops(), self.num_tensor_factors())
 
     def __eq__(self, other):
         # TODO: removed the DAG from this function
