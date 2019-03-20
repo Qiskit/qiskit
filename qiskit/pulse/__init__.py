@@ -9,3 +9,9 @@
 from .device_specification import DeviceSpecification
 from .exceptions import PulseError, ChannelsError, CommandsError, ScheduleError
 from .qubit import Qubit
+
+from qiskit.pulse.commands import (Acquire, FrameChange, PersistentValue,
+                                   SamplePulse, Snapshot,
+                                   Kernel, Discriminator, function)
+
+from qiskit.pulse.schedule import PulseSchedule
