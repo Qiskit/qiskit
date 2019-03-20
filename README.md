@@ -23,7 +23,7 @@ To install from source, follow the instructions in the [contribution guidelines]
 Now that Qiskit is installed, it's time to begin working with Terra.
 
 We are ready to try out a quantum circuit example, which is simulated locally using 
-the Qiskit Aer element. This is a simple example that makes an entangled state.
+the Qiskit BasicAer element. This is a simple example that makes an entangled state.
 
 ```
 $ python
@@ -37,7 +37,7 @@ $ python
 >>> qc.h(q[0])
 >>> qc.cx(q[0], q[1])
 >>> qc.measure(q, c)
->>> backend_sim = Aer.get_backend('qasm_simulator')
+>>> backend_sim = BasicAer.get_backend('qasm_simulator')
 >>> result = execute(qc, backend_sim).result()
 >>> print(result.get_counts(qc))
 ```
