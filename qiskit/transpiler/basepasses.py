@@ -20,8 +20,6 @@ class MetaPass(type):
     """
 
     def __call__(cls, *args, **kwargs):
-        if '_pass_cache' not in cls.__dict__.keys():
-            cls._pass_cache = {}
         pass_instance = type.__call__(cls, *args, **kwargs)
         pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls, args, kwargs))
         return pass_instance
