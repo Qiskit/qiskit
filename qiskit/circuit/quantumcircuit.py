@@ -403,9 +403,39 @@ class QuantumCircuit:
 
     def num_tensor_factors(self):
         """How many non-entangled subcircuits can the circuit be factored to."""
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.num_tensor_factors()
+        qr_offset = 0
+        qr_map = {}
+        for qr in self.qregs:
+            qr_map[qr.name] = qr_offset
+            qr_offset += qr.size
+
+        sub_graphs = [[qbit] for qbit in range(self.width())]
+        num_sub_graphs = len(sub_graphs)
+        for op in self.data:
+            if len(op.qargs) >= 2 and op.name != 'barrier':
+                graphs_touched = []
+                num_touched = 0
+                for q in op.qargs:
+                    q_int = qr_map[q[0].name]+q[1]
+                    for k in range(num_sub_graphs):
+                        if q_int in sub_graphs[k]:
+                            if q_int not in graphs_touched:
+                                graphs_touched.append(k)
+                                num_touched += 1
+                if num_touched > 1:
+                    connections = []
+                    for idx in graphs_touched:
+                        connections.extend(sub_graphs[idx])
+                    _sub_graphs = []
+                    for idx in range(num_sub_graphs):
+                        if idx not in graphs_touched:
+                            _sub_graphs.append(sub_graphs[idx])
+                    _sub_graphs.append(connections)
+                    sub_graphs = _sub_graphs
+                    num_sub_graphs -= (num_touched-1)
+            if num_sub_graphs == 1:
+                break
+        return num_sub_graphs
 
     def copy(self, name=None):
         """
