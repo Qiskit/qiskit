@@ -15,11 +15,10 @@ from qiskit.pulse.commands.pulse_command import PulseCommand
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    def __init__(self, duration, samples, name):
+    def __init__(self, samples, name=None):
         """Create new sample pulse command.
 
         Args:
-            duration (int): Duration of pulse.
             samples (ndarray): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
         """
@@ -28,22 +27,9 @@ class SamplePulse(PulseCommand):
         else:
             _name = name
 
-        super(SamplePulse, self).__init__(duration=duration, name=_name)
+        super(SamplePulse, self).__init__(duration=len(samples), name=_name)
 
-        self._samples = samples
-
-    @property
-    def samples(self):
-        """Return sample.
-        """
-        return self._samples
-
-    @samples.setter
-    def samples(self, samples):
-        """Set sample.
-        """
-        self._samples = samples
-        self.duration = len(samples)
+        self.samples = samples
 
     def draw(self, **kwargs):
         """Plot the interpolated envelope of pulse.
