@@ -7,7 +7,6 @@
 
 """Module for Circuits."""
 from .quantumcircuit import QuantumCircuit
-from .register import Register
 from .classicalregister import ClassicalRegister
 from .quantumregister import QuantumRegister
 from .gate import Gate
