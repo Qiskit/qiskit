@@ -105,8 +105,8 @@ class Schedule(TimedPulseBlock):
             channel (PulseChannel):
         """
         try:
-            start_time = self.end_time_by(channel)  # TODO: need to add buffer?
-            self.add(TimedPulse(command, channel, start_time))
+            start_time = self.end_time()  # TODO: need to add buffer?
+            self._add(TimedPulse(command, channel, start_time))
         except ScheduleError as err:
             logger.warning("Fail to append %s to %s", command, channel)
             raise ScheduleError(err.message)
@@ -120,12 +120,12 @@ class Schedule(TimedPulseBlock):
             start_time:
         """
         try:
-            self.add(TimedPulse(command, channel, start_time))
+            self._add(TimedPulse(command, channel, start_time))
         except ScheduleError as err:
             logger.warning("Fail to insert %s to %s at %s", command, channel, start_time)
             raise ScheduleError(err.message)
 
-    def add(self, block: TimedPulseBlock):
+    def _add(self, block: TimedPulseBlock):
         """Add a new composite pulse `TimedPulseBlock`.
 
         Args:
