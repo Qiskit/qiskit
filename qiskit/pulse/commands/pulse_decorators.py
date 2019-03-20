@@ -14,7 +14,7 @@ Pulse decorators.
 import numpy as np
 
 from qiskit.pulse.commands import SamplePulse
-from qiskit.pulse import CommandsError
+from qiskit.pulse.exceptions import CommandsError
 
 
 def function(func):

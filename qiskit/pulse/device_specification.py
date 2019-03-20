@@ -12,8 +12,8 @@ import logging
 from typing import List
 
 from qiskit.pulse.qubit import Qubit
-from .channels.output_channel import DriveChannel, ControlChannel, MeasureChannel
-from .channels.pulse_channel import AcquireChannel, SnapshotChannel
+from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.pulse.channels import AcquireChannel, SnapshotChannel
 
 logger = logging.getLogger(__name__)
 
