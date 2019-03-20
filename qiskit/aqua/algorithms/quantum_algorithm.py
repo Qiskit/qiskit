@@ -44,16 +44,6 @@ class QuantumAlgorithm(Pluggable):
         self._quantum_instance = None
 
     @property
-    def random_seed(self):
-        """Return random seed."""
-        return aqua_globals.random_seed
-
-    @random_seed.setter
-    def random_seed(self, seed):
-        """Set random seed."""
-        aqua_globals.random_seed = seed
-
-    @property
     def random(self):
         """Return a numpy random."""
         return aqua_globals.random
