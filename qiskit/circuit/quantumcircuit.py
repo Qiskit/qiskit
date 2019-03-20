@@ -363,15 +363,24 @@ class QuantumCircuit:
 
     def depth(self):
         """Return circuit depth (i.e. length of critical path)."""
+        # Map qregs to int offset
+        qr_offset = 0
+        qr_map = {}
+        for qr in self.qregs:
+            qr_map[qr.name] = qr_offset
+            qr_offset += qr.size
+
         op_stack = [0]*self.width()
         for op in self.data:
             if op.name != 'barrier':
                 levels = []
                 for q in op.qargs:
-                    levels.append(op_stack[q[1]] + 1)
+                    q_int = qr_map[q[0].name]+q[1]
+                    levels.append(op_stack[q_int] + 1)
                 max_level = max(levels)
                 for q in op.qargs:
-                    op_stack[q[1]] = max_level
+                    q_int = qr_map[q[0].name]+q[1]
+                    op_stack[q_int] = max_level
         return max(op_stack)
 
     def width(self):
