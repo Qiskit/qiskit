@@ -7,4 +7,5 @@
 
 """Module for DAG Circuits."""
 from ._dagcircuit import DAGCircuit
+from ._dagnode import DAGNode
 from .exceptions import DAGCircuitError
