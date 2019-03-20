@@ -111,7 +111,7 @@ class Schedule(TimedPulseBlock):
             logger.warning("Fail to append %s to %s", command, channel)
             raise ScheduleError(err.message)
 
-    def insert(self, command: PulseCommand, channel: PulseChannel, start_time: int):
+    def insert(self, start_time: int, command: PulseCommand, channel: PulseChannel):
         """Insert new pulse command with `channel` at `start_time`.
 
         Args:
