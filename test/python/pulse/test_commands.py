@@ -12,11 +12,8 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.commands import (Acquire,
-                                   FrameChange,
-                                   FunctionalPulse,
-                                   PersistentValue,
-                                   Snapshot)
+from qiskit.pulse import (Acquire, FrameChange, PersistentValue,
+                          Snapshot, Kernel, Discriminator, function)
 from qiskit.test import QiskitTestCase
 
 
@@ -26,13 +23,27 @@ class TestAcquire(QiskitTestCase):
     def test_default(self):
         """Test default discriminator and kernel.
         """
-        acq_comm = Acquire(duration=10)
 
-        self.assertEqual(acq_comm.duration, 10)
-        self.assertEqual(acq_comm.discriminator.name, None)
-        self.assertEqual(acq_comm.discriminator.params, {})
-        self.assertEqual(acq_comm.kernel.name, None)
-        self.assertEqual(acq_comm.kernel.params, {})
+        kernel_opts = {
+            'start_window': 0,
+            'stop_window': 10
+        }
+        kernel = Kernel(name='boxcar', **kernel_opts)
+
+        discriminator_opts = {
+            'neighborhoods': [{'qubits': 1, 'channels': 1}],
+            'cal': 'coloring',
+            'resample': False
+        }
+        discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
+
+        acq_command = Acquire(duration=10, kernel=kernel, discriminator=discriminator)
+
+        self.assertEqual(acq_command.duration, 10)
+        self.assertEqual(acq_command.discriminator.name, 'linear_discriminator')
+        self.assertEqual(acq_command.discriminator.params, discriminator_opts)
+        self.assertEqual(acq_command.kernel.name, 'boxcar')
+        self.assertEqual(acq_command.kernel.params, kernel_opts)
 
 
 class TestFrameChange(QiskitTestCase):
@@ -41,40 +52,34 @@ class TestFrameChange(QiskitTestCase):
     def test_default(self):
         """Test default frame change.
         """
-        fc_comm = FrameChange(phase=1.57-0.785j)
+        fc_command = FrameChange(phase=1.57-0.785j)
 
-        self.assertEqual(fc_comm.phase, 1.57-0.785j)
-        self.assertEqual(fc_comm.duration, 0)
+        self.assertEqual(fc_command.phase, 1.57-0.785j)
+        self.assertEqual(fc_command.duration, 0)
 
 
-class TestFunctionalPulse(QiskitTestCase):
-    """FunctionalPulse tests."""
+class TestFunction(QiskitTestCase):
+    """SamplePulse tests."""
 
     def test_gaussian(self):
         """Test gaussian pulse.
         """
 
-        @FunctionalPulse
+        @function
         def gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_instance = gaussian(10, name='gaussian', amp=1, t0=5, sig=1)
+        pulse_command = gaussian(name='gaussian', duration=10, amp=1, t0=5, sig=1)
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
-        self.assertListEqual(list(pulse_instance.samples), list(_y))
-
-        # Parameter update (complex pulse)
-        pulse_instance.update_params(amp=0.5-0.5j)
-        _y = (0.5-0.5j) * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
-
-        self.assertListEqual(list(pulse_instance.samples), list(_y))
+        self.assertListEqual(list(pulse_command.samples), list(_y))
 
         # check duration
-        self.assertEqual(pulse_instance.duration, 10)
+        self.assertEqual(pulse_command.duration, 10)
 
         # check name
-        self.assertEqual(pulse_instance.name, 'gaussian')
+        self.assertEqual(pulse_command.name, 'gaussian')
 
 
 class TestPersistentValue(QiskitTestCase):
@@ -83,10 +88,10 @@ class TestPersistentValue(QiskitTestCase):
     def test_default(self):
         """Test default persistent value.
         """
-        pv_comm = PersistentValue(value=0.5-0.5j)
+        pv_command = PersistentValue(value=0.5-0.5j)
 
-        self.assertEqual(pv_comm.value, 0.5-0.5j)
-        self.assertEqual(pv_comm.duration, 0)
+        self.assertEqual(pv_command.value, 0.5-0.5j)
+        self.assertEqual(pv_command.duration, 0)
 
 
 class TestSnapshot(QiskitTestCase):
@@ -95,11 +100,11 @@ class TestSnapshot(QiskitTestCase):
     def test_default(self):
         """Test default snapshot.
         """
-        snap_comm = Snapshot(label='test_label', snap_type='state')
+        snap_command = Snapshot(label='test_label', snap_type='state')
 
-        self.assertEqual(snap_comm.label, "test_label")
-        self.assertEqual(snap_comm.type, "state")
-        self.assertEqual(snap_comm.duration, 0)
+        self.assertEqual(snap_command.label, "test_label")
+        self.assertEqual(snap_command.type, "state")
+        self.assertEqual(snap_command.duration, 0)
 
 
 if __name__ == '__main__':
