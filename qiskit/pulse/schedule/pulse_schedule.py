@@ -172,7 +172,7 @@ class PulseSchedule(TimedPulseBlock):
         # TODO: Naive implementation (compute at add and remove would be better)
         lib = []
         for tp in self._children:
-            if isinstance(tp.command, (FunctionalPulse, SamplePulse)) and \
+            if isinstance(tp.command, SamplePulse) and \
                     tp.command not in lib:
                 lib.append(tp.command)
         return lib
