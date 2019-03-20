@@ -18,7 +18,6 @@ class OutputChannel(PulseChannel):
     """Output Channel."""
 
     supported = (commands.FrameChange,
-                 commands.FunctionalPulse,
                  commands.PersistentValue,
                  commands.SamplePulse)
 
