@@ -36,7 +36,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    @unittest.expectedFailure
     def test_optimize_h_gates_pass_manager(self):
         """Transpile: qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
         qr = QuantumRegister(1, 'qr')

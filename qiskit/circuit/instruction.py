@@ -91,7 +91,7 @@ class Instruction:
         res = False
         if type(self) is type(other) and \
                 self.name == other.name and \
-                self.params == other.params:
+                [float(param) for param in other.params] == [float(param) for param in self.params]:
             res = True
         return res
 
