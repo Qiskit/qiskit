@@ -500,7 +500,7 @@ class MatplotlibDrawer:
                 else:
                     q_idxs = []
                 # get creg index
-                if op.qargs:
+                if op.cargs:
                     c_idxs = []
                     for carg in op.cargs:
                         for index, reg in self._creg_dict.items():
