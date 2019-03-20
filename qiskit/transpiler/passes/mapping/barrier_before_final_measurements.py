@@ -74,7 +74,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         our_descendants = barrier_layer.descendants(new_barrier_node)
         our_qubits = final_qubits
 
-        existing_barriers = barrier_layer.named_nodes('barrier')
+        existing_barriers = sorted(barrier_layer.named_nodes('barrier'))
         # remove element from the list
         for i, node in enumerate(existing_barriers):
             if node == new_barrier_node:
