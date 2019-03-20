@@ -115,7 +115,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(params, expected_params)
 
-    @unittest.expectedFailure
     def test_ignores_conditional_rotations(self):
         """Conditional rotations should not be considered in the chain.
 
