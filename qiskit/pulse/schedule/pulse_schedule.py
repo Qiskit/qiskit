@@ -115,9 +115,9 @@ class Schedule(TimedPulseBlock):
         """Insert new pulse command with `channel` at `start_time`.
 
         Args:
+            start_time:
             command (PulseCommand):
             channel:
-            start_time:
         """
         try:
             self._add(TimedPulse(command, channel, start_time))
@@ -142,10 +142,10 @@ class Schedule(TimedPulseBlock):
             self._children.append(block)
 
     def start_time(self) -> int:
-        return min([self._start_time(child) for child in self._children])
+        return min([self._start_time(child) for child in self._children], default=0)
 
     def end_time(self) -> int:
-        return max([self._end_time(child) for child in self._children])
+        return max([self._end_time(child) for child in self._children], default=0)
 
     def end_time_by(self, channel: PulseChannel) -> int:
         """End time of the occupation in this schedule on a `channel`.
