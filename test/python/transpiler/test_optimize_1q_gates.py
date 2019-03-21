@@ -158,7 +158,7 @@ class TestOptimize1qGates(QiskitTestCase):
 
         expected = QuantumCircuit(qr,)
         expected.u1(0.7, qr)
-        circuit.h(qr)
+        expected.h(qr)
 
         pass_ = Optimize1qGates()
         after = pass_.run(dag)
