@@ -36,7 +36,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    @unittest.expectedFailure
     def test_optimize_h_gates_pass_manager(self):
         """Transpile: qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
         qr = QuantumRegister(1, 'qr')
@@ -106,9 +105,8 @@ class TestOptimize1qGates(QiskitTestCase):
         simplified_dag = Optimize1qGates().run(dag)
 
         params = set()
-        for node_id in simplified_dag.named_nodes('u1'):
-            node = simplified_dag.node(node_id)
-            params.add(node['op'].params[0])
+        for node in simplified_dag.named_nodes('u1'):
+            params.add(node.op.params[0])
 
         expected_params = {sympy.Number(-3 * np.pi / 2),
                            sympy.Number(1.0 + 0.55 * np.pi),
@@ -117,7 +115,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(params, expected_params)
 
-    @unittest.expectedFailure
     def test_ignores_conditional_rotations(self):
         """Conditional rotations should not be considered in the chain.
 
