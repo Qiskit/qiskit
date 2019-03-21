@@ -19,6 +19,7 @@ class DAGNode:
     be supplied to functions that take a node.
 
     """
+
     def __init__(self, data_dict, nid=-1):
         """ Create a node """
         self._node_id = nid
@@ -84,14 +85,11 @@ class DAGNode:
         return self.data_dict.get('wire')
 
     def __eq__(self, other):
-
         # if other is None
         if not other:
             return False
-
         if isinstance(other, int):
             return other == self._node_id
-
         return self._node_id == other._node_id
 
     def __lt__(self, other):
@@ -116,7 +114,7 @@ class DAGNode:
         del self.data_dict[val]
 
     @staticmethod
-    def _match_dag_nodes(node1, node2):
+    def semantic_eq(node1, node2):
         """
         Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
 

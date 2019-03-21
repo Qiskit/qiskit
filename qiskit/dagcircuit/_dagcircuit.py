@@ -763,7 +763,7 @@ class DAGCircuit:
             oth.nodes[node]['node'] = node
 
         return nx.is_isomorphic(slf, oth,
-                                node_match=DAGNode._match_dag_nodes)
+                                node_match=DAGNode.semantic_eq)
 
     def nodes_in_topological_order(self):
         """
