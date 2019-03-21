@@ -331,6 +331,7 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
+
 class TestCircuitSpecialCases(QiskitTestCase):
     """DAGCircuit test for special cases, usually for regression."""
 
@@ -348,6 +349,7 @@ class TestCircuitSpecialCases(QiskitTestCase):
         dag = circuit_to_dag(circ)
 
         self.assertEqual(dag.depth(), 2)
+
 
 class TestDagEquivalence(QiskitTestCase):
     """DAGCircuit equivalence check."""

@@ -114,3 +114,22 @@ class DAGNode:
     def pop(self, val):
         """Remove the provided value from the dictionary"""
         del self.data_dict[val]
+
+    @staticmethod
+    def _match_dag_nodes(node1, node2):
+        """
+        Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
+
+        Args:
+            node1 (dict): A node to compare.
+            node2 (dict): The other node to compare.
+
+        Return:
+            Bool: If node1 == node2
+        """
+
+        # For barriers, qarg order is not significant so compare as sets
+        if 'barrier' == node1['node'].name == node2['node'].name:
+            return set(node1['node'].qargs) == set(node2['node'].qargs)
+
+        return node1['node'].data_dict == node2['node'].data_dict
