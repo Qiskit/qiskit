@@ -143,6 +143,28 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_in_the_back(self):
+        """Optimizations can be in the back of the circuit.
+        See https://github.com/Qiskit/qiskit-terra/issues/2004.
+
+        qr0:--[U1]-[U1]-[H]--    qr0:--[U1]-[H]--
+        """
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u1(0.3, qr)
+        circuit.u1(0.4, qr)
+        circuit.h(qr)
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr,)
+        expected.u1(0.7, qr)
+        circuit.h(qr)
+
+        pass_ = Optimize1qGates()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 if __name__ == '__main__':
     unittest.main()
