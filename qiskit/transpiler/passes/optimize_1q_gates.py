@@ -22,6 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.dagcircuit import DAGCircuit
+from qiskit import QuantumRegister
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -37,7 +38,7 @@ class Optimize1qGates(TransformationPass):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
-            run_qarg = run[0].qargs[0]
+            run_qarg = (QuantumRegister(1, 'q'), 0)
 
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
@@ -46,7 +47,6 @@ class Optimize1qGates(TransformationPass):
                 left_name = current_node.name
                 if (current_node.condition is not None
                         or len(current_node.qargs) != 1
-                        or current_node.qargs[0] != run_qarg
                         or left_name not in ["u1", "u2", "u3", "id"]):
                     raise MapperError("internal error")
                 if left_name == "u1":
@@ -173,14 +173,17 @@ class Optimize1qGates(TransformationPass):
                 new_op = U3Gate(right_parameters[0], right_parameters[1], right_parameters[2],
                                 run_qarg)
 
-            new_dag = DAGCircuit()
-            new_dag.add_qreg(*[qarg[0] for qarg in new_op.qargs])
-            new_dag.apply_operation_back(new_op)
-            dag.substitute_node_with_dag(run[0], new_dag)
+            if right_name != 'nop':
+                new_dag = DAGCircuit()
+                new_dag.add_qreg(run_qarg[0])
+                new_dag.apply_operation_back(new_op)
+                dag.substitute_node_with_dag(run[0], new_dag)
 
             # Delete the other nodes in the run
             for current_node in run[1:]:
                 dag._remove_op_node(current_node)
+            if right_name == "nop":
+                dag._remove_op_node(run[0])
 
         return dag
 
