@@ -38,8 +38,6 @@ class Optimize1qGates(TransformationPass):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
-            run_qarg = (QuantumRegister(1, 'q'), 0)
-
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
 
@@ -163,7 +161,10 @@ class Optimize1qGates(TransformationPass):
                 if right_name == "u1" and np.mod(right_parameters[2], (2 * np.pi)) == 0:
                     right_name = "nop"
 
-            # Replace the data of the first node in the run
+            # Replace the the first node in the run with a dummy DAG which contains a dummy
+            # qubit. The name is irrelevant, because substitute_node_with_dag will take care of
+            # putting it in the right place.
+            run_qarg = (QuantumRegister(1, 'q'), 0)
             new_op = Instruction("", [], [], [])
             if right_name == "u1":
                 new_op = U1Gate(right_parameters[2], run_qarg)
