@@ -21,6 +21,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
+from qiskit.dagcircuit import DAGCircuit
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -172,11 +173,13 @@ class Optimize1qGates(TransformationPass):
                 new_op = U3Gate(right_parameters[0], right_parameters[1], right_parameters[2],
                                 run_qarg)
 
-            if right_name != 'nop':
-                dag.apply_operation_back(new_op)
+            new_dag = DAGCircuit()
+            new_dag.add_qreg(*[qarg[0] for qarg in new_op.qargs])
+            new_dag.apply_operation_back(new_op)
+            dag.substitute_node_with_dag(run[0], new_dag)
 
             # Delete the other nodes in the run
-            for current_node in run:
+            for current_node in run[1:]:
                 dag._remove_op_node(current_node)
 
         return dag
