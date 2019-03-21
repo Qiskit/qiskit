@@ -331,6 +331,23 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
+class TestCircuitSpecialCases(QiskitTestCase):
+    """DAGCircuit test for special cases, usually for regression."""
+
+    def test_circuit_depth_with_repetition(self):
+        """ When cx repeat, they are not "the same".
+        See https://github.com/Qiskit/qiskit-terra/issues/1994
+        """
+        qr1 = QuantumRegister(2)
+        qr2 = QuantumRegister(2)
+        circ = QuantumCircuit(qr1, qr2)
+        circ.h(qr1[0])
+        circ.cx(qr1[1], qr2[1])
+        circ.cx(qr1[1], qr2[1])
+        circ.h(qr2[0])
+        dag = circuit_to_dag(circ)
+
+        self.assertEqual(dag.depth(), 2)
 
 class TestDagEquivalence(QiskitTestCase):
     """DAGCircuit equivalence check."""
