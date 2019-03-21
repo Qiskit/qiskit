@@ -22,7 +22,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
 
-
 _CHOP_THRESHOLD = 1e-15
 
 
@@ -48,7 +47,6 @@ class Optimize1qGates(TransformationPass):
                         or len(current_node.qargs) != 1
                         or current_node.qargs[0] != run_qarg
                         or left_name not in ["u1", "u2", "u3", "id"]):
-
                     raise MapperError("internal error")
                 if left_name == "u1":
                     left_parameters = (0, 0, current_node.op.params[0])
@@ -171,15 +169,16 @@ class Optimize1qGates(TransformationPass):
             if right_name == "u2":
                 new_op = U2Gate(right_parameters[1], right_parameters[2], run_qarg)
             if right_name == "u3":
-                new_op = U3Gate(*right_parameters, run_qarg)
-            dag.node(run[0])['name'] = right_name
-            dag.node(run[0])['op'] = new_op
+                new_op = U3Gate(right_parameters[0], right_parameters[1], right_parameters[2],
+                                run_qarg)
+
+            if right_name != 'nop':
+                dag.apply_operation_back(new_op)
 
             # Delete the other nodes in the run
-            for current_node in run[1:]:
+            for current_node in run:
                 dag._remove_op_node(current_node)
-            if right_name == "nop":
-                dag._remove_op_node(run[0])
+
         return dag
 
     @staticmethod
