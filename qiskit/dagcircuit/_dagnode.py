@@ -92,21 +92,7 @@ class DAGNode:
         if isinstance(other, int):
             return other == self._node_id
 
-        # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == self.name == other.name:
-            node1_qargs = set(self.qargs)
-            node2_qargs = set(other.qargs)
-
-            if node1_qargs != node2_qargs:
-                return False
-
-            # qargs must be equal, so remove them from the dict then compare
-            copy_self = {k: v for (k, v) in self.data_dict.items() if k != 'qargs'}
-            copy_other = {k: v for (k, v) in other.data_dict.items() if k != 'qargs'}
-
-            return copy_self == copy_other
-
-        return self.data_dict == other.data_dict
+        return self._node_id == other._node_id
 
     def __lt__(self, other):
         return self._node_id < other._node_id

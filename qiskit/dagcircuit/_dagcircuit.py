@@ -752,6 +752,29 @@ class DAGCircuit:
 
         return full_pred_map, full_succ_map
 
+    @staticmethod
+    def _match_dag_nodes(node1, node2):
+        """
+        Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
+
+        Args:
+            node1 (dict): A node to compare.
+            node2 (dict): The other node to compare.
+
+        Return:
+            Bool: If node1 == node2
+        """
+
+        # For barriers, qarg order is not significant so compare as sets
+        if 'barrier' == node1['name'] == node2['name']:
+            node1_qargs = set(node1.pop('qargs', []))
+            node2_qargs = set(node2.pop('qargs', []))
+
+            if node1_qargs != node2_qargs:
+                return False
+
+        return node1.data_dict == node2.data_dict
+
     def __eq__(self, other):
 
         if nx.is_isomorphic(self.multi_graph, other.multi_graph):
@@ -760,13 +783,12 @@ class DAGCircuit:
             oth = copy.deepcopy(other.multi_graph)
 
             for node in slf.nodes:
-                slf.nodes[node]["node"] = node
+                slf.nodes[node]= node
             for node in oth.nodes:
-                oth.nodes[node]["node"] = node
+                oth.nodes[node]= node
 
-            return nx.is_isomorphic(slf, oth, node_match=lambda x, y:
-                                    x['node'] == y['node'])
-
+            return nx.is_isomorphic(self.multi_graph, other.multi_graph,
+                                    node_match=DAGCircuit._match_dag_nodes)
         return False
 
     def nodes_in_topological_order(self):
