@@ -28,11 +28,9 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class CommutationAnalysis(AnalysisPass):
     """An analysis pass to find commutation relations between DAG nodes."""
 
-    def __init__(self, max_depth=100):
+    def __init__(self):
         super().__init__()
-        self.max_depth = max_depth
         self.wire_op = {}
-        self.node_commute_group = {}
 
     def run(self, dag):
         """
@@ -55,10 +53,8 @@ class CommutationAnalysis(AnalysisPass):
 
                 edge_name = edge_data['name']
 
-                if start_node == node:
-                    self.wire_op[edge_name].append(start_node)
-
-                    self.property_set['commutation_set'][(node, edge_name)] = -1
+                self.wire_op[edge_name].append(start_node)
+                self.property_set['commutation_set'][(node, edge_name)] = -1
 
                 if end_node.type == "out":
                     self.wire_op[edge_name].append(end_node)
@@ -68,22 +64,23 @@ class CommutationAnalysis(AnalysisPass):
 
             for node in self.wire_op[wire_name]:
 
-                if not self.property_set['commutation_set'][wire_name]:
-                    self.property_set['commutation_set'][wire_name].append([node])
+                current_comm_set = self.property_set['commutation_set'][wire_name]
+                if not current_comm_set:
+                    current_comm_set.append([node])
 
                 # must be the exact same objects whereas == is True
                 # for semantically equivalent objects
-                id_for_nodes = [id(x) for x in self.property_set['commutation_set'][wire_name][-1]]
+                id_for_nodes = [x._node_id for x in current_comm_set[-1]]
 
-                if id(node) not in id_for_nodes:
-                    test_node = self.property_set['commutation_set'][wire_name][-1][-1]
+                if node._node_id not in id_for_nodes:
+                    test_node = current_comm_set[-1][-1]
                     if _commute(node, test_node):
-                        self.property_set['commutation_set'][wire_name][-1].append(node)
+                        current_comm_set[-1].append(node)
 
                     else:
-                        self.property_set['commutation_set'][wire_name].append([node])
+                        current_comm_set.append([node])
 
-                temp_len = len(self.property_set['commutation_set'][wire_name])
+                temp_len = len(current_comm_set)
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
 
