@@ -766,9 +766,8 @@ class DAGCircuit:
         """
 
         # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == node1['node'].name == node2['node'].name and set(
-                node1['node'].qargs) != set(node2['node'].qargs):
-            return False
+        if 'barrier' == node1['node'].name == node2['node'].name:
+            return set(node1['node'].qargs) == set(node2['node'].qargs)
 
         return node1['node'].data_dict == node2['node'].data_dict
 
