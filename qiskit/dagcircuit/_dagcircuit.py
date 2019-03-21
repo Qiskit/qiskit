@@ -766,30 +766,24 @@ class DAGCircuit:
         """
 
         # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == node1['name'] == node2['name']:
-            node1_qargs = set(node1.pop('qargs', []))
-            node2_qargs = set(node2.pop('qargs', []))
+        if 'barrier' == node1['node'].name == node2['node'].name and set(
+                node1['node'].qargs) != set(node2['node'].qargs):
+            return False
 
-            if node1_qargs != node2_qargs:
-                return False
-
-        return node1.data_dict == node2.data_dict
+        return node1['node'].data_dict == node2['node'].data_dict
 
     def __eq__(self, other):
+        # TODO this works but is a horrible way to do this
+        slf = copy.deepcopy(self.multi_graph)
+        oth = copy.deepcopy(other.multi_graph)
 
-        if nx.is_isomorphic(self.multi_graph, other.multi_graph):
-            # TODO this works but is a horrible way to do this
-            slf = copy.deepcopy(self.multi_graph)
-            oth = copy.deepcopy(other.multi_graph)
+        for node in slf.nodes:
+            slf.nodes[node]['node'] = node
+        for node in oth.nodes:
+            oth.nodes[node]['node'] = node
 
-            for node in slf.nodes:
-                slf.nodes[node]= node
-            for node in oth.nodes:
-                oth.nodes[node]= node
-
-            return nx.is_isomorphic(self.multi_graph, other.multi_graph,
-                                    node_match=DAGCircuit._match_dag_nodes)
-        return False
+        return nx.is_isomorphic(slf, oth,
+                                node_match=DAGCircuit._match_dag_nodes)
 
     def nodes_in_topological_order(self):
         """
