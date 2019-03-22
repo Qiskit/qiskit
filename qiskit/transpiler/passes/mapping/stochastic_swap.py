@@ -79,7 +79,7 @@ class StochasticSwap(TransformationPass):
         self.rng = None
         self.requires.append(BarrierBeforeFinalMeasurements())
 
-    def run(self, dag):
+    def run(self, dag, property_set=None):
         """
         Run the StochasticSwap pass on `dag`.
 
