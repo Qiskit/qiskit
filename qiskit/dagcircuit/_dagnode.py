@@ -84,14 +84,6 @@ class DAGNode:
             raise QiskitError('The node %s is not an input/output node' % str(self))
         return self.data_dict.get('wire')
 
-    def __eq__(self, other):
-        # if other is None
-        if not other:
-            return False
-        if isinstance(other, int):
-            return other == self._node_id
-        return self._node_id == other._node_id
-
     def __lt__(self, other):
         return self._node_id < other._node_id
 
