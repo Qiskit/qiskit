@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=too-many-boolean-expressions
+
 """
 A generic quantum instruction.
 
@@ -103,6 +105,7 @@ class Instruction:
                 self.name == other.name and \
                 self.num_qubits == other.num_qubits and \
                 self.num_clbits == other.num_clbits and \
+                self.definition == other.definition and \
                 (self.params == other.params or
                  [float(p) for p in self.params] == [float(p) for p in other.params]):
             res = True
@@ -124,29 +127,25 @@ class Instruction:
         """Set matrix representation"""
         self._definition = array
 
-    def mirror(self, inplace=False):
+    def mirror(self):
         """For a composite instruction, reverse the order of sub-gates.
-        Non-composite instructions are returned with no modification.
 
         This is done by recursively mirroring all sub-instructions.
         It does not invert any gate.
 
         Returns:
-            Instruction: an instruction with sub-instructions mirrored
+            Instruction: a fresh gate with sub-gates reversed
         """
-        if inplace:
-            if not self._definition:
-                return self
-            self._definition.reverse()
-            for inst, _, _ in self._definition:
-                inst.mirror(inplace=True)
-            return self
+        if not self._definition:
+            return self.copy()
 
-        mirror_inst = self.copy(name=self.name+'_mirror')
-        mirror_inst.mirror(inplace=True)
-        return mirror_inst
+        reverse_inst = self.copy(name=self.name+'_mirror')
+        reverse_inst.definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
+        return reverse_inst
 
-    def inverse(self, inplace=False):
+    def inverse(self):
         """Invert this instruction.
 
         If the instruction is composite (i.e. has a definition),
@@ -162,18 +161,14 @@ class Instruction:
             QiskitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
-        if self.definition is None:
-            raise NotImplementedError("inverse() not implemented for %s." %
-                                      self.name)
-        if inplace:
-            self._definition.reverse()
-            for inst, _, _ in self._definition:
-                inst.inverse(inplace=True)
-            return self
-
-        inverse_inst = self.copy(name=self.name+'_dg')
-        inverse_inst.inverse(inplace=True)
-        return inverse_inst
+        if not self.definition:
+            raise QiskitError("inverse() not implemented for %s." %
+                              self.name)
+        inverse_gate = self.copy(name=self.name+'_dg')
+        inverse_gate._definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+        return inverse_gate
 
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""

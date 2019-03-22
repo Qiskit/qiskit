@@ -49,7 +49,7 @@ class Unroller(TransformationPass):
                 continue
 
             # TODO: allow choosing other possible decompositions
-            rule = current_node["op"].definition
+            rule = node.op.definition
             if not rule:
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
                                   "No rule to expand instruction %s." %
@@ -63,5 +63,5 @@ class Unroller(TransformationPass):
                 decomposition.apply_operation_back(*inst)
 
             unrolled_dag = self.run(decomposition)  # recursively unroll ops
-            dag.substitute_node_with_dag(node, decomposition)
+            dag.substitute_node_with_dag(node, unrolled_dag)
         return dag

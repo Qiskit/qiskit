@@ -43,9 +43,7 @@ class RYGate(Gate):
 
         ry(theta)^dagger = ry(-theta)
         """
-        self.params[0] = -self.params[0]
-        self.definition = None
-        return self
+        return RYGate(-self.params[0])
 
 
 @_op_expand(1)

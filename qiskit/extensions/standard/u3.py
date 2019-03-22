@@ -40,12 +40,7 @@ class U3Gate(Gate):
 
         u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
         """
-        self.params[0] = -self.params[0]
-        phi = self.params[1]
-        self.params[1] = -self.params[2]
-        self.params[2] = -phi
-        self.definition = None
-        return self
+        return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
 @_op_expand(1)

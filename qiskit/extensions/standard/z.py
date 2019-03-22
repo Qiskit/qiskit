@@ -38,7 +38,7 @@ class ZGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return ZGate()  # self-inverse
 
 
 @_op_expand(1)

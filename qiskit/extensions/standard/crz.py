@@ -45,9 +45,7 @@ class CrzGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.params[0] = -self.params[0]
-        self.definition = None
-        return self
+        return CrzGate(-self.params[0])
 
 
 @_op_expand(2)

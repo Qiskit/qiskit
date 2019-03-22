@@ -51,7 +51,7 @@ def dag_to_circuit(dag):
             else:
                 control = (node.condition[0], node.condition[1])
 
-            inst = copy.deepcopy(n['op'])
+            inst = copy.deepcopy(node.op)
             inst.control = control
             circuit.append(inst, qubits, clbits)
 

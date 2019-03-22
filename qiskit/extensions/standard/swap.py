@@ -42,7 +42,7 @@ class SwapGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return SwapGate()  # self-inverse
 
 
 @_op_expand(2, broadcastable=[False, False])

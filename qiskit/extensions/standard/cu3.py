@@ -48,12 +48,7 @@ class Cu3Gate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.params[0] = -self.params[0]
-        phi = self.params[1]
-        self.params[1] = -self.params[2]
-        self.params[2] = -phi
-        self.definition = None
-        return self
+        return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
 @_op_expand(2)

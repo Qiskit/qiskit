@@ -43,9 +43,7 @@ class RZGate(Gate):
 
         rz(phi)^dagger = rz(-phi)
         """
-        self.params[0] = -self.params[0]
-        self.definition = None
-        return self
+        return RZGate(-self.params[0])
 
 
 @_op_expand(1)

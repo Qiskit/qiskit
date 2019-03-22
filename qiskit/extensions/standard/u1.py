@@ -37,9 +37,7 @@ class U1Gate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.params[0] = -self.params[0]
-        self.definition = None
-        return self
+        return U1Gate(-self.params[0])
 
 
 @_op_expand(1)

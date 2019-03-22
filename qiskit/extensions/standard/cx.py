@@ -40,7 +40,7 @@ class CnotGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return CnotGate()  # self-inverse
 
 
 @_op_expand(2)

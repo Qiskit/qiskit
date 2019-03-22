@@ -43,7 +43,7 @@ class XGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return XGate()  # self-inverse
 
 
 @_op_expand(1)

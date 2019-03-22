@@ -24,7 +24,7 @@ class Snapshot(Instruction):
 
     def inverse(self):
         """Special case. Return self."""
-        return self
+        return Snapshot(self.num_qubits, self.num_clbits, self.params[0], self.params[1])
 
 
 def snapshot(self, label, snap_type='statevector'):

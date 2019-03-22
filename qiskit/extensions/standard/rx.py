@@ -44,9 +44,7 @@ class RXGate(Gate):
 
         rx(theta)^dagger = rx(-theta)
         """
-        self.params[0] = -self.params[0]
-        self.definition = None
-        return self
+        return RXGate(-self.params[0])
 
 
 @_op_expand(1)

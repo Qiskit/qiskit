@@ -23,7 +23,7 @@ class CXBase(Gate):  # pylint: disable=abstract-method
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return CXBase()  # self-inverse
 
 
 @_op_expand(2)

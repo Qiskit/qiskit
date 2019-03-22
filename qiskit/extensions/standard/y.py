@@ -38,7 +38,7 @@ class YGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return YGate()  # self-inverse
 
 
 @_op_expand(1)

@@ -107,6 +107,38 @@ class QuantumCircuit:
             has_reg = True
         return has_reg
 
+    def mirror(self):
+        """Mirror the circuit by reversing the instructions.
+
+        This is done by recursively mirroring all instructions.
+        It does not invert any gate.
+
+        Returns:
+            QuantumCircuit: the mirrored circuit
+        """
+        reverse_circ = self.copy(name=self.name+'_mirror')
+        reverse_circ.data = []
+        for inst, qargs, cargs in reversed(self.data):
+            reverse_circ.data.append((inst.mirror(), qargs, cargs))
+        return reverse_circ
+
+    def inverse(self):
+        """Invert this circuit.
+
+        This is done by recursively inverting all gates.
+
+        Returns:
+            QuantumCircuit: the inverted circuit
+
+        Raises:
+            QiskitError: if the circuit cannot be inverted.
+        """
+        inverse_circ = self.copy(name=self.name+'_dg')
+        inverse_circ.data = []
+        for inst, qargs, cargs in reversed(self.data):
+            inverse_circ.data.append((inst.inverse(), qargs, cargs))
+        return inverse_circ
+
     def combine(self, rhs):
         """
         Append rhs to self if self contains compatible registers.
@@ -202,6 +234,13 @@ class QuantumCircuit:
         self._check_dups(qargs)
         self._check_qargs(qargs)
         self._check_cargs(cargs)
+        if instruction.num_qubits != len(qargs) or \
+                instruction.num_clbits != len(cargs):
+            raise QiskitError("instruction %s with %d qubits and %d clbits "
+                              "cannot be appended onto %d qubits and %d clbits." %
+                              (instruction.name,
+                               instruction.num_qubits, instruction.num_clbits,
+                               len(qargs), len(cargs)))
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs

@@ -165,18 +165,18 @@ class Optimize1qGates(TransformationPass):
             # qubit. The name is irrelevant, because substitute_node_with_dag will take care of
             # putting it in the right place.
             run_qarg = (QuantumRegister(1, 'q'), 0)
-            new_op = Instruction("", [])
+            new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":
                 new_op = U1Gate(right_parameters[2])
             if right_name == "u2":
                 new_op = U2Gate(right_parameters[1], right_parameters[2])
             if right_name == "u3":
-                new_op = U3Gate(right_parameters[0], right_parameters[1], right_parameters[2])
+                new_op = U3Gate(*right_parameters)
 
             if right_name != 'nop':
                 new_dag = DAGCircuit()
                 new_dag.add_qreg(run_qarg[0])
-                new_dag.apply_operation_back(new_op)
+                new_dag.apply_operation_back(new_op, [run_qarg], [])
                 dag.substitute_node_with_dag(run[0], new_dag)
 
             # Delete the other nodes in the run

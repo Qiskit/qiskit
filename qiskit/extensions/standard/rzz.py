@@ -41,9 +41,7 @@ class RZZGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        self.params[0] = -self.params[0]
-        self.definition = None
-        return self
+        return RZZGate(-self.params[0])
 
 
 @_op_expand(2, broadcastable=[False, False])

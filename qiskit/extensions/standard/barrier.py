@@ -23,7 +23,7 @@ class Barrier(Instruction):
 
     def inverse(self):
         """Special case. Return self."""
-        return self
+        return Barrier(self.num_qubits)
 
 
 def barrier(self, *qargs):

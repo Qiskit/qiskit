@@ -664,7 +664,7 @@ class DAGCircuit:
         Args:
             wires (list[register, index]): gives an order for (qu)bits
                 in the input circuit that is replacing the node.
-            node (dict): a node in the dag
+            node (DAGNode): a node in the dag
 
         Raises:
             DAGCircuitError: if check doesn't pass.
@@ -672,9 +672,9 @@ class DAGCircuit:
         if len(set(wires)) != len(wires):
             raise DAGCircuitError("duplicate wires")
 
-        wire_tot = len(node['qargs']) + len(node['cargs'])
-        if node['condition'] is not None:
-            wire_tot += node['condition'][0].size
+        wire_tot = len(node.qargs) + len(node.cargs)
+        if node.condition is not None:
+            wire_tot += node.condition[0].size
 
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
@@ -684,7 +684,7 @@ class DAGCircuit:
         """Return predecessor and successor dictionaries.
 
         Args:
-            node (DADNode): reference to self.multi_graph node
+            node (DAGNode): reference to self.multi_graph node
 
         Returns:
             tuple(dict): tuple(predecessor_map, successor_map)
@@ -801,7 +801,7 @@ class DAGCircuit:
             cwires = [w for w in input_dag.wires if isinstance(w[0], ClassicalRegister)]
             wires = qwires + cwires
 
-        self._check_wires_list(wires, nd)
+        self._check_wires_list(wires, node)
 
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self

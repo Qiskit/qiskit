@@ -60,8 +60,6 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
-- Added an ``Instruction.adjoint()`` method. For unitary operations, this is equivalent
-  to ``Instruction.inverse()`` (#1816).
 
 
 Changed
@@ -110,10 +108,10 @@ Changed
   the circuit keeps this context. So Instructions are now light-weight and only
   have a name, num_qubits, num_clbits and params (#1816).
 - The old syntax for attaching a gate to the circuit then modifying it is no longer
-  supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``.
+  supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
   Instead, you must first modify the gate then attach it (#1816).
-- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is an
-  instruction and qarg, carg context.
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
+  (instruction, qarg, carg) (#1816).
 
 
 Deprecated

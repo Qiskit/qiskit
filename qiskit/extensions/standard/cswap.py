@@ -45,7 +45,7 @@ class FredkinGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return FredkinGate()  # self-inverse
 
 
 @_op_expand(3, broadcastable=[True, False, False])

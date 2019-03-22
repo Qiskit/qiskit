@@ -41,7 +41,7 @@ class HGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return HGate()  # self-inverse
 
 
 @_op_expand(1)

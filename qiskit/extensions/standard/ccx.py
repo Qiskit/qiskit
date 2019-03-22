@@ -60,7 +60,7 @@ class ToffoliGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return ToffoliGate()  # self-inverse
 
 
 @_op_expand(3, broadcastable=[True, True, False])

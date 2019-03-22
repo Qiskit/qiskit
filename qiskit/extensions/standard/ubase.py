@@ -27,11 +27,7 @@ class UBase(Gate):  # pylint: disable=abstract-method
 
         U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
         """
-        self.params[0] = -self.params[0]
-        phi = self.params[1]
-        self.params[1] = -self.params[2]
-        self.params[2] = -phi
-        return self
+        return UBase(-self.params[0], -self.params[2], -self.params[1])
 
 
 @_op_expand(1)

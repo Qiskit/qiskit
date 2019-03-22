@@ -44,7 +44,7 @@ class CyGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return CyGate()  # self-inverse
 
 
 @_op_expand(2)

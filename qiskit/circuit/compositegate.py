@@ -8,6 +8,7 @@
 """
 Composite gate, a container for a sequence of unitary gates.
 """
+import warnings
 from qiskit.exceptions import QiskitError
 from .gate import Gate
 
@@ -21,6 +22,10 @@ class CompositeGate(Gate):  # pylint: disable=abstract-method
         name = instruction name string
         params = list of real parameters
         """
+        warnings.warn('CompositeGate is deprecated and will be removed in v0.9. '
+                      'Any Instruction can now be composed of other sub-instructions. '
+                      'To build them, you construct a circuit then use '
+                      'circuit.to_instruction().', DeprecationWarning)
         super().__init__(name, params)
         self.data = []  # gate sequence defining the composite unitary
         self.inverse_flag = False

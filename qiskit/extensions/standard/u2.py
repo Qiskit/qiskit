@@ -41,11 +41,7 @@ class U2Gate(Gate):
 
         u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
         """
-        phi = self.params[0]
-        self.params[0] = -self.params[1] - pi
-        self.params[1] = -phi + pi
-        self.definition = None
-        return self
+        return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
 
 @_op_expand(1)
