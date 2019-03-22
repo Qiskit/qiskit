@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
-                            PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
+                            PassI_Bad_AP, PassJ_Bad_NoReturn,
                             PassK_check_fixed_point_property, PassM_AP_NR_NP)
 
 logger = "LocalLogger"
@@ -256,13 +256,6 @@ class TestUseCases(SchedulerTestCase):
                               'dag property = 4',
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 3'])
-
-    def test_fenced_property_set(self):
-        """ Transformation passes are not allowed to modified the property set. """
-        self.passmanager.append(PassH_Bad_TP())
-        self.assertSchedulerRaises(self.dag, self.passmanager,
-                                   ['run transformation pass PassH_Bad_TP'],
-                                   TranspilerAccessError)
 
     def test_fenced_dag(self):
         """ Analysis passes are not allowed to modified the DAG. """

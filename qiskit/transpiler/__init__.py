@@ -10,6 +10,6 @@ import os
 from .passmanager import PassManager, FlowController
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
+from .fencedobjs import FencedDAGCircuit
 from .basepasses import AnalysisPass, TransformationPass
 from .transpiler import transpile, transpile_dag

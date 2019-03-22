@@ -11,7 +11,7 @@ from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
 from .propertyset import PropertySet
 from .basepasses import BasePass
-from .fencedobjs import FencedPropertySet, FencedDAGCircuit
+from .fencedobjs import FencedDAGCircuit
 from .exceptions import TranspilerError
 
 
@@ -40,10 +40,8 @@ class PassManager():
         self.working_list = []
 
         # global property set is the context of the circuit held by the pass manager
-        # as it runs through its scheduled passes. Analysis passes may update the property_set,
-        # but transformation passes have read-only access (via the fenced_property_set).
+        # as it runs through its scheduled passes. Analysis passes may update the property_set.
         self.property_set = PropertySet()
-        self.fenced_property_set = FencedPropertySet(self.property_set)
 
         # passes already run that have not been invalidated
         self.valid_passes = set()
@@ -107,7 +105,7 @@ class PassManager():
 
         for name, param in flow_controller_conditions.items():
             if callable(param):
-                flow_controller_conditions[name] = partial(param, self.fenced_property_set)
+                flow_controller_conditions[name] = partial(param, self.property_set)
             else:
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
 
@@ -150,7 +148,7 @@ class PassManager():
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
             if pass_.is_transformation_pass:
-                pass_.property_set = self.fenced_property_set
+                pass_.property_set = self.property_set
                 new_dag = pass_.run(dag)
                 if not isinstance(new_dag, DAGCircuit):
                     raise TranspilerError("Transformation passes should return a transformed dag."
