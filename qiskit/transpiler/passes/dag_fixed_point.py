@@ -10,10 +10,12 @@
 from qiskit.transpiler.basepasses import AnalysisPass
 from copy import deepcopy
 
+
 class DAGFixedPoint(AnalysisPass):
     """ A dummy analysis pass that checks if the DAG a fixed point. The results is saved
         in property_set['dag_fixed_point'] as a boolean.
     """
+
     def run(self, dag):
         if self.property_set['dag_previous_value'] is None:
             self.property_set['dag_fixed_point'] = False

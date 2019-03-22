@@ -17,6 +17,7 @@ from qiskit.test import QiskitTestCase
 
 class TestFixedPointPass(QiskitTestCase):
     """ Tests for PropertySet methods. """
+
     def test_empty_dag_true(self):
         """Test the dag fixed point of an empty dag.
         """
@@ -44,6 +45,7 @@ class TestFixedPointPass(QiskitTestCase):
         dag.remove_all_ops_named('h')
         pass_.run(dag)
         self.assertFalse(pass_.property_set['dag_fixed_point'])
+
 
 if __name__ == '__main__':
     unittest.main()
