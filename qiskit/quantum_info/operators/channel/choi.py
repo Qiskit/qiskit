@@ -28,7 +28,7 @@ import numpy as np
 
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
-from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
+from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from .basechannel import QuantumChannel
 from .transformations import _to_choi, _bipartite_tensor
 
@@ -317,16 +317,8 @@ class Choi(QuantumChannel):
 
     def _is_cp(self):
         """Test if Choi-matrix is completely-positive (CP)"""
-        # Test if Choi-matrix is Hermitian
-        # This is required for eigenvalues to be real
-        if not is_hermitian_matrix(self._data, rtol=self.rtol, atol=self.atol):
-            return False
-        # Check eigenvalues are all positive
-        vals = np.linalg.eigvalsh(self._data)
-        for v in vals:
-            if v < -self.atol:
-                return False
-        return True
+        return is_positive_semidefinite_matrix(
+            self._data, rtol=self.rtol, atol=self.atol)
 
     def _is_tp(self):
         """Test if Choi-matrix is trace-preserving (TP)"""

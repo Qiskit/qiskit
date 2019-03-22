@@ -44,6 +44,8 @@ def matrix_equal(mat1,
 
     if atol is None:
         atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
     mat1 = np.array(mat1)
     mat2 = np.array(mat2)
     if mat1.shape != mat2.shape:
@@ -73,6 +75,8 @@ def is_diagonal_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a diagonal matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
     mat = np.array(op)
     if mat.ndim != 2:
         return False
@@ -83,6 +87,8 @@ def is_symmetric_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a symmetrix matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
     mat = np.array(op)
     if mat.ndim != 2:
         return False
@@ -93,10 +99,28 @@ def is_hermitian_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a Hermitian matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
     mat = np.array(op)
     if mat.ndim != 2:
         return False
     return np.allclose(mat, np.conj(mat.T), rtol=rtol, atol=atol)
+
+
+def is_positive_semidefinite_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+    """Test if a matrix is positive semidefinite"""
+    if atol is None:
+        atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
+    if not is_hermitian_matrix(op, rtol=rtol, atol=atol):
+        return False
+    # Check eigenvalues are all positive
+    vals = np.linalg.eigvalsh(op)
+    for v in vals:
+        if v < -atol:
+            return False
+    return True
 
 
 def is_identity_matrix(mat,
@@ -106,6 +130,8 @@ def is_identity_matrix(mat,
     """Test if an array is an identity matrix."""
     if atol is None:
         atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
     mat = np.array(mat)
     if mat.ndim != 2:
         return False
@@ -124,6 +150,8 @@ def is_unitary_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a unitary matrix."""
     if atol is None:
         atol = ATOL_DEFAULT
+    if rtol is None:
+        rtol = RTOL_DEFAULT
     mat = np.array(mat)
     # Compute A^dagger.A and see if it is identity matrix
     mat = np.conj(mat.T).dot(mat)
