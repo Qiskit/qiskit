@@ -9,5 +9,5 @@
 
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
 from .output_channel import OutputChannel
-from .pulse_channel import AcquireChannel, SnapshotChannel
+from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot
 from .pulse_channel import PulseChannel

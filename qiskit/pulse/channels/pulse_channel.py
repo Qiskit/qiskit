@@ -4,7 +4,7 @@ from qiskit.pulse import commands
 
 
 class PulseChannel(metaclass=ABCMeta):
-    """Pulse Channel."""
+    """Pulse channel."""
 
     supported = None
     prefix = None
@@ -40,7 +40,7 @@ class PulseChannel(metaclass=ABCMeta):
 
 
 class AcquireChannel(PulseChannel):
-    """Acquire Channel."""
+    """Acquire channel."""
 
     supported = commands.Acquire
     prefix = 'a'
@@ -54,14 +54,29 @@ class AcquireChannel(PulseChannel):
         super().__init__(index)
 
 
-class SnapshotChannel(PulseChannel):
-    """Snapshot Channel."""
+class MemorySlot(PulseChannel):
+    """Memory slot."""
 
-    supported = commands.Snapshot
-    prefix = 's'
+    supported = commands.Acquire
+    prefix = 'm'
 
     def __init__(self, index):
-        """Create new snapshot channel.
+        """Create new memory slot.
+
+        Args:
+            index (int): Index of the channel.
+        """
+        super().__init__(index)
+
+
+class RegisterSlot(PulseChannel):
+    """Classical resister slot channel."""
+
+    supported = commands.Acquire
+    prefix = 'r'
+
+    def __init__(self, index):
+        """Create new register slot.
 
         Args:
             index (int): Index of the channel.

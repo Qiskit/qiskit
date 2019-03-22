@@ -9,9 +9,10 @@
 Physical qubit.
 """
 from typing import List
-from qiskit.pulse.exceptions import PulseError
+
+from qiskit.pulse.channels import AcquireChannel
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
-from qiskit.pulse.channels import AcquireChannel, SnapshotChannel
+from qiskit.pulse.exceptions import PulseError
 
 
 class Qubit:
@@ -21,14 +22,12 @@ class Qubit:
                  drive_channels: List[DriveChannel] = None,
                  control_channels: List[ControlChannel] = None,
                  measure_channels: List[MeasureChannel] = None,
-                 acquire_channels: List[AcquireChannel] = None,
-                 snapshot_channels: List[SnapshotChannel] = None):
+                 acquire_channels: List[AcquireChannel] = None):
         self._index = index
         self._drives = drive_channels
         self._controls = control_channels
         self._measures = measure_channels
         self._acquires = acquire_channels
-        self._snapshots = snapshot_channels
 
     def __eq__(self, other):
         """Two physical qubits are the same if they have the same index and channels.
@@ -44,8 +43,7 @@ class Qubit:
                 self._drives == other._drives and \
                 self._controls == other._controls and \
                 self._measures == other._measures and \
-                self._acquires == other._acquires and \
-                self._snapshots == other._snapshots:
+                self._acquires == other._acquires:
             return True
         return False
 
@@ -76,11 +74,3 @@ class Qubit:
             return self._acquires[0]
         else:
             raise PulseError("No acquire channels in q[%d]" % self._index)
-
-    @property
-    def snapshot(self):
-        if self._snapshots:
-            return self._snapshots[0]
-        else:
-            raise PulseError("No snapshot channels in q[%d]" % self._index)
-

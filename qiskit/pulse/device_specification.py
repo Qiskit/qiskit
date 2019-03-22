@@ -13,7 +13,7 @@ from typing import List
 
 from qiskit.pulse.qubit import Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
-from qiskit.pulse.channels import AcquireChannel, SnapshotChannel
+from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,6 @@ class DeviceSpecification:
         controls = [ControlChannel(i) for i in range(n_qubit)]
         measures = [MeasureChannel(i, meas_lo_freqs[i]) for i in range(n_qubit)]   # TODO: lo_ranges
         acquires = [AcquireChannel(i) for i in range(n_qubit)]
-        snapshots = [SnapshotChannel(i) for i in range(n_qubit)]
 
         qubits = []
         for i in range(n_qubit):
@@ -52,8 +51,7 @@ class DeviceSpecification:
                           drive_channels=[drives[i]],
                           control_channels=[controls[i]],
                           measure_channels=[measures[i]],
-                          acquire_channels=[acquires[i]],
-                          snapshot_channels=[snapshots[i]])
+                          acquire_channels=[acquires[i]])
             qubits.append(qubit)
 
         return DeviceSpecification(qubits)
@@ -62,9 +60,11 @@ class DeviceSpecification:
         """
         Create device specification with specified `qubits`.
         Args:
-            qubits(list):
+            qubits:
         """
         self._qubits = qubits
+        self._reg_slots = [RegisterSlot(i) for i in range(len(qubits))]
+        self._mem_slots = [MemorySlot(i) for i in range(len(qubits))]
 
     def __eq__(self, other):
         """Two device specs are the same if they have the same qubits.
@@ -83,3 +83,11 @@ class DeviceSpecification:
     @property
     def q(self) -> List[Qubit]:
         return self._qubits
+
+    @property
+    def c(self) -> List[RegisterSlot]:
+        return self._reg_slots
+
+    @property
+    def mem(self) -> List[MemorySlot]:
+        return self._mem_slots
