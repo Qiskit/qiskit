@@ -12,7 +12,7 @@ import unittest
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler import TranspilerError, PropertySet
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon
@@ -24,6 +24,7 @@ class TestDenseLayout(QiskitTestCase):
     def setUp(self):
         self.cmap5 = FakeTenerife().configuration().coupling_map
         self.cmap16 = FakeRueschlikon().configuration().coupling_map
+        self.pset = PropertySet()
 
     def test_3q_circuit_5q_coupling(self):
         """Test finds trivial layout for 3q circuit on 5q device.
@@ -36,8 +37,8 @@ class TestDenseLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = TrivialLayout(CouplingMap(self.cmap5))
-        pass_.run(dag)
-        layout = pass_.property_set['layout']
+        pass_.run(dag, self.pset)
+        layout = self.pset['layout']
 
         for i in range(3):
             self.assertEqual(layout[qr[i]], i)
@@ -57,8 +58,8 @@ class TestDenseLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = TrivialLayout(CouplingMap(self.cmap16))
-        pass_.run(dag)
-        layout = pass_.property_set['layout']
+        pass_.run(dag, self.pset)
+        layout = self.pset['layout']
 
         for i in range(4):
             self.assertEqual(layout[qr0[i]], i)
@@ -76,7 +77,7 @@ class TestDenseLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         with self.assertRaises(TranspilerError):
             pass_ = TrivialLayout(CouplingMap(self.cmap5))
-            pass_.run(dag)
+            pass_.run(dag, self.pset)
 
 
 if __name__ == '__main__':

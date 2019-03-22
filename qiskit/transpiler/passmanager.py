@@ -148,7 +148,6 @@ class PassManager():
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
             if pass_.is_transformation_pass:
-                pass_.property_set = self.property_set
                 new_dag = pass_.run(dag, self.property_set)
                 if not isinstance(new_dag, DAGCircuit):
                     raise TranspilerError("Transformation passes should return a transformed dag."
@@ -156,7 +155,6 @@ class PassManager():
                                                                              type(new_dag)))
                 dag = new_dag
             elif pass_.is_analysis_pass:
-                pass_.property_set = self.property_set
                 pass_.run(FencedDAGCircuit(dag), self.property_set)
             else:
                 raise TranspilerError("I dont know how to handle this type of pass")

@@ -104,8 +104,8 @@ class PassE_AP_NR_NP(DummyAP):
 
     def run(self, dag, property_set):
         super().run(dag, property_set)
-        self.property_set['property'] = self.argument1
-        logging.getLogger(logger).info('set property as %s', self.property_set['property'])
+        property_set['property'] = self.argument1
+        logging.getLogger(logger).info('set property as %s', property_set['property'])
 
 
 class PassF_reduce_dag_property(DummyTP):
@@ -134,11 +134,11 @@ class PassG_calculates_dag_property(DummyAP):
     def run(self, dag, property_set):
         super().run(dag, property_set)
         if hasattr(dag, 'property'):
-            self.property_set['property'] = dag.property
+            property_set['property'] = dag.property
         else:
-            self.property_set['property'] = 8
+            property_set['property'] = 8
         logging.getLogger(logger).info('set property as %s (from dag.property)',
-                                       self.property_set['property'])
+                                       property_set['property'])
 
 class PassI_Bad_AP(DummyAP):
     """ A dummy analysis pass tries to modify the dag.

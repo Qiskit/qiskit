@@ -46,7 +46,6 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
         self._hash = None
 
     def __hash__(self):

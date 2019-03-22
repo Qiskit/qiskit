@@ -26,12 +26,12 @@ class FixedPoint(AnalysisPass):
         self._previous_value = None
 
     def run(self, dag, property_set=None):
-        if self.property_set['fixed_point'] is None:
-            self.property_set['fixed_point'] = defaultdict(lambda: False)
+        if property_set['fixed_point'] is None:
+            property_set['fixed_point'] = defaultdict(lambda: False)
 
-        current_value = self.property_set[self._property]
+        current_value = property_set[self._property]
 
         if self._previous_value is not None:
-            self.property_set['fixed_point'][self._property] = self._previous_value == current_value
+            property_set['fixed_point'][self._property] = self._previous_value == current_value
 
         self._previous_value = current_value

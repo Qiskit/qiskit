@@ -95,8 +95,8 @@ class StochasticSwap(TransformationPass):
         """
 
         if self.initial_layout is None:
-            if self.property_set["layout"]:
-                self.initial_layout = self.property_set["layout"]
+            if property_set and property_set["layout"]:
+                self.initial_layout = property_set["layout"]
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 

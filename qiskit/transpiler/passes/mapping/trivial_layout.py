@@ -37,7 +37,7 @@ class TrivialLayout(AnalysisPass):
         super().__init__()
         self.coupling_map = coupling_map
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
         Pick a layout by assigning n circuit qubits to device qubits 0, .., n-1.
 
@@ -50,4 +50,4 @@ class TrivialLayout(AnalysisPass):
         num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError('Number of qubits greater than device.')
-        self.property_set['layout'] = Layout.generate_trivial_layout(*dag.qregs.values())
+        property_set['layout'] = Layout.generate_trivial_layout(*dag.qregs.values())
