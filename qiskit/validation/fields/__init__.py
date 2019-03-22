@@ -33,7 +33,7 @@ from qiskit.validation import ModelTypeValidator
 from qiskit.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
 from qiskit.validation.fields.containers import Nested, List
 
-from .custom import Complex, InstructionParameter
+from .custom import Complex, InstructionParameter, MeasurementParameter
 
 
 class String(_fields.String, ModelTypeValidator):
@@ -95,8 +95,3 @@ class Boolean(_fields.Boolean, ModelTypeValidator):
 class Raw(_fields.Raw, ModelTypeValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Boolean.__doc__
-
-
-class Dict(_fields.Dict, ModelTypeValidator):
-    # pylint: disable=missing-docstring
-    __doc__ = _fields.Dict.__doc__

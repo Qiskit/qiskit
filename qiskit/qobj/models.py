@@ -10,8 +10,8 @@
 from marshmallow.validate import Length, Range, Regexp, OneOf
 
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import (Integer, List, Nested, String,
-                                      InstructionParameter, Number, Complex, Dict)
+from qiskit.validation.fields import (Integer, List, Nested, String, Number, Complex,
+                                      InstructionParameter, MeasurementParameter)
 
 from .utils import MeasReturnType
 
@@ -30,8 +30,7 @@ class QobjMeasurementOptionSchema(BaseSchema):
 
     # Required properties.
     name = String(required=True)
-    # TODO : Need to prepare custom model for nested params?
-    params = Dict(keys=String(), values=Number(), required=True)
+    params = MeasurementParameter(required=True)
 
 
 class QobjPulseLibrarySchema(BaseSchema):
