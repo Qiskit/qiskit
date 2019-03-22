@@ -34,7 +34,7 @@ class Optimize1qGates(TransformationPass):
         super().__init__()
         self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
 
-    def run(self, dag, property_set):
+    def run(self, dag, property_set=None):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
