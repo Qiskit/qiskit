@@ -50,7 +50,8 @@ Added
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
-- Added a ``ResourceEstimation`` analysis pass.
+- Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
+  ``NumTensorFactor``, all grouped in the ``ResourceEstimation`` analysis pass.
 
 Changed
 -------
