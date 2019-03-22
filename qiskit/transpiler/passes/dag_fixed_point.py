@@ -7,8 +7,9 @@
 
 """ Detects when the DAG reached a fixed point (it's not modified anymore)
 """
-from qiskit.transpiler.basepasses import AnalysisPass
 from copy import deepcopy
+
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class DAGFixedPoint(AnalysisPass):
