@@ -41,7 +41,7 @@ class BasicSwap(TransformationPass):
         self.swap_gate = SwapGate
         self.requires.append(BarrierBeforeFinalMeasurements())
 
-    def run(self, dag):
+    def run(self, dag, property_set=None):
         """
         Runs the BasicSwap pass on `dag`.
         Args:

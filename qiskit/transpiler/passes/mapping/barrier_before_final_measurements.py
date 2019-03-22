@@ -22,7 +22,7 @@ from qiskit.dagcircuit import DAGCircuit
 class BarrierBeforeFinalMeasurements(TransformationPass):
     """Adds a barrier before final measurements."""
 
-    def run(self, dag):
+    def run(self, dag, property_set=None):
         """Return a circuit with a barrier before last measurments."""
 
         # Collect DAG nodes which are followed only by barriers or other measures.

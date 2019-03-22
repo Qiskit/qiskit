@@ -72,7 +72,7 @@ class LookaheadSwap(TransformationPass):
         self.initial_layout = initial_layout
         self.requires.append(BarrierBeforeFinalMeasurements())
 
-    def run(self, dag):
+    def run(self, dag, property_set=None):
         """Run one pass of the lookahead mapper on the provided DAG.
 
         Args:
