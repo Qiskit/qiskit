@@ -15,6 +15,7 @@ from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTokyo
+from qiskit.transpiler import PropertySet
 
 
 class TestDenseLayout(QiskitTestCase):
@@ -22,6 +23,7 @@ class TestDenseLayout(QiskitTestCase):
 
     def setUp(self):
         self.cmap20 = FakeTokyo().configuration().coupling_map
+        self.pset = PropertySet()
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map.
@@ -32,12 +34,11 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[3], qr[4])
         circuit.cx(qr[3], qr[1])
         circuit.cx(qr[0], qr[2])
-
         dag = circuit_to_dag(circuit)
-        pass_ = DenseLayout(CouplingMap(self.cmap20))
-        pass_.run(dag)
 
-        layout = pass_.property_set['layout']
+        DenseLayout(CouplingMap(self.cmap20)).run(dag, self.pset)
+
+        layout = self.pset['layout']
         self.assertEqual(layout[qr[0]], 5)
         self.assertEqual(layout[qr[1]], 0)
         self.assertEqual(layout[qr[2]], 6)
@@ -52,12 +53,11 @@ class TestDenseLayout(QiskitTestCase):
         circuit = QuantumCircuit(qr0, qr1)
         circuit.cx(qr0[0], qr1[2])
         circuit.cx(qr1[1], qr0[2])
-
         dag = circuit_to_dag(circuit)
-        pass_ = DenseLayout(CouplingMap(self.cmap20))
-        pass_.run(dag)
 
-        layout = pass_.property_set['layout']
+        DenseLayout(CouplingMap(self.cmap20)).run(dag, self.pset)
+
+        layout = self.pset['layout']
         self.assertEqual(layout[qr0[0]], 5)
         self.assertEqual(layout[qr0[1]], 0)
         self.assertEqual(layout[qr0[2]], 6)

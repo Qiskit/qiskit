@@ -41,7 +41,7 @@ class CXDirection(TransformationPass):
         self.coupling_map = coupling_map
         self.layout = initial_layout
 
-    def run(self, dag):
+    def run(self, dag, property_set=None):
         """
         Flips the cx nodes to match the directed coupling map.
         Args:
@@ -56,8 +56,8 @@ class CXDirection(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
+            if property_set and property_set["layout"]:
+                self.layout = property_set["layout"]
             else:
                 self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 

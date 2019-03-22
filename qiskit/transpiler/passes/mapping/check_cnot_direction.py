@@ -33,7 +33,7 @@ class CheckCnotDirection(AnalysisPass):
         self.layout = initial_layout
         self.coupling_map = coupling_map
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
         If `dag` is mapped and the direction is correct the property
         `is_direction_mapped` is set to True (or to False otherwise).
@@ -42,12 +42,12 @@ class CheckCnotDirection(AnalysisPass):
             dag (DAGCircuit): DAG to map.
         """
         if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
+            if property_set and property_set["layout"]:
+                self.layout = property_set["layout"]
             else:
                 self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        self.property_set['is_direction_mapped'] = True
+        property_set['is_direction_mapped'] = True
         edges = self.coupling_map.get_edges()
 
         for gate in dag.twoQ_gates():
@@ -56,5 +56,5 @@ class CheckCnotDirection(AnalysisPass):
 
             if isinstance(gate.op, (CXBase, CnotGate)) and (
                     physical_q0, physical_q1) not in edges:
-                self.property_set['is_direction_mapped'] = False
+                property_set['is_direction_mapped'] = False
                 return

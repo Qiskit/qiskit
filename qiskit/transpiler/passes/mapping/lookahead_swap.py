@@ -89,8 +89,8 @@ class LookaheadSwap(TransformationPass):
         ordered_virtual_gates = list(dag.serial_layers())
 
         if self.initial_layout is None:
-            if self.property_set["layout"]:
-                self.initial_layout = self.property_set["layout"]
+            if property_set and property_set["layout"]:
+                self.initial_layout = property_set["layout"]
             else:
                 self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 

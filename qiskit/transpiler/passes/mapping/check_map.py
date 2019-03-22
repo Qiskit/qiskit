@@ -32,7 +32,7 @@ class CheckMap(AnalysisPass):
         self.layout = initial_layout
         self.coupling_map = coupling_map
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
         If `dag` is mapped to `coupling_map`, the property
         `is_swap_mapped` is set to True (or to False otherwise).
@@ -41,17 +41,17 @@ class CheckMap(AnalysisPass):
             dag (DAGCircuit): DAG to map.
         """
         if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
+            if property_set["layout"]:
+                self.layout = property_set["layout"]
             else:
                 self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        self.property_set['is_swap_mapped'] = True
+        property_set['is_swap_mapped'] = True
 
         for gate in dag.twoQ_nodes():
             physical_q0 = self.layout[gate.qargs[0]]
             physical_q1 = self.layout[gate.qargs[1]]
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                self.property_set['is_swap_mapped'] = False
+                property_set['is_swap_mapped'] = False
                 return

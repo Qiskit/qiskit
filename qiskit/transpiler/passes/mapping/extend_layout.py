@@ -26,12 +26,12 @@ class ExtendLayout(AnalysisPass):
         super().__init__()
         self.coupling_map = coupling_map
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
         Args:
             dag (DAGCircuit): the parameter will be ignored.
         """
-        physcial_qubits_in_layout = self.property_set['layout'].get_physical_bits().keys()
+        physcial_qubits_in_layout = property_set['layout'].get_physical_bits().keys()
         for physcial_qubit in self.coupling_map.physical_qubits:
             if physcial_qubit not in physcial_qubits_in_layout:
-                self.property_set['layout'][physcial_qubit] = None
+                property_set['layout'][physcial_qubit] = None

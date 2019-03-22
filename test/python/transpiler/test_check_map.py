@@ -14,6 +14,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PropertySet
 
 
 class TestCheckMapCX(QiskitTestCase):
@@ -32,11 +33,13 @@ class TestCheckMapCX(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
-        coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
-        pass_ = CheckMap(coupling)
-        pass_.run(dag)
-        self.assertTrue(pass_.property_set['is_swap_mapped'])
+        coupling = CouplingMap()
+        pset = PropertySet()
+
+        CheckMap(coupling).run(dag, pset)
+
+        self.assertTrue(pset['is_swap_mapped'])
 
     def test_swap_mapped_true(self):
         """ Mapped is easy to check
@@ -53,13 +56,13 @@ class TestCheckMapCX(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
-        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
+        coupling = CouplingMap([[0, 1], [0, 2]])
+        pset = PropertySet()
 
-        pass_ = CheckMap(coupling)
-        pass_.run(dag)
+        CheckMap(coupling).run(dag, pset)
 
-        self.assertTrue(pass_.property_set['is_swap_mapped'])
+        self.assertTrue(pset['is_swap_mapped'])
 
     def test_swap_mapped_false(self):
         """ Needs [0]-[1] in a [0]--[2]--[1]
@@ -74,11 +77,11 @@ class TestCheckMapCX(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         coupling = CouplingMap([[0, 2], [2, 1]])
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckMap(coupling)
-        pass_.run(dag)
+        CheckMap(coupling).run(dag, pset)
 
-        self.assertFalse(pass_.property_set['is_swap_mapped'])
+        self.assertFalse(pset['is_swap_mapped'])
 
 
 if __name__ == '__main__':

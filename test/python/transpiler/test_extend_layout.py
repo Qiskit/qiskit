@@ -12,6 +12,7 @@ import unittest
 from qiskit import QuantumRegister
 from qiskit.mapper import CouplingMap
 from qiskit.transpiler.passes import ExtendLayout
+from qiskit.transpiler import PropertySet
 from qiskit.mapper import Layout
 from qiskit.test import QiskitTestCase
 
@@ -21,6 +22,7 @@ class TestExtendLayout(QiskitTestCase):
 
     def setUp(self):
         self.cmap5 = CouplingMap([[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]])
+        self.pset = PropertySet()
 
     def test_3q_circuit_5q_coupling(self):
         """ Extends a 3q into a 5q
@@ -36,13 +38,11 @@ class TestExtendLayout(QiskitTestCase):
         initial_layout[0] = (qr, 0)
         initial_layout[1] = (qr, 1)
         initial_layout[2] = (qr, 2)
+        self.pset['layout'] = initial_layout
 
-        pass_ = ExtendLayout(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        ExtendLayout(self.cmap5).run(None, self.pset)
 
-        pass_.run(None)
-        after_layout = pass_.property_set['layout']
-
+        after_layout = self.pset['layout']
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], qr[1])
         self.assertEqual(after_layout[2], qr[2])
@@ -64,10 +64,11 @@ class TestExtendLayout(QiskitTestCase):
         initial_layout[1] = None
         initial_layout[2] = (qr, 2)
 
-        pass_ = ExtendLayout(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
-        pass_.run(None)
-        after_layout = pass_.property_set['layout']
+        self.pset['layout'] = initial_layout
+
+        ExtendLayout(self.cmap5).run(None, self.pset)
+
+        after_layout = self.pset['layout']
 
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], None)
@@ -89,11 +90,11 @@ class TestExtendLayout(QiskitTestCase):
         initial_layout[0] = (qr, 0)
         initial_layout[3] = (qr, 1)
         initial_layout[2] = (qr, 2)
+        self.pset['layout'] = initial_layout
 
-        pass_ = ExtendLayout(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
-        pass_.run(None)
-        after_layout = pass_.property_set['layout']
+        ExtendLayout(self.cmap5).run(None, self.pset)
+
+        after_layout = self.pset['layout']
 
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], None)

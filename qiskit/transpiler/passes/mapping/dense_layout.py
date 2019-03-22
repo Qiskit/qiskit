@@ -42,7 +42,7 @@ class DenseLayout(AnalysisPass):
         super().__init__()
         self.coupling_map = coupling_map
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
         Pick a convenient layout depending on the best matching
         qubit connectivity, and set the property `layout`.
@@ -63,7 +63,7 @@ class DenseLayout(AnalysisPass):
             for i in range(qreg.size):
                 layout[(qreg, i)] = int(best_sub[map_iter])
                 map_iter += 1
-        self.property_set['layout'] = layout
+        property_set['layout'] = layout
 
     def _best_subset(self, n_qubits):
         """Computes the qubit mapping with the best connectivity.

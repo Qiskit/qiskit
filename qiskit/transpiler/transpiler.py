@@ -16,6 +16,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
+from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
@@ -111,17 +112,18 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     # else layout on the most densely connected physical qubit subset
     # FIXME: this should be simplified once it is ported to a PassManager
     if coupling_map and initial_layout is None:
+        property_set = PropertySet()
         cm_object = CouplingMap(coupling_map)
         check_cnot_direction = CheckCnotDirection(cm_object)
-        check_cnot_direction.run(dag)
-        if check_cnot_direction.property_set['is_direction_mapped']:
+        check_cnot_direction.run(dag, property_set)
+        if property_set['is_direction_mapped']:
             trivial_layout = TrivialLayout(cm_object)
-            trivial_layout.run(dag)
-            initial_layout = trivial_layout.property_set['layout']
+            trivial_layout.run(dag, property_set)
+            initial_layout = property_set['layout']
         else:
             dense_layout = DenseLayout(cm_object)
-            dense_layout.run(dag)
-            initial_layout = dense_layout.property_set['layout']
+            dense_layout.run(dag, property_set)
+            initial_layout = property_set['layout']
 
     # temporarily build old-style layout dict
     # (TODO: remove after transition to StochasticSwap pass)

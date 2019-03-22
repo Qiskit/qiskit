@@ -14,7 +14,7 @@ from qiskit.transpiler.passes import CheckCnotDirection
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-
+from qiskit.transpiler import PropertySet
 
 class TestCheckCNotDirection(QiskitTestCase):
     """ Tests the CheckCnotDirection pass with CX gates"""
@@ -34,9 +34,11 @@ class TestCheckCNotDirection(QiskitTestCase):
         circuit.h(qr)
         coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
+        pset = PropertySet()
+
+        CheckCnotDirection(coupling).run(dag, pset)
+
+        self.assertTrue(pset['is_direction_mapped'])
 
     def test_true_direction(self):
         """ Mapped is easy to check
@@ -55,11 +57,11 @@ class TestCheckCNotDirection(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
         coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
+        CheckCnotDirection(coupling).run(dag, pset)
 
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
+        self.assertTrue(pset['is_direction_mapped'])
 
     def test_true_direction_in_same_layer(self):
         """ Two CXs distance_qubits 1 to each other, in the same layer
@@ -79,11 +81,11 @@ class TestCheckCNotDirection(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
+        CheckCnotDirection(coupling).run(dag, pset)
 
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
+        self.assertTrue(pset['is_direction_mapped'])
 
     def test_wrongly_mapped(self):
         """ Needs [0]-[1] in a [0]--[2]--[1]
@@ -98,11 +100,11 @@ class TestCheckCNotDirection(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         coupling = CouplingMap([[0, 2], [2, 1]])
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
+        CheckCnotDirection(coupling).run(dag, pset)
 
-        self.assertFalse(pass_.property_set['is_direction_mapped'])
+        self.assertFalse(pset['is_direction_mapped'])
 
     def test_true_direction_undirected(self):
         """ Mapped but with wrong direction
@@ -121,11 +123,11 @@ class TestCheckCNotDirection(QiskitTestCase):
         circuit.cx(qr[2], qr[0])
         coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
+        CheckCnotDirection(coupling).run(dag, pset)
 
-        self.assertFalse(pass_.property_set['is_direction_mapped'])
+        self.assertFalse(pset['is_direction_mapped'])
 
     def test_false_direction_in_same_layer_undirected(self):
         """ Two CXs in the same layer, but one is wrongly directed
@@ -145,11 +147,11 @@ class TestCheckCNotDirection(QiskitTestCase):
         circuit.cx(qr[3], qr[2])
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
+        CheckCnotDirection(coupling).run(dag, pset)
 
-        self.assertFalse(pass_.property_set['is_direction_mapped'])
+        self.assertFalse(pset['is_direction_mapped'])
 
 
 class TestCheckCNotDirectionBarrier(QiskitTestCase):
@@ -168,11 +170,11 @@ class TestCheckCNotDirectionBarrier(QiskitTestCase):
         circuit.barrier(qr[0], qr[1])
         coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
+        pset = PropertySet()
 
-        pass_ = CheckCnotDirection(coupling)
-        pass_.run(dag)
+        CheckCnotDirection(coupling).run(dag, pset)
 
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
+        self.assertTrue(pset['is_direction_mapped'])
 
 
 if __name__ == '__main__':
