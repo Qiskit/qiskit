@@ -32,7 +32,6 @@ class CommutationAnalysis(AnalysisPass):
         super().__init__()
         self.max_depth = max_depth
         self.wire_op = {}
-        self.node_order = {}
         self.node_commute_group = {}
 
     def run(self, dag):
@@ -40,12 +39,6 @@ class CommutationAnalysis(AnalysisPass):
         Run the pass on the DAG, and write the discovered commutation relations
         into the property_set.
         """
-        tops_node = list(dag.node_nums_in_topological_order())
-
-        # Initiation of the node_order
-        for num, node in enumerate(tops_node):
-            self.node_order[node] = num
-
         # Initiate the commutation set
         if self.property_set['commutation_set'] is None:
             self.property_set['commutation_set'] = defaultdict(list)
@@ -57,38 +50,39 @@ class CommutationAnalysis(AnalysisPass):
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
-        for node in tops_node:
-            for edge in dag.multi_graph.edges([node], data=True):
+        for node in dag.nodes_in_topological_order():
+            for (start_node, end_node, edge_data) in dag.multi_graph.edges([node], data=True):
 
-                edge_name = edge[2]['name']
+                edge_name = edge_data['name']
 
-                if edge[0] == node:
-                    self.wire_op[edge_name].append(edge[0])
+                if start_node == node:
+                    self.wire_op[edge_name].append(start_node)
 
                     self.property_set['commutation_set'][(node, edge_name)] = -1
 
-                if dag.node(edge[1])['type'] == "out":
-                    self.wire_op[edge_name].append(edge[1])
-
-        # With traversing the circuit in topological order,
-        # the list of gates on a qubit doesn't have to be sorted
-        # for key in self.wire_op:
-        #     self.wire_op[key].sort(key=_get_node_order)
+                if end_node.type == "out":
+                    self.wire_op[edge_name].append(end_node)
 
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+
             for node in self.wire_op[wire_name]:
 
                 if not self.property_set['commutation_set'][wire_name]:
                     self.property_set['commutation_set'][wire_name].append([node])
 
-                if node not in self.property_set['commutation_set'][wire_name][-1]:
+                # must be the exact same objects whereas == is True
+                # for semantically equivalent objects
+                id_for_nodes = [id(x) for x in self.property_set['commutation_set'][wire_name][-1]]
+
+                if id(node) not in id_for_nodes:
                     test_node = self.property_set['commutation_set'][wire_name][-1][-1]
-                    if _commute(dag.node(node), dag.node(test_node)):
+                    if _commute(node, test_node):
                         self.property_set['commutation_set'][wire_name][-1].append(node)
 
                     else:
                         self.property_set['commutation_set'][wire_name].append([node])
+
                 temp_len = len(self.property_set['commutation_set'][wire_name])
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
@@ -172,41 +166,41 @@ def _gate_master_def(name, para=None):
 
 def _calc_product(node1, node2):
 
-    wire_num = len(set(node1["qargs"] + node2["qargs"]))
+    wire_num = len(set(node1.qargs + node2.qargs))
     wires = sorted(list(map(lambda x: "{0}[{1}]".format(str(x[0].name), str(x[1])),
-                            list(set(node1["qargs"] + node2["qargs"])))))
+                            list(set(node1.qargs + node2.qargs)))))
     final_unitary = np.identity(2 ** wire_num, dtype=np.complex)
 
     for node in [node1, node2]:
 
         qstate_list = [np.identity(2)] * wire_num
 
-        if node['name'] == 'cx' or node['name'] == 'cy' or node['name'] == 'cz':
+        if node.name in ['cx', 'cy', 'cz']:
 
             qstate_list_ext = [np.identity(2)] * wire_num
 
-            node_ctrl = "{0}[{1}]".format(str(node["qargs"][0][0].name), str(node["qargs"][0][1]))
-            node_tgt = "{0}[{1}]".format(str(node["qargs"][1][0].name), str(node["qargs"][1][1]))
+            node_ctrl = "{0}[{1}]".format(str(node.qargs[0][0].name), str(node.qargs[0][1]))
+            node_tgt = "{0}[{1}]".format(str(node.qargs[1][0].name), str(node.qargs[1][1]))
             ctrl = wires.index(node_ctrl)
             tgt = wires.index(node_tgt)
 
             qstate_list[ctrl] = _gate_master_def(name='P0')
             qstate_list[tgt] = _gate_master_def(name='Id')
             qstate_list_ext[ctrl] = _gate_master_def(name='P1')
-            if node['name'] == 'cx':
+            if node.name == 'cx':
                 qstate_list_ext[tgt] = _gate_master_def(name='x')
-            if node['name'] == 'cy':
+            if node.name == 'cy':
                 qstate_list_ext[tgt] = _gate_master_def(name='y')
-            if node['name'] == 'cz':
+            if node.name == 'cz':
                 qstate_list_ext[tgt] = _gate_master_def(name='z')
 
             rt_list = [qstate_list] + [qstate_list_ext]
 
         else:
 
-            mat = _gate_master_def(name=node['name'], para=node['op'].params)
-            node_num = "{0}[{1}]".format(str(node["qargs"][0][0].name),
-                                         str(node["qargs"][0][1]))
+            mat = _gate_master_def(name=node.name, para=node.op.params)
+            node_num = "{0}[{1}]".format(str(node.qargs[0][0].name),
+                                         str(node.qargs[0][1]))
             qstate_list[wires.index(node_num)] = mat
 
             rt_list = [qstate_list]
@@ -231,7 +225,7 @@ def _matrix_commute(node1, node2):
     # Good for composite gates or any future
     # user-defined gate of equal or less than 2 qubits.
     ret = False
-    if set(node1["qargs"]) & set(node2["qargs"]) == set():
+    if set(node1.qargs) & set(node2.qargs) == set():
         ret = True
     if _calc_product(node1, node2) is not None:
         ret = np.array_equal(_calc_product(node1, node2),
@@ -240,6 +234,6 @@ def _matrix_commute(node1, node2):
 
 
 def _commute(node1, node2):
-    if node1["type"] != "op" or node2["type"] != "op":
+    if node1.type != "op" or node2.type != "op":
         return False
     return _matrix_commute(node1, node2)

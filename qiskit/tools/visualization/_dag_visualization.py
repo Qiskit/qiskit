@@ -56,18 +56,16 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     elif style == 'color':
         for node in G.nodes:
             n = G.nodes[node]
-            if n['type'] == 'op':
-                n['label'] = n['name']
+            n['label'] = node.name
+            if node.type == 'op':
                 n['color'] = 'blue'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'lightblue'
-            if n['type'] == 'in':
-                n['label'] = n['name']
+            if node.type == 'in':
                 n['color'] = 'black'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'green'
-            if n['type'] == 'out':
-                n['label'] = n['name']
+            if node.type == 'out':
                 n['color'] = 'black'
                 n['style'] = 'filled'
                 n['fillcolor'] = 'red'
@@ -76,7 +74,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 
-    show = nxpd.nxpdParams['show']
     if filename:
         show = False
     elif ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
