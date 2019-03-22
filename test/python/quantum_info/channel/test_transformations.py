@@ -150,9 +150,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p)).evolve(rho)
+            targ = Kraus(self.depol_kraus(p))._evolve(rho)
             chan = Kraus(Choi(self.depol_choi(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_choi_to_stinespring(self):
         """Test Choi to Stinespring transformation."""
@@ -165,9 +165,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p)).evolve(rho)
+            targ = Stinespring(self.depol_stine(p))._evolve(rho)
             chan = Stinespring(Choi(self.depol_choi(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_choi_to_chi(self):
         """Test Choi to Chi transformation."""
@@ -242,9 +242,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p)).evolve(rho)
+            targ = Kraus(self.depol_kraus(p))._evolve(rho)
             chan = Kraus(SuperOp(self.depol_sop(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_superop_to_stinespring(self):
         """Test SuperOp to Stinespring transformation."""
@@ -257,9 +257,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p)).evolve(rho)
+            targ = Stinespring(self.depol_stine(p))._evolve(rho)
             chan = Stinespring(SuperOp(self.depol_sop(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_superop_to_chi(self):
         """Test SuperOp to Chi transformation."""
@@ -347,9 +347,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p)).evolve(rho)
+            targ = Stinespring(self.depol_stine(p))._evolve(rho)
             chan = Stinespring(Kraus(self.depol_kraus(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_kraus_to_chi(self):
         """Test Kraus to Chi transformation."""
@@ -512,9 +512,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p)).evolve(rho)
+            targ = Kraus(self.depol_kraus(p))._evolve(rho)
             chan = Kraus(Chi(self.depol_chi(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_chi_to_stinespring(self):
         """Test Chi to Stinespring transformation."""
@@ -527,9 +527,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p)).evolve(rho)
+            targ = Stinespring(self.depol_stine(p))._evolve(rho)
             chan = Stinespring(Chi(self.depol_chi(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_chi_to_chi(self):
         """Test Chi to Chi transformation."""
@@ -604,9 +604,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p)).evolve(rho)
+            targ = Kraus(self.depol_kraus(p))._evolve(rho)
             chan = Kraus(PTM(self.depol_ptm(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_ptm_to_stinespring(self):
         """Test PTM to Stinespring transformation."""
@@ -619,9 +619,9 @@ class TestTransformations(ChannelTestCase):
         # Test depolarizing channels
         rho = np.diag([1, 0])
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p)).evolve(rho)
+            targ = Stinespring(self.depol_stine(p))._evolve(rho)
             chan = Stinespring(PTM(self.depol_ptm(p)))
-            self.assertAllClose(chan.evolve(rho), targ)
+            self.assertAllClose(chan._evolve(rho), targ)
 
     def test_ptm_to_chi(self):
         """Test PTM to Chi transformation."""

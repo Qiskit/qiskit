@@ -64,26 +64,26 @@ class TestChoi(ChannelTestCase):
         # Identity channel
         chan = Choi(self.choiI)
         target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan.evolve(input_psi), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan.evolve(input_rho), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
+        self.assertAllClose(chan._evolve(input_rho), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
         # Hadamard channel
         chan = Choi(self.choiH)
         target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan.evolve(input_psi), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan.evolve(input_rho), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
+        self.assertAllClose(chan._evolve(input_rho), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
         # Completely depolarizing channel
         chan = Choi(self.depol_choi(1))
         target_rho = np.eye(2) / 2
-        self.assertAllClose(chan.evolve(input_psi), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan.evolve(input_rho), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
+        self.assertAllClose(chan._evolve(input_rho), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -344,20 +344,20 @@ class TestChoi(ChannelTestCase):
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.expand(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_expand_inplace(self):
         """Test inplace expand method."""
@@ -370,7 +370,7 @@ class TestChoi(ChannelTestCase):
         chan1.expand(chan2, inplace=True)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan1 = Choi(self.choiI)
@@ -378,14 +378,14 @@ class TestChoi(ChannelTestCase):
         chan2.expand(chan1, inplace=True)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan = Choi(self.depol_choi(1))
         chan.expand(chan, inplace=True)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -398,29 +398,29 @@ class TestChoi(ChannelTestCase):
         rho_targ = np.kron(rho1, rho0)
         chan = chan2.tensor(chan1)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan2 ^ chan1
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         rho_targ = np.kron(rho0, rho1)
         chan = chan1.tensor(chan2)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan1 ^ chan2
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.tensor(chan_dep)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan_dep ^ chan_dep
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor_inplace(self):
         """Test inplace tensor method."""
@@ -433,12 +433,12 @@ class TestChoi(ChannelTestCase):
         chan2 = Choi(self.choiX)
         chan2.tensor(chan1, inplace=True)
         self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
         chan1 = Choi(self.choiI)
         chan2 = Choi(self.choiX)
         chan2 ^= chan1
         self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
 
         # I \otimes X
         rho_targ = np.kron(rho0, rho1)
@@ -446,23 +446,23 @@ class TestChoi(ChannelTestCase):
         chan2 = Choi(self.choiX)
         chan1.tensor(chan2, inplace=True)
         self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
         chan1 = Choi(self.choiI)
         chan2 = Choi(self.choiX)
         chan1 ^= chan2
         self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         chan = Choi(self.depol_choi(1))
         chan.tensor(chan, inplace=True)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = Choi(self.depol_choi(1))
         chan ^= chan
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_power(self):
         """Test power method."""

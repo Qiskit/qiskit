@@ -59,26 +59,26 @@ class TestPTM(ChannelTestCase):
         # Identity channel
         chan = PTM(self.ptmI)
         target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan.evolve(input_psi), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan.evolve(input_rho), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
+        self.assertAllClose(chan._evolve(input_rho), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
         # Hadamard channel
         chan = PTM(self.ptmH)
         target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan.evolve(input_psi), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan.evolve(input_rho), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
+        self.assertAllClose(chan._evolve(input_rho), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
         # Completely depolarizing channel
         chan = PTM(self.depol_ptm(1))
         target_rho = np.eye(2) / 2
-        self.assertAllClose(chan.evolve(input_psi), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan.evolve(input_rho), target_rho)
-        self.assertAllClose(chan.evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
+        self.assertAllClose(chan._evolve(input_rho), target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -102,27 +102,27 @@ class TestPTM(ChannelTestCase):
         chan1 = PTM(self.ptmX)
         chan2 = PTM(self.ptmY)
         chan = chan1.compose(chan2)
-        targ = PTM(self.ptmZ).evolve(rho)
-        self.assertAllClose(chan.evolve(rho), targ)
+        targ = PTM(self.ptmZ)._evolve(rho)
+        self.assertAllClose(chan._evolve(rho), targ)
 
         # 50% depolarizing channel
         chan1 = PTM(self.depol_ptm(0.5))
         chan = chan1.compose(chan1)
-        targ = PTM(self.depol_ptm(0.75)).evolve(rho)
-        self.assertAllClose(chan.evolve(rho), targ)
+        targ = PTM(self.depol_ptm(0.75))._evolve(rho)
+        self.assertAllClose(chan._evolve(rho), targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
         ptm2 = self.rand_matrix(4, 4, real=True)
         chan1 = PTM(ptm1, input_dim=2, output_dim=2)
         chan2 = PTM(ptm2, input_dim=2, output_dim=2)
-        targ = chan2.evolve(chan1.evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho))
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dims, (2, 2))
-        self.assertAllClose(chan.evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho), targ)
         chan = chan1 @ chan2
         self.assertEqual(chan.dims, (2, 2))
-        self.assertAllClose(chan.evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho), targ)
 
     def test_compose_inplace(self):
         """Test inplace compose method."""
@@ -133,29 +133,29 @@ class TestPTM(ChannelTestCase):
         chan1 = PTM(self.ptmX)
         chan2 = PTM(self.ptmY)
         chan1.compose(chan2, inplace=True)
-        targ = PTM(self.ptmZ).evolve(rho)
-        self.assertAllClose(chan1.evolve(rho), targ)
+        targ = PTM(self.ptmZ)._evolve(rho)
+        self.assertAllClose(chan1._evolve(rho), targ)
 
         # 50% depolarizing channel
         chan1 = PTM(self.depol_ptm(0.5))
         chan1.compose(chan1, inplace=True)
-        targ = PTM(self.depol_ptm(0.75)).evolve(rho)
-        self.assertAllClose(chan1.evolve(rho), targ)
+        targ = PTM(self.depol_ptm(0.75))._evolve(rho)
+        self.assertAllClose(chan1._evolve(rho), targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
         ptm2 = self.rand_matrix(4, 4, real=True)
         chan1 = PTM(ptm1, input_dim=2, output_dim=2)
         chan2 = PTM(ptm2, input_dim=2, output_dim=2)
-        targ = chan2.evolve(chan1.evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho))
         chan1.compose(chan2, inplace=True)
         self.assertEqual(chan1.dims, (2, 2))
-        self.assertAllClose(chan1.evolve(rho), targ)
+        self.assertAllClose(chan1._evolve(rho), targ)
         chan1 = PTM(ptm1, input_dim=2, output_dim=2)
         chan2 = PTM(ptm2, input_dim=2, output_dim=2)
         chan1 @= chan2
         self.assertEqual(chan1.dims, (2, 2))
-        self.assertAllClose(chan1.evolve(rho), targ)
+        self.assertAllClose(chan1._evolve(rho), targ)
 
     def test_compose_front(self):
         """Test front compose method."""
@@ -166,18 +166,18 @@ class TestPTM(ChannelTestCase):
         chan1 = PTM(self.ptmX)
         chan2 = PTM(self.ptmY)
         chan = chan2.compose(chan1, front=True)
-        targ = PTM(self.ptmZ).evolve(rho)
-        self.assertAllClose(chan.evolve(rho), targ)
+        targ = PTM(self.ptmZ)._evolve(rho)
+        self.assertAllClose(chan._evolve(rho), targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
         ptm2 = self.rand_matrix(4, 4, real=True)
         chan1 = PTM(ptm1, input_dim=2, output_dim=2)
         chan2 = PTM(ptm2, input_dim=2, output_dim=2)
-        targ = chan2.evolve(chan1.evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho))
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dims, (2, 2))
-        self.assertAllClose(chan.evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho), targ)
 
     def test_compose_front_inplace(self):
         """Test inplace front compose method."""
@@ -188,18 +188,18 @@ class TestPTM(ChannelTestCase):
         chan1 = PTM(self.ptmX)
         chan2 = PTM(self.ptmY)
         chan2.compose(chan1, front=True, inplace=True)
-        targ = PTM(self.ptmZ).evolve(rho)
-        self.assertAllClose(chan2.evolve(rho), targ)
+        targ = PTM(self.ptmZ)._evolve(rho)
+        self.assertAllClose(chan2._evolve(rho), targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
         ptm2 = self.rand_matrix(4, 4, real=True)
         chan1 = PTM(ptm1, input_dim=2, output_dim=2)
         chan2 = PTM(ptm2, input_dim=2, output_dim=2)
-        targ = chan2.evolve(chan1.evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho))
         chan2.compose(chan1, front=True, inplace=True)
         self.assertEqual(chan2.dims, (2, 2))
-        self.assertAllClose(chan2.evolve(rho), targ)
+        self.assertAllClose(chan2._evolve(rho), targ)
 
     def test_expand(self):
         """Test expand method."""
@@ -212,20 +212,20 @@ class TestPTM(ChannelTestCase):
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan_dep = PTM(self.depol_ptm(1))
         chan = chan_dep.expand(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_expand_inplace(self):
         """Test inplace expand method."""
@@ -238,7 +238,7 @@ class TestPTM(ChannelTestCase):
         chan1.expand(chan2, inplace=True)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan1 = PTM(self.ptmI)
@@ -246,14 +246,14 @@ class TestPTM(ChannelTestCase):
         chan2.expand(chan1, inplace=True)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan = PTM(self.depol_ptm(1))
         chan.tensor(chan, inplace=True)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -266,20 +266,20 @@ class TestPTM(ChannelTestCase):
         chan = chan2.tensor(chan1)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan1.tensor(chan2)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan_dep = PTM(self.depol_ptm(1))
         chan = chan_dep.tensor(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor_inplace(self):
         """Test inplace tensor method."""
@@ -292,7 +292,7 @@ class TestPTM(ChannelTestCase):
         chan2.tensor(chan1, inplace=True)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan1 = PTM(self.ptmI)
@@ -300,14 +300,14 @@ class TestPTM(ChannelTestCase):
         chan1.tensor(chan2, inplace=True)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan = PTM(self.depol_ptm(1))
         chan.tensor(chan, inplace=True)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan.evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_power(self):
         """Test power method."""

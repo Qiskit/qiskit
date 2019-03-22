@@ -53,14 +53,14 @@ class TestUnitaryChannel(ChannelTestCase):
         target_psi = np.array([1, 1]) / np.sqrt(2)
         target_rho = np.array([[0.5, 0.5], [0.5, 0.5]])
         # Test list vector evolve
-        self.assertAllClose(chan.evolve([1, 0]), target_psi)
+        self.assertAllClose(chan._evolve([1, 0]), target_psi)
         # Test np.array vector evolve
-        self.assertAllClose(chan.evolve(np.array([1, 0])), target_psi)
+        self.assertAllClose(chan._evolve(np.array([1, 0])), target_psi)
         # Test list density matrix evolve
-        self.assertAllClose(chan.evolve([[1, 0], [0, 0]]), target_rho)
+        self.assertAllClose(chan._evolve([[1, 0], [0, 0]]), target_rho)
         # Test np.array density matrix evolve
         self.assertAllClose(
-            chan.evolve(np.array([[1, 0], [0, 0]])), target_rho)
+            chan._evolve(np.array([[1, 0], [0, 0]])), target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
