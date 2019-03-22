@@ -20,7 +20,7 @@ logger = "LocalLogger"
 class DummyTP(TransformationPass):
     """ A dummy transformation pass."""
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         logging.getLogger(logger).info('run transformation pass %s', self.name())
         return dag
 
@@ -28,7 +28,7 @@ class DummyTP(TransformationPass):
 class DummyAP(AnalysisPass):
     """ A dummy analysis pass."""
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         logging.getLogger(logger).info('run analysis pass %s', self.name())
 
 
@@ -85,8 +85,8 @@ class PassD_TP_NR_NP(DummyTP):
         self.argument2 = argument2
         self.preserves.append(self)  # preserves itself (idempotence)
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         logging.getLogger(logger).info('argument %s', self.argument1)
         return dag
 
@@ -102,8 +102,8 @@ class PassE_AP_NR_NP(DummyAP):
         super().__init__()
         self.argument1 = argument1
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         self.property_set['property'] = self.argument1
         logging.getLogger(logger).info('set property as %s', self.property_set['property'])
 
@@ -115,8 +115,8 @@ class PassF_reduce_dag_property(DummyTP):
     NP: No Preserves
     """
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         if not hasattr(dag, 'property'):
             dag.property = 8
         dag.property = round(dag.property * 0.8)
@@ -131,8 +131,8 @@ class PassG_calculates_dag_property(DummyAP):
     NP: No Preserves
     """
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         if hasattr(dag, 'property'):
             self.property_set['property'] = dag.property
         else:
@@ -146,8 +146,8 @@ class PassI_Bad_AP(DummyAP):
     NP: No Preserves
     """
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         cx_runs = dag.collect_runs(["cx"])
 
         # Convert to ID so thatcan be checked if in correct order
@@ -169,8 +169,8 @@ class PassJ_Bad_NoReturn(DummyTP):
     NP: No Preserves
     """
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         return "Something else than DAG"
 
 
@@ -185,9 +185,9 @@ class PassK_check_fixed_point_property(DummyAP, FixedPoint):
         FixedPoint.__init__(self, 'property')
         self.requires.append(PassG_calculates_dag_property())
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         for base in PassK_check_fixed_point_property.__bases__:
-            base.run(self, dag)
+            base.run(self, dag, property_set)
 
 
 class PassM_AP_NR_NP(DummyAP):
@@ -201,7 +201,7 @@ class PassM_AP_NR_NP(DummyAP):
         super().__init__()
         self.argument1 = argument1
 
-    def run(self, dag):
-        super().run(dag)
+    def run(self, dag, property_set):
+        super().run(dag, property_set)
         self.argument1 *= 2
         logging.getLogger(logger).info('self.argument1 = %s', self.argument1)

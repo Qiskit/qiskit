@@ -25,7 +25,7 @@ class Unroller(TransformationPass):
         super().__init__()
         self.basis = basis
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         """Expand all op nodes to the given basis.
 
 
@@ -53,7 +53,8 @@ class Unroller(TransformationPass):
                                   "is defined in terms of an invalid basis." %
                                   (str(self.basis), node.op.name))
 
-            decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
+            # recursively unroll gates
+            decomposition_dag = self.run(decomposition_rules[0], property_set)
             dag.substitute_node_with_dag(node=node, input_dag=decomposition_dag)
 
         return dag

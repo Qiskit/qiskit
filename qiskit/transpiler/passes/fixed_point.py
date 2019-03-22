@@ -25,7 +25,7 @@ class FixedPoint(AnalysisPass):
         self._property = property_to_check
         self._previous_value = None
 
-    def run(self, dag):
+    def run(self, dag, property_set):
         if self.property_set['fixed_point'] is None:
             self.property_set['fixed_point'] = defaultdict(lambda: False)
 
