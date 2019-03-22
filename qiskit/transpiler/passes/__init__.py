@@ -12,6 +12,11 @@ from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .dag_fixed_point import DAGFixedPoint
 from .resource_estimation import ResourceEstimation
+from .depth import Depth
+from .size import Size
+from .width import Width
+from .count_ops import CountOps
+from .num_tensor_factor import NumTensorFactor
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
