@@ -13,7 +13,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 class CXCancellation(TransformationPass):
     """Cancel back-to-back 'cx' gates in dag."""
 
-    def run(self, dag):
+    def run(self, dag, property_set=None):
         """
         Run one pass of cx cancellation on the circuit
 
