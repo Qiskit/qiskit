@@ -14,7 +14,7 @@ import qiskit
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble_circuits
 from qiskit.compiler import TranspileConfig, RunConfig
-from qiskit.qobj import QobjHeader
+from qiskit.qobj import QASMQobjHeader
 from qiskit.test import QiskitTestCase, requires_aer_provider
 
 
@@ -39,7 +39,7 @@ class TestBasicAerQobj(QiskitTestCase):
                 qobj = assemble_circuits(qc1_new, RunConfig(shots=1000))
 
                 # Update the Qobj header.
-                qobj.header = QobjHeader.from_dict(custom_qobj_header)
+                qobj.header = QASMQobjHeader.from_dict(custom_qobj_header)
                 # Update the Qobj.experiment header.
                 qobj.experiments[0].header.some_field = 'extra info'
 

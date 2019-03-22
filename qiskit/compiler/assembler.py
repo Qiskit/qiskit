@@ -7,14 +7,16 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
-import sympy
+
 import numpy
+import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader
-from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.compiler.run_config import RunConfig
-from qiskit.qobj.utils import QobjType
+from qiskit.qobj import QASMQobj
+from qiskit.qobj import QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
+from qiskit.qobj import QASMQobjExperimentConfig, QASMQobjExperimentHeader
+from qiskit.qobj import QobjConditional
 
 
 def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):
@@ -23,18 +25,18 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
         run_config (RunConfig): RunConfig object
-        qobj_header (QobjHeader): header to pass to the results
+        qobj_header (QASMQobjHeader): header to pass to the results
         qobj_id (int): identifier for the generated qobj
 
     Returns:
-        Qobj: the Qobj to be run on the backends
+        QASMQobj: the Qobj to be run on the backends
     """
-    qobj_header = qobj_header or QobjHeader()
+    qobj_header = qobj_header or QASMQobjHeader()
     run_config = run_config or RunConfig()
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
-    userconfig = QobjConfig(**run_config.to_dict())
+    userconfig = QASMQobjConfig(**run_config.to_dict())
     experiments = []
     max_n_qubits = 0
     max_memory_slots = 0
@@ -60,19 +62,19 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
         # TODO: why do we need creq_sizes and qreg_sizes in header
         # TODO: we need to rethink memory_slots as they are tied to classical bit
-        experimentheader = QobjExperimentHeader(qubit_labels=qubit_labels,
-                                                n_qubits=n_qubits,
-                                                qreg_sizes=qreg_sizes,
-                                                clbit_labels=clbit_labels,
-                                                memory_slots=memory_slots,
-                                                creg_sizes=creg_sizes,
-                                                name=circuit.name)
+        experimentheader = QASMQobjExperimentHeader(qubit_labels=qubit_labels,
+                                                    n_qubits=n_qubits,
+                                                    qreg_sizes=qreg_sizes,
+                                                    clbit_labels=clbit_labels,
+                                                    memory_slots=memory_slots,
+                                                    creg_sizes=creg_sizes,
+                                                    name=circuit.name)
         # TODO: why do we need n_qubits and memory_slots in both the header and the config
-        experimentconfig = QobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
+        experimentconfig = QASMQobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
 
         instructions = []
         for opt in circuit.data:
-            current_instruction = QobjInstruction(name=opt.name)
+            current_instruction = QASMQobjInstruction(name=opt.name)
             if opt.qargs:
                 qubit_indices = [qubit_labels.index([qubit[0].name, qubit[1]])
                                  for qubit in opt.qargs]
@@ -107,8 +109,8 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                                                                   val="0x%X" % opt.control[1])
 
             instructions.append(current_instruction)
-        experiments.append(QobjExperiment(instructions=instructions, header=experimentheader,
-                                          config=experimentconfig))
+        experiments.append(QASMQobjExperiment(instructions=instructions, header=experimentheader,
+                                              config=experimentconfig))
         if n_qubits > max_n_qubits:
             max_n_qubits = n_qubits
         if memory_slots > max_memory_slots:
@@ -117,6 +119,5 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
     userconfig.memory_slots = max_memory_slots
     userconfig.n_qubits = max_n_qubits
 
-    return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
-                experiments=experiments, header=qobj_header,
-                type=QobjType.QASM.value)
+    return QASMQobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
+                    experiments=experiments, header=qobj_header)

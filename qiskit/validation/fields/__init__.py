@@ -12,8 +12,8 @@ When extending this module with new Fields:
     1. Distinguish a new type, like the ``Complex`` number in this module.
     2. Use a new Marshmallow field not used in ``qiskit`` yet.
 
-Marshamallow fields does not allow model validation so you need to create a new
-field, make it subclass of the Marshamallow field *and* ``ModelTypeValidator``,
+Marshmallow fields does not allow model validation so you need to create a new
+field, make it subclass of the Marshmallow field *and* ``ModelTypeValidator``,
 and redefine ``valid_types`` to be the list of valid types. Usually, **the
 same types this field deserializes to**. For instance::
 
@@ -24,45 +24,16 @@ same types this field deserializes to**. For instance::
 
 See ``ModelTypeValidator`` for more subclassing options.
 """
+
 from datetime import date, datetime
 
 from marshmallow import fields as _fields
-from marshmallow.utils import is_collection
 
 from qiskit.validation import ModelTypeValidator
 from qiskit.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
 from qiskit.validation.fields.containers import Nested, List
 
-
-class Complex(ModelTypeValidator):
-    """Field for complex numbers.
-
-    Field for parsing complex numbers:
-    * deserializes to Python's `complex`.
-    * serializes to a tuple of 2 decimals `(real, imaginary)`
-    """
-
-    valid_types = (complex, )
-
-    default_error_messages = {
-        'invalid': '{input} cannot be parsed as a complex number.',
-        'format': '"{input}" cannot be formatted as complex number.',
-    }
-
-    def _serialize(self, value, attr, obj):
-        try:
-            return [value.real, value.imag]
-        except AttributeError:
-            self.fail('format', input=value)
-
-    def _deserialize(self, value, attr, data):
-        if not is_collection(value) or len(value) != 2:
-            self.fail('invalid', input=value)
-
-        try:
-            return complex(*value)
-        except (ValueError, TypeError):
-            self.fail('invalid', input=value)
+from .custom import Complex, InstructionParameter
 
 
 class String(_fields.String, ModelTypeValidator):
@@ -124,3 +95,8 @@ class Boolean(_fields.Boolean, ModelTypeValidator):
 class Raw(_fields.Raw, ModelTypeValidator):
     # pylint: disable=missing-docstring
     __doc__ = _fields.Boolean.__doc__
+
+
+class Dict(_fields.Dict, ModelTypeValidator):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Dict.__doc__
