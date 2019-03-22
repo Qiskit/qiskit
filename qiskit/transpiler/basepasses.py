@@ -20,21 +20,16 @@ class MetaPass(type):
     """
 
     def __call__(cls, *args, **kwargs):
-        if '_pass_cache' not in cls.__dict__.keys():
-            cls._pass_cache = {}
-        args, kwargs = cls.normalize_parameters(*args, **kwargs)
-        hash_ = hash(MetaPass._freeze_init_parameters(cls.__init__, args, kwargs))
-        if hash_ not in cls._pass_cache:
-            new_pass = type.__call__(cls, *args, **kwargs)
-            cls._pass_cache[hash_] = new_pass
-        return cls._pass_cache[hash_]
+        pass_instance = type.__call__(cls, *args, **kwargs)
+        pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls, args, kwargs))
+        return pass_instance
 
     @staticmethod
-    def _freeze_init_parameters(init_method, args, kwargs):
+    def _freeze_init_parameters(class_, args, kwargs):
         self_guard = object()
-        init_signature = signature(init_method)
+        init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = []
+        arguments = [('class_.__name__', class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
@@ -52,20 +47,13 @@ class BasePass(metaclass=MetaPass):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
+        self._hash = None
 
-    @classmethod
-    def normalize_parameters(cls, *args, **kwargs):
-        """
-        Because passes with the same args/kwargs are considered the same, this method allows to
-        modify the args/kargs to respect that identity.
-        Args:
-            *args: args to normalize
-            **kwargs: kwargs to normalize
+    def __hash__(self):
+        return self._hash
 
-        Returns:
-            tuple: normalized (list(args), dict(kwargs))
-        """
-        return args, kwargs
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def name(self):
         """ The name of the pass. """
