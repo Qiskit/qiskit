@@ -537,7 +537,7 @@ class MatplotlibDrawer:
                 if verbose:
                     print(op)
 
-                if 'op' in op.keys() and hasattr(op['op'], 'param'):
+                if 'op' in op.keys() and hasattr(op['op'], 'params'):
                     param = self.param_parse(op['op'].params, self._style.pimode)
                 else:
                     param = None
