@@ -94,11 +94,11 @@ class Stinespring(QuantumChannel):
         else:
             return self._data
 
-    def evolve(self, state):
+    def _evolve(self, state):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): A statevector or density matrix.
+            state (QuantumState): The input statevector or density matrix.
 
         Returns:
             QuantumState: the output quantum state.

@@ -75,16 +75,16 @@ class PTM(QuantumChannel):
         return (self._output_dim, self._output_dim, self._input_dim,
                 self._input_dim)
 
-    def evolve(self, state):
+    def _evolve(self, state):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): The input statevector or density matrix.
+            state (QuantumState): The input statevector or density matrix.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.
         """
-        return SuperOp(self).evolve(state)
+        return SuperOp(self)._evolve(state)
 
     def is_cptp(self):
         """Return True if completely-positive trace-preserving."""

@@ -72,11 +72,11 @@ class Choi(QuantumChannel):
         """Return True if completely-positive trace-preserving."""
         return self._is_cp() and self._is_tp()
 
-    def evolve(self, state):
+    def _evolve(self, state):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): The input statevector or density matrix.
+            state (QuantumState): The input statevector or density matrix.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.

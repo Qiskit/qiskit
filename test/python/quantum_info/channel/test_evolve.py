@@ -36,9 +36,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim, dim)
                 chan1 = UnitaryChannel(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _other_to_unitary(self, rep, qubits_test_cases,
@@ -50,9 +50,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim, dim)
                 chan1 = rep(UnitaryChannel(mat))
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = UnitaryChannel(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _choi_to_other_cp(self, rep, qubits_test_cases,
@@ -64,9 +64,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = dim * self.rand_rho(dim ** 2)
                 chan1 = Choi(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _choi_to_other_noncp(self, rep, qubits_test_cases,
@@ -78,9 +78,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim ** 2, dim ** 2)
                 chan1 = Choi(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _superop_to_other(self, rep, qubits_test_cases,
@@ -92,9 +92,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim ** 2, dim ** 2)
                 chan1 = SuperOp(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _kraus_to_other_single(self, rep, qubits_test_cases,
@@ -106,9 +106,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 kraus = self.rand_kraus(dim, dim, dim ** 2)
                 chan1 = Kraus(kraus)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _kraus_to_other_double(self, rep, qubits_test_cases,
@@ -121,9 +121,9 @@ class TestTransformations(ChannelTestCase):
                 kraus_l = self.rand_kraus(dim, dim, dim ** 2)
                 kraus_r = self.rand_kraus(dim, dim, dim ** 2)
                 chan1 = Kraus((kraus_l, kraus_r))
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _stinespring_to_other_single(self, rep, qubits_test_cases,
@@ -135,9 +135,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim ** 2, dim)
                 chan1 = Stinespring(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _stinespring_to_other_double(self, rep, qubits_test_cases,
@@ -150,9 +150,9 @@ class TestTransformations(ChannelTestCase):
                 mat_l = self.rand_matrix(dim ** 2, dim)
                 mat_r = self.rand_matrix(dim ** 2, dim)
                 chan1 = Stinespring((mat_l, mat_r))
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _chi_to_other(self, rep, qubits_test_cases,
@@ -164,9 +164,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim ** 2, dim ** 2, real=True)
                 chan1 = Chi(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def _ptm_to_other(self, rep, qubits_test_cases,
@@ -178,9 +178,9 @@ class TestTransformations(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim ** 2, dim ** 2, real=True)
                 chan1 = PTM(mat)
-                rho1 = chan1.evolve(rho)
+                rho1 = chan1._evolve(rho)
                 chan2 = rep(chan1)
-                rho2 = chan2.evolve(rho)
+                rho2 = chan2._evolve(rho)
                 self.assertAllClose(rho1, rho2)
 
     def test_unitary_to_choi(self):

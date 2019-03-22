@@ -34,7 +34,8 @@ class QuantumChannel(ABC):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__) and self.dims == other.dims:
-            return np.allclose(self.data, other.data, atol=self.atol)
+            return np.allclose(
+                self.data, other.data, rtol=self.rtol, atol=self.atol)
         return False
 
     def __repr__(self):
@@ -104,11 +105,11 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def evolve(self, state):
+    def _evolve(self, state):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): A statevector or density matrix.
+            state (QuantumState): A statevector or density matrix.
 
         Returns:
             QuantumState: the output quantum state.

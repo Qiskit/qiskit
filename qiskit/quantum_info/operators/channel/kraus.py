@@ -129,11 +129,11 @@ class Kraus(QuantumChannel):
             accum += np.dot(np.transpose(np.conj(op)), op)
         return is_identity_matrix(accum, rtol=self.rtol, atol=self.atol)
 
-    def evolve(self, state):
-        """Apply the channel to a quantum state.
+    def _evolve(self, state):
+        """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): A statevector or density matrix.
+            state (QuantumState): The input statevector or density matrix.
 
         Returns:
             QuantumState: the output quantum state.

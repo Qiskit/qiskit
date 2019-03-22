@@ -52,11 +52,11 @@ class UnitaryChannel(QuantumChannel):
         # If the matrix is a unitary matrix the channel is CPTP
         return is_unitary_matrix(self._data, rtol=self.rtol, atol=self.atol)
 
-    def evolve(self, state):
+    def _evolve(self, state):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
-            state (quantum_state like): A statevector or density matrix.
+            state (QuantumState): The input statevector or density matrix.
 
         Returns:
             QuantumState: the output quantum state.

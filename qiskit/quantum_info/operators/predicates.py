@@ -39,7 +39,7 @@ def matrix_equal(mat1,
         atol (double): the absolute tolerance parameter [Default {}].
 
     Returns:
-        bool: True if the matrices are equal or False otherwise.  
+        bool: True if the matrices are equal or False otherwise.
     """.format(RTOL_DEFAULT, ATOL_DEFAULT)
 
     if atol is None:
@@ -113,7 +113,7 @@ def is_identity_matrix(mat,
         # If the matrix is equal to an identity up to a phase, we can
         # remove the phase by multiplying each entry by the complex
         # conjugate of the phase of the [0, 0] entry.
-        theta =  np.angle(mat[0, 0])
+        theta = np.angle(mat[0, 0])
         mat *= np.exp(-1j * theta)
     # Check if square identity
     iden = np.eye(len(mat))
