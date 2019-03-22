@@ -60,11 +60,12 @@ class BasePass(metaclass=MetaPass):
         return self.__class__.__name__
 
     @abstractmethod
-    def run(self, dag):
+    def run(self, dag, property_set):
         """
         Run a pass on the DAGCircuit. This is implemented by the pass developer.
         Args:
             dag (DAGCircuit): the dag on which the pass is run.
+            property_set (PropertySet): the shared memory to communicate with other passes.
         Raises:
             NotImplementedError: when this is left unimplemented for a pass.
         """
