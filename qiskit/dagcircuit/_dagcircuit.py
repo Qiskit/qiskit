@@ -626,18 +626,26 @@ class DAGCircuit:
         return self.multi_graph.order() - 2 * len(self.wires)
 
     def depth(self):
-        """Return the circuit depth.
+        """Return the DAG depth.
 
         Returns:
-            int: the circuit depth
+            int: the DAG depth
 
-        Raises:
-            DAGCircuitError: if not a directed acyclic graph
+        Notes:
+            The DAG depth need not be the same as the circuit depth.
+            This is half of the networkx longest_path function.
+
         """
-        if not nx.is_directed_acyclic_graph(self.multi_graph):
-            raise DAGCircuitError("not a DAG")
+        if not self.multi_graph:
+            return []
+        dist = {}  # stores {v : (length, u)}
+        for v in nx.topological_sort(self.multi_graph):
+            us = [(dist[u][0] + 1, u) for u in self.multi_graph.pred[v].keys()]
+            maxu = max(us, key=lambda x: x[0]) if us else (0, v)
+            dist[v] = maxu if maxu[0] >= 0 else (0, v)
+        v = max(dist, key=lambda x: dist[x][0])
 
-        return nx.dag_longest_path_length(self.multi_graph) - 1
+        return dist[v][0] - 1
 
     def width(self):
         """Return the total number of qubits used by the circuit."""
