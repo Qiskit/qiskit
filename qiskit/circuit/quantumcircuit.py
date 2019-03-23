@@ -81,11 +81,6 @@ class QuantumCircuit:
     def __str__(self):
         return str(self.draw(output='text'))
 
-    def __repr__(self):
-        repr_str = "QuantumCircuit<width={}, depth={}, gate_count={}, tensor_factors={}>"
-        return repr_str.format(self.width(), self.depth(),
-                               self.count_ops(), self.num_tensor_factors())
-
     def __eq__(self, other):
         # TODO: removed the DAG from this function
         from qiskit.converters import circuit_to_dag
@@ -413,16 +408,17 @@ class QuantumCircuit:
         sub_graphs = [[qbit] for qbit in range(self.width())]
         num_sub_graphs = len(sub_graphs)
         for op in self.data:
-            if len(op.qargs) >= 2 and op.name != 'barrier':
+            num_qargs = len(op.qargs)
+            if num_qargs >= 2 and op.name != 'barrier':
                 graphs_touched = []
                 num_touched = 0
                 for q in op.qargs:
                     q_int = qr_map[q[0].name]+q[1]
                     for k in range(num_sub_graphs):
                         if q_int in sub_graphs[k]:
-                            if q_int not in graphs_touched:
-                                graphs_touched.append(k)
-                                num_touched += 1
+                            graphs_touched.append(k)
+                            num_touched += 1
+                            break
                 if num_touched > 1:
                     connections = []
                     for idx in graphs_touched:
