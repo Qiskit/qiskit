@@ -22,7 +22,7 @@ from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
                             PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
-                            PassK_check_fixed_point_property)
+                            PassK_check_fixed_point_property, PassM_AP_NR_NP)
 
 logger = "LocalLogger"
 
@@ -282,7 +282,7 @@ class TestUseCases(SchedulerTestCase):
                                    TranspilerAccessError)
 
     def test_ignore_request_pm(self):
-        """ A pass manager that ignores requests does not run the passes decleared in the 'requests'
+        """ A pass manager that ignores requires does not run the passes decleared in the 'requires'
         field of the passes."""
         passmanager = PassManager(ignore_requires=True)
         passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
@@ -445,6 +445,17 @@ class TestUseCases(SchedulerTestCase):
                                     'run transformation pass PassA_TP_NR_NP',
                                     'run transformation pass PassF_reduce_dag_property',
                                     'dag property = 5'], TranspilerError)
+
+    def test_fresh_initial_state(self):
+        """ New construction gives fresh instance """
+        self.passmanager.append(PassM_AP_NR_NP(argument1=1))
+        self.passmanager.append(PassA_TP_NR_NP())
+        self.passmanager.append(PassM_AP_NR_NP(argument1=1))
+        self.assertScheduler(self.dag, self.passmanager, ['run analysis pass PassM_AP_NR_NP',
+                                                          'self.argument1 = 2',
+                                                          'run transformation pass PassA_TP_NR_NP',
+                                                          'run analysis pass PassM_AP_NR_NP',
+                                                          'self.argument1 = 2'])
 
 
 class DoXTimesController(FlowController):
