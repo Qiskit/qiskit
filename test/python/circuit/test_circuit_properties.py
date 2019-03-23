@@ -170,7 +170,6 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[2], q2[0])
         self.assertEqual(qc.num_tensor_factors(), 1)
 
-
     def test_circuit_tensor_factors_multi_reg2(self):
         """Test tensor factors works over muli registers #2
         """
@@ -194,6 +193,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[3], q2[1])
         qc.cx(q1[4], q2[0])
         self.assertEqual(qc.num_tensor_factors(), 5)
+
 
 if __name__ == '__main__':
     unittest.main()

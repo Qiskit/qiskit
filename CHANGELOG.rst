@@ -22,7 +22,6 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
 - Core StochasticSwap routine implimented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
@@ -33,7 +32,7 @@ Added
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
-  different output stream 
+  different output stream
 - Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
   contain a dictionary of versions for all installed qiskit elements. (#1885).
 - Added a ``RunConfig`` object for configurations related to running an
@@ -53,7 +52,7 @@ Added
 
 Changed
 -------
-
+- QuantumCircuit does not use DAG for computing properties (#1993).
 - Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
