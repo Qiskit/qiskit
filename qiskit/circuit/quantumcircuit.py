@@ -416,9 +416,10 @@ class QuantumCircuit:
                     q_int = qr_map[q[0].name]+q[1]
                     for k in range(num_sub_graphs):
                         if q_int in sub_graphs[k]:
-                            graphs_touched.append(k)
-                            num_touched += 1
-                            break
+                            if k not in graphs_touched:
+                                graphs_touched.append(k)
+                                num_touched += 1
+                                break
                 if num_touched > 1:
                     connections = []
                     for idx in graphs_touched:
