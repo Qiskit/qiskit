@@ -637,7 +637,7 @@ class DAGCircuit:
 
         """
         if not self.multi_graph:
-            return []
+            return 0
         dist = {}  # stores {v : (length, u)}
         for v in nx.topological_sort(self.multi_graph):
             us = [(dist[u][0] + 1, u) for u in self.multi_graph.pred[v].keys()]

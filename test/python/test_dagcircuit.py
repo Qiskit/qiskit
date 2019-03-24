@@ -438,5 +438,53 @@ class TestDagSubstitute(QiskitTestCase):
         pass
 
 
+class TestDagProperties(QiskitTestCase):
+    def test_dag_depth_empty(self):
+        """ Empty circuit DAG is zero depth
+        """
+        q = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(q)
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 0)
+
+    def test_dag_depth1(self):
+        """ Test DAG depth #1
+        """
+        q1 = QuantumRegister(3, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        c = ClassicalRegister(5, 'c')
+        qc = QuantumCircuit(q1, q2, c)
+        qc.h(q1[0])
+        qc.h(q1[1])
+        qc.h(q1[2])
+        qc.h(q2[0])
+        qc.h(q2[1])
+        qc.ccx(q2[1], q1[0], q2[0])
+        qc.cx(q1[0], q1[1])
+        qc.cx(q1[1], q2[1])
+        qc.cx(q2[1], q1[2])
+        qc.cx(q1[2], q2[0])
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 6)
+
+    def test_dag_depth2(self):
+        """ Test barrier increases DAG depth
+        """
+        q = QuantumRegister(5, 'q')
+        c = ClassicalRegister(1, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.cx(q[0], q[4])
+        qc.x(q[2])
+        qc.x(q[2])
+        qc.x(q[2])
+        qc.x(q[4])
+        qc.cx(q[4], q[1])
+        qc.barrier(q)
+        qc.measure(q[1], c[0])
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 6)
+
+
 if __name__ == '__main__':
     unittest.main()
