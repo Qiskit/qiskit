@@ -307,7 +307,7 @@ class DAGCircuit:
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
-            int: the current max node id
+            DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if a leaf node is connected to multiple outputs
@@ -339,7 +339,8 @@ class DAGCircuit:
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
             self.multi_graph.add_edge(self._id_to_node[self._max_node_id], self.output_map[q],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
-        return self._max_node_id
+
+        return self._id_to_node[self._max_node_id]
 
     def apply_operation_front(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the input of the circuit.
@@ -352,7 +353,7 @@ class DAGCircuit:
             condition (tuple or None): optional condition (ClassicalRegister, value)
 
         Returns:
-            int: the current max node id
+            DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
@@ -380,7 +381,7 @@ class DAGCircuit:
             self.multi_graph.add_edge(self.input_map[q], self._id_to_node[self._max_node_id],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
-        return self._max_node_id
+        return self._id_to_node[self._max_node_id]
 
     def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
