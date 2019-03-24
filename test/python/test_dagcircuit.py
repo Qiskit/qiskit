@@ -4,11 +4,12 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+# pylint: disable=invalid-name
 
 """Test for the DAGCircuit object"""
 
 import unittest
-
+import numpy as np
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister
@@ -439,6 +440,9 @@ class TestDagSubstitute(QiskitTestCase):
 
 
 class TestDagProperties(QiskitTestCase):
+    """ Test the DAG properties.
+    """
+
     def test_dag_depth_empty(self):
         """ Empty circuit DAG is zero depth
         """
@@ -468,7 +472,7 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 6)
 
     def test_dag_depth2(self):
-        """ Test barrier increases DAG depth
+        """Test barrier increases DAG depth
         """
         q = QuantumRegister(5, 'q')
         c = ClassicalRegister(1, 'c')
@@ -484,6 +488,58 @@ class TestDagProperties(QiskitTestCase):
         qc.measure(q[1], c[0])
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
+
+    def test_dag_depth3(self):
+        """Test DAG depth for silly circuit.
+        """
+        q = QuantumRegister(6, 'q')
+        c = ClassicalRegister(1, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        qc.cx(q[1], q[2])
+        qc.cx(q[2], q[3])
+        qc.cx(q[3], q[4])
+        qc.cx(q[4], q[5])
+        qc.barrier(q[0])
+        qc.barrier(q[0])
+        qc.measure(q[0], c[0])
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 6)
+
+    def test_dag_depth_circuit_depth(self):
+        """Test DAG depth == circuit depth if
+        no special instructions.
+        """
+        size = 6
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        num_gates = np.random.randint(50)
+        # h = 0, x = 1, y = 2, z = 3, cx = 4, ccx = 5
+
+        for _ in range(num_gates):
+            item = np.random.randint(6)
+            if item in [0, 1, 2, 3]:
+                idx = np.random.randint(size)
+                if item == 0:
+                    qc.h(q[idx])
+                elif item == 1:
+                    qc.x(q[idx])
+                elif item == 2:
+                    qc.y(q[idx])
+                elif item == 3:
+                    qc.z(q[idx])
+            else:
+                idx = np.random.permutation(size)
+                if item == 4:
+                    qc.cx(q[int(idx[0])], q[int(idx[1])])
+                elif item == 5:
+                    qc.ccx(q[int(idx[0])], q[int(idx[1])], q[int(idx[2])])
+        qc.measure(q, c)
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), qc.depth())
 
 
 if __name__ == '__main__':
