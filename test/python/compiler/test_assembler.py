@@ -103,7 +103,7 @@ class TestAssembler(QiskitTestCase):
         circ = QuantumCircuit(q, c, name='circ')
         circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
         qobj = assemble_circuits(circ)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(len(qobj.experiments[0].instructions), 1)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'my_inst')
         self.assertEqual(qobj.experiments[0].instructions[0].qubits, [0, 2, 5, 3])

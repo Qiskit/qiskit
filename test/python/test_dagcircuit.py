@@ -30,7 +30,7 @@ class TestDagRegisters(QiskitTestCase):
     """Test qreg and creg inside the dag"""
 
     def test_add_qreg_creg(self):
-        """ add_qreg() and  add_creg() methods"""
+        """add_qreg() and  add_creg() methods"""
         dag = DAGCircuit()
         dag.add_qreg(QuantumRegister(2, 'qr'))
         dag.add_creg(ClassicalRegister(1, 'cr'))
@@ -38,7 +38,7 @@ class TestDagRegisters(QiskitTestCase):
         self.assertDictEqual(dag.cregs, {'cr': ClassicalRegister(1, 'cr')})
 
     def test_dag_get_qubits(self):
-        """ get_qubits() method """
+        """get_qubits() method """
         dag = DAGCircuit()
         dag.add_qreg(QuantumRegister(1, 'qr1'))
         dag.add_qreg(QuantumRegister(1, 'qr10'))
@@ -54,7 +54,7 @@ class TestDagRegisters(QiskitTestCase):
                                             (QuantumRegister(1, 'qr6'), 0)])
 
     def test_add_reg_duplicate(self):
-        """ add_qreg with the same register twice is not allowed."""
+        """add_qreg with the same register twice is not allowed."""
         dag = DAGCircuit()
         qr = QuantumRegister(2)
         dag.add_qreg(qr)
@@ -69,7 +69,7 @@ class TestDagRegisters(QiskitTestCase):
         self.assertRaises(DAGCircuitError, dag.add_qreg, qr2)
 
     def test_add_reg_bad_type(self):
-        """ add_qreg with a classical register is not allowed."""
+        """add_qreg with a classical register is not allowed."""
         dag = DAGCircuit()
         cr = ClassicalRegister(2)
         self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
@@ -219,7 +219,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(expected_qargs, node_qargs)
 
     def test_nodes_in_topological_order(self):
-        """ The node_nums_in_topological_order() method"""
+        """The node_nums_in_topological_order() method"""
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
@@ -246,10 +246,9 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
     def test_dag_ops_on_wire(self):
-        """ Test that listing the gates on a qubit/classical bit gets the correct gates"""
-        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1),
-                                      [self.qubit0, self.qubit1])
-        self.dag.apply_operation_back(HGate(self.qubit0), [self.qubit0])
+        """Test that listing the gates on a qubit/classical bit gets the correct gates"""
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
 
         qbit = self.dag.qubits()[0]
         self.assertEqual([1, 11, 12, 2], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
@@ -269,7 +268,7 @@ class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
 
     def test_layers_basic(self):
-        """ The layers() method returns a list of layers, each of them with a list of nodes."""
+        """The layers() method returns a list of layers, each of them with a list of nodes."""
         qreg = QuantumRegister(2, 'qr')
         creg = ClassicalRegister(2, 'cr')
         qubit0 = qreg[0]
@@ -355,7 +354,7 @@ class TestCircuitSpecialCases(QiskitTestCase):
     """DAGCircuit test for special cases, usually for regression."""
 
     def test_circuit_depth_with_repetition(self):
-        """ When cx repeat, they are not "the same".
+        """When cx repeat, they are not "the same".
         See https://github.com/Qiskit/qiskit-terra/issues/1994
         """
         qr1 = QuantumRegister(2)
@@ -387,7 +386,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.dag1 = circuit_to_dag(circ1)
 
     def test_dag_eq(self):
-        """ DAG equivalence check: True."""
+        """DAG equivalence check: True."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
         circ2.u2(0.1, 0.2, self.qr1[3])
@@ -401,7 +400,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(self.dag1, dag2)
 
     def test_dag_neq_topology(self):
-        """ DAG equivalence check: False. Different topology."""
+        """DAG equivalence check: False. Different topology."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
         circ2.u2(0.1, 0.2, self.qr1[3])
@@ -415,7 +414,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertNotEqual(self.dag1, dag2)
 
     def test_dag_neq_same_topology(self):
-        """ DAG equivalence check: False. Same topology."""
+        """DAG equivalence check: False. Same topology."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
         circ2.u2(0.1, 0.2, self.qr1[3])
@@ -477,11 +476,11 @@ class TestDagSubstitute(QiskitTestCase):
 
 
 class TestDagProperties(QiskitTestCase):
-    """ Test the DAG properties.
+    """Test the DAG properties.
     """
 
     def test_dag_depth_empty(self):
-        """ Empty circuit DAG is zero depth
+        """Empty circuit DAG is zero depth
         """
         q = QuantumRegister(5, 'q')
         qc = QuantumCircuit(q)
@@ -489,7 +488,7 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 0)
 
     def test_dag_depth1(self):
-        """ Test DAG depth #1
+        """Test DAG depth #1
         """
         q1 = QuantumRegister(3, 'q1')
         q2 = QuantumRegister(2, 'q2')
