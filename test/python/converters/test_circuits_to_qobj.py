@@ -10,18 +10,19 @@ from qiskit.test import QiskitTestCase
 from qiskit.converters import circuits_to_qobj
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+
 class TestCircuitsToQobj(QiskitTestCase):
     """Test Circuits to Qobj."""
 
     def test_no_run_config(self):
         """Test circuits_to_qobj_without_run_config_set."""
-        q = QuantumRegister(2,'q')
-        c = ClassicalRegister(2,'c')
-        qc = QuantumCircuit(q,c)
+        q = QuantumRegister(2, 'q')
+        c = ClassicalRegister(2, 'c')
+        qc = QuantumCircuit(q, c)
         qc.h(q[0])
         qc.cx(q[0], q[1])
-        qc.measure(q[0],c[0])
-        qc.measure(q[1],c[1])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
         qobj = circuits_to_qobj(qc)
         expected = [{'name': 'h', 'qubits': [0]},
                     {'name': 'cx', 'qubits': [0, 1]},
