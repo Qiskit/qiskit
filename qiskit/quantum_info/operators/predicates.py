@@ -62,22 +62,22 @@ def matrix_equal(mat1,
     return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
 
 
-def is_square_matrix(op):
+def is_square_matrix(mat):
     """Test if an array is a square matrix."""
-    mat = np.array(op)
+    mat = np.array(mat)
     if mat.ndim != 2:
         return False
     shape = mat.shape
     return shape[0] == shape[1]
 
 
-def is_diagonal_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+def is_diagonal_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a diagonal matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat = np.array(op)
+    mat = np.array(mat)
     if mat.ndim != 2:
         return False
     return np.allclose(mat, np.diag(np.diagonal(mat)), rtol=rtol, atol=atol)
@@ -95,28 +95,28 @@ def is_symmetric_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     return np.allclose(mat, mat.T, rtol=rtol, atol=atol)
 
 
-def is_hermitian_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+def is_hermitian_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a Hermitian matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat = np.array(op)
+    mat = np.array(mat)
     if mat.ndim != 2:
         return False
     return np.allclose(mat, np.conj(mat.T), rtol=rtol, atol=atol)
 
 
-def is_positive_semidefinite_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+def is_positive_semidefinite_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if a matrix is positive semidefinite"""
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    if not is_hermitian_matrix(op, rtol=rtol, atol=atol):
+    if not is_hermitian_matrix(mat, rtol=rtol, atol=atol):
         return False
     # Check eigenvalues are all positive
-    vals = np.linalg.eigvalsh(op)
+    vals = np.linalg.eigvalsh(mat)
     for v in vals:
         if v < -atol:
             return False
