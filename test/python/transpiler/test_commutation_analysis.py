@@ -245,7 +245,6 @@ class TestCommutationAnalysis(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         self.pass_.run(dag)
-        self.maxDiff = None
 
         expected = {'qr[0]': [[1], [13, 23], [2]],
                     'qr[1]': [[3], [13], [14, 22], [23], [4]],
