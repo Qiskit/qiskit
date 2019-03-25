@@ -54,6 +54,17 @@ class AcquireChannel(PulseChannel):
         super().__init__(index)
 
 
+class SnapshotChannel(PulseChannel):
+    """Snapshot channel."""
+
+    supported = commands.Snapshot
+    prefix = 's'
+
+    def __init__(self):
+        """Create new snapshot channel."""
+        super().__init__(0)
+
+
 class MemorySlot(PulseChannel):
     """Memory slot."""
 
