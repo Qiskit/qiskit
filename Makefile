@@ -56,6 +56,7 @@ test_recording:
 	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
 
 test_ci:
+	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
 	stestr run --concurrency $(CONCURRENCY)
 
 profile:
