@@ -247,18 +247,18 @@ class TestDagOperations(QiskitTestCase):
 
     def test_dag_ops_on_wire(self):
         """ Test that listing the gates on a qubit/classical bit gets the correct gates"""
-
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1),
                                       [self.qubit0, self.qubit1])
         self.dag.apply_operation_back(HGate(self.qubit0), [self.qubit0])
 
         qbit = self.dag.qubits()[0]
-        self.assertEqual([1, 11, 12, 2], list(self.dag.nodes_on_wire(qbit)))
-        self.assertEqual([11, 12], list(self.dag.nodes_on_wire(qbit, only_ops=True)))
+        self.assertEqual(['qr[0]', 'cx', 'h', 'qr[0]'],
+                         [i.name for i in self.dag.nodes_on_wire(qbit)])
+        self.assertEqual(['cx', 'h'], [i.name for i in self.dag.nodes_on_wire(qbit, only_ops=True)])
 
         cbit = self.dag.clbits()[0]
-        self.assertEqual([7, 8], list(self.dag.nodes_on_wire(cbit)))
-        self.assertEqual([], list(self.dag.nodes_on_wire(cbit, only_ops=True)))
+        self.assertEqual(['cr[0]', 'cr[0]'], [i.name for i in self.dag.nodes_on_wire(cbit)])
+        self.assertEqual([], [i.name for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
         (reg, _) = qbit
         with self.assertRaises(DAGCircuitError):
