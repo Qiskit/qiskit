@@ -86,11 +86,6 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(self.property_set['commutation_set'][wire_name])
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
-        print(dag.multi_graph.number_of_nodes())
-        for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
-            print(self.property_set['commutation_set'][wire_name])
-
 def _gate_master_def(name, para=None):
 
     # pylint: disable=too-many-return-statements
