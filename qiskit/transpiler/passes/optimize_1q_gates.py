@@ -21,7 +21,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
-
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit import QuantumRegister
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -37,24 +38,22 @@ class Optimize1qGates(TransformationPass):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
         for run in runs:
-            run_qarg = dag.node(run[0])["qargs"][0]
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
 
             for current_node in run:
-                node = dag.node(current_node)
-                left_name = node["name"]
-                if (node["condition"] is not None
-                        or len(node["qargs"]) != 1
-                        or node["qargs"][0] != run_qarg
+                left_name = current_node.name
+                if (current_node.condition is not None
+                        or len(current_node.qargs) != 1
                         or left_name not in ["u1", "u2", "u3", "id"]):
                     raise MapperError("internal error")
                 if left_name == "u1":
-                    left_parameters = (0, 0, node["op"].params[0])
+                    left_parameters = (0, 0, current_node.op.params[0])
                 elif left_name == "u2":
-                    left_parameters = (np.pi / 2, node["op"].params[0], node["op"].params[1])
+                    left_parameters = (np.pi / 2, current_node.op.params[0],
+                                       current_node.op.params[1])
                 elif left_name == "u3":
-                    left_parameters = tuple(node["op"].params)
+                    left_parameters = tuple(current_node.op.params)
                 else:
                     left_name = "u1"  # replace id with u1
                     left_parameters = (0, 0, 0)
@@ -162,22 +161,31 @@ class Optimize1qGates(TransformationPass):
                 if right_name == "u1" and np.mod(right_parameters[2], (2 * np.pi)) == 0:
                     right_name = "nop"
 
-            # Replace the data of the first node in the run
+            # Replace the the first node in the run with a dummy DAG which contains a dummy
+            # qubit. The name is irrelevant, because substitute_node_with_dag will take care of
+            # putting it in the right place.
+            run_qarg = (QuantumRegister(1, 'q'), 0)
             new_op = Instruction("", [], [], [])
             if right_name == "u1":
                 new_op = U1Gate(right_parameters[2], run_qarg)
             if right_name == "u2":
                 new_op = U2Gate(right_parameters[1], right_parameters[2], run_qarg)
             if right_name == "u3":
-                new_op = U3Gate(*right_parameters, run_qarg)
-            dag.node(run[0])['name'] = right_name
-            dag.node(run[0])['op'] = new_op
+                new_op = U3Gate(right_parameters[0], right_parameters[1], right_parameters[2],
+                                run_qarg)
+
+            if right_name != 'nop':
+                new_dag = DAGCircuit()
+                new_dag.add_qreg(run_qarg[0])
+                new_dag.apply_operation_back(new_op)
+                dag.substitute_node_with_dag(run[0], new_dag)
 
             # Delete the other nodes in the run
             for current_node in run[1:]:
                 dag._remove_op_node(current_node)
             if right_name == "nop":
                 dag._remove_op_node(run[0])
+
         return dag
 
     @staticmethod

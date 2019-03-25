@@ -29,9 +29,9 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes(data=True)
+        op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
+        self.assertEqual(op_nodes[0].name, 'u2')
 
     def test_decompose_only_h(self):
         """Test to decompose a single H, without the rest
@@ -43,11 +43,10 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes(data=True)
+        op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['cx', 'u2'])
+            self.assertIn(node.name, ['cx', 'u2'])
 
     def test_decompose_toffoli(self):
         """Test decompose CCX.
@@ -59,11 +58,10 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(ToffoliGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes(data=True)
+        op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['h', 't', 'tdg', 'cx'])
+            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
 
     def test_decompose_conditional(self):
         """Test decompose a 1-qubit gates with a conditional.

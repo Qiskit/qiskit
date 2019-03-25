@@ -27,9 +27,9 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(['u2'])
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.op_nodes(data=True)
+        op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
+        self.assertEqual(op_nodes[0].name, 'u2')
 
     def test_unroll_toffoli(self):
         """Test unroll toffoli on multi regs to h, t, tdg, cx.
@@ -41,11 +41,10 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(['h', 't', 'tdg', 'cx'])
         unrolled_dag = pass_.run(dag)
-        op_nodes = unrolled_dag.op_nodes(data=True)
+        op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['h', 't', 'tdg', 'cx'])
+            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
 
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional.

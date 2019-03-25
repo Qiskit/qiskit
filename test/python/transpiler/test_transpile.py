@@ -70,3 +70,20 @@ class TestTranspile(QiskitTestCase):
         run_config = RunConfig(shots=1024, max_credits=10)
         qobj2 = assemble_circuits(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
         self.assertEqual(qobj, qobj2)
+
+    def test_transpile_basis_gates_no_backend_no_coupling_map(self):
+        """Verify tranpile() works with no coupling_map or backend."""
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        circuit2 = transpile(circuit, basis_gates=basis_gates)
+        dag_circuit = circuit_to_dag(circuit2)
+        resources_after = dag_circuit.count_ops()
+        self.assertEqual({'u2': 2, 'cx': 4}, resources_after)
