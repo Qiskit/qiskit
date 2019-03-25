@@ -9,7 +9,7 @@
 
 
 from qiskit.circuit.compositegate import CompositeGate
-from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
 def circuit_to_dag(circuit):
