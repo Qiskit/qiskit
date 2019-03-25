@@ -308,6 +308,41 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[4], q2[0])
         self.assertEqual(qc.num_tensor_factors(), 5)
 
+    def test_circuit_tensor_factors_with_clbits(self):
+        """Test tensor components with classical register.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.num_tensor_factors(), 4)
+
+    def test_circuit_tensor_factors_with_cond(self):
+        """Test tensor components with conditional gate.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.cx(q[0], q[3]).c_if(c, 2)
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.num_tensor_factors(), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

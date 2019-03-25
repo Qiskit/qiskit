@@ -354,11 +354,25 @@ class QuantumCircuit:
                                             justify=justify)
 
     def size(self):
-        """Return total number of operations in circuit."""
+        """Returns total number of operations in circuit.
+
+        Returns:
+            int: Total number of operations.
+        """
         return len(self.data)
 
     def depth(self):
-        """Return circuit depth (i.e. length of critical path)."""
+        """Return circuit depth (i.e. length of critical path).
+        This does not include compiler or simulator directives
+        such as 'barrier' or 'snapshot'.
+
+        Returns:
+            int: Depth of circuit.
+
+        Notes:
+            The circuit depth and the DAG depth need not bt the
+            same.
+        """
         reg_offset = 0
         reg_map = {}
         for reg in self.qregs+self.cregs:
@@ -386,8 +400,13 @@ class QuantumCircuit:
         return max(op_stack)
 
     def width(self):
-        """Return number of qubits in circuit."""
-        return sum(qr.size for qr in self.qregs)
+        """Return number of qubits plus clbits in circuit.
+
+        Returns:
+            int: Width of circuit.
+
+        """
+        return sum(reg.size for reg in self.qregs+self.cregs)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -405,27 +424,41 @@ class QuantumCircuit:
 
     def num_tensor_factors(self):
         """How many non-entangled subcircuits can the circuit be factored to."""
-        qr_offset = 0
-        qr_map = {}
-        for qr in self.qregs:
-            qr_map[qr.name] = qr_offset
-            qr_offset += qr.size
+        reg_offset = 0
+        reg_map = {}
+        for reg in self.qregs+self.cregs:
+            reg_map[reg.name] = reg_offset
+            reg_offset += reg.size
 
-        sub_graphs = [[qbit] for qbit in range(self.width())]
+        sub_graphs = [[bit] for bit in range(self.width())]
+
         num_sub_graphs = len(sub_graphs)
         for op in self.data:
-            num_qargs = len(op.qargs)
-            if num_qargs >= 2 and op.name != 'barrier':
+            num_qargs = len(op.qargs+op.cargs) + (1 if op.control else 0)
+            if num_qargs >= 2 and op.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
-                for q in op.qargs:
-                    q_int = qr_map[q[0].name]+q[1]
+   
+                if op.control:
+                    creg = op.control[0]
+                    creg_int = reg_map[creg.name]
+                    for coff in range(creg.size):
+                        temp_int = creg_int+coff
+                        for k in range(num_sub_graphs):
+                            if temp_int in sub_graphs[k]:
+                                graphs_touched.append(k)
+                                num_touched += 1
+                                break
+
+                for item in op.qargs+op.cargs:
+                    reg_int = reg_map[item[0].name]+item[1]
                     for k in range(num_sub_graphs):
-                        if q_int in sub_graphs[k]:
+                        if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
                                 graphs_touched.append(k)
                                 num_touched += 1
                                 break
+
                 if num_touched > 1:
                     connections = []
                     for idx in graphs_touched:
@@ -437,6 +470,7 @@ class QuantumCircuit:
                     _sub_graphs.append(connections)
                     sub_graphs = _sub_graphs
                     num_sub_graphs -= (num_touched-1)
+
             if num_sub_graphs == 1:
                 break
         return num_sub_graphs
