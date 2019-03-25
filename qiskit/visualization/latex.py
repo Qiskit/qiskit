@@ -358,6 +358,20 @@ class QCircuitImage:
                                     is_occupied[j] = True
                                 break
 
+                elif len(qarglist) > 3:
+                    for i in range(0, len(qarglist)):
+                        pos = self.img_regs[(qarglist[i][0], qarglist[i][1])]
+                        if is_occupied[int(pos)] is False:
+                            is_occupied[int(pos)] = True
+                        else:
+                            columns += 1
+                            is_occupied = [False] * self.img_width
+                            for j in range(0, len(qarglist)):
+                                pos = self.img_regs[(qarglist[j][0],
+                                                     qarglist[j][1])]
+                                is_occupied[int(pos)] = True
+                            break
+
                 # update current column width
                 arg_str_len = 0
                 for arg in op.op.params:
@@ -580,6 +594,8 @@ class QCircuitImage:
                         elif nm == "rz":
                             self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
                                 current_op.op.params[0])
+                        else:
+                            self._latex[pos_1][columns] = "\\gate{%s}" % nm
 
                         gap = pos_2 - pos_1
                         for i in range(self.cregs[if_reg]):
@@ -646,6 +662,8 @@ class QCircuitImage:
                             self._latex[pos_1][columns] = (
                                 "\\push{\\rule{.6em}{0em}\\ket{0}\\"
                                 "rule{.2em}{0em}} \\qw")
+                        else:
+                            self._latex[pos_1][columns] = "\\gate{%s}" % nm
 
                 elif len(qarglist) == 2:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -783,6 +801,10 @@ class QCircuitImage:
                                 current_op.op.params[0],
                                 current_op.op.params[1],
                                 current_op.op.params[2]))
+                        else:
+                            self._latex[pos_1][columns] = (
+                                "\\multigate{1}{%s}" % nm)
+                            self._latex[pos_2][columns] = "\\ghost{%s}" % nm
 
                 elif len(qarglist) == 3:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -882,6 +904,20 @@ class QCircuitImage:
                             self._latex[pos_2][columns] = "\\qswap"
                             self._latex[pos_3][columns] = \
                                 "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                        else:
+                            self._latex[pos_1][columns] = (
+                                "\\multigate{2}{%s}" % nm)
+                            self._latex[pos_2][columns] = "\\ghost{%s}" % nm
+                            self._latex[pos_3][columns] = "\\ghost{%s}" % nm
+
+                elif len(qarglist) > 3:
+                    nbits = len(qarglist)
+                    pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
+                    self._latex[pos_1][columns] = (
+                        "\\multigate{%s}{%s}" % (nbits - 1, nm))
+                    for i in range(1, nbits):
+                        pos = self.img_regs[(qarglist[i][0], qarglist[i][1])]
+                        self._latex[pos][columns] = "\\ghost{%s}" % nm
 
             elif current_op.name == "measure":
                 if (len(current_op.cargs) != 1
