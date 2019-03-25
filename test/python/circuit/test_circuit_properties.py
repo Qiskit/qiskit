@@ -108,6 +108,120 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[2], q2[0])
         self.assertEqual(qc.depth(), 6)
 
+    def test_circuit_depth_conditionals1(self):
+        """Test circuit depth for conditional gates #1.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.cx(q[0], q[1])
+        qc.cx(q[2], q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        qc.h(q[2]).c_if(c, 2)
+        qc.h(q[3]).c_if(c, 4)
+        self.assertEqual(qc.depth(), 5)
+
+    def test_circuit_depth_conditionals2(self):
+        """Test circuit depth for conditional gates #2.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.cx(q[0], q[1])
+        qc.cx(q[2], q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[0], c[0])
+        qc.h(q[2]).c_if(c, 2)
+        qc.h(q[3]).c_if(c, 4)
+        self.assertEqual(qc.depth(), 6)
+
+    def test_circuit_depth_conditionals3(self):
+        """Test circuit depth for conditional gates #3.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.cx(q[0], q[3]).c_if(c, 2)
+
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.depth(), 4)
+
+    def test_circuit_depth_measurements1(self):
+        """Test circuit depth for measurements #1.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.depth(), 2)
+
+    def test_circuit_depth_measurements2(self):
+        """Test circuit depth for measurements #2.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[0], c[1])
+        qc.measure(q[0], c[2])
+        qc.measure(q[0], c[3])
+        self.assertEqual(qc.depth(), 5)
+
+    def test_circuit_depth_measurements3(self):
+        """Test circuit depth for measurements #3.
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[0])
+        qc.measure(q[2], c[0])
+        qc.measure(q[3], c[0])
+        self.assertEqual(qc.depth(), 5)
+
     def test_circuit_count_ops(self):
         """Tet circuit count ops
         """
