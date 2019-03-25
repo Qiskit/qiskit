@@ -26,7 +26,7 @@ import uuid
 import time
 from math import log2, sqrt
 import numpy as np
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob

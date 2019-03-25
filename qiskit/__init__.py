@@ -13,7 +13,7 @@
 import pkgutil
 
 # First, check for required Python and API version
-from . import _util
+from . import util
 
 # qiskit errors operator
 from .exceptions import QiskitError
