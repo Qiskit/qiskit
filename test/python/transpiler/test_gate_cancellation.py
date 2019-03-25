@@ -13,9 +13,6 @@ from test.python.common import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile, PropertySet
-
-
-from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, GateCancellation
 from qiskit.converters import circuit_to_dag
 
@@ -29,45 +26,6 @@ class TestGateCancellation(QiskitTestCase):
         self.com_pass_ = CommutationAnalysis()
         self.pass_ = GateCancellation()
         self.pset = self.pass_.property_set = PropertySet()
-
-    def test_all_gates(self):
-        """Test all gates on 1 and 2 qubits
-
-        qr0:----[H]--[H]--[x]--[x]--[y]--[y]--[t]--[t]--[s]--[s]--[u1]--[u2]--[u3]--.--.--.--.--.--
-                                                                                    |  |  |  |  |
-        qr1:------------------------------------------------------------------------.--.--.--.--.--
-        """
-        qr = QuantumRegister(2, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-        circuit.x(qr[0])
-        circuit.x(qr[0])
-        circuit.y(qr[0])
-        circuit.y(qr[0])
-        circuit.t(qr[0])
-        circuit.t(qr[0])
-        circuit.s(qr[0])
-        circuit.s(qr[0])
-        circuit.rz(0.5, qr[0])
-        circuit.rz(0.5, qr[0])
-        circuit.u1(0.5, qr[0])
-        circuit.u1(0.5, qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.cy(qr[0], qr[1])
-        circuit.cy(qr[0], qr[1])
-        circuit.cz(qr[0], qr[1])
-        circuit.cz(qr[0], qr[1])
-
-        passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
-
-        expected = QuantumCircuit(qr)
-        expected.u1(2.0, qr[0])
-
-        self.assertEqual(expected, result)
 
     def test_all_gates(self):
         """Test all gates on 1 and 2 qubits
