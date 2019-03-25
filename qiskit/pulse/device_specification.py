@@ -14,12 +14,23 @@ from typing import List
 from qiskit.pulse.qubit import Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot
+from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
 
 class DeviceSpecification:
-    """Implement a device specification, which is usually contructed from backend info."""
+    """Implement a device specification, which is usually constructed from backend info."""
+
+    def __init__(self, qubits: List[Qubit], registers: List[RegisterSlot]):
+        """
+        Create device specification with specified `qubits`.
+        Args:
+            qubits:
+        """
+        self._qubits = qubits
+        self._reg_slots = registers
+        self._mem_slots = [MemorySlot(i) for i in range(len(qubits))]
 
     @classmethod
     def create_from(cls, backend):
@@ -31,7 +42,12 @@ class DeviceSpecification:
         config = backend.configuration()
 
         # system size
-        n_qubit = config.n_qubits
+        n_qubits = config.n_qubits
+        n_registers = config.n_registers
+        n_uchannels = config.n_uchannels
+
+        if n_uchannels != n_qubits:
+            raise PulseError("This version assumes #U-cannels == #qubits.")
 
         # frequency information
         qubit_lo_freqs = config.defaults['qubit_freq_est']
@@ -40,13 +56,13 @@ class DeviceSpecification:
         meas_lo_range = config.meas_lo_range
 
         # generate channels with assuming their numberings are aligned with qubits
-        drives = [DriveChannel(i, qubit_lo_freqs[i]) for i in range(n_qubit)]   # TODO: lo_ranges
-        controls = [ControlChannel(i) for i in range(n_qubit)]
-        measures = [MeasureChannel(i, meas_lo_freqs[i]) for i in range(n_qubit)]   # TODO: lo_ranges
-        acquires = [AcquireChannel(i) for i in range(n_qubit)]
+        drives = [DriveChannel(i, qubit_lo_freqs[i]) for i in range(n_qubits)]   # TODO: lo_ranges
+        controls = [ControlChannel(i) for i in range(n_uchannels)]
+        measures = [MeasureChannel(i, meas_lo_freqs[i]) for i in range(n_qubits)]  # TODO: lo_ranges
+        acquires = [AcquireChannel(i) for i in range(n_qubits)]
 
         qubits = []
-        for i in range(n_qubit):
+        for i in range(n_qubits):
             qubit = Qubit(i,
                           drive_channels=[drives[i]],
                           control_channels=[controls[i]],
@@ -54,17 +70,9 @@ class DeviceSpecification:
                           acquire_channels=[acquires[i]])
             qubits.append(qubit)
 
-        return DeviceSpecification(qubits)
+        registers = [RegisterSlot(i) for i in range(n_registers)]
 
-    def __init__(self, qubits: List[Qubit]):
-        """
-        Create device specification with specified `qubits`.
-        Args:
-            qubits:
-        """
-        self._qubits = qubits
-        self._reg_slots = [RegisterSlot(i) for i in range(len(qubits))]
-        self._mem_slots = [MemorySlot(i) for i in range(len(qubits))]
+        return DeviceSpecification(qubits, registers)
 
     def __eq__(self, other):
         """Two device specs are the same if they have the same qubits.
