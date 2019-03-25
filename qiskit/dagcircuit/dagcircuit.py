@@ -26,7 +26,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
-from ._dagnode import DAGNode
+from .dagnode import DAGNode
 
 
 class DAGCircuit:
@@ -307,7 +307,7 @@ class DAGCircuit:
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
-            int: the current max node id
+            DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if a leaf node is connected to multiple outputs
@@ -339,7 +339,8 @@ class DAGCircuit:
             self.multi_graph.remove_edge(ie[0], self.output_map[q])
             self.multi_graph.add_edge(self._id_to_node[self._max_node_id], self.output_map[q],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
-        return self._max_node_id
+
+        return self._id_to_node[self._max_node_id]
 
     def apply_operation_front(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the input of the circuit.
@@ -352,7 +353,7 @@ class DAGCircuit:
             condition (tuple or None): optional condition (ClassicalRegister, value)
 
         Returns:
-            int: the current max node id
+            DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
@@ -380,7 +381,7 @@ class DAGCircuit:
             self.multi_graph.add_edge(self.input_map[q], self._id_to_node[self._max_node_id],
                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
-        return self._max_node_id
+        return self._id_to_node[self._max_node_id]
 
     def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
         """Check that wiremap neither fragments nor leaves duplicate registers.
@@ -754,21 +755,17 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
+        # TODO this works but is a horrible way to do this
+        slf = copy.deepcopy(self.multi_graph)
+        oth = copy.deepcopy(other.multi_graph)
 
-        if nx.is_isomorphic(self.multi_graph, other.multi_graph):
-            # TODO this works but is a horrible way to do this
-            slf = copy.deepcopy(self.multi_graph)
-            oth = copy.deepcopy(other.multi_graph)
+        for node in slf.nodes:
+            slf.nodes[node]['node'] = node
+        for node in oth.nodes:
+            oth.nodes[node]['node'] = node
 
-            for node in slf.nodes:
-                slf.nodes[node]["node"] = node
-            for node in oth.nodes:
-                oth.nodes[node]["node"] = node
-
-            return nx.is_isomorphic(slf, oth, node_match=lambda x, y:
-                                    x['node'] == y['node'])
-
-        return False
+        return nx.is_isomorphic(slf, oth,
+                                node_match=lambda x, y: DAGNode.semantic_eq(x['node'], y['node']))
 
     def nodes_in_topological_order(self):
         """
@@ -1457,6 +1454,41 @@ class DAGCircuit:
                 if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
+
+    def nodes_on_wire(self, wire, only_ops=False):
+        """
+        Iterator for nodes that affect a given wire
+
+        Args:
+            wire (tuple(Register, index)): the wire to be looked at.
+            only_ops (bool): True if only the ops nodes are wanted
+                        otherwise all nodes are returned.
+        Yield:
+             DAGNode: the successive ops on the given wire
+
+        Raises:
+            DAGCircuitError: if the given wire doesn't exist in the DAG
+        """
+        current_node = self.input_map.get(wire, None)
+
+        if not current_node:
+            raise DAGCircuitError('The given wire %s is not present in the circuit'
+                                  % str(wire))
+
+        more_nodes = True
+        while more_nodes:
+            more_nodes = False
+            # allow user to just get ops on the wire - not the input/output nodes
+            if current_node.type == 'op' or not only_ops:
+                yield current_node
+
+            for node in self.successors(current_node):
+                # check if this node includes the given wire
+                if (node.type in ['in', 'out'] and wire == node.wire) or \
+                   (node.type == 'op' and wire in node.qargs + node.cargs):
+                    current_node = node
+                    more_nodes = True
+                    break
 
     def count_ops(self):
         """Count the occurrences of operation names.

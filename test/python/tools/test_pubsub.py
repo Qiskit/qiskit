@@ -7,7 +7,7 @@
 
 """Tests for qiskit/tools/events/_pubsub.py"""
 
-from qiskit.tools.events._pubsub import Publisher, Subscriber
+from qiskit.tools.events.pubsub import Publisher, Subscriber
 from qiskit.test import QiskitTestCase
 
 

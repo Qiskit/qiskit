@@ -33,7 +33,7 @@ Added
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
-  different output stream 
+  different output stream
 - Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
   contain a dictionary of versions for all installed qiskit elements. (#1885).
 - Added a ``RunConfig`` object for configurations related to running an
@@ -52,6 +52,9 @@ Added
 - Register indexing supports negative indices (#1875)
 - Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
   ``NumTensorFactor``, all grouped in the ``ResourceEstimation`` analysis pass.
+- Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
+  operations on the given wire
+>>>>>>> 10375015bce5e88fc95a6864ed1f20ba641943fa
 
 Changed
 -------
