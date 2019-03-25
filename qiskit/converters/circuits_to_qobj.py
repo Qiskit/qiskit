@@ -9,7 +9,6 @@
 import warnings
 
 from qiskit.qobj import QobjHeader
-from qiskit.compiler.run_config import RunConfig
 from qiskit.compiler import assemble_circuits
 
 
