@@ -8,17 +8,17 @@
 """Gate cancellation pass testing"""
 
 import unittest
-import sympy
-import numpy as np
-
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.transpiler import PassManager, transpile, PropertySet
+from test.python._mockutils import FakeBackend
 from test.python.common import QiskitTestCase
+
+from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.transpiler import PassManager, transpile, PropertySet
+
 
 from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, GateCancellation
 from qiskit.converters import circuit_to_dag
-from test.python._mockutils import FakeBackend
+
 
 
 class TestGateCancellation(QiskitTestCase):
@@ -67,10 +67,10 @@ class TestGateCancellation(QiskitTestCase):
 
         expected = QuantumCircuit(qr)
         expected.u1(2.0, qr[0])
-        
+
         print(result.draw())
         print(expected.draw())
-        
+
         self.assertEqual(expected, result)
 
     def test_all_gates(self):
@@ -109,7 +109,7 @@ class TestGateCancellation(QiskitTestCase):
 
         expected = QuantumCircuit(qr)
         expected.u1(2.0, qr[0])
-        
+
         self.assertEqual(expected, result)
 
     def test_commutative_circuit1(self):
@@ -118,7 +118,7 @@ class TestGateCancellation(QiskitTestCase):
         qr0:----.---------------.--
                 |               |
         qr1:---(+)-----(+)-----(+)-
-                        |     
+                        |
         qr2:---[H]------.----------
         """
         qr = QuantumRegister(3, 'qr')
@@ -138,7 +138,7 @@ class TestGateCancellation(QiskitTestCase):
 
         print(result.draw())
         print(expected.draw())
-        
+
         self.assertEqual(expected, result)
 
     def test_commutative_circuit2(self):
@@ -149,7 +149,7 @@ class TestGateCancellation(QiskitTestCase):
         qr0:----.-------------.------
                 |             |
         qr1:---(+)---(+)--X--(+)--X--
-                      |     
+                      |
         qr2:----Rz----.---Rz---------
         """
 
@@ -173,8 +173,10 @@ class TestGateCancellation(QiskitTestCase):
 
         print(result.draw())
         print(expected.draw())
-        
-        self.assertEqual(circuit_to_dag(result).multi_graph.number_of_nodes(), circuit_to_dag(expected).multi_graph.number_of_nodes())
+
+        self.assertEqual(circuit_to_dag(result).multi_graph.number_of_nodes(),
+                         circuit_to_dag(expected).multi_graph.number_of_nodes())
+
 
 if __name__ == '__main__':
     unittest.main()

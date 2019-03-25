@@ -26,6 +26,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 _CUTOFF_PRECISION = 1E-5
 
+
 class CommutationAnalysis(AnalysisPass):
     """An analysis pass to find commutation relations between DAG nodes."""
 
@@ -85,6 +86,7 @@ class CommutationAnalysis(AnalysisPass):
 
                 temp_len = len(self.property_set['commutation_set'][wire_name])
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
+
 
 def _gate_master_def(name, para=None):
 
@@ -231,8 +233,8 @@ def _matrix_commute(node1, node2):
         ret = True
     if _calc_product(node1, node2) is not None:
         ret = np.allclose(_calc_product(node1, node2),
-                             _calc_product(node2, node1),
-                             atol=_CUTOFF_PRECISION)
+                          _calc_product(node2, node1),
+                          atol=_CUTOFF_PRECISION)
     return ret
 
 
