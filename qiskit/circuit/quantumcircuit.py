@@ -442,7 +442,7 @@ class QuantumCircuit:
             if num_qargs >= 2 and op.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
-   
+
                 if op.control:
                     creg = op.control[0]
                     creg_int = reg_map[creg.name]
