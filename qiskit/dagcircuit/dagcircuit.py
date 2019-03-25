@@ -754,21 +754,17 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
+        # TODO this works but is a horrible way to do this
+        slf = copy.deepcopy(self.multi_graph)
+        oth = copy.deepcopy(other.multi_graph)
 
-        if nx.is_isomorphic(self.multi_graph, other.multi_graph):
-            # TODO this works but is a horrible way to do this
-            slf = copy.deepcopy(self.multi_graph)
-            oth = copy.deepcopy(other.multi_graph)
+        for node in slf.nodes:
+            slf.nodes[node]['node'] = node
+        for node in oth.nodes:
+            oth.nodes[node]['node'] = node
 
-            for node in slf.nodes:
-                slf.nodes[node]["node"] = node
-            for node in oth.nodes:
-                oth.nodes[node]["node"] = node
-
-            return nx.is_isomorphic(slf, oth, node_match=lambda x, y:
-                                    x['node'] == y['node'])
-
-        return False
+        return nx.is_isomorphic(slf, oth,
+                                node_match=lambda x, y: DAGNode.semantic_eq(x['node'], y['node']))
 
     def nodes_in_topological_order(self):
         """

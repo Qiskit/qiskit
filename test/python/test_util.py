@@ -9,7 +9,7 @@
 
 from unittest import mock
 
-from qiskit import _util
+from qiskit import util
 from qiskit.test import QiskitTestCase
 
 
@@ -23,5 +23,5 @@ class TestUtil(QiskitTestCase):
                                            platform_mock):
         """Test cpu count fallback to 1 when true value can't be determined"""
         # pylint: disable=unused-argument
-        result = _util.local_hardware_info()
+        result = util.local_hardware_info()
         self.assertEqual(1, result['cpus'])
