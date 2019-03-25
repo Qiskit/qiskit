@@ -32,7 +32,7 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
