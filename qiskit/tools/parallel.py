@@ -48,7 +48,7 @@ import platform
 from multiprocessing import Pool
 from qiskit.exceptions import QiskitError
 from qiskit.util import local_hardware_info
-from qiskit.tools.events._pubsub import Publisher
+from qiskit.tools.events.pubsub import Publisher
 
 # Set parallel flag
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
