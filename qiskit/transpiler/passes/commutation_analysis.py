@@ -24,6 +24,7 @@ import numpy as np
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
+_CUTOFF_PRECISION = 1E-5
 
 class CommutationAnalysis(AnalysisPass):
     """An analysis pass to find commutation relations between DAG nodes."""
@@ -40,8 +41,7 @@ class CommutationAnalysis(AnalysisPass):
         into the property_set.
         """
         # Initiate the commutation set
-        if self.property_set['commutation_set'] is None:
-            self.property_set['commutation_set'] = defaultdict(list)
+        self.property_set['commutation_set'] = defaultdict(list)
 
         # Build a dictionary to keep track of the gates on each qubit
         for wire in dag.wires:
@@ -86,9 +86,15 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(self.property_set['commutation_set'][wire_name])
                 self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
 
+        print(dag.multi_graph.number_of_nodes())
+        for wire in dag.wires:
+            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+            print(self.property_set['commutation_set'][wire_name])
 
 def _gate_master_def(name, para=None):
+
     # pylint: disable=too-many-return-statements
+
     if name == 'h':
         return 1. / np.sqrt(2) * np.array([[1.0, 1.0],
                                            [1.0, -1.0]], dtype=np.complex)
@@ -144,6 +150,7 @@ def _gate_master_def(name, para=None):
             [[1, -np.exp(1j * float(para[1]))],
              [np.exp(1j * float(para[0])), np.exp(1j * (float(para[0]) + float(para[1])))]],
             dtype=np.complex)
+
     if name == 'u3':
         return 1./np.sqrt(2) * np.array(
             [[np.cos(float(para[0]) / 2.),
@@ -228,8 +235,9 @@ def _matrix_commute(node1, node2):
     if set(node1.qargs) & set(node2.qargs) == set():
         ret = True
     if _calc_product(node1, node2) is not None:
-        ret = np.array_equal(_calc_product(node1, node2),
-                             _calc_product(node2, node1))
+        ret = np.allclose(_calc_product(node1, node2),
+                             _calc_product(node2, node1),
+                             atol=_CUTOFF_PRECISION)
     return ret
 
 
