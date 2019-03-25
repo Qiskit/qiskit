@@ -60,5 +60,6 @@ class TestDepthPass(QiskitTestCase):
 
         self.assertEqual(pass_.property_set['depth'], 1)
 
+
 if __name__ == '__main__':
     unittest.main()
