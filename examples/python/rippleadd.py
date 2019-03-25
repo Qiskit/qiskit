@@ -13,7 +13,8 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import  compile, BasicAer
+from qiskit import BasicAer
+from qiskit import execute
 
 ###############################################################
 # Set the backend name and coupling map.
@@ -76,14 +77,12 @@ qc.measure(cout[0], ans[n])
 ###############################################################
 
 # First version: not mapped
-qobj = compile(qc, backend=backend, coupling_map=None, shots=1024)
-job = backend.run(qobj)
+job = execute(qc, backend=backend, coupling_map=None, shots=1024)
 result = job.result()
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
-qobj = compile(qc, backend=backend, coupling_map=coupling_map, shots=1024)
-job = backend.run(qobj)
+job = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024)
 result = job.result()
 print(result.get_counts(qc))
 

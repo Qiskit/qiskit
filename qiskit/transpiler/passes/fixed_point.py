@@ -8,7 +8,7 @@
 """ TODO
 """
 from collections import defaultdict
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class FixedPoint(AnalysisPass):

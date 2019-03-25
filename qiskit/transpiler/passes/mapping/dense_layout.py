@@ -20,7 +20,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.mapper import Layout
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 

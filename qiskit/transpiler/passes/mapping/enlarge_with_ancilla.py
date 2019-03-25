@@ -10,7 +10,7 @@
 This pass extends the DAG with idle physical qubits in the layout
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import QuantumRegister
 

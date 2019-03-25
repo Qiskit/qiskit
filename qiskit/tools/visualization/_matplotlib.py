@@ -21,14 +21,13 @@ import numpy as np
 try:
     from matplotlib import patches
     from matplotlib import pyplot as plt
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
 
 from qiskit.tools.visualization import exceptions
 from qiskit.tools.visualization import _qcstyle
-from qiskit.tools.visualization import _utils
-
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,7 @@ class Anchor:
 
 
 class MatplotlibDrawer:
-    def __init__(self,
+    def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
                  reverse_bits=False):
 
@@ -102,7 +101,9 @@ class MatplotlibDrawer:
         self._scale = DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
-        self._ops = []
+        self._registers(cregs, qregs)
+        self._ops = ops
+
         self._qreg_dict = collections.OrderedDict()
         self._creg_dict = collections.OrderedDict()
         self._cond = {
@@ -130,19 +131,13 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
 
-    def parse_circuit(self, circuit):
-        qregs, cregs, ops = _utils._get_instructions(
-            circuit, reversebits=self.reverse_bits)
-        self._registers(cregs, qregs)
-        self._ops = ops
-
     def _registers(self, creg, qreg):
         self._creg = []
-        for e in creg:
-            self._creg.append(Register(reg=e[0], index=e[1]))
+        for r in creg:
+            self._creg.append(Register(reg=r[0], index=r[1]))
         self._qreg = []
-        for e in qreg:
-            self._qreg.append(Register(reg=e[0], index=e[1]))
+        for r in qreg:
+            self._qreg.append(Register(reg=r[0], index=r[1]))
 
     @property
     def ast(self):
@@ -311,10 +306,8 @@ class MatplotlibDrawer:
                 y_reg.append(qreg['y'])
         x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self._style.fold) * (
-            self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self._style.fold) * (
-            self._cond['n_lines'] + 1) + 0.5
+        box_y0 = min(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) - 0.5
+        box_y1 = max(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) + 0.5
         box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
                                 width=0.6 * WID, height=box_y1 - box_y0,
                                 fc=self._style.bc, ec=None, alpha=0.6,
@@ -365,6 +358,7 @@ class MatplotlibDrawer:
                 label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
             else:
                 label = '${}$'.format(reg.reg.name)
+
             pos = -ii
             self._qreg_dict[ii] = {
                 'y': pos,
@@ -400,6 +394,7 @@ class MatplotlibDrawer:
                         'index': reg.index,
                         'group': reg.reg
                     }
+
                 self._cond['n_lines'] += 1
                 idx += 1
 
@@ -458,7 +453,6 @@ class MatplotlibDrawer:
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _force_next = 'measure barrier'.split()
         _wide_gate = 'u2 u3 cu2 cu3'.split()
         _barriers = {'coord': [], 'group': []}
         next_ops = self._ops.copy()
@@ -482,204 +476,192 @@ class MatplotlibDrawer:
         #
         # draw gates
         #
-        for i, (op, op_next) in enumerate(
-                itertools.zip_longest(self._ops, next_ops)):
-            # wide gate
-            if op['name'] in _wide_gate:
-                _iswide = True
-                gw = 2
-            else:
-                _iswide = False
-                gw = 1
-            # get qreg index
-            if 'qargs' in op.keys():
-                q_idxs = []
-                for qarg in op['qargs']:
-                    for index, reg in self._qreg_dict.items():
-                        if (reg['group'] == qarg[0] and
-                                reg['index'] == qarg[1]):
-                            q_idxs.append(index)
-                            break
-            else:
-                q_idxs = []
-            # get creg index
-            if 'cargs' in op.keys():
-                c_idxs = []
-                for carg in op['cargs']:
-                    for index, reg in self._creg_dict.items():
-                        if (reg['group'] == carg[0] and
-                                reg['index'] == carg[1]):
-                            c_idxs.append(index)
-                            break
-            else:
-                c_idxs = []
-            # find empty space to place gate
-            if not _barriers['group']:
-                this_anc = max([q_anchors[ii].get_index() for ii in q_idxs])
-                while True:
-                    if op['name'] in _force_next or (
-                            'condition' in op.keys() and op['condition']) or \
-                            not self._style.compress:
-                        occupied = self._qreg_dict.keys()
-                    else:
-                        occupied = q_idxs
-                    q_list = [ii for ii in range(min(occupied),
-                                                 max(occupied) + 1)]
-                    locs = [q_anchors[jj].is_locatable(
-                        this_anc, gw) for jj in q_list]
-                    if all(locs):
-                        for ii in q_list:
-                            if op['name'] in [
-                                    'barrier', 'snapshot', 'load', 'save',
-                                    'noise'] and not self.plot_barriers:
-                                q_anchors[ii].set_index(this_anc - 1, gw)
-                            else:
-                                q_anchors[ii].set_index(this_anc, gw)
-                        break
-                    else:
-                        this_anc += 1
-            # qreg coordinate
-            q_xy = [q_anchors[ii].plot_coord(this_anc, gw) for ii in q_idxs]
-            # creg coordinate
-            c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for ii in c_idxs]
-            # bottom and top point of qreg
-            qreg_b = min(q_xy, key=lambda xy: xy[1])
-            qreg_t = max(q_xy, key=lambda xy: xy[1])
+        prev_width = 0
+        for layer_no, layer in enumerate(self._ops):
 
-            if verbose:
-                print(i, op)
+            layer_width = 1
 
-            # rotation parameter
-            if 'op' in op.keys() and hasattr(op['op'], 'param'):
-                param = self.param_parse(op['op'].params, self._style.pimode)
-            else:
-                param = None
-            # conditional gate
-            if 'condition' in op.keys() and op['condition']:
-                c_xy = [c_anchors[ii].plot_coord(this_anc, gw) for
-                        ii in self._creg_dict]
-                mask = 0
-                for index, cbit in enumerate(self._creg):
-                    if cbit.reg == op['condition'][0]:
-                        mask |= (1 << index)
-                val = op['condition'][1]
-                # cbit list to consider
-                fmt_c = '{{:0{}b}}'.format(len(c_xy))
-                cmask = list(fmt_c.format(mask))[::-1]
-                # value
-                fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
-                vlist = list(fmt_v.format(val))[::-1]
-                # plot conditionals
-                v_ind = 0
-                xy_plot = []
-                for xy, m in zip(c_xy, cmask):
-                    if m == '1':
-                        if xy not in xy_plot:
-                            if vlist[v_ind] == '1' or self._style.bundle:
-                                self._conds(xy, istrue=True)
-                            else:
-                                self._conds(xy, istrue=False)
-                            xy_plot.append(xy)
-                        v_ind += 1
-                creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                self._subtext(creg_b, hex(val))
-                self._line(qreg_t, creg_b, lc=self._style.cc,
-                           ls=self._style.cline)
-            #
-            # draw special gates
-            #
-            if op['name'] == 'measure':
-                vv = self._creg_dict[c_idxs[0]]['index']
-                self._measure(q_xy[0], c_xy[0], vv)
-            elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
-                                'noise']:
+            for op in layer:
+                if op['name'] in _wide_gate:
+                    layer_width = 2
 
-                # Go over all indices to add barriers across
-                for index, qbit in enumerate(q_idxs):
-                    q_group = self._qreg_dict[qbit]['group']
+            for op in layer:
 
-                    if q_group not in _barriers['group']:
-                        _barriers['group'].append(q_group)
-                    _barriers['coord'].append(q_xy[index])
-
-                if op_next and op_next['name'] == 'barrier':
-                    continue
+                _iswide = op['name'] in _wide_gate
+                # get qreg index
+                if 'qargs' in op.keys():
+                    q_idxs = []
+                    for qarg in op['qargs']:
+                        for index, reg in self._qreg_dict.items():
+                            if (reg['group'] == qarg[0] and
+                                    reg['index'] == qarg[1]):
+                                q_idxs.append(index)
+                                break
                 else:
+                    q_idxs = []
+                # get creg index
+                if 'cargs' in op.keys():
+                    c_idxs = []
+                    for carg in op['cargs']:
+                        for index, reg in self._creg_dict.items():
+                            if (reg['group'] == carg[0] and
+                                    reg['index'] == carg[1]):
+                                c_idxs.append(index)
+                                break
+                else:
+                    c_idxs = []
+
+                this_anc = layer_no + prev_width
+
+                occupied = q_idxs
+                q_list = [ii for ii in range(min(occupied),
+                                             max(occupied) + 1)]
+                locs = [q_anchors[jj].is_locatable(
+                    this_anc, layer_width) for jj in q_list]
+                if all(locs):
+                    for ii in q_list:
+                        if op['name'] in ['barrier', 'snapshot', 'load', 'save', 'noise'] \
+                                and not self.plot_barriers:
+                            q_anchors[ii].set_index(this_anc - 1, layer_width)
+                        else:
+                            q_anchors[ii].set_index(this_anc, layer_width)
+
+                # qreg coordinate
+                q_xy = [q_anchors[ii].plot_coord(this_anc, layer_width) for ii in q_idxs]
+                # creg coordinate
+                c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for ii in c_idxs]
+                # bottom and top point of qreg
+                qreg_b = min(q_xy, key=lambda xy: xy[1])
+                qreg_t = max(q_xy, key=lambda xy: xy[1])
+
+                if verbose:
+                    print(op)
+
+                if 'op' in op.keys() and hasattr(op['op'], 'params'):
+                    param = self.param_parse(op['op'].params, self._style.pimode)
+                else:
+                    param = None
+                # conditional gate
+                if 'condition' in op.keys() and op['condition']:
+                    c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for
+                            ii in self._creg_dict]
+                    mask = 0
+                    for index, cbit in enumerate(self._creg):
+                        if cbit.reg == op['condition'][0]:
+                            mask |= (1 << index)
+                    val = op['condition'][1]
+                    # cbit list to consider
+                    fmt_c = '{{:0{}b}}'.format(len(c_xy))
+                    cmask = list(fmt_c.format(mask))[::-1]
+                    # value
+                    fmt_v = '{{:0{}b}}'.format(cmask.count('1'))
+                    vlist = list(fmt_v.format(val))[::-1]
+                    # plot conditionals
+                    v_ind = 0
+                    xy_plot = []
+                    for xy, m in zip(c_xy, cmask):
+                        if m == '1':
+                            if xy not in xy_plot:
+                                if vlist[v_ind] == '1' or self._style.bundle:
+                                    self._conds(xy, istrue=True)
+                                else:
+                                    self._conds(xy, istrue=False)
+                                xy_plot.append(xy)
+                            v_ind += 1
+                    creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
+                    self._subtext(creg_b, hex(val))
+                    self._line(qreg_t, creg_b, lc=self._style.cc,
+                               ls=self._style.cline)
+                #
+                # draw special gates
+                #
+                if op['name'] == 'measure':
+                    vv = self._creg_dict[c_idxs[0]]['index']
+                    self._measure(q_xy[0], c_xy[0], vv)
+                elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
+                                    'noise']:
+                    _barriers = {'coord': [], 'group': []}
+                    for index, qbit in enumerate(q_idxs):
+                        q_group = self._qreg_dict[qbit]['group']
+
+                        if q_group not in _barriers['group']:
+                            _barriers['group'].append(q_group)
+                        _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
-                    _barriers['group'].clear()
-                    _barriers['coord'].clear()
-            #
-            # draw single qubit gates
-            #
-            elif len(q_xy) == 1:
-                disp = op['name']
-                if param:
-                    self._gate(q_xy[0], wide=_iswide, text=disp,
-                               subtext='{}'.format(param))
-                else:
-                    self._gate(q_xy[0], wide=_iswide, text=disp)
-            #
-            # draw multi-qubit gates (n=2)
-            #
-            elif len(q_xy) == 2:
-                # cx
-                if op['name'] in ['cx']:
-                    self._ctrl_qubit(q_xy[0])
-                    self._tgt_qubit(q_xy[1])
-                # cz for latexmode
-                elif op['name'] == 'cz':
-                    if self._style.latexmode:
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
+                #
+                # draw single qubit gates
+                #
+                elif len(q_xy) == 1:
+                    disp = op['name']
+                    if param:
+                        self._gate(q_xy[0], wide=_iswide, text=disp,
+                                   subtext='{}'.format(param))
                     else:
+                        self._gate(q_xy[0], wide=_iswide, text=disp)
+                #
+                # draw multi-qubit gates (n=2)
+                #
+                elif len(q_xy) == 2:
+                    # cx
+                    if op['name'] in ['cx']:
+                        self._ctrl_qubit(q_xy[0])
+                        self._tgt_qubit(q_xy[1])
+                    # cz for latexmode
+                    elif op['name'] == 'cz':
+                        if self._style.latexmode:
+                            self._ctrl_qubit(q_xy[0])
+                            self._ctrl_qubit(q_xy[1])
+                        else:
+                            disp = op['name'].replace('c', '')
+                            self._ctrl_qubit(q_xy[0])
+                            self._gate(q_xy[1], wide=_iswide, text=disp)
+                    # control gate
+                    elif op['name'] in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op['name'].replace('c', '')
                         self._ctrl_qubit(q_xy[0])
-                        self._gate(q_xy[1], wide=_iswide, text=disp)
-                # control gate
-                elif op['name'] in ['cy', 'ch', 'cu3', 'crz']:
-                    disp = op['name'].replace('c', '')
-                    self._ctrl_qubit(q_xy[0])
-                    if param:
-                        self._gate(q_xy[1], wide=_iswide, text=disp,
-                                   subtext='{}'.format(param))
-                    else:
-                        self._gate(q_xy[1], wide=_iswide, text=disp)
-                # cu1 for latexmode
-                elif op['name'] in ['cu1']:
-                    disp = op['name'].replace('c', '')
-                    self._ctrl_qubit(q_xy[0])
-                    if self._style.latexmode:
+                        if param:
+                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                                       subtext='{}'.format(param))
+                        else:
+                            self._gate(q_xy[1], wide=_iswide, text=disp)
+                    # cu1 for latexmode
+                    elif op['name'] in ['cu1']:
+                        disp = op['name'].replace('c', '')
+                        self._ctrl_qubit(q_xy[0])
+                        if self._style.latexmode:
+                            self._ctrl_qubit(q_xy[1])
+                            self._subtext(qreg_b, param)
+                        else:
+                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                                       subtext='{}'.format(param))
+                    # swap gate
+                    elif op['name'] == 'swap':
+                        self._swap(q_xy[0])
+                        self._swap(q_xy[1])
+                    # add qubit-qubit wiring
+                    self._line(qreg_b, qreg_t)
+                #
+                # draw multi-qubit gates (n=3)
+                #
+                elif len(q_xy) == 3:
+                    # cswap gate
+                    if op['name'] == 'cswap':
+                        self._ctrl_qubit(q_xy[0])
+                        self._swap(q_xy[1])
+                        self._swap(q_xy[2])
+                    # ccx gate
+                    elif op['name'] == 'ccx':
+                        self._ctrl_qubit(q_xy[0])
                         self._ctrl_qubit(q_xy[1])
-                        self._subtext(qreg_b, param)
-                    else:
-                        self._gate(q_xy[1], wide=_iswide, text=disp,
-                                   subtext='{}'.format(param))
-                # swap gate
-                elif op['name'] == 'swap':
-                    self._swap(q_xy[0])
-                    self._swap(q_xy[1])
-                # add qubit-qubit wiring
-                self._line(qreg_b, qreg_t)
-            #
-            # draw multi-qubit gates (n=3)
-            #
-            elif len(q_xy) == 3:
-                # cswap gate
-                if op['name'] == 'cswap':
-                    self._ctrl_qubit(q_xy[0])
-                    self._swap(q_xy[1])
-                    self._swap(q_xy[2])
-                # ccx gate
-                elif op['name'] == 'ccx':
-                    self._ctrl_qubit(q_xy[0])
-                    self._ctrl_qubit(q_xy[1])
-                    self._tgt_qubit(q_xy[2])
-                # add qubit-qubit wiring
-                self._line(qreg_b, qreg_t)
-            else:
-                logger.critical('Invalid gate %s', op)
-                raise exceptions.VisualizationError('invalid gate {}'.format(op))
+                        self._tgt_qubit(q_xy[2])
+                    # add qubit-qubit wiring
+                    self._line(qreg_b, qreg_t)
+                else:
+                    logger.critical('Invalid gate %s', op)
+                    raise exceptions.VisualizationError('invalid gate {}'.format(op))
+
+            prev_width = layer_width - 1
         #
         # adjust window size and draw horizontal lines
         #
@@ -706,8 +688,7 @@ class MatplotlibDrawer:
             for ii in range(max_anc):
                 if self._style.fold > 0:
                     x_coord = ii % self._style.fold + 1
-                    y_coord = - (ii // self._style.fold) * (
-                        self._cond['n_lines'] + 1) + 0.7
+                    y_coord = - (ii // self._style.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
                     x_coord = ii + 1
                     y_coord = 0.7

@@ -13,7 +13,7 @@ a cx is not in the coupling map possibilities, it inserts one or more swaps in f
 compatible.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
@@ -75,8 +75,8 @@ class BasicSwap(TransformationPass):
             subdag = layer['graph']
 
             for gate in subdag.twoQ_nodes():
-                physical_q0 = current_layout[gate['qargs'][0]]
-                physical_q1 = current_layout[gate['qargs'][1]]
+                physical_q0 = current_layout[gate.qargs[0]]
+                physical_q1 = current_layout[gate.qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
