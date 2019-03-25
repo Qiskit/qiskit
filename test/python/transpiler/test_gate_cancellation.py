@@ -90,9 +90,6 @@ class TestGateCancellation(QiskitTestCase):
         expected.h(qr[2])
         expected.cx(qr[2], qr[1])
 
-        print(result.draw())
-        print(expected.draw())
-
         self.assertEqual(expected, result)
 
     def test_commutative_circuit2(self):
