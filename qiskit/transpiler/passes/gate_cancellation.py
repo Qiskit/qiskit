@@ -22,6 +22,7 @@ from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.transpiler._basepasses import TransformationPass
 from qiskit.transpiler.passes import CommutationAnalysis
 
+
 class GateCancellation(TransformationPass):
 
     """

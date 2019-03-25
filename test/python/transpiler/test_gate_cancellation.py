@@ -20,7 +20,6 @@ from qiskit.transpiler.passes import CommutationAnalysis, GateCancellation
 from qiskit.converters import circuit_to_dag
 
 
-
 class TestGateCancellation(QiskitTestCase):
 
     """Test the GateCancellation pass."""
