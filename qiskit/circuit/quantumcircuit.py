@@ -8,7 +8,6 @@
 """
 Quantum circuit object.
 """
-from collections import OrderedDict
 from copy import deepcopy
 import itertools
 import sys
