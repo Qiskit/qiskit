@@ -68,9 +68,6 @@ class TestGateCancellation(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.u1(2.0, qr[0])
 
-        print(result.draw())
-        print(expected.draw())
-
         self.assertEqual(expected, result)
 
     def test_all_gates(self):
@@ -170,9 +167,6 @@ class TestGateCancellation(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.u1(0.3, qr[2])
         expected.cx(qr[2], qr[1])
-
-        print(result.draw())
-        print(expected.draw())
 
         self.assertEqual(circuit_to_dag(result).multi_graph.number_of_nodes(),
                          circuit_to_dag(expected).multi_graph.number_of_nodes())
