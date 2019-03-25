@@ -43,7 +43,7 @@
 import time
 import datetime
 import sys
-from qiskit.tools.events._pubsub import Subscriber
+from qiskit.tools.events.pubsub import Subscriber
 
 
 class BaseProgressBar(Subscriber):
