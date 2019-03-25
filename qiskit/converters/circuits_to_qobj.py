@@ -43,7 +43,6 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
                   DeprecationWarning)
 
     qobj_header = qobj_header or QobjHeader()
-    run_config = run_config or RunConfig()
 
     if backend_name:
         warnings.warn('backend_name is not required anymore', DeprecationWarning)
