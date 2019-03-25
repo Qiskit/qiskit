@@ -74,13 +74,15 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         our_descendants = barrier_layer.descendants(new_barrier_node)
         our_qubits = final_qubits
 
-        existing_barriers = sorted(barrier_layer.named_nodes('barrier'))
+        existing_barriers = barrier_layer.named_nodes('barrier')
         # remove element from the list
         for i, node in enumerate(existing_barriers):
-            if node == new_barrier_node:
+            # TODO tidy this up when DAGNode equality is sorted
+            if node._node_id == new_barrier_node._node_id:
                 del existing_barriers[i]
                 break
 
+        barrier_to_add = None
         for candidate_barrier in existing_barriers:
             their_ancestors = barrier_layer.ancestors(candidate_barrier)
             their_descendants = barrier_layer.descendants(candidate_barrier)
@@ -92,17 +94,19 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     and our_ancestors.isdisjoint(their_descendants)
                     and our_descendants.isdisjoint(their_ancestors)
             ):
-                merge_barrier = Barrier(qubits=(our_qubits | their_qubits))
-                merge_barrier_node = barrier_layer.apply_operation_front(merge_barrier)
+                barrier_to_add = Barrier(qubits=(our_qubits | their_qubits))
 
                 our_ancestors = our_ancestors | their_ancestors
                 our_descendants = our_descendants | their_descendants
 
                 barrier_layer._remove_op_node(candidate_barrier)
-                barrier_layer._remove_op_node(new_barrier_node)
 
-                new_barrier_node = merge_barrier_node
+                if new_barrier_node:
+                    barrier_layer._remove_op_node(new_barrier_node)
+                    new_barrier_node = None
 
+        if barrier_to_add:
+            barrier_layer.apply_operation_front(barrier_to_add)
         dag.extend_back(barrier_layer)
 
         return dag
