@@ -9,7 +9,7 @@
 """Test for the DAGCircuit object"""
 
 import unittest
-import numpy as np
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister
