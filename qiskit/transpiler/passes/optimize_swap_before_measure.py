@@ -26,8 +26,8 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         for swap in swaps:
             final_successor = []
             for successor in dag.successors(swap):
-                final_successor.append(
-                    successor.type == 'out' or successor.type == 'op' and successor.op.name == 'measure')
+                final_successor.append(successor.type == 'out' or (
+                            successor.type == 'op' and successor.op.name == 'measure'))
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
                 swap_qargs = swap.qargs
