@@ -7,12 +7,12 @@
 
 """Module for the Qobj structure."""
 
-from .qobj import Qobj, QASMQobj, PulseQobj
+from .qobj import Qobj, QasmQobj, PulseQobj
 from .models import (QobjConfig, QobjExperiment, QobjInstruction, QobjHeader,
                      QobjExperimentConfig, QobjExperimentHeader,
                      QobjConditional, QobjPulseLibrary, QobjMeasurementOption,
-                     QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader,
-                     QASMQobjExperimentHeader, QASMQobjExperimentConfig,
+                     QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction, QasmQobjHeader,
+                     QasmQobjExperimentHeader, QasmQobjExperimentConfig,
                      PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction,
                      PulseQobjHeader, PulseQobjExperimentHeader, PulseQobjExperimentConfig)
 from .exceptions import QobjValidationError

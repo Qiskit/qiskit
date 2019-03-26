@@ -41,36 +41,36 @@ class QobjPulseLibrarySchema(BaseSchema):
     samples = List(Complex(), required=True, validate=Length(min=1))
 
 
-class BaseQobjInstructionSchema(BaseSchema):
+class QobjInstructionSchema(BaseSchema):
     """Base Schema for QobjInstruction."""
 
     # Required properties
     name = String(required=True)
 
 
-class BaseQobjExperimentHeaderSchema(BaseSchema):
+class QobjExperimentHeaderSchema(BaseSchema):
     """Base Schema for QobjExperimentHeader."""
     pass
 
 
-class BaseQobjExperimentConfigSchema(BaseSchema):
+class QobjExperimentConfigSchema(BaseSchema):
     """Base Schema for QobjExperimentConfig."""
     pass
 
 
-class BaseQobjExperimentSchema(BaseSchema):
+class QobjExperimentSchema(BaseSchema):
     """Base Schema for QobjExperiment."""
 
     # Required properties.
-    instructions = Nested(BaseQobjInstructionSchema, required=True, many=True,
+    instructions = Nested(QobjInstructionSchema, required=True, many=True,
                           validate=Length(min=1))
 
     # Optional properties.
-    header = Nested(BaseQobjExperimentHeaderSchema)
-    config = Nested(BaseQobjExperimentConfigSchema)
+    header = Nested(QobjExperimentHeaderSchema)
+    config = Nested(QobjExperimentConfigSchema)
 
 
-class BaseQobjConfigSchema(BaseSchema):
+class QobjConfigSchema(BaseSchema):
     """Base Schema for QobjConfig."""
 
     # Optional properties.
@@ -80,7 +80,7 @@ class BaseQobjConfigSchema(BaseSchema):
     shots = Integer(validate=Range(min=1))
 
 
-class BaseQobjHeaderSchema(BaseSchema):
+class QobjHeaderSchema(BaseSchema):
     """Base Schema for QobjHeader."""
 
     # Optional properties.
@@ -88,8 +88,8 @@ class BaseQobjHeaderSchema(BaseSchema):
     backend_version = String()
 
 
-class QASMQobjInstructionSchema(BaseQobjInstructionSchema):
-    """Schema for QASMQobjInstruction."""
+class QasmQobjInstructionSchema(QobjInstructionSchema):
+    """Schema for QasmQobjInstruction."""
 
     # Optional properties.
     qubits = List(Integer(validate=Range(min=0)),
@@ -100,44 +100,44 @@ class QASMQobjInstructionSchema(BaseQobjInstructionSchema):
     conditional = Nested(QobjConditionalSchema)
 
 
-class QASMQobjExperimentHeaderSchema(BaseQobjExperimentHeaderSchema):
-    """Schema for QASMQobjExperimentHeader."""
+class QasmQobjExperimentHeaderSchema(QobjExperimentHeaderSchema):
+    """Schema for QasmQobjExperimentHeader."""
     pass
 
 
-class QASMQobjExperimentConfigSchema(BaseQobjExperimentConfigSchema):
-    """Schema for QASMQobjExperimentConfig."""
+class QasmQobjExperimentConfigSchema(QobjExperimentConfigSchema):
+    """Schema for QasmQobjExperimentConfig."""
 
     # Optional properties.
     memory_slots = Integer(validate=Range(min=0))
     n_qubits = Integer(validate=Range(min=1))
 
 
-class QASMQobjExperimentSchema(BaseQobjExperimentSchema):
-    """Schema for QASMQobjExperiment."""
+class QasmQobjExperimentSchema(QobjExperimentSchema):
+    """Schema for QasmQobjExperiment."""
 
     # Required properties.
-    instructions = Nested(QASMQobjInstructionSchema, required=True, many=True,
+    instructions = Nested(QasmQobjInstructionSchema, required=True, many=True,
                           validate=Length(min=1))
 
     # Optional properties.
-    header = Nested(QASMQobjExperimentHeaderSchema)
-    config = Nested(QASMQobjExperimentConfigSchema)
+    header = Nested(QasmQobjExperimentHeaderSchema)
+    config = Nested(QasmQobjExperimentConfigSchema)
 
 
-class QASMQobjConfigSchema(BaseQobjConfigSchema):
-    """Schema for QASMQobjConfig."""
+class QasmQobjConfigSchema(QobjConfigSchema):
+    """Schema for QasmQobjConfig."""
 
     # Optional properties.
     n_qubits = Integer(validate=Range(min=1))
 
 
-class QASMQobjHeaderSchema(BaseQobjHeaderSchema):
-    """Schema for QASMQobjHeader."""
+class QasmQobjHeaderSchema(QobjHeaderSchema):
+    """Schema for QasmQobjHeader."""
     pass
 
 
-class PulseQobjInstructionSchema(BaseQobjInstructionSchema):
+class PulseQobjInstructionSchema(QobjInstructionSchema):
     """Schema for PulseQobjInstruction."""
     # pylint: disable=invalid-name
 
@@ -159,12 +159,12 @@ class PulseQobjInstructionSchema(BaseQobjInstructionSchema):
     type = String()
 
 
-class PulseQobjExperimentHeaderSchema(BaseQobjExperimentHeaderSchema):
+class PulseQobjExperimentHeaderSchema(QobjExperimentHeaderSchema):
     """Schema for PulseQobjExperimentHeader."""
     pass
 
 
-class PulseQobjExperimentConfigSchema(BaseQobjExperimentConfigSchema):
+class PulseQobjExperimentConfigSchema(QobjExperimentConfigSchema):
     """Schema for PulseQobjExperimentConfig."""
 
     # Optional properties.
@@ -172,7 +172,7 @@ class PulseQobjExperimentConfigSchema(BaseQobjExperimentConfigSchema):
     meas_lo_freq = List(Number())
 
 
-class PulseQobjExperimentSchema(BaseQobjExperimentSchema):
+class PulseQobjExperimentSchema(QobjExperimentSchema):
     """Schema for PulseQobjExperiment."""
 
     # Required properties.
@@ -184,7 +184,7 @@ class PulseQobjExperimentSchema(BaseQobjExperimentSchema):
     config = Nested(PulseQobjExperimentConfigSchema)
 
 
-class PulseQobjConfigSchema(BaseQobjConfigSchema):
+class PulseQobjConfigSchema(QobjConfigSchema):
     """Schema for PulseQobjConfig."""
 
     # Required properties.
@@ -199,7 +199,7 @@ class PulseQobjConfigSchema(BaseQobjConfigSchema):
                                                  MeasReturnType.SINGLE)))
 
 
-class PulseQobjHeaderSchema(BaseQobjHeaderSchema):
+class PulseQobjHeaderSchema(QobjHeaderSchema):
     """Schema for PulseQobjHeader."""
     pass
 
@@ -262,12 +262,12 @@ class QobjPulseLibrary(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(BaseQobjInstructionSchema)
+@bind_schema(QobjInstructionSchema)
 class QobjInstruction(BaseModel):
     """Model for QobjInstruction.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BaseQobjInstructionSchema``.
+    full description of the model, please check ``QobjInstructionSchema``.
 
     Attributes:
         name (str): name of the instruction
@@ -278,32 +278,32 @@ class QobjInstruction(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(BaseQobjExperimentHeaderSchema)
+@bind_schema(QobjExperimentHeaderSchema)
 class QobjExperimentHeader(BaseModel):
     """Model for QobjExperimentHeader.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BaseQobjExperimentHeaderSchema``.
+    full description of the model, please check ``QobjExperimentHeaderSchema``.
     """
     pass
 
 
-@bind_schema(BaseQobjExperimentConfigSchema)
+@bind_schema(QobjExperimentConfigSchema)
 class QobjExperimentConfig(BaseModel):
     """Model for QobjExperimentConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BaseQobjExperimentConfigSchema``.
+    full description of the model, please check ``QobjExperimentConfigSchema``.
     """
     pass
 
 
-@bind_schema(BaseQobjExperimentSchema)
+@bind_schema(QobjExperimentSchema)
 class QobjExperiment(BaseModel):
     """Model for QobjExperiment.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BaseQobjExperimentSchema``.
+    full description of the model, please check ``QobjExperimentSchema``.
 
     Attributes:
         instructions (list[QobjInstruction]): list of instructions.
@@ -314,32 +314,32 @@ class QobjExperiment(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(BaseQobjConfigSchema)
+@bind_schema(QobjConfigSchema)
 class QobjConfig(BaseModel):
     """Model for QobjConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BaseQobjConfigSchema``.
+    full description of the model, please check ``QobjConfigSchema``.
     """
     pass
 
 
-@bind_schema(BaseQobjHeaderSchema)
+@bind_schema(QobjHeaderSchema)
 class QobjHeader(BaseModel):
     """Model for QobjHeader.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BaseQASMQobjHeaderSchema``.
+    full description of the model, please check ``QasmQobjHeaderSchema``.
     """
     pass
 
 
-@bind_schema(QASMQobjInstructionSchema)
-class QASMQobjInstruction(QobjInstruction):
-    """Model for QASMQobjInstruction inherit from QobjInstruction.
+@bind_schema(QasmQobjInstructionSchema)
+class QasmQobjInstruction(QobjInstruction):
+    """Model for QasmQobjInstruction inherit from QobjInstruction.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjInstructionSchema``.
+    full description of the model, please check ``QasmQobjInstructionSchema``.
 
     Attributes:
         name (str): name of the instruction
@@ -349,57 +349,57 @@ class QASMQobjInstruction(QobjInstruction):
                          **kwargs)
 
 
-@bind_schema(QASMQobjExperimentHeaderSchema)
-class QASMQobjExperimentHeader(QobjExperimentHeader):
-    """Model for QASMQobjExperimentHeader inherit from QobjExperimentHeader.
+@bind_schema(QasmQobjExperimentHeaderSchema)
+class QasmQobjExperimentHeader(QobjExperimentHeader):
+    """Model for QasmQobjExperimentHeader inherit from QobjExperimentHeader.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjExperimentHeaderSchema``.
+    full description of the model, please check ``QasmQobjExperimentHeaderSchema``.
     """
     pass
 
 
-@bind_schema(QASMQobjExperimentConfigSchema)
-class QASMQobjExperimentConfig(QobjExperimentConfig):
-    """Model for QASMQobjExperimentConfig inherit from QobjExperimentConfig.
+@bind_schema(QasmQobjExperimentConfigSchema)
+class QasmQobjExperimentConfig(QobjExperimentConfig):
+    """Model for QasmQobjExperimentConfig inherit from QobjExperimentConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjExperimentConfigSchema``.
+    full description of the model, please check ``QasmQobjExperimentConfigSchema``.
     """
     pass
 
 
-@bind_schema(QASMQobjExperimentSchema)
-class QASMQobjExperiment(QobjExperiment):
-    """Model for QASMQobjExperiment inherit from QobjExperiment.
+@bind_schema(QasmQobjExperimentSchema)
+class QasmQobjExperiment(QobjExperiment):
+    """Model for QasmQobjExperiment inherit from QobjExperiment.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjExperimentSchema``.
+    full description of the model, please check ``QasmQobjExperimentSchema``.
 
     Attributes:
-        instructions (list[QASMQobjInstruction]): list of instructions.
+        instructions (list[QasmQobjInstruction]): list of instructions.
     """
     def __init__(self, instructions, **kwargs):
         super().__init__(instructions=instructions,
                          **kwargs)
 
 
-@bind_schema(QASMQobjConfigSchema)
-class QASMQobjConfig(QobjConfig):
-    """Model for QASMQobjConfig inherit from QobjConfig.
+@bind_schema(QasmQobjConfigSchema)
+class QasmQobjConfig(QobjConfig):
+    """Model for QasmQobjConfig inherit from QobjConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjConfigSchema``.
+    full description of the model, please check ``QasmQobjConfigSchema``.
     """
     pass
 
 
-@bind_schema(QASMQobjHeaderSchema)
-class QASMQobjHeader(QobjHeader):
-    """Model for QASMQobjHeader inherit from QobjHeader.
+@bind_schema(QasmQobjHeaderSchema)
+class QasmQobjHeader(QobjHeader):
+    """Model for QasmQobjHeader inherit from QobjHeader.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjHeaderSchema``.
+    full description of the model, please check ``QasmQobjHeaderSchema``.
     """
     pass
 

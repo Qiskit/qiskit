@@ -12,8 +12,8 @@ from marshmallow.validate import Equal, OneOf
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
 
-from .models import (BaseQobjConfigSchema, BaseQobjExperimentSchema, BaseQobjHeaderSchema,
-                     QASMQobjConfigSchema, QASMQobjExperimentSchema, QASMQobjHeaderSchema,
+from .models import (QobjConfigSchema, QobjExperimentSchema, QobjHeaderSchema,
+                     QasmQobjConfigSchema, QasmQobjExperimentSchema, QasmQobjHeaderSchema,
                      PulseQobjConfigSchema, PulseQobjExperimentSchema, PulseQobjHeaderSchema)
 from .utils import QobjType
 
@@ -35,19 +35,19 @@ class QobjSchema(BaseSchema):
     schema_version = String(required=True, missing=QOBJ_VERSION)
 
     # Required properties depend on Qobj type.
-    config = Nested(BaseQobjConfigSchema, required=True)
-    experiments = Nested(BaseQobjExperimentSchema, required=True, many=True)
-    header = Nested(BaseQobjHeaderSchema, required=True)
+    config = Nested(QobjConfigSchema, required=True)
+    experiments = Nested(QobjExperimentSchema, required=True, many=True)
+    header = Nested(QobjHeaderSchema, required=True)
     type = String(required=True, validate=OneOf(choices=(QobjType.QASM, QobjType.PULSE)))
 
 
-class QASMQobjSchema(QobjSchema):
-    """Schema for QASMQobj."""
+class QasmQobjSchema(QobjSchema):
+    """Schema for QasmQobj."""
 
     # Required properties.
-    config = Nested(QASMQobjConfigSchema, required=True)
-    experiments = Nested(QASMQobjExperimentSchema, required=True, many=True)
-    header = Nested(QASMQobjHeaderSchema, required=True)
+    config = Nested(QasmQobjConfigSchema, required=True)
+    experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
+    header = Nested(QasmQobjHeaderSchema, required=True)
 
     type = String(required=True, validate=Equal(QobjType.QASM),
                   missing=QobjType.QASM)
@@ -91,12 +91,12 @@ class Qobj(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(QASMQobjSchema)
-class QASMQobj(Qobj):
-    """Model for QASMQobj inherit from Qobj.
+@bind_schema(QasmQobjSchema)
+class QasmQobj(Qobj):
+    """Model for QasmQobj inherit from Qobj.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjSchema``.
+    full description of the model, please check ``QasmQobjSchema``.
 
     Attributes:
         qobj_id (str): Qobj identifier.
