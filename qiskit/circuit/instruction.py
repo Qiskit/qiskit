@@ -30,8 +30,6 @@ import numpy
 
 from qiskit.qasm._node import _node
 from qiskit.exceptions import QiskitError
-from .quantumregister import QuantumRegister
-from .classicalregister import ClassicalRegister
 
 
 class Instruction:
@@ -48,10 +46,6 @@ class Instruction:
         Raises:
             QiskitError: when the register is not in the correct format.
         """
-        if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
-            raise QiskitError("qarg not (QuantumRegister, int) tuple")
-        if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
-            raise QiskitError("carg not (ClassicalRegister, int) tuple")
         self.name = name
         self.params = []  # a list of gate params stored
         for single_param in params:
@@ -96,8 +90,9 @@ class Instruction:
         """
         res = False
         if type(self) is type(other) and \
-                self.name == other.name and \
-                self.params == other.params:
+                self.name == other.name and (self.params == other.params or
+                                             [float(param) for param in other.params] == [
+                                                 float(param) for param in self.params]):
             res = True
         return res
 
@@ -109,7 +104,8 @@ class Instruction:
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""
         self.check_circuit()
-        self.circuit._check_creg(classical)
+        if not self.circuit.has_register(classical):
+            raise QiskitError("the control creg is not in the circuit")
         if val < 0:
             raise QiskitError("control value should be non-negative")
         self.control = (classical, val)

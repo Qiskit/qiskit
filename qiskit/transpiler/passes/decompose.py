@@ -7,7 +7,7 @@
 
 """Pass for decompose a gate in a circuit."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class Decompose(TransformationPass):
@@ -32,11 +32,9 @@ class Decompose(TransformationPass):
             DAGCircuit: output dag where gate was expanded.
         """
         # Walk through the DAG and expand each non-basis node
+
         for node in dag.op_nodes(self.gate):
-            current_node = dag.multi_graph.node[node]
-
-            decomposition_rules = current_node["op"].decompositions()
-
+            decomposition_rules = node.op.decompositions()
             # TODO: allow choosing other possible decompositions
             decomposition_dag = decomposition_rules[0]
 

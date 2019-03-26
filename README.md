@@ -4,7 +4,7 @@
 
 **Qiskit** is an open-source framework for working with Noisy Intermediate-Scale Quantum (NISQ) computers at the level of pulses, circuits, and algorithms.
 
-Qiskit is made up elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
+Qiskit is made up of elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
 
 ## Installation
 
@@ -23,7 +23,7 @@ To install from source, follow the instructions in the [contribution guidelines]
 Now that Qiskit is installed, it's time to begin working with Terra.
 
 We are ready to try out a quantum circuit example, which is simulated locally using 
-the Qiskt Aer element. This is a simple example that makes an entangled state.
+the Qiskit BasicAer element. This is a simple example that makes an entangled state.
 
 ```
 $ python
@@ -37,7 +37,7 @@ $ python
 >>> qc.h(q[0])
 >>> qc.cx(q[0], q[1])
 >>> qc.measure(q, c)
->>> backend_sim = Aer.get_backend('qasm_simulator')
+>>> backend_sim = BasicAer.get_backend('qasm_simulator')
 >>> result = execute(qc, backend_sim).result()
 >>> print(result.get_counts(qc))
 ```
@@ -83,7 +83,7 @@ in your program simply via:
 >>> IBMQ.load_accounts()
 ```
 
-Those who do not want to save there credentials to disk should use instead:
+Those who do not want to save their credentials to disk should use instead:
 
 ```python
 >>> from qiskit import IBMQ
@@ -97,7 +97,7 @@ the levels.
 ## Contribution Guidelines
 
 If you'd like to contribute to Qiskit Terra, please take a look at our
-[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expected to uphold to this code.
+[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expected to uphold this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
 [join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk)

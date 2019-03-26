@@ -7,9 +7,7 @@
 
 """Helper function for converting qobj to a list of circuits"""
 
-from qiskit.circuit import classicalregister as cr
-from qiskit.circuit import quantumcircuit as qc
-from qiskit.circuit import quantumregister as qr
+from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 
 
 # TODO: This is broken for conditionals. Will fix after circuits_2_qobj pr
@@ -25,15 +23,13 @@ def qobj_to_circuits(qobj):
     if qobj.experiments:
         circuits = []
         for x in qobj.experiments:
-            quantum_registers = [
-                qr.QuantumRegister(
-                    i[1], name=i[0]) for i in x.header.qreg_sizes]
-            classical_registers = [
-                cr.ClassicalRegister(
-                    i[1], name=i[0]) for i in x.header.creg_sizes]
-            circuit = qc.QuantumCircuit(*quantum_registers,
-                                        *classical_registers,
-                                        name=x.header.name)
+            quantum_registers = [QuantumRegister(i[1], name=i[0])
+                                 for i in x.header.qreg_sizes]
+            classical_registers = [ClassicalRegister(i[1], name=i[0])
+                                   for i in x.header.creg_sizes]
+            circuit = QuantumCircuit(*quantum_registers,
+                                     *classical_registers,
+                                     name=x.header.name)
             qreg_dict = {}
             creg_dict = {}
             for reg in quantum_registers:

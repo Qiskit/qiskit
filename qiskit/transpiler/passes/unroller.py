@@ -7,7 +7,7 @@
 
 """Pass for unrolling a circuit to a given basis."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 
 
@@ -41,19 +41,19 @@ class Unroller(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.gate_nodes():
-            current_node = dag.multi_graph.node[node]
-            if current_node["op"].name in self.basis:  # If already a base, ignore.
+            if node.name in self.basis:  # If already a base, ignore.
                 continue
 
             # TODO: allow choosing other possible decompositions
-            decomposition_rules = current_node["op"].decompositions()
+            decomposition_rules = node.op.decompositions()
 
             if not decomposition_rules:
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
                                   "The current node being expanded, %s, "
                                   "is defined in terms of an invalid basis." %
-                                  (str(self.basis), current_node["op"].name))
+                                  (str(self.basis), node.op.name))
 
             decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll gates
-            dag.substitute_node_with_dag(node, decomposition_dag)
+            dag.substitute_node_with_dag(node=node, input_dag=decomposition_dag)
+
         return dag

@@ -11,8 +11,10 @@ import unittest
 
 import numpy as np
 
+from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile  # pylint: disable=redefined-builtin
+from qiskit.compiler import transpile, TranspileConfig
+from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import Path
 from qiskit.test import providers
@@ -28,9 +30,10 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
 
         self.seed = 88
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
-        compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
-        compiled_circuit.name = 'test'
-        self.qobj = compile(compiled_circuit, backend=self.backend)
+        transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+        transpiled_circuit.name = 'test'
+        transpiled_circuit = transpile(transpiled_circuit, TranspileConfig(backend=self.backend))
+        self.qobj = assemble_circuits(transpiled_circuit, RunConfig(shots=1000))
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -75,10 +78,10 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
-        qobj = compile([circuit_if_true, circuit_if_false],
-                       backend=self.backend, shots=shots, seed=self.seed)
+        job = execute([circuit_if_true, circuit_if_false],
+                      backend=self.backend, shots=shots, seed=self.seed)
 
-        result = self.backend.run(qobj).result()
+        result = job.result()
         counts_if_true = result.get_counts(circuit_if_true)
         counts_if_false = result.get_counts(circuit_if_false)
         self.assertEqual(counts_if_true, {'111': 100})
@@ -105,8 +108,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        qobj = compile(circuit, backend=self.backend, shots=shots, seed=self.seed)
-        results = self.backend.run(qobj).result()
+        job = execute(circuit, backend=self.backend, shots=shots, seed=self.seed)
+        results = job.result()
         data = results.get_counts('teleport')
         alice = {
             '00': data['0 0 0'] + data['1 0 0'],
@@ -145,8 +148,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circ.measure(qr[3], cr1[1])
 
         shots = 50
-        qobj = compile(circ, backend=self.backend, shots=shots, memory=True)
-        result = self.backend.run(qobj).result()
+        job = execute(circ, backend=self.backend, shots=shots, memory=True)
+        result = job.result()
         memory = result.get_memory()
         self.assertEqual(len(memory), shots)
         for mem in memory:

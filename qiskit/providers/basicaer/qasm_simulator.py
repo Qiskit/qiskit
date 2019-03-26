@@ -32,7 +32,7 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
@@ -61,6 +61,7 @@ class QasmSimulatorPy(BaseBackend):
         'open_pulse': False,
         'memory': True,
         'max_shots': 65536,
+        'coupling_map': None,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
@@ -113,9 +114,10 @@ class QasmSimulatorPy(BaseBackend):
 
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
-        self._classical_state = 0
+        self._classical_memory = 0
+        self._classical_register = 0
         self._statevector = 0
-        self._number_of_cbits = 0
+        self._number_of_cmembits = 0
         self._number_of_qubits = 0
         self._shots = 0
         self._memory = False
@@ -185,7 +187,7 @@ class QasmSimulatorPy(BaseBackend):
         """Generate memory samples from current statevector.
 
         Args:
-            measure_params (list): List of (qubit, clbit) values for
+            measure_params (list): List of (qubit, cmembit) values for
                                    measure instructions to sample.
             num_samples (int): The number of memory samples to generate.
 
@@ -193,7 +195,7 @@ class QasmSimulatorPy(BaseBackend):
             list: A list of memory values in hex format.
         """
         # Get unique qubits that are actually measured
-        measured_qubits = list({qubit for qubit, clbit in measure_params})
+        measured_qubits = list({qubit for qubit, cmembit in measure_params})
         num_measured = len(measured_qubits)
         # Axis for numpy.sum to compute probabilities
         axis = list(range(self._number_of_qubits))
@@ -210,27 +212,34 @@ class QasmSimulatorPy(BaseBackend):
         # Convert to bit-strings
         memory = []
         for sample in samples:
-            classical_state = self._classical_state
-            for count, (qubit, cbit) in enumerate(sorted(measure_params)):
+            classical_memory = self._classical_memory
+            for count, (qubit, cmembit) in enumerate(sorted(measure_params)):
                 qubit_outcome = int((sample & (1 << count)) >> count)
-                bit = 1 << cbit
-                classical_state = (classical_state & (~bit)) | (qubit_outcome << cbit)
-            value = bin(classical_state)[2:]
+                membit = 1 << cmembit
+                classical_memory = (classical_memory & (~membit)) | (qubit_outcome << cmembit)
+            value = bin(classical_memory)[2:]
             memory.append(hex(int(value, 2)))
         return memory
 
-    def _add_qasm_measure(self, qubit, cbit):
+    def _add_qasm_measure(self, qubit, cmembit, cregbit=None):
         """Apply a measure instruction to a qubit.
 
         Args:
             qubit (int): qubit is the qubit measured.
-            cbit (int): is the classical bit to store outcome in.
+            cmembit (int): is the classical memory bit to store outcome in.
+            cregbit (int, optional): is the classical register bit to store outcome in.
         """
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
         # update classical state
-        bit = 1 << cbit
-        self._classical_state = (self._classical_state & (~bit)) | (int(outcome) << cbit)
+        membit = 1 << cmembit
+        self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
+
+        if cregbit is not None:
+            regbit = 1 << cregbit
+            self._classical_register = \
+                (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
+
         # update quantum state
         if outcome == '0':
             update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
@@ -446,9 +455,10 @@ class QasmSimulatorPy(BaseBackend):
         """
         start = time.time()
         self._number_of_qubits = experiment.config.n_qubits
-        self._number_of_cbits = experiment.config.memory_slots
+        self._number_of_cmembits = experiment.config.memory_slots
         self._statevector = 0
-        self._classical_state = 0
+        self._classical_memory = 0
+        self._classical_register = 0
         self._sample_measure = False
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
@@ -472,7 +482,7 @@ class QasmSimulatorPy(BaseBackend):
         # and sample all outcomes from the final state vector
         if self._sample_measure:
             shots = 1
-            # Store (qubit, cbit) pairs for all measure ops in circuit to
+            # Store (qubit, cmembit) pairs for all measure ops in circuit to
             # be sampled
             measure_sample_ops = []
         else:
@@ -480,17 +490,23 @@ class QasmSimulatorPy(BaseBackend):
         for _ in range(shots):
             self._initialize_statevector()
             # Initialize classical memory to all 0
-            self._classical_state = 0
+            self._classical_memory = 0
+            self._classical_register = 0
             for operation in experiment.instructions:
-                if getattr(operation, 'conditional', None):
+                conditional = getattr(operation, 'conditional', None)
+                if isinstance(conditional, int):
+                    if not self._classical_register[-conditional-1]:
+                        continue
+                elif conditional is not None:
                     mask = int(operation.conditional.mask, 16)
                     if mask > 0:
-                        value = self._classical_state & mask
+                        value = self._classical_memory & mask
                         while (mask & 0x1) == 0:
                             mask >>= 1
                             value >>= 1
                         if value != int(operation.conditional.val, 16):
                             continue
+
                 # Check if single  gate
                 if operation.name in ('U', 'u1', 'u2', 'u3'):
                     params = getattr(operation, 'params', None)
@@ -515,27 +531,62 @@ class QasmSimulatorPy(BaseBackend):
                 # Check if measure
                 elif operation.name == 'measure':
                     qubit = operation.qubits[0]
-                    cbit = operation.memory[0]
+                    cmembit = operation.memory[0]
+                    cregbit = operation.register[0] if hasattr(operation, 'register') else None
+
                     if self._sample_measure:
-                        # If sampling measurements record the qubit and cbit
+                        # If sampling measurements record the qubit and cmembit
                         # for this measurement for later sampling
-                        measure_sample_ops.append((qubit, cbit))
+                        measure_sample_ops.append((qubit, cmembit))
                     else:
                         # If not sampling perform measurement as normal
-                        self._add_qasm_measure(qubit, cbit)
+                        self._add_qasm_measure(qubit, cmembit, cregbit)
+                elif operation.name == 'bfunc':
+                    mask = int(operation.mask, 16)
+                    relation = operation.relation
+                    val = int(operation.val, 16)
+
+                    cregbit = operation.register
+                    cmembit = operation.memory if hasattr(operation, 'memory') else None
+
+                    compared = (self._classical_register & mask) - val
+
+                    if relation == '==':
+                        outcome = (compared == 0)
+                    elif relation == '!=':
+                        outcome = (compared != 0)
+                    elif relation == '<':
+                        outcome = (compared < 0)
+                    elif relation == '<=':
+                        outcome = (compared <= 0)
+                    elif relation == '>':
+                        outcome = (compared > 0)
+                    elif relation == '>=':
+                        outcome = (compared >= 0)
+                    else:
+                        raise BasicAerError('Invalid boolean function relation.')
+
+                    # Store outcome in register and optionally memory slot
+                    regbit = 1 << cregbit
+                    self._classical_register = \
+                        (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
+                    if cmembit is not None:
+                        membit = 1 << cmembit
+                        self._classical_memory = \
+                            (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise BasicAerError(err_msg.format(backend, operation.name))
 
             # Add final creg data to memory list
-            if self._number_of_cbits > 0:
+            if self._number_of_cmembits > 0:
                 if self._sample_measure:
                     # If sampling we generate all shot samples from the final statevector
                     memory = self._add_sample_measure(measure_sample_ops, self._shots)
                 else:
-                    # Turn classical_state (int) into bit string and pad zero for unused cbits
-                    outcome = bin(self._classical_state)[2:]
+                    # Turn classical_memory (int) into bit string and pad zero for unused cmembits
+                    outcome = bin(self._classical_memory)[2:]
                     memory.append(hex(int(outcome, 2)))
 
         # Add data

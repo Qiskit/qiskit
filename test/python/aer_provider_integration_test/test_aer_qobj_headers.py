@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
 
 """Tests for all BasicAer  simulators."""
 
@@ -13,7 +12,8 @@ import unittest
 
 import qiskit
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile
+from qiskit.compiler import transpile, assemble_circuits
+from qiskit.compiler import TranspileConfig, RunConfig
 from qiskit.qobj import QobjHeader
 from qiskit.test import QiskitTestCase, requires_aer_provider
 
@@ -35,7 +35,8 @@ class TestBasicAerQobj(QiskitTestCase):
         custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
         for backend in qiskit.providers.aer.Aer.backends():
             with self.subTest(backend=backend):
-                qobj = compile(self.qc1, backend)
+                qc1_new = transpile(self.qc1, TranspileConfig(backend=backend))
+                qobj = assemble_circuits(qc1_new, RunConfig(shots=1000))
 
                 # Update the Qobj header.
                 qobj.header = QobjHeader.from_dict(custom_qobj_header)
@@ -52,7 +53,8 @@ class TestBasicAerQobj(QiskitTestCase):
         """Test job.qobj()."""
         for backend in qiskit.providers.aer.Aer.backends():
             with self.subTest(backend=backend):
-                qobj = compile(self.qc1, backend)
+                qc1_new = transpile(self.qc1, TranspileConfig(backend=backend))
+                qobj = assemble_circuits(qc1_new, RunConfig(shots=1000))
 
                 job = backend.run(qobj)
                 self.assertEqual(job.qobj(), qobj)

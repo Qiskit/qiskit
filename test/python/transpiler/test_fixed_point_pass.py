@@ -14,7 +14,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestFixedPointPass(QiskitTestCase):
-    """ Tests for PropertySet methods. """
+    """ Tests for FixedPoint pass. """
 
     def setUp(self):
         self.pass_ = FixedPoint('property')
