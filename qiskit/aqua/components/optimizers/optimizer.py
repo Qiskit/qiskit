@@ -72,7 +72,7 @@ class Optimizer(Pluggable):
         self._bounds_support_level = self._configuration['support_level']['bounds']
         self._initial_point_support_level = self._configuration['support_level']['initial_point']
         self._options = {}
-        self._max_circuit_num_per_job = 1
+        self._max_evals_grouped = 1
 
 
     @classmethod
@@ -110,7 +110,7 @@ class Optimizer(Pluggable):
         logger.debug('options: {}'.format(self._options))
 
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon, max_circuit_num_per_job=1):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
         """
         We compute the gradient with the numeric differentiation in the parallel way, around the point x_center.
         Args:
@@ -131,7 +131,6 @@ class Optimizer(Pluggable):
             todos.append(x_center + d)
             ei[k] = 0.0
 
-        num_per_job = max_circuit_num_per_job
         counter = 0
         chunk = []
         chunks = []
@@ -140,7 +139,7 @@ class Optimizer(Pluggable):
             x = todos[i]
             chunk.append(x)
             counter+=1
-            if counter == num_per_job or i == length-1: # the last one does not have to reach batch_size
+            if counter == max_evals_grouped or i == length-1: # the last one does not have to reach batch_size
                 chunks.append(chunk)
                 chunk = []
                 counter = 0
@@ -278,5 +277,5 @@ class Optimizer(Pluggable):
         for name in sorted(self._options):
             logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
 
-    def set_max_circuit_num_per_job(self, limit):
-        self._max_circuit_num_per_job = limit
+    def set_max_evals_grouped(self, limit):
+        self._max_evals_grouped = limit
