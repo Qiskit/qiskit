@@ -38,7 +38,7 @@ class QobjSchema(BaseSchema):
     config = Nested(BaseQobjConfigSchema, required=True)
     experiments = Nested(BaseQobjExperimentSchema, required=True, many=True)
     header = Nested(BaseQobjHeaderSchema, required=True)
-    type = String(required=True, validate=OneOf(QobjType.QASM, QobjType.PULSE))
+    type = String(required=True, validate=OneOf(choices=(QobjType.QASM, QobjType.PULSE)))
 
 
 class QASMQobjSchema(QobjSchema):
@@ -49,7 +49,8 @@ class QASMQobjSchema(QobjSchema):
     experiments = Nested(QASMQobjExperimentSchema, required=True, many=True)
     header = Nested(QASMQobjHeaderSchema, required=True)
 
-    type = String(validate=Equal(QobjType.QASM))
+    type = String(required=True, validate=Equal(QobjType.QASM),
+                  missing=QobjType.QASM)
 
 
 class PulseQobjSchema(QobjSchema):
@@ -60,7 +61,8 @@ class PulseQobjSchema(QobjSchema):
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
     header = Nested(PulseQobjHeaderSchema, required=True)
 
-    type = String(validate=Equal(QobjType.PULSE))
+    type = String(required=True, validate=Equal(QobjType.PULSE),
+                  missing=QobjType.PULSE)
 
 
 @bind_schema(QobjSchema)
@@ -72,9 +74,9 @@ class Qobj(BaseModel):
 
     Attributes:
         qobj_id (str): Qobj identifier.
-        config (QASMQobjConfig): config settings for the Qobj.
-        experiments (list[QASMQobjExperiment]): list of experiments.
-        header (QASMQobjHeader): headers.
+        config (QobjConfig): config settings for the Qobj.
+        experiments (list[QobjExperiment]): list of experiments.
+        header (QobjHeader): headers.
         type (str): Qobj type.
     """
     def __init__(self, qobj_id, config, experiments, header, type, **kwargs):
@@ -105,14 +107,14 @@ class QASMQobj(Qobj):
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
 
         # to avoid specifying 'type' here within from_dict()
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k != 'type'}
+        kwargs.pop('type', None)
 
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type='QASM',
-                         **filtered_kwargs)
+                         type=QobjType.QASM.value,
+                         **kwargs)
 
 
 @bind_schema(PulseQobjSchema)
@@ -131,11 +133,11 @@ class PulseQobj(Qobj):
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
 
         # to avoid specifying 'type' here within from_dict()
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k != 'type'}
+        kwargs.pop('type', None)
 
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type='PULSE',
-                         **filtered_kwargs)
+                         type=QobjType.PULSE.value,
+                         **kwargs)

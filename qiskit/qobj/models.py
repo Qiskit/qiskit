@@ -188,8 +188,8 @@ class PulseQobjConfigSchema(BaseQobjConfigSchema):
     qubit_lo_freq = List(Number(), required=True)
     meas_lo_freq = List(Number(), required=True)
     rep_time = Integer(required=True)
-    meas_return = String(validate=OneOf(MeasReturnType.AVERAGE,
-                                        MeasReturnType.SINGLE))
+    meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
+                                                 MeasReturnType.SINGLE)))
 
 
 class PulseQobjHeaderSchema(BaseQobjHeaderSchema):
@@ -410,6 +410,7 @@ class PulseQobjInstruction(QobjInstruction):
     """
     def __init__(self, name, t0, **kwargs):
         # pylint: disable=invalid-name
+        self.t0 = t0
 
         super().__init__(name=name,
                          t0=t0,
@@ -471,6 +472,13 @@ class PulseQobjConfig(QobjConfig):
     def __init__(self, meas_level, memory_slot_size, meas_return,
                  pulse_library, qubit_lo_freq, meas_lo_freq, rep_time,
                  **kwargs):
+        self.meas_level = meas_level
+        self.memory_slot_size = memory_slot_size
+        self.meas_return = meas_return
+        self.pulse_library = pulse_library
+        self.qubit_lo_freq = qubit_lo_freq
+        self.meas_lo_freq = meas_lo_freq
+        self.rep_time = rep_time
 
         super().__init__(meas_level=meas_level,
                          memory_slot_size=memory_slot_size,
