@@ -23,12 +23,12 @@ from qiskit.dagcircuit import DAGCircuit
 class Unitary(Gate):
     """Class for representing unitary operators"""
 
-    def __init__(self, matrix, *qargs, label=None, validate=True, rtol=1e-5, atol=1e-8):
+    def __init__(self, representation, *qargs, label=None, validate=True, rtol=1e-5, atol=1e-8):
         """
         Create unitary.
 
         Args:
-            matrix (numpy.ndarray or list(list)): unitary matrix representation.
+            representation (numpy.ndarray or list(list) or Unitary): unitary representation.
             qargs (list(tuple(QuantumCircuit, int))): qubits to apply operation to.
             label (str): identifier hint for backend
             validate (bool): whether to validate unitarity of matrix when supplied
@@ -36,17 +36,23 @@ class Unitary(Gate):
             rtol (float): relative tolerance (see numpy.allclose).
             atol (float): absolute tolerance (see numpy.allclose).
         """
-        self._validate = validate
-        self._rtol = rtol
-        self._atol = atol
+        self.__validate = validate
+        self.__rtol = rtol
+        self.__atol = atol
         # set attributes for use by other methods
-        self._matrix = None
-        self._n_qubits = None
-        self._label = None
-        self._dimension = None
+        self.__representation = None
+        self.__n_qubits = None
+        self.__label = None
+        self.__dimension = None
         # set matrix (depends on previous attributes)
-        self.matrix = matrix
-        self.label = label
+        if isinstance(representation, numpy.ndarray):
+            self._representation = representation
+        elif isinstance(representation, list):
+            self._representation = numpy.asarray(representation)
+        elif isinstance(represenation, Unitary):
+            self = copy.deepcopy(representation)
+        if isinstance(label, str):
+            self._label = label
         self._decompostion = []  # storage (needed?)
         super().__init__('unitary', [sympy.Matrix(matrix)], list(qargs))
 
@@ -171,9 +177,9 @@ class Unitary(Gate):
             return output
 
     @property
-    def matrix(self):
+    def _representation(self):
         """
-        Get matrix representation
+        Get representation
 
         Returns:
             numpy.ndarray: matrix
@@ -181,11 +187,36 @@ class Unitary(Gate):
         Raises:
             QiskitError: if representation not defined
         """
-        if self._matrix is not None:
-            return self._matrix
+        if self._representation is not None:
+            return self._representation
         else:
-            raise QiskitError("matrix representation not defined")
+            raise QiskitError("representation not defined")
 
+    @_representation.setter
+    def _representation(self, representation):
+        """set matrix representation
+
+        Args:
+            representation (ndarray | list(list) | Unitary): representation to set
+
+        Raises:
+            QiskitError: if representation is not list, ndarray, or Unitary
+        """
+        if isinstance(representation, (numpy.ndarray, list)):
+            mat = numpy.asarray(representation, dtype='complex')
+            if self.__validate:
+                if not numpy.allclose(mat.T.conj() @ mat, numpy.identity(mat.shape[0]),
+                                      rtol=self.__rtol, atol=self.__atol):
+                    raise QiskitError("matrix is not unitary")
+            self._representation = mat
+            self.__n_qubits = int(numpy.log2(mat.shape[0]))
+            self.__dimension = mat.shape[0]
+        elif representation is None:
+            self._representation = None  # for creating empty Unitary
+        else:
+            raise QiskitError('unrecognized unitary representation: {}'.format(
+                type(representation)))
+        
     def power(self, n, inplace=False):
         """Return n-th matrix power.
 
@@ -213,28 +244,6 @@ class Unitary(Gate):
                     self.matrix.T.conj(), n)
             return uni
 
-    @matrix.setter
-    def matrix(self, mat):
-        """set matrix representation
-
-        Args:
-            mat (ndarray | list(list)): matrix to set
-
-        Raises:
-            QiskitError: if matrix is not unitary
-        """
-        if mat is not None:
-            mat = numpy.asarray(mat, dtype='complex')
-            if self._validate:
-                if not numpy.allclose(mat.T.conj() @ mat, numpy.identity(mat.shape[0]),
-                                      rtol=self._rtol, atol=self._atol):
-                    raise QiskitError("matrix is not unitary")
-            self._matrix = mat
-            self._n_qubits = int(numpy.log2(mat.shape[0]))
-            self._dimension = mat.shape[0]
-        else:
-            self._matrix = None  # for creating empty Unitary
-
     def reapply(self, circ):
         """reapply this gate to circ; TODO: remove when monkey patching removed"""
         self._modifiers(circ._attach(self))
@@ -244,16 +253,16 @@ class Unitary(Gate):
         self._decompositions = [decomposition]
 
     @property
-    def label(self):
+    def _label(self):
         """get unitary label
 
         Returns:
             str: object's label
         """
-        return self._label
+        return self.__label
 
-    @label.setter
-    def label(self, name):
+    @_label.setter
+    def _label(self, name):
         """set unitary label to name
 
         Args:
@@ -263,6 +272,6 @@ class Unitary(Gate):
             TypeError: name is not string or None.
         """
         if isinstance(name, (str, type(None))):
-            self._label = name
+            self.__label = name
         else:
             raise TypeError('label expects a string or None')
