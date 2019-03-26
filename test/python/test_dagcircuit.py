@@ -265,6 +265,7 @@ class TestDagOperations(QiskitTestCase):
             next(self.dag.nodes_on_wire((reg, 7)))
 
     def test_remove_op_node(self):
+        """ Test remove_op_node method."""
         self.dag.apply_operation_back(HGate(self.qubit0))
 
         op_nodes = self.dag.gate_nodes()
