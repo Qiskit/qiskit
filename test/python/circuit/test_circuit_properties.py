@@ -259,15 +259,15 @@ class TestCircuitProperties(QiskitTestCase):
 
             self.assertEqual(ans, qc.count_ops())
 
-    def test_circuit_tensor_factors_empty(self):
-        """Verify num_tensor_factors is width for empty
+    def test_circuit_connected_components_empty(self):
+        """Verify num_connected_components is width for empty
         """
         size = np.random.randint(1, 10)
         q = QuantumRegister(size, 'q')
         qc = QuantumCircuit(q)
-        self.assertEqual(size, qc.num_tensor_factors())
+        self.assertEqual(size, qc.num_connected_components())
 
-    def test_circuit_tensor_factors_multi_reg(self):
+    def test_circuit_connected_components_multi_reg(self):
         """Test tensor factors works over muli registers
         """
         q1 = QuantumRegister(3, 'q1')
@@ -282,9 +282,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[1], q2[1])
         qc.cx(q2[1], q1[2])
         qc.cx(q1[2], q2[0])
-        self.assertEqual(qc.num_tensor_factors(), 1)
+        self.assertEqual(qc.num_connected_components(), 1)
 
-    def test_circuit_tensor_factors_multi_reg2(self):
+    def test_circuit_connected_components_multi_reg2(self):
         """Test tensor factors works over muli registers #2
         """
         q1 = QuantumRegister(3, 'q1')
@@ -293,9 +293,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[0], q2[1])
         qc.cx(q2[0], q1[2])
         qc.cx(q1[1], q2[0])
-        self.assertEqual(qc.num_tensor_factors(), 2)
+        self.assertEqual(qc.num_connected_components(), 2)
 
-    def test_circuit_tensor_factors_disconnected(self):
+    def test_circuit_connected_components_disconnected(self):
         """Test tensor factors works with 2q subspaces
         """
         q1 = QuantumRegister(5, 'q1')
@@ -306,9 +306,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[2], q2[2])
         qc.cx(q1[3], q2[1])
         qc.cx(q1[4], q2[0])
-        self.assertEqual(qc.num_tensor_factors(), 5)
+        self.assertEqual(qc.num_connected_components(), 5)
 
-    def test_circuit_tensor_factors_with_clbits(self):
+    def test_circuit_connected_components_with_clbits(self):
         """Test tensor components with classical register.
         """
         size = 4
@@ -323,9 +323,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
-        self.assertEqual(qc.num_tensor_factors(), 4)
+        self.assertEqual(qc.num_connected_components(), 4)
 
-    def test_circuit_tensor_factors_with_cond(self):
+    def test_circuit_connected_components_with_cond(self):
         """Test tensor components with conditional gate.
         """
         size = 4
@@ -341,7 +341,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
-        self.assertEqual(qc.num_tensor_factors(), 1)
+        self.assertEqual(qc.num_connected_components(), 1)
 
 
 if __name__ == '__main__':

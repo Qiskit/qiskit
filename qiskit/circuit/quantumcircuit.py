@@ -377,21 +377,38 @@ class QuantumCircuit:
             The circuit depth and the DAG depth need not bt the
             same.
         """
+        # Labels the registers by ints
+        # and then the qubit position in
+        # a register is given by reg_int+qubit_num
         reg_offset = 0
         reg_map = {}
         for reg in self.qregs+self.cregs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
 
+        # A list that holds the height of each qubit
+        # and classical bit.
         op_stack = [0]*reg_offset
+        # Here we are playing a modified version of
+        # Tetris where we stack gates, but multi-qubit
+        # gates, or measurements have a block for each
+        # qubit or cbit that are connected by a virtual
+        # line so that they all stacked at the same depth.
+        # We do not consider barriers or snapshots as
+        # They are transpiler and simulator directives.
+        # The max stack height is the circuit depth.
         for op in self.data:
             if op.name not in ['barrier', 'snapshot']:
                 levels = []
                 reg_ints = []
                 for ind, reg in enumerate(op.qargs+op.cargs):
+                    # Add to the stacks of the qubits and
+                    # cbits used in the gate.
                     reg_ints.append(reg_map[reg[0].name]+reg[1])
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 if op.control:
+                    # Controls operate over all bits in the
+                    # classical register they use.
                     cint = reg_map[op.control[0].name]
                     for off in range(op.control[0].size):
                         if cint+off not in reg_ints:
@@ -426,23 +443,33 @@ class QuantumCircuit:
                 count_ops[op.name] = 1
         return count_ops
 
-    def num_tensor_factors(self):
-        """How many non-entangled subcircuits can the circuit be factored to."""
+    def num_connected_components(self):
+        """How many non-entangled subcircuits can the circuit be factored to.
+
+        Returns:
+            int: Number of connected components in circuit.
+        """
+        # Convert registers to ints (as done in depth).
         reg_offset = 0
         reg_map = {}
         for reg in self.qregs+self.cregs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
-
+        # Start with each qubit or cbit being its own subgraph.
         sub_graphs = [[bit] for bit in range(self.width())]
 
         num_sub_graphs = len(sub_graphs)
+
+        # Here we are traversing the gates and looking to see
+        # which of the sub_graphs the gate joins together.
         for op in self.data:
             num_qargs = len(op.qargs+op.cargs) + (1 if op.control else 0)
             if num_qargs >= 2 and op.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
 
+                # Controls necessarily join all the cbits in the
+                # register that they use.
                 if op.control:
                     creg = op.control[0]
                     creg_int = reg_map[creg.name]
@@ -463,6 +490,9 @@ class QuantumCircuit:
                                 num_touched += 1
                                 break
 
+                # If the gate touches more than one subgraph
+                # join those graphs together and return
+                # reduced number of subgraphs
                 if num_touched > 1:
                     connections = []
                     for idx in graphs_touched:
@@ -474,7 +504,7 @@ class QuantumCircuit:
                     _sub_graphs.append(connections)
                     sub_graphs = _sub_graphs
                     num_sub_graphs -= (num_touched-1)
-
+            # Cannot go lower than one so break
             if num_sub_graphs == 1:
                 break
         return num_sub_graphs
