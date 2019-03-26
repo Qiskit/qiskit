@@ -30,7 +30,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 final_successor.append(
                     node['type'] == 'out' or node['type'] == 'op' and node['op'].name == 'measure')
             if all(final_successor):
-                # the node swap needs to be removed and, if a meassure follows, needs to be adapted
+                # the node swap needs to be removed and, if a measure follows, needs to be adapted
                 swap_qargs = dag.multi_graph.node[swap]['qargs']
                 measure_layer = DAGCircuit()
                 for qreg in dag.qregs.values():
