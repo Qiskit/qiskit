@@ -60,7 +60,14 @@ class BaseQobjExperimentConfigSchema(BaseSchema):
 
 class BaseQobjExperimentSchema(BaseSchema):
     """Base Schema for QobjExperiment."""
-    pass
+
+    # Required properties.
+    instructions = Nested(BaseQobjInstructionSchema, required=True, many=True,
+                          validate=Length(min=1))
+
+    # Optional properties.
+    header = Nested(BaseQobjExperimentHeaderSchema)
+    config = Nested(BaseQobjExperimentConfigSchema)
 
 
 class BaseQobjConfigSchema(BaseSchema):
