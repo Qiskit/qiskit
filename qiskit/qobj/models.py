@@ -100,11 +100,6 @@ class QasmQobjInstructionSchema(QobjInstructionSchema):
     conditional = Nested(QobjConditionalSchema)
 
 
-class QasmQobjExperimentHeaderSchema(QobjExperimentHeaderSchema):
-    """Schema for QasmQobjExperimentHeader."""
-    pass
-
-
 class QasmQobjExperimentConfigSchema(QobjExperimentConfigSchema):
     """Schema for QasmQobjExperimentConfig."""
 
@@ -121,7 +116,6 @@ class QasmQobjExperimentSchema(QobjExperimentSchema):
                           validate=Length(min=1))
 
     # Optional properties.
-    header = Nested(QasmQobjExperimentHeaderSchema)
     config = Nested(QasmQobjExperimentConfigSchema)
 
 
@@ -130,11 +124,6 @@ class QasmQobjConfigSchema(QobjConfigSchema):
 
     # Optional properties.
     n_qubits = Integer(validate=Range(min=1))
-
-
-class QasmQobjHeaderSchema(QobjHeaderSchema):
-    """Schema for QasmQobjHeader."""
-    pass
 
 
 class PulseQobjInstructionSchema(QobjInstructionSchema):
@@ -159,11 +148,6 @@ class PulseQobjInstructionSchema(QobjInstructionSchema):
     type = String()
 
 
-class PulseQobjExperimentHeaderSchema(QobjExperimentHeaderSchema):
-    """Schema for PulseQobjExperimentHeader."""
-    pass
-
-
 class PulseQobjExperimentConfigSchema(QobjExperimentConfigSchema):
     """Schema for PulseQobjExperimentConfig."""
 
@@ -180,7 +164,6 @@ class PulseQobjExperimentSchema(QobjExperimentSchema):
                           validate=Length(min=1))
 
     # Optional properties.
-    header = Nested(PulseQobjExperimentHeaderSchema)
     config = Nested(PulseQobjExperimentConfigSchema)
 
 
@@ -197,11 +180,6 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     rep_time = Integer(required=True)
     meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                  MeasReturnType.SINGLE)))
-
-
-class PulseQobjHeaderSchema(QobjHeaderSchema):
-    """Schema for PulseQobjHeader."""
-    pass
 
 
 @bind_schema(QobjConditionalSchema)
@@ -329,7 +307,7 @@ class QobjHeader(BaseModel):
     """Model for QobjHeader.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QasmQobjHeaderSchema``.
+    full description of the model, please check ``QobjHeaderSchema``.
     """
     pass
 
@@ -347,16 +325,6 @@ class QasmQobjInstruction(QobjInstruction):
     def __init__(self, name, **kwargs):
         super().__init__(name=name,
                          **kwargs)
-
-
-@bind_schema(QasmQobjExperimentHeaderSchema)
-class QasmQobjExperimentHeader(QobjExperimentHeader):
-    """Model for QasmQobjExperimentHeader inherit from QobjExperimentHeader.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QasmQobjExperimentHeaderSchema``.
-    """
-    pass
 
 
 @bind_schema(QasmQobjExperimentConfigSchema)
@@ -394,16 +362,6 @@ class QasmQobjConfig(QobjConfig):
     pass
 
 
-@bind_schema(QasmQobjHeaderSchema)
-class QasmQobjHeader(QobjHeader):
-    """Model for QasmQobjHeader inherit from QobjHeader.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QasmQobjHeaderSchema``.
-    """
-    pass
-
-
 @bind_schema(PulseQobjInstructionSchema)
 class PulseQobjInstruction(QobjInstruction):
     """Model for PulseQobjInstruction inherit from QobjInstruction.
@@ -422,16 +380,6 @@ class PulseQobjInstruction(QobjInstruction):
         super().__init__(name=name,
                          t0=t0,
                          **kwargs)
-
-
-@bind_schema(PulseQobjExperimentHeaderSchema)
-class PulseQobjExperimentHeader(QobjExperimentHeader):
-    """Model for PulseQobjExperimentHeader inherit from QobjExperimentHeader.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseQobjExperimentHeaderSchema``.
-    """
-    pass
 
 
 @bind_schema(PulseQobjExperimentConfigSchema)
@@ -495,13 +443,3 @@ class PulseQobjConfig(QobjConfig):
                          meas_lo_freq=meas_lo_freq,
                          rep_time=rep_time,
                          **kwargs)
-
-
-@bind_schema(PulseQobjHeaderSchema)
-class PulseQobjHeader(QobjHeader):
-    """Model for PulseQobjHeader inherit from QobjHeader.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseQobjHeaderSchema``.
-    """
-    pass

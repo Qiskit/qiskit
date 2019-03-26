@@ -14,8 +14,8 @@ import sympy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj import QasmQobj
-from qiskit.qobj import QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction, QasmQobjHeader
-from qiskit.qobj import QasmQobjExperimentConfig, QasmQobjExperimentHeader
+from qiskit.qobj import QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction, QobjHeader
+from qiskit.qobj import QasmQobjExperimentConfig, QobjExperimentHeader
 from qiskit.qobj import QobjConditional
 
 
@@ -25,13 +25,13 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
         run_config (RunConfig): RunConfig object
-        qobj_header (QasmQobjHeader): header to pass to the results
+        qobj_header (QobjHeader): header to pass to the results
         qobj_id (int): identifier for the generated qobj
 
     Returns:
         QasmQobj: the Qobj to be run on the backends
     """
-    qobj_header = qobj_header or QasmQobjHeader()
+    qobj_header = qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -62,13 +62,13 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
         # TODO: why do we need creq_sizes and qreg_sizes in header
         # TODO: we need to rethink memory_slots as they are tied to classical bit
-        experimentheader = QasmQobjExperimentHeader(qubit_labels=qubit_labels,
-                                                    n_qubits=n_qubits,
-                                                    qreg_sizes=qreg_sizes,
-                                                    clbit_labels=clbit_labels,
-                                                    memory_slots=memory_slots,
-                                                    creg_sizes=creg_sizes,
-                                                    name=circuit.name)
+        experimentheader = QobjExperimentHeader(qubit_labels=qubit_labels,
+                                                n_qubits=n_qubits,
+                                                qreg_sizes=qreg_sizes,
+                                                clbit_labels=clbit_labels,
+                                                memory_slots=memory_slots,
+                                                creg_sizes=creg_sizes,
+                                                name=circuit.name)
         # TODO: why do we need n_qubits and memory_slots in both the header and the config
         experimentconfig = QasmQobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
 

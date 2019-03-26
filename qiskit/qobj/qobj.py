@@ -13,8 +13,8 @@ from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
 
 from .models import (QobjConfigSchema, QobjExperimentSchema, QobjHeaderSchema,
-                     QasmQobjConfigSchema, QasmQobjExperimentSchema, QasmQobjHeaderSchema,
-                     PulseQobjConfigSchema, PulseQobjExperimentSchema, PulseQobjHeaderSchema)
+                     QasmQobjConfigSchema, QasmQobjExperimentSchema,
+                     PulseQobjConfigSchema, PulseQobjExperimentSchema)
 from .utils import QobjType
 
 
@@ -47,7 +47,7 @@ class QasmQobjSchema(QobjSchema):
     # Required properties.
     config = Nested(QasmQobjConfigSchema, required=True)
     experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
-    header = Nested(QasmQobjHeaderSchema, required=True)
+    header = Nested(QobjHeaderSchema, required=True)
 
     type = String(required=True, validate=Equal(QobjType.QASM),
                   missing=QobjType.QASM)
@@ -59,7 +59,7 @@ class PulseQobjSchema(QobjSchema):
     # Required properties.
     config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
-    header = Nested(PulseQobjHeaderSchema, required=True)
+    header = Nested(QobjHeaderSchema, required=True)
 
     type = String(required=True, validate=Equal(QobjType.PULSE),
                   missing=QobjType.PULSE)
@@ -102,7 +102,7 @@ class QasmQobj(Qobj):
         qobj_id (str): Qobj identifier.
         config (QASMQobjConfig): config settings for the Qobj.
         experiments (list[QASMQobjExperiment]): list of experiments.
-        header (QASMQobjHeader): headers.
+        header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
 
@@ -128,7 +128,7 @@ class PulseQobj(Qobj):
         qobj_id (str): Qobj identifier.
         config (PulseQobjConfig): config settings for the Qobj.
         experiments (list[PulseQobjExperiment]): list of experiments.
-        header (PulseQobjHeader): headers.
+        header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
 

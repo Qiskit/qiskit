@@ -26,8 +26,8 @@ from qiskit.result import Result
 from qiskit.providers import BaseBackend, BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.qobj import (QasmQobj, QasmQobjConfig, QasmQobjHeader, QasmQobjInstruction,
-                         QasmQobjExperiment, QasmQobjExperimentHeader,
+from qiskit.qobj import (QasmQobj, QasmQobjConfig, QobjHeader, QasmQobjInstruction,
+                         QasmQobjExperiment, QobjExperimentHeader,
                          QasmQobjExperimentConfig)
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
@@ -350,12 +350,12 @@ def new_fake_qobj():
     return QasmQobj(
         qobj_id='test-id',
         config=QasmQobjConfig(shots=1024, memory_slots=1, max_credits=100),
-        header=QasmQobjHeader(backend_name=backend.name()),
+        header=QobjHeader(backend_name=backend.name()),
         experiments=[QasmQobjExperiment(
             instructions=[
                 QasmQobjInstruction(name='barrier', qubits=[1])
             ],
-            header=QasmQobjExperimentHeader(),
+            header=QobjExperimentHeader(),
             config=QasmQobjExperimentConfig(seed=123456)
         )]
     )

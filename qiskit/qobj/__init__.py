@@ -11,10 +11,10 @@ from .qobj import Qobj, QasmQobj, PulseQobj
 from .models import (QobjConfig, QobjExperiment, QobjInstruction, QobjHeader,
                      QobjExperimentConfig, QobjExperimentHeader,
                      QobjConditional, QobjPulseLibrary, QobjMeasurementOption,
-                     QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction, QasmQobjHeader,
-                     QasmQobjExperimentHeader, QasmQobjExperimentConfig,
+                     QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction,
+                     QasmQobjExperimentConfig,
                      PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction,
-                     PulseQobjHeader, PulseQobjExperimentHeader, PulseQobjExperimentConfig)
+                     PulseQobjExperimentConfig)
 from .exceptions import QobjValidationError
 
 from ._validation import validate_qobj_against_schema
