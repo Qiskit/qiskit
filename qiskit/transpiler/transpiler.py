@@ -26,6 +26,8 @@ from .passes.mapping.check_cnot_direction import CheckCnotDirection
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
+from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from .passes.mapping.extend_layout import ExtendLayout
 
 from .exceptions import TranspilerError
 
@@ -123,13 +125,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
             dense_layout.run(dag)
             initial_layout = dense_layout.property_set['layout']
 
-    # temporarily build old-style layout dict
-    # (TODO: remove after transition to StochasticSwap pass)
-    if isinstance(initial_layout, Layout):
-        layout = initial_layout.copy()
-        virtual_qubits = layout.get_virtual_bits()
-        initial_layout = {(v[0].name, v[1]): ('q', layout[v]) for v in virtual_qubits}
-
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
                               initial_layout=initial_layout,
@@ -217,8 +212,24 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                         dag.properties())
             # Insert swap gates
             coupling = CouplingMap(coupling_map)
-            logger.info("initial layout: %s", initial_layout)
 
+            # Extend and enlarge the the dag/layout with ancillas using the full coupling map
+            logger.info("initial layout: %s", initial_layout)
+            pass_ = ExtendLayout(coupling)
+            pass_.property_set['layout'] = initial_layout
+            pass_.run(dag)
+            initial_layout = pass_.property_set['layout']
+            pass_ = EnlargeWithAncilla(initial_layout)
+            dag = pass_.run(dag)
+            initial_layout = pass_.property_set['layout']
+            logger.info("initial layout (ancilla extended): %s", initial_layout)
+
+            # temporarily build old-style layout dict
+            # (TODO: remove after transition to StochasticSwap pass)
+            virtual_qubits = initial_layout.get_virtual_bits()
+            initial_layout = {(v[0].name, v[1]): ('q', initial_layout[v]) for v in virtual_qubits}
+
+            # Swap mapper
             dag, final_layout = swap_mapper(
                 dag, coupling, initial_layout, trials=20, seed=seed_mapper)
             logger.info("final layout: %s", final_layout)
