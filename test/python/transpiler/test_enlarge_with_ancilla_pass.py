@@ -49,10 +49,15 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         pass_ = EnlargeWithAncilla(layout)
         after = pass_.run(self.dag)
 
+        final_layout = {0: (QuantumRegister(3, 'qr'), 0), 1: (QuantumRegister(2, 'ancilla'), 0),
+                        2: (QuantumRegister(3, 'qr'), 1), 3: (QuantumRegister(2, 'ancilla'), 1),
+                        4: (QuantumRegister(3, 'qr'), 2)}
+
         qregs = list(after.qregs.values())
         self.assertEqual(2, len(qregs))
         self.assertEqual(self.qr3, qregs[0])
         self.assertEqual(QuantumRegister(2, name='ancilla'), qregs[1])
+        self.assertEqual(final_layout, pass_.property_set['layout'].get_physical_bits())
 
     def test_name_collision(self):
         """Name collision during ancilla extension."""
