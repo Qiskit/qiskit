@@ -19,6 +19,7 @@ class DAGNode:
     be supplied to functions that take a node.
 
     """
+
     def __init__(self, data_dict, nid=-1):
         """ Create a node """
         self._node_id = nid
@@ -83,31 +84,6 @@ class DAGNode:
             raise QiskitError('The node %s is not an input/output node' % str(self))
         return self.data_dict.get('wire')
 
-    def __eq__(self, other):
-
-        # if other is None
-        if not other:
-            return False
-
-        if isinstance(other, int):
-            return other == self._node_id
-
-        # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == self.name == other.name:
-            node1_qargs = set(self.qargs)
-            node2_qargs = set(other.qargs)
-
-            if node1_qargs != node2_qargs:
-                return False
-
-            # qargs must be equal, so remove them from the dict then compare
-            copy_self = {k: v for (k, v) in self.data_dict.items() if k != 'qargs'}
-            copy_other = {k: v for (k, v) in other.data_dict.items() if k != 'qargs'}
-
-            return copy_self == copy_other
-
-        return self.data_dict == other.data_dict
-
     def __lt__(self, other):
         return self._node_id < other._node_id
 
@@ -128,3 +104,22 @@ class DAGNode:
     def pop(self, val):
         """Remove the provided value from the dictionary"""
         del self.data_dict[val]
+
+    @staticmethod
+    def semantic_eq(node1, node2):
+        """
+        Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
+
+        Args:
+            node1 (DAGNode): A node to compare.
+            node2 (DAGNode): The other node to compare.
+
+        Return:
+            Bool: If node1 == node2
+        """
+
+        # For barriers, qarg order is not significant so compare as sets
+        if 'barrier' == node1.name == node2.name:
+            return set(node1.qargs) == set(node2.qargs)
+
+        return node1.data_dict == node2.data_dict
