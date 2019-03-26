@@ -51,7 +51,6 @@ class U1Gate(Gate):
 @_op_expand(1)
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
-    self._check_qubit(q)
     return self._attach(U1Gate(theta, q, self))
 
 

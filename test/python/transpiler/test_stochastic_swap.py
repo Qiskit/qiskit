@@ -595,7 +595,7 @@ class TestStochasticSwap(QiskitTestCase):
                            for (a, b) in coupling.get_edges()]
 
         for _2q_node in after.twoQ_nodes():
-            self.assertIn(set(_2q_node['qargs']), valid_couplings)
+            self.assertIn(set(_2q_node.qargs), valid_couplings)
 
     def test_len_coupling_vs_dag(self):
         """Test error if coupling map and dag are not the same size."""

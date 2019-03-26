@@ -8,7 +8,7 @@
 """A pass for extending a Layout to use all the nodes in the  Coupling graph.
 """
 
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class ExtendLayout(AnalysisPass):

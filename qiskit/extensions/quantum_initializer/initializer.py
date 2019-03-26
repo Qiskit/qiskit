@@ -429,12 +429,8 @@ CompositeGate.last_atomic_gate_host = last_atomic_gate_host
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
-    self._check_dups(qubits)
-    for i in qubits:
-        self._check_qubit(i)
-        # TODO: make initialize an Instruction, and insert reset
-        # TODO: avoid explicit reset if compiler determines a |0> state
-
+    # TODO: make initialize an Instruction, and insert reset
+    # TODO: avoid explicit reset if compiler determines a |0> state
     return self._attach(InitializeGate(params, qubits, self))
 
 

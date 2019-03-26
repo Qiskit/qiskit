@@ -22,7 +22,7 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 
 import logging
 from math import log2
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.basicaer.exceptions import BasicAerError
 from qiskit.providers.models import BackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
@@ -46,6 +46,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'open_pulse': False,
         'memory': True,
         'max_shots': 65536,
+        'coupling_map': None,
         'description': 'A Python statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
         'gates': [
