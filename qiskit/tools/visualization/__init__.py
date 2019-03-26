@@ -9,7 +9,7 @@
 """Main Qiskit visualization methods."""
 
 import sys
-from qiskit._util import _has_connection
+from qiskit.util import _has_connection
 from qiskit.tools.visualization._counts_visualization import plot_histogram
 from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_bloch_vector,
