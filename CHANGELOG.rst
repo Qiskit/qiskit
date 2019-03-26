@@ -56,7 +56,6 @@ Added
 Changed
 -------
 
-- DAG depth now computed using only graph topology (#2008).
 - Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
