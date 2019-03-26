@@ -54,9 +54,9 @@ class TestTranspile(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[0])
-        circuit.cx(qr[1], qr[0])
-        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[0])
 
         coupling_map = [[1, 0]]
