@@ -182,9 +182,9 @@ class Optimize1qGates(TransformationPass):
 
             # Delete the other nodes in the run
             for current_node in run[1:]:
-                dag._remove_op_node(current_node)
+                dag.remove_op_node(current_node)
             if right_name == "nop":
-                dag._remove_op_node(run[0])
+                dag.remove_op_node(run[0])
 
         return dag
 

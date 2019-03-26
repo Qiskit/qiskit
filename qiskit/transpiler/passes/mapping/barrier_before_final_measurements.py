@@ -66,7 +66,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             barrier_layer.apply_operation_back(final_node.op)
 
         for final_op in final_ops:
-            dag._remove_op_node(final_op)
+            dag.remove_op_node(final_op)
 
         # Check to see if the new barrier added to the DAG is equivalent to any
         # existing barriers, and if so, consolidate the two.
@@ -98,8 +98,8 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                 our_ancestors = our_ancestors | their_ancestors
                 our_descendants = our_descendants | their_descendants
 
-                barrier_layer._remove_op_node(candidate_barrier)
-                barrier_layer._remove_op_node(new_barrier_node)
+                barrier_layer.remove_op_node(candidate_barrier)
+                barrier_layer.remove_op_node(new_barrier_node)
 
                 new_barrier_node = merge_barrier_node
 
