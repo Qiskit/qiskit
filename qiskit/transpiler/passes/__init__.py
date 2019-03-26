@@ -16,7 +16,6 @@ from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
 from .commutation_analysis import CommutationAnalysis
-from .commutation_transformation import CommutationTransformation
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap

@@ -13,7 +13,7 @@ Transpiler pass to remove swaps in front of measurements by re-targeting the cla
 
 from qiskit.circuit import Measure
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 

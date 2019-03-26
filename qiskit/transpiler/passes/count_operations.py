@@ -7,7 +7,7 @@
 
 """ Updates property_set['amount_of_operations'] with the amount of operations in the dag
 """
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CountOperations(AnalysisPass):
