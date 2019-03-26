@@ -157,7 +157,7 @@ class DAGCircuit:
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
         for n in self.named_nodes(opname):
-            self._remove_op_node(n)
+            self.remove_op_node(n)
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -901,7 +901,7 @@ class DAGCircuit:
                     sorted_node.op.control = condition
                     to_replay.append(sorted_node)
             for input_node in input_dag.op_nodes():
-                input_dag._remove_op_node(input_node)
+                input_dag.remove_op_node(input_node)
             for replay_node in to_replay:
                 input_dag.apply_operation_back(replay_node.op, condition=condition)
 
@@ -1221,13 +1221,13 @@ class DAGCircuit:
                 successors.append(successor)
         return successors
 
-    def _remove_op_node(self, node):
+    def remove_op_node(self, node):
         """Remove an operation node n.
 
         Add edges from predecessors to successors.
         """
         if isinstance(node, int):
-            warnings.warn('Calling _remove_op_node() with a node id is deprecated,'
+            warnings.warn('Calling remove_op_node() with a node id is deprecated,'
                           ' use a DAGNode instead',
                           DeprecationWarning, 2)
             node = self._id_to_node[node]
@@ -1254,7 +1254,7 @@ class DAGCircuit:
         # multi_graph.remove_nodes_from; same for related functions ...
         for anc_node in anc:
             if anc_node.type == "op":
-                self._remove_op_node(anc_node)
+                self.remove_op_node(anc_node)
 
     def remove_descendants_of(self, node):
         """Remove all of the descendant operation nodes of node."""
@@ -1267,7 +1267,7 @@ class DAGCircuit:
         desc = nx.descendants(self.multi_graph, node)
         for desc_node in desc:
             if desc_node.type == "op":
-                self._remove_op_node(desc_node)
+                self.remove_op_node(desc_node)
 
     def remove_nonancestors_of(self, node):
         """Remove all of the non-ancestors operation nodes of node."""
@@ -1281,7 +1281,7 @@ class DAGCircuit:
         comp = list(set(self.multi_graph.nodes()) - set(anc))
         for n in comp:
             if n.type == "op":
-                self._remove_op_node(n)
+                self.remove_op_node(n)
 
     def remove_nondescendants_of(self, node):
         """Remove all of the non-descendants operation nodes of node."""
@@ -1295,7 +1295,7 @@ class DAGCircuit:
         comp = list(set(self.multi_graph.nodes()) - set(dec))
         for n in comp:
             if n.type == "op":
-                self._remove_op_node(n)
+                self.remove_op_node(n)
 
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
