@@ -245,6 +245,25 @@ class TestDagOperations(QiskitTestCase):
                     ('cr[1]', [])]
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
+    def test_dag_ops_on_wire(self):
+        """ Test that listing the gates on a qubit/classical bit gets the correct gates"""
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1),
+                                      [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(self.qubit0), [self.qubit0])
+
+        qbit = self.dag.qubits()[0]
+        self.assertEqual([1, 11, 12, 2], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
+        self.assertEqual([11, 12],
+                         [i._node_id for i in self.dag.nodes_on_wire(qbit, only_ops=True)])
+
+        cbit = self.dag.clbits()[0]
+        self.assertEqual([7, 8], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
+        self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
+
+        (reg, _) = qbit
+        with self.assertRaises(DAGCircuitError):
+            next(self.dag.nodes_on_wire((reg, 7)))
+
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
@@ -330,6 +349,25 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_factors(self):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
+
+
+class TestCircuitSpecialCases(QiskitTestCase):
+    """DAGCircuit test for special cases, usually for regression."""
+
+    def test_circuit_depth_with_repetition(self):
+        """ When cx repeat, they are not "the same".
+        See https://github.com/Qiskit/qiskit-terra/issues/1994
+        """
+        qr1 = QuantumRegister(2)
+        qr2 = QuantumRegister(2)
+        circ = QuantumCircuit(qr1, qr2)
+        circ.h(qr1[0])
+        circ.cx(qr1[1], qr2[1])
+        circ.cx(qr1[1], qr2[1])
+        circ.h(qr2[0])
+        dag = circuit_to_dag(circ)
+
+        self.assertEqual(dag.depth(), 2)
 
 
 class TestDagEquivalence(QiskitTestCase):
