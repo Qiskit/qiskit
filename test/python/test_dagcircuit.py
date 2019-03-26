@@ -273,6 +273,7 @@ class TestDagOperations(QiskitTestCase):
 
         self.assertEqual(len(self.dag.gate_nodes()), 0)
 
+
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
 
