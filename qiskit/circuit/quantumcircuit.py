@@ -394,6 +394,8 @@ class QuantumCircuit:
         # gates, or measurements have a block for each
         # qubit or cbit that are connected by a virtual
         # line so that they all stacked at the same depth.
+        # Conditional gates act on all cbits in the register
+        # they are conditioned on.
         # We do not consider barriers or snapshots as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
@@ -443,8 +445,11 @@ class QuantumCircuit:
                 count_ops[op.name] = 1
         return count_ops
 
-    def num_connected_components(self):
+    def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
+
+        Args:
+            unitary_only (bool): Compute only unitary part of graph.
 
         Returns:
             int: Number of connected components in circuit.
@@ -452,25 +457,36 @@ class QuantumCircuit:
         # Convert registers to ints (as done in depth).
         reg_offset = 0
         reg_map = {}
-        for reg in self.qregs+self.cregs:
+
+        if unitary_only:
+            regs = self.qregs
+        else:
+            regs = self.qregs+self.cregs
+
+        for reg in regs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
         # Start with each qubit or cbit being its own subgraph.
-        sub_graphs = [[bit] for bit in range(self.width())]
+        sub_graphs = [[bit] for bit in range(reg_offset)]
 
         num_sub_graphs = len(sub_graphs)
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
         for op in self.data:
-            num_qargs = len(op.qargs+op.cargs) + (1 if op.control else 0)
+            if unitary_only:
+                args = op.qargs
+                num_qargs = len(args)
+            else:
+                args = op.qargs+op.cargs
+                num_qargs = len(args) + (1 if op.control else 0)
+
             if num_qargs >= 2 and op.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
-
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if op.control:
+                if op.control and not unitary_only:
                     creg = op.control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
@@ -481,7 +497,7 @@ class QuantumCircuit:
                                 num_touched += 1
                                 break
 
-                for item in op.qargs+op.cargs:
+                for item in args:
                     reg_int = reg_map[item[0].name]+item[1]
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
@@ -508,6 +524,23 @@ class QuantumCircuit:
             if num_sub_graphs == 1:
                 break
         return num_sub_graphs
+
+    def num_unitary_factors(self):
+        """Computes the number of tensor factors in the unitary
+        (quantum) part of the circuit only.
+        """
+        return self.num_connected_components(unitary_only=True)
+
+    def num_tensor_factors(self):
+        """Computes the number of tensor factors in the unitary
+        (quantum) part of the circuit only.
+
+        Notes:
+            This is here for backwards compatibility, and will be
+            removed in a future release of qiskit. You should call
+            `num_unitary_factors` instead.
+        """
+        return self.num_unitary_factors()
 
     def copy(self, name=None):
         """

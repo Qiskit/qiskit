@@ -343,6 +343,65 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[3])
         self.assertEqual(qc.num_connected_components(), 1)
 
+    def test_circuit_unitary_factors1(self):
+        """Test unitary factors empty circuit
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+        self.assertEqual(qc.num_unitary_factors(), 4)
+
+    def test_circuit_unitary_factors2(self):
+        """Test unitary factors multi qregs
+        """
+        size = 4
+        q1 = QuantumRegister(size//2, 'q1')
+        q2 = QuantumRegister(size//2, 'q2')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q1, q2, c)
+        self.assertEqual(qc.num_unitary_factors(), 4)
+
+    def test_circuit_unitary_factors3(self):
+        """Test unitary factors measurements and conditionals
+        """
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.cx(q[1], q[2])
+        qc.cx(q[1], q[2])
+        qc.cx(q[0], q[3]).c_if(c, 2)
+        qc.cx(q[0], q[3])
+        qc.cx(q[0], q[3])
+        qc.cx(q[0], q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.num_unitary_factors(), 2)
+
+    def test_circuit_unitary_factors4(self):
+        """Test unitary factors measurements go to same cbit
+        """
+        size = 5
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[1], c[0])
+        qc.measure(q[2], c[0])
+        qc.measure(q[3], c[0])
+        self.assertEqual(qc.num_unitary_factors(), 5)
+
 
 if __name__ == '__main__':
     unittest.main()
