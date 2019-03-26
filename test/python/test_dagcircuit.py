@@ -545,40 +545,6 @@ class TestDagProperties(QiskitTestCase):
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
 
-    def test_dag_depth_circuit_depth(self):
-        """Test DAG depth == circuit depth if
-        no special instructions.
-        """
-        size = 6
-        q = QuantumRegister(size, 'q')
-        c = ClassicalRegister(size, 'c')
-        qc = QuantumCircuit(q, c)
-
-        num_gates = np.random.randint(50)
-        # h = 0, x = 1, y = 2, z = 3, cx = 4, ccx = 5
-
-        for _ in range(num_gates):
-            item = np.random.randint(6)
-            if item in [0, 1, 2, 3]:
-                idx = np.random.randint(size)
-                if item == 0:
-                    qc.h(q[idx])
-                elif item == 1:
-                    qc.x(q[idx])
-                elif item == 2:
-                    qc.y(q[idx])
-                elif item == 3:
-                    qc.z(q[idx])
-            else:
-                idx = np.random.permutation(size)
-                if item == 4:
-                    qc.cx(q[int(idx[0])], q[int(idx[1])])
-                elif item == 5:
-                    qc.ccx(q[int(idx[0])], q[int(idx[1])], q[int(idx[2])])
-        qc.measure(q, c)
-        dag = circuit_to_dag(qc)
-        self.assertEqual(dag.depth(), qc.depth())
-
 
 if __name__ == '__main__':
     unittest.main()
