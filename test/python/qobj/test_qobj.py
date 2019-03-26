@@ -17,10 +17,11 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit.providers.basicaer import basicaerjob
-from qiskit.qobj import PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction, QobjHeader
-from qiskit.qobj import QasmQobj, PulseQobj
-from qiskit.qobj import QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction, QobjHeader
-from qiskit.qobj import QobjPulseLibrary, QobjMeasurementOption
+from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
+                         PulseQobjInstruction, PulseQobjExperiment,
+                         PulseQobjConfig, QobjMeasurementOption,
+                         QobjPulseLibrary, QasmQobjInstruction,
+                         QasmQobjExperiment, QasmQobjConfig)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.test import QiskitTestCase

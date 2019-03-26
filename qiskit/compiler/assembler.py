@@ -13,10 +13,9 @@ import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.run_config import RunConfig
-from qiskit.qobj import QasmQobj
-from qiskit.qobj import QasmQobjConfig, QasmQobjExperiment, QasmQobjInstruction, QobjHeader
-from qiskit.qobj import QasmQobjExperimentConfig, QobjExperimentHeader
-from qiskit.qobj import QobjConditional
+from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
+                         QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
+                         QasmQobjConfig, QobjConditional)
 
 
 def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):

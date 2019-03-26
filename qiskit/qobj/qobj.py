@@ -9,16 +9,15 @@
 
 from marshmallow.validate import Equal, OneOf
 
+from qiskit.qobj.models.base import QobjExperimentSchema, QobjConfigSchema, QobjHeaderSchema
+from qiskit.qobj.models.pulse import PulseQobjExperimentSchema, PulseQobjConfigSchema
+from qiskit.qobj.models.qasm import QasmQobjExperimentSchema, QasmQobjConfigSchema
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
-
-from .models import (QobjConfigSchema, QobjExperimentSchema, QobjHeaderSchema,
-                     QasmQobjConfigSchema, QasmQobjExperimentSchema,
-                     PulseQobjConfigSchema, PulseQobjExperimentSchema)
 from .utils import QobjType
 
-
 QOBJ_VERSION = '1.1.0'
+
 """Current version of the Qobj schema.
 
 Qobj schema versions:

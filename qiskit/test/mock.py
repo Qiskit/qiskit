@@ -26,9 +26,9 @@ from qiskit.result import Result
 from qiskit.providers import BaseBackend, BaseJob
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.qobj import (QasmQobj, QasmQobjConfig, QobjHeader, QasmQobjInstruction,
-                         QasmQobjExperiment, QobjExperimentHeader,
-                         QasmQobjExperimentConfig)
+from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
+                         QasmQobjInstruction, QasmQobjExperimentConfig,
+                         QasmQobjExperiment, QasmQobjConfig)
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
