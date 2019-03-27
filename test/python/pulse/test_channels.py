@@ -48,7 +48,7 @@ class TestRegisterSlot(QiskitTestCase):
         register_slot = RegisterSlot(123)
 
         self.assertEqual(register_slot.index, 123)
-        self.assertEqual(register_slot.name, 'r123')
+        self.assertEqual(register_slot.name, 'c123')
 
 
 class TestSnapshotChannel(QiskitTestCase):

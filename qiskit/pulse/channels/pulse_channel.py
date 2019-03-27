@@ -84,7 +84,7 @@ class RegisterSlot(PulseChannel):
     """Classical resister slot channel."""
 
     supported = commands.Acquire
-    prefix = 'r'
+    prefix = 'c'
 
     def __init__(self, index):
         """Create new register slot.
