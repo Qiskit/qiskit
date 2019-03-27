@@ -34,4 +34,3 @@ def validate_qobj_against_schema(qobj):
         qobj.as_dict(), 'qobj',
         err_msg='Qobj failed validation. Set Qiskit log level to DEBUG '
                 'for further information.')
-
