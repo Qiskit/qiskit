@@ -35,6 +35,7 @@ class Layout():
         str_list = []
         for key, val in self._v2p.items():
             str_list.append("{k}: {v},".format(k=key, v=val))
+        str_list[-1] = str_list[-1][:-1]
         return "Layout({\n"+"\n".join(str_list)+"\n})"
 
     def from_dict(self, input_dict):
