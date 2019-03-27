@@ -11,6 +11,8 @@ import numpy
 import sympy
 
 from marshmallow.utils import is_collection
+from marshmallow.exceptions import ValidationError
+from marshmallow.compat import Mapping, Iterable
 
 from qiskit.validation import ModelTypeValidator
 
@@ -120,3 +122,66 @@ class InstructionParameter(ModelTypeValidator):
                  for item in value]
 
         return root_value
+
+
+class MeasurementParameter(ModelTypeValidator):
+    """Field for objects used in measurement kernel and discriminator parameters.
+    """
+    default_error_messages = {
+        'invalid': 'Not a valid mapping type.',
+        'invalid_sub': 'Not a valid value.'
+    }
+
+    valid_types = (int, float, str, bool, Iterable, Mapping, type(None))
+
+    def check_type(self, value, attr, data):
+        if value is None:
+            return None
+
+        _check_type = super().check_type
+
+        errors = []
+        if isinstance(value, Mapping):
+            for v in value.values():
+                try:
+                    _check_type(v, None, value)
+                except ValidationError as err:
+                    errors.append(err.messages)
+        else:
+            errors.append('Not a valid mapping type.')
+
+        if errors:
+            raise ValidationError(errors)
+
+        return value
+
+    def _serialize_sub(self, value):
+        # pylint: disable=too-many-return-statements
+        if value is None:
+            return None
+        if isinstance(value, (int, float, str, bool)):
+            return value
+        if isinstance(value, Iterable):
+            return [self._serialize_sub(each) for each in value]
+        if isinstance(value, Mapping):
+            return {str(k): self._serialize_sub(v) for k, v in value.items()}
+
+        return self.fail('invalid_sub', input=value)
+
+    def _serialize(self, value, attr, obj):
+        # pylint: disable=too-many-return-statements
+        if value is None:
+            return None
+        if isinstance(value, Mapping):
+            return {str(k): self._serialize_sub(v) for k, v in value.items()}
+
+        return self.fail('invalid')
+
+    def _deserialize(self, value, attr, data):
+        # pylint: disable=too-many-return-statements
+        if value is None:
+            return None
+        if isinstance(value, Mapping):
+            return value
+
+        return self.fail('invalid')
