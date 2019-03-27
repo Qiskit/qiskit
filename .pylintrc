@@ -157,7 +157,7 @@ function-rgx=[a-z_][a-z0-9_]{2,30}$
 function-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct method names
-method-rgx=(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43}))$
+method-rgx=(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43})|(test_[_a-zA-Z0-9]{2,}))$
 
 # Naming hint for method names
 method-name-hint=[a-z_][a-z0-9_]{2,30}$ or camelCase `assert*` in tests.

@@ -173,53 +173,38 @@ class TestVisualizationUtils(QiskitTestCase):
         self.circuit.measure(self.qr1[1], self.cr1[1])
 
     def test_get_instructions(self):
-        """ _get_instructions without reversebits """
+        """ _get_instructions without reverse_bits """
         (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
+
+        exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
+               ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)]),
+               ('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])]
+
         self.assertEqual([(self.qr1, 0), (self.qr1, 1), (self.qr2, 0), (self.qr2, 1)], qregs)
         self.assertEqual([(self.cr1, 0), (self.cr1, 1), (self.cr2, 0), (self.cr2, 1)], cregs)
-        self.assertEqual([op['name'] for op in ops],
-                         ['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'])
-        self.assertEqual([op['qargs'] for op in ops], [[(self.qr2, 0), (self.qr2, 1)],
-                                                       [(self.qr2, 0)],
-                                                       [(self.qr2, 1), (self.qr2, 0)],
-                                                       [(self.qr2, 1)],
-                                                       [(self.qr1, 0), (self.qr1, 1)],
-                                                       [(self.qr1, 0)],
-                                                       [(self.qr1, 1), (self.qr1, 0)],
-                                                       [(self.qr1, 1)]])
-        self.assertEqual([op['cargs'] for op in ops], [[],
-                                                       [(self.cr2, 0)],
-                                                       [],
-                                                       [(self.cr2, 1)],
-                                                       [],
-                                                       [(self.cr1, 0)],
-                                                       [],
-                                                       [(self.cr1, 1)]])
+        self.assertEqual(exp, [(op.name, op.qargs, op.cargs) for op in ops])
 
-    def test_get_instructions_reversebits(self):
-        """ _get_instructions with reversebits=True """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reversebits=True)
+    def test_get_instructions_reverse_bits(self):
+        """ _get_instructions with reverse_bits=True """
+        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reverse_bits=True)
+
+        exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
+               ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)]),
+               ('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])]
 
         self.assertEqual([(self.qr2, 1), (self.qr2, 0), (self.qr1, 1), (self.qr1, 0)], qregs)
         self.assertEqual([(self.cr2, 1), (self.cr2, 0), (self.cr1, 1), (self.cr1, 0)], cregs)
-        self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
-                         [op['name'] for op in ops])
-        self.assertEqual([op['qargs'] for op in ops], [[(self.qr2, 0), (self.qr2, 1)],
-                                                       [(self.qr2, 0)],
-                                                       [(self.qr2, 1), (self.qr2, 0)],
-                                                       [(self.qr2, 1)],
-                                                       [(self.qr1, 0), (self.qr1, 1)],
-                                                       [(self.qr1, 0)],
-                                                       [(self.qr1, 1), (self.qr1, 0)],
-                                                       [(self.qr1, 1)]])
-        self.assertEqual([op['cargs'] for op in ops], [[],
-                                                       [(self.cr2, 0)],
-                                                       [],
-                                                       [(self.cr2, 1)],
-                                                       [],
-                                                       [(self.cr1, 0)],
-                                                       [],
-                                                       [(self.cr1, 1)]])
+        self.assertEqual(exp, [(op.name, op.qargs, op.cargs) for op in ops])
 
 
 if __name__ == '__main__':

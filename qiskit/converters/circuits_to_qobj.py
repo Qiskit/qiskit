@@ -8,7 +8,7 @@
 """Compile function for converting a list of circuits to the qobj"""
 import warnings
 
-from qiskit.qobj import QASMQobjHeader
+from qiskit.qobj import QobjHeader
 from qiskit.compiler.run_config import RunConfig
 from qiskit.compiler import assemble_circuits
 
@@ -22,7 +22,7 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
 
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
-        qobj_header (QASMQobjHeader): header to pass to the results
+        qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): RunConfig object
 
         qobj_id (int): TODO: delete after qiskit-terra 0.8
@@ -42,7 +42,7 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
                   'Use qiskit.compiler.assemble_circuits() to serialize circuits into a qobj.',
                   DeprecationWarning)
 
-    qobj_header = qobj_header or QASMQobjHeader()
+    qobj_header = qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
 
     if backend_name:

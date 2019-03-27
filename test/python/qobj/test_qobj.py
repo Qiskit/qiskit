@@ -17,10 +17,11 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit.providers.basicaer import basicaerjob
-from qiskit.qobj import PulseQobjConfig, PulseQobjExperiment, PulseQobjInstruction, PulseQobjHeader
-from qiskit.qobj import QASMQobj, PulseQobj
-from qiskit.qobj import QASMQobjConfig, QASMQobjExperiment, QASMQobjInstruction, QASMQobjHeader
-from qiskit.qobj import QobjPulseLibrary, QobjMeasurementOption
+from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
+                         PulseQobjInstruction, PulseQobjExperiment,
+                         PulseQobjConfig, QobjMeasurementOption,
+                         QobjPulseLibrary, QasmQobjInstruction,
+                         QasmQobjExperiment, QasmQobjConfig)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.qobj.exceptions import SchemaValidationError
 from qiskit.test import QiskitTestCase
@@ -28,17 +29,17 @@ from qiskit.test.mock import FakeRueschlikon
 
 
 class TestQASMQobj(QiskitTestCase):
-    """Tests for QASMQobj."""
+    """Tests for QasmQobj."""
 
     def setUp(self):
-        self.valid_qobj = QASMQobj(
+        self.valid_qobj = QasmQobj(
             qobj_id='12345',
-            header=QASMQobjHeader(),
-            config=QASMQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            header=QobjHeader(),
+            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
             experiments=[
-                QASMQobjExperiment(instructions=[
-                    QASMQobjInstruction(name='u1', qubits=[1], params=[0.4]),
-                    QASMQobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
+                QasmQobjExperiment(instructions=[
+                    QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QasmQobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2])
                 ])
             ]
         )
@@ -70,21 +71,21 @@ class TestQASMQobj(QiskitTestCase):
     def test_from_dict_per_class(self):
         """Test Qobj and its subclass representations given a dictionary."""
         test_parameters = {
-            QASMQobj: (
+            QasmQobj: (
                 self.valid_qobj,
                 self.valid_dict
             ),
-            QASMQobjConfig: (
-                QASMQobjConfig(shots=1, memory_slots=2),
+            QasmQobjConfig: (
+                QasmQobjConfig(shots=1, memory_slots=2),
                 {'shots': 1, 'memory_slots': 2}
             ),
-            QASMQobjExperiment: (
-                QASMQobjExperiment(
-                    instructions=[QASMQobjInstruction(name='u1', qubits=[1], params=[0.4])]),
+            QasmQobjExperiment: (
+                QasmQobjExperiment(
+                    instructions=[QasmQobjInstruction(name='u1', qubits=[1], params=[0.4])]),
                 {'instructions': [{'name': 'u1', 'qubits': [1], 'params': [0.4]}]}
             ),
-            QASMQobjInstruction: (
-                QASMQobjInstruction(name='u1', qubits=[1], params=[0.4]),
+            QasmQobjInstruction: (
+                QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
                 {'name': 'u1', 'qubits': [1], 'params': [0.4]}
             )
         }
@@ -98,7 +99,7 @@ class TestQASMQobj(QiskitTestCase):
         """
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
-        self.bad_qobj.header = QASMQobjHeader(backend_name=backend.name())
+        self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
             job = basicaerjob.BasicAerJob(backend, job_id, _nop, self.bad_qobj)
@@ -132,7 +133,7 @@ class TestPulseQobj(QiskitTestCase):
     def setUp(self):
         self.valid_qobj = PulseQobj(
             qobj_id='12345',
-            header=PulseQobjHeader(),
+            header=QobjHeader(),
             config=PulseQobjConfig(shots=1024, memory_slots=2, max_credits=10,
                                    meas_level=1,
                                    memory_slot_size=8192,

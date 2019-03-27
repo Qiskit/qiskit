@@ -9,16 +9,15 @@
 
 from marshmallow.validate import Equal, OneOf
 
+from qiskit.qobj.models.base import QobjExperimentSchema, QobjConfigSchema, QobjHeaderSchema
+from qiskit.qobj.models.pulse import PulseQobjExperimentSchema, PulseQobjConfigSchema
+from qiskit.qobj.models.qasm import QasmQobjExperimentSchema, QasmQobjConfigSchema
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
-
-from .models import (BaseQobjConfigSchema, BaseQobjExperimentSchema, BaseQobjHeaderSchema,
-                     QASMQobjConfigSchema, QASMQobjExperimentSchema, QASMQobjHeaderSchema,
-                     PulseQobjConfigSchema, PulseQobjExperimentSchema, PulseQobjHeaderSchema)
 from .utils import QobjType
 
-
 QOBJ_VERSION = '1.1.0'
+
 """Current version of the Qobj schema.
 
 Qobj schema versions:
@@ -35,21 +34,22 @@ class QobjSchema(BaseSchema):
     schema_version = String(required=True, missing=QOBJ_VERSION)
 
     # Required properties depend on Qobj type.
-    config = Nested(BaseQobjConfigSchema, required=True)
-    experiments = Nested(BaseQobjExperimentSchema, required=True, many=True)
-    header = Nested(BaseQobjHeaderSchema, required=True)
-    type = String(required=True, validate=OneOf(QobjType.QASM, QobjType.PULSE))
+    config = Nested(QobjConfigSchema, required=True)
+    experiments = Nested(QobjExperimentSchema, required=True, many=True)
+    header = Nested(QobjHeaderSchema, required=True)
+    type = String(required=True, validate=OneOf(choices=(QobjType.QASM, QobjType.PULSE)))
 
 
-class QASMQobjSchema(QobjSchema):
-    """Schema for QASMQobj."""
+class QasmQobjSchema(QobjSchema):
+    """Schema for QasmQobj."""
 
     # Required properties.
-    config = Nested(QASMQobjConfigSchema, required=True)
-    experiments = Nested(QASMQobjExperimentSchema, required=True, many=True)
-    header = Nested(QASMQobjHeaderSchema, required=True)
+    config = Nested(QasmQobjConfigSchema, required=True)
+    experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
+    header = Nested(QobjHeaderSchema, required=True)
 
-    type = String(validate=Equal(QobjType.QASM))
+    type = String(required=True, validate=Equal(QobjType.QASM),
+                  missing=QobjType.QASM)
 
 
 class PulseQobjSchema(QobjSchema):
@@ -58,9 +58,10 @@ class PulseQobjSchema(QobjSchema):
     # Required properties.
     config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
-    header = Nested(PulseQobjHeaderSchema, required=True)
+    header = Nested(QobjHeaderSchema, required=True)
 
-    type = String(validate=Equal(QobjType.PULSE))
+    type = String(required=True, validate=Equal(QobjType.PULSE),
+                  missing=QobjType.PULSE)
 
 
 @bind_schema(QobjSchema)
@@ -72,9 +73,9 @@ class Qobj(BaseModel):
 
     Attributes:
         qobj_id (str): Qobj identifier.
-        config (QASMQobjConfig): config settings for the Qobj.
-        experiments (list[QASMQobjExperiment]): list of experiments.
-        header (QASMQobjHeader): headers.
+        config (QobjConfig): config settings for the Qobj.
+        experiments (list[QobjExperiment]): list of experiments.
+        header (QobjHeader): headers.
         type (str): Qobj type.
     """
     def __init__(self, qobj_id, config, experiments, header, type, **kwargs):
@@ -89,30 +90,30 @@ class Qobj(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(QASMQobjSchema)
-class QASMQobj(Qobj):
-    """Model for QASMQobj inherit from Qobj.
+@bind_schema(QasmQobjSchema)
+class QasmQobj(Qobj):
+    """Model for QasmQobj inherit from Qobj.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMQobjSchema``.
+    full description of the model, please check ``QasmQobjSchema``.
 
     Attributes:
         qobj_id (str): Qobj identifier.
         config (QASMQobjConfig): config settings for the Qobj.
         experiments (list[QASMQobjExperiment]): list of experiments.
-        header (QASMQobjHeader): headers.
+        header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
 
         # to avoid specifying 'type' here within from_dict()
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k != 'type'}
+        kwargs.pop('type', None)
 
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type='QASM',
-                         **filtered_kwargs)
+                         type=QobjType.QASM.value,
+                         **kwargs)
 
 
 @bind_schema(PulseQobjSchema)
@@ -126,16 +127,16 @@ class PulseQobj(Qobj):
         qobj_id (str): Qobj identifier.
         config (PulseQobjConfig): config settings for the Qobj.
         experiments (list[PulseQobjExperiment]): list of experiments.
-        header (PulseQobjHeader): headers.
+        header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
 
         # to avoid specifying 'type' here within from_dict()
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k != 'type'}
+        kwargs.pop('type', None)
 
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type='PULSE',
-                         **filtered_kwargs)
+                         type=QobjType.PULSE.value,
+                         **kwargs)
