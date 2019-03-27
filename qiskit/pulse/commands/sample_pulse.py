@@ -8,8 +8,33 @@
 """
 Sample pulse.
 """
+from typing import Set
 
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from qiskit.pulse.channels import PulseChannel, OutputChannel
+from qiskit.pulse.common.interfaces import Pulse
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from .pulse_command import PulseCommand
+
+
+class DrivePulse(Pulse):
+    """Pulse to drive a pulse shape to a `OutputChannel`. """
+
+    def __init__(self, command: 'SamplePulse', channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, command.duration), channel)])
+
+    @property
+    def duration(self):
+        return self._command.duration
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
 
 
 class SamplePulse(PulseCommand):
@@ -64,3 +89,6 @@ class SamplePulse(PulseCommand):
                 (self.samples == other.samples).all():
             return True
         return False
+
+    def __call__(self, channel: OutputChannel) -> DrivePulse:
+        return DrivePulse(self, channel)

@@ -8,8 +8,33 @@
 """
 Snapshot.
 """
+from typing import Set
 
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from qiskit.pulse.channels import PulseChannel, SnapshotChannel
+from qiskit.pulse.common.interfaces import Pulse
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from .pulse_command import PulseCommand
+
+
+class SnapshotPulse(Pulse):
+    """Pulse to keep persistent value. """
+
+    def __init__(self, command: 'Snapshot'):
+        self._command = command
+        self._channel = SnapshotChannel()
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), self._channel)])
+
+    @property
+    def duration(self):
+        return 0
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
 
 
 class Snapshot(PulseCommand):
@@ -41,7 +66,10 @@ class Snapshot(PulseCommand):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.label == other.label and\
+                self.label == other.label and \
                 self.type == other.type:
             return True
         return False
+
+    def __call__(self) -> SnapshotPulse:
+        return SnapshotPulse(self)

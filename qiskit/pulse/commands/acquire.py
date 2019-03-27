@@ -5,15 +5,62 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-param-doc,useless-super-delegation
-
 """
 Acquire.
 """
+from typing import Union, List, Set
 
-from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands.meas_opts import MeasOpts
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from qiskit.pulse.exceptions import CommandsError
+from qiskit.pulse.channels import PulseChannel, Qubit, MemorySlot, RegisterSlot
+from qiskit.pulse.common.interfaces import Pulse
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from .meas_opts import Discriminator, Kernel
+from .pulse_command import PulseCommand
+
+
+class AcquirePulse(Pulse):
+    """Pulse to acquire measurement result. """
+
+    def __init__(self,
+                 command: 'Acquire',
+                 qubits: Union[Qubit, List[Qubit]],
+                 mem_slots: Union[MemorySlot, List[MemorySlot]],
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None):
+        if isinstance(qubits, Qubit):
+            qubits = [qubits]
+        if isinstance(mem_slots, MemorySlot):
+            mem_slots = [mem_slots]
+        if reg_slots:
+            if isinstance(reg_slots, RegisterSlot):
+                reg_slots = [reg_slots]
+            if len(qubits) != len(reg_slots):
+                raise CommandsError("#reg_slots must be equals to #qubits")
+        else:
+            reg_slots = []
+        self._command = command
+        self._acquire_channels = [q.acquire for q in qubits]
+        self._mem_slots = mem_slots
+        self._reg_slots = reg_slots
+        # TODO: more precise time-slots
+        slots = [Timeslot(Interval(0, command.duration), q.acquire) for q in qubits]
+        slots.extend([Timeslot(Interval(0, command.duration), mem) for mem in mem_slots])
+        self._occupancy = TimeslotOccupancy(slots)
+
+    @property
+    def duration(self):
+        return self._command.duration
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        channels = []
+        channels.extend(self._acquire_channels)
+        channels.extend(self._mem_slots)
+        channels.extend(self._reg_slots)
+        return {channels}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
 
 
 class Acquire(PulseCommand):
@@ -31,16 +78,16 @@ class Acquire(PulseCommand):
                 (if applicable) if the measurement level is 1 or 2.
 
         Raises:
-            QiskitError: when invalid discriminator or kernel object is input.
+            CommandsError: when invalid discriminator or kernel object is input.
         """
 
-        super(Acquire, self).__init__(duration=duration, name='acquire')
+        super().__init__(duration=duration, name='acquire')
 
         if discriminator:
             if isinstance(discriminator, Discriminator):
                 self.discriminator = discriminator
             else:
-                raise QiskitError('Invalid discriminator object is specified.')
+                raise CommandsError('Invalid discriminator object is specified.')
         else:
             self.discriminator = Discriminator()
 
@@ -48,7 +95,7 @@ class Acquire(PulseCommand):
             if isinstance(kernel, Kernel):
                 self.kernel = kernel
             else:
-                raise QiskitError('Invalid kernel object is specified.')
+                raise CommandsError('Invalid kernel object is specified.')
         else:
             self.kernel = Kernel()
 
@@ -68,26 +115,8 @@ class Acquire(PulseCommand):
             return True
         return False
 
-
-class Discriminator(MeasOpts):
-    """Discriminator."""
-
-    def __init__(self, name=None, **params):
-        """Create new discriminator.
-
-        Parameters:
-            name (str): Name of discriminator to be used.
-        """
-        super(Discriminator, self).__init__(name, **params)
-
-
-class Kernel(MeasOpts):
-    """Kernel."""
-
-    def __init__(self, name=None, **params):
-        """Create new kernel.
-
-        Parameters:
-            name (str): Name of kernel to be used.
-        """
-        super(Kernel, self).__init__(name, **params)
+    def __call__(self,
+                 qubits: Union[Qubit, List[Qubit]],
+                 mem_slots: Union[MemorySlot, List[MemorySlot]],
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None) -> AcquirePulse:
+        return AcquirePulse(self, qubits, mem_slots, reg_slots)

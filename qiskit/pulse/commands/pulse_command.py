@@ -5,32 +5,31 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
-
 """
 Base command.
 """
+from abc import ABCMeta, abstractmethod
+from qiskit.pulse.exceptions import CommandsError
 
-from qiskit.exceptions import QiskitError
 
+class PulseCommand(metaclass=ABCMeta):
+    """Super abstract class of command group."""
 
-class PulseCommand:
-    """Super class of command group."""
-
-    def __init__(self, duration, name):
+    @abstractmethod
+    def __init__(self, duration: int = None, name: str = None):
         """Create new pulse commands.
 
         Args:
             duration (int): Duration of pulse.
             name (str): Name of pulse command.
         Raises:
-            QiskitError: when duration is not number of points.
+            CommandsError: when duration is not number of points.
         """
 
         if isinstance(duration, int):
             self.duration = duration
         else:
-            raise QiskitError('Pulse duration should be integer.')
+            raise CommandsError('Pulse duration should be integer.')
 
         self.name = name
 
