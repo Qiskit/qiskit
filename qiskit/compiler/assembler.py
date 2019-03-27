@@ -98,8 +98,8 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                 current_instruction.label = str(opt.params[0])
                 current_instruction.type = str(opt.params[1])
             if opt.name == 'unitary':
-                if opt.label:
-                    current_instruction.label = opt.label
+                if opt._label:
+                    current_instruction.label = opt._label
             if opt.control:
                 mask = 0
                 for clbit in clbit_labels:

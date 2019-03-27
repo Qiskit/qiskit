@@ -51,20 +51,20 @@ class TestUnitary(QiskitTestCase):
         """test conjugate"""
         ymat = numpy.array([[0, -1j], [1j, 0]])
         uni = Unitary([[0, 1j], [-1j, 0]])
-        self.assertTrue(numpy.array_equal(uni.conjugate().matrix, ymat))
+        self.assertTrue(numpy.array_equal(uni.conjugate()._representation, ymat))
 
     def test_conjugate_inplace(self):
         """test inplace conjugate"""
         ymat = numpy.array([[0, -1j], [1j, 0]])
         uni = Unitary([[0, 1j], [-1j, 0]])
         uni_conj = uni.conjugate(inplace=True)
-        self.assertTrue(numpy.array_equal(uni.matrix, ymat))
-        self.assertTrue(uni.matrix is uni_conj.matrix)
+        self.assertTrue(numpy.array_equal(uni._representation, ymat))
+        self.assertTrue(uni._representation is uni_conj._representation)
 
     def test_adjoint(self):
         """test adjoint operation"""
         uni = Unitary([[0, 1j], [-1j, 0]])
-        self.assertTrue(numpy.array_equal(uni.adjoint().matrix, uni.matrix))
+        self.assertTrue(numpy.array_equal(uni.adjoint()._representation, uni._representation))
 
     def test_tensor(self):
         """test tensor product of unitaries"""
@@ -74,7 +74,7 @@ class TestUnitary(QiskitTestCase):
         ux = Unitary(sx)
         uy = Unitary(sy)
         result = ux.tensor(uy.tensor(uy))
-        xmat = result.matrix
+        xmat = result._representation
         self.assertTrue(numpy.array_equal(xmat, ymat))
 
     def test_expand(self):
@@ -85,7 +85,7 @@ class TestUnitary(QiskitTestCase):
         ux = Unitary(sx)
         uy = Unitary(sy)
         result = ux.expand(uy.expand(uy))
-        xmat = result.matrix
+        xmat = result._representation
         self.assertTrue(numpy.array_equal(xmat, ymat))
 
     def test_compose(self):
@@ -95,18 +95,21 @@ class TestUnitary(QiskitTestCase):
         ymat = sx @ sy
         ux = Unitary(sx)
         uy = Unitary(sy)
-        result = (ux.compose(uy))
-        xmat = result.matrix
+        result = ux.compose(uy)
+        xmat = result._representation
         self.assertTrue(numpy.array_equal(xmat, ymat))
 
     def test_power(self):
         """test unitary power"""
         uy = Unitary(numpy.array([[0, -1j], [1j, 0]]))
-        self.assertTrue(numpy.array_equal(uy.power(0).matrix, numpy.identity(2)))
-        self.assertTrue(numpy.array_equal(uy.power(1).matrix, uy.matrix))
-        self.assertTrue(numpy.array_equal(uy.power(2).matrix, numpy.identity(2)))
-        self.assertTrue(numpy.array_equal(uy.power(-1).matrix,
-                                          numpy.linalg.matrix_power(uy.matrix, -1)))
+        self.assertTrue(numpy.array_equal(uy.power(0)._representation,
+                                          numpy.identity(2)))
+        self.assertTrue(numpy.array_equal(uy.power(1)._representation,
+                                          uy._representation))
+        self.assertTrue(numpy.array_equal(uy.power(2)._representation,
+                                          numpy.identity(2)))
+        self.assertTrue(numpy.array_equal(uy.power(-1)._representation,
+                                          numpy.linalg.matrix_power(uy._representation, -1)))
 
 
 class TestUnitaryCircuit(QiskitTestCase):
@@ -126,13 +129,13 @@ class TestUnitaryCircuit(QiskitTestCase):
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
-        node_ids = dag.named_nodes('unitary')
-        self.assertTrue(len(node_ids) == 1)
-        dnode = dag.multi_graph.node[node_ids[0]]
-        self.assertIsInstance(dnode['op'], Unitary)
-        for qubit in dnode['qargs']:
+        dag_nodes = dag.named_nodes('unitary')
+        self.assertTrue(len(dag_nodes) == 1)
+        dnode = dag_nodes[0]
+        self.assertIsInstance(dnode.op, Unitary)
+        for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode['op'].matrix,
+        self.assertTrue(numpy.allclose(dnode.op._representation,
                                        matrix))
 
     def test_2q_unitary(self):
@@ -158,10 +161,10 @@ class TestUnitaryCircuit(QiskitTestCase):
         nodes = dag.twoQ_nodes()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
-        self.assertIsInstance(dnode['op'], Unitary)
-        for qubit in dnode['qargs']:
+        self.assertIsInstance(dnode.op, Unitary)
+        for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode['op'].matrix,
+        self.assertTrue(numpy.allclose(dnode.op._representation,
                                        matrix))
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
@@ -182,11 +185,11 @@ class TestUnitaryCircuit(QiskitTestCase):
         dag = circuit_to_dag(qc)
         nodes = dag.threeQ_or_more_nodes()
         self.assertTrue(len(nodes) == 1)
-        dnode = nodes[0][1]
-        self.assertIsInstance(dnode['op'], Unitary)
-        for qubit in dnode['qargs']:
+        dnode = nodes[0]
+        self.assertIsInstance(dnode.op, Unitary)
+        for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1, 3])
-        self.assertTrue(numpy.allclose(dnode['op'].matrix,
+        self.assertTrue(numpy.allclose(dnode.op._representation,
                                        matrix))
 
     def test_qobj_with_unitary_matrix(self):

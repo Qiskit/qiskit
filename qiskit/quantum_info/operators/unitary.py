@@ -23,7 +23,8 @@ from qiskit.dagcircuit import DAGCircuit
 class Unitary(Gate):
     """Class for representing unitary operators"""
 
-    def __init__(self, representation, *qargs, label=None, validate=True, rtol=1e-5, atol=1e-8):
+    def __init__(self, representation, *qargs, label=None, validate=True,
+                 rtol=1e-5, atol=1e-8):
         """
         Create unitary.
 
@@ -44,17 +45,15 @@ class Unitary(Gate):
         self.__n_qubits = None
         self.__label = None
         self.__dimension = None
-        # set matrix (depends on previous attributes)
-        if isinstance(representation, numpy.ndarray):
+        # set representation (depends on previous attributes)
+        if isinstance(representation, (numpy.ndarray, sympy.Matrix, list)):
             self._representation = representation
-        elif isinstance(representation, list):
-            self._representation = numpy.asarray(representation)
-        elif isinstance(represenation, Unitary):
+            super().__init__('unitary', [sympy.Matrix(representation)], list(qargs))
+        elif isinstance(representation, Unitary):
             self = copy.deepcopy(representation)
         if isinstance(label, str):
             self._label = label
         self._decompostion = []  # storage (needed?)
-        super().__init__('unitary', [sympy.Matrix(matrix)], list(qargs))
 
     @property
     def dimension(self):
@@ -63,7 +62,7 @@ class Unitary(Gate):
         Returns:
             int: dimension of matrix
         """
-        return self._dimension
+        return self.__dimension
 
     def tensor(self, other):
         """
@@ -79,7 +78,7 @@ class Unitary(Gate):
         """
         dim = self.dimension + other.dimension
         output = Unitary(numpy.empty((dim, dim), dtype='complex'), validate=False)
-        output.matrix = numpy.kron(self.matrix, other.matrix)
+        output._representation = numpy.kron(self._representation, other._representation)
         return output
 
     def expand(self, other):
@@ -96,7 +95,7 @@ class Unitary(Gate):
         """
         dim = self.dimension + other.dimension
         output = Unitary(numpy.empty((dim, dim), dtype='complex'), validate=False)
-        output.matrix = numpy.kron(other.matrix, self.matrix)
+        output._representation = numpy.kron(other._representation, self._representation)
         return output
 
     def compose(self, other, inplace=False, front=False):
@@ -117,16 +116,20 @@ class Unitary(Gate):
         """
         if inplace:
             if front:
-                numpy.matmul(other.matrix, self.matrix, out=self.matrix)
+                numpy.matmul(other._representation, self._representation,
+                             out=self._representation)
             else:
-                numpy.matmul(self.matrix, other.matrix, out=self.matrix)
+                numpy.matmul(self._representation, other._representation,
+                             out=self._representation)
             return self
         else:
             output = copy.deepcopy(self)
             if front:
-                numpy.matmul(other.matrix, output.matrix, out=output.matrix)
+                numpy.matmul(other._representation, output._representation,
+                             out=output._representation)
             else:
-                numpy.matmul(output.matrix, other.matrix, out=output.matrix)
+                numpy.matmul(output._representation, other._representation,
+                             out=output._representation)
             return output
 
     def conjugate(self, inplace=False):
@@ -139,11 +142,11 @@ class Unitary(Gate):
             Unitary: unitary object
         """
         if inplace:
-            numpy.conj(self.matrix, out=self.matrix)
+            numpy.conj(self._representation, out=self._representation)
             return self
         else:
             output = copy.deepcopy(self)
-            numpy.conj(output.matrix, out=output.matrix)
+            numpy.conj(output._representation, out=output._representation)
             return output
 
     def adjoint(self, inplace=False):
@@ -169,17 +172,17 @@ class Unitary(Gate):
             Unitary: transposed unitary
         """
         if inplace:
-            self.matrix = self.matrix.transpose()
+            self._representation = self._representation.transpose()
             return self
         else:
             output = copy.deepcopy(self)
-            output.matrix = self.matrix.transpose()
+            output._representation = self._representation.transpose()
             return output
 
     @property
     def _representation(self):
         """
-        Get representation
+        Get representation. Currently this is just a unitary matrix.
 
         Returns:
             numpy.ndarray: matrix
@@ -187,8 +190,8 @@ class Unitary(Gate):
         Raises:
             QiskitError: if representation not defined
         """
-        if self._representation is not None:
-            return self._representation
+        if self.__representation is not None:
+            return self.__representation
         else:
             raise QiskitError("representation not defined")
 
@@ -202,21 +205,21 @@ class Unitary(Gate):
         Raises:
             QiskitError: if representation is not list, ndarray, or Unitary
         """
-        if isinstance(representation, (numpy.ndarray, list)):
+        if isinstance(representation, (numpy.ndarray, list, sympy.Matrix)):
             mat = numpy.asarray(representation, dtype='complex')
             if self.__validate:
                 if not numpy.allclose(mat.T.conj() @ mat, numpy.identity(mat.shape[0]),
                                       rtol=self.__rtol, atol=self.__atol):
                     raise QiskitError("matrix is not unitary")
-            self._representation = mat
+            self.__representation = mat
             self.__n_qubits = int(numpy.log2(mat.shape[0]))
             self.__dimension = mat.shape[0]
         elif representation is None:
-            self._representation = None  # for creating empty Unitary
+            self.__representation = None  # for creating empty Unitary
         else:
             raise QiskitError('unrecognized unitary representation: {}'.format(
                 type(representation)))
-        
+
     def power(self, n, inplace=False):
         """Return n-th matrix power.
 
@@ -229,19 +232,19 @@ class Unitary(Gate):
         """
         if inplace:
             if n >= 0:
-                self.matrix = numpy.linalg.matrix_power(self.matrix, n)
+                self._representation = numpy.linalg.matrix_power(self._representation, n)
             else:
-                self.matrix = numpy.linalg.matrix_power(
-                    self.matrix.T.conj(), n)
+                self._representation = numpy.linalg.matrix_power(
+                    self._representation.T.conj(), n)
             return self
         else:
             dim = self.dimension
             uni = Unitary(numpy.empty((dim, dim), dtype='complex'), validate=False)
             if n >= 0:
-                uni.matrix = numpy.linalg.matrix_power(self.matrix, n)
+                uni._representation = numpy.linalg.matrix_power(self._representation, n)
             else:
-                uni.matrix = numpy.linalg.matrix_power(
-                    self.matrix.T.conj(), n)
+                uni._representation = numpy.linalg.matrix_power(
+                    self._representation.T.conj(), n)
             return uni
 
     def reapply(self, circ):
