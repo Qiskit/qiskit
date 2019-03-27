@@ -90,6 +90,7 @@ Changed
   rest of spec-defined entities. (#1909).
 - The rzz gate is now represented as a line when printed in text (#1957).
 - Text drawer has support for multi-q gates (#1939).
+- Separate ``Qobj`` into ``PulseQobj`` and ``QasmQobj`` (#1969).
 
 Deprecated
 ----------
