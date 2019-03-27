@@ -273,17 +273,16 @@ class LayoutTest(QiskitTestCase):
     def test_layout_repr(self):
         """Layout repr reproduces layout"""
         qr = QuantumRegister(5, 'qr')
-        lay = Layout({(qr, 0): 2,
+        layout = Layout({(qr, 0): 2,
                       (qr, 1): 4,
                       (qr, 2): 3,
                       (qr, 3): 0,
                       (qr, 4): 1,
                       })
-        # pylint: disable=eval-used
-        lay2 = eval(lay.__repr__())
-        self.assertEqual(lay._p2v, lay2._p2v)
-        self.assertEqual(lay._v2p, lay2._v2p)
 
+        repr_layout = eval(layout.__repr__()) # pylint: disable=eval-used
+        self.assertDictEqual(layout._p2v, repr_layout._p2v)
+        self.assertDictEqual(layout._v2p, repr_layout._v2p)
 
 if __name__ == '__main__':
     unittest.main()
