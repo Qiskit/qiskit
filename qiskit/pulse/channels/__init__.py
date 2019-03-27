@@ -7,7 +7,9 @@
 
 """Channel classes for pulse."""
 
+from .device_specification import DeviceSpecification
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
 from .output_channel import OutputChannel
-from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot
+from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
 from .pulse_channel import PulseChannel
+from .qubit import Qubit
