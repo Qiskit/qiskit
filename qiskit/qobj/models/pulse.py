@@ -82,7 +82,7 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     # TODO : check if they are always required by backend
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
     memory_slot_size = Integer(required=True)
-    pulse_library = Nested(QobjPulseLibrarySchema, many=True)
+    pulse_library = Nested(QobjPulseLibrarySchema, many=True, required=True)
     qubit_lo_freq = List(Number(), required=True)
     meas_lo_freq = List(Number(), required=True)
     rep_time = Integer(required=True)
