@@ -28,9 +28,11 @@ class OutputChannel(PulseChannel):
 
     @property
     def lo_frequency(self) -> float:
+        """Get the frequency of local oscillator of this channel."""
         return self._lo_frequency
 
     def set_lo_frequency(self, lo_frequency: float):
+        """Set the frequency of local oscillator of this channel."""
         self._lo_frequency = lo_frequency
 
     def __eq__(self, other):

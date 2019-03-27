@@ -38,6 +38,7 @@ class Qubit:
         Returns:
             bool: are self and other equal.
         """
+        # pylint: disable=too-many-boolean-expressions
         if type(self) is type(other) and \
                 self._index == other._index and \
                 self._drives == other._drives and \
@@ -48,28 +49,32 @@ class Qubit:
         return False
 
     @property
-    def drive(self):
+    def drive(self) -> DriveChannel:
+        """Return the primary drive channel of this qubit."""
         if self._drives:
             return self._drives[0]
         else:
             raise PulseError("No drive channels in q[%d]" % self._index)
 
     @property
-    def control(self):
+    def control(self) -> ControlChannel:
+        """Return the primary control channel of this qubit."""
         if self._controls:
             return self._controls[0]
         else:
             raise PulseError("No control channels in q[%d]" % self._index)
 
     @property
-    def measure(self):
+    def measure(self) -> MeasureChannel:
+        """Return the primary measure channel of this qubit."""
         if self._measures:
             return self._measures[0]
         else:
             raise PulseError("No measurement channels in q[%d]" % self._index)
 
     @property
-    def acquire(self):
+    def acquire(self) -> AcquireChannel:
+        """Return the primary acquire channel of this qubit."""
         if self._acquires:
             return self._acquires[0]
         else:

@@ -90,12 +90,16 @@ class DeviceSpecification:
 
     @property
     def q(self) -> List[Qubit]:
+        """Return qubits in this device."""
         return self._qubits
 
+    # pylint: disable=invalid-name
     @property
     def c(self) -> List[RegisterSlot]:
+        """Return register slots in this device."""
         return self._reg_slots
 
     @property
     def mem(self) -> List[MemorySlot]:
+        """Return memory slots in this device."""
         return self._mem_slots
