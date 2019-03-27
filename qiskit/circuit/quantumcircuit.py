@@ -8,7 +8,6 @@
 """
 Quantum circuit object.
 """
-from collections import OrderedDict
 from copy import deepcopy
 import itertools
 import sys
@@ -29,18 +28,6 @@ class QuantumCircuit:
     # Class variable OPENQASM header
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
-
-    # Class variable with gate definitions
-    # This is a dict whose values are dicts with the
-    # following keys:
-    #   "print" = True or False
-    #   "opaque" = True or False
-    #   "n_args" = number of real parameters
-    #   "n_bits" = number of qubits
-    #   "args"   = list of parameter names
-    #   "bits"   = list of qubit names
-    #   "body"   = GateBody AST node
-    definitions = OrderedDict()
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
@@ -263,22 +250,6 @@ class QuantumCircuit:
                 if element2.name == element1.name:
                     if element1 != element2:
                         raise QiskitError("circuits are not compatible")
-
-    def _gate_string(self, name):
-        """Return a QASM string for the named gate."""
-        out = ""
-        if self.definitions[name]["opaque"]:
-            out = "opaque " + name
-        else:
-            out = "gate " + name
-        if self.definitions[name]["n_args"] > 0:
-            out += "(" + ",".join(self.definitions[name]["args"]) + ")"
-        out += " " + ",".join(self.definitions[name]["bits"])
-        if self.definitions[name]["opaque"]:
-            out += ";"
-        else:
-            out += "\n{\n" + self.definitions[name]["body"].qasm() + "}\n"
-        return out
 
     def qasm(self):
         """Return OPENQASM string."""
