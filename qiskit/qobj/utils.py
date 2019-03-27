@@ -18,6 +18,12 @@ class QobjType(str, Enum):
     PULSE = 'PULSE'
 
 
+class MeasReturnType(str, Enum):
+    """PulseQobjConfig meas_return allowed values."""
+    AVERAGE = 'avg'
+    SINGLE = 'single'
+
+
 def validate_qobj_against_schema(qobj):
     """Validates a QObj against the .json schema.
 
@@ -28,3 +34,4 @@ def validate_qobj_against_schema(qobj):
         qobj.as_dict(), 'qobj',
         err_msg='Qobj failed validation. Set Qiskit log level to DEBUG '
                 'for further information.')
+

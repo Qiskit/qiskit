@@ -118,7 +118,7 @@ class TestDagOperations(QiskitTestCase):
         h_node = self.dag.op_nodes(op=HGate).pop()
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
-        self.assertIn(reset_node, set(self.dag.multi_graph.predecessors(h_node)))
+        self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
@@ -130,7 +130,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
-            self.assertIsInstance(self.dag.node(node)["op"], Instruction)
+            self.assertIsInstance(node.op, Instruction)
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
@@ -146,8 +146,8 @@ class TestDagOperations(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(self.dag.node(op_node_1)["op"], HGate)
-        self.assertIsInstance(self.dag.node(op_node_2)["op"], HGate)
+        self.assertIsInstance(op_node_1.op, HGate)
+        self.assertIsInstance(op_node_2.op, HGate)
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
@@ -155,15 +155,17 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
         self.dag.apply_operation_back(Reset(self.qubit0))
 
-        successor_measure = self.dag.quantum_successors(self.dag.named_nodes('measure').pop())
+        successor_measure = self.dag.quantum_successors(
+            self.dag.named_nodes('measure').pop())
         self.assertEqual(len(successor_measure), 1)
         cnot_node = successor_measure[0]
-        self.assertIsInstance(self.dag.node(cnot_node)["op"], CnotGate)
+
+        self.assertIsInstance(cnot_node.op, CnotGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
         self.assertEqual(len(successor_cnot), 2)
-        self.assertEqual(self.dag.node(successor_cnot[0])["type"], 'out')
-        self.assertIsInstance(self.dag.node(successor_cnot[1])["op"], Reset)
+        self.assertEqual(successor_cnot[0].type, 'out')
+        self.assertIsInstance(successor_cnot[1].op, Reset)
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
@@ -177,8 +179,9 @@ class TestDagOperations(QiskitTestCase):
 
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
-        self.assertIsInstance(self.dag.node(op_node_1)["op"], Gate)
-        self.assertIsInstance(self.dag.node(op_node_2)["op"], Gate)
+
+        self.assertIsInstance(op_node_1.op, Gate)
+        self.assertIsInstance(op_node_2.op, Gate)
 
     def test_two_q_gates(self):
         """The method dag.twoQ_gates() returns all 2Q gate nodes"""
@@ -191,8 +194,8 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(op_nodes), 1)
 
         op_node = op_nodes.pop()
-        self.assertIsInstance(op_node["op"], Gate)
-        self.assertEqual(len(op_node['qargs']), 2)
+        self.assertIsInstance(op_node.op, Gate)
+        self.assertEqual(len(op_node.qargs), 2)
 
     def test_get_named_nodes(self):
         """The get_named_nodes(AName) method returns all the nodes with name AName"""
@@ -205,8 +208,10 @@ class TestDagOperations(QiskitTestCase):
         # The ordering is not assured, so we only compare the output (unordered) sets.
         # We use tuples because lists aren't hashable.
         named_nodes = self.dag.named_nodes('cx')
-        node_qargs = {tuple(self.dag.node(node_id)["op"].qargs)
-                      for node_id in named_nodes}
+
+        node_qargs = {tuple(node.qargs)
+                      for node in named_nodes}
+
         expected_qargs = {
             (self.qubit0, self.qubit1),
             (self.qubit2, self.qubit1),
@@ -221,38 +226,43 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit2))
         self.dag.apply_operation_back(HGate(self.qubit2))
 
-        named_nodes = self.dag.node_nums_in_topological_order()
-        self.assertEqual([1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 4, 14, 2, 15, 6],
-                         [i for i in named_nodes])
+        named_nodes = self.dag.nodes_in_topological_order()
 
-    def test_dag_has_edge(self):
-        """ Test that existence of edges between nodes is correctly identified"""
-        self.assertTrue(self.dag.has_edge(1, 2))
-        self.assertTrue(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 0)))
-        self.assertFalse(self.dag.has_edge(1, 2, (QuantumRegister(3, 'qr'), 1)))
+        expected = [('qr[0]', []),
+                    ('qr[1]', []),
+                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
+                    ('qr[2]', []),
+                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
+                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 2)]),
+                    ('qr[0]', []),
+                    ('qr[1]', []),
+                    ('qr[2]', []),
+                    ('cr[0]', []),
+                    ('cr[0]', []),
+                    ('cr[1]', []),
+                    ('cr[1]', [])]
+        self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
-        self.assertFalse(self.dag.has_edge(1, 3))
-        self.assertFalse(self.dag.has_edge(1, 3, (QuantumRegister(3, 'qr'), 0)))
+    def test_dag_ops_on_wire(self):
+        """ Test that listing the gates on a qubit/classical bit gets the correct gates"""
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1),
+                                      [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(self.qubit0), [self.qubit0])
 
-    def test_dag_remove_edge(self):
-        """ Test that removing an edge as specified by a wire removes the correct edge"""
+        qbit = self.dag.qubits()[0]
+        self.assertEqual([1, 11, 12, 2], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
+        self.assertEqual([11, 12],
+                         [i._node_id for i in self.dag.nodes_on_wire(qbit, only_ops=True)])
 
-        q = QuantumRegister(2, 'qr')
-        qc = QuantumCircuit(q)
-        qc.cx(q[0], q[1])
-        qc.cx(q[0], q[1])
+        cbit = self.dag.clbits()[0]
+        self.assertEqual([7, 8], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
+        self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
-        dag = circuit_to_dag(qc)
-
-        node1 = 5
-        node2 = 6
-        wire = (QuantumRegister(2, 'qr'), 0)
-
-        self.assertTrue(dag.has_edge(node1, node2, wire))
-        dag.remove_edge(node1, node2, wire)
-        self.assertFalse(dag.has_edge(node1, node2, wire))
-
-        self.assertRaises(DAGCircuitError, dag.remove_edge, node1, node2, wire)
+        (reg, _) = qbit
+        with self.assertRaises(DAGCircuitError):
+            next(self.dag.nodes_on_wire((reg, 7)))
 
 
 class TestDagLayers(QiskitTestCase):
@@ -281,9 +291,9 @@ class TestDagLayers(QiskitTestCase):
         self.assertEqual(5, len(layers))
 
         name_layers = [
-            [node[1]["op"].name
-             for node in layer["graph"].multi_graph.nodes(data=True)
-             if node[1]["type"] == "op"] for layer in layers]
+            [node.op.name
+             for node in layer["graph"].multi_graph.nodes()
+             if node.type == "op"] for layer in layers]
 
         self.assertEqual([
             ['h'],
@@ -339,6 +349,25 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_factors(self):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
+
+
+class TestCircuitSpecialCases(QiskitTestCase):
+    """DAGCircuit test for special cases, usually for regression."""
+
+    def test_circuit_depth_with_repetition(self):
+        """ When cx repeat, they are not "the same".
+        See https://github.com/Qiskit/qiskit-terra/issues/1994
+        """
+        qr1 = QuantumRegister(2)
+        qr2 = QuantumRegister(2)
+        circ = QuantumCircuit(qr1, qr2)
+        circ.h(qr1[0])
+        circ.cx(qr1[1], qr2[1])
+        circ.cx(qr1[1], qr2[1])
+        circ.h(qr2[0])
+        dag = circuit_to_dag(circ)
+
+        self.assertEqual(dag.depth(), 2)
 
 
 class TestDagEquivalence(QiskitTestCase):
