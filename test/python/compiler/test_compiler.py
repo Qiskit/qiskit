@@ -586,6 +586,7 @@ class TestCompiler(QiskitTestCase):
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, QasmQobj)
 
+    @unittest.skip('Temporary skipping (see #2025 and #2006')
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.
         """
