@@ -10,9 +10,9 @@ Physical qubit.
 """
 from typing import List
 
-from qiskit.pulse.channels import AcquireChannel
-from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.pulse.exceptions import PulseError
+from .output_channel import DriveChannel, ControlChannel, MeasureChannel
+from .pulse_channel import AcquireChannel
 
 
 class Qubit:

@@ -14,7 +14,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from typing import List
 
-from qiskit.pulse import DeviceSpecification
+from qiskit.pulse.channels import DeviceSpecification
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.commands import PulseCommand, SamplePulse
 from qiskit.pulse.exceptions import ScheduleError

@@ -11,10 +11,10 @@ Specification of the device.
 import logging
 from typing import List
 
-from qiskit.pulse.qubit import Qubit
-from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
-from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot
 from qiskit.pulse.exceptions import PulseError
+from .output_channel import DriveChannel, ControlChannel, MeasureChannel
+from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot
+from .qubit import Qubit
 
 logger = logging.getLogger(__name__)
 
