@@ -8,11 +8,33 @@
 """
 Sample pulse.
 """
+from typing import Set
 
-import numpy as np
-
-from qiskit.pulse.exceptions import CommandsError
+from qiskit.pulse.channels import PulseChannel, OutputChannel
+from qiskit.pulse.common.interfaces import Pulse
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from .pulse_command import PulseCommand
+
+
+class DrivePulse(Pulse):
+    """Pulse to drive a pulse shape to a `OutputChannel`. """
+
+    def __init__(self, command: 'SamplePulse', channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, command.duration), channel)])
+
+    @property
+    def duration(self):
+        return self._command.duration
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
 
 
 class SamplePulse(PulseCommand):
@@ -24,8 +46,6 @@ class SamplePulse(PulseCommand):
         Args:
             samples (ndarray): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
-        Raises:
-            CommandsError: when pulse envelope amplitude exceeds 1.
         """
         if not name:
             _name = str('pulse_object_%s' % id(self))
@@ -33,9 +53,6 @@ class SamplePulse(PulseCommand):
             _name = name
 
         super(SamplePulse, self).__init__(duration=len(samples), name=_name)
-
-        if np.any(np.abs(samples) > 1):
-            raise CommandsError('Absolute value of pulse envelope amplitude exceeds 1.')
 
         self.samples = samples
 
@@ -72,3 +89,6 @@ class SamplePulse(PulseCommand):
                 (self.samples == other.samples).all():
             return True
         return False
+
+    def __call__(self, channel: OutputChannel) -> DrivePulse:
+        return DrivePulse(self, channel)

@@ -5,19 +5,18 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
-
 """
 Base command.
 """
-
+from abc import ABCMeta, abstractmethod
 from qiskit.pulse.exceptions import CommandsError
 
 
-class PulseCommand:
-    """Super class of command group."""
+class PulseCommand(metaclass=ABCMeta):
+    """Super abstract class of command group."""
 
-    def __init__(self, duration, name):
+    @abstractmethod
+    def __init__(self, duration: int = None, name: str = None):
         """Create new pulse commands.
 
         Args:
@@ -49,3 +48,7 @@ class PulseCommand:
                 self.name == other.name:
             return True
         return False
+
+    def __repr__(self):
+        return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
+                                             self.name, self.duration)

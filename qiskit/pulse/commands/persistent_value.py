@@ -9,8 +9,34 @@
 Persistent value.
 """
 
+from typing import Set
+
+from qiskit.pulse.channels import PulseChannel, OutputChannel
+from qiskit.pulse.common.interfaces import Pulse
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import CommandsError
 from .pulse_command import PulseCommand
+
+
+class PersistentValuePulse(Pulse):
+    """Pulse to keep persistent value. """
+
+    def __init__(self, command: 'PersistentValue', channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
+
+    @property
+    def duration(self):
+        return 0
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
 
 
 class PersistentValue(PulseCommand):
@@ -47,3 +73,6 @@ class PersistentValue(PulseCommand):
                 self.value == other.value:
             return True
         return False
+
+    def __call__(self, channel: OutputChannel) -> PersistentValuePulse:
+        return PersistentValuePulse(self, channel)

@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-param-doc
+# pylint: disable=missing-param-doc,useless-super-delegation
 
 """
 Measurement options.
@@ -39,3 +39,35 @@ class MeasOpts:
                 self.params == other.params:
             return True
         return False
+
+    def to_dict(self):
+        """Convert measurement option object to dictionary.
+
+        Returns:
+            dict: A dictionary of measurement option.
+        """
+        return {'name': self.name, 'params': self.params}
+
+
+class Discriminator(MeasOpts):
+    """Discriminator."""
+
+    def __init__(self, name=None, **params):
+        """Create new discriminator.
+
+        Parameters:
+            name (str): Name of discriminator to be used.
+        """
+        super().__init__(name, **params)
+
+
+class Kernel(MeasOpts):
+    """Kernel."""
+
+    def __init__(self, name=None, **params):
+        """Create new kernel.
+
+        Parameters:
+            name (str): Name of kernel to be used.
+        """
+        super().__init__(name, **params)
