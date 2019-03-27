@@ -20,7 +20,7 @@ class PulseChannel(metaclass=ABCMeta):
     prefix = None
 
     @abstractmethod
-    def __init__(self, index: int):
+    def __init__(self, index: int = None):
         self._index = index
 
     @property

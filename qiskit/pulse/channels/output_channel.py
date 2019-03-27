@@ -22,7 +22,7 @@ class OutputChannel(PulseChannel):
                  commands.SamplePulse)
 
     @abstractmethod
-    def __init__(self, index: int, lo_frequency: float = None):
+    def __init__(self, index: int = None, lo_frequency: float = None):
         super().__init__(index)
         self._lo_frequency = lo_frequency
 
@@ -61,7 +61,8 @@ class DriveChannel(OutputChannel):
         """Create new drive (d) channel.
 
         Args:
-            index (int): Index of the channel.
+            index (int): index of the channel
+            lo_frequency (float): frequency of local oscillator
         """
         super().__init__(index, lo_frequency)
 
@@ -75,7 +76,8 @@ class ControlChannel(OutputChannel):
         """Create new control (u) channel.
 
         Args:
-            index (int): Index of the channel.
+            index (int): index of the channel
+            lo_frequency (float): frequency of local oscillator
         """
         super().__init__(index, lo_frequency)
 
@@ -89,6 +91,7 @@ class MeasureChannel(OutputChannel):
         """Create new measurement (m) channel.
 
         Args:
-            index (int): Index of the channel.
+            index (int): index of the channel
+            lo_frequency (float): frequency of local oscillator
         """
         super().__init__(index, lo_frequency)

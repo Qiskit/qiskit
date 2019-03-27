@@ -37,7 +37,11 @@ class DeviceSpecification:
         """
         Create device specification with values in backend configuration.
         Args:
-            backend(Backend):
+            backend(Backend): backend configuration
+        Returns:
+            DeviceSpecification: created device specification
+        Raises:
+            PulseError: when an invalid backend is specified
         """
         config = backend.configuration()
 
@@ -51,9 +55,9 @@ class DeviceSpecification:
 
         # frequency information
         qubit_lo_freqs = config.defaults['qubit_freq_est']
-        qubit_lo_range = config.qubit_lo_range
+        # qubit_lo_range = config.qubit_lo_range    # TODO: lo_ranges
         meas_lo_freqs = config.defaults['meas_freq_est']
-        meas_lo_range = config.meas_lo_range
+        # meas_lo_range = config.meas_lo_range      # TODO: lo_ranges
 
         # generate channels with assuming their numberings are aligned with qubits
         drives = [DriveChannel(i, qubit_lo_freqs[i]) for i in range(n_qubits)]   # TODO: lo_ranges
