@@ -14,3 +14,9 @@ class QobjType(str, Enum):
     """Qobj.type allowed values."""
     QASM = 'QASM'
     PULSE = 'PULSE'
+
+
+class MeasReturnType(str, Enum):
+    """PulseQobjConfig meas_return allowed values."""
+    AVERAGE = 'avg'
+    SINGLE = 'single'
