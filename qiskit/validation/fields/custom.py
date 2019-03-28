@@ -124,15 +124,25 @@ class InstructionParameter(ModelTypeValidator):
         return root_value
 
 
-class MeasurementParameter(ModelTypeValidator):
+class DictParameters(ModelTypeValidator):
     """Field for objects used in measurement kernel and discriminator parameters.
     """
     default_error_messages = {
-        'invalid': 'Not a valid mapping type.',
-        'invalid_sub': 'Not a valid value.'
+        'invalid_mapping': 'Not a valid mapping type.',
+        'invalid': '{input} cannot be parsed as a parameter.'
     }
 
-    valid_types = (int, float, str, bool, Iterable, Mapping, type(None))
+    def __init__(self, valid_value_types, **kwargs):
+        """Create new model.
+
+        Args:
+            valid_value_types (tuple): valid types as values.
+        """
+        super(DictParameters, self).__init__(**kwargs)
+        self.valid_value_types = valid_value_types
+
+    def _expected_types(self):
+        return self.valid_value_types
 
     def check_type(self, value, attr, data):
         if value is None:
@@ -141,14 +151,20 @@ class MeasurementParameter(ModelTypeValidator):
         _check_type = super().check_type
 
         errors = []
-        if isinstance(value, Mapping):
-            for v in value.values():
-                try:
-                    _check_type(v, None, value)
-                except ValidationError as err:
-                    errors.append(err.messages)
-        else:
-            errors.append('Not a valid mapping type.')
+        if not isinstance(data[attr], Mapping):
+            self.fail('invalid_mapping')
+
+        try:
+            if isinstance(value, Mapping):
+                for v in value.values():
+                    self.check_type(v, attr, data)
+            elif is_collection(value):
+                for v in value:
+                    self.check_type(v, attr, data)
+            else:
+                _check_type(value, attr, data)
+        except ValidationError as err:
+            errors.append(err.messages)
 
         if errors:
             raise ValidationError(errors)
@@ -159,14 +175,14 @@ class MeasurementParameter(ModelTypeValidator):
         # pylint: disable=too-many-return-statements
         if value is None:
             return None
-        if isinstance(value, (int, float, str, bool)):
+        if isinstance(value, self.valid_value_types):
             return value
         if isinstance(value, Iterable):
             return [self._serialize_sub(each) for each in value]
         if isinstance(value, Mapping):
             return {str(k): self._serialize_sub(v) for k, v in value.items()}
 
-        return self.fail('invalid_sub', input=value)
+        return self.fail('invalid', input=value)
 
     def _serialize(self, value, attr, obj):
         # pylint: disable=too-many-return-statements
@@ -175,7 +191,7 @@ class MeasurementParameter(ModelTypeValidator):
         if isinstance(value, Mapping):
             return {str(k): self._serialize_sub(v) for k, v in value.items()}
 
-        return self.fail('invalid')
+        return self.fail('invalid_mapping')
 
     def _deserialize(self, value, attr, data):
         # pylint: disable=too-many-return-statements
@@ -184,4 +200,4 @@ class MeasurementParameter(ModelTypeValidator):
         if isinstance(value, Mapping):
             return value
 
-        return self.fail('invalid')
+        return self.fail('invalid_mapping')
