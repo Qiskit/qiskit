@@ -46,6 +46,9 @@ class FrameChange(PulseCommand):
             return True
         return False
 
+    def __repr__(self):
+        return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
+
     def __call__(self, channel: OutputChannel) -> 'FrameChangePulse':
         return FrameChangePulse(self, channel)
 
@@ -70,6 +73,15 @@ class FrameChangePulse(Pulse):
     def occupancy(self):
         return self._occupancy
 
+    @property
+    def command(self) -> FrameChange:
+        """FrameChange command. """
+        return self._command
+
+    @property
+    def channel(self) -> OutputChannel:
+        """OutputChannel channel. """
+        return self._channel
+
     def __repr__(self):
-        return '%s(phase=%.3f, channelset=%s)' % \
-               (self.__class__.__name__, self._command.phase, self.channelset)
+        return '%s >> %s' % (self._command, self._channel)

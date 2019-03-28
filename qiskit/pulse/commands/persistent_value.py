@@ -53,6 +53,9 @@ class PersistentValue(PulseCommand):
             return True
         return False
 
+    def __repr__(self):
+        return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
+
     def __call__(self, channel: OutputChannel) -> 'PersistentValuePulse':
         return PersistentValuePulse(self, channel)
 
@@ -77,6 +80,15 @@ class PersistentValuePulse(Pulse):
     def occupancy(self):
         return self._occupancy
 
+    @property
+    def command(self) -> PersistentValue:
+        """PersistentValue command."""
+        return self._command
+
+    @property
+    def channel(self) -> OutputChannel:
+        """OutputChannel channel."""
+        return self._channel
+
     def __repr__(self):
-        return '%s(value=%s, channelset=%s)' % \
-               (self.__class__.__name__, str(self._command.value), self.channelset)
+        return '%s >> %s' % (self._command, self._channel)

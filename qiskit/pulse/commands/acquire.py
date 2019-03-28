@@ -70,6 +70,11 @@ class Acquire(PulseCommand):
             return True
         return False
 
+    def __repr__(self):
+        return '%s(%s, duration=%d, kernel=%s, discriminator=%s)' % \
+               (self.__class__.__name__, self.name, self.duration,
+                self.kernel.name, self.discriminator.name)
+
     def __call__(self,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
@@ -120,3 +125,26 @@ class AcquirePulse(Pulse):
     @property
     def occupancy(self):
         return self._occupancy
+
+    @property
+    def command(self):
+        """Acquire command. """
+        return self._command
+
+    @property
+    def acquire_channels(self):
+        """Acquire channels. """
+        return self._acquire_channels
+
+    @property
+    def mem_slots(self):
+        """MemorySlots. """
+        return self._mem_slots
+
+    @property
+    def reg_slots(self):
+        """RegisterSlots. """
+        return self._reg_slots
+
+    def __repr__(self):
+        return '%s >> #AcquireChannel=%d' % (self._command, len(self._acquire_channels))
