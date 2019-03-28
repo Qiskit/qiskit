@@ -12,7 +12,7 @@ from marshmallow.validate import Range, Regexp, Length, OneOf
 from qiskit.qobj.utils import MeasReturnType
 from qiskit.validation import bind_schema, BaseSchema, BaseModel
 from qiskit.validation.fields import (Integer, String, Number, Complex,
-                                      List, Nested, MeasurementParameter)
+                                      List, Nested, DictParameters)
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
@@ -23,7 +23,8 @@ class QobjMeasurementOptionSchema(BaseSchema):
 
     # Required properties.
     name = String(required=True)
-    params = MeasurementParameter(required=True)
+    params = DictParameters(valid_value_types=(int, float, str, bool, type(None)),
+                            required=True)
 
 
 class QobjPulseLibrarySchema(BaseSchema):
@@ -32,6 +33,18 @@ class QobjPulseLibrarySchema(BaseSchema):
     # Required properties.
     name = String(required=True)
     samples = List(Complex(), required=True, validate=Length(min=1))
+
+
+class QobjHamiltonianSchema(BaseSchema):
+    """Schema for QobjHamiltonian."""
+
+    # Required properties.
+    h_latex = String(required=True)
+    h_str = List(String(), required=True, validate=Length(min=1))
+    vars = DictParameters(valid_value_types=(int, float, complex),
+                          required=True)
+    osc = DictParameters(valid_value_types=(int, ),
+                         required=True)
 
 
 class PulseQobjInstructionSchema(QobjInstructionSchema):
