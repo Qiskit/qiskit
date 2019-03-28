@@ -93,7 +93,7 @@ jobs:
         - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_REQUIRES="vcrpy jupyter stestr qiskit-aer qiskit-ibmq-provider"
-        - CIBW_TEST_COMMAND="cd {project} && stestr run"
+        - CIBW_TEST_COMMAND="stestr -t {project}/test/python run"
 #      if: tag IS present
       script:
         - sudo pip install cibuildwheel==0.10.1
@@ -107,7 +107,7 @@ jobs:
         - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_REQUIRES="vcrpy jupyter stestr qiskit-aer qiskit-ibmq-provider"
-        - CIBW_TEST_COMMAND="cd {project} && stestr run"
+        - CIBW_TEST_COMMAND="stestr -t {project}/test/python run"
       script:
         - sudo pip2 install cibuildwheel==0.10.1
         - cibuildwheel --output-dir wheelhouse

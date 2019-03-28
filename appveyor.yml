@@ -17,7 +17,7 @@ environment:
           TWINE_USERNAME: qiskit
           TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
           CIBW_TEST_REQUIRES: vcrpy jupyter stestr qiskit-aer qiskit-ibmq-provider
-          CIBW_TEST_COMMAND: cd {project} && stestr run
+          CIBW_TEST_COMMAND: stestr -t {project}/test/python run
 
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
