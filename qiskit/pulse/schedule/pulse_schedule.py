@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import List
 
 from qiskit.pulse.channels import DeviceSpecification
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.commands import PulseCommand, SamplePulse
 from qiskit.pulse.exceptions import ScheduleError
 
@@ -46,7 +46,7 @@ class TimedPulseBlock(metaclass=ABCMeta):
 class TimedPulse(TimedPulseBlock):
     """TimedPulse = Pulse with start time context."""
 
-    def __init__(self, pulse_command: PulseCommand, to_channel: PulseChannel, start_time: int):
+    def __init__(self, pulse_command: PulseCommand, to_channel: Channel, start_time: int):
         if isinstance(pulse_command, to_channel.__class__.supported):
             self.command = pulse_command
             self.channel = to_channel
@@ -97,13 +97,13 @@ class Schedule(TimedPulseBlock):
     def device(self) -> DeviceSpecification:
         return self._device
 
-    def append(self, command: PulseCommand, channel: PulseChannel):
+    def append(self, command: PulseCommand, channel: Channel):
         """Append a new pulse command on a channel at the timing
         just after the last command finishes on the channel.
 
         Args:
             command (PulseCommand):
-            channel (PulseChannel):
+            channel (Channel):
         """
         try:
             start_time = self.end_time()  # TODO: need to add buffer?
@@ -112,7 +112,7 @@ class Schedule(TimedPulseBlock):
             logger.warning("Fail to append %s to %s", command, channel)
             raise ScheduleError(err.message)
 
-    def insert(self, start_time: int, command: PulseCommand, channel: PulseChannel):
+    def insert(self, start_time: int, command: PulseCommand, channel: Channel):
         """Insert new pulse command with `channel` at `start_time`.
 
         Args:
@@ -148,7 +148,7 @@ class Schedule(TimedPulseBlock):
     def end_time(self) -> int:
         return max([self._end_time(child) for child in self._children], default=0)
 
-    def end_time_by(self, channel: PulseChannel) -> int:
+    def end_time_by(self, channel: Channel) -> int:
         """End time of the occupation in this schedule on a `channel`.
         Args:
             channel:

@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 from qiskit.pulse import commands
 
 
-class PulseChannel(metaclass=ABCMeta):
+class Channel(metaclass=ABCMeta):
     """Pulse channel."""
 
     supported = None
@@ -40,7 +40,7 @@ class PulseChannel(metaclass=ABCMeta):
         """Two channels are the same if they are of the same type, and have the same index.
 
         Args:
-            other (PulseChannel): other PulseChannel
+            other (Channel): other PulseChannel
 
         Returns:
             bool: are self and other equal.
@@ -51,7 +51,7 @@ class PulseChannel(metaclass=ABCMeta):
         return False
 
 
-class AcquireChannel(PulseChannel):
+class AcquireChannel(Channel):
     """Acquire channel."""
 
     supported = commands.Acquire
@@ -66,7 +66,7 @@ class AcquireChannel(PulseChannel):
         super().__init__(index)
 
 
-class SnapshotChannel(PulseChannel):
+class SnapshotChannel(Channel):
     """Snapshot channel."""
 
     supported = commands.Snapshot
@@ -77,7 +77,7 @@ class SnapshotChannel(PulseChannel):
         super().__init__(0)
 
 
-class MemorySlot(PulseChannel):
+class MemorySlot(Channel):
     """Memory slot."""
 
     supported = commands.Acquire
@@ -92,7 +92,7 @@ class MemorySlot(PulseChannel):
         super().__init__(index)
 
 
-class RegisterSlot(PulseChannel):
+class RegisterSlot(Channel):
     """Classical resister slot channel."""
 
     supported = commands.Acquire

@@ -11,5 +11,5 @@ from .device_specification import DeviceSpecification
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
 from .output_channel import OutputChannel
 from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from .pulse_channel import PulseChannel
+from .pulse_channel import Channel
 from .qubit import Qubit
