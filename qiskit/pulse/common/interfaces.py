@@ -9,7 +9,7 @@
 Pulse = Command with its operands (Channels).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Set, Optional, List
+from typing import Set, List
 
 from qiskit.pulse.channels import Channel
 from .timeslots import TimeslotOccupancy
@@ -21,16 +21,19 @@ class Pulse(metaclass=ABCMeta):
     @property
     @abstractmethod
     def duration(self) -> int:
+        """Duration of this instruction block. """
         pass
 
     @property
     @abstractmethod
     def channelset(self) -> Set[Channel]:
+        """Set of channels used by this instruction block. """
         pass
 
     @property
     @abstractmethod
     def occupancy(self) -> TimeslotOccupancy:
+        """Occupied time slots by this instruction block. """
         pass
 
     def __repr__(self):

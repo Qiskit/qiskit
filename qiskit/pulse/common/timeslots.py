@@ -27,6 +27,9 @@ class Interval:
         Args:
             begin: begin time of this interval
             duration: duration of this interval
+
+        Raises:
+            PulseError: when invalid time or duration is specified
         """
         if begin < 0:
             raise PulseError("Cannot create Interval with negative begin time")
@@ -37,43 +40,59 @@ class Interval:
 
     @property
     def begin(self):
+        """Begin time of this interval."""
         return self._begin
 
     @property
     def end(self):
+        """End time of this interval."""
         return self._end
 
     @property
     def duration(self):
+        """Duration of this interval."""
         return self._end - self._begin
 
-    def has_overlap(self, interval: 'Interval'):
+    def has_overlap(self, interval: 'Interval') -> bool:
+        """Check if self has overlap with `interval`.
+
+        Args:
+            interval: interval to be examined
+
+        Returns:
+            bool: True if self has overlap with `interval` otherwise False
+        """
         if self.begin < interval.end and interval.begin < self.end:
             return True
+        return False
 
     def shifted(self, time: int) -> 'Interval':
+        """Return a new interval shifted by `time` from self
+
+        Args:
+            time: time to be shifted
+
+        Returns:
+            Interval: interval shifted by `time`
+        """
         return Interval(self.begin + time, self.duration)
 
 
 class Timeslot:
-    """Namedtuple of (Interval, PulseChannel)."""
+    """Named tuple of (Interval, Channel)."""
 
     def __init__(self, interval: Interval, channel: Channel):
-        """Create a timeslot.
-
-        Args:
-            interval:
-            channel:
-        """
         self._interval = interval
         self._channel = channel
 
     @property
     def interval(self):
+        """Interval of this time slot."""
         return self._interval
 
     @property
     def channel(self):
+        """Channel of this time slot."""
         return self._channel
 
 
@@ -81,10 +100,12 @@ class TimeslotOccupancy:
     """Timeslot occupancy for each channels."""
 
     def __init__(self, timeslots: List[Timeslot]):
-        """Create a timeslot occupancy.
+        """Create a new time-slot occupancy.
 
         Args:
-            timeslot:
+            timeslots: list of time slots
+        Raises:
+            PulseError: when overlapped time slots are specified
         """
         self._timeslots = timeslots
         self._table = defaultdict(list)
@@ -96,10 +117,12 @@ class TimeslotOccupancy:
 
     @property
     def timeslots(self):
+        """Time slots of this occupancy."""
         return self._timeslots
 
     @property
     def channelset(self) -> Set[Channel]:
+        """Time slots of used in this occupancy."""
         return {key for key in self._table.keys()}
 
     def is_mergeable_with(self, occupancy: 'TimeslotOccupancy') -> bool:
