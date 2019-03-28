@@ -50,10 +50,22 @@ class Unitary(Gate):
             self._representation = representation
             super().__init__('unitary', [sympy.Matrix(representation)], list(qargs))
         elif isinstance(representation, Unitary):
-            self = copy.deepcopy(representation)
+            for attrib, value in vars(representation).items():
+                setattr(self, attrib, value)
         if isinstance(label, str):
             self._label = label
         self._decompostion = []  # storage (needed?)
+
+    def __eq__(self, other):
+        if not isinstance(other, Unitary):
+            return NotImplemented
+        for attrib, value in vars(other).items():
+            if isinstance(value, numpy.ndarray):
+                if not numpy.array_equal(value, getattr(self, attrib)):
+                    return False
+            elif getattr(self, attrib) != getattr(other, attrib):
+                return False
+        return True
 
     @property
     def dimension(self):

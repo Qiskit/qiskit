@@ -47,6 +47,13 @@ class TestUnitary(QiskitTestCase):
         else:
             self.fail('setting Unitary with non-unitary did not raise')
 
+    def test_set_init_with_unitary(self):
+        """test instantiation of new unitary with another one (copy)"""
+        uni1 = Unitary([[0, 1], [1, 0]], validate=False, rtol=1e-2, atol=1e-2)
+        uni2 = Unitary(uni1)
+        self.assertTrue(uni1 == uni2)
+        self.assertFalse(uni1 is uni2)
+
     def test_conjugate(self):
         """test conjugate"""
         ymat = numpy.array([[0, -1j], [1j, 0]])
