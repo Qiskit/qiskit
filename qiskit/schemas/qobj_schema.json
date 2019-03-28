@@ -984,16 +984,169 @@
                         "rep_time": {
                             "minimum": 1,
                             "type": "integer"
+                        },
+                        "hamiltonian": {
+                            "properties": {
+                                "h_latex": {
+                                    "description": "Hamiltonian in latex format.",
+                                    "type": "string"
+                                },
+                                "h_str": {
+                                    "description": "Machine readable Hamiltonian.",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                },
+                                "vars": {
+                                    "description": "Variables in Hamiltonian.",
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^[a-z0-9]+$": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "osc": {
+                                    "description": "Oscillator Fock states.",
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^[0-9]+$": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required": [
+                                "h_latex",
+                                "h_str",
+                                "vars",
+                                "osc"
+                            ]
+                        },
+                        "noise": {
+                            "properties": {
+                                "pubit": {
+                                    "description": "Qubit noise configuration.",
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^[0-9]+$": {
+                                            "type": "object",
+                                            "patternProperties": {
+                                                "^[A-Za-z]+$": {
+                                                    "type": "number"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "oscillator": {
+                                    "properties": {
+                                        "n_th": {
+                                            "description": "Thermal noise amplitude.",
+                                            "type": "object",
+                                            "patternProperties": {
+                                                "^[0-9]+$": {
+                                                    "type": "number"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "coupling": {
+                                            "description": "Coupling intensity to bath.",
+                                            "type": "object",
+                                            "patternProperties": {
+                                                "^[0-9]+$": {
+                                                    "type": "number"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "n_th",
+                                        "coupling"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "qubit",
+                                "oscillator"
+                            ]
+                        },
+                        "dt": {
+                            "minimum": 0,
+                            "type": "integer"
+                        },
+                        "ode_options": {
+                            "properties": {
+                                "atol": {
+                                    "type": "number"
+                                },
+                                "rtol": {
+                                    "type": "number"
+                                },
+                                "nsteps": {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                },
+                                "max_step": {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                },
+                                "num_cpus": {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                },
+                                "norm_tol": {
+                                    "type": "number"
+                                },
+                                "norm_steps": {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                },
+                                "rhs_reuse": {
+                                    "type": "boolean"
+                                },
+                                "rhs_filename":{
+                                    "anyOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     },
-                    "required": [
-                        "meas_level",
-                        "pulse_library",
-                        "memory_slot_size",
-                        "meas_return",
-                        "qubit_lo_freq",
-                        "meas_lo_freq",
-                        "rep_time"
+                    "oneOf": [
+                        {
+                            "required": [
+                                "meas_level",
+                                "pulse_library",
+                                "memory_slot_size",
+                                "meas_return",
+                                "qubit_lo_freq",
+                                "meas_lo_freq",
+                                "rep_time"
+                            ]
+                        },
+                        {
+                            "required": [
+                                "pulse_library",
+                                "qubit_lo_freq",
+                                "meas_lo_freq",
+                                "hamiltonian",
+                                "dt"
+                            ]
+                        }
                     ]
                 },
                 "experiments": {
